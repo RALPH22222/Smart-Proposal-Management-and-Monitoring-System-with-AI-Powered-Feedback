@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from proposals import views 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("send-otp/", views.send_otp),
+    path("verify-otp/", views.verify_otp),
 ]
