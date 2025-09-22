@@ -4,8 +4,8 @@ import Register from "./auth/register";
 import Login from "./auth/login";
 
 // Admin
-import DashboardAdmin from "./users/admin/dashboardAdmin";
-import Accounts from "./users/admin/accounts";
+import DashboardAdmin from "./pages/users/admin/dashboardAdmin";
+import Accounts from "./pages/users/admin/accounts";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";

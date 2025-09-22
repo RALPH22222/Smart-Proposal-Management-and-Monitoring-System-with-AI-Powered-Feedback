@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Sidebar from "../../components/sidebar";
-import { useLoading } from "../../contexts/LoadingContext";
+import Sidebar from "../../../components/sidebar";
+import { useLoading } from "../../../contexts/LoadingContext";
 
 const Sparkline: React.FC<{ data: number[]; className?: string }> = ({ data, className }) => {
   const w = 120;

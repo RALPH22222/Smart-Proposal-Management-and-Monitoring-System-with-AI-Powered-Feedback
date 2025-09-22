@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Sidebar from "../../components/sidebar";
-import { useLoading } from "../../contexts/LoadingContext";
+import Sidebar from "../../../components/sidebar";
+import { useLoading } from "../../../contexts/LoadingContext";
 
 type User = {
   id: number;
