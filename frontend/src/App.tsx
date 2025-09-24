@@ -8,10 +8,12 @@ import DashboardAdmin from "./pages/users/admin/dashboard";
 import Accounts from "./pages/users/admin/accounts";
 import Reports from "./pages/users/admin/reports";
 import Contents from "./pages/users/admin/contents";
+import Reviews from "./pages/users/admin/reviews";
+import SettingsAdmin from "./pages/users/admin/settings";
 
 // RDEC
 import RdecPage from "./pages/users/rdec/RdecPage";
-import DashboardRdec from './pages/users/rdec/DashboardRdec';
+import DashboardRdec from './pages/users/rdec/Dashboard';
 import Proposals from './pages/users/rdec/Proposals';
 import Notifications from './pages/users/rdec/Notifications';
 import SettingsRdec from './pages/users/rdec/Settings';
@@ -38,7 +40,9 @@ function App() {
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
-          // RDEC
+          <Route path="/users/admin/reviews" element={<Reviews />} />
+          <Route path="/users/admin/settings" element={<SettingsAdmin />} />
+          {/* // RDEC */}
           <Route element={<RdecPage />}>
             <Route path="/users/rdec/dashboard" element={<DashboardRdec />} />
             <Route path="/users/rdec/proposals" element={<Proposals />} />

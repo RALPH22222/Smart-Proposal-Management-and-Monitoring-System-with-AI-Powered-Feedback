@@ -23,18 +23,18 @@ const ContentManagement: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Content Management System</h1>
-          <p className="text-gray-600">Manage all REOC System content, announcements, and resources</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Content Management System</h1>
+          <p className="text-gray-600 text-sm md:text-base">Manage all REOC System content, announcements, and resources</p>
         </div>
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            <nav className="flex space-x-6 md:space-x-8 px-4 md:px-6 overflow-x-auto" aria-label="Tabs">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -43,7 +43,7 @@ const ContentManagement: React.FC = () => {
                     activeTab === tab.id
                       ? "border-red-500 text-red-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 flex items-center gap-2`}
+                  } whitespace-nowrap py-3 md:py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 flex items-center gap-2`}
                 >
                   <span className="text-lg">{tab.icon}</span>
                   {tab.label}
@@ -108,12 +108,12 @@ const AnnouncementsSection: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Announcements & Updates</h2>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Announcements & Updates</h2>
         <button
           onClick={() => setShowEditor(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
         >
           + New Announcement
         </button>
@@ -143,7 +143,7 @@ const AnnouncementsSection: React.FC = () => {
                 placeholder="Enter announcement content"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Date</label>
                 <input
@@ -263,16 +263,16 @@ const GuidelinesSection: React.FC = () => {
   const [newFaq, setNewFaq] = useState({ question: "", answer: "" });
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Guidelines & Resources</h2>
+    <div className="p-4 md:p-6">
+      <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-6">Guidelines & Resources</h2>
 
       {/* File Upload Section */}
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Uploaded Files</h3>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <h3 className="text-base md:text-lg font-medium text-gray-900">Uploaded Files</h3>
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
           >
             + Upload File
           </button>
@@ -322,11 +322,11 @@ const GuidelinesSection: React.FC = () => {
 
       {/* FAQ Section */}
       <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Frequently Asked Questions</h3>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <h3 className="text-base md:text-lg font-medium text-gray-900">Frequently Asked Questions</h3>
           <button
             onClick={() => setShowFaqEditor(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
           >
             + Add FAQ
           </button>
@@ -416,12 +416,12 @@ const TemplatesSection: React.FC = () => {
   const [showUpload, setShowUpload] = useState(false);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Proposal Templates</h2>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Proposal Templates</h2>
         <button
           onClick={() => setShowUpload(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
         >
           + Upload Template
         </button>
@@ -528,12 +528,12 @@ const StaticPagesSection: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Static Pages & Content</h2>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Static Pages & Content</h2>
         <button
           onClick={() => setShowEditor(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
         >
           + New Page
         </button>
@@ -581,8 +581,8 @@ const StaticPagesSection: React.FC = () => {
       </div>
 
       {showEditor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
                 {editingPage ? `Edit ${editingPage.title}` : "Create New Page"}
@@ -687,13 +687,13 @@ const MediaLibrarySection: React.FC = () => {
     : media.filter(item => item.category === selectedCategory);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Media Library</h2>
-        <div className="flex gap-2">
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Media Library</h2>
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setViewMode("grid")}
-            className={`px-3 py-2 rounded-lg text-sm ${
+            className={`px-3 py-2 rounded-lg text-sm w-full md:w-auto ${
               viewMode === "grid" ? "bg-red-600 text-white" : "bg-gray-200 text-gray-700"
             }`}
           >
@@ -701,7 +701,7 @@ const MediaLibrarySection: React.FC = () => {
           </button>
           <button
             onClick={() => setViewMode("list")}
-            className={`px-3 py-2 rounded-lg text-sm ${
+            className={`px-3 py-2 rounded-lg text-sm w-full md:w-auto ${
               viewMode === "list" ? "bg-red-600 text-white" : "bg-gray-200 text-gray-700"
             }`}
           >
@@ -709,7 +709,7 @@ const MediaLibrarySection: React.FC = () => {
           </button>
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full md:w-auto"
           >
             + Upload Media
           </button>
@@ -717,7 +717,7 @@ const MediaLibrarySection: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex gap-4">
+      <div className="mb-6 flex flex-col md:flex-row gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
           <select
