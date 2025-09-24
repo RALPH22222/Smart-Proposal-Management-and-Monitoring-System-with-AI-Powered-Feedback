@@ -1,14 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const accent = "#C8102E";
 
 const Sidebar: React.FC = () => {
-  const links = [
-    { to: "/users/admin/dashboardAdmin", label: "Dashboard", icon: DashboardIcon },
+  const [isAIExpanded, setIsAIExpanded] = useState(false);
+
+  const toggleAI = () => {
+    setIsAIExpanded(!isAIExpanded);
+  };
+
+  const mainLinks = [
+    { to: "/users/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
     { to: "/users/admin/accounts", label: "Accounts", icon: UserIcon },
-    { to: "/users/admin/proposals", label: "Proposals", icon: FileIcon },
-    { to: "/users/admin/notices", label: "Notices", icon: BellIcon },
+    { to: "/users/admin/contents", label: "Contents", icon: ContentIcon },
+    { to: "/users/admin/reports", label: "Reports", icon: BellIcon },
+  ];
+
+  const aiLinks = [
+    { to: "/users/admin/ai-feedback", label: "AI Feedback", icon: AIFeedbackIcon },
+    { to: "/users/admin/ai-insights", label: "AI Insights", icon: AIInsightsIcon },
+    { to: "/users/admin/ai-reports", label: "AI Reports", icon: AIReportsIcon },
+    { to: "/users/admin/ai-assistant", label: "AI Assistant", icon: AIAssistantIcon },
+  ];
+
+  const bottomLinks = [
     { to: "/users/admin/settings", label: "Settings", icon: CogIcon },
     { to: "/logout", label: "Logout", icon: LogoutIcon },
   ];
@@ -31,7 +47,69 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex flex-col gap-1">
-        {links.map((ln) => (
+        {/* Main Navigation Links */}
+        {mainLinks.map((ln) => (
+          <NavLink
+            key={ln.to}
+            to={ln.to}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive
+                  ? "bg-red-50 text-[color]"
+                  : "text-gray-700 hover:bg-red-50"
+              }`
+            }
+            style={({ isActive }) =>
+              isActive ? { color: accent, boxShadow: `inset 3px 0 0 ${accent}` } : {}
+            }
+          >
+            <ln.icon className="w-5 h-5" style={{ color: accent }} />
+            <span>{ln.label}</span>
+          </NavLink>
+        ))}
+
+        {/* AI Section */}
+        <div className="mt-2 mb-2">
+          {/* AI Main Button */}
+          <button
+            onClick={toggleAI}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors text-gray-700 hover:bg-red-50"
+          >
+            <div className="flex items-center gap-3">
+              <AIIcon className="w-5 h-5" style={{ color: accent }} />
+              <span>AI Tools</span>
+            </div>
+            <ChevronIcon className={`w-4 h-4 transition-transform duration-200 ${isAIExpanded ? "rotate-180" : ""}`} />
+          </button>
+
+          {/* AI Submenu */}
+          {isAIExpanded && (
+            <div className="ml-6 mt-1 border-l-2 border-gray-100 pl-2">
+              {aiLinks.map((ln) => (
+                <NavLink
+                  key={ln.to}
+                  to={ln.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      isActive
+                        ? "bg-red-50 text-[color]"
+                        : "text-gray-700 hover:bg-red-50"
+                    }`
+                  }
+                  style={({ isActive }) =>
+                    isActive ? { color: accent, boxShadow: `inset 3px 0 0 ${accent}` } : {}
+                  }
+                >
+                  <ln.icon className="w-4 h-4" style={{ color: accent }} />
+                  <span>{ln.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Navigation Links */}
+        {bottomLinks.map((ln) => (
           <NavLink
             key={ln.to}
             to={ln.to}
@@ -55,7 +133,66 @@ const Sidebar: React.FC = () => {
   );
 };
 
-/* Simple SVG icons */
+/* AI Icon */
+function AIIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 8V4L8 8l4 4V8z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M16 12h4l-4 4-4-4h4z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M8 12H4l4-4 4 4H8z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M12 16v4l4-4-4-4v4z" stroke="currentColor" strokeWidth="1.5"/>
+      <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+/* Chevron Icon for Expand/Collapse */
+function ChevronIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+/* AI Submenu Icons */
+function AIFeedbackIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M8 12h8M8 16h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12c0 1.5.33 2.91.91 4.18.16.35.19.75.09 1.12l-.65 2.9 2.9-.65c.37-.08.77-.07 1.12.09A9.96 9.96 0 0012 22z" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+function AIInsightsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M21 21H3V3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7 13l3 3 7-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="17" cy="7" r="2" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+function AIReportsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M9 17V7M15 17v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" stroke="currentColor" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+function AIAssistantIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M12 18a6 6 0 100-12 6 6 0 000 12z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/* Keep your existing icons below (DashboardIcon, UserIcon, etc.) */
 function DashboardIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
@@ -66,33 +203,25 @@ function DashboardIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function UserIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle
-        cx="12"
-        cy="8"
-        r="4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M4 20c0-4 4-6 8-6s8 2 8 6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
-function FileIcon(props: React.SVGProps<SVGSVGElement>) {
+
+function ContentIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M14 3v6h6" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
+
 function BellIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
@@ -101,6 +230,7 @@ function BellIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function CogIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
@@ -109,6 +239,7 @@ function CogIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 function LogoutIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

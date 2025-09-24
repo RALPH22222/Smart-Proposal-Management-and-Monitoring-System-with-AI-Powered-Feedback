@@ -16,7 +16,7 @@ const mockUsers: User[] = [
   { id: 3, name: "Ace Nieva", email: "ace@example.com", role: "Evaluator", status: "Inactive" },
   { id: 4, name: "Diana Castillon", email: "diana@example.com", role: "R&D Staff", status: "Active" },
   { id: 5, name: "Andre Lee Cuyugan", email: "hellopo@example.com", role: "Proponent", status: "Active" },
-  { id: 6, name: "Elena Martinez", email: "elena@example.com", role: "RDEC", status: "Inactive" },
+  { id: 6, name: "Odrec Credo", email: "odric@example.com", role: "RDEC", status: "Inactive" },
   { id: 7, name: "Carlos Rodriguez", email: "carlos@example.com", role: "Proponent", status: "Active" },
   { id: 8, name: "Sofia Hernandez", email: "sofia@example.com", role: "Proponent", status: "Inactive" },
 ];
