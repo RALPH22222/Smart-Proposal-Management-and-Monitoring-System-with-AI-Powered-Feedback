@@ -10,12 +10,12 @@ import Reports from "./pages/users/admin/reports";
 import Contents from "./pages/users/admin/contents";
 
 // RDEC
-import RdecPage from "./pages/users/rdec/RdecPage";
-import DashboardRdec from './pages/users/rdec/DashboardRdec';
-import Proposals from './pages/users/rdec/Proposals';
-import Notifications from './pages/users/rdec/Notifications';
-import SettingsRdec from './pages/users/rdec/Settings';
-import Endorsed from './pages/users/rdec/Endorsed';
+import RdecPage from './pages/users/Rdec/RdecPage';
+import DashboardRdec from './pages/users/Rdec/Dashboard';
+import Proposals from './pages/users/Rdec/Proposals';
+import Notifications from './pages/users/Rdec/Notifications';
+import SettingsRdec from './pages/users/Rdec/Settings';
+import Endorsed from './pages/users/Rdec/Endorsed';
 
 //Proponent
 import Dashboard from "./pages/users/Proponent/dashboard";
@@ -38,7 +38,7 @@ function App() {
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
-          // RDEC
+          
           <Route element={<RdecPage />}>
             <Route path="/users/rdec/dashboard" element={<DashboardRdec />} />
             <Route path="/users/rdec/proposals" element={<Proposals />} />
