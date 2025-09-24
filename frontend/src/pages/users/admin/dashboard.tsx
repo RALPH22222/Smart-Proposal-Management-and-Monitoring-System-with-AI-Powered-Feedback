@@ -2,6 +2,21 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../../../components/sidebar";
 import { useLoading } from "../../../contexts/LoadingContext";
 
+const PRIMARY = "#C8102E";
+
+const Card: React.FC<{ title?: string; right?: React.ReactNode; className?: string; children?: React.ReactNode }>
+  = ({ title, right, className, children }) => (
+  <div className={`bg-white rounded-lg shadow p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5 ${className || ""}`}>
+    {(title || right) && (
+      <div className="flex items-center justify-between mb-3">
+        {title ? <h3 className="text-sm font-medium text-gray-700">{title}</h3> : <span />}
+        {right}
+      </div>
+    )}
+    {children}
+  </div>
+);
+
 const Sparkline: React.FC<{ data: number[]; className?: string }> = ({ data, className }) => {
   const w = 120;
   const h = 28;
@@ -32,7 +47,7 @@ const Donut: React.FC<{ value: number; size?: number; stroke?: number }> = ({ va
         cx={size / 2}
         cy={size / 2}
         r={radius}
-        stroke="#C8102E"
+        stroke={PRIMARY}
         strokeWidth={stroke}
         strokeLinecap="round"
         fill="none"
@@ -68,7 +83,7 @@ const StatCard: React.FC<{
 };
 
 /* AreaChart */
-const AreaChart: React.FC<{ data: number[]; width?: number; height?: number }> = ({ data, width = 800, height = 240 }) => {
+ const AreaChart: React.FC<{ data: number[]; width?: number; height?: number }> = ({ data, width = 800, height = 240 }) => {
   if (!data || data.length === 0) return null;
   const padding = { top: 12, right: 12, bottom: 24, left: 36 };
   const w = width;
@@ -93,18 +108,15 @@ const AreaChart: React.FC<{ data: number[]; width?: number; height?: number }> =
     return i % step === 0 ? `${i + 1}` : "";
   });
 
-  // Add state for animation control
   const [isAnimating, setIsAnimating] = useState(false);
   
   useEffect(() => {
-    // Trigger animation after component mounts
     const timer = setTimeout(() => setIsAnimating(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <svg width="100%" viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
-      {/* Grid lines */}
       {[0, 0.25, 0.5, 0.75, 1].map((t, idx) => {
         const yy = padding.top + innerH * t;
         return <line key={idx} x1={padding.left} x2={padding.left + innerW} y1={yy} y2={yy} stroke="#F3F4F6" strokeWidth={1} />;
@@ -124,7 +136,7 @@ const AreaChart: React.FC<{ data: number[]; width?: number; height?: number }> =
       <path
         d={linePath}
         fill="none"
-        stroke="#C8102E"
+        stroke={PRIMARY}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -149,26 +161,92 @@ const AreaChart: React.FC<{ data: number[]; width?: number; height?: number }> =
   );
 };
 
+/* Donut breakdown card */
+const DonutBreakdown: React.FC<{ title: string; items: { label: string; value: number }[] }>
+  = ({ title, items }) => {
+  const total = items.reduce((s, i) => s + i.value, 0);
+  const primaryPct = total ? Math.round((items[0].value / total) * 100) : 0;
+  return (
+    <Card title={title}>
+      <div className="flex items-center gap-4">
+        <Donut value={primaryPct} size={88} stroke={10} />
+        <div className="text-sm w-full">
+          {items.map((it) => (
+            <div key={it.label} className="flex items-center gap-2 py-1">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: PRIMARY }} />
+              <span className="text-gray-700">{it.label}</span>
+              <span className="ml-auto text-gray-500">{it.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const TrafficCard: React.FC<{ title: string; sources: { label: string; pct: number }[] }>
+  = ({ title, sources }) => (
+  <Card title={title}>
+    <div className="space-y-3">
+      {sources.map((s) => (
+        <div key={s.label} className="text-sm">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-gray-700">{s.label}</span>
+            <span className="text-gray-500">{s.pct}%</span>
+          </div>
+          <div className="h-2 rounded bg-gray-100">
+            <div className="h-2 rounded" style={{ width: `${s.pct}%`, background: PRIMARY }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  </Card>
+);
+
+/* Compact calendar strip */
+const CalendarStrip: React.FC<{ days: string[]; activeIndex: number }>
+  = ({ days, activeIndex }) => (
+  <div className="grid grid-cols-7 gap-2 text-sm text-gray-700 select-none">
+    {days.map((d, i) => (
+      <div
+        key={d + i}
+        className={`flex flex-col items-center ${i === activeIndex ? "text-white" : "text-gray-700"}`}
+      >
+        <span className="text-xs text-gray-500">{d.slice(0, 3)}</span>
+        <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center ${i === activeIndex ? "bg-[#C8102E]" : "bg-gray-100"}`}>
+          {i + 1}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const DashboardAdmin: React.FC = () => {
-  // mock data — replace with API data
   const proposalsSpark = [4, 8, 6, 10, 12, 9, 14];
   const proposalsLast30 = [3, 5, 4, 6, 8, 7, 9, 12, 10, 11, 14, 13, 15, 17, 18, 16, 19, 21, 20, 22, 24, 23, 25, 26, 28, 27, 29, 30, 28, 31];
   const usersTotal = 1284;
   const activeProjects = 8;
-  const notices = 3;
-  const approvalRate = 72; // percent
+  const approvalRate = 72; 
 
-  // loading / enter animation control
+  const approvalStatus = [
+    { label: "Approved", value: 36 },
+    { label: "Pending", value: 28 },
+    { label: "Under Review", value: 16 },
+    { label: "Rejected", value: 12 },
+  ];
+  const submissionsByUnit = [
+    { label: "R&D", pct: 43 },
+    { label: "Proponents", pct: 31 },
+    { label: "Evaluation", pct: 26 },
+  ];
+
   const { setLoading } = useLoading();
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
-    // ensure overlay shows until page is ready (replace timeout with real fetch)
     setLoading(true);
     const t = setTimeout(() => {
       setLoading(false);
-      // trigger the enter animation after loading ends
-      // use requestAnimationFrame to ensure transition runs
       requestAnimationFrame(() => setEntered(true));
     }, 450);
     return () => clearTimeout(t);
@@ -184,10 +262,10 @@ const DashboardAdmin: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <header className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600 mt-1">Overview of system activity.</p>
+            <p className="text-gray-600 mt-1">Overview of proposal submissions and approvals.</p>
           </header>
 
-          <section className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-6">
+          <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             <StatCard
               title="Total Users"
               value={usersTotal.toLocaleString()}
@@ -212,34 +290,28 @@ const DashboardAdmin: React.FC = () => {
             </StatCard>
           </section>
 
-          {/* Bigger chart card (full width) */}
-          <section className="mb-6">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-500">Proposals (last 30 days)</h3>
-                <div className="text-xs text-gray-400">Updated just now</div>
-              </div>
+          {/* Main analytics layout */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: big chart card */}
+            <Card className="lg:col-span-8" title="Proposals (last 30 days)" right={<span className="text-xs text-gray-400">Updated just now</span>}>
               <div style={{ width: "100%", overflowX: "auto" }}>
                 <div style={{ minWidth: 720 }}>
                   <AreaChart data={proposalsLast30} width={720} height={260} />
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-medium text-gray-500">Proposals Summary</h3>
-              <p className="mt-2 text-2xl font-semibold">42</p>
-              <div className="mt-3">
-                <Sparkline data={proposalsSpark} />
+              <div className="mt-4">
+                <CalendarStrip days={["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]} activeIndex={2} />
               </div>
-            </div>
+            </Card>
 
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-medium text-gray-500">Notices</h3>
-              <p className="mt-2 text-2xl font-semibold">{notices}</p>
-              <div className="mt-3 text-xs text-gray-400">Important announcements</div>
+            {/* Right: stacked cards */}
+            <div className="lg:col-span-4 space-y-6">
+              <DonutBreakdown title="Approval Status" items={approvalStatus} />
+              <TrafficCard title="Submissions by Unit" sources={submissionsByUnit} />
+              <Card title="Proposals Summary">
+                <p className="text-2xl font-semibold">42</p>
+                <div className="mt-3"><Sparkline data={proposalsSpark} /></div>
+              </Card>
             </div>
           </section>
         </div>

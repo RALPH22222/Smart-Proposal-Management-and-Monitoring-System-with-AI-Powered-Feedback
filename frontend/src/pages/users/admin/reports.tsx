@@ -11,7 +11,7 @@ type Issue = {
   module: string;
   status: IssueStatus;
   severity: IssueSeverity;
-  createdAt: string; // ISO date
+  createdAt: string; 
   assignee?: string;
 };
 
