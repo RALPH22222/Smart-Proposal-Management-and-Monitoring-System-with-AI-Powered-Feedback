@@ -5,7 +5,7 @@ import ElectricBorder from '../components/ElecticBorder';
 {/* Gais kung may di kayo nagustuhan sabi lang sakin then kung meron kayo di alam sa code ko sabi lang if may time ako turuan ko lang how ga work*/}
 const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
       <Navbar />
       <section className="pt-20 pb-12 bg-gradient-to-b from-white to-gray-100">
         <div className="max-w-6xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -34,21 +34,21 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <img
-              src="https://scontent.fcgy1-2.fna.fbcdn.net/v/t39.30808-6/479186455_671527225200257_140539643212713243_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeGYBskeDlCdiIxI_katwvpSWnXcRcawRjxaddxFxrBGPGg9x2-ii1bbYI8tp3rxtWLMi4jZL8ASPXla-lmgDJy-&_nc_ohc=AGKdBxsUruAQ7kNvwGc1PCA&_nc_oc=AdmyHCbhQPeHej_lihjNQcy2q7iGamKLURTo3Yx4nITB-P5x2Gnce76kgscPGEjD8Kc&_nc_zt=23&_nc_ht=scontent.fcgy1-2.fna&_nc_gid=wXS3OGkKg2iz1kRzMUvafQ&oh=00_Afb7SxeNP1qWtVOzInW8uzliVXfri7R5vWFnb2_2Zczglg&oe=68D4F061"
-              alt="placeholder 1"
-              className="w-full h-44 object-cover rounded-lg shadow-sm"
+              src="https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?q=80&auto=format&fit=crop&w=1200&h=600"
+              alt="Lecture hall with students"
+              className="w-full h-44 sm:h-48 lg:h-56 object-cover rounded-xl shadow-md ring-1 ring-black/5"
             />
             <img
-              src="https://scontent.fcgy1-3.fna.fbcdn.net/v/t1.6435-9/88197233_480215789522042_7705417705527967744_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeG3KDFrIacAyYAuOsHOwZqPWEX_DvL6GgpYRf8O8voaCkXxHiJZ2OZXrpwEJVSBnys7uHVj9liIi3pvSx5mguyB&_nc_ohc=KZRAaWidt8oQ7kNvwG6a9UJ&_nc_oc=Adl_ogn0LMrEg1kSziR8J9DnpDdNV4Aa1-6HYSs4zPWqxTa3Y_58BVFQvOEl2eHLr0A&_nc_zt=23&_nc_ht=scontent.fcgy1-3.fna&_nc_gid=wBDh6wLRWUooLGmqeF6pDw&oh=00_AfYEQqakIp5etOkhjBNXbn395MYJhZhyPsL7AbzkAVvAMw&oe=68F682AC"
-              alt="placeholder 2"
-              className="w-full h-44 object-cover rounded-lg shadow-sm"
+              src="https://images.unsplash.com/photo-1581093458791-9d09fda49360?q=80&auto=format&fit=crop&w=1200&h=600"
+              alt="Researcher in a lab setting"
+              className="w-full h-44 sm:h-48 lg:h-56 object-cover rounded-xl shadow-md ring-1 ring-black/5"
             />
             <img
-              src="https://scontent.fcgy1-2.fna.fbcdn.net/v/t39.30808-6/487410400_2211707282621132_3419906964591658393_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=a5f93a&_nc_eui2=AeFSZXBT3jngsxKdXpFHpaG9ogx_pOxKvjSiDH-k7Eq-NHI4fUO_aHxpZCddR_tdzrDdmuhdOM2wmT6Z2g9AN2IQ&_nc_ohc=Q1XE9Rt6DXYQ7kNvwGD6O9C&_nc_oc=AdlPUVPS4UnmxCw4WORXXSXI3mYkUo8VaWD3MGH-N1Zu-0yJ3HkJu94IIa-agfxj0DE&_nc_zt=23&_nc_ht=scontent.fcgy1-2.fna&_nc_gid=R6oGDTqquR-4sRzdaXYCPw&oh=00_AfaLTWsuoFnPVP67Kjs752DidBMMAw2_lzFNtQTnEAO3Vg&oe=68D5008D"
-              alt="placeholder 3"
-              className="w-full h-44 object-cover rounded-lg shadow-sm col-span-2"
+              src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&auto=format&fit=crop&w=1600&h=600"
+              alt="University library interior"
+              className="w-full h-48 sm:h-56 lg:h-64 object-cover rounded-xl shadow-md ring-1 ring-black/5 sm:col-span-2"
             />
           </div>
         </div>
@@ -76,8 +76,8 @@ const LandingPage: React.FC = () => {
             <div className="hidden md:block">
               <div className="w-full h-full rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
                 <img
-                  src="https://scontent.fcgy1-1.fna.fbcdn.net/v/t39.30808-6/481335175_1061209699381731_6163952778813124354_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeGWxEGHROGVQeY50ploi1U13komRiTB0c_eSiZGJMHRz7cwKh5D5_mtcr58FZ_kUVM_O_5r5wMpmpVYriie9ChO&_nc_ohc=WmmiknkgMI0Q7kNvwHHQyG6&_nc_oc=AdnI_3pZwnzjmxToum42ohqwn7imFkArO5I8nYTC0CrkchZqfh1aLuRRb09WhYGqDF4&_nc_zt=23&_nc_ht=scontent.fcgy1-1.fna&_nc_gid=NtbCSJ8-59sUxgu8tqfOzg&oh=00_AfaoAtTdge8Tn9jjsp5Mg6CqTcGyM6b-z3murtMHdh-TRw&oe=68D4F594"
-                  alt="office placeholder"
+                  src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&auto=format&fit=crop&w=1200&h=800"
+                  alt="Campus building exterior"
                   className="object-cover w-full h-full"
                 />
               </div>
@@ -89,8 +89,8 @@ const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <h3 className="text-2xl font-semibold mb-6 text-center">Steps For Proponents</h3>
 
-          <div className="mx-auto" style={{ maxWidth: 900 }}>
-            <div style={{ height: '600px', position: 'relative', transform: 'translateY(-200px)' }}>
+          <div className="mx-auto flex lg:block items-center justify-center min-h-[60vh] lg:min-h-0" style={{ maxWidth: 900 }}>
+            <div className="relative h-[120px] md:h-[520px] lg:h-[600px] overflow-visible lg:-translate-y-24">
               <CardSwap
                 cardDistance={60}
                 verticalDistance={70}
@@ -98,8 +98,8 @@ const LandingPage: React.FC = () => {
                 pauseOnHover={false}
               >
                 <Card
-                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border"
-                  style={{ width: 520, height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
+                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[520px]"
+                  style={{ height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
                 >
                   <img src="../src/assets/IMAGES/LOGO.png" alt="logo" className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
                   <div className="flex-1">
@@ -109,8 +109,8 @@ const LandingPage: React.FC = () => {
                 </Card>
 
                 <Card
-                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border"
-                  style={{ width: 520, height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
+                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[520px]"
+                  style={{ height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
                 >
                   <img src="../src/assets/IMAGES/LOGO.png" alt="logo" className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
                   <div className="flex-1">
@@ -120,8 +120,8 @@ const LandingPage: React.FC = () => {
                 </Card>
 
                 <Card
-                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border"
-                  style={{ width: 520, height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
+                  customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[520px]"
+                  style={{ height: 320, borderColor: 'rgba(200,16,46,0.12)' }}
                 >
                   <img src="../src/assets/IMAGES/LOGO.png" alt="logo" className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
                   <div className="flex-1">
@@ -151,12 +151,14 @@ const LandingPage: React.FC = () => {
                 <div className="bg-white rounded-lg overflow-hidden shadow-lg" style={{ minHeight: 220 }}>
                   <img
                     src={
-                      i === 0 || i === 1 || i === 2
-                        ? 'https://scontent.fcgy1-3.fna.fbcdn.net/v/t39.30808-6/489958368_3038610116278509_661823795661958936_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=cf85f3&_nc_eui2=AeH9vC9dVVOw6ieIiSA_899zCa851pmWEwEJrznWmZYTAbT-2rYWxsHhjggTy1HYpTNJ7LQxqD0m3DpDNt5AuEqN&_nc_ohc=OWDln8-3rsEQ7kNvwEB0NbS&_nc_oc=AdmUKu8C-5_6YtegHspg-ncJ6hUZ2GmF9XcOi21Jx2w1Gb3rFhIczAHP3iAQkVkVCcU&_nc_zt=23&_nc_ht=scontent.fcgy1-3.fna&_nc_gid=Adg_pnyFqx2DPNx-Hez6uA&oh=00_AfbFX_1vc4VGBLdUY-yLr7KXkfLEyWtjybWWpdE-hVR6tg&oe=68D4F80B'
-                        : `https://via.placeholder.com/600x240?text=Featured+${i + 1}`
+                      i === 0
+                        ? 'https://images.unsplash.com/photo-1558538337-9d03f5c5f37a?q=80&auto=format&fit=crop&w=1200&h=600' // students collaborating
+                        : i === 1
+                        ? 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&auto=format&fit=crop&w=1200&h=600' // campus hallway/notice
+                        : 'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?q=80&auto=format&fit=crop&w=1200&h=600' // project teamwork
                     }
                     alt={`featured ${i + 1}`}
-                    className="w-full h-40 object-cover"
+                    className="w-full h-40 sm:h-44 lg:h-48 object-cover"
                   />
                   <div className="p-4">
                     <h4 className="text-lg font-semibold" style={{ color: '#C8102E' }}>{title}</h4>
