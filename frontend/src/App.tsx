@@ -9,6 +9,13 @@ import Accounts from "./pages/users/admin/accounts";
 import Reports from "./pages/users/admin/reports";
 import Contents from "./pages/users/admin/contents";
 
+// RDEC
+import RdecPage from "./pages/users/rdec/RdecPage";
+import Dashboard from './pages/users/rdec/Dashboard';
+import Proposals from './pages/users/rdec/Proposals';
+import Notifications from './pages/users/rdec/Notifications';
+import Settings from './pages/users/rdec/Settings';
+import Endorsed from './pages/users/rdec/Endorsed';
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
@@ -26,6 +33,14 @@ function App() {
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
+          // RDEC
+          <Route element={<RdecPage />}>
+            <Route path="/users/rdec/dashboard" element={<Dashboard />} />
+            <Route path="/users/rdec/proposals" element={<Proposals />} />
+            <Route path="/users/rdec/notifications" element={<Notifications />} />
+            <Route path="/users/rdec/settings" element={<Settings />} />
+            <Route path="/users/rdec/endorsed" element={<Endorsed />} />
+          </Route>
         </Routes>
         <LoadingOverlay />
       </LoadingProvider>
