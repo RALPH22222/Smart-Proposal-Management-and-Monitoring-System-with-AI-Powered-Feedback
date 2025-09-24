@@ -111,6 +111,12 @@ export default function Login() {
             <div className="text-xs text-gray-400">or continue with</div>
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
           </div>
+          <div className="text-sm text-center text-gray-600">
+            Don't have an account?{' '}
+            <a href="/register" className="font-semibold" style={{ color: '#C8102E' }}>
+              Create one
+            </a>
+          </div>
         </form>
       </div>
       <div className="w-full md:w-1/2 flex items-center justify-center bg-[#C8102E] text-white p-8">

@@ -207,6 +207,12 @@ export default function Register() {
             <div className="text-xs text-gray-400">or continue with email verification</div>
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
           </div>
+          <div className="text-sm text-center text-gray-600">
+            Already have an account?{' '}
+            <a href="/login" className="font-semibold" style={{ color: '#C8102E' }}>
+              Sign in
+            </a>
+          </div>
         </form>
       </div>
     </div>

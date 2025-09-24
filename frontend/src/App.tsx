@@ -9,13 +9,17 @@ import Accounts from "./pages/users/admin/accounts";
 import Reports from "./pages/users/admin/reports";
 import Contents from "./pages/users/admin/contents";
 
+//Proponent
+import Dashboard from "./pages/users/Proponent/dashboard";
+import Profile from "./pages/users/Proponent/Profile";
+import Settings from "./pages/users/Proponent/settings";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
 
 function App() {
   return (
-   <BrowserRouter>
+    <BrowserRouter>
       <LoadingProvider>
         <LocationWatcher />
         <Routes>
@@ -26,6 +30,9 @@ function App() {
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
+          <Route path="/users/Proponent/dashboard" element={<Dashboard />} />
+          <Route path="/users/Proponent/profile" element={<Profile />} />
+          <Route path="/users/Proponent/settings" element={<Settings />} />
         </Routes>
         <LoadingOverlay />
       </LoadingProvider>

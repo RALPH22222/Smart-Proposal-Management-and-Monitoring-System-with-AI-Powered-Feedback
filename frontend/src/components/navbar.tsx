@@ -50,7 +50,7 @@ const Navbar: React.FC = () => {
               </a>
             ))}
             <a
-              href="#contact"
+              href="/login"
               className="px-4 py-2 rounded-md font-medium transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: COLORS.white,

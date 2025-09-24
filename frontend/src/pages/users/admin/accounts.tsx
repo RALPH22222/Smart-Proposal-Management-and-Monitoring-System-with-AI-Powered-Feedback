@@ -100,7 +100,7 @@ const Accounts: React.FC = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search users..."
+                    placeholder="Search users"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
