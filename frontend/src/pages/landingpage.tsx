@@ -11,14 +11,14 @@ const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
-              WMSU Project Proposal Portal
+              WMSU Project Proposal 
             </h1>
             <p className="text-lg text-gray-600 mb-6">
               A lightweight admin and monitoring system for project proposals — fast, responsive, and easy to use.
             </p>
             <div className="flex gap-4">
               <a
-                href="#features"
+                href="/login"
                 className="inline-block px-6 py-3 rounded-md font-medium"
                 style={{ backgroundColor: '#C8102E', color: '#fff' }}
               >
@@ -64,12 +64,12 @@ const LandingPage: React.FC = () => {
               </p>
 
               <div className="flex gap-3">
-                <button className="px-4 py-2 rounded-md" style={{ backgroundColor: '#C8102E', color: '#fff' }}>
+                <a href="mailto:office@example.edu" className="px-4 py-2 rounded-md" style={{ backgroundColor: '#C8102E', color: '#fff' }}>
                   Contact Office
-                </button>
-                <button className="px-4 py-2 rounded-md border" style={{ borderColor: '#C8102E', color: '#C8102E' }}>
+                </a>
+                <a href="#featured" className="px-4 py-2 rounded-md border" style={{ borderColor: '#C8102E', color: '#C8102E' }}>
                   Learn More
-                </button>
+                </a>
               </div>
             </div>
 
@@ -166,7 +166,7 @@ const LandingPage: React.FC = () => {
                     <div className="mt-4">
                       <a
                         className="inline-block px-3 py-2 rounded-md text-sm font-medium"
-                        href="#"
+                        href={i === 0 ? '#interactive' : i === 1 ? '#about' : '#featured'}
                         style={{ backgroundColor: '#C8102E', color: '#fff' }}
                       >
                         Learn More

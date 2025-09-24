@@ -11,18 +11,23 @@ import Contents from "./pages/users/admin/contents";
 
 // RDEC
 import RdecPage from "./pages/users/rdec/RdecPage";
-import Dashboard from './pages/users/rdec/Dashboard';
+import DashboardRdec from './pages/users/rdec/DashboardRdec';
 import Proposals from './pages/users/rdec/Proposals';
 import Notifications from './pages/users/rdec/Notifications';
-import Settings from './pages/users/rdec/Settings';
+import SettingsRdec from './pages/users/rdec/Settings';
 import Endorsed from './pages/users/rdec/Endorsed';
+
+//Proponent
+import Dashboard from "./pages/users/Proponent/dashboard";
+import Profile from "./pages/users/Proponent/Profile";
+import Settings from "./pages/users/Proponent/settings";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
 
 function App() {
   return (
-   <BrowserRouter>
+    <BrowserRouter>
       <LoadingProvider>
         <LocationWatcher />
         <Routes>
@@ -35,12 +40,15 @@ function App() {
           <Route path="/users/admin/contents" element={<Contents />} />
           // RDEC
           <Route element={<RdecPage />}>
-            <Route path="/users/rdec/dashboard" element={<Dashboard />} />
+            <Route path="/users/rdec/dashboard" element={<DashboardRdec />} />
             <Route path="/users/rdec/proposals" element={<Proposals />} />
             <Route path="/users/rdec/notifications" element={<Notifications />} />
-            <Route path="/users/rdec/settings" element={<Settings />} />
+            <Route path="/users/rdec/settings" element={<SettingsRdec />} />
             <Route path="/users/rdec/endorsed" element={<Endorsed />} />
           </Route>
+          <Route path="/users/Proponent/dashboard" element={<Dashboard />} />
+          <Route path="/users/Proponent/profile" element={<Profile />} />
+          <Route path="/users/Proponent/settings" element={<Settings />} />
         </Routes>
         <LoadingOverlay />
       </LoadingProvider>
