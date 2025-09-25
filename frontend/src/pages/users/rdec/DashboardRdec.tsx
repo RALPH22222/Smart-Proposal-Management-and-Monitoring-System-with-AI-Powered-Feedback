@@ -2,7 +2,7 @@
 
 import { FileText, CheckCircle, XCircle, Clock, TrendingUp, Users, Calendar, ThumbsUp, DollarSign } from "lucide-react"
 
-export default function Dashboard() {
+export default function DashboardRdec() {
   const stats = [
     {
       icon: Clock,
