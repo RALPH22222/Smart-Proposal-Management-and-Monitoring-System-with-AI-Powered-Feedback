@@ -1,11 +1,15 @@
-import axios from "axios";
+import axios from 'axios';
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = 'http://127.0.0.1:8000';
+
+type VerifyOtpResult = {
+	message: string;
+};
 
 export const sendOtp = (email: string) => {
-  return axios.post(`${API_URL}/send-otp/`, { email });
+	return axios.post(`${API_URL}/send-otp/`, { email });
 };
 
 export const verifyOtp = (email: string, otp: string) => {
-  return axios.post(`${API_URL}/verify-otp/`, { email, otp });
+	return axios.post<VerifyOtpResult>(`${API_URL}/verify-otp/`, { email, otp });
 };
