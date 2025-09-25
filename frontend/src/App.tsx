@@ -9,6 +9,9 @@ import Accounts from './pages/users/admin/accounts';
 import Reports from './pages/users/admin/reports';
 import Contents from './pages/users/admin/contents';
 
+// R&D
+import ReviewPage from './components/ReviewPage';
+
 // RDEC
 import RdecPage from './pages/users/rdec/RdecPage';
 import DashboardRdec from './pages/users/rdec/Dashboard';
@@ -42,6 +45,7 @@ function App() {
 					<Route path='/users/admin/accounts' element={<Accounts />} />
 					<Route path='/users/admin/reports' element={<Reports />} />
 					<Route path='/users/admin/contents' element={<Contents />} />
+					<Route path='users/R&D' element={<ReviewPage />} />
 					// RDEC
 					<Route element={<RdecPage />}>
 						<Route path='/users/rdec/dashboard' element={<DashboardRdec />} />
