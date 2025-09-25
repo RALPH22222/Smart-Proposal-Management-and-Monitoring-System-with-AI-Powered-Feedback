@@ -48,7 +48,7 @@ const ProponentNavbar: React.FC = () => {
 
     return (
       <header
-        className={`fixed top-0 w-full relative z-50 transition-shadow duration-300 border-b border-white/10 ${
+        className={`top-0 w-full relative z-50 transition-shadow duration-300 border-b border-white/10 ${
           scrolled ? "shadow-md" : ""
         }`}
         style={{ backgroundColor: COLORS.brand }}
