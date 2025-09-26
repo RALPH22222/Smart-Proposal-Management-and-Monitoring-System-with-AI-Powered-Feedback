@@ -2,7 +2,7 @@ import {
 	type Proposal,
 	type Decision,
 	type ProposalStatus
-} from '../types/proposal';
+} from '../../types/InterfaceProposal';
 
 // API service functions (stubbed for demo)
 export const proposalApi = {

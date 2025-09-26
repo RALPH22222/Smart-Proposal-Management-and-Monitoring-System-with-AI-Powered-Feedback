@@ -22,7 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({
 	};
 
 	return (
-		<nav className='bg-wmsu-red shadow-sm'>
+		<nav className='bg-[#C10003] shadow-sm'>
 			<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 				<div className='flex justify-between items-center h-16'>
 					{/* Logo and Title */}
@@ -41,7 +41,7 @@ const Navbar: React.FC<NavbarProps> = ({
 					<div className='relative'>
 						<button
 							onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-							className='flex items-center space-x-3 p-2 rounded-lg hover:bg-wmsu-red-dark transition-colors'
+							className='flex items-center space-x-3 p-2 rounded-lg hover:bg-[#A00002] transition-colors'
 						>
 							{/* User Avatar */}
 							<div className='w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden'>
@@ -52,7 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({
 										className='w-full h-full object-cover'
 									/>
 								) : (
-									<User className='w-5 h-5 text-wmsu-red' />
+									<User className='w-5 h-5 text-[#C10003]' />
 								)}
 							</div>
 

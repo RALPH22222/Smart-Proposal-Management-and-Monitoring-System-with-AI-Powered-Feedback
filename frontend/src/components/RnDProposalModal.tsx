@@ -4,7 +4,7 @@ import {
 	type Decision,
 	type DecisionType,
 	type ProposalModalProps
-} from '../types/proposal';
+} from '../types/InterfaceProposal';
 
 const ProposalModal: React.FC<ProposalModalProps> = ({
 	proposal,
@@ -77,7 +77,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 
 				<div className='flex flex-col lg:flex-row h-full max-h-[calc(90vh-88px)]'>
 					{/* Document Preview Section */}
-					<div className='flex-1 p-6 border-r border-gray-200 min-h-0'>
+					<div className='flex-1 p-6 lg:border-r border-gray-200 min-h-0 overflow-hidden'>
 						<div className='mb-4 flex items-center gap-4 text-sm text-gray-600'>
 							<div className='flex items-center gap-1'>
 								<User className='w-4 h-4' />
@@ -92,7 +92,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 							</div>
 						</div>
 
-						<div className='bg-gray-100 rounded-lg h-full min-h-[400px] flex items-center justify-center'>
+						<div className='bg-gray-100 rounded-lg h-full min-h-[300px] flex items-center justify-center overflow-auto'>
 							{proposal.documentUrl ? (
 								<iframe
 									src={proposal.documentUrl}
@@ -111,7 +111,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 					</div>
 
 					{/* Decision Form Section */}
-					<div className='w-full lg:w-96 p-6'>
+					<div className='w-full lg:w-96 p-6 min-h-0 overflow-auto'>
 						<form onSubmit={handleSubmit} className='h-full flex flex-col'>
 							<div className='flex-1'>
 								<h4 className='text-lg font-semibold text-gray-800 mb-6'>
@@ -128,7 +128,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 											(option) => (
 												<label
 													key={option}
-													className='flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors'
+													className='flex items-center sm:flex-row flex-col gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors'
 												>
 													<input
 														type='radio'
@@ -138,7 +138,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 														onChange={(e) =>
 															setDecision(e.target.value as DecisionType)
 														}
-														className='w-4 h-4 text-wmsu-red bg-gray-100 border-gray-300 focus:ring-wmsu-red focus:ring-2'
+														className='w-4 h-4 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
 													/>
 													<span
 														className={`ml-3 text-sm font-medium ${
@@ -170,7 +170,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 										value={notes}
 										onChange={(e) => setNotes(e.target.value)}
 										rows={6}
-										className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-wmsu-red focus:border-transparent resize-none'
+										className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] focus:border-transparent resize-none'
 										placeholder='Provide detailed feedback or comments for the proponent...'
 									/>
 									<p className='text-xs text-gray-500 mt-1'>
@@ -180,17 +180,17 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 							</div>
 
 							{/* Action Buttons */}
-							<div className='flex gap-3 pt-4 border-t border-gray-200'>
+							<div className='flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200'>
 								<button
 									type='button'
 									onClick={onClose}
-									className='flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium'
+									className='w-full sm:flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium border border-gray-200'
 								>
 									Cancel
 								</button>
 								<button
 									type='submit'
-									className='flex-1 px-4 py-2 text-white bg-wmsu-red hover:bg-wmsu-red-dark rounded-lg transition-colors font-medium'
+									className='w-full sm:flex-1 px-4 py-2 text-white bg-[#C10003] hover:bg-[#A00002] rounded-lg transition-colors font-medium'
 								>
 									Submit Decision
 								</button>
