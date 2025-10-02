@@ -10,8 +10,7 @@ import Reports from './pages/users/admin/reports';
 import Contents from './pages/users/admin/contents';
 
 // R&D
-import DashboardRnd from './pages/users/rnd/RndDashboard';
-import RndReviewProposals from './pages/users/rnd/RndProposals';
+import RndMainLayout from './pages/users/rnd/RnDMainLayout';
 
 // RDEC
 import RdecPage from './components/RdecPage';
@@ -46,11 +45,7 @@ function App() {
 					<Route path='/users/admin/accounts' element={<Accounts />} />
 					<Route path='/users/admin/reports' element={<Reports />} />
 					<Route path='/users/admin/contents' element={<Contents />} />
-					<Route path='/users/rnd/dashboard' element={<DashboardRnd />} />
-					<Route
-						path='/users/rnd/review-proposals'
-						element={<RndReviewProposals />}
-					/>
+					<Route path='/users/rnd/*' element={<RndMainLayout />} />
 					// RDEC
 					<Route element={<RdecPage />}>
 						<Route path='/users/rdec/dashboard' element={<DashboardRdec />} />

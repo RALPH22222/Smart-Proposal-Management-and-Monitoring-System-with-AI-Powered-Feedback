@@ -27,3 +27,22 @@ export interface ProposalModalProps {
 	onClose: () => void;
 	onSubmitDecision: (decision: Decision) => void;
 }
+
+export interface Statistics {
+	totalProposals: number;
+	pendingProposals: number;
+	acceptedProposals: number;
+	rejectedProposals: number;
+	revisableProposals: number;
+	monthlySubmissions: { month: string; count: number }[];
+}
+
+export interface Activity {
+	id: string;
+	type: 'review' | 'submission' | 'revision';
+	proposalId: string;
+	proposalTitle: string;
+	action: string;
+	timestamp: string;
+	user: string;
+}

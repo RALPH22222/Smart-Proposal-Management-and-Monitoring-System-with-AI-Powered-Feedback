@@ -1,7 +1,9 @@
 import {
 	type Proposal,
 	type Decision,
-	type ProposalStatus
+	type ProposalStatus,
+	type Statistics,
+	type Activity
 } from '../../types/InterfaceProposal';
 
 // API service functions (stubbed for demo)
@@ -50,6 +52,22 @@ export const proposalApi = {
 		// });
 
 		console.log(`Updating proposal ${proposalId} status to ${status}`);
+	},
+
+	// Fetch statistics
+	fetchStatistics: async (): Promise<Statistics> => {
+		await new Promise((resolve) => setTimeout(resolve, 300));
+
+		console.log('Fetching statistics from API...');
+		return getDummyStatistics();
+	},
+
+	// Fetch recent activity
+	fetchRecentActivity: async (): Promise<Activity[]> => {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+
+		console.log('Fetching recent activity from API...');
+		return getDummyActivity();
 	}
 };
 
@@ -115,5 +133,73 @@ const getDummyProposals = (): Proposal[] => [
 		submittedBy: 'Dr. Roberto Fernandez',
 		submittedDate: '2025-01-13T10:30:00Z',
 		lastModified: '2025-01-13T10:30:00Z'
+	}
+];
+
+// Dummy statistics for demonstration
+const getDummyStatistics = (): Statistics => ({
+	totalProposals: 6,
+	pendingProposals: 3,
+	acceptedProposals: 1,
+	rejectedProposals: 1,
+	revisableProposals: 1,
+	monthlySubmissions: [
+		{ month: 'Jan 2025', count: 6 },
+		{ month: 'Dec 2024', count: 4 },
+		{ month: 'Nov 2024', count: 8 },
+		{ month: 'Oct 2024', count: 5 },
+		{ month: 'Sep 2024', count: 7 }
+	]
+});
+
+// Dummy activity for demonstration
+const getDummyActivity = (): Activity[] => [
+	{
+		id: 'ACT-001',
+		type: 'review',
+		proposalId: 'PROP-2025-003',
+		proposalTitle: 'Blockchain-Based Academic Credential Verification System',
+		action: 'Proposal accepted',
+		timestamp: '2025-01-11T16:30:00Z',
+		user: 'Dr. John Smith'
+	},
+	{
+		id: 'ACT-002',
+		type: 'submission',
+		proposalId: 'PROP-2025-006',
+		proposalTitle: 'Virtual Reality Learning Environment for STEM Education',
+		action: 'New proposal submitted',
+		timestamp: '2025-01-13T10:30:00Z',
+		user: 'Dr. Roberto Fernandez'
+	},
+	{
+		id: 'ACT-003',
+		type: 'revision',
+		proposalId: 'PROP-2025-002',
+		proposalTitle:
+			'Sustainable Water Management System Using IoT and Machine Learning',
+		action: 'Revision requested',
+		timestamp: '2025-01-12T10:20:00Z',
+		user: 'Dr. John Smith'
+	},
+	{
+		id: 'ACT-004',
+		type: 'review',
+		proposalId: 'PROP-2025-005',
+		proposalTitle:
+			'Smart Campus Security System with Facial Recognition Technology',
+		action: 'Proposal rejected',
+		timestamp: '2025-01-09T14:45:00Z',
+		user: 'Dr. John Smith'
+	},
+	{
+		id: 'ACT-005',
+		type: 'submission',
+		proposalId: 'PROP-2025-004',
+		proposalTitle:
+			'Mobile Health Monitoring Application for Remote Patient Care',
+		action: 'New proposal submitted',
+		timestamp: '2025-01-12T09:00:00Z',
+		user: 'Dr. Carlos Mendoza'
 	}
 ];

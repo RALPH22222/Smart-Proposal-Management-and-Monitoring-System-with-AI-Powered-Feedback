@@ -52,10 +52,10 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 
 	return (
 		<div
-			className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm'
+			className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm overflow-y-auto'
 			onClick={handleBackdropClick}
 		>
-			<div className='bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden'>
+			<div className='bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden my-8'>
 				{/* Modal Header */}
 				<div className='flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50'>
 					<div className='flex-1'>
@@ -68,37 +68,42 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 					</div>
 					<button
 						onClick={onClose}
-						className='p-2 hover:bg-gray-200 rounded-lg transition-colors'
+						className='p-2 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0 ml-4'
 						aria-label='Close modal'
 					>
 						<X className='w-5 h-5 text-gray-500' />
 					</button>
 				</div>
 
-				<div className='flex flex-col lg:flex-row h-full max-h-[calc(90vh-88px)]'>
+				<div className='flex flex-col lg:flex-row h-full max-h-[calc(90vh-88px)] min-h-[500px]'>
 					{/* Document Preview Section */}
-					<div className='flex-1 p-6 lg:border-r border-gray-200 min-h-0 overflow-hidden'>
-						<div className='mb-4 flex items-center gap-4 text-sm text-gray-600'>
+					<div className='flex-1 p-4 lg:p-6 lg:border-r border-gray-200 min-h-0 overflow-hidden'>
+						<div className='mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 px-2 sm:px-0'>
 							<div className='flex items-center gap-1'>
 								<User className='w-4 h-4' />
-								<span>By: {proposal.submittedBy}</span>
+								<span className='truncate'>By: {proposal.submittedBy}</span>
 							</div>
 							<div className='flex items-center gap-1'>
 								<Calendar className='w-4 h-4' />
-								<span>
+								<span className='truncate'>
 									Submitted:{' '}
 									{new Date(proposal.submittedDate).toLocaleDateString()}
 								</span>
 							</div>
 						</div>
 
-						<div className='bg-gray-100 rounded-lg h-full min-h-[300px] flex items-center justify-center overflow-auto'>
+						<div className='bg-gray-100 rounded-lg h-full min-h-[300px] lg:min-h-[400px] flex items-center justify-center mx-2 sm:mx-0 overflow-hidden'>
 							{proposal.documentUrl ? (
 								<iframe
 									src={proposal.documentUrl}
-									className='w-full h-full rounded-lg'
+									className='w-full h-full rounded-lg border-0 max-w-full max-h-full'
 									title={`Document for ${proposal.title}`}
-									frameBorder='0'
+									style={{
+										maxWidth: '100%',
+										maxHeight: '100%',
+										minWidth: 0,
+										minHeight: 0
+									}}
 								/>
 							) : (
 								<div className='text-center text-gray-500'>
@@ -111,7 +116,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 					</div>
 
 					{/* Decision Form Section */}
-					<div className='w-full lg:w-96 p-6 min-h-0 overflow-auto'>
+					<div className='w-full lg:w-96 p-4 lg:p-6 border-t lg:border-t-0 border-gray-200 overflow-y-auto'>
 						<form onSubmit={handleSubmit} className='h-full flex flex-col'>
 							<div className='flex-1'>
 								<h4 className='text-lg font-semibold text-gray-800 mb-6'>
@@ -123,12 +128,12 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 									<label className='block text-sm font-medium text-gray-700 mb-3'>
 										Decision *
 									</label>
-									<div className='space-y-3'>
+									<div className='space-y-2 lg:space-y-3'>
 										{(['Accept', 'Revise', 'Reject'] as DecisionType[]).map(
 											(option) => (
 												<label
 													key={option}
-													className='flex items-center sm:flex-row flex-col gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors'
+													className='flex items-center p-2 lg:p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors'
 												>
 													<input
 														type='radio'
@@ -169,7 +174,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 										id='notes'
 										value={notes}
 										onChange={(e) => setNotes(e.target.value)}
-										rows={6}
+										rows={4}
 										className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] focus:border-transparent resize-none'
 										placeholder='Provide detailed feedback or comments for the proponent...'
 									/>
@@ -184,13 +189,13 @@ const ProposalModal: React.FC<ProposalModalProps> = ({
 								<button
 									type='button'
 									onClick={onClose}
-									className='w-full sm:flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium border border-gray-200'
+									className='flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium order-2 sm:order-1'
 								>
 									Cancel
 								</button>
 								<button
 									type='submit'
-									className='w-full sm:flex-1 px-4 py-2 text-white bg-[#C10003] hover:bg-[#A00002] rounded-lg transition-colors font-medium'
+									className='flex-1 px-4 py-2 text-white bg-[#C10003] hover:bg-[#A00002] rounded-lg transition-colors font-medium order-1 sm:order-2'
 								>
 									Submit Decision
 								</button>
