@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
@@ -14,8 +12,8 @@ const Sidebar: React.FC = () => {
   const mainLinks = [
     { to: "/users/evaluator/dashboard", label: "Dashboard", icon: DashboardIcon },
     { to: "/users/evaluator/proposals", label: "Proposals", icon: UserIcon },
-    { to: "/users/evaluator/review", label: "Review Proposals", icon: ReviewIcon },
-    { to: "/users/evaluator/reviewed", label: "Reviewed Proposals", icon: CheckedIcon },
+    { to: "/users/evaluator/review", label: "Under Review", icon: ReviewIcon },
+    { to: "/users/evaluator/reviewed", label: "Completed Reviews", icon: CheckedIcon },
     { to: "/users/evaluator/notifications", label: "Notifications", icon: BellIcon, badge: "5" },
   ]
   const bottomLinks = [
