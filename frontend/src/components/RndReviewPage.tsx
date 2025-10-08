@@ -7,6 +7,7 @@ import {
 } from '../types/InterfaceProposal';
 import { proposalApi } from '../services/RndProposalApi/ProposalApi';
 import ProposalModal from './RnDProposalModal';
+import { type Reviewer } from '../types/InterfaceProposal';
 
 interface ReviewPageProps {
 	filter?: ProposalStatus;
@@ -25,6 +26,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 		filter || 'All'
 	);
 	const [searchTerm, setSearchTerm] = useState('');
+	const currentUser: Reviewer = { name: 'Dr. John Smith' } as Reviewer;
 
 	// Load proposals on component mount
 	useEffect(() => {
@@ -86,11 +88,11 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 
 			// Update proposal status locally
 			const newStatus: ProposalStatus =
-				decision.decision === 'Accept'
-					? 'Accepted'
-					: decision.decision === 'Reject'
-					? 'Rejected'
-					: 'Revisable';
+				decision.decision === 'Sent to Evaluators'
+					? 'Sent to Evaluators'
+					: decision.decision === 'Rejected Proposal'
+					? 'Rejected Proposal'
+					: 'Revision Required';
 
 			// Update the proposal in state
 			setProposals((prev) =>
@@ -126,11 +128,11 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 		switch (status) {
 			case 'Pending':
 				return `${baseClasses} bg-blue-100 text-blue-800`;
-			case 'Accepted':
+			case 'Sent to Evaluators':
 				return `${baseClasses} bg-green-100 text-green-800`;
-			case 'Rejected':
+			case 'Rejected Proposal':
 				return `${baseClasses} bg-red-100 text-red-800`;
-			case 'Revisable':
+			case 'Revision Required':
 				return `${baseClasses} bg-orange-100 text-orange-800`;
 			default:
 				return `${baseClasses} bg-gray-100 text-gray-800`;
@@ -199,14 +201,14 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 								<option value='Pending'>
 									Pending ({getStatusCount('Pending')})
 								</option>
-								<option value='Revisable'>
-									Revisable ({getStatusCount('Revisable')})
+								<option value='Revision Required'>
+									Revision Required ({getStatusCount('Revision Required')})
 								</option>
-								<option value='Accepted'>
-									Accepted ({getStatusCount('Accepted')})
+								<option value='Sent to Evaluators'>
+									Sent to Evaluators ({getStatusCount('Sent to Evaluators')})
 								</option>
-								<option value='Rejected'>
-									Rejected ({getStatusCount('Rejected')})
+								<option value='Rejected Proposal'>
+									Rejected Proposal ({getStatusCount('Rejected Proposal')})
 								</option>
 							</select>
 						</div>
@@ -372,6 +374,8 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 					isOpen={isModalOpen}
 					onClose={handleCloseModal}
 					onSubmitDecision={handleSubmitDecision}
+					userRole='R&D Staff'
+					currentUser={currentUser}
 				/>
 			</div>
 		</div>

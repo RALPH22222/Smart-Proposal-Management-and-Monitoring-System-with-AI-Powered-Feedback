@@ -3,7 +3,9 @@ import {
 	LayoutDashboard,
 	FileText,
 	RefreshCw,
-	ChevronRight
+	ChevronRight,
+	CheckCircle,
+	Users
 } from 'lucide-react';
 import { type Statistics } from '../types/InterfaceProposal';
 
@@ -24,6 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 	const menuItems = [
 		{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
 		{ id: 'proposals', label: 'Proposals', icon: FileText },
+		{ id: 'evaluators', label: 'Evaluators', icon: Users },
+		{ id: 'endorsements', label: 'Endorsements', icon: CheckCircle },
 		{ id: 'revisions', label: 'Revision Requests', icon: RefreshCw }
 	];
 

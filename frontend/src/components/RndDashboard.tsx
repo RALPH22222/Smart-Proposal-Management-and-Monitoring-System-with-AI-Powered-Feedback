@@ -3,10 +3,11 @@ import {
 	TrendingUp,
 	FileText,
 	Clock,
-	CheckCircle,
+	Send,
 	XCircle,
 	AlertCircle,
 	Calendar,
+	CheckCircle,
 	User
 } from 'lucide-react';
 import { type Statistics, type Activity } from '../types/InterfaceProposal';
@@ -38,9 +39,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 			bgColor: 'bg-orange-50'
 		},
 		{
-			title: 'Accepted',
+			title: 'Forward to Evaluators',
 			value: statistics.acceptedProposals,
-			icon: CheckCircle,
+			icon: Send,
 			color: 'bg-green-500',
 			textColor: 'text-green-600',
 			bgColor: 'bg-green-50'
@@ -55,7 +56,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 		},
 		{
 			title: 'Need Revision',
-			value: statistics.revisableProposals,
+			value: statistics.revisionRequiredProposals,
 			icon: AlertCircle,
 			color: 'bg-yellow-500',
 			textColor: 'text-yellow-600',
@@ -210,37 +211,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 							);
 						})}
 					</div>
-				</div>
-			</div>
-
-			{/* Status Distribution */}
-			<div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-				<h3 className='text-lg font-semibold text-gray-900 mb-4'>
-					Proposal Status Distribution
-				</h3>
-				<div className='grid grid-cols-2 md:grid-cols-5 gap-4'>
-					{statCards.map((card) => {
-						const percentage =
-							statistics.totalProposals > 0
-								? ((card.value / statistics.totalProposals) * 100).toFixed(1)
-								: '0';
-
-						return (
-							<div key={card.title} className='text-center'>
-								<div
-									className={`w-16 h-16 ${card.color} rounded-full flex items-center justify-center mx-auto mb-2`}
-								>
-									<span className='text-white font-bold text-lg'>
-										{card.value}
-									</span>
-								</div>
-								<p className='text-sm font-medium text-gray-900'>
-									{card.title}
-								</p>
-								<p className='text-xs text-gray-500'>{percentage}%</p>
-							</div>
-						);
-					})}
 				</div>
 			</div>
 		</div>

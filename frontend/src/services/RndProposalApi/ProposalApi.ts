@@ -89,7 +89,7 @@ const getDummyProposals = (): Proposal[] => [
 		title: 'Sustainable Water Management System Using IoT and Machine Learning',
 		documentUrl:
 			'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-		status: 'Revisable',
+		status: 'Revision Required',
 		submittedBy: 'Prof. Juan dela Cruz',
 		submittedDate: '2025-01-08T14:15:00Z',
 		lastModified: '2025-01-12T10:20:00Z'
@@ -99,7 +99,7 @@ const getDummyProposals = (): Proposal[] => [
 		title: 'Blockchain-Based Academic Credential Verification System',
 		documentUrl:
 			'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-		status: 'Accepted',
+		status: 'Sent to Evaluators',
 		submittedBy: 'Dr. Angela Rivera',
 		submittedDate: '2025-01-05T11:45:00Z',
 		lastModified: '2025-01-11T16:30:00Z'
@@ -119,7 +119,7 @@ const getDummyProposals = (): Proposal[] => [
 		title: 'Smart Campus Security System with Facial Recognition Technology',
 		documentUrl:
 			'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-		status: 'Rejected',
+		status: 'Rejected Proposal',
 		submittedBy: 'Prof. Lisa Garcia',
 		submittedDate: '2025-01-03T13:20:00Z',
 		lastModified: '2025-01-09T14:45:00Z'
@@ -142,7 +142,7 @@ const getDummyStatistics = (): Statistics => ({
 	pendingProposals: 3,
 	acceptedProposals: 1,
 	rejectedProposals: 1,
-	revisableProposals: 1,
+	revisionRequiredProposals: 1,
 	monthlySubmissions: [
 		{ month: 'Jan 2025', count: 6 },
 		{ month: 'Dec 2024', count: 4 },
