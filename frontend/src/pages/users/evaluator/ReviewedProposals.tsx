@@ -11,12 +11,12 @@ import {
   Tag,
   X,
   Building2,
-  Users,
   Target,
   DollarSign,
   Calendar,
   MessageSquare,
   Filter,
+  Download,
 } from "lucide-react"
 import Sidebar from "../../../components/EvaluatorSide"
 
@@ -44,7 +44,11 @@ export default function ReviewedProposals() {
       duration: "24 months",
       startDate: "January 2025",
       endDate: "December 2026",
-      budget: "₱1,250,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱600,000.00", mooe: "₱500,000.00", co: "₱150,000.00", total: "₱1,250,000.00" },
+      ],
+      budgetTotal: "₱1,250,000.00",
+      projectFile: "AI_Educational_Assessment_Proposal.pdf",
       comments: {
         objectives:
           "The objectives are well-defined and align with current educational needs. The focus on personalized learning is particularly relevant.",
@@ -74,7 +78,12 @@ export default function ReviewedProposals() {
       duration: "36 months",
       startDate: "March 2025",
       endDate: "February 2028",
-      budget: "₱2,100,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱800,000.00", mooe: "₱700,000.00", co: "₱100,000.00", total: "₱1,600,000.00" },
+        { source: "DA RO9", ps: "₱300,000.00", mooe: "₱200,000.00", co: "₱0.00", total: "₱500,000.00" },
+      ],
+      budgetTotal: "₱2,100,000.00",
+      projectFile: "Agriculture_IoT_Proposal.pdf",
       comments: {
         objectives:
           "Objectives are comprehensive and address critical needs in sustainable agriculture. The focus on rural communities is commendable.",
@@ -104,7 +113,11 @@ export default function ReviewedProposals() {
       duration: "30 months",
       startDate: "February 2025",
       endDate: "July 2027",
-      budget: "₱1,800,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱700,000.00", mooe: "₱800,000.00", co: "₱300,000.00", total: "₱1,800,000.00" },
+      ],
+      budgetTotal: "₱1,800,000.00",
+      projectFile: "Blockchain_Healthcare_Proposal.pdf",
       comments: {
         objectives:
           "The objectives clearly address data security and interoperability challenges in healthcare. Privacy considerations are well-articulated.",
@@ -129,7 +142,7 @@ export default function ReviewedProposals() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedProposals = filtered.slice(startIndex, startIndex + itemsPerPage)
-
+  
   const getProjectTypeColor = (type: string) => {
     switch (type) {
       case "ICT":
@@ -155,6 +168,11 @@ export default function ReviewedProposals() {
 
   const closeModal = () => {
     setSelectedProposal(null)
+  }
+
+  const handleDownload = (fileName: string) => {
+    console.log("[v0] Downloading file:", fileName)
+    alert(`Downloading ${fileName}`)
   }
 
   const proposal = reviewedProposals.find((p) => p.id === selectedProposal)
@@ -351,6 +369,25 @@ export default function ReviewedProposals() {
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               <div className="space-y-4 sm:space-y-6">
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Project Proposal Document</p>
+                      <p className="text-xs text-slate-600">{proposal.projectFile}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDownload(proposal.projectFile)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
+
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                   <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-[#C8102E]" />
@@ -366,14 +403,6 @@ export default function ReviewedProposals() {
                       <p className="font-semibold text-slate-900">{proposal.agency}</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#C8102E]" />
-                    Cooperating Agencies
-                  </h3>
-                  <p className="text-xs text-slate-700">{proposal.cooperatingAgencies}</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -403,7 +432,7 @@ export default function ReviewedProposals() {
 
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                   <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#C8102E]" />
+                    <Calendar className="w-5 h-5 text-[#C8102E]" />
                     Implementing Schedule
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -423,11 +452,62 @@ export default function ReviewedProposals() {
                 </div>
 
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-[#C8102E]" />
-                    Estimated Budget
+                    Estimated Budget by Source
                   </h3>
-                  <p className="text-lg font-bold text-[#C8102E]">{proposal.budget}</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
+                            Source of Funds
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            PS
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            MOOE
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            CO
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            TOTAL
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {proposal.budgetSources.map((budget, index) => (
+                          <tr key={index} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">
+                              {budget.source}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">{budget.ps}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
+                              {budget.mooe}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">{budget.co}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
+                              {budget.total}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-slate-200 font-bold">
+                          <td className="border border-slate-300 px-3 py-2 text-slate-900">TOTAL</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-slate-900" colSpan={3}>
+                            →
+                          </td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-[#C8102E] text-sm">
+                            {proposal.budgetTotal}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    PS: Personal Services | MOOE: Maintenance and Other Operating Expenses | CO: Capital Outlay
+                  </p>
                 </div>
 
                 <div className="border-t-2 border-slate-300 pt-6 mt-6">

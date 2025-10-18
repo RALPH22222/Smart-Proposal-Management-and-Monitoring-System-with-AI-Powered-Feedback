@@ -53,7 +53,10 @@ export default function EndorsedProposals() {
       duration: "24 months",
       startDate: "January 2025",
       endDate: "December 2026",
-      budget: "₱1,250,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱600,000.00", mooe: "₱500,000.00", co: "₱150,000.00", total: "₱1,250,000.00" },
+      ],
+      budgetTotal: "₱1,250,000.00",
       projectFile: "AI_Educational_Assessment_Proposal.pdf",
     },
     {
@@ -72,7 +75,11 @@ export default function EndorsedProposals() {
       duration: "36 months",
       startDate: "March 2025",
       endDate: "February 2028",
-      budget: "₱2,100,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱800,000.00", mooe: "₱700,000.00", co: "₱100,000.00", total: "₱1,600,000.00" },
+        { source: "DA RO9", ps: "₱300,000.00", mooe: "₱200,000.00", co: "₱0.00", total: "₱500,000.00" },
+      ],
+      budgetTotal: "₱2,100,000.00",
       projectFile: "Agriculture_IoT_Proposal.pdf",
     },
     {
@@ -91,7 +98,10 @@ export default function EndorsedProposals() {
       duration: "30 months",
       startDate: "February 2025",
       endDate: "July 2027",
-      budget: "₱1,800,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱700,000.00", mooe: "₱800,000.00", co: "₱300,000.00", total: "₱1,800,000.00" },
+      ],
+      budgetTotal: "₱1,800,000.00",
       projectFile: "Blockchain_Healthcare_Proposal.pdf",
     },
     {
@@ -110,7 +120,11 @@ export default function EndorsedProposals() {
       duration: "24 months",
       startDate: "April 2025",
       endDate: "March 2027",
-      budget: "₱2,500,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱1,200,000.00", mooe: "₱800,000.00", co: "₱300,000.00", total: "₱2,300,000.00" },
+        { source: "DOE RO9", ps: "₱100,000.00", mooe: "₱100,000.00", co: "₱0.00", total: "₱200,000.00" },
+      ],
+      budgetTotal: "₱2,500,000.00",
       projectFile: "Energy_Storage_Proposal.pdf",
     },
     {
@@ -129,7 +143,11 @@ export default function EndorsedProposals() {
       duration: "36 months",
       startDate: "January 2025",
       endDate: "December 2027",
-      budget: "₱1,950,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱900,000.00", mooe: "₱750,000.00", co: "₱200,000.00", total: "₱1,850,000.00" },
+        { source: "DENR RO9", ps: "₱50,000.00", mooe: "₱50,000.00", co: "₱0.00", total: "₱100,000.00" },
+      ],
+      budgetTotal: "₱1,950,000.00",
       projectFile: "Marine_Conservation_Proposal.pdf",
     },
     {
@@ -148,7 +166,11 @@ export default function EndorsedProposals() {
       duration: "24 months",
       startDate: "May 2025",
       endDate: "April 2027",
-      budget: "₱3,200,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱1,500,000.00", mooe: "₱1,200,000.00", co: "₱300,000.00", total: "₱3,000,000.00" },
+        { source: "DILG RO9", ps: "₱100,000.00", mooe: "₱100,000.00", co: "₱0.00", total: "₱200,000.00" },
+      ],
+      budgetTotal: "₱3,200,000.00",
       projectFile: "Smart_Traffic_Proposal.pdf",
     },
     {
@@ -167,7 +189,11 @@ export default function EndorsedProposals() {
       duration: "30 months",
       startDate: "March 2025",
       endDate: "August 2027",
-      budget: "₱2,750,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱1,200,000.00", mooe: "₱1,050,000.00", co: "₱300,000.00", total: "₱2,550,000.00" },
+        { source: "DOH RO9", ps: "₱150,000.00", mooe: "₱50,000.00", co: "₱0.00", total: "₱200,000.00" },
+      ],
+      budgetTotal: "₱2,750,000.00",
       projectFile: "Telemedicine_Proposal.pdf",
     },
     {
@@ -186,7 +212,11 @@ export default function EndorsedProposals() {
       duration: "36 months",
       startDate: "February 2025",
       endDate: "January 2028",
-      budget: "₱2,300,000.00",
+      budgetSources: [
+        { source: "DOST", ps: "₱1,100,000.00", mooe: "₱900,000.00", co: "₱200,000.00", total: "₱2,200,000.00" },
+        { source: "PAGASA RO9", ps: "₱50,000.00", mooe: "₱50,000.00", co: "₱0.00", total: "₱100,000.00" },
+      ],
+      budgetTotal: "₱2,300,000.00",
       projectFile: "Climate_Prediction_Proposal.pdf",
     },
   ]
@@ -530,11 +560,62 @@ export default function EndorsedProposals() {
                 </div>
 
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-[#C8102E]" />
-                    Estimated Budget
+                    Estimated Budget by Source
                   </h3>
-                  <p className="text-lg font-bold text-[#C8102E]">{proposal.budget}</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
+                            Source of Funds
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            PS
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            MOOE
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            CO
+                          </th>
+                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            TOTAL
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {proposal.budgetSources.map((budget, index) => (
+                          <tr key={index} className="hover:bg-slate-50">
+                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">
+                              {budget.source}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">{budget.ps}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
+                              {budget.mooe}
+                            </td>
+                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">{budget.co}</td>
+                            <td className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
+                              {budget.total}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-slate-200 font-bold">
+                          <td className="border border-slate-300 px-3 py-2 text-slate-900">TOTAL</td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-slate-900" colSpan={3}>
+                            →
+                          </td>
+                          <td className="border border-slate-300 px-3 py-2 text-right text-[#C8102E] text-sm">
+                            {proposal.budgetTotal}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    PS: Personal Services | MOOE: Maintenance and Other Operating Expenses | CO: Capital Outlay
+                  </p>
                 </div>
 
                 <div className="border-t-2 border-slate-300 pt-6 mt-6">
