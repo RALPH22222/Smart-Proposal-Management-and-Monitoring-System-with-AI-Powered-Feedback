@@ -1,7 +1,15 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import LandingPage from "./pages/landingpage";
+
+// Auth
 import Register from "./auth/register";
 import Login from "./auth/login";
+
+// Public
+import LandingPage from "./pages/landingpage";
+import About from "./pages/aboutpage";
+import Contacts from "./pages/contacts";
+// import Services from "./pages/services";
+import FAQ from "./pages/faqs";
 
 // Admin
 import DashboardAdmin from "./pages/users/admin/dashboard";
@@ -34,15 +42,20 @@ function App() {
         <LocationWatcher />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contacts" element={<Contacts />} />
+          {/* <Route path="/services" element={<Services />} /> */}
+          <Route path="/faqs" element={<FAQ />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          {/* Admin */}
           <Route path="/users/admin/dashboard" element={<DashboardAdmin />} />
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
           <Route path="/users/admin/reviews" element={<Reviews />} />
           <Route path="/users/admin/settings" element={<SettingsAdmin />} />
-          {/* // RDEC */}
+          {/* RDEC */}
           <Route element={<RdecPage />}>
             <Route path="/users/rdec/dashboard" element={<DashboardRdec />} />
             <Route path="/users/rdec/proposals" element={<Proposals />} />
@@ -50,6 +63,7 @@ function App() {
             <Route path="/users/rdec/settings" element={<SettingsRdec />} />
             <Route path="/users/rdec/endorsed" element={<Endorsed />} />
           </Route>
+          {/* Proponent */}
           <Route path="/users/Proponent/dashboard" element={<Dashboard />} />
           <Route path="/users/Proponent/profile" element={<Profile />} />
           <Route path="/users/Proponent/settings" element={<Settings />} />
