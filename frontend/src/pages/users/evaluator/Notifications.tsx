@@ -6,127 +6,104 @@ import {
   Info,
   Eye,
   Trash2,
-  FileText,
+  DollarSign,
   Users,
+  TrendingUp,
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  ClipboardCheck,
 } from "lucide-react"
 import Sidebar from "../../../components/EvaluatorSide"
 
 const typeConfig = {
-  info: {
-    colors: "bg-blue-50 text-blue-700 border-blue-200",
-    icon: Info,
-    bgColor: "bg-blue-100",
-  },
-  success: {
-    colors: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    icon: CheckCircle,
-    bgColor: "bg-emerald-100",
-  },
-  warning: {
-    colors: "bg-amber-50 text-amber-700 border-amber-200",
-    icon: AlertTriangle,
-    bgColor: "bg-amber-100",
-  },
+  success: { icon: CheckCircle, bgColor: "bg-green-50", colors: "text-green-600 border-green-600" },
+  warning: { icon: AlertTriangle, bgColor: "bg-yellow-50", colors: "text-yellow-600 border-yellow-600" },
 }
 
 const categoryIcons = {
-  "New Assignment": FileText,
-  "Deadline Alert": Clock,
-  "New Submission": Bell,
-  "Review Complete": CheckCircle,
-  "Urgent Deadline": AlertTriangle,
-  "Revision Update": ClipboardCheck,
-  "Meeting Notice": Users,
+  "Funding Accepted": DollarSign,
+  "Funding Approved": Users,
+  "Funding Rejected": Trash2,
 }
 
 export default function Notifications() {
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
+  const itemsPerPage = 4
 
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      text: "New Proposal Assigned for Review",
-      time: "15m ago",
-      type: "info",
+      text: "AI-Powered Educational Assessment System",
+      time: "30m ago",
+      type: "success",
       read: false,
-      description:
-        "AI-Powered Educational Assessment System by Jasmine Anderson has been assigned to you for evaluation. Review deadline: Oct 25, 2025",
-      category: "New Assignment",
+      description: "Evaluator-endorsed proposal by Jasmine Anderson has been ACCEPTED for funding consideration.",
+      category: "Funding Accepted",
     },
     {
       id: 2,
-      text: "Review Deadline Approaching",
+      text: "Sustainable Agriculture IoT Network",
       time: "1h ago",
-      type: "warning",
+      type: "success",
       read: false,
-      description:
-        "Sustainable Agriculture IoT Network by Michael Chen is due for review in 2 days. Please complete your evaluation before Oct 28, 2025.",
-      category: "Deadline Alert",
+      description: "Evaluator-endorsed proposal by Michael Chen has been FUNDED and approved for implementation.",
+      category: "Funding Approved",
     },
     {
       id: 3,
-      text: "Proposal Submitted for Evaluation",
+      text: "Blockchain Healthcare Records System",
       time: "2h ago",
-      type: "info",
+      type: "warning",
       read: false,
       description:
-        "Blockchain Healthcare Records System by Emily Rodriguez has been submitted and is pending your review.",
-      category: "New Submission",
+        "Evaluator-endorsed proposal by Emily Rodriguez has been REJECTED. Reason: Security compliance concerns.",
+      category: "Funding Rejected",
     },
     {
       id: 4,
-      text: "Review Successfully Submitted",
+      text: "Renewable Energy Storage Optimization",
       time: "4h ago",
       type: "success",
       read: true,
-      description:
-        "Your evaluation for Renewable Energy Storage Optimization by James Wilson has been successfully submitted and forwarded to the committee.",
-      category: "Review Complete",
+      description: "Evaluator-endorsed proposal by James Wilson has been ACCEPTED for funding consideration.",
+      category: "Funding Accepted",
     },
     {
       id: 5,
-      text: "New Proposal Assigned for Review",
+      text: "Marine Biodiversity Conservation Platform",
       time: "6h ago",
-      type: "info",
+      type: "success",
       read: true,
-      description:
-        "Marine Biodiversity Conservation Platform by Maria Santos requires your evaluation. Review deadline: Nov 2, 2025",
-      category: "New Assignment",
+      description: "Evaluator-endorsed proposal by Maria Santos has been FUNDED and approved for implementation.",
+      category: "Funding Approved",
     },
     {
       id: 6,
-      text: "Urgent: Review Deadline Today",
+      text: "Smart Traffic Management System",
       time: "8h ago",
       type: "warning",
       read: false,
       description:
-        "Smart Traffic Management System by Robert Kim must be reviewed today. Deadline: Oct 20, 2025 at 5:00 PM.",
-      category: "Urgent Deadline",
+        "Evaluator-endorsed proposal by Robert Kim has been REJECTED. Reason: Budget allocation constraints.",
+      category: "Funding Rejected",
     },
     {
       id: 7,
-      text: "Proposal Revision Submitted",
+      text: "Advanced Materials Research",
       time: "1d ago",
-      type: "info",
+      type: "warning",
       read: true,
-      description:
-        "Advanced Materials Research has been revised based on your feedback. Please review the updated proposal.",
-      category: "Revision Update",
+      description: "Evaluator-endorsed proposal has been REJECTED. Reason: Overlapping with existing projects.",
+      category: "Funding Rejected",
     },
     {
       id: 8,
-      text: "Committee Meeting Scheduled",
+      text: "Climate Change Modeling",
       time: "2d ago",
-      type: "info",
+      type: "success",
       read: true,
-      description: "Evaluation committee meeting scheduled for Oct 30, 2025 at 2:00 PM to discuss pending proposals.",
-      category: "Meeting Notice",
+      description: "Evaluator-endorsed proposal has been APPROVED for implementation.",
+      category: "Funding Approved",
     },
   ])
 
@@ -149,22 +126,27 @@ export default function Notifications() {
   const paginatedNotifications = notifications.slice(startIndex, startIndex + itemsPerPage)
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 h-screen flex gap-8">
       {/* Sidebar on the left */}
       <Sidebar />
 
       {/* Main content on the right */}
-      <div className="flex-1 flex flex-col p-4 sm:p-6 gap-4 sm:gap-6 pt-16 lg:pt-6">
+      <div className="flex-1 flex flex-col p-8 gap-6">
         {/* Header */}
         <header className="pb-6 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight flex items-center gap-3">
+                <Bell className="h-6 w-6" aria-hidden="true" />
                 Evaluator Notifications
-                <span className="bg-[#C8102E] text-white text-xs font-medium px-2 py-1 rounded-full">5</span>
+                {unreadCount > 0 && (
+                  <span className="bg-[#C8102E] text-white text-xs font-medium px-2 py-1 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
               </h1>
               <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Stay updated on new proposal assignments, review deadlines, and evaluation activities.
+                Research updates, approvals, and system alerts from your Evaluator dashboard.
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -180,7 +162,7 @@ export default function Notifications() {
             <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <Bell className="w-4 h-4" />
+                  <TrendingUp className="w-4 h-4" />
                   <span>
                     You have {unreadCount} unread notification
                     {unreadCount !== 1 ? "s" : ""}
@@ -213,7 +195,7 @@ export default function Notifications() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             {notifications.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

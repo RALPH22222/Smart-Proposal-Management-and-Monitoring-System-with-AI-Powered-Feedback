@@ -1,40 +1,52 @@
-import type React from "react"
-import { useState } from "react"
-import Sidebar from "../../../components/EvaluatorSide"
+import type React from "react";
+import { useState } from "react";
+import Sidebar from "../../../components/EvaluatorSide";
 
-const PRIMARY = "#C8102E"
+const PRIMARY = "#C8102E";
 
-const Card: React.FC<{ title?: string; children?: React.ReactNode }> = ({ title, children }) => (
+const Card: React.FC<{ title?: string; children?: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
   <div className="bg-white shadow rounded-lg border border-slate-200 p-6">
-    {title && <h3 className="text-lg font-semibold text-slate-800 mb-4">{title}</h3>}
+    {title && (
+      <h3 className="text-lg font-semibold text-slate-800 mb-4">{title}</h3>
+    )}
     {children}
   </div>
-)
+);
 
 const AvatarUpload: React.FC = () => {
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="w-50 h-50 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">IMG</div>
+      <div className="w-50 h-50 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+        IMG
+      </div>
       <div className="flex flex-col gap-2 w-full">
-        <button className="px-3 py-2 text-sm rounded-md text-white" style={{ background: PRIMARY }}>
+        <button
+          className="px-3 py-2 text-sm rounded-md text-white"
+          style={{ background: PRIMARY }}
+        >
           Upload
         </button>
-        <button className="px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700">Remove</button>
+        <button className="px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700">
+          Remove
+        </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // === Profile Section ===
 const ProfileSection: React.FC = () => {
   const [form, setForm] = useState({
     firstName: "Robert",
     lastName: "William",
-    email: "admin@example.com",
+    email: "evaluator@example.com",
     phone: "+63 900 000 0000",
     organization: "WMSU",
-    title: "System Administrator",
-  })
+    title: "Evaluator",
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -46,15 +58,21 @@ const ProfileSection: React.FC = () => {
         <Card title="Personal Information">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">First name</label>
+              <label className="block text-sm text-gray-600 mb-1">
+                First name
+              </label>
               <input
                 value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, firstName: e.target.value })
+                }
                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Last name</label>
+              <label className="block text-sm text-gray-600 mb-1">
+                Last name
+              </label>
               <input
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
@@ -79,10 +97,14 @@ const ProfileSection: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Organization</label>
+              <label className="block text-sm text-gray-600 mb-1">
+                Organization
+              </label>
               <input
                 value={form.organization}
-                onChange={(e) => setForm({ ...form, organization: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, organization: e.target.value })
+                }
                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -96,10 +118,15 @@ const ProfileSection: React.FC = () => {
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <button className="px-4 py-2 rounded-lg text-white" style={{ background: PRIMARY }}>
+            <button
+              className="px-4 py-2 rounded-lg text-white"
+              style={{ background: PRIMARY }}
+            >
               Save changes
             </button>
-            <button className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700">Cancel</button>
+            <button className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700">
+              Cancel
+            </button>
           </div>
         </Card>
       </div>
@@ -108,7 +135,9 @@ const ProfileSection: React.FC = () => {
         <Card title="Contact & Address">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Address</label>
+              <label className="block text-sm text-gray-600 mb-1">
+                Address
+              </label>
               <input
                 className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="Street, Barangay"
@@ -126,8 +155,8 @@ const ProfileSection: React.FC = () => {
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // === Security Section ===
 const SecuritySection: React.FC = () => (
@@ -135,29 +164,51 @@ const SecuritySection: React.FC = () => (
     <Card title="Change Password">
       <form className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-600">Current Password</label>
-          <input type="password" className="mt-1 w-full border rounded-lg px-3 py-2" />
+          <label className="block text-sm font-medium text-slate-600">
+            Current Password
+          </label>
+          <input
+            type="password"
+            className="mt-1 w-full border rounded-lg px-3 py-2"
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-600">New Password</label>
-          <input type="password" className="mt-1 w-full border rounded-lg px-3 py-2" />
+          <label className="block text-sm font-medium text-slate-600">
+            New Password
+          </label>
+          <input
+            type="password"
+            className="mt-1 w-full border rounded-lg px-3 py-2"
+          />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-600">Confirm New Password</label>
-          <input type="password" className="mt-1 w-full border rounded-lg px-3 py-2" />
+          <label className="block text-sm font-medium text-slate-600">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            className="mt-1 w-full border rounded-lg px-3 py-2"
+          />
         </div>
-        <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+        <button
+          type="submit"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+        >
           Update Password
         </button>
       </form>
     </Card>
 
     <Card title="Two-Factor Authentication">
-      <p className="text-slate-600 mb-4">Add an extra layer of security to your account.</p>
-      <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Enable 2FA</button>
+      <p className="text-slate-600 mb-4">
+        Add an extra layer of security to your account.
+      </p>
+      <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+        Enable 2FA
+      </button>
     </Card>
   </div>
-)
+);
 
 // === Notifications Section ===
 const NotificationsSection: React.FC = () => (
@@ -173,7 +224,10 @@ const NotificationsSection: React.FC = () => (
         <label className="flex items-center gap-2">
           <input type="checkbox" /> Marketing Messages
         </label>
-        <button type="submit" className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+        <button
+          type="submit"
+          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+        >
           Save
         </button>
       </form>
@@ -190,13 +244,16 @@ const NotificationsSection: React.FC = () => (
         <label className="flex items-center gap-2">
           <input type="checkbox" defaultChecked /> Security Alerts
         </label>
-        <button type="submit" className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+        <button
+          type="submit"
+          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+        >
           Save
         </button>
       </form>
     </Card>
   </div>
-)
+);
 
 // === Preferences Section ===
 const PreferencesSection: React.FC = () => (
@@ -217,21 +274,27 @@ const PreferencesSection: React.FC = () => (
       </select>
     </Card>
   </div>
-)
+);
 
 // === Main Component ===
 const RdecSettings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"profile" | "security" | "notifications" | "preferences">("profile")
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "security" | "notifications" | "preferences"
+  >("profile");
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 gap-0 lg:gap-6">
       <Sidebar />
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-6">
         <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
           <header>
-            <h1 className="text-2xl font-bold text-slate-900">RDEC Settings</h1>
-            <p className="text-slate-600 mt-1">Manage your account, security and preferences.</p>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Evaluator Settings
+            </h1>
+            <p className="text-slate-600 mt-1">
+              Manage your account, security and preferences.
+            </p>
           </header>
 
           {/* Tabs */}
@@ -280,7 +343,7 @@ const RdecSettings: React.FC = () => {
         </div>
       </main>
     </div>
-  )
-}
+  );
+};
 
-export default RdecSettings
+export default RdecSettings;
