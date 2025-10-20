@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import Logo from "../assets/IMAGES/LOGO.png";
+import React, { useState, useEffect, useCallback } from 'react';
+import Logo from '../assets/IMAGES/LOGO.png';
 
 const COLORS = {
   brand: "#C8102E",

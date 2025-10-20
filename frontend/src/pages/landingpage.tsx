@@ -280,7 +280,7 @@ const LandingPage: React.FC = () => {
           Follow these simple steps to submit and manage your research proposal through our platform.
         </p>
         
-        <div className="mt-30 mx-auto flex lg:block items-center justify-center">
+        <div className="mt-31 mx-20 flex lg:block items-center justify-center">
           <div className="relative h-[320px] lg:h-[220px] overflow-visible left-0">           
             <CardSwap
               cardDistance={30}

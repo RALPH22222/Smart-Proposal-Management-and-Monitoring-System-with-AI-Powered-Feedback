@@ -35,7 +35,7 @@ const Sidebar: React.FC = () => {
         </div>
         <div>
           <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
-            WMSU Admin
+            Admin
           </h3>
           <p className="text-xs text-gray-500 font-medium">Project Portal</p>
         </div>
