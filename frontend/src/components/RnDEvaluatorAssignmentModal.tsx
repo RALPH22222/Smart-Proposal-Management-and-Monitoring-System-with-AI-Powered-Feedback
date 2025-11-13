@@ -34,7 +34,8 @@ const RnDEvaluatorAssignmentModal: React.FC<
 			maxWorkload: 5,
 			rating: 4.8,
 			completedReviews: 20,
-			email: 'alice@wmsu.edu.ph'
+			email: 'alice@wmsu.edu.ph',
+			agency: 'WMSU'
 		},
 		{
 			id: '2',
@@ -46,7 +47,8 @@ const RnDEvaluatorAssignmentModal: React.FC<
 			maxWorkload: 5,
 			rating: 4.5,
 			completedReviews: 15,
-			email: 'ben@wmsu.edu.ph'
+			email: 'ben@wmsu.edu.ph',
+			agency: 'WMSU'
 		},
 		{
 			id: '3',
@@ -58,7 +60,8 @@ const RnDEvaluatorAssignmentModal: React.FC<
 			maxWorkload: 4,
 			rating: 4.9,
 			completedReviews: 30,
-			email: 'carla@wmsu.edu.ph'
+			email: 'carla@wmsu.edu.ph',
+			agency: 'WMSU'
 		}
 	];
 

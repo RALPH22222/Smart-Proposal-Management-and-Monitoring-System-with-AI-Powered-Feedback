@@ -10,7 +10,7 @@ import {
 	CheckCircle,
 	User
 } from 'lucide-react';
-import { type Statistics, type Activity } from '../types/InterfaceProposal';
+import { type Statistics, type Activity } from '../../../types/InterfaceProposal';
 
 interface DashboardProps {
 	statistics: Statistics;

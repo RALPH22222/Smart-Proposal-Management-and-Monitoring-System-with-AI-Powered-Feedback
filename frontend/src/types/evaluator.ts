@@ -11,6 +11,8 @@ export interface Evaluator {
 	rating: number;
 	completedReviews: number;
 	department: string;
+	agency: string;
+
 }
 
 export interface Assignment {

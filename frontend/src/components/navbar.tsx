@@ -147,7 +147,7 @@ const Navbar: React.FC = () => {
                    className="text-xs lg:text-sm opacity-80 hidden lg:block"
                    style={{ color: COLORS.white }}
                  >
-                   Research Oversight Ethics Committee
+                   Research Development & Evaluation Center
                  </span>
                </div>
             </a>

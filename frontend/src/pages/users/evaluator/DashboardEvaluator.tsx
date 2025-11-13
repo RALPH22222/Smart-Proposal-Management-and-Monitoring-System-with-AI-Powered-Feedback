@@ -75,7 +75,7 @@ export default function DashboardRdec() {
   ];
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 gap-0 lg:gap-6">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Sidebar />
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 sm:p-6">

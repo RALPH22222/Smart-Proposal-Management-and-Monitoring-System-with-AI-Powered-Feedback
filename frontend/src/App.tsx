@@ -15,7 +15,7 @@ import DashboardAdmin from "./pages/users/admin/dashboard";
 import Accounts from "./pages/users/admin/accounts";
 import Reports from "./pages/users/admin/reports";
 import Contents from "./pages/users/admin/contents";
-import Reviews from "./pages/users/admin/reviews";
+import System from "./pages/users/admin/system";
 import SettingsAdmin from "./pages/users/admin/settings";
 
 // R&D
@@ -60,10 +60,10 @@ function App() {
           <Route path="/users/admin/accounts" element={<Accounts />} />
           <Route path="/users/admin/reports" element={<Reports />} />
           <Route path="/users/admin/contents" element={<Contents />} />
-          <Route path="/users/admin/reviews" element={<Reviews />} />
+          <Route path="/users/admin/system" element={<System />} />
           <Route path="/users/admin/settings" element={<SettingsAdmin />} />
 
-          {/* RDEC */}
+          {/* Evaluator */}
           <Route path="/users/evaluator/dashboard" element={<DashboardEvaluator />} />
           <Route path="/users/evaluator/proposals" element={<Proposals />} />
           <Route path="/users/evaluator/notifications" element={<Notifications />} />

@@ -255,12 +255,12 @@ export default function Register() {
 					<hr className='my-2' />
 
 					<label className='block'>
-						<span className='text-sm font-medium text-gray-700'>Full name</span>
+						<span className='text-sm font-medium text-gray-700'>Username</span>
 						<input
 							type='text'
 							value={name}
 							onChange={(e) => setName(e.target.value)}
-							placeholder='Your full name'
+							placeholder='Your username'
 							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
 							disabled={!otpVerified}
 						/>

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/RnDSidebar';
-import Dashboard from '../../../components/RndDashboard';
-import ReviewPage from '../../../components/RndReviewPage';
+import Dashboard from './RndDashboard';
+import ReviewPage from './RndReviewPage';
 import {
 	type Statistics,
 	type Activity
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
-import EndorsePage from '../../../components/RnDEndorsePage';
-import EvaluatorPage from '../../../components/RnDEvaluatorPage';
+import EndorsePage from './RnDEndorsePage';
+import EvaluatorPage from './RnDEvaluatorPage';
 
 const MainLayout: React.FC = () => {
 	const [currentPage, setCurrentPage] = useState('dashboard');

@@ -401,10 +401,10 @@ const Dashboard: React.FC = () => {
                       <input type="text" name="projectTitle" value={formData.projectTitle} onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200" placeholder="Enter project title" />
                     </div>
-                    <div className="space-y-1"><label className="block text-sm font-semibold text-gray-700">Leader Gender *</label>
+                    <div className="space-y-1"><label className="block text-sm font-semibold text-gray-700">Select Sex *</label>
                       <select name="leaderGender" value={formData.leaderGender} onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200">
-                        <option value="">Select Gender</option><option value="male">Male</option><option value="female">Female</option>
+                        <option value="">Select Sex</option><option value="male">Male</option><option value="female">Female</option>
                       </select>
                     </div>
                     <div className="space-y-1"><label className="block text-sm font-semibold text-gray-700">Duration (months) *</label>

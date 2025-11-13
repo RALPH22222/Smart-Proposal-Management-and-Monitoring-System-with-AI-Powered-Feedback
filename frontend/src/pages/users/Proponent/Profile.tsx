@@ -20,7 +20,12 @@ import {
   FaArrowRight,
   FaMobile,
   FaTablet,
-  FaDesktop
+  FaDesktop,
+  FaShareAlt,
+  FaUserPlus,
+  FaLink,
+  FaBell,
+  FaTimes
 } from 'react-icons/fa';
 
 type Project = {
@@ -106,7 +111,7 @@ const mockProjects: Project[] = [
 
 const stageLabels = [
   "Draft",
-  "Under Review", 
+  "Under Review",
   "Technical Evaluation",
   "Budget Assessment",
   "Final Approval",
@@ -125,6 +130,48 @@ const stageDescriptions = [
 const Profile: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Share modal state
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareProject, setShareProject] = useState<Project | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Notification state (added)
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState(() => [
+    { id: 'n1', title: 'New comment on "AgriTech Digital Transformation"', time: '2h', read: false },
+    { id: 'n2', title: 'Budget review requested for "Digital Library Modernization"', time: '1d', read: false },
+    { id: 'n3', title: 'Proposal "Renewable Energy Research" moved to Draft', time: '3d', read: true }
+  ]);
+  const notifRef = React.useRef<HTMLDivElement | null>(null);
+
+  // close notifications when clicking outside
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!notifRef.current) return;
+      if (!notifRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+    if (notificationsOpen) document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [notificationsOpen]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleNotifications = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setNotificationsOpen(v => !v);
+  };
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const markRead = (id: string) => {
+    setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
 
   const current = mockProjects[activeIndex];
 
@@ -172,6 +219,43 @@ const Profile: React.FC = () => {
   const approvalProjects = mockProjects.filter(p => p.currentIndex === 4);
   const completedProjects = mockProjects.filter(p => p.currentIndex === 5);
 
+  // Open share modal for a project
+  const openShare = (project: Project) => {
+    setShareProject(project);
+    setShareOpen(true);
+    setCopied(false);
+    setShareEmail("");
+  };
+
+  const closeShare = () => {
+    setShareOpen(false);
+    setShareProject(null);
+    setShareEmail("");
+    setCopied(false);
+  };
+
+  const copyLink = async () => {
+    if (!shareProject) return;
+    const url = `${window.location.origin}/projects/${shareProject.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const inviteEmail = () => {
+    // placeholder: in real app send invite via API
+    if (!shareEmail || !shareProject) return;
+    // simulate invite by clearing field and showing a brief confirmation
+    setShareEmail("");
+    // you could show a toast here; for now reuse copied flag as a quick indicator
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <ProponentNavbar />
@@ -193,28 +277,99 @@ const Profile: React.FC = () => {
               </div>
             </div>
             
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === 'grid' 
-                    ? 'bg-[#C8102E] text-white shadow-md' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <FaTablet className="text-sm" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === 'list' 
-                    ? 'bg-[#C8102E] text-white shadow-md' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <FaListAlt className="text-sm" />
-              </button>
+            {/* Notification + View Mode (moved together to avoid awkward placement) */}
+            <div className="flex items-center gap-3">
+              {/* Notification bell */}
+              <div className="relative" ref={notifRef}>
+                <button
+                  onClick={toggleNotifications}
+                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                  title="Notifications"
+                >
+                  <FaBell className="text-lg" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications dropdown */}
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+                      <div className="text-sm font-semibold text-gray-800">Notifications</div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markAllRead(); }}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Mark all read
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setNotificationsOpen(false); }}
+                          className="p-1 text-gray-400 hover:text-gray-700"
+                          aria-label="Close notifications"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto">
+                      {notifications.length === 0 && (
+                        <div className="p-4 text-sm text-gray-500">No notifications</div>
+                      )}
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-start gap-3 ${n.read ? 'bg-white' : 'bg-gray-50'}`}
+                          onClick={(e) => { e.stopPropagation(); markRead(n.id); /* optionally navigate */ }}
+                        >
+                          <div className="w-2.5 h-2.5 mt-1 rounded-full" style={{ background: n.read ? 'transparent' : '#C8102E' }} />
+                          <div className="flex-1">
+                            <div className="text-sm text-gray-800">{n.title}</div>
+                            <div className="text-xs text-gray-500 mt-1">{n.time}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="px-4 py-2 border-t border-gray-100 text-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); /* navigate to notifications page if exists */ setNotificationsOpen(false); }}
+                        className="text-sm text-[#C8102E] font-medium"
+                      >
+                        View all
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    viewMode === 'grid' 
+                      ? 'bg-[#C8102E] text-white shadow-md' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FaTablet className="text-sm" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    viewMode === 'list' 
+                      ? 'bg-[#C8102E] text-white shadow-md' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FaListAlt className="text-sm" />
+                </button>
+              </div>
             </div>
           </div>
           
@@ -227,7 +382,7 @@ const Profile: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-lg lg:text-2xl font-bold text-gray-800">{mockProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Total</p>
+                  <p className="text-xs lg:text-sm text-gray-600">Total Projects</p>
                 </div>
               </div>
             </div>
@@ -530,12 +685,24 @@ const Profile: React.FC = () => {
                           ></div>
                         </div>
                       </div>
-                      
+
+                      {/* Share button (grid) */}
                       <div className="flex items-center justify-between">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
                           {stageLabels[project.currentIndex]}
                         </span>
-                        <FaArrowRight className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                            className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                            title="Share project"
+                          >
+                            <FaShareAlt className="text-sm text-gray-600" />
+                            <span className="hidden sm:inline">Share</span>
+                          </button>
+                          <FaArrowRight className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -599,16 +766,36 @@ const Profile: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                              ></div>
+                          <div className="flex items-center gap-2 justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-gray-600 font-medium hidden sm:inline">
+                                {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                              </span>
                             </div>
-                            <span className="text-xs text-gray-600 font-medium hidden sm:inline">
-                              {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
-                            </span>
+
+                            {/* Share button (list) */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                                className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                                title="Share project"
+                              >
+                                <FaShareAlt className="text-sm text-gray-600" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setActiveIndex(mockProjects.findIndex(p => p.id === project.id)); }}
+                                className="text-gray-400 hover:text-[#C8102E] transition-colors text-xs hidden sm:inline"
+                                title="Open project"
+                              >
+                                <FaArrowRight />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -620,6 +807,69 @@ const Profile: React.FC = () => {
           </div>
         </section>
       </main>
+
+      {/* Share Modal */}
+      {shareOpen && shareProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={closeShare} />
+          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-lg">
+                  <FaShareAlt className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-800">{shareProject.title}</h4>
+                  <p className="text-xs text-gray-500">Share access with team members or copy link</p>
+                </div>
+              </div>
+              <button onClick={closeShare} className="text-gray-400 hover:text-gray-700">Close</button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-600">Project link</label>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    readOnly
+                    value={`${window.location.origin}/projects/${shareProject.id}`}
+                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700"
+                  />
+                  <button
+                    onClick={copyLink}
+                    className="px-3 py-2 rounded-md bg-[#C8102E] text-white text-sm hover:opacity-90"
+                  >
+                    {copied ? "Copied" : <><FaLink className="inline mr-1" /> Copy</>}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600">Invite by email</label>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="name@organization.com"
+                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 text-sm"
+                  />
+                  <button
+                    onClick={inviteEmail}
+                    className="px-3 py-2 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6]"
+                  >
+                    <FaUserPlus className="inline mr-1 text-sm" /> Invite
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">Invited users will receive a link to access this project (demo).</p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button onClick={closeShare} className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-gray-700">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

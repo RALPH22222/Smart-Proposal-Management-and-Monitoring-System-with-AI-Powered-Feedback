@@ -11,7 +11,7 @@ import {
 	ChevronLeft,
 	ChevronRight
 } from 'lucide-react';
-import RnDEvaluatorPageModal from './RnDEvaluatorPageModal';
+import RnDEvaluatorPageModal from '../../../components/RnDEvaluatorPageModal';
 
 interface Assignment {
 	id: string;

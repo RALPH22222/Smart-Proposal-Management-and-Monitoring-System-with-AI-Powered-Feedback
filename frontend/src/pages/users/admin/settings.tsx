@@ -27,7 +27,7 @@ const Card: React.FC<{ title?: string } & { children?: React.ReactNode }> = ({
 	title,
 	children
 }) => (
-	<div className='bg-white rounded-lg shadow p-4'>
+	<div className='bg-white rounded-lg shadow p-4 sm:p-6'>
 		{title && (
 			<h3 className='text-sm font-medium text-gray-700 mb-3'>{title}</h3>
 		)}
@@ -48,25 +48,26 @@ const AdminSettings: React.FC = () => {
 	}, [activeTab, setLoading]);
 
 	return (
-		<div className='min-h-screen flex bg-gray-50'>
+		<div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
 			<Sidebar />
-			<main className='flex-1 p-6'>
-				<div className='max-w-5xl mx-auto'>
-					<header className='mb-6'>
-						<h1 className='text-2xl font-bold text-gray-900'>Admin Settings</h1>
-						<p className='text-gray-600 mt-1'>
+			<div className="flex-1 overflow-y-auto">
+				<div className="p-4 sm:p-6">
+					{/* Header */}
+					<header className="pt-11 sm:pt-0 pb-4 sm:pb-6">
+						<h1 className='text-xl sm:text-2xl font-bold text-red-700'>Admin Settings</h1>
+						<p className='text-gray-600 mt-1 text-sm sm:text-base'>
 							Manage your account, security and preferences.
 						</p>
 					</header>
 
 					{/* Tabs */}
 					<div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
-						<nav className='flex gap-6 px-5 overflow-x-auto'>
+						<nav className='flex gap-4 sm:gap-6 px-3 sm:px-5 overflow-x-auto'>
 							{TABS.map((t) => (
 								<button
 									key={t.id}
 									onClick={() => setActiveTab(t.id)}
-									className={`py-3 text-sm border-b-2 -mb-px transition-colors ${
+									className={`py-3 text-xs sm:text-sm border-b-2 -mb-px transition-colors whitespace-nowrap ${
 										activeTab === t.id
 											? 'border-red-600 text-red-600'
 											: 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200'
@@ -83,7 +84,7 @@ const AdminSettings: React.FC = () => {
 					{activeTab === 'notifications' && <NotificationsSection />}
 					{activeTab === 'preferences' && <PreferencesSection />}
 				</div>
-			</main>
+			</div>
 		</div>
 	);
 };
@@ -91,17 +92,17 @@ const AdminSettings: React.FC = () => {
 const AvatarUpload: React.FC = () => {
 	return (
 		<div className='flex flex-col items-center gap-3'>
-			<div className='w-50 h-50 rounded-full bg-gray-200 flex items-center justify-center text-gray-500'>
+			<div className='w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-gray-200 flex items-center justify-center text-gray-500'>
 				IMG
 			</div>
-			<div className='flex flex-col gap-2 w-full'>
+			<div className='flex flex-col sm:flex-row gap-2 w-full'>
 				<button
-					className='px-3 py-2 text-sm rounded-md text-white'
+					className='px-3 py-2 text-sm rounded-md text-white w-full sm:w-auto'
 					style={{ background: PRIMARY }}
 				>
 					Upload
 				</button>
-				<button className='px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700'>
+				<button className='px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700 w-full sm:w-auto'>
 					Remove
 				</button>
 			</div>
@@ -120,14 +121,14 @@ const ProfileSection: React.FC = () => {
 	});
 
 	return (
-		<div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+		<div className='grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6'>
 			<Card title='Avatar'>
 				<AvatarUpload />
 			</Card>
 
 			<div className='lg:col-span-2'>
 				<Card title='Personal Information'>
-					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+					<div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
 						<div>
 							<label className='block text-sm text-gray-600 mb-1'>
 								First name
@@ -137,7 +138,7 @@ const ProfileSection: React.FC = () => {
 								onChange={(e) =>
 									setForm({ ...form, firstName: e.target.value })
 								}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 						<div>
@@ -147,16 +148,16 @@ const ProfileSection: React.FC = () => {
 							<input
 								value={form.lastName}
 								onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
-						<div>
+						<div className="sm:col-span-2">
 							<label className='block text-sm text-gray-600 mb-1'>Email</label>
 							<input
 								type='email'
 								value={form.email}
 								onChange={(e) => setForm({ ...form, email: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 						<div>
@@ -164,7 +165,7 @@ const ProfileSection: React.FC = () => {
 							<input
 								value={form.phone}
 								onChange={(e) => setForm({ ...form, phone: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 						<div>
@@ -176,7 +177,7 @@ const ProfileSection: React.FC = () => {
 								onChange={(e) =>
 									setForm({ ...form, organization: e.target.value })
 								}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 						<div>
@@ -184,18 +185,18 @@ const ProfileSection: React.FC = () => {
 							<input
 								value={form.title}
 								onChange={(e) => setForm({ ...form, title: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 					</div>
-					<div className='mt-4 flex gap-2'>
+					<div className='mt-4 flex gap-2 flex-wrap'>
 						<button
-							className='px-4 py-2 rounded-lg text-white'
+							className='px-4 py-2 rounded-lg text-white text-sm sm:text-base w-full sm:w-auto'
 							style={{ background: PRIMARY }}
 						>
 							Save changes
 						</button>
-						<button className='px-4 py-2 rounded-lg border border-gray-300 text-gray-700'>
+						<button className='px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm sm:text-base w-full sm:w-auto'>
 							Cancel
 						</button>
 					</div>
@@ -204,23 +205,23 @@ const ProfileSection: React.FC = () => {
 
 			<div className='lg:col-span-3'>
 				<Card title='Contact & Address'>
-					<div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-						<div>
+					<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4'>
+						<div className="sm:col-span-2 lg:col-span-1">
 							<label className='block text-sm text-gray-600 mb-1'>
 								Address
 							</label>
 							<input
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 								placeholder='Street, Barangay'
 							/>
 						</div>
 						<div>
 							<label className='block text-sm text-gray-600 mb-1'>City</label>
-							<input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500' />
+							<input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm' />
 						</div>
 						<div>
 							<label className='block text-sm text-gray-600 mb-1'>Zip</label>
-							<input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500' />
+							<input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm' />
 						</div>
 					</div>
 				</Card>
@@ -233,7 +234,7 @@ const SecuritySection: React.FC = () => {
 	const [twoFA, setTwoFA] = useState(false);
 	const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' });
 	return (
-		<div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+		<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
 			<Card title='Password'>
 				<div className='space-y-3'>
 					<div>
@@ -244,10 +245,10 @@ const SecuritySection: React.FC = () => {
 							type='password'
 							value={pwd.current}
 							onChange={(e) => setPwd({ ...pwd, current: e.target.value })}
-							className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+							className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 						/>
 					</div>
-					<div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+					<div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
 						<div>
 							<label className='block text-sm text-gray-600 mb-1'>
 								New password
@@ -256,7 +257,7 @@ const SecuritySection: React.FC = () => {
 								type='password'
 								value={pwd.next}
 								onChange={(e) => setPwd({ ...pwd, next: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 						<div>
@@ -267,12 +268,12 @@ const SecuritySection: React.FC = () => {
 								type='password'
 								value={pwd.confirm}
 								onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })}
-								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500'
+								className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 							/>
 						</div>
 					</div>
 					<button
-						className='mt-2 px-4 py-2 rounded-lg text-white'
+						className='mt-2 px-4 py-2 rounded-lg text-white text-sm sm:text-base w-full sm:w-auto'
 						style={{ background: PRIMARY }}
 					>
 						Update password
@@ -281,11 +282,11 @@ const SecuritySection: React.FC = () => {
 			</Card>
 
 			<Card title='Two‑Factor Authentication (2FA)'>
-				<div className='flex items-center justify-between'>
-					<p className='text-sm text-gray-600 max-w-sm'>
+				<div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+					<p className='text-sm text-gray-600 flex-1'>
 						Protect your account by requiring a code when signing in.
 					</p>
-					<label className='inline-flex items-center cursor-pointer'>
+					<label className='inline-flex items-center cursor-pointer flex-shrink-0'>
 						<input
 							type='checkbox'
 							className='sr-only'
@@ -323,7 +324,7 @@ const NotificationsSection: React.FC = () => {
 		setPrefs((p) => ({ ...p, [k]: !p[k] }));
 
 	return (
-		<div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+		<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
 			<Card title='Email Notifications'>
 				<div className='space-y-3'>
 					{STATUS.map((row) => (
@@ -358,15 +359,15 @@ const NotificationsSection: React.FC = () => {
 const PreferencesSection: React.FC = () => {
 	const [pref, setPref] = useState({ density: 'comfortable', theme: 'light' });
 	return (
-		<div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+		<div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
 			<Card title='Appearance'>
-				<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+				<div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
 					<div>
 						<label className='block text-sm text-gray-600 mb-1'>Theme</label>
 						<select
 							value={pref.theme}
 							onChange={(e) => setPref({ ...pref, theme: e.target.value })}
-							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
+							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 						>
 							<option value='light'>Light</option>
 							<option value='system'>System</option>
@@ -377,7 +378,7 @@ const PreferencesSection: React.FC = () => {
 						<select
 							value={pref.density}
 							onChange={(e) => setPref({ ...pref, density: e.target.value })}
-							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
+							className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
 						>
 							<option value='comfortable'>Comfortable</option>
 							<option value='compact'>Compact</option>
@@ -390,7 +391,7 @@ const PreferencesSection: React.FC = () => {
 					<div>Last login: 2 hours ago</div>
 					<div>Active sessions: 2 devices</div>
 					<button
-						className='mt-2 px-3 py-2 rounded-md text-white'
+						className='mt-2 px-3 py-2 rounded-md text-white text-sm w-full sm:w-auto'
 						style={{ background: PRIMARY }}
 					>
 						Sign out of all devices
@@ -402,4 +403,3 @@ const PreferencesSection: React.FC = () => {
 };
 
 export default AdminSettings;
-
