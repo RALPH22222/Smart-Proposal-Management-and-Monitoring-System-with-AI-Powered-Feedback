@@ -215,7 +215,7 @@ const About: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="p-12 lg:p-16 bg-gradient-to-br from-red-50 to-white">
                 <div className="flex items-center gap-4 mb-8">
-                  <h3 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text text-transparent">University-Tailored Expertise</h3>
+                  <h3 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text">University-Tailored Expertise</h3>
                 </div>
                 <p className="text-lg text-gray-700 leading-relaxed mb-6">
                   Our team consists of former WMSU faculty and research committee members who understand the intricate requirements and approval processes unique to our university.
