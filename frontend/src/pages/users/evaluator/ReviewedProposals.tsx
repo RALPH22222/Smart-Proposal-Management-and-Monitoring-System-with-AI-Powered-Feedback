@@ -586,65 +586,6 @@ export default function ReviewedProposals() {
                     </div>
                   </div>
                 </div>
-<<<<<<< Updated upstream
-=======
-
-                <div className="border-t-2 border-slate-300 pt-6 mt-6">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-teal-600" />
-                    R&D Feedback on Evaluation
-                  </h3>
-
-                  {proposal.rdComments ? (
-                    <div className="space-y-4">
-                      <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">
-                          Assessment of Objectives
-                        </label>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {proposal.rdComments.objectivesAssessment}
-                        </p>
-                      </div>
-
-                      <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">
-                          Assessment of Methodology
-                        </label>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {proposal.rdComments.methodologyAssessment}
-                        </p>
-                      </div>
-
-                      <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Assessment of Budget</label>
-                        <p className="text-sm text-slate-700 leading-relaxed">{proposal.rdComments.budgetAssessment}</p>
-                      </div>
-
-                      <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                        <label className="block text-sm font-semibold text-slate-900 mb-2">Additional Insights</label>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {proposal.rdComments.additionalInsights}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 rounded-lg p-4 border border-amber-200 flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-amber-100">
-                          <span className="text-amber-600 text-sm font-semibold">!</span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-amber-900">Pending R&D Review</p>
-                        <p className="text-sm text-amber-800 mt-1">
-                          The R&D team is currently reviewing the evaluator's assessment. Feedback will be available
-                          shortly.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
->>>>>>> Stashed changes
               </div>
             </div>
 
