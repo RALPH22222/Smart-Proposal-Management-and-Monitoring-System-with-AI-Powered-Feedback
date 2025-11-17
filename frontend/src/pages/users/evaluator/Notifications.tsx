@@ -9,7 +9,6 @@ import {
   DollarSign,
   Users,
   TrendingUp,
-  Calendar,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -148,10 +147,6 @@ export default function Notifications() {
               <p className="text-slate-600 mt-2 text-sm leading-relaxed">
                 Research updates, approvals, and system alerts from your Evaluator dashboard.
               </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Calendar className="w-4 h-4" />
-              <span>Last updated: Today, 4:45 PM</span>
             </div>
           </div>
         </header>

@@ -1,7 +1,7 @@
 import type React from "react"
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
-import { Menu, X, LayoutDashboard, FileText, Users, CheckCircle, RefreshCw, Settings, LogOut, Bell } from "lucide-react"
+import { Menu, X, LayoutDashboard, FileText, CheckCircle, RefreshCw, Settings, LogOut, Bell } from "lucide-react"
 
 const accent = "#C10003"
 
@@ -14,7 +14,7 @@ const Sidebar: React.FC = () => {
     { to: "/users/evaluator/proposals", label: "Proposals", icon: FileText },
     { to: "/users/evaluator/review", label: "Under Review", icon: RefreshCw },
     { to: "/users/evaluator/reviewed", label: "Completed Reviews", icon: CheckCircle },
-    { to: "/users/evaluator/notifications", label: "Notifications", icon: Bell, badge: "5" },
+    { to: "/users/evaluator/notifications", label: "Notifications", icon: Bell, badge: "4" },
   ]
 
   const bottomLinks = [

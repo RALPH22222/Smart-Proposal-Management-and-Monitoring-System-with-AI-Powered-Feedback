@@ -1,4 +1,4 @@
-import { X, CheckCircle, AlertCircle, BookOpen } from "lucide-react"
+import { X, CheckCircle, BookOpen } from "lucide-react"
 
 interface RubricsModalProps {
   isOpen: boolean
@@ -147,39 +147,6 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
     },
   ]
 
-  const scoringGuidance = [
-    {
-      range: "20-19",
-      recommendation: "Highly Recommended for Approval",
-      color: "text-emerald-600 bg-emerald-50",
-      description: "Excellent proposal with strong merit across all assessment areas",
-    },
-    {
-      range: "18-16",
-      recommendation: "Recommended for Approval",
-      color: "text-blue-600 bg-blue-50",
-      description: "Good proposal with solid methodology and feasibility",
-    },
-    {
-      range: "15-13",
-      recommendation: "Recommended with Revisions",
-      color: "text-amber-600 bg-amber-50",
-      description: "Proposal has merit but requires clarifications and improvements",
-    },
-    {
-      range: "12-9",
-      recommendation: "Needs Major Revision",
-      color: "text-orange-600 bg-orange-50",
-      description: "Significant concerns in one or more assessment areas",
-    },
-    {
-      range: "Below 9",
-      recommendation: "Not Recommended",
-      color: "text-red-600 bg-red-50",
-      description: "Fundamental issues prevent approval without major overhaul",
-    },
-  ]
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-2 sm:p-4">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
@@ -243,32 +210,6 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
                 </div>
               </div>
             ))}
-
-            <div className="border-2 border-[#C8102E] rounded-lg p-4 bg-white">
-              <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-[#C8102E]" />
-                Overall Scoring Guide
-              </h3>
-
-              <div className="space-y-2">
-                {scoringGuidance.map((item, idx) => (
-                  <div key={idx} className={`flex items-start justify-between p-3 rounded-lg border ${item.color}`}>
-                    <div>
-                      <p className="text-sm font-semibold">Score Range: {item.range}</p>
-                      <p className="text-xs font-medium mt-0.5">{item.recommendation}</p>
-                      <p className="text-xs opacity-80 mt-1">{item.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-                <p className="text-xs text-slate-700">
-                  <span className="font-semibold">Total Score Calculation:</span> Sum ratings from 4 categories
-                  (Objectives, Methodology, Budget, Timeline) = Maximum 20 points.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
