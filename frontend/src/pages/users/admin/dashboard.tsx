@@ -1,440 +1,410 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Sidebar from '../../../components/sidebar';
-import { useLoading } from '../../../contexts/LoadingContext';
+import {
+  Users,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  BarChart3,
+  Cpu,
+  Shield,
+  Activity
+} from "lucide-react";
 
-const PRIMARY = '#C8102E';
+export default function DashboardAdmin() {
+  const stats = [
+    {
+      icon: Users,
+      label: "Total Users",
+      value: 1284,
+      color: "text-blue-500",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+    },
+    {
+      icon: FileText,
+      label: "Total Proposals",
+      value: 1560,
+      color: "text-purple-500",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+    },
+    {
+      icon: Cpu,
+      label: "System Uptime",
+      value: "99.8%",
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-50",
+      borderColor: "border-emerald-200",
+    },
+  ];
 
-const Card: React.FC<{
-	title?: string;
-	right?: React.ReactNode;
-	className?: string;
-	children?: React.ReactNode;
-}> = ({ title, right, className, children }) => (
-	<div
-		className={`bg-white rounded-lg shadow p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-			className || ''
-		}`}
-	>
-		{(title || right) && (
-			<div className='flex items-center justify-between mb-3'>
-				{title ? (
-					<h3 className='text-sm font-medium text-gray-700'>{title}</h3>
-				) : (
-					<span />
-				)}
-				{right}
-			</div>
-		)}
-		{children}
-	</div>
-);
+  const systemMetrics = [
+    {
+      id: 1,
+      metric: "Active Sessions",
+      value: "284",
+      trend: "+12%",
+      status: "up",
+    },
+    {
+      id: 2,
+      metric: "Avg Response Time",
+      value: "2.3 days",
+      trend: "-0.5 days",
+      status: "up",
+    },
+    {
+      id: 3,
+      metric: "Server Load",
+      value: "45%",
+      trend: "+8%",
+      status: "warning",
+    },
+    {
+      id: 4,
+      metric: "Database Queries",
+      value: "1.2k/min",
+      trend: "Stable",
+      status: "stable",
+    },
+    {
+      id: 5,
+      metric: "API Requests",
+      value: "3.4k/min",
+      trend: "+15%",
+      status: "up",
+    },
+  ];
 
-const Sparkline: React.FC<{ data: number[]; className?: string }> = ({
-	data,
-	className
-}) => {
-	const w = 120;
-	const h = 28;
-	const max = Math.max(...data);
-	const min = Math.min(...data);
-	const points = data
-		.map((v, i) => {
-			const x = (i / (data.length - 1)) * w;
-			const y = h - ((v - min) / (max - min || 1)) * h;
-			return `${x},${y}`;
-		})
-		.join(' ');
-	return (
-		<svg width={w} height={h} className={className}>
-			<polyline
-				fill='none'
-				stroke='#C8102E'
-				strokeWidth={2}
-				points={points}
-				strokeLinecap='round'
-				strokeLinejoin='round'
-			/>
-		</svg>
-	);
-};
+  const userActivity = [
+    {
+      id: 1,
+      role: "Proponents",
+      active: 450,
+      total: 650,
+      percentage: "69%",
+    },
+    {
+      id: 2,
+      role: "Evaluators",
+      active: 38,
+      total: 45,
+      percentage: "84%",
+    },
+    {
+      id: 3,
+      role: "R&D Staff",
+      active: 12,
+      total: 15,
+      percentage: "80%",
+    },
+    {
+      id: 4,
+      role: "Administrators",
+      active: 3,
+      total: 5,
+      percentage: "60%",
+    },
+  ];
 
-const Donut: React.FC<{ value: number; size?: number; stroke?: number }> = ({
-	value,
-	size = 64,
-	stroke = 8
-}) => {
-	const radius = (size - stroke) / 2;
-	const circumference = 2 * Math.PI * radius;
-	const offset = circumference * (1 - Math.max(0, Math.min(1, value / 100)));
-	return (
-		<svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-			<circle
-				cx={size / 2}
-				cy={size / 2}
-				r={radius}
-				stroke='#F3F4F6'
-				strokeWidth={stroke}
-				fill='none'
-			/>
-			<circle
-				cx={size / 2}
-				cy={size / 2}
-				r={radius}
-				stroke={PRIMARY}
-				strokeWidth={stroke}
-				strokeLinecap='round'
-				fill='none'
-				strokeDasharray={`${circumference} ${circumference}`}
-				strokeDashoffset={offset}
-				transform={`rotate(-90 ${size / 2} ${size / 2})`}
-			/>
-			<text
-				x='50%'
-				y='50%'
-				dominantBaseline='middle'
-				textAnchor='middle'
-				fontSize={12}
-				fill='#374151'
-			>
-				{Math.round(value)}%
-			</text>
-		</svg>
-	);
-};
+  return (
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <Sidebar />
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6">
+          {/* Header */}
+          <header className="pt-11 sm:pt-0 pb-4 sm:pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#C8102E] leading-tight">
+                  Admin Dashboard
+                </h1>
+                <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+                  System overview and performance metrics
+                </p>
+              </div>
+            </div>
+          </header>
 
-const StatCard: React.FC<{
-	title: string;
-	value: React.ReactNode;
-	right?: React.ReactNode;
-	children?: React.ReactNode;
-}> = ({ title, value, right, children }) => {
-	return (
-		<div className='bg-white rounded-lg shadow p-4 flex items-center justify-between'>
-			<div>
-				<h4 className='text-xs font-medium text-gray-500'>{title}</h4>
-				<div className='flex items-center gap-3'>
-					<div className='text-2xl font-semibold text-gray-900'>{value}</div>
-					<div className='text-sm text-gray-500'>{children}</div>
-				</div>
-			</div>
-			<div>{right}</div>
-		</div>
-	);
-};
+          {/* Stats Section */}
+          <section className="mb-4 sm:mb-6" aria-labelledby="stats-heading">
+            <h2 id="stats-heading" className="sr-only">
+              System Statistics
+            </h2>
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+              {/* First two stats cards */}
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {stats.slice(0, 2).map((stat, index) => {
+                  const IconComponent = stat.icon;
+                  return (
+                    <div
+                      key={index}
+                      className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${stat.label}: ${stat.value}`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <IconComponent
+                          className={`${stat.color} w-6 h-6 group-hover:scale-110 transition-transform duration-300`}
+                        />
+                      </div>
+                      <h3 className="text-xs font-semibold text-slate-700 mb-2 leading-tight">
+                        {stat.label}
+                      </h3>
+                      <p className="text-xl font-bold text-slate-800 tabular-nums">
+                        {stat.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
 
-/* AreaChart */
-const AreaChart: React.FC<{
-	data: number[];
-	width?: number;
-	height?: number;
-}> = ({ data, width = 800, height = 240 }) => {
-	if (!data || data.length === 0) return null;
-	const padding = { top: 12, right: 12, bottom: 24, left: 36 };
-	const w = width;
-	const h = height;
-	const innerW = w - padding.left - padding.right;
-	const innerH = h - padding.top - padding.bottom;
-	const max = Math.max(...data);
-	const min = Math.min(...data);
-	const x = (i: number) => padding.left + (i / (data.length - 1)) * innerW;
-	const y = (v: number) =>
-		padding.top + innerH - ((v - min) / (max - min || 1)) * innerH;
+              {/* Third stats card */}
+              <div className="w-full lg:w-80">
+                {(() => {
+                  const stat = stats[2];
+                  const IconComponent = stat.icon;
+                  return (
+                    <div
+                      className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${stat.label}: ${stat.value}`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <IconComponent
+                          className={`${stat.color} w-6 h-6 group-hover:scale-110 transition-transform duration-300`}
+                        />
+                      </div>
+                      <h3 className="text-xs font-semibold text-slate-700 mb-2 leading-tight">
+                        {stat.label}
+                      </h3>
+                      <p className="text-xl font-bold text-slate-800 tabular-nums">
+                        {stat.value}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </section>
 
-	const linePath = data
-		.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`)
-		.join(' ');
-	const areaPath = `${data
-		.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`)
-		.join(' ')} L ${padding.left + innerW} ${padding.top + innerH} L ${
-		padding.left
-	} ${padding.top + innerH} Z`;
+          {/* Main Content Section */}
+          <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+            {/* System Metrics Table */}
+            <div
+              className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col"
+              aria-labelledby="metrics-heading"
+            >
+              <div className="p-4 border-b border-slate-200 bg-slate-50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h3
+                    id="metrics-heading"
+                    className="text-lg font-bold text-slate-800 flex items-center gap-2"
+                  >
+                    <Activity className="w-5 h-5 text-[#C8102E]" />
+                    System Performance Metrics
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Real-time monitoring</span>
+                  </div>
+                </div>
+              </div>
 
-	const labels = data.map((_, i) => {
-		if (data.length <= 6) return `${i + 1}`;
-		const step = Math.ceil(data.length / 6);
-		return i % step === 0 ? `${i + 1}` : '';
-	});
+              <div className="overflow-x-auto flex-1">
+                <table
+                  className="w-full"
+                  role="table"
+                  aria-label="System metrics table"
+                >
+                  <thead>
+                    <tr className="bg-slate-100 text-left text-slate-700 border-b border-slate-200">
+                      <th
+                        className="p-3 font-semibold text-xs uppercase tracking-wider"
+                        scope="col"
+                      >
+                        #
+                      </th>
+                      <th
+                        className="p-3 font-semibold text-xs uppercase tracking-wider min-w-[200px]"
+                        scope="col"
+                      >
+                        Metric
+                      </th>
+                      <th
+                        className="p-3 font-semibold text-xs uppercase tracking-wider hidden sm:table-cell"
+                        scope="col"
+                      >
+                        Current Value
+                      </th>
+                      <th
+                        className="p-3 font-semibold text-xs uppercase tracking-wider hidden lg:table-cell"
+                        scope="col"
+                      >
+                        Trend
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {systemMetrics.map((metric) => (
+                      <tr
+                        key={metric.id}
+                        className="border-b border-slate-100 hover:bg-slate-50 transition-colors duration-200 group"
+                        role="row"
+                      >
+                        <td
+                          className="p-3 text-slate-600 font-medium tabular-nums text-sm"
+                          role="cell"
+                        >
+                          {metric.id}
+                        </td>
+                        <td className="p-3" role="cell">
+                          <div className="font-semibold text-slate-800 group-hover:text-[#C8102E] transition-colors duration-200 text-pretty text-sm">
+                            {metric.metric}
+                          </div>
+                          <div className="text-xs text-slate-500 sm:hidden mt-1">
+                            {metric.value} • {metric.trend}
+                          </div>
+                        </td>
+                        <td
+                          className="p-3 text-slate-700 hidden sm:table-cell text-sm"
+                          role="cell"
+                        >
+                          {metric.value}
+                        </td>
+                        <td
+                          className="p-3 text-slate-600 text-xs tabular-nums hidden lg:table-cell"
+                          role="cell"
+                        >
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            metric.status === 'up' 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : metric.status === 'warning'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {metric.trend}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-	// eslint-disable-next-line react-hooks/rules-of-hooks
-	const [isAnimating, setIsAnimating] = useState(false);
+              {/* Quick Actions */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                  <button
+                    onClick={() => (window.location.href = "/users/admin/system")}
+                    className="text-[#C8102E] hover:text-[#A00E26] font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-opacity-50 rounded px-2 py-1 cursor-pointer"
+                    aria-label="View system details"
+                  >
+                    System Details →
+                  </button>
+                </div>
+              </div>
 
-	// eslint-disable-next-line react-hooks/rules-of-hooks
-	useEffect(() => {
-		const timer = setTimeout(() => setIsAnimating(true), 100);
-		return () => clearTimeout(timer);
-	}, []);
+              {/* Performance Summary */}
+              <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-emerald-600">
+                      99.8%
+                    </div>
+                    <div className="text-xs text-slate-600">Uptime</div>
+                  </div>
+                  <div className="text-center border-x border-slate-300">
+                    <div className="text-2xl font-bold text-amber-600">45%</div>
+                    <div className="text-xs text-slate-600">Load Avg</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">2.3s</div>
+                    <div className="text-xs text-slate-600">Response Time</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-	return (
-		<svg width='100%' viewBox={`0 0 ${w} ${h}`} className='overflow-visible'>
-			{[0, 0.25, 0.5, 0.75, 1].map((t, idx) => {
-				const yy = padding.top + innerH * t;
-				return (
-					<line
-						key={idx}
-						x1={padding.left}
-						x2={padding.left + innerW}
-						y1={yy}
-						y2={yy}
-						stroke='#F3F4F6'
-						strokeWidth={1}
-					/>
-				);
-			})}
+            {/* User Activity & System Status Box */}
+            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full lg:w-80 flex flex-col">
+              <h3 className="text-lg font-bold text-slate-800 mb-8 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-[#C8102E]" />
+                System Status
+              </h3>
 
-			{/* Area with animation */}
-			<path
-				d={areaPath}
-				fill='#FEEFEF'
-				stroke='none'
-				className={`transition-all duration-1000 ease-out ${
-					isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-				}`}
-			/>
+              <div className="space-y-6 flex-1 flex flex-col justify-center">
+                {/* Active Users */}
+                <div className="flex items-center justify-between p-5 bg-blue-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-4">
+                    <Users className="w-6 h-6 text-blue-500" />
+                    <span className="font-semibold text-blue-700 text-base">
+                      Active Users
+                    </span>
+                  </div>
+                  <span className="text-2xl font-bold text-blue-700">284</span>
+                </div>
 
-			{/* Line with animation */}
-			<path
-				d={linePath}
-				fill='none'
-				stroke={PRIMARY}
-				strokeWidth={2}
-				strokeLinecap='round'
-				strokeLinejoin='round'
-				className={`transition-all duration-1000 ease-out delay-150 ${
-					isAnimating ? 'opacity-100' : 'opacity-0'
-				}`}
-			/>
+                {/* System Health */}
+                <div className="flex items-center justify-between p-5 bg-emerald-50 rounded-xl border border-emerald-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-4">
+                    <CheckCircle className="w-6 h-6 text-emerald-500" />
+                    <span className="font-semibold text-emerald-700 text-base">
+                      System Health
+                    </span>
+                  </div>
+                  <span className="text-2xl font-bold text-emerald-700">
+                    99.8%
+                  </span>
+                </div>
 
-			{/* Labels */}
-			{labels.map((lab, i) => (
-				<text
-					key={i}
-					x={x(i)}
-					y={h - 6}
-					fontSize={10}
-					textAnchor='middle'
-					fill='#6B7280'
-				>
-					{lab}
-				</text>
-			))}
-			<text x={8} y={padding.top + innerH} fontSize={10} fill='#6B7280'>
-				{min}
-			</text>
-			<text x={8} y={padding.top + 10} fontSize={10} fill='#6B7280'>
-				{max}
-			</text>
-		</svg>
-	);
-};
+                {/* Pending Tasks */}
+                <div className="flex items-center justify-between p-5 bg-amber-50 rounded-xl border border-amber-200 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-center gap-4">
+                    <Clock className="w-6 h-6 text-amber-500" />
+                    <span className="font-semibold text-amber-700 text-base">
+                      Pending Tasks
+                    </span>
+                  </div>
+                  <span className="text-2xl font-bold text-amber-700">12</span>
+                </div>
+              </div>
 
-/* Donut breakdown card */
-const DonutBreakdown: React.FC<{
-	title: string;
-	items: { label: string; value: number }[];
-}> = ({ title, items }) => {
-	const total = items.reduce((s, i) => s + i.value, 0);
-	const primaryPct = total ? Math.round((items[0].value / total) * 100) : 0;
-	return (
-		<Card title={title}>
-			<div className='flex items-center gap-4'>
-				<Donut value={primaryPct} size={88} stroke={10} />
-				<div className='text-sm w-full'>
-					{items.map((it) => (
-						<div key={it.label} className='flex items-center gap-2 py-1'>
-							<span
-								className='inline-block w-3 h-3 rounded-sm'
-								style={{ background: PRIMARY }}
-							/>
-							<span className='text-gray-700'>{it.label}</span>
-							<span className='ml-auto text-gray-500'>{it.value}</span>
-						</div>
-					))}
-				</div>
-			</div>
-		</Card>
-	);
-};
-
-const TrafficCard: React.FC<{
-	title: string;
-	sources: { label: string; pct: number }[];
-}> = ({ title, sources }) => (
-	<Card title={title}>
-		<div className='space-y-3'>
-			{sources.map((s) => (
-				<div key={s.label} className='text-sm'>
-					<div className='flex items-center justify-between mb-1'>
-						<span className='text-gray-700'>{s.label}</span>
-						<span className='text-gray-500'>{s.pct}%</span>
-					</div>
-					<div className='h-2 rounded bg-gray-100'>
-						<div
-							className='h-2 rounded'
-							style={{ width: `${s.pct}%`, background: PRIMARY }}
-						/>
-					</div>
-				</div>
-			))}
-		</div>
-	</Card>
-);
-
-/* Compact calendar strip */
-const CalendarStrip: React.FC<{ days: string[]; activeIndex: number }> = ({
-	days,
-	activeIndex
-}) => (
-	<div className='grid grid-cols-7 gap-2 text-sm text-gray-700 select-none'>
-		{days.map((d, i) => (
-			<div
-				key={d + i}
-				className={`flex flex-col items-center ${
-					i === activeIndex ? 'text-white' : 'text-gray-700'
-				}`}
-			>
-				<span className='text-xs text-gray-500'>{d.slice(0, 3)}</span>
-				<div
-					className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center ${
-						i === activeIndex ? 'bg-[#C8102E]' : 'bg-gray-100'
-					}`}
-				>
-					{i + 1}
-				</div>
-			</div>
-		))}
-	</div>
-);
-
-const DashboardAdmin: React.FC = () => {
-	const proposalsSpark = [4, 8, 6, 10, 12, 9, 14];
-	const proposalsLast30 = [
-		3, 5, 4, 6, 8, 7, 9, 12, 10, 11, 14, 13, 15, 17, 18, 16, 19, 21, 20, 22, 24,
-		23, 25, 26, 28, 27, 29, 30, 28, 31
-	];
-	const usersTotal = 1284;
-	const activeProjects = 8;
-	const approvalRate = 72;
-
-	const approvalStatus = [
-		{ label: 'Approved', value: 36 },
-		{ label: 'Pending', value: 28 },
-		{ label: 'Under Review', value: 16 },
-		{ label: 'Rejected', value: 12 }
-	];
-	const submissionsByUnit = [
-		{ label: 'R&D', pct: 43 },
-		{ label: 'Proponents', pct: 31 },
-		{ label: 'Evaluation', pct: 26 }
-	];
-
-	const { setLoading } = useLoading();
-	const [entered, setEntered] = useState(false);
-
-	useEffect(() => {
-		setLoading(true);
-		const t = setTimeout(() => {
-			setLoading(false);
-			requestAnimationFrame(() => setEntered(true));
-		}, 450);
-		return () => clearTimeout(t);
-	}, [setLoading]);
-
-	return (
-		<div className='min-h-screen flex bg-gray-50'>
-			<Sidebar />
-			<main
-				// animate on enter: initial opacity 0 + translate, then transition to visible
-				className={`flex-1 p-6 transition-all duration-500 ease-out transform ${
-					entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-				}`}
-			>
-				<div className='max-w-7xl mx-auto'>
-					<header className='mb-6'>
-						<h1 className='text-2xl font-bold text-gray-900'>
-							Admin Dashboard
-						</h1>
-						<p className='text-gray-600 mt-1'>
-							Overview of proposal submissions and approvals.
-						</p>
-					</header>
-
-					<section className='grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6'>
-						<StatCard
-							title='Total Users'
-							value={usersTotal.toLocaleString()}
-							right={<Donut value={usersTotal % 100 || 45} />}
-						>
-							<div className='text-xs text-gray-400'>
-								All registered accounts
-							</div>
-						</StatCard>
-
-						<StatCard
-							title='Approval Rate'
-							value={
-								<span className='text-lg font-semibold'>{approvalRate}%</span>
-							}
-							right={<Donut value={approvalRate} />}
-						>
-							<div className='text-xs text-gray-400'>
-								Proposals approved (last 30d)
-							</div>
-						</StatCard>
-
-						<StatCard
-							title='Active Projects'
-							value={
-								<span className='text-2xl font-semibold'>{activeProjects}</span>
-							}
-						>
-							<div className='text-xs text-gray-400'>
-								Ongoing proposals turned projects
-							</div>
-						</StatCard>
-					</section>
-
-					{/* Main analytics layout */}
-					<section className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
-						{/* Left: big chart card */}
-						<Card
-							className='lg:col-span-8'
-							title='Proposals (last 30 days)'
-							right={
-								<span className='text-xs text-gray-400'>Updated just now</span>
-							}
-						>
-							<div style={{ width: '100%', overflowX: 'auto' }}>
-								<div style={{ minWidth: 720 }}>
-									<AreaChart data={proposalsLast30} width={720} height={260} />
-								</div>
-							</div>
-							<div className='mt-4'>
-								<CalendarStrip
-									days={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-									activeIndex={2}
-								/>
-							</div>
-						</Card>
-
-						{/* Right: stacked cards */}
-						<div className='lg:col-span-4 space-y-6'>
-							<DonutBreakdown title='Approval Status' items={approvalStatus} />
-							<TrafficCard
-								title='Submissions by Unit'
-								sources={submissionsByUnit}
-							/>
-							<Card title='Proposals Summary'>
-								<p className='text-2xl font-semibold'>42</p>
-								<div className='mt-3'>
-									<Sparkline data={proposalsSpark} />
-								</div>
-							</Card>
-						</div>
-					</section>
-				</div>
-			</main>
-		</div>
-	);
-};
-
-export default DashboardAdmin;
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h4 className="text-sm font-semibold text-slate-700 mb-3">
+                  User Activity by Role
+                </h4>
+                <div className="space-y-3 text-xs text-slate-600">
+                  {userActivity.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between">
+                      <span>{user.role}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-800">
+                          {user.active}/{user.total}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full ${
+                          parseInt(user.percentage) > 80 
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : parseInt(user.percentage) > 60
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}>
+                          {user.percentage}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}

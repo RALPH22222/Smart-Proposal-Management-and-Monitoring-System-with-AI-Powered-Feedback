@@ -139,14 +139,14 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 	if (!isOpen) return null;
 
 	return (
-		<div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4'>
+		<div className='fixed inset-0 bg-black/50 bg-opacity-50 flex justify-center items-center z-50 p-4'>
 			<div className='bg-white rounded-lg w-full max-w-4xl shadow-lg overflow-hidden flex flex-col max-h-[90vh]'>
 				{/* Header */}
-				<div className='bg-[#C10003] text-white px-6 py-4 flex justify-between items-center'>
+				<div className='bg-gray-100 border-b border-slate-200 text-gray-800 px-6 py-4 flex justify-between items-center'>
 					<h3 className='text-lg font-semibold'>Evaluator Management</h3>
 					<button
 						onClick={onClose}
-						className='text-white hover:text-gray-200 text-xl'
+                                          className="text-black text-xl hover:bg-white hover:text-black transition-colors duration-300 p-1 rounded-lg"
 					>
 						✕
 					</button>

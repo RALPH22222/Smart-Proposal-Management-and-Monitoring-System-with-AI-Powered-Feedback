@@ -4,10 +4,10 @@ import {
 	type Proposal,
 	type Decision,
 	type ProposalStatus
-} from '../types/InterfaceProposal';
-import { proposalApi } from '../services/RndProposalApi/ProposalApi';
-import ProposalModal from './RnDProposalModal';
-import { type Reviewer } from '../types/InterfaceProposal';
+} from '../../../types/InterfaceProposal';
+import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
+import ProposalModal from '../../../components/RnDProposalModal';
+import { type Reviewer } from '../../../types/InterfaceProposal';
 
 interface ReviewPageProps {
 	filter?: ProposalStatus;

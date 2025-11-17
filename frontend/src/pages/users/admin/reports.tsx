@@ -115,6 +115,7 @@ function Reports() {
 	const [query, setQuery] = useState('');
 	const [status, setStatus] = useState<'all' | IssueStatus>('all');
 	const [severity, setSeverity] = useState<'all' | IssueSeverity>('all');
+	const [showNewReportModal, setShowNewReportModal] = useState(false);
 	const { setLoading } = useLoading();
 
 	// datatable: sorting
@@ -208,100 +209,104 @@ function Reports() {
 	}, []);
 
 	return (
-		<div className='min-h-screen flex bg-gray-50'>
+		<div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
 			<Sidebar />
-			<main className='flex-1 p-6'>
-				<div className='max-w-7xl mx-auto'>
-					<header className='mb-6 flex items-start md:items-center justify-between gap-4'>
-						<div>
-							<h1 className='text-2xl font-bold text-gray-900'>
-								Reports & Issues
-							</h1>
-							<p className='text-gray-600 mt-1'>
-								Track bugs and operational problems within the system.
-							</p>
+			<div className="flex-1 overflow-y-auto">
+				<div className="p-4 sm:p-6">
+					{/* Header */}
+					<header className="pt-11 sm:pt-0 pb-4 sm:pb-6">
+						<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+							<div>
+								<h1 className="text-xl sm:text-2xl font-bold text-red-700">
+									Reports & Issues
+								</h1>
+								<p className="text-gray-600 mt-1 text-sm sm:text-base">
+									Track bugs and operational problems within the system.
+								</p>
+							</div>
+							<button
+								onClick={() => setShowNewReportModal(true)}
+								className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-white text-sm shadow w-full sm:w-auto"
+								style={{ backgroundColor: accent }}
+							>
+								<span>New Report</span>
+							</button>
 						</div>
-						<button
-							className='inline-flex items-center gap-2 px-4 py-2 rounded-md text-white text-sm shadow'
-							style={{ backgroundColor: accent }}
-						>
-							<span>New Report</span>
-						</button>
 					</header>
 
 					{/* Stats */}
-					<section className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-						<div className='bg-white rounded-lg shadow p-4'>
-							<div className='text-xs text-gray-500'>Open Issues</div>
-							<div className='mt-1 text-2xl font-semibold text-gray-900'>
+					<section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+						<div className="bg-white rounded-lg shadow p-3 sm:p-4">
+							<div className="text-xs text-gray-500">Open Issues</div>
+							<div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">
 								{stats.open}
 							</div>
-							<div className='mt-2 text-xs text-gray-400'>
+							<div className="mt-2 text-xs text-gray-400">
 								Requires attention
 							</div>
 						</div>
-						<div className='bg-white rounded-lg shadow p-4'>
-							<div className='text-xs text-gray-500'>Resolved (7d)</div>
-							<div className='mt-1 text-2xl font-semibold text-gray-900'>
+						<div className="bg-white rounded-lg shadow p-3 sm:p-4">
+							<div className="text-xs text-gray-500">Resolved (7d)</div>
+							<div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">
 								{stats.resolvedThisWeek}
 							</div>
-							<div className='mt-2 text-xs text-gray-400'>Last 7 days</div>
+							<div className="mt-2 text-xs text-gray-400">Last 7 days</div>
 						</div>
-						<div className='bg-white rounded-lg shadow p-4'>
-							<div className='text-xs text-gray-500'>Avg Resolution</div>
-							<div className='mt-1 text-2xl font-semibold text-gray-900'>
+						<div className="bg-white rounded-lg shadow p-3 sm:p-4">
+							<div className="text-xs text-gray-500">Avg Resolution</div>
+							<div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">
 								{stats.avgResolution}
 							</div>
-							<div className='mt-2 text-xs text-gray-400'>
+							<div className="mt-2 text-xs text-gray-400">
 								Across resolved tickets
 							</div>
 						</div>
-						<div className='bg-white rounded-lg shadow p-4'>
-							<div className='text-xs text-gray-500'>Critical Open</div>
-							<div className='mt-1 text-2xl font-semibold text-gray-900'>
+						<div className="bg-white rounded-lg shadow p-3 sm:p-4">
+							<div className="text-xs text-gray-500">Critical Open</div>
+							<div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">
 								{stats.criticalOpen}
 							</div>
-							<div className='mt-2 text-xs text-gray-400'>
+							<div className="mt-2 text-xs text-gray-400">
 								Must be prioritized
 							</div>
 						</div>
 					</section>
 
 					{/* Filters */}
-					<section className='bg-white rounded-lg shadow p-4 mb-6'>
-						<div className='flex flex-col md:flex-row gap-3 md:items-center'>
-							<div className='flex-1'>
+					<section className="bg-white rounded-lg shadow p-3 sm:p-4 mb-6">
+						<div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+							<div className="flex-1">
 								<input
 									value={query}
 									onChange={(e) => setQuery(e.target.value)}
-									placeholder='Search by ID, title, module, assignee...'
-									className='w-full px-3 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-200'
+									placeholder="Search by ID, title, module, assignee..."
+									className="w-full px-3 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-200 text-sm"
 								/>
 							</div>
-							<div className='flex gap-3'>
+							<div className="flex flex-col xs:flex-row gap-2">
 								<select
 									value={status}
 									onChange={(e) => setStatus(e.target.value as typeof status)}
-									className='px-3 py-2 rounded-md border border-gray-200 text-sm'
+									className="px-3 py-2 rounded-md border border-gray-200 text-sm w-full xs:w-auto"
 								>
-									<option value='all'>All Status</option>
-									<option value='open'>Open</option>
-									<option value='in_progress'>In Progress</option>
-									<option value='resolved'>Resolved</option>
-									<option value='closed'>Closed</option>
+									<option value="all">All Status</option>
+									<option value="open">Open</option>
+									<option value="in_progress">In Progress</option>
+									<option value="resolved">Resolved</option>
+									<option value="closed">Closed</option>
 								</select>
 								<select
 									value={severity}
 									onChange={(e) =>
 										setSeverity(e.target.value as typeof severity)
 									}
-									className='px-3 py-2 rounded-md border border-gray-200 text-sm'
+									className="px-3 py-2 rounded-md border border-gray-200 text-sm w-full xs:w-auto"
 								>
-									<option value='all'>All Severity</option>
-									<option value='low'>Low</option>
-									<option value='medium'>Medium</option>
-									<option value='high'>High</option>
-									<option value='critical'>Critical</option>
+									<option value="all">All Severity</option>
+									<option value="low">Low</option>
+									<option value="medium">Medium</option>
+									<option value="high">High</option>
+									<option value="critical">Critical</option>
 								</select>
 								<select
 									value={pageSize}
@@ -309,7 +314,7 @@ function Reports() {
 										setPageSize(parseInt(e.target.value, 10));
 										setPage(1);
 									}}
-									className='px-3 py-2 rounded-md border border-gray-200 text-sm'
+									className="px-3 py-2 rounded-md border border-gray-200 text-sm w-full xs:w-auto"
 								>
 									<option value={5}>5 / page</option>
 									<option value={10}>10 / page</option>
@@ -320,15 +325,15 @@ function Reports() {
 					</section>
 
 					{/* List / Table */}
-					<section className='bg-white rounded-lg shadow'>
+					<section className="bg-white rounded-lg shadow">
 						{/* Desktop table */}
-						<div className='hidden md:block overflow-x-auto'>
-							<table className='min-w-full table-auto'>
+						<div className="hidden md:block overflow-x-auto">
+							<table className="min-w-full table-auto">
 								<thead>
-									<tr className='text-left text-xs text-gray-500 border-b'>
-										<th className='px-4 py-3'>
+									<tr className="text-left text-xs text-gray-500 border-b">
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('id')}
 											>
 												ID
@@ -339,9 +344,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('title')}
 											>
 												Title
@@ -352,9 +357,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('module')}
 											>
 												Module
@@ -365,9 +370,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('severity')}
 											>
 												Severity
@@ -378,9 +383,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('status')}
 											>
 												Status
@@ -391,9 +396,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('createdAt')}
 											>
 												Created
@@ -404,9 +409,9 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>
+										<th className="px-3 sm:px-4 py-3">
 											<button
-												className='inline-flex items-center gap-1 hover:underline'
+												className="inline-flex items-center gap-1 hover:underline"
 												onClick={() => onSort('assignee')}
 											>
 												Assignee
@@ -417,36 +422,36 @@ function Reports() {
 													: ''}
 											</button>
 										</th>
-										<th className='px-4 py-3'>Action</th>
+										<th className="px-3 sm:px-4 py-3">Action</th>
 									</tr>
 								</thead>
 								<tbody>
 									{paginated.map((i) => (
-										<tr key={i.id} className='border-b last:border-b-0'>
-											<td className='px-4 py-3 text-sm font-medium text-gray-900'>
+										<tr key={i.id} className="border-b last:border-b-0">
+											<td className="px-3 sm:px-4 py-3 text-sm font-medium text-gray-900">
 												{i.id}
 											</td>
-											<td className='px-4 py-3 text-sm text-gray-800'>
+											<td className="px-3 sm:px-4 py-3 text-sm text-gray-800">
 												{i.title}
 											</td>
-											<td className='px-4 py-3 text-sm text-gray-600'>
+											<td className="px-3 sm:px-4 py-3 text-sm text-gray-600">
 												{i.module}
 											</td>
-											<td className='px-4 py-3'>
+											<td className="px-3 sm:px-4 py-3">
 												<SeverityBadge severity={i.severity} />
 											</td>
-											<td className='px-4 py-3'>
+											<td className="px-3 sm:px-4 py-3">
 												<StatusBadge status={i.status} />
 											</td>
-											<td className='px-4 py-3 text-sm text-gray-600'>
+											<td className="px-3 sm:px-4 py-3 text-sm text-gray-600">
 												{new Date(i.createdAt).toLocaleDateString()}
 											</td>
-											<td className='px-4 py-3 text-sm text-gray-700'>
+											<td className="px-3 sm:px-4 py-3 text-sm text-gray-700">
 												{i.assignee ?? '—'}
 											</td>
-											<td className='px-4 py-3'>
+											<td className="px-3 sm:px-4 py-3">
 												<button
-													className='px-3 py-1.5 text-xs rounded-md text-white'
+													className="px-3 py-1.5 text-xs rounded-md text-white"
 													style={{ backgroundColor: accent }}
 												>
 													View
@@ -457,23 +462,23 @@ function Reports() {
 								</tbody>
 							</table>
 							{/* Pagination */}
-							<div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3'>
-								<div className='text-xs text-gray-500'>
+							<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 sm:px-4 py-3">
+								<div className="text-xs text-gray-500">
 									Showing {total === 0 ? 0 : startIdx + 1}–{endIdx} of {total}
 								</div>
-								<div className='flex items-center gap-2'>
+								<div className="flex items-center gap-2">
 									<button
-										className='px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50'
+										className="px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50"
 										onClick={() => setPage((p) => Math.max(1, p - 1))}
 										disabled={pageSafe <= 1}
 									>
 										Prev
 									</button>
-									<div className='text-xs text-gray-600'>
+									<div className="text-xs text-gray-600">
 										Page {pageSafe} / {totalPages}
 									</div>
 									<button
-										className='px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50'
+										className="px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50"
 										onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
 										disabled={pageSafe >= totalPages}
 									>
@@ -484,34 +489,34 @@ function Reports() {
 						</div>
 
 						{/* Mobile list */}
-						<div className='md:hidden divide-y'>
+						<div className="md:hidden divide-y">
 							{paginated.map((i) => (
-								<div key={i.id} className='p-4'>
-									<div className='flex items-start justify-between gap-3'>
-										<div>
-											<div className='text-sm font-semibold text-gray-900'>
+								<div key={i.id} className="p-3 sm:p-4">
+									<div className="flex items-start justify-between gap-3">
+										<div className="min-w-0 flex-1">
+											<div className="text-sm font-semibold text-gray-900 truncate">
 												{i.title}
 											</div>
-											<div className='mt-0.5 text-xs text-gray-500'>
+											<div className="mt-0.5 text-xs text-gray-500">
 												{i.id} • {i.module}
 											</div>
 										</div>
-										<div className='flex items-center gap-2'>
+										<div className="flex items-center gap-2 flex-shrink-0">
 											<SeverityBadge severity={i.severity} />
 											<StatusBadge status={i.status} />
 										</div>
 									</div>
-									<div className='mt-2 flex items-center justify-between'>
-										<div className='text-xs text-gray-500'>
+									<div className="mt-2 flex items-center justify-between">
+										<div className="text-xs text-gray-500">
 											{new Date(i.createdAt).toLocaleDateString()}
 										</div>
-										<div className='text-xs text-gray-700'>
+										<div className="text-xs text-gray-700">
 											{i.assignee ?? '—'}
 										</div>
 									</div>
-									<div className='mt-3'>
+									<div className="mt-3">
 										<button
-											className='w-full px-3 py-2 text-sm rounded-md text-white'
+											className="w-full px-3 py-2 text-sm rounded-md text-white"
 											style={{ backgroundColor: accent }}
 										>
 											View Details
@@ -520,20 +525,20 @@ function Reports() {
 								</div>
 							))}
 							{/* Mobile pagination */}
-							<div className='flex items-center justify-between gap-2 px-4 py-3'>
-								<div className='text-xs text-gray-500'>
+							<div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3">
+								<div className="text-xs text-gray-500">
 									{total === 0 ? 0 : startIdx + 1}–{endIdx} of {total}
 								</div>
-								<div className='flex items-center gap-2'>
+								<div className="flex items-center gap-2">
 									<button
-										className='px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50'
+										className="px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50"
 										onClick={() => setPage((p) => Math.max(1, p - 1))}
 										disabled={pageSafe <= 1}
 									>
 										Prev
 									</button>
 									<button
-										className='px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50'
+										className="px-3 py-1.5 text-sm rounded border border-gray-200 disabled:opacity-50"
 										onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
 										disabled={pageSafe >= totalPages}
 									>
@@ -544,7 +549,87 @@ function Reports() {
 						</div>
 					</section>
 				</div>
-			</main>
+			</div>
+
+			{/* New Report Modal */}
+			{showNewReportModal && (
+				<div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+					<div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+						<div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+							<h3 className="text-lg sm:text-xl font-semibold text-gray-900">Create New Report</h3>
+							<button
+								onClick={() => setShowNewReportModal(false)}
+								className="text-gray-500 hover:text-gray-700 text-xl"
+							>
+								✕
+							</button>
+						</div>
+						<div className="p-4 sm:p-6 space-y-4">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">
+									Title
+								</label>
+								<input
+									type="text"
+									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+									placeholder="Enter issue title"
+								/>
+							</div>
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-1">
+									Description
+								</label>
+								<textarea
+									rows={4}
+									className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+									placeholder="Describe the issue in detail"
+								/>
+							</div>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Module
+									</label>
+									<select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+										<option value="">Select Module</option>
+										<option value="Admin/Dashboard">Admin/Dashboard</option>
+										<option value="Public/Search">Public/Search</option>
+										<option value="UI/Components">UI/Components</option>										<option value="Admin/Dashboard">Admin/Dashboard</option>
+								              <option value="AI">AI Feedback</option>
+										<option value="Notifications">Notifications</option>
+										<option value="Proposals">Proposals</option>
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Severity
+									</label>
+									<select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+										<option value="low">Low</option>
+										<option value="medium">Medium</option>
+										<option value="high">High</option>
+										<option value="critical">Critical</option>
+									</select>
+								</div>
+							</div>
+							<div className="flex gap-3 pt-4">
+								<button
+									className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm"
+									style={{ backgroundColor: accent }}
+								>
+									Submit Report
+								</button>
+								<button
+									onClick={() => setShowNewReportModal(false)}
+									className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors text-sm"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

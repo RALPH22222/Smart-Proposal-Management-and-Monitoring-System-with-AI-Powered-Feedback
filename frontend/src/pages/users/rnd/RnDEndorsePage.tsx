@@ -10,7 +10,7 @@ import {
 	ChevronLeft,
 	ChevronRight
 } from 'lucide-react';
-import { type EndorsementProposal } from '../types/evaluator';
+import { type EndorsementProposal } from '../../../types/evaluator';
 
 const EndorsePage: React.FC = () => {
 	const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
@@ -204,8 +204,8 @@ const EndorsePage: React.FC = () => {
 	}
 
 	return (
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
-			<div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 overflow-hidden pt-16 lg:pt-6">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+			<div className="flex-1 flex flex-col gap-4 sm:gap-6 p-2 sm:p-4 overflow-hidden pt-10 lg:pt-2">
 				{/* Header */}
 				<header className="flex-shrink-0">
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
