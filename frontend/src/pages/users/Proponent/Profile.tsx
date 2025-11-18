@@ -15,12 +15,8 @@ import {
   FaClipboardCheck,
   FaUsers,
   FaClock,
-  FaExclamationTriangle,
-  FaCheck,
   FaArrowRight,
-  FaMobile,
   FaTablet,
-  FaDesktop,
   FaShareAlt,
   FaUserPlus,
   FaLink,
@@ -178,8 +174,7 @@ const Profile: React.FC = () => {
   // comments modal state and storage (per-project)
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentProject, setCommentProject] = useState<Project | null>(null);
-  const [commentInput, setCommentInput] = useState("");
-  const [commentsMap, setCommentsMap] = useState<Record<string, { id: string; text: string; author?: string; time: string }[]>>({
+  const [commentsMap] = useState<Record<string, { id: string; text: string; author?: string; time: string }[]>>({
     // initial demo comments
     p2: [{ id: 'c1', text: 'Please clarify the methodology section.', author: 'Evaluator A', time: '2d' }],
     p3: [{ id: 'c2', text: 'Budget needs revision.', author: 'Evaluator B', time: '1d' }]
@@ -188,24 +183,13 @@ const Profile: React.FC = () => {
   const openComments = (project: Project) => {
     setCommentProject(project);
     setCommentsOpen(true);
-    setCommentInput("");
+
   };
 
   const closeComments = () => {
     setCommentsOpen(false);
     setCommentProject(null);
-    setCommentInput("");
-  };
 
-  const addComment = () => {
-    if (!commentProject || !commentInput.trim()) return;
-    const id = `c_${Date.now()}`;
-    const newComment = { id, text: commentInput.trim(), author: 'You', time: 'now' };
-    setCommentsMap(prev => {
-      const list = prev[commentProject.id] ? [...prev[commentProject.id], newComment] : [newComment];
-      return { ...prev, [commentProject.id]: list };
-    });
-    setCommentInput("");
   };
 
   const current = mockProjects[activeIndex];
