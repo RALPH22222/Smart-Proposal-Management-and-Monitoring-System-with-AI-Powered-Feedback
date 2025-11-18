@@ -25,7 +25,8 @@ import {
   FaUserPlus,
   FaLink,
   FaBell,
-  FaTimes
+  FaTimes,
+  FaComment
 } from 'react-icons/fa';
 
 type Project = {
@@ -130,7 +131,8 @@ const stageDescriptions = [
 const Profile: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
+  const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
+  
   // Share modal state
   const [shareOpen, setShareOpen] = useState(false);
   const [shareProject, setShareProject] = useState<Project | null>(null);
@@ -171,6 +173,39 @@ const Profile: React.FC = () => {
 
   const markRead = (id: string) => {
     setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  // comments modal state and storage (per-project)
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentProject, setCommentProject] = useState<Project | null>(null);
+  const [commentInput, setCommentInput] = useState("");
+  const [commentsMap, setCommentsMap] = useState<Record<string, { id: string; text: string; author?: string; time: string }[]>>({
+    // initial demo comments
+    p2: [{ id: 'c1', text: 'Please clarify the methodology section.', author: 'Evaluator A', time: '2d' }],
+    p3: [{ id: 'c2', text: 'Budget needs revision.', author: 'Evaluator B', time: '1d' }]
+  });
+
+  const openComments = (project: Project) => {
+    setCommentProject(project);
+    setCommentsOpen(true);
+    setCommentInput("");
+  };
+
+  const closeComments = () => {
+    setCommentsOpen(false);
+    setCommentProject(null);
+    setCommentInput("");
+  };
+
+  const addComment = () => {
+    if (!commentProject || !commentInput.trim()) return;
+    const id = `c_${Date.now()}`;
+    const newComment = { id, text: commentInput.trim(), author: 'You', time: 'now' };
+    setCommentsMap(prev => {
+      const list = prev[commentProject.id] ? [...prev[commentProject.id], newComment] : [newComment];
+      return { ...prev, [commentProject.id]: list };
+    });
+    setCommentInput("");
   };
 
   const current = mockProjects[activeIndex];
@@ -633,177 +668,220 @@ const Profile: React.FC = () => {
               </div>
             </div>
             
-            {/* Grid/List View */}
-            {viewMode === 'grid' ? (
-              <div className="p-4 lg:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-                  {mockProjects.map((project) => (
-                    <div 
-                      key={project.id}
-                      onClick={() => setActiveIndex(mockProjects.findIndex(p => p.id === project.id))}
-                      className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-800 text-sm lg:text-base group-hover:text-[#C8102E] transition-colors line-clamp-2">
-                            {project.title}
-                          </h4>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 ml-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(project.priority)}`}>
-                            {project.priority.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                          <span>Budget:</span>
-                          <span className="font-semibold">{project.budget}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                          <span>Duration:</span>
-                          <span className="font-semibold">{project.duration}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                          <span>Evaluators:</span>
-                          <span className="font-semibold">{project.evaluators}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                          <span>Progress</span>
-                          <span className="font-semibold">
-                            {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Share button (grid) */}
-                      <div className="flex items-center justify-between">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
-                          {stageLabels[project.currentIndex]}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openShare(project); }}
-                            className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                            title="Share project"
-                          >
-                            <FaShareAlt className="text-sm text-gray-600" />
-                            <span className="hidden sm:inline">Share</span>
-                          </button>
-                          <FaArrowRight className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Tabs: All / Budget Approval */}
+            <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setProjectTab('all')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'all' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                >
+                  All Projects
+                </button>
+                <button
+                  onClick={() => setProjectTab('budget')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'budget' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                >
+                  Budget Approval ({budgetProjects.length})
+                </button>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Project Title</th>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden xl:table-cell">Evaluators</th>
-                      <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {mockProjects.map((project) => (
-                      <tr 
-                        key={project.id} 
-                        className="hover:bg-gray-50 transition-colors cursor-pointer group"
+              <div className="text-xs text-gray-500">Toggle view and browse projects</div>
+            </div>
+
+            {/* Determine which projects to show */}
+            {(() => {
+              const projectsToShow = projectTab === 'all' ? mockProjects : budgetProjects;
+              return viewMode === 'grid' ? (
+                <div className="p-4 lg:p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+                    {projectsToShow.map((project) => (
+                      <div
+                        key={project.id}
                         onClick={() => setActiveIndex(mockProjects.findIndex(p => p.id === project.id))}
+                        className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group"
                       >
-                        <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#C8102E] group-hover:text-white transition-colors">
-                              {getStageIcon(project.currentIndex)}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base">
-                                {project.title}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(project.priority)}`}>
-                                  {project.priority.toUpperCase()}
-                                </span>
-                                <span className="text-xs text-gray-500 hidden sm:inline">
-                                  {new Date(project.submissionDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-800 text-sm lg:text-base group-hover:text-[#C8102E] transition-colors line-clamp-2">
+                              {project.title}
+                            </h4>
                           </div>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
+                          <div className="flex flex-col items-end gap-1 ml-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(project.priority)}`}>
+                              {project.priority.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Budget:</span>
+                            <span className="font-semibold">{project.budget}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Duration:</span>
+                            <span className="font-semibold">{project.duration}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Evaluators:</span>
+                            <span className="font-semibold">{project.evaluators}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                            <span>Progress</span>
+                            <span className="font-semibold">
+                              {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* For budget tab show approved amount highlight */}
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
                             {stageLabels[project.currentIndex]}
                           </span>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">
-                          {project.budget}
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
-                          {project.duration}
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden xl:table-cell">
-                          <div className="flex items-center gap-1">
-                            <FaUsers className="text-gray-400" />
-                            {project.evaluators}
-                          </div>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-2 justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-xs text-gray-600 font-medium hidden sm:inline">
-                                {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                          <div className="flex items-center gap-2">
+                            {projectTab === 'budget' && (
+                              <span className="text-xs px-2 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full">
+                                Approved: {project.budget}
                               </span>
-                            </div>
-
-                            {/* Share button (list) */}
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openShare(project); }}
-                                className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                                title="Share project"
-                              >
-                                <FaShareAlt className="text-sm text-gray-600" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setActiveIndex(mockProjects.findIndex(p => p.id === project.id)); }}
-                                className="text-gray-400 hover:text-[#C8102E] transition-colors text-xs hidden sm:inline"
-                                title="Open project"
-                              >
-                                <FaArrowRight />
-                              </button>
-                            </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                              className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                              title="Share project"
+                            >
+                              <FaShareAlt className="text-sm text-gray-600" />
+                              <span className="hidden sm:inline">Share</span>
+                            </button>
+                            <FaArrowRight className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Project Title</th>
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden xl:table-cell">Evaluators</th>
+                        {projectTab === 'budget' && (
+                          <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
+                        )}
+                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {projectsToShow.map((project) => (
+                        <tr
+                          key={project.id}
+                          className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                          onClick={() => setActiveIndex(mockProjects.findIndex(p => p.id === project.id))}
+                        >
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#C8102E] group-hover:text-white transition-colors">
+                                {getStageIcon(project.currentIndex)}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base">
+                                  {project.title}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(project.priority)}`}>
+                                    {project.priority.toUpperCase()}
+                                  </span>
+                                  <span className="text-xs text-gray-500 hidden sm:inline">
+                                    {new Date(project.submissionDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
+                              {stageLabels[project.currentIndex]}
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">
+                            {project.budget}
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
+                            {project.duration}
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden xl:table-cell">
+                            <div className="flex items-center gap-1">
+                              <FaUsers className="text-gray-400" />
+                              {project.evaluators}
+                            </div>
+                          </td>
+                          {projectTab === 'budget' && (
+                            <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">
+                              {project.budget}
+                            </td>
+                          )}
+                          <td className="px-4 lg:px-6 py-4">
+                            <div className="flex items-center gap-2 justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs text-gray-600 font-medium hidden sm:inline">
+                                  {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {(project.currentIndex === 1 || project.currentIndex === 2) && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); openComments(project); }}
+                                    className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#f8fafb] hover:border-[#C8102E] transition-colors text-xs"
+                                    title="Comments"
+                                  >
+                                    <FaComment className="text-sm text-gray-600" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                                  className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                                  title="Share project"
+                                >
+                                  <FaShareAlt className="text-sm text-gray-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setActiveIndex(mockProjects.findIndex(p => p.id === project.id)); }}
+                                  className="text-gray-400 hover:text-[#C8102E] transition-colors text-xs hidden sm:inline"
+                                  title="Open project"
+                                >
+                                  <FaArrowRight />
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
         </section>
       </main>
@@ -865,6 +943,48 @@ const Profile: React.FC = () => {
 
               <div className="flex justify-end gap-2">
                 <button onClick={closeShare} className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-gray-700">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comments Modal (view-only) */}
+      {commentsOpen && commentProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={closeComments} />
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-lg">
+                  <FaComment className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-800">Comments — {commentProject.title}</h4>
+    
+                </div>
+              </div>
+              <button onClick={closeComments} className="text-gray-400 hover:text-gray-700">Close</button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="max-h-80 overflow-y-auto space-y-3">
+                {(commentsMap[commentProject.id] ?? []).length === 0 && (
+                  <div className="text-sm text-gray-500">No comments yet.</div>
+                )}
+                {(commentsMap[commentProject.id] ?? []).map(c => (
+                  <div key={c.id} className="p-3 bg-gray-50 border border-gray-100 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold text-gray-800">{c.author ?? 'Evaluator'}</div>
+                      <div className="text-xs text-gray-400">{c.time}</div>
+                    </div>
+                    <div className="text-sm text-gray-700 mt-1">{c.text}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button onClick={closeComments} className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-gray-700">Close</button>
               </div>
             </div>
           </div>
