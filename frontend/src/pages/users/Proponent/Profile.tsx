@@ -296,7 +296,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
             
-            {/* Notification + View Mode (moved together to avoid awkward placement) */}
             <div className="flex items-center gap-3">
               {/* Notification bell */}
               <div className="relative" ref={notifRef}>
