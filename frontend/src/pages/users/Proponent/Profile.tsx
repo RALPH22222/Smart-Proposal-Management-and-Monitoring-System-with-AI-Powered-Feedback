@@ -743,9 +743,15 @@ const Profile: React.FC = () => {
                               title="Share project"
                             >
                               <FaShareAlt className="text-sm text-gray-600" />
-                              <span className="hidden sm:inline">Share</span>
                             </button>
-                            <FaArrowRight className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openComments(project); }}
+                              className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                              title="Comments"
+                            >
+                              <FaComment className="text-sm text-gray-600" />
+                            </button>
                           </div>
                         </div>
                       </div>
