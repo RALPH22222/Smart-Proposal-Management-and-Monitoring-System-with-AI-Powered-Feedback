@@ -1,0 +1,652 @@
+import React, { useState, useEffect } from 'react';
+import {
+  TrendingUp,
+  Calendar,
+  User,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  Search,
+  Filter,
+  Download,
+  Eye,
+  BarChart3,
+  Target,
+  Users,
+  DollarSign,
+  MapPin,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { type Project, type ProjectStatus, type ProjectPhase } from '../../../types/InterfaceProject';
+import { projectApi } from '../../../services/RndProjectApi/ProjectApi';
+
+interface MonitoringPageProps {
+  onStatsUpdate?: () => void;
+}
+
+const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'All'>('All');
+  const [phaseFilter, setPhaseFilter] = useState<ProjectPhase | 'All'>('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Load projects on component mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  // Filter projects based on status, phase and search term
+  useEffect(() => {
+    let filtered = projects;
+
+    // Apply status filter
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(project => project.status === statusFilter);
+    }
+
+    // Apply phase filter
+    if (phaseFilter !== 'All') {
+      filtered = filtered.filter(project => project.currentPhase === phaseFilter);
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(project =>
+        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.projectId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.principalInvestigator.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.department.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredProjects(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [projects, statusFilter, phaseFilter, searchTerm]);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      const data = await projectApi.fetchProjects();
+      setProjects(data);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewProjectDetails = (project: Project) => {
+    setSelectedProject(project);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedProject(null);
+  };
+
+  // Statistics calculations
+  const getStatusCount = (status: ProjectStatus) => {
+    return projects.filter(p => p.status === status).length;
+  };
+
+  const getPhaseCount = (phase: ProjectPhase) => {
+    return projects.filter(p => p.currentPhase === phase).length;
+  };
+
+  const getTotalBudget = () => {
+    return projects.reduce((sum, project) => sum + project.budget, 0);
+  };
+
+  const getAverageCompletion = () => {
+    if (projects.length === 0) return 0;
+    const totalCompletion = projects.reduce((sum, project) => sum + project.completionPercentage, 0);
+    return Math.round(totalCompletion / projects.length);
+  };
+
+  const getOverdueProjects = () => {
+    const today = new Date();
+    return projects.filter(project => new Date(project.endDate) < today && project.completionPercentage < 100);
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
+
+  const statCards = [
+    {
+      title: 'Total Projects',
+      value: projects.length,
+      icon: FileText,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      trend: '+12%',
+    },
+    {
+      title: 'Active Projects',
+      value: getStatusCount('Active'),
+      icon: Target,
+      color: 'text-emerald-500',
+      bgColor: 'bg-emerald-50',
+      trend: '+8%',
+    },
+    {
+      title: 'Completed',
+      value: getStatusCount('Completed'),
+      icon: CheckCircle,
+      color: 'text-green-500',
+      bgColor: 'bg-green-50',
+      trend: '+15%',
+    },
+    {
+      title: 'At Risk',
+      value: getStatusCount('At Risk'),
+      icon: AlertCircle,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-50',
+      trend: '+5%',
+    },
+    {
+      title: 'Total Budget',
+      value: `₱${getTotalBudget().toLocaleString()}`,
+      icon: DollarSign,
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50',
+      trend: '+20%',
+    },
+    {
+      title: 'Avg. Completion',
+      value: `${getAverageCompletion()}%`,
+      icon: TrendingUp,
+      color: 'text-cyan-500',
+      bgColor: 'bg-cyan-50',
+      trend: '+3%',
+    }
+  ];
+
+  const getStatusBadge = (status: ProjectStatus) => {
+    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+    
+    switch (status) {
+      case 'Active':
+        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
+      case 'Completed':
+        return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
+      case 'On Hold':
+        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
+      case 'At Risk':
+        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
+      case 'Planning':
+        return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
+      default:
+        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
+    }
+  };
+
+  const getPhaseBadge = (phase: ProjectPhase) => {
+    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+    
+    switch (phase) {
+      case 'Conceptualization':
+        return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
+      case 'Planning':
+        return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
+      case 'Execution':
+        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
+      case 'Monitoring':
+        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
+      case 'Closing':
+        return `${baseClasses} text-green-600 bg-green-50 border-green-200`;
+      default:
+        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
+    }
+  };
+
+  const getDaysRemaining = (endDate: string) => {
+    const today = new Date();
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-2 sm:p-2 overflow-hidden pt-2 lg:pt-2">
+        {/* Header */}
+        <header className="flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+                R&D Project Monitoring
+              </h1>
+              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+                Track and monitor all research and development projects
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <TrendingUp className="w-4 h-4" />
+              <span>Last updated: Today, 2:30 PM</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Stats Grid */}
+        <section className="flex-shrink-0" aria-label="Project statistics">
+          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {statCards.map((stat, index) => {
+                const IconComponent = stat.icon;
+                return (
+                  <div
+                    key={index}
+                    className={`${stat.bgColor} border border-slate-200 rounded-xl p-3 transition-all duration-300 hover:shadow-lg`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <IconComponent className={`${stat.color} w-4 h-4`} />
+                      <div className="flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs font-medium text-slate-600">{stat.trend}</span>
+                      </div>
+                    </div>
+                    <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight line-clamp-1">
+                      {stat.title}
+                    </h3>
+                    <p className="text-base font-bold text-slate-800 truncate">
+                      {stat.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Filters and Search */}
+        <section className="flex-shrink-0" aria-label="Filter projects">
+          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search projects by title, ID, or PI..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                  aria-label="Search projects"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
+                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                  aria-label="Filter by status"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Active">Active ({getStatusCount('Active')})</option>
+                  <option value="Completed">Completed ({getStatusCount('Completed')})</option>
+                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
+                  <option value="At Risk">At Risk ({getStatusCount('At Risk')})</option>
+                  <option value="Planning">Planning ({getStatusCount('Planning')})</option>
+                </select>
+              </div>
+
+              {/* Phase Filter */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <BarChart3 className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+                <select
+                  value={phaseFilter}
+                  onChange={(e) => setPhaseFilter(e.target.value as ProjectPhase | 'All')}
+                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                  aria-label="Filter by phase"
+                >
+                  <option value="All">All Phases</option>
+                  <option value="Conceptualization">Conceptualization ({getPhaseCount('Conceptualization')})</option>
+                  <option value="Planning">Planning ({getPhaseCount('Planning')})</option>
+                  <option value="Execution">Execution ({getPhaseCount('Execution')})</option>
+                  <option value="Monitoring">Monitoring ({getPhaseCount('Monitoring')})</option>
+                  <option value="Closing">Closing ({getPhaseCount('Closing')})</option>
+                </select>
+              </div>
+
+              {/* Export Button */}
+              <button className="inline-flex items-center justify-center px-4 py-2.5 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-sm font-medium">
+                <Download className="w-4 h-4 mr-2" />
+                Export Report
+              </button>
+            </div>
+
+            <div className="mt-4 text-xs text-slate-600">
+              Showing {filteredProjects.length} of {projects.length} projects
+            </div>
+          </div>
+        </section>
+
+        {/* Projects List */}
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          <div className="p-4 border-b border-slate-200 bg-slate-50">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#C8102E]" />
+                Research Projects
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Target className="w-4 h-4" />
+                <span>{projects.length} total projects</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {filteredProjects.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="w-8 h-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">No projects found</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">
+                  {searchTerm || statusFilter !== 'All' || phaseFilter !== 'All'
+                    ? 'Try adjusting your search or filter criteria.'
+                    : 'No projects have been added yet.'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {paginatedProjects.map((project) => {
+                  const daysRemaining = getDaysRemaining(project.endDate);
+                  const isOverdue = daysRemaining < 0 && project.completionPercentage < 100;
+                  
+                  return (
+                    <article
+                      key={project.id}
+                      className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
+                      aria-labelledby={`project-title-${project.id}`}
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h2
+                            id={`project-title-${project.id}`}
+                            className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
+                          >
+                            {project.title}
+                          </h2>
+
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3 h-3" aria-hidden="true" />
+                              <span>{project.principalInvestigator}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3 h-3" aria-hidden="true" />
+                              <span>{project.department}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3 h-3" aria-hidden="true" />
+                              <span>{new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium text-slate-500">ID: {project.projectId}</span>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-32 bg-slate-200 rounded-full h-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${project.completionPercentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs font-medium text-slate-700">
+                              {project.completionPercentage}% Complete
+                            </span>
+                          </div>
+
+                          {/* Timeline Status */}
+                          <div className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
+                            {isOverdue ? (
+                              <div className="flex items-center gap-1.5">
+                                <AlertCircle className="w-3 h-3" />
+                                {Math.abs(daysRemaining)} days overdue
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                {daysRemaining} days remaining
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex flex-col gap-2 items-end">
+                            <span className={getStatusBadge(project.status)}>
+                              {project.status}
+                            </span>
+                            <span className={getPhaseBadge(project.currentPhase)}>
+                              {project.currentPhase}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleViewProjectDetails(project)}
+                              className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
+                              aria-label={`View details for ${project.title}`}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {filteredProjects.length > 0 && (
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProjects.length)} of {filteredProjects.length} projects
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                    Previous
+                  </button>
+                  <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Project Detail Modal */}
+        {selectedProject && (
+          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 ${isDetailModalOpen ? 'block' : 'hidden'}`}>
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
+                    <p className="text-gray-600">{selectedProject.projectId}</p>
+                  </div>
+                  <button
+                    onClick={handleCloseModal}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <span className="text-2xl">×</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Project Information</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Principal Investigator</label>
+                        <p className="text-gray-900">{selectedProject.principalInvestigator}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Department</label>
+                        <p className="text-gray-900">{selectedProject.department}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Research & Development Station</label>
+                        <p className="text-gray-900">{selectedProject.researchArea}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Collaborators</label>
+                        <p className="text-gray-900">{selectedProject.collaborators?.join(', ') || 'None'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Project Status</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Status</label>
+                        <div className="mt-1">
+                          <span className={getStatusBadge(selectedProject.status)}>
+                            {selectedProject.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Current Phase</label>
+                        <div className="mt-1">
+                          <span className={getPhaseBadge(selectedProject.currentPhase)}>
+                            {selectedProject.currentPhase}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Timeline</label>
+                        <p className="text-gray-900">
+                          {new Date(selectedProject.startDate).toLocaleDateString()} - {new Date(selectedProject.endDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Budget</label>
+                        <p className="text-gray-900">₱{selectedProject.budget.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Section */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-4">Progress</h3>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Completion</span>
+                        <span>{selectedProject.completionPercentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-green-600 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${selectedProject.completionPercentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Milestones */}
+                {selectedProject.milestones && selectedProject.milestones.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Milestones</h3>
+                    <div className="space-y-2">
+                      {selectedProject.milestones.map((milestone, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">{milestone.name}</p>
+                            <p className="text-sm text-gray-600">
+                              Due: {new Date(milestone.dueDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            milestone.completed 
+                              ? 'bg-green-100 text-green-800'
+                              : new Date(milestone.dueDate) < new Date()
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {milestone.completed ? 'Completed' : new Date(milestone.dueDate) < new Date() ? 'Overdue' : 'Pending'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Project Description</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {selectedProject.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MonitoringPage;

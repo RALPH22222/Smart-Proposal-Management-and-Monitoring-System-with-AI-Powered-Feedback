@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndReviewPage';
+import Monitoring from './RnDMonitoringPage';
 import {
 	type Statistics,
 	type Activity
@@ -63,6 +64,8 @@ const MainLayout: React.FC = () => {
 				);
 			case 'proposals':
 				return <ReviewPage onStatsUpdate={loadData} />;
+			case 'monitoring':
+				return <Monitoring onStatsUpdate={loadData} />;
 			case 'revisions':
 				return (
 					<ReviewPage filter='Revision Required' onStatsUpdate={loadData} />

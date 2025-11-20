@@ -6,7 +6,8 @@ import {
 	CheckCircle,
 	Users,
   Settings,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { type Statistics } from '../types/InterfaceProposal';
 
@@ -30,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const mainLinks = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'proposals', label: 'Proposals', icon: FileText },
+    { id: 'monitoring', label: 'Project Monitoring', icon: BarChart3 },
     { id: 'evaluators', label: 'Evaluators', icon: Users },
     { id: 'endorsements', label: 'Endorsements', icon: CheckCircle },
     { id: 'revisions', label: 'Revision Requests', icon: RefreshCw }
