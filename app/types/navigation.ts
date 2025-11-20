@@ -1,6 +1,10 @@
 export type RootStackParamList = {
-  Login: undefined;
-  Register: undefined;
   Home: undefined;
+  ProponentDashboard: undefined;
+  EvaluatorDashboard: undefined;
+  RoecDashboard: undefined;
+  AdminDashboard: undefined;
+  Register: undefined;
+  // add other routes here as needed
 };
 
