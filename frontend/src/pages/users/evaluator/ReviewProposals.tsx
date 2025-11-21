@@ -19,7 +19,6 @@ import {
   Download,
   Filter,
   BookOpen,
-  Star,
 } from "lucide-react"
 import Sidebar from "../../../components/EvaluatorSide"
 import RubricsModal from "../../../components/RubricsModal"
@@ -654,26 +653,6 @@ export default function EndorsedProposals() {
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <label className="block text-sm font-semibold text-slate-900">Objectives Assessment</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
-                              <button
-                                key={score}
-                                onClick={() => setRatings({ ...ratings, objectives: score })}
-                                className={`p-1.5 rounded transition-all ${
-                                  ratings.objectives >= score
-                                    ? "bg-yellow-400 text-white"
-                                    : "bg-slate-200 text-slate-400 hover:bg-yellow-200"
-                                }`}
-                                aria-label={`Rate ${score} out of 5`}
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 ml-1">{ratings.objectives}/5</span>
-                        </div>
                       </div>
                       <textarea
                         value={comments.objectives}
@@ -688,26 +667,6 @@ export default function EndorsedProposals() {
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <label className="block text-sm font-semibold text-slate-900">Methodology Assessment</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
-                              <button
-                                key={score}
-                                onClick={() => setRatings({ ...ratings, methodology: score })}
-                                className={`p-1.5 rounded transition-all ${
-                                  ratings.methodology >= score
-                                    ? "bg-yellow-400 text-white"
-                                    : "bg-slate-200 text-slate-400 hover:bg-yellow-200"
-                                }`}
-                                aria-label={`Rate ${score} out of 5`}
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 ml-1">{ratings.methodology}/5</span>
-                        </div>
                       </div>
                       <textarea
                         value={comments.methodology}
@@ -722,26 +681,6 @@ export default function EndorsedProposals() {
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <label className="block text-sm font-semibold text-slate-900">Budget Assessment</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
-                              <button
-                                key={score}
-                                onClick={() => setRatings({ ...ratings, budget: score })}
-                                className={`p-1.5 rounded transition-all ${
-                                  ratings.budget >= score
-                                    ? "bg-yellow-400 text-white"
-                                    : "bg-slate-200 text-slate-400 hover:bg-yellow-200"
-                                }`}
-                                aria-label={`Rate ${score} out of 5`}
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 ml-1">{ratings.budget}/5</span>
-                        </div>
                       </div>
                       <textarea
                         value={comments.budget}
@@ -756,26 +695,6 @@ export default function EndorsedProposals() {
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <label className="block text-sm font-semibold text-slate-900">Timeline Assessment</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
-                              <button
-                                key={score}
-                                onClick={() => setRatings({ ...ratings, timeline: score })}
-                                className={`p-1.5 rounded transition-all ${
-                                  ratings.timeline >= score
-                                    ? "bg-yellow-400 text-white"
-                                    : "bg-slate-200 text-slate-400 hover:bg-yellow-200"
-                                }`}
-                                aria-label={`Rate ${score} out of 5`}
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 ml-1">{ratings.timeline}/5</span>
-                        </div>
                       </div>
                       <textarea
                         value={comments.timeline}
@@ -790,26 +709,6 @@ export default function EndorsedProposals() {
                     <div>
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <label className="block text-sm font-semibold text-slate-900">Overall Assessment</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-600">Rating:</span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((score) => (
-                              <button
-                                key={score}
-                                onClick={() => setRatings({ ...ratings, overall: score })}
-                                className={`p-1.5 rounded transition-all ${
-                                  ratings.overall >= score
-                                    ? "bg-yellow-400 text-white"
-                                    : "bg-slate-200 text-slate-400 hover:bg-yellow-200"
-                                }`}
-                                aria-label={`Rate ${score} out of 5`}
-                              >
-                                <Star className="w-4 h-4 fill-current" />
-                              </button>
-                            ))}
-                          </div>
-                          <span className="text-xs font-semibold text-slate-700 ml-1">{ratings.overall}/5</span>
-                        </div>
                       </div>
                       <textarea
                         value={comments.overall}

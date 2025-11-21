@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { type Project, type ProjectStatus, type ProjectPhase } from '../../../types/InterfaceProject';
 import { projectApi } from '../../../services/RndProjectApi/ProjectApi';
+import RnDProjectDetailModal from '../../../components/RnDProjectDetailModal';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -511,139 +512,15 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
             </div>
           )}
         </main>
-
-        {/* Project Detail Modal */}
-        {selectedProject && (
-          <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 ${isDetailModalOpen ? 'block' : 'hidden'}`}>
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{selectedProject.title}</h2>
-                    <p className="text-gray-600">{selectedProject.projectId}</p>
-                  </div>
-                  <button
-                    onClick={handleCloseModal}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="text-2xl">×</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Project Information</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Principal Investigator</label>
-                        <p className="text-gray-900">{selectedProject.principalInvestigator}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Department</label>
-                        <p className="text-gray-900">{selectedProject.department}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Research & Development Station</label>
-                        <p className="text-gray-900">{selectedProject.researchArea}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Collaborators</label>
-                        <p className="text-gray-900">{selectedProject.collaborators?.join(', ') || 'None'}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Project Status</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Status</label>
-                        <div className="mt-1">
-                          <span className={getStatusBadge(selectedProject.status)}>
-                            {selectedProject.status}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Current Phase</label>
-                        <div className="mt-1">
-                          <span className={getPhaseBadge(selectedProject.currentPhase)}>
-                            {selectedProject.currentPhase}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Timeline</label>
-                        <p className="text-gray-900">
-                          {new Date(selectedProject.startDate).toLocaleDateString()} - {new Date(selectedProject.endDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Budget</label>
-                        <p className="text-gray-900">₱{selectedProject.budget.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Progress Section */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Progress</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Completion</span>
-                        <span>{selectedProject.completionPercentage}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className="bg-green-600 h-3 rounded-full transition-all duration-500"
-                          style={{ width: `${selectedProject.completionPercentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Milestones */}
-                {selectedProject.milestones && selectedProject.milestones.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Milestones</h3>
-                    <div className="space-y-2">
-                      {selectedProject.milestones.map((milestone, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <p className="font-medium text-gray-900">{milestone.name}</p>
-                            <p className="text-sm text-gray-600">
-                              Due: {new Date(milestone.dueDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            milestone.completed 
-                              ? 'bg-green-100 text-green-800'
-                              : new Date(milestone.dueDate) < new Date()
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {milestone.completed ? 'Completed' : new Date(milestone.dueDate) < new Date() ? 'Overdue' : 'Pending'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Description */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Project Description</h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    {selectedProject.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+         {/* Project Detail Modal */}
+         <RnDProjectDetailModal
+           project={selectedProject}
+           isOpen={isDetailModalOpen}
+           onClose={handleCloseModal}
+           getStatusBadge={getStatusBadge}
+           getPhaseBadge={getPhaseBadge}
+           getDaysRemaining={getDaysRemaining}
+         />
       </div>
     </div>
   );

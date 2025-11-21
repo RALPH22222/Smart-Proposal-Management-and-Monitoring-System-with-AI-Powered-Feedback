@@ -4,6 +4,7 @@ export type ProjectPhase = 'Conceptualization' | 'Planning' | 'Execution' | 'Mon
 export interface Milestone {
   name: string;
   dueDate: string;
+  description?: string;
   completed: boolean;
 }
 

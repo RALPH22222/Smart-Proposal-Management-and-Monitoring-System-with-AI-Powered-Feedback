@@ -17,7 +17,7 @@ const mockProjects: Project[] = [
     status: 'Active',
     currentPhase: 'Execution',
     completionPercentage: 65,
-    collaborators: ['Dr. John Cruz', 'Dr. Lisa Reyes'],
+    collaborators: ['DOST', 'DPWH'],
     milestones: [
       { name: 'Requirements Analysis', dueDate: '2024-02-15', completed: true },
       { name: 'System Design', dueDate: '2024-04-30', completed: true },
