@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 export default function Login() {
 	const [email, setEmail] = useState('');
@@ -47,59 +46,6 @@ export default function Login() {
 		} finally {
 			setLoading(false);
 		}
-	};
-
-	const handleGoogleSuccess = async (
-		credentialResponse: CredentialResponse
-	) => {
-		const token = credentialResponse?.credential;
-		if (!token)
-			return Swal.fire({
-				icon: 'error',
-				title: 'Google login failed',
-				text: 'No credential returned.'
-			});
-
-		try {
-			setLoading(true);
-			const res = await fetch('/api/auth/google', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ token })
-			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => null);
-				throw new Error(err?.message || 'Google authentication failed');
-			}
-			const data = await res.json().catch(() => ({}));
-			Swal.fire({
-				icon: 'success',
-				title: 'Signed in',
-				text: data.message || 'Signed in with Google.'
-			});
-			setEmail('');
-			setPassword('');
-		} catch (err) {
-			if (err instanceof Error) {
-				Swal.fire({
-					icon: 'error',
-					title: 'Error',
-					text: err.message || 'Google sign-in failed'
-				});
-			} else {
-				console.error(err);
-			}
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const handleGoogleError = () => {
-		Swal.fire({
-			icon: 'error',
-			title: 'Google login failed',
-			text: 'Unable to sign in with Google.'
-		});
 	};
 
 	return (
@@ -157,13 +103,6 @@ export default function Login() {
 						</button>
 					</div>
 
-					<div className='flex flex-col items-center gap-3'>
-						<div className='text-xs text-gray-400'>or continue with</div>
-						<GoogleLogin
-							onSuccess={handleGoogleSuccess}
-							onError={handleGoogleError}
-						/>
-					</div>
 					<div className='text-sm text-center text-gray-600'>
 						Don't have an account?{' '}
 						<a
