@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 // import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import { api } from '../utils/axios';
+import { api } from '@utils/axios';
 
 export default function Login() {
 	const [email, setEmail] = useState('');

@@ -12,6 +12,17 @@ export class BackendStack extends Stack {
 
     const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
 
+    const cors_lambda = new NodejsFunction(this, "pms-cors", {
+      functionName: "pms-cors",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "cors.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const login_lambda = new NodejsFunction(this, "pms-login", {
       functionName: "pms-login",
       memorySize: 128,
@@ -45,10 +56,14 @@ export class BackendStack extends Stack {
 
     // /auth/login
     const login = auth.addResource("login");
-    login.addMethod("POST", new LambdaIntegration(login_lambda));
+    login.addMethod(HttpMethod.POST, new LambdaIntegration(login_lambda));
 
     // /auth/sign-up
     const signup = auth.addResource("sign-up");
-    signup.addMethod("POST", new LambdaIntegration(signup_lambda));
+    signup.addMethod(HttpMethod.POST, new LambdaIntegration(signup_lambda));
+
+    // cors
+    const cors = api.root.addResource('{proxy+}');
+    cors.addMethod(HttpMethod.OPTIONS, new LambdaIntegration(cors_lambda));
   }
 }
