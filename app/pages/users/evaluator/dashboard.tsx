@@ -24,23 +24,21 @@ export default function EvaluatorDashboard() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const handleNavigate = (route: string) => {
-    // Handle navigation based on route
-    // You can add navigation logic here
     switch (route) {
       case 'Dashboard':
-        // Already on dashboard
+        navigation.navigate('EvaluatorDashboard');
         break;
       case 'Proposals':
-        // navigation.navigate('Proposals');
+        navigation.navigate('EvaluatorProposals');
         break;
       case 'UnderReview':
-        // navigation.navigate('UnderReview');
+        navigation.navigate('EvaluatorUnderReview');
         break;
       case 'Completed':
-        // navigation.navigate('Completed');
+        navigation.navigate('EvaluatorCompleted');
         break;
-      case 'Notifications':
-        // navigation.navigate('Notifications');
+      case 'Settings':
+        navigation.navigate('EvaluatorSettings');
         break;
       default:
         break;
@@ -176,10 +174,7 @@ export default function EvaluatorDashboard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       
-      {/* Simple Header */}
-      <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>Evaluator Dashboard</Text>
-      </View>
+
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
@@ -282,7 +277,6 @@ export default function EvaluatorDashboard() {
 
       {/* Bottom Navigation Bar */}
       <BottomNavBar 
-        activeRoute="Dashboard" 
         onNavigate={handleNavigate}
       />
     </SafeAreaView>

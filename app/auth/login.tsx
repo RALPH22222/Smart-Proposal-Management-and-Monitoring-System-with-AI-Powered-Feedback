@@ -11,6 +11,8 @@ import {
   ScrollView,
   Modal,
   TouchableWithoutFeedback,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types/navigation';
@@ -66,9 +68,15 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Left Section (Logo / Banner) */}
-      <View style={styles.bannerContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#C8102E" />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Left Section (Logo / Banner) */}
+        <View style={styles.bannerContainer}>
         {/* NOTE: In your local project, use require('../assets/images/LOGO.png') */}
         <Image
           source={require('../assets/images/LOGO.png')} 
@@ -216,12 +224,20 @@ export default function LoginScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
     backgroundColor: '#fff',
   },

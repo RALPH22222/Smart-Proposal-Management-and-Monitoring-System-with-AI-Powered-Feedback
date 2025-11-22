@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   Text,
+  Animated,
 } from 'react-native';
+import { useNavigationState } from '@react-navigation/native';
 import {
   LayoutDashboard,
   FileText,
   CheckCircle,
   RefreshCw,
-  Bell,
+  User,
 } from 'lucide-react-native';
 
 // NOTE: 'Settings' and 'Logout' are typically moved to a side drawer 
@@ -27,21 +29,80 @@ interface NavItem {
   badge?: string;
 }
 
-const BottomNavBar = ({ activeRoute = 'Dashboard', onNavigate }: { activeRoute?: string, onNavigate?: (route: string) => void }) => {
-  const [currentRoute, setCurrentRoute] = useState(activeRoute);
+// Map navigation route names to navbar route names
+const routeMap: Record<string, string> = {
+  'EvaluatorDashboard': 'Dashboard',
+  'EvaluatorProposals': 'Proposals',
+  'EvaluatorUnderReview': 'UnderReview',
+  'EvaluatorCompleted': 'Completed',
+  'EvaluatorSettings': 'Settings',
+};
+
+// Define nav links outside component for animation initialization
+const navLinks: NavItem[] = [
+  { route: 'Dashboard', icon: LayoutDashboard }, // Home equivalent
+  { route: 'Proposals', icon: FileText },        // Search/Explore equivalent
+  { route: 'UnderReview', icon: RefreshCw },     // Grok/Communities equivalent
+  { route: 'Completed', icon: CheckCircle },     // Spaces/Lists equivalent
+  { route: 'Settings', icon: User }, // Notifications
+];
+
+const BottomNavBar = ({ onNavigate }: { onNavigate?: (route: string) => void }) => {
+  // Get current route from navigation state
+  const currentRouteName = useNavigationState(state => {
+    if (!state) return 'Dashboard';
+    const route = state.routes[state.index];
+    return route.name;
+  });
+
+  // Map navigation route to navbar route
+  const currentRoute = routeMap[currentRouteName] || 'Dashboard';
+
+  // Animation values for each tab - initialize with known routes
+  const scaleAnims = React.useRef<Record<string, Animated.Value>>({
+    'Dashboard': new Animated.Value(1),
+    'Proposals': new Animated.Value(1),
+    'UnderReview': new Animated.Value(1),
+    'Completed': new Animated.Value(1),
+    'Settings': new Animated.Value(1),
+  }).current;
+
+  // Reset animation when route changes
+  useEffect(() => {
+    Object.keys(scaleAnims).forEach((route) => {
+      if (route !== currentRoute) {
+        Animated.spring(scaleAnims[route], {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 300,
+          friction: 20,
+        }).start();
+      }
+    });
+  }, [currentRoute]);
 
   const handleNavigate = (route: string) => {
-    setCurrentRoute(route);
-    if (onNavigate) onNavigate(route);
-  };
+    // Animate button press
+    Animated.sequence([
+      Animated.spring(scaleAnims[route], {
+        toValue: 0.85,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+      Animated.spring(scaleAnims[route], {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+    ]).start();
 
-  const navLinks: NavItem[] = [
-    { route: 'Dashboard', icon: LayoutDashboard }, // Home equivalent
-    { route: 'Proposals', icon: FileText },        // Search/Explore equivalent
-    { route: 'UnderReview', icon: RefreshCw },     // Grok/Communities equivalent
-    { route: 'Completed', icon: CheckCircle },     // Spaces/Lists equivalent
-    { route: 'Notifications', icon: Bell, badge: '4' }, // Notifications
-  ];
+    // Navigate after a brief delay for better UX
+    setTimeout(() => {
+      if (onNavigate) onNavigate(route);
+    }, 100);
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -52,16 +113,24 @@ const BottomNavBar = ({ activeRoute = 'Dashboard', onNavigate }: { activeRoute?:
       <View style={styles.container}>
         {navLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = currentRoute === item.route;
+          const isActive = currentRoute === item.route || (item.route === 'Dashboard' && currentRouteName === 'EvaluatorDashboard');
+          const scaleAnim = scaleAnims[item.route];
 
           return (
             <TouchableOpacity
               key={item.route}
               style={styles.tabButton}
               onPress={() => handleNavigate(item.route)}
-              activeOpacity={0.7}
+              activeOpacity={1}
             >
-              <View style={styles.iconContainer}>
+              <Animated.View
+                style={[
+                  styles.iconContainer,
+                  {
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
                 <Icon
                   size={26}
                   color={isActive ? ACCENT_COLOR : INACTIVE_COLOR}
@@ -77,7 +146,7 @@ const BottomNavBar = ({ activeRoute = 'Dashboard', onNavigate }: { activeRoute?:
                     </Text>
                   </View>
                 )}
-              </View>
+              </Animated.View>
               
               {/* X does not use labels in the bottom bar, but if you wanted them: */}
               {/* <Text style={styles.label}>{item.route}</Text> */}
