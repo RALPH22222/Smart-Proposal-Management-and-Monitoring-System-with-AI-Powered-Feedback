@@ -3,11 +3,9 @@ import Swal from 'sweetalert2';
 
 export default function Register() {
 	const [email, setEmail] = useState('');
-	const [otp, setOtp] = useState('');
 	const [name, setName] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [otpSent, setOtpSent] = useState(false);
 	const [otpVerified, setOtpVerified] = useState(false);
 
 	const handleRegister = async (e?: React.FormEvent) => {
@@ -44,8 +42,6 @@ export default function Register() {
 			setName('');
 			setEmail('');
 			setPassword('');
-			setOtp('');
-			setOtpSent(false);
 			setOtpVerified(false);
 		} catch (err) {
 			if (err instanceof Error) {
@@ -136,10 +132,8 @@ export default function Register() {
 							type='button'
 							onClick={() => {
 								setEmail('');
-								setOtp('');
 								setName('');
 								setPassword('');
-								setOtpSent(false);
 								setOtpVerified(false);
 							}}
 							className='inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm'
