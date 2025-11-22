@@ -10,14 +10,27 @@ export class BackendStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const auth_lambda = new NodejsFunction(this, "pms-login", {
+    const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
+
+    const login_lambda = new NodejsFunction(this, "pms-login", {
       functionName: "pms-login",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "auth.ts"),
+      entry: path.resolve("src", "handlers", "login.ts"),
       environment: {
-        SUPABASE_KEY: StringParameter.valueForStringParameter(scope, "/pms/backend/SUPABASE_KEY"),
+        SUPABASE_KEY,
+      },
+    });
+
+    const signup_lambda = new NodejsFunction(this, "pms-sign-up", {
+      functionName: "pms-sign-up",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "sign-up.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
     });
 
@@ -27,7 +40,15 @@ export class BackendStack extends Stack {
         stageName: "api",
       },
     });
+    // /auth
     const auth = api.root.addResource("auth");
-    auth.addMethod(HttpMethod.POST, new LambdaIntegration(auth_lambda));
+
+    // /auth/login
+    const login = auth.addResource("login");
+    login.addMethod("POST", new LambdaIntegration(login_lambda));
+
+    // /auth/sign-up
+    const signup = auth.addResource("sign-up");
+    signup.addMethod("POST", new LambdaIntegration(signup_lambda));
   }
 }
