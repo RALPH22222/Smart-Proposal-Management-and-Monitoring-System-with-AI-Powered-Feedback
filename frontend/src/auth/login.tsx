@@ -18,10 +18,15 @@ export default function Login() {
 
 		try {
 			setLoading(true);
-			const res = await api.post<string>('/auth/login', {
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, password })
-			});
+			const res = await api.post<string>(
+			  '/auth/login',
+				{ email, password },
+				{
+     			headers: {
+     			  'Content-Type': 'application/json'
+     			}
+				}
+			);
 
 			Swal.fire({
 				icon: 'success',

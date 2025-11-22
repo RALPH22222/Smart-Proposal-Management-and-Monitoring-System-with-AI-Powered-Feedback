@@ -3,6 +3,7 @@ import { AuthService } from "../services/auth.service";
 import { supabase } from "../lib/supabase";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
+  console.log(JSON.stringify(event, null, 2))
   const authService = new AuthService(supabase);
   const { email, password } = JSON.parse(event.body || "{}");
   const { data, error } = await authService.signup(email, password);
