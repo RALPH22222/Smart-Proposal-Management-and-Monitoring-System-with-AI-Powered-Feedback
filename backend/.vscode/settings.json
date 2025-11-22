@@ -1,6 +1,0 @@
-{
-  "python.defaultInterpreterPath": "C:\\xampp\\htdocs\\proposal_management\\backend\\.venv\\Scripts\\python.exe",
-  "python.analysis.extraPaths": [
-    "C:\\xampp\\htdocs\\proposal_management\\backend\\.venv\\Lib\\site-packages"
-  ]
-}
