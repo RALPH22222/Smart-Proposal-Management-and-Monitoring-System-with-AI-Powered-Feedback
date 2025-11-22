@@ -92,7 +92,6 @@ export default function Register() {
 							onChange={(e) => setEmail(e.target.value)}
 							placeholder='Email address'
 							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-							disabled={otpVerified}
 						/>
 					</label>
 					<label className='block'>
@@ -103,7 +102,6 @@ export default function Register() {
 							onChange={(e) => setName(e.target.value)}
 							placeholder='Your username'
 							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-							disabled={!otpVerified}
 						/>
 					</label>
 
@@ -115,15 +113,13 @@ export default function Register() {
 							onChange={(e) => setPassword(e.target.value)}
 							placeholder='Password'
 							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-							disabled={!otpVerified}
 						/>
 					</label>
 
 					<div className='flex gap-3'>
 						<button
 							type='submit'
-							disabled={!otpVerified || loading}
-							className='flex-1 inline-flex items-center justify-center px-4 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm disabled:opacity-60'
+							className='flex-1 inline-flex items-center justify-center px-4 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm'
 						>
 							{loading ? 'Processing...' : 'Create Account'}
 						</button>
