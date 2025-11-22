@@ -13,7 +13,6 @@ import EvaluatorPage from './RnDEvaluatorPage';
 
 const MainLayout: React.FC = () => {
 	const [currentPage, setCurrentPage] = useState('dashboard');
-	const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 	const [statistics, setStatistics] = useState<Statistics>({
 		totalProposals: 0,
 		pendingProposals: 0,
@@ -45,16 +44,6 @@ const MainLayout: React.FC = () => {
 			setLoading(false);
 		}
 	};
-
-	useEffect(() => {
-		const handleResize = () => {
-			if (window.innerWidth >= 1024) {
-				setIsMobileSidebarOpen(false);
-			}
-		};
-		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
-	}, []);
 
 	const renderCurrentPage = () => {
 		switch (currentPage) {
@@ -109,61 +98,19 @@ const MainLayout: React.FC = () => {
 	}
 
 	return (
-		<div className='min-h-screen bg-gray-50 flex flex-col'>
-			{/* Mobile Burger Menu */}
-			<div className='lg:hidden flex items-center bg-white border-b border-gray-200 p-3 shadow-sm'>
-				<button
-					onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-					className='text-gray-700 focus:outline-none'
-				>
-					<svg
-						className='w-6 h-6'
-						fill='none'
-						stroke='currentColor'
-						viewBox='0 0 24 24'
-					>
-						<path
-							strokeLinecap='round'
-							strokeLinejoin='round'
-							strokeWidth={2}
-							d='M4 6h16M4 12h16M4 18h16'
-						/>
-					</svg>
-				</button>
-				<h1 className='ml-4 text-lg font-semibold text-gray-800 capitalize'>
-					{currentPage}
-				</h1>
+		<div className='min-h-screen bg-gray-50 flex'>
+			{/* Sidebar */}
+			<div className='w-auto'>
+				<Sidebar
+					currentPage={currentPage}
+					onPageChange={setCurrentPage}
+					statistics={statistics}
+				/>
 			</div>
 
-			<div className='flex flex-1 min-h-screen'>
-				{/* Sidebar */}
-				<div
-					className={`transition-all duration-300 ${
-						isMobileSidebarOpen
-							? 'block w-64 fixed inset-y-0 z-50 bg-white shadow-lg lg:static lg:block'
-							: 'hidden lg:block lg:w-64'
-					}`}
-				>
-					<Sidebar
-						currentPage={currentPage}
-						onPageChange={setCurrentPage}
-						statistics={statistics}
-						isMobile={false}
-					/>
-				</div>
-
-				{/* Overlay for mobile sidebar */}
-				{isMobileSidebarOpen && (
-					<div
-						className='fixed inset-0 bg-black bg-opacity-40 z-40'
-						onClick={() => setIsMobileSidebarOpen(false)}
-					></div>
-				)}
-
-				{/* Main Content */}
-				<div className='flex-1 p-6 bg-gray-50 overflow-y-auto'>
-					{renderCurrentPage()}
-				</div>
+			{/* Main Content */}
+			<div className='flex-1 p-6 bg-gray-50 overflow-y-auto'>
+				{renderCurrentPage()}
 			</div>
 		</div>
 	);

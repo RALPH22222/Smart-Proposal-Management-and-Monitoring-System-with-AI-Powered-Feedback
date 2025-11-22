@@ -205,8 +205,8 @@ export const RnDEvaluatorPage: React.FC = () => {
 	};
 
 	return (
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
-			<div className="flex-1 flex flex-col gap-4 sm:gap-6 p-2 sm:p-2 overflow-hidden pt-2 lg:pt-2">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6 mt-10">
+			<div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

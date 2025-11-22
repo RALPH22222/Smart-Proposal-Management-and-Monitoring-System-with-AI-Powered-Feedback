@@ -157,8 +157,8 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 	}
 
 	return (	
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
-			<div className="flex-1 flex flex-col gap-4 sm:gap-6 p-2 sm:p-2 overflow-hidden pt-2 lg:pt-2">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row mt-10">
+			<div className="flex-1 flex flex-col gap-4 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
