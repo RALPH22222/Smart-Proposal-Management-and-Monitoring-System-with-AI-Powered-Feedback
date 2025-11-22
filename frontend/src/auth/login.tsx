@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { api } from '../utils/axios';
 
 export default function Login() {
 	const [email, setEmail] = useState('');
@@ -17,20 +18,15 @@ export default function Login() {
 
 		try {
 			setLoading(true);
-			const res = await fetch('/api/auth/login', {
-				method: 'POST',
+			const res = await api.post<string>('/auth/login', {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ email, password })
 			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => null);
-				throw new Error(err?.message || 'Login failed');
-			}
-			const data = await res.json().catch(() => ({}));
+
 			Swal.fire({
 				icon: 'success',
 				title: 'Logged in',
-				text: data.message || 'Successfully signed in.'
+				text: res.data || 'Successfully signed in.'
 			});
 			setEmail('');
 			setPassword('');
