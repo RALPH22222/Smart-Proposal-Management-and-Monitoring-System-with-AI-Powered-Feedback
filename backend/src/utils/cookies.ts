@@ -18,6 +18,12 @@
  * @return string
  */
 
+enum CookieSameSite {
+  Strict = 'Strict',
+  Lax = 'Lax',
+  None = 'None'
+}
+
 type CookieOptions = {
     secure?: boolean;
     httpOnly?: boolean;
@@ -25,6 +31,7 @@ type CookieOptions = {
     path?: string;
     expires?: string | Date | null;
     maxAge?: number | null;
+    sameSite?: CookieSameSite;
 };
 
 export function setCookieString(key: string, value: string, options?: CookieOptions) {
@@ -34,7 +41,8 @@ export function setCookieString(key: string, value: string, options?: CookieOpti
         domain: null,
         path: '/',
         expires: null,
-        maxAge: null
+        maxAge: null,
+        sameSite: CookieSameSite.Lax
     }
     if (typeof options == 'object') {
         options = Object.assign({}, defaults, options);
@@ -70,6 +78,10 @@ export function setCookieString(key: string, value: string, options?: CookieOpti
 
     if (options.httpOnly) {
         cookie = cookie + '; HttpOnly';
+    }
+
+    if (options.sameSite) {
+        cookie = cookie + '; SameSite=' + options.sameSite;
     }
 
     return cookie;
