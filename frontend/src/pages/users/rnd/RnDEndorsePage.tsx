@@ -11,11 +11,24 @@ import {
 	ChevronRight
 } from 'lucide-react';
 import { type EndorsementProposal } from '../../../types/evaluator';
+import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
 
 const EndorsePage: React.FC = () => {
 	const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [selectedDecision, setSelectedDecision] = useState<{
+		evaluatorId: string;
+		evaluatorName: string;
+		decision: string;
+		comments: string;
+		submittedDate: string;
+	} | null>(null);
+	const [selectedProposal, setSelectedProposal] = useState<{
+		title: string;
+		id: string;
+	} | null>(null);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 	const itemsPerPage = 5;
 
 	// Mock data for proposals ready for endorsement
@@ -99,6 +112,18 @@ const EndorsePage: React.FC = () => {
 		} finally {
 			setLoading(false);
 		}
+	};
+
+	const handleOpenModal = (decision: any, proposalTitle: string, proposalId: string) => {
+		setSelectedDecision(decision);
+		setSelectedProposal({ title: proposalTitle, id: proposalId });
+		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		setIsModalOpen(false);
+		setSelectedDecision(null);
+		setSelectedProposal(null);
 	};
 
 	const handleEndorseProposal = async (proposalId: string) => {
@@ -205,6 +230,15 @@ const EndorsePage: React.FC = () => {
 
 	return (
 		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+			{/* Modal */}
+			<EvaluatorDecisionModal
+				isOpen={isModalOpen}
+				onClose={handleCloseModal}
+				decision={selectedDecision!}
+				proposalTitle={selectedProposal?.title || ''}
+				proposalId={selectedProposal?.id || ''}
+			/>
+
 			<div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">
@@ -350,7 +384,8 @@ const EndorsePage: React.FC = () => {
 														{proposal.evaluatorDecisions.map((decision) => (
 															<div
 																key={decision.evaluatorId}
-																className={`border rounded-lg p-3 ${getDecisionColor(decision.decision)}`}
+																className={`border rounded-lg p-3 ${getDecisionColor(decision.decision)} cursor-pointer hover:shadow-md transition-all duration-200`}
+																onClick={() => handleOpenModal(decision, proposal.title, proposal.id)}
 															>
 																<div className="flex items-center justify-between mb-2">
 																	<div className="flex items-center">
@@ -373,10 +408,13 @@ const EndorsePage: React.FC = () => {
 																<div className="bg-white bg-opacity-50 rounded p-2">
 																	<div className="flex items-start">
 																		<MessageSquare className="w-3 h-3 mt-0.5 mr-2 text-slate-500" />
-																		<p className="text-xs text-slate-700">
+																		<p className="text-xs text-slate-700 line-clamp-2">
 																			{decision.comments}
 																		</p>
 																	</div>
+																</div>
+																<div className="mt-2 text-xs text-blue-600 font-medium">
+																	Click to view full assessment →
 																</div>
 															</div>
 														))}

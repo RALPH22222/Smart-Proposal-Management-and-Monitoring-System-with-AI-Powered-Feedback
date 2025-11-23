@@ -7,7 +7,8 @@ import {
   FaCog,
   FaStar,
   FaSearch,
-  FaRocket
+  FaRocket,
+  FaFolderOpen
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -19,7 +20,7 @@ interface ResearchDetailsProps {
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChange }) => {
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="max-w-5xl w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
             <FaFlask className="text-[#C8102E] text-xl" />
@@ -78,67 +79,148 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         </div>
       </div>
 
+      {/* Classification Type Selection */}
       <div className="space-y-6">
-        {/* Research Classification */}
         <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaSearch className="text-gray-400" />
-            Research Classification *
+            <FaFolderOpen className="text-gray-400" />
+            Classification Type *
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {['basic', 'applied'].map((key) => (
-              <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+              <input
+                type="radio"
+                id="classificationType.research"
+                name="classificationType"
+                checked={formData.classificationType === 'research'}
+                onChange={() => onInputChange({
+                  target: {
+                    name: 'classificationType',
+                    value: 'research'
+                  }
+                } as React.ChangeEvent<HTMLInputElement>)}
+                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+              />
+              <label htmlFor="classificationType.research" className="ml-3 text-sm font-medium text-gray-700">
+                Research Classification
+              </label>
+            </div>
+            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+              <input
+                type="radio"
+                id="classificationType.development"
+                name="classificationType"
+                checked={formData.classificationType === 'development'}
+                onChange={() => onInputChange({
+                  target: {
+                    name: 'classificationType',
+                    value: 'development'
+                  }
+                } as React.ChangeEvent<HTMLInputElement>)}
+                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+              />
+              <label htmlFor="classificationType.development" className="ml-3 text-sm font-medium text-gray-700">
+                Development Classification
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Research Classification - Only shows when Research is selected */}
+        {formData.classificationType === 'research' && (
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <FaSearch className="text-gray-400" />
+              Research Classification *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
                 <input
-                  type="checkbox"
-                  id={`researchType.${key}`}
-                  name={`researchType.${key}`}
-                  checked={formData.researchType[key as keyof typeof formData.researchType]}
-                  onChange={onInputChange}
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
+                  type="radio"
+                  id="researchType.basic"
+                  name="researchType"
+                  checked={formData.researchType.basic}
+                  onChange={() => onInputChange({
+                    target: {
+                      name: 'researchType.basic',
+                      checked: true
+                    }
+                  } as React.ChangeEvent<HTMLInputElement>)}
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
                 />
-                <label htmlFor={`researchType.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                  {key}
+                <label htmlFor="researchType.basic" className="ml-3 text-sm font-medium text-gray-700">
+                  Basic Research
                 </label>
               </div>
-            ))}
-          </div>
-        </div>
-      
-        {/* Development Classification */}
-        <div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaRocket className="text-gray-400" /> 
-            Development Classification *
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-              <input
-                type="checkbox"
-                id="priorityAreas.coconutIndustry"
-                name="priorityAreas.coconutIndustry"
-                checked={formData.priorityAreas.coconutIndustry}
-                onChange={onInputChange}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
-              />
-              <label htmlFor="priorityAreas.coconutIndustry" className="ml-3 text-sm font-medium text-gray-700">
-                Coconut Industry
-              </label>
-            </div>
-            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-              <input
-                type="checkbox"
-                id="priorityAreas.otherPriorityAreas"
-                name="priorityAreas.otherPriorityAreas"
-                checked={formData.priorityAreas.otherPriorityAreas}
-                onChange={onInputChange}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
-              />
-              <label htmlFor="priorityAreas.otherPriorityAreas" className="ml-3 text-sm font-medium text-gray-700">
-                Other Priority Areas (Public Safety, SDG5)
-              </label>
+              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+                <input
+                  type="radio"
+                  id="researchType.applied"
+                  name="researchType"
+                  checked={formData.researchType.applied}
+                  onChange={() => onInputChange({
+                    target: {
+                      name: 'researchType.applied',
+                      checked: true
+                    }
+                  } as React.ChangeEvent<HTMLInputElement>)}
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+                />
+                <label htmlFor="researchType.applied" className="ml-3 text-sm font-medium text-gray-700">
+                  Applied Research
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Development Classification - Only shows when Development is selected */}
+        {formData.classificationType === 'development' && (
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <FaRocket className="text-gray-400" /> 
+              Development Classification *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+                <input
+                  type="radio"
+                  id="developmentType.coconutIndustry"
+                  name="developmentType"
+                  checked={formData.developmentType === 'coconutIndustry'}
+                  onChange={() => onInputChange({
+                    target: {
+                      name: 'developmentType',
+                      value: 'coconutIndustry'
+                    }
+                  } as React.ChangeEvent<HTMLInputElement>)}
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+                />
+                <label htmlFor="developmentType.coconutIndustry" className="ml-3 text-sm font-medium text-gray-700">
+                  Coconut Industry
+                </label>
+              </div>
+              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+                <input
+                  type="radio"
+                  id="developmentType.otherPriorityAreas"
+                  name="developmentType"
+                  checked={formData.developmentType === 'otherPriorityAreas'}
+                  onChange={() => onInputChange({
+                    target: {
+                      name: 'developmentType',
+                      value: 'otherPriorityAreas'
+                    }
+                  } as React.ChangeEvent<HTMLInputElement>)}
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+                />
+                <label htmlFor="developmentType.otherPriorityAreas" className="ml-3 text-sm font-medium text-gray-700">
+                  Other Priority Areas (Public Safety, SDG5)
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

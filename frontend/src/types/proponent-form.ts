@@ -18,13 +18,19 @@ export interface FormData {
   telephoneFaxEmail: string;
   cooperatingAgencies: string;
   researchStation: string;
+  
+  // Updated classification fields
+  classificationType: 'research' | 'development' | '';
   researchType: {
     basic: boolean;
     applied: boolean;
-    development: boolean;
-    pilotTesting: boolean;
-    techPromotion: boolean;
+    // Remove these if they're no longer used in the new structure
+    development?: boolean;
+    pilotTesting?: boolean;
+    techPromotion?: boolean;
   };
+  developmentType: 'coconutIndustry' | 'otherPriorityAreas' | '';
+  
   implementationMode: {
     singleAgency: boolean;
     multiAgency: boolean;

@@ -22,18 +22,20 @@ const Dashboard: React.FC = () => {
     programTitle: '', 
     projectTitle: '', 
     leaderGender: '', 
-    agencyName: '', // Added agencyName
+    agencyName: '',
     agencyAddress: '', 
     telephoneFaxEmail: '', 
     cooperatingAgencies: '', 
     researchStation: '',
+    
+    // Updated classification structure
+    classificationType: '',
     researchType: { 
       basic: false, 
-      applied: false, 
-      development: false, 
-      pilotTesting: false, 
-      techPromotion: false 
+      applied: false
     },
+    developmentType: '',
+    
     implementationMode: { 
       singleAgency: false, 
       multiAgency: false 
@@ -60,21 +62,31 @@ const Dashboard: React.FC = () => {
       formData.programTitle, 
       formData.projectTitle, 
       formData.leaderGender,
-      formData.agencyName, // Added agencyName to required fields
+      formData.agencyName,
       formData.agencyAddress, 
       formData.telephoneFaxEmail, 
       formData.plannedStartDate,
       formData.plannedEndDate, 
       formData.duration
     ];
-    const hasResearchType = Object.values(formData.researchType).some(value => value);
+    
+    // Updated classification validation
+    const hasValidClassification = formData.classificationType !== '' && 
+      (
+        (formData.classificationType === 'research' && 
+          (formData.researchType.basic || formData.researchType.applied)) ||
+        (formData.classificationType === 'development' && 
+          formData.developmentType !== '')
+      );
+    
     const hasImplementationMode = Object.values(formData.implementationMode).some(value => value);
     const hasPriorityArea = Object.values(formData.priorityAreas).some(value => value);
     const hasValidBudgetItems = formData.budgetItems.every(item => 
       item.source.trim() !== '' && item.year !== ''
     );
+    
     return requiredFields.every(field => field.trim() !== '') && 
-           hasResearchType && 
+           hasValidClassification && 
            hasImplementationMode && 
            hasPriorityArea && 
            hasValidBudgetItems;
@@ -139,7 +151,7 @@ const Dashboard: React.FC = () => {
         issues.push('Project title is too short or missing');
         suggestions.push('Ensure project title clearly describes the research focus');
       }
-      if (!formData.agencyName) { // Check for agencyName
+      if (!formData.agencyName) {
         issues.push('Agency name missing');
         suggestions.push('Provide the name of the agency/institution');
       }
@@ -152,14 +164,18 @@ const Dashboard: React.FC = () => {
         suggestions.push('Set clear start and end dates for the research period');
       }
       
-      const selectedResearchTypes = Object.values(formData.researchType).filter(v => v).length;
-      if (selectedResearchTypes === 0) {
-        issues.push('No research classification selected');
-        suggestions.push('Select at least one research classification type');
-      }
-      if (selectedResearchTypes > 2) {
-        issues.push('Too many research classifications selected');
-        suggestions.push('Focus on 1-2 primary research classifications for clarity');
+      // Updated classification validation for AI check
+      if (!formData.classificationType) {
+        issues.push('No classification type selected');
+        suggestions.push('Select either Research or Development classification');
+      } else if (formData.classificationType === 'research' && 
+                 !formData.researchType.basic && !formData.researchType.applied) {
+        issues.push('No research type selected');
+        suggestions.push('Select either Basic or Applied research type');
+      } else if (formData.classificationType === 'development' && 
+                 !formData.developmentType) {
+        issues.push('No development type selected');
+        suggestions.push('Select either Coconut Industry or Other Priority Areas');
       }
       
       const selectedPriorityAreas = Object.values(formData.priorityAreas).filter(v => v).length;
@@ -182,7 +198,6 @@ const Dashboard: React.FC = () => {
         suggestions.push('Assign year for all budget items');
       }
       
-      // ... (Rest of AI check logic remains the same)
       const isValid = issues.length === 0;
       const score = Math.max(0, 100 - (issues.length * 15));
       const formCheckResult: AICheckResult = { 
@@ -202,7 +217,39 @@ const Dashboard: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    if (name.includes('.')) {
+    
+    // Handle classification type changes
+    if (name === 'classificationType') {
+      setFormData(prev => ({ 
+        ...prev, 
+        classificationType: value as 'research' | 'development',
+        // Reset the sub-selections when changing main classification
+        researchType: { basic: false, applied: false },
+        developmentType: ''
+      }));
+    }
+    // Handle research type radio buttons
+    else if (name === 'researchType.basic') {
+      setFormData(prev => ({ 
+        ...prev, 
+        researchType: { basic: true, applied: false }
+      }));
+    }
+    else if (name === 'researchType.applied') {
+      setFormData(prev => ({ 
+        ...prev, 
+        researchType: { basic: false, applied: true }
+      }));
+    }
+    // Handle development type radio buttons
+    else if (name === 'developmentType') {
+      setFormData(prev => ({ 
+        ...prev, 
+        developmentType: value as 'coconutIndustry' | 'otherPriorityAreas'
+      }));
+    }
+    // Handle other nested fields
+    else if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
         ...prev, 
@@ -220,7 +267,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // ... (Budget helper functions remain the same: addBudgetItem, removeBudgetItem, updateBudgetItem, toggleExpand, useEffect)
   const addBudgetItem = () => {
     const newItem: BudgetItem = { 
       id: formData.budgetItems.length + 1, 
@@ -351,7 +397,7 @@ const Dashboard: React.FC = () => {
                 ))}
               </nav>
               
-              {/* Completion Status - Kept for info, but text updated */}
+              {/* Completion Status */}
               <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-semibold text-gray-700">Form Progress</span>
