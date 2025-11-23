@@ -1,9 +1,9 @@
-import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
+import { APIGatewayProxyEvent } from "aws-lambda";
 import { AuthService } from "../services/auth.service";
 import { supabase } from "../lib/supabase";
+import { buildCorsHeaders } from "../utils/cors";
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
-  console.log(JSON.stringify(event, null, 2));
+export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const authService = new AuthService(supabase);
   const { email, password } = JSON.parse(event.body || "{}");
   const { data, error } = await authService.signup(email, password);
@@ -25,10 +25,5 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     body: JSON.stringify({
       message: "Successfully signed in.",
     }),
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-    },
   };
-};
+});

@@ -1,23 +1,18 @@
-import { APIGatewayProxyHandler } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
+import { buildCorsHeaders } from '../utils/cors';
 
-const allowedOrigins = [
-  "http://localhost:5173"
-];
+export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
+  // Handle preflight request
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      body: "",
+    };
+  }
 
-export const handler: APIGatewayProxyHandler = async (event) => {
-  const origin =
-     event.headers?.origin ||
-     event.headers?.Origin || // some browsers send 'Origin'
-     "";
-
+  // Normal request
   return {
     statusCode: 200,
-    headers: {
-      'Access-Control-Allow-Credentials': true,
-      'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : "",
-      'Access-Control-Allow-Headers': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS'
-    },
-    body: JSON.stringify({})
+    body: JSON.stringify({}),
   };
-};
+});

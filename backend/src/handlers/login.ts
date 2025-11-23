@@ -1,10 +1,10 @@
-import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
+import { APIGatewayProxyEvent } from "aws-lambda";
 import { AuthService } from "../services/auth.service";
 import { supabase } from "../lib/supabase";
 import { setCookieString } from "../utils/cookies";
+import { buildCorsHeaders } from "../utils/cors";
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
-  console.log(JSON.stringify(event, null, 2));
+export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const authService = new AuthService(supabase);
   const { email, password } = JSON.parse(event.body || "{}");
   const { data, error } = await authService.login(email, password);
@@ -21,6 +21,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
   console.log('Data response: ', JSON.stringify(data, null, 2))
   console.log('Successfully logged in.')
+
   return {
     statusCode: 200,
     body: JSON.stringify({
@@ -28,9 +29,6 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     }),
     headers: {
       'Set-Cookie': setCookieString('tk', data.session!.access_token),
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
     },
   };
-};
+});
