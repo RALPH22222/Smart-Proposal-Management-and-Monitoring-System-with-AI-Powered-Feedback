@@ -19,7 +19,6 @@ interface BudgetSectionProps {
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
   formData,
-  years,
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
@@ -33,7 +32,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     }).format(amount);
   };
 
-  const calculateTotal = (field: 'mooe' | 'co' | 'total') => {
+  const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
     return formData.budgetItems.reduce((sum, item) => sum + (item[field] || 0), 0);
   };
 
@@ -80,7 +79,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       <div className="space-y-4">
         {formData.budgetItems.map((item) => (
           <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-            {/* Source and Year - Side by Side */}
+            {/* Source and PS - Side by Side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -97,16 +96,17 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  Year
+                  PS
                 </label>
-                <select
-                  value={item.year}
-                  onChange={(e) => onBudgetItemUpdate(item.id, 'year', e.target.value)}
+                <input
+                  type="number"
+                  value={item.ps === 0 ? '' : item.ps}
+                  onChange={(e) => handleNumberChange(item.id, 'ps', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-                >
-                  <option value="">Select Year</option>
-                  {years.map(year => <option key={year} value={year}>{year}</option>)}
-                </select>
+                  placeholder="₱0.00"
+                  min="0"
+                  step="0.01"
+                />
               </div>
             </div>
 
@@ -192,7 +192,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
       {/* Grand Total */}
       <div className="bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300 rounded-xl p-6">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div>
+            <div className="text-sm text-gray-600 uppercase mb-2">PS Total</div>
+            <div className="text-xl font-bold text-gray-800">{formatCurrency(calculateTotal('ps'))}</div>
+          </div>
           <div>
             <div className="text-sm text-gray-600 uppercase mb-2">MOOE Total</div>
             <div className="text-xl font-bold text-gray-800">{formatCurrency(calculateTotal('mooe'))}</div>

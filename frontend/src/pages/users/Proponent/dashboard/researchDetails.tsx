@@ -5,7 +5,9 @@ import {
   FaTag,
   FaGraduationCap,
   FaCog,
-  FaStar
+  FaStar,
+  FaSearch,
+  FaRocket
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -76,27 +78,66 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         </div>
       </div>
 
-      <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaCog className="text-gray-400" />
-          Research Classification *
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(formData.researchType).map(([key, value]) => (
-            <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+      <div className="space-y-6">
+        {/* Research Classification */}
+        <div className="space-y-4">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <FaSearch className="text-gray-400" />
+            Research Classification *
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {['basic', 'applied'].map((key) => (
+              <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+                <input
+                  type="checkbox"
+                  id={`researchType.${key}`}
+                  name={`researchType.${key}`}
+                  checked={formData.researchType[key as keyof typeof formData.researchType]}
+                  onChange={onInputChange}
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
+                />
+                <label htmlFor={`researchType.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
+                  {key}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      
+        {/* Development Classification */}
+        <div className="space-y-4">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <FaRocket className="text-gray-400" /> 
+            Development Classification *
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
               <input
                 type="checkbox"
-                id={`researchType.${key}`}
-                name={`researchType.${key}`}
-                checked={value}
+                id="priorityAreas.coconutIndustry"
+                name="priorityAreas.coconutIndustry"
+                checked={formData.priorityAreas.coconutIndustry}
                 onChange={onInputChange}
                 className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
               />
-              <label htmlFor={`researchType.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
+              <label htmlFor="priorityAreas.coconutIndustry" className="ml-3 text-sm font-medium text-gray-700">
+                Coconut Industry
               </label>
             </div>
-          ))}
+            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+              <input
+                type="checkbox"
+                id="priorityAreas.otherPriorityAreas"
+                name="priorityAreas.otherPriorityAreas"
+                checked={formData.priorityAreas.otherPriorityAreas}
+                onChange={onInputChange}
+                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
+              />
+              <label htmlFor="priorityAreas.otherPriorityAreas" className="ml-3 text-sm font-medium text-gray-700">
+                Other Priority Areas (Public Safety, SDG5)
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 

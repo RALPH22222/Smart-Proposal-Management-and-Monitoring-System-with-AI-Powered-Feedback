@@ -2,6 +2,7 @@ export interface BudgetItem {
   id: number;
   source: string;
   mooe: number;
+  ps: number;
   co: number;
   total: number;
   isExpanded: boolean;
@@ -12,6 +13,7 @@ export interface FormData {
   programTitle: string;
   projectTitle: string;
   leaderGender: string;
+  agencyName: string;
   agencyAddress: string;
   telephoneFaxEmail: string;
   cooperatingAgencies: string;

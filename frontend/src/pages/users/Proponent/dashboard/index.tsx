@@ -19,31 +19,65 @@ const Dashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('basic-info');
   
   const [formData, setFormData] = useState<FormData>({
-    programTitle: '', projectTitle: '', leaderGender: '', agencyAddress: '', 
-    telephoneFaxEmail: '', cooperatingAgencies: '', researchStation: '',
-    researchType: { basic: false, applied: false, development: false, 
-      pilotTesting: false, techPromotion: false },
-    implementationMode: { singleAgency: false, multiAgency: false },
-    priorityAreas: { stand: false, coconutIndustry: false, exportWinners: false, 
-      otherPriorityAreas: false, supportIndustries: false },
-    sectorCommodity: '', discipline: '', duration: '', plannedStartDate: '', 
-    plannedEndDate: '', budgetItems: [
-      { id: 1, source: '', mooe: 0, co: 0, total: 0, isExpanded: false, year: '' },
+    programTitle: '', 
+    projectTitle: '', 
+    leaderGender: '', 
+    agencyName: '', // Added agencyName
+    agencyAddress: '', 
+    telephoneFaxEmail: '', 
+    cooperatingAgencies: '', 
+    researchStation: '',
+    researchType: { 
+      basic: false, 
+      applied: false, 
+      development: false, 
+      pilotTesting: false, 
+      techPromotion: false 
+    },
+    implementationMode: { 
+      singleAgency: false, 
+      multiAgency: false 
+    },
+    priorityAreas: { 
+      stand: false, 
+      coconutIndustry: false, 
+      exportWinners: false, 
+      otherPriorityAreas: false, 
+      supportIndustries: false 
+    },
+    sectorCommodity: '', 
+    discipline: '', 
+    duration: '', 
+    plannedStartDate: '', 
+    plannedEndDate: '', 
+    budgetItems: [
+      { id: 1, source: '', ps: 0, mooe: 0, co: 0, total: 0, isExpanded: false, year: '' },
     ],
   });
 
   const isFormComplete = useCallback(() => {
-    const requiredFields = [formData.programTitle, formData.projectTitle, formData.leaderGender,
-      formData.agencyAddress, formData.telephoneFaxEmail, formData.plannedStartDate,
-      formData.plannedEndDate, formData.duration];
+    const requiredFields = [
+      formData.programTitle, 
+      formData.projectTitle, 
+      formData.leaderGender,
+      formData.agencyName, // Added agencyName to required fields
+      formData.agencyAddress, 
+      formData.telephoneFaxEmail, 
+      formData.plannedStartDate,
+      formData.plannedEndDate, 
+      formData.duration
+    ];
     const hasResearchType = Object.values(formData.researchType).some(value => value);
     const hasImplementationMode = Object.values(formData.implementationMode).some(value => value);
     const hasPriorityArea = Object.values(formData.priorityAreas).some(value => value);
     const hasValidBudgetItems = formData.budgetItems.every(item => 
       item.source.trim() !== '' && item.year !== ''
     );
-    return requiredFields.every(field => field.trim() !== '') && hasResearchType && 
-           hasImplementationMode && hasPriorityArea && hasValidBudgetItems;
+    return requiredFields.every(field => field.trim() !== '') && 
+           hasResearchType && 
+           hasImplementationMode && 
+           hasPriorityArea && 
+           hasValidBudgetItems;
   }, [formData]);
 
   const handleButtonClick = useCallback(() => {
@@ -63,27 +97,40 @@ const Dashboard: React.FC = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const mockResult: AICheckResult = {
-        isValid: Math.random() > 0.3, issues: ['Missing executive summary section',
-          'Budget justification needs more detail', 'References format inconsistent',
-          'Methodology section could be more detailed', 'Timeline visualization missing'],
-        suggestions: ['Add a 200-word executive summary highlighting key objectives',
+        isValid: Math.random() > 0.3, 
+        issues: [
+          'Missing executive summary section',
+          'Budget justification needs more detail', 
+          'References format inconsistent',
+          'Methodology section could be more detailed', 
+          'Timeline visualization missing'
+        ],
+        suggestions: [
+          'Add a 200-word executive summary highlighting key objectives',
           'Include detailed budget breakdown per quarter with justifications',
           'Use APA 7th edition formatting for all references',
           'Expand methodology to include data collection procedures',
-          'Add a Gantt chart for better timeline visualization'],
-        score: Math.floor(Math.random() * 40) + 60, type: 'template', title: 'Document Template Analysis'
+          'Add a Gantt chart for better timeline visualization'
+        ],
+        score: Math.floor(Math.random() * 40) + 60, 
+        type: 'template', 
+        title: 'Document Template Analysis'
       };
       setAiCheckResult(mockResult);
     } catch (error) {
-      console.error('AI check failed:', error); alert('AI template check failed. Please try again.');
+      console.error('AI check failed:', error); 
+      alert('AI template check failed. Please try again.');
     } finally { setIsCheckingTemplate(false); }
   }, [selectedFile]);
 
   const handleAIFormCheck = useCallback(async () => {
-    setIsCheckingForm(true); setShowAIModal(true);
+    setIsCheckingForm(true); 
+    setShowAIModal(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      const issues: string[] = []; const suggestions: string[] = [];
+      const issues: string[] = []; 
+      const suggestions: string[] = [];
+      
       if (!formData.programTitle || formData.programTitle.length < 10) {
         issues.push('Program title is too short or missing');
         suggestions.push('Make program title more descriptive (minimum 10 characters)');
@@ -92,14 +139,19 @@ const Dashboard: React.FC = () => {
         issues.push('Project title is too short or missing');
         suggestions.push('Ensure project title clearly describes the research focus');
       }
-      if (!formData.plannedStartDate || !formData.plannedEndDate) {
-        issues.push('Project timeline not fully defined');
-        suggestions.push('Set clear start and end dates for the research period');
+      if (!formData.agencyName) { // Check for agencyName
+        issues.push('Agency name missing');
+        suggestions.push('Provide the name of the agency/institution');
       }
       if (!formData.agencyAddress) {
         issues.push('Agency address missing');
         suggestions.push('Provide complete agency address for correspondence');
       }
+      if (!formData.plannedStartDate || !formData.plannedEndDate) {
+        issues.push('Project timeline not fully defined');
+        suggestions.push('Set clear start and end dates for the research period');
+      }
+      
       const selectedResearchTypes = Object.values(formData.researchType).filter(v => v).length;
       if (selectedResearchTypes === 0) {
         issues.push('No research classification selected');
@@ -109,15 +161,17 @@ const Dashboard: React.FC = () => {
         issues.push('Too many research classifications selected');
         suggestions.push('Focus on 1-2 primary research classifications for clarity');
       }
+      
       const selectedPriorityAreas = Object.values(formData.priorityAreas).filter(v => v).length;
       if (selectedPriorityAreas === 0) {
         issues.push('No priority areas selected');
         suggestions.push('Select relevant priority areas for better alignment');
       }
+      
       const totalBudget = formData.budgetItems.reduce((sum, item) => sum + item.total, 0);
       if (totalBudget === 0) {
         issues.push('Budget amounts not specified');
-        suggestions.push('Add budget amounts for MOOE and CO categories');
+        suggestions.push('Add budget amounts for PS, MOOE and CO categories');
       }
       if (formData.budgetItems.some(item => !item.source)) {
         issues.push('Some budget items missing funding source');
@@ -127,13 +181,21 @@ const Dashboard: React.FC = () => {
         issues.push('Some budget items missing year allocation');
         suggestions.push('Assign year for all budget items');
       }
+      
       const isValid = issues.length === 0;
       const score = Math.max(0, 100 - (issues.length * 15));
-      const formCheckResult: AICheckResult = { isValid, issues, suggestions, score, 
-        type: 'form', title: 'Form Completion Analysis' };
+      const formCheckResult: AICheckResult = { 
+        isValid, 
+        issues, 
+        suggestions, 
+        score, 
+        type: 'form', 
+        title: 'Form Completion Analysis' 
+      };
       setAiCheckResult(formCheckResult);
     } catch (error) {
-      console.error('AI form check failed:', error); alert('AI form check failed. Please try again.');
+      console.error('AI form check failed:', error); 
+      alert('AI form check failed. Please try again.');
     } finally { setIsCheckingForm(false); }
   }, [formData, activeSection]);
 
@@ -142,18 +204,32 @@ const Dashboard: React.FC = () => {
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
-        ...prev, [parent]: { ...prev[parent as keyof typeof prev] as Record<string, unknown>, 
-          [child]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value }
+        ...prev, 
+        [parent]: { 
+          ...prev[parent as keyof typeof prev] as Record<string, unknown>, 
+          [child]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value 
+        }
       }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? 
-        (e.target as HTMLInputElement).checked : value }));
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: type === 'checkbox' ? 
+          (e.target as HTMLInputElement).checked : value 
+      }));
     }
   };
 
   const addBudgetItem = () => {
-    const newItem: BudgetItem = { id: formData.budgetItems.length + 1, source: '', mooe: 0, 
-      co: 0, total: 0, isExpanded: false, year: years[0] || '' };
+    const newItem: BudgetItem = { 
+      id: formData.budgetItems.length + 1, 
+      source: '', 
+      ps: 0,
+      mooe: 0, 
+      co: 0, 
+      total: 0, 
+      isExpanded: false, 
+      year: years[0] || '' 
+    };
     setFormData(prev => ({ ...prev, budgetItems: [...prev.budgetItems, newItem] }));
   };
 
@@ -165,11 +241,13 @@ const Dashboard: React.FC = () => {
 
   const updateBudgetItem = (id: number, field: string, value: string | number) => {
     setFormData(prev => ({
-      ...prev, budgetItems: prev.budgetItems.map(item => {
+      ...prev, 
+      budgetItems: prev.budgetItems.map(item => {
         if (item.id === id) {
           const updatedItem = { ...item, [field]: value };
-          if (field === 'mooe' || field === 'co') {
-            updatedItem.total = (Number(updatedItem.mooe) || 0) + (Number(updatedItem.co) || 0);
+          // Update total when any of the budget fields change
+          if (field === 'ps' || field === 'mooe' || field === 'co') {
+            updatedItem.total = (Number(updatedItem.ps) || 0) + (Number(updatedItem.mooe) || 0) + (Number(updatedItem.co) || 0);
           }
           return updatedItem;
         }
@@ -180,7 +258,8 @@ const Dashboard: React.FC = () => {
 
   const toggleExpand = (id: number) => {
     setFormData(prev => ({
-      ...prev, budgetItems: prev.budgetItems.map(item => 
+      ...prev, 
+      budgetItems: prev.budgetItems.map(item => 
         item.id === id ? { ...item, isExpanded: !item.isExpanded } : item
       )
     }));
@@ -195,7 +274,8 @@ const Dashboard: React.FC = () => {
       setYears(yearsArray);
       if (yearsArray.length > 0) {
         setFormData(prev => ({
-          ...prev, budgetItems: prev.budgetItems.map(item => ({ ...item, year: yearsArray[0] }))
+          ...prev, 
+          budgetItems: prev.budgetItems.map(item => ({ ...item, year: yearsArray[0] }))
         }));
       }
     }
@@ -292,37 +372,36 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
 
-          {/* AI Assistant Button Wrapper */}
-          <div className="relative group w-full mt-6 rounded-xl overflow-hidden p-[2px]">
-          
-            {!isCheckingForm && (
-              <div className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#393BB2_50%,#E2E8F0_100%)]" 
-                   style={{ backgroundImage: 'conic-gradient(from 90deg at 50% 50%, #313deaff 40%, #efefefff 60%, #f51111 100%)' }} 
-              />
-            )}
-    
-            <button
-              onClick={handleAIFormCheck}
-              disabled={isCheckingForm}
-              className={`relative h-full w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                isCheckingForm 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-red-600 to-blue-800 hover:from-red-500 hover:to-blue-700 text-white'
-              }`}
-            >
-              {isCheckingForm ? (
-                <>
-                  <FaSpinner className="w-4 h-4 animate-spin" />
-                  Analyzing Form...
-                </>
-              ) : (
-                <>
-                  <FaRobot className="w-4 h-4" />
-                  AI Form Assistant
-                </>
-              )}
-            </button>
-          </div>
+              {/* AI Assistant Button Wrapper */}
+              <div className="relative group w-full mt-6 rounded-xl overflow-hidden p-[2px]">
+                {!isCheckingForm && (
+                  <div className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#393BB2_50%,#E2E8F0_100%)]" 
+                       style={{ backgroundImage: 'conic-gradient(from 90deg at 50% 50%, #313deaff 40%, #efefefff 60%, #f51111 100%)' }} 
+                  />
+                )}
+        
+                <button
+                  onClick={handleAIFormCheck}
+                  disabled={isCheckingForm}
+                  className={`relative h-full w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                    isCheckingForm 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-red-600 to-blue-800 hover:from-red-500 hover:to-blue-700 text-white'
+                  }`}
+                >
+                  {isCheckingForm ? (
+                    <>
+                      <FaSpinner className="w-4 h-4 animate-spin" />
+                      Analyzing Form...
+                    </>
+                  ) : (
+                    <>
+                      <FaRobot className="w-4 h-4" />
+                      AI Form Assistant
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
