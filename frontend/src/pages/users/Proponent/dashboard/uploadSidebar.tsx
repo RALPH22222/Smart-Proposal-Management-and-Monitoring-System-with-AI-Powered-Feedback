@@ -25,7 +25,7 @@ interface UploadSidebarProps {
 const UploadSidebar: React.FC<UploadSidebarProps> = ({
   formData,
   selectedFile,
-  isFormComplete,
+  // isFormComplete,
   isCheckingTemplate,
   onFileSelect,
   onAITemplateCheck,
@@ -40,7 +40,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           <FaUpload className="text-2xl text-white" />
         </div>
         <h2 className="text-2xl font-bold text-gray-800">Upload Research</h2>
-        <p className="text-gray-600 mt-2">Complete the form to enable upload</p>
+        <p className="text-gray-600 mt-2">Upload your proposal document</p>
       </div>
 
       <input
@@ -65,7 +65,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         onClick={isUploadDisabled ? undefined : onFileButtonClick}
         onDrop={(e) => {
           e.preventDefault();
-          if (isFormComplete) {
+          if (!isUploadDisabled) {
             const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
             onFileSelect(file);
           }
@@ -138,7 +138,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
       <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
         <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
           <FaCheck className="w-3 h-3" />
-          Requirements Checklist
+          Data Checklist (Optional)
         </h4>
         <div className="space-y-2 text-xs">
           <div className={`flex items-center ${formData.programTitle ? 'text-green-600' : 'text-gray-500'}`}>
