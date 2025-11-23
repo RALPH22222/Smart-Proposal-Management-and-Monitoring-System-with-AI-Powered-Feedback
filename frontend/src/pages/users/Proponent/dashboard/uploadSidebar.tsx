@@ -6,8 +6,12 @@ import {
   FaTimes,
   FaRobot,
   FaSpinner,
-  FaFileAlt
+  FaFileAlt,
+  FaPaperPlane
 } from 'react-icons/fa';
+// Assuming types are in a relative path or shared file. 
+// Since I cannot see the types file, I will keep the import but ensure the code is self-contained if possible or assume the path is correct.
+// For this generation, I'll keep the import as provided by the user.
 import type { FormData } from '../../../../types/proponent-form';
 
 interface UploadSidebarProps {
@@ -34,7 +38,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   isUploadDisabled
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100 flex flex-col">
       <div className="text-center mb-6">
         <div className="w-20 h-20 bg-gradient-to-br from-[#C8102E] to-[#E03A52] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
           <FaUpload className="text-2xl text-white" />
@@ -111,31 +115,34 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         </button>
       )}
 
-      <button
-        onClick={selectedFile ? onSubmit : onFileButtonClick}
-        disabled={isUploadDisabled && !selectedFile}
-        className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 mb-3 flex items-center justify-center gap-2 ${
-          isUploadDisabled && !selectedFile
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white hover:from-[#9d0d24] hover:to-[#C8102E] shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer'
-        }`}
-      >
-        <FaUpload className="w-4 h-4" />
-        {selectedFile ? "Submit Proposal" : "Select File"}
-      </button>
+      {/* Only show Select File button if no file is selected. The Submit button is now at the bottom. */}
+      {!selectedFile && (
+        <button
+          onClick={onFileButtonClick}
+          disabled={isUploadDisabled}
+          className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 mb-3 flex items-center justify-center gap-2 ${
+            isUploadDisabled
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white hover:from-[#9d0d24] hover:to-[#C8102E] shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer'
+          }`}
+        >
+          <FaUpload className="w-4 h-4" />
+          Select File
+        </button>
+      )}
 
       {selectedFile && (
         <button
           onClick={onFileButtonClick}
           disabled={isUploadDisabled}
-          className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium"
+          className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium mb-4"
         >
           <FaTimes className="w-3 h-3" />
           Choose different file
         </button>
       )}
 
-      <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+      <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 mb-6">
         <h4 className="font-bold text-blue-800 text-sm mb-3 flex items-center gap-2">
           <FaCheck className="w-3 h-3" />
           Data Checklist (Optional)
@@ -159,6 +166,15 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Submit Button*/}
+      <button
+        onClick={onSubmit}
+        className="w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white hover:from-[#9d0d24] hover:to-[#C8102E] shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer"
+      >
+        <FaPaperPlane className="w-4 h-4" />
+        Submit Proposal
+      </button>
     </div>
   );
 };
