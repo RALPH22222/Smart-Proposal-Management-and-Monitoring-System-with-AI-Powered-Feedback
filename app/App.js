@@ -4,6 +4,10 @@ import { Easing } from 'react-native';
 import LoginScreen from './auth/login';
 import RegisterScreen from './auth/register';
 import AdminDashboard from './pages/users/admin/dashboard';
+import AdminAccounts from './pages/users/admin/accounts';
+import AdminContents from './pages/users/admin/contents';
+import AdminReports from './pages/users/admin/reports';
+import AdminSystem from './pages/users/admin/system';
 import EvaluatorDashboard from './pages/users/evaluator/dashboard';
 import EvaluatorProposals from './pages/users/evaluator/proposals';
 import EvaluatorUnderReview from './pages/users/evaluator/ReviewProposals';
@@ -94,6 +98,26 @@ export default function App() {
         <Stack.Screen 
           name="AdminDashboard" 
           component={AdminDashboard} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="AdminAccounts" 
+          component={AdminAccounts} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="AdminContents" 
+          component={AdminContents} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="AdminReports" 
+          component={AdminReports} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="AdminSystem" 
+          component={AdminSystem} 
           options={{ headerShown: false }} 
         />
         <Stack.Screen 
