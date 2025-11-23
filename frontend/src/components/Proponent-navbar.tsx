@@ -47,10 +47,10 @@ const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
   </svg>
 );
 
-
 const ProponentNavbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeLink, setActiveLink] = useState("dashboard");
+  const [pageSubtitle, setPageSubtitle] = useState("Proponent Dashboard");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -61,14 +61,22 @@ const ProponentNavbar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Set active link based on current path
+    // Set active link and subtitle based on current path
     const currentPath = location.pathname.toLowerCase();
+    
     if (currentPath.includes("/dashboard")) {
       setActiveLink("dashboard");
+      setPageSubtitle("Proponent Dashboard");
     } else if (currentPath.includes("/profile")) {
       setActiveLink("profile");
+      setPageSubtitle("Proponent Profile");
     } else if (currentPath.includes("/settings")) {
       setActiveLink("settings");
+      setPageSubtitle("Proponent Settings");
+    } else {
+      // Default case
+      setActiveLink("dashboard");
+      setPageSubtitle("Proponent Dashboard");
     }
 
     window.addEventListener("scroll", handleScroll);
@@ -130,7 +138,7 @@ const ProponentNavbar: React.FC = () => {
                    className="text-xs lg:text-sm opacity-80 hidden lg:block"
                    style={{ color: COLORS.white }}
                  >
-                   Proponent Dashboard
+                   {pageSubtitle}
                  </span>
                </div>
             </a>

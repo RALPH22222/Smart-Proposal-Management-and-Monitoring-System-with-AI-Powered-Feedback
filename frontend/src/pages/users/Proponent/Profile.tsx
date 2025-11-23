@@ -515,8 +515,8 @@ const Profile: React.FC = () => {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(current.currentIndex)}`}>
                         {stageLabels[current.currentIndex]}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(current.priority)}`}>
-                        {current.priority.toUpperCase()} PRIORITY
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(current.priority)}`}>
+                        {current.priority.toLowerCase()} Priority
                       </span>
                     </div>
                   </div>
@@ -537,8 +537,7 @@ const Profile: React.FC = () => {
                   {/* Status Stepper */}
                   <div className="mt-4">
                     <StatusStepper 
-                      currentIndex={current.currentIndex} 
-                      stages={stageLabels}
+                      currentIndex={current.currentIndex}
                     />
                   </div>
                 </div>

@@ -7,10 +7,10 @@ import { FiCalendar, FiEdit3, FiClipboard, FiDollarSign, FiCheck } from "react-i
 
 const steps = [
   { label: "Submitted", icon: FiCalendar },
-  { label: "Department", icon: FiEdit3 },
-  { label: "RDE", icon: FiClipboard },
-  { label: "Budget", icon: FiDollarSign },
-  { label: "Approved", icon: FiCheck },
+  { label: "R&D Evaluation", icon: FiEdit3 },
+  { label: "Evaluators Assessment", icon: FiClipboard },
+  { label: "Endorsement", icon: FiDollarSign },
+  { label: "Project Approved", icon: FiCheck },
 ];
 
 export interface StatusStepperProps {
