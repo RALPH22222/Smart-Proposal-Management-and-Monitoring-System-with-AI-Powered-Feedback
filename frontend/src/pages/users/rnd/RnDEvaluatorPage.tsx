@@ -11,7 +11,7 @@ import {
 	ChevronLeft,
 	ChevronRight
 } from 'lucide-react';
-import RnDEvaluatorPageModal from '../../../components/RnDEvaluatorPageModal';
+import RnDEvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 
 interface Assignment {
 	id: string;
@@ -205,7 +205,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 	};
 
 	return (
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6 mt-10">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
 			<div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">

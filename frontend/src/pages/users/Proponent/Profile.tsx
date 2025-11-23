@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import ProponentNavbar from "../../../components/Proponent-navbar";
-import StatusStepper from "../../../components/StatusStepper";
+import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
+import StatusStepper from "../../../components/proponent-component/StatusStepper";
 import { 
   FaChevronLeft, 
   FaChevronRight, 

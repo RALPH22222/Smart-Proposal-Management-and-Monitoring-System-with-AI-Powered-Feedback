@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { type Evaluator } from '../types/evaluator';
-import { type Proposal } from '../types/InterfaceProposal';
+import { type Evaluator } from '../../types/evaluator';
+import { type Proposal } from '../../types/InterfaceProposal';
 
 interface EvaluatorAssignmentData {
 	department: string;

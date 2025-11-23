@@ -96,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 mt-10">
+		<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
 			{/* Header */}
 			<header className="pb-4 sm:pb-6">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -13,8 +13,8 @@ import {
   Clock,
   Tag,
 } from "lucide-react";
-import Sidebar from "../../../components/EvaluatorSide";
-import ProposalModal from "../../../components/ViewSummaryModal"; // Import the new modal
+import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
+import ProposalModal from "../../../components/evaluator-component/ViewSummaryModal"; // Import the new modal
 
 export default function Proposals() {
   const [search, setSearch] = useState("");

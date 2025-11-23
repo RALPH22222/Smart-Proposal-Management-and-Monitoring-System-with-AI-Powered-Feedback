@@ -22,10 +22,10 @@ import {
 	type AttachmentFile,
 	type CollaborationSession,
 	type Reviewer
-} from '../types/InterfaceProposal';
+} from '../../types/InterfaceProposal';
 import EvaluatorAssignmentModal from './RnDEvaluatorAssignmentModal';
-import { type Evaluator } from '../types/evaluator';
-import templatePDF from '../assets/template/DOST-Template.pdf';
+import { type Evaluator } from '../../types/evaluator';
+import templatePDF from '../../assets/template/DOST-Template.pdf';
 
 type EvaluatorAssignPayload = {
 	department: string;

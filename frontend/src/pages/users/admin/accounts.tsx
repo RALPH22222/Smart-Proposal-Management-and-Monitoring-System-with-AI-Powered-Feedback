@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import Sidebar from "../../../components/sidebar";
+import Sidebar from "../../../components/admin-component/sidebar";
 import { useLoading } from "../../../contexts/LoadingContext";
 import { X, UserPlus, ChevronDown, ChevronUp, Edit2, Power, Search, Menu } from "lucide-react";
 

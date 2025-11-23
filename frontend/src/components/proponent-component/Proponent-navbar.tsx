@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Logo from "../assets/IMAGES/LOGO.png";
+import Logo from "../../assets/IMAGES/LOGO.png";
 
 const COLORS = {
   brand: "#C8102E",
@@ -114,9 +114,9 @@ const ProponentNavbar: React.FC = () => {
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo and Title */}
             <a
-              href="/users/proponent/dashboard"
+              href="/users/proponent/dashboard/index"
               className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brandLight focus:ring-offset-2"
-              onClick={() => handleNavClick("dashboard", "/users/proponent/dashboard")}
+              onClick={() => handleNavClick("dashboard", "/users/proponent/dashboard/index")}
               aria-label="Dashboard - WMSU Project Proposal"
             >
               <div className="relative">
@@ -200,7 +200,7 @@ const ProponentNavbar: React.FC = () => {
             {/* Mobile Logout Button */}
             <button
               onClick={handleLogout}
-              className="md:hidden px-4 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brandLight"
+              className="md:hidden px-2 py-2 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brandLight"
               style={{
                 backgroundColor: COLORS.white,
                 color: COLORS.charcoal,
@@ -254,19 +254,6 @@ const ProponentNavbar: React.FC = () => {
               </a>
             );
           })}
-          
-          {/* Logout in Mobile Bottom Nav */}
-          <button
-            onClick={handleLogout}
-            className={`flex flex-col items-center py-3 px-2 flex-1 min-w-0 transition-all duration-200 text-white/90 hover:bg-red-800`}
-          >
-            <div className="mb-1">
-              <LogoutIcon isActive={false} />
-            </div>
-            <span className="text-xs font-medium truncate max-w-full">
-              Logout
-            </span>
-          </button>
         </div>
       </nav>
 

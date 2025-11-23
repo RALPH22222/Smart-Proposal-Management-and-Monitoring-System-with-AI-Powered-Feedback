@@ -6,7 +6,7 @@ import {
   Users,
   AlertCircle,
 } from "lucide-react";
-import Sidebar from "../../../components/EvaluatorSide";
+import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 
 export default function DashboardRdec() {
   const stats = [

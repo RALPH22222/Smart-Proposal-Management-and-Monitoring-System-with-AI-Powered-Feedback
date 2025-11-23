@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import ProponentNavbar from '../../../components/Proponent-navbar';
+import ProponentNavbar from '../../../components/proponent-component/Proponent-navbar';
 import {
 	changeMyPassword,
 	getMyProfile,

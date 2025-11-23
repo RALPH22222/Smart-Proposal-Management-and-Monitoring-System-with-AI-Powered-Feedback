@@ -204,7 +204,7 @@ const EndorsePage: React.FC = () => {
 	}
 
 	return (
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row mt-10">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
 			<div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">

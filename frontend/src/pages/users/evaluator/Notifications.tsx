@@ -12,7 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import Sidebar from "../../../components/EvaluatorSide";
+import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 
 const typeConfig = {
   success: {

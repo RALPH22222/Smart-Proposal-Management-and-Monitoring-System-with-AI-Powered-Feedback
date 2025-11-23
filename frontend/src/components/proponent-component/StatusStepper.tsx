@@ -1,10 +1,6 @@
 import React from "react";
 import { FiCalendar, FiEdit3, FiClipboard, FiDollarSign, FiCheck } from "react-icons/fi";
 
-// Tailwind-first styles; custom keyframes are provided via a <style> tag below
-// Usage: <StatusStepper currentIndex={2} />
-// Steps: 0 Submitted, 1 Department Review, 2 RDE Review, 3 Budget, 4 Approved
-
 const steps = [
   { label: "Submitted", icon: FiCalendar },
   { label: "R&D Evaluation", icon: FiEdit3 },

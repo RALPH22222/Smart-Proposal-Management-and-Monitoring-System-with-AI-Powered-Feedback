@@ -7,7 +7,7 @@ import {
   FaExclamationTriangle,
   FaMagic
 } from 'react-icons/fa';
-import type { AICheckResult } from '../types/proponent-form';
+import type { AICheckResult } from '../../types/proponent-form';
 
 interface AIModalProps {
   show: boolean;

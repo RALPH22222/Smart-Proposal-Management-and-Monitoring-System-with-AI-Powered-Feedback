@@ -19,8 +19,8 @@ import {
   Download,
   BookOpen,
 } from "lucide-react";
-import Sidebar from "../../../components/EvaluatorSide";
-import RubricsModal from "../../../components/RubricsModal";
+import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
+import RubricsModal from "../../../components/evaluator-component/RubricsModal";
 
 export default function ReviewedProposals() {
   const [search, setSearch] = useState("");

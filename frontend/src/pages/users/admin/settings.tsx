@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Sidebar from '../../../components/sidebar';
+import Sidebar from '../../../components/admin-component/sidebar';
 import { useLoading } from '../../../contexts/LoadingContext';
 
 const TABS = [

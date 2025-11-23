@@ -6,7 +6,7 @@ import {
 	type ProposalStatus
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
-import ProposalModal from '../../../components/RnDProposalModal';
+import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import { type Reviewer } from '../../../types/InterfaceProposal';
 
 interface ReviewPageProps {
@@ -157,7 +157,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 	}
 
 	return (	
-		<div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row mt-10">
+		<div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
 			<div className="flex-1 flex flex-col gap-4 overflow-hidden">
 				{/* Header */}
 				<header className="flex-shrink-0">

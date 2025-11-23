@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { type Project, type ProjectStatus, type ProjectPhase } from '../../../types/InterfaceProject';
 import { projectApi } from '../../../services/RndProjectApi/ProjectApi';
-import RnDProjectDetailModal from '../../../components/RnDProjectDetailModal';
+import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -232,7 +232,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row mt-10">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">

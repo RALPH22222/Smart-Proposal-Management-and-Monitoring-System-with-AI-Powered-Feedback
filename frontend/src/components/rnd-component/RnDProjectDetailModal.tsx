@@ -14,7 +14,7 @@ import {
   Target,
   BarChart3
 } from 'lucide-react';
-import { type Project, type ProjectStatus, type ProjectPhase } from '../types/InterfaceProject';
+import { type Project, type ProjectStatus, type ProjectPhase } from '../../types/InterfaceProject';
 
 interface RnDProjectDetailModalProps {
   project: Project | null;

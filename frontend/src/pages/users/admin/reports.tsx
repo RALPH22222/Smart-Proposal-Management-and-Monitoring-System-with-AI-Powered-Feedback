@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import Sidebar from '../../../components/sidebar';
+import Sidebar from '../../../components/admin-component/sidebar';
 import { useLoading } from '../../../contexts/LoadingContext';
 
 type IssueStatus = 'open' | 'in_progress' | 'resolved' | 'closed';

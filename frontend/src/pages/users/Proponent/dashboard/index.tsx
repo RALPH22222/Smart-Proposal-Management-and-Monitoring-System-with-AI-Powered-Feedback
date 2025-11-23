@@ -1,11 +1,11 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
-import ProponentNavbar from "../../../../components/Proponent-navbar";
+import ProponentNavbar from "../../../../components/proponent-component/Proponent-navbar";
 import { FaFileAlt, FaFlask, FaMoneyBillWave, FaRobot, FaSpinner } from 'react-icons/fa';
 import BasicInformation from './basicInfo';
 import ResearchDetails from './researchDetails';
 import BudgetSection from './budgetSection';
 import UploadSidebar from './uploadSidebar';
-import AIModal from '../../../../components/aiModal';
+import AIModal from '../../../../components/proponent-component/aiModal';
 import type { FormData, AICheckResult, BudgetItem } from '../../../../types/proponent-form';
 
 const Dashboard: React.FC = () => {
@@ -292,28 +292,37 @@ const Dashboard: React.FC = () => {
                 </p>
               </div>
 
-              {/* AI Assistant Button */}
-              <button 
-                onClick={handleAIFormCheck} 
-                disabled={isCheckingForm}
-                className={`w-full mt-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                  isCheckingForm 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 text-white shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {isCheckingForm ? (
-                  <>
-                    <FaSpinner className="w-4 h-4 animate-spin" />
-                    Analyzing Form...
-                  </>
-                ) : (
-                  <>
-                    <FaRobot className="w-4 h-4" />
-                    AI Form Assistant
-                  </>
-                )}
-              </button>
+          {/* AI Assistant Button Wrapper */}
+          <div className="relative group w-full mt-6 rounded-xl overflow-hidden p-[2px]">
+          
+            {!isCheckingForm && (
+              <div className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#393BB2_50%,#E2E8F0_100%)]" 
+                   style={{ backgroundImage: 'conic-gradient(from 90deg at 50% 50%, #313deaff 40%, #efefefff 60%, #f51111 100%)' }} 
+              />
+            )}
+    
+            <button
+              onClick={handleAIFormCheck}
+              disabled={isCheckingForm}
+              className={`relative h-full w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                isCheckingForm 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-red-600 to-blue-800 hover:from-red-500 hover:to-blue-700 text-white'
+              }`}
+            >
+              {isCheckingForm ? (
+                <>
+                  <FaSpinner className="w-4 h-4 animate-spin" />
+                  Analyzing Form...
+                </>
+              ) : (
+                <>
+                  <FaRobot className="w-4 h-4" />
+                  AI Form Assistant
+                </>
+              )}
+            </button>
+          </div>
             </div>
           </div>
 

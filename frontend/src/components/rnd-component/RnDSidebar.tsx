@@ -11,7 +11,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { type Statistics } from '../types/InterfaceProposal';
+import { type Statistics } from '../../types/InterfaceProposal';
 
 interface SidebarProps {
   currentPage: string;

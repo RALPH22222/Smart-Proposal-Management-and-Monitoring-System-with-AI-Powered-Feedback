@@ -1,6 +1,6 @@
 import type React from "react";
 import { useState } from "react";
-import Sidebar from "../../../components/EvaluatorSide";
+import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 
 const PRIMARY = "#C8102E";
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../../../components/RnDSidebar';
+import Sidebar from '../../../components/rnd-component/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndReviewPage';
 import Monitoring from './RnDMonitoringPage';
