@@ -27,8 +27,6 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     body: JSON.stringify({
       message: "Successfully logged in.",
     }),
-    headers: {
-      'Set-Cookie': setCookieString('tk', data.session!.access_token),
-    },
+    cookies: [setCookieString('tk', data.session!.access_token)]
   };
 });
