@@ -60,20 +60,30 @@ export default function Register() {
 
 	return (
 		<div className='min-h-screen flex flex-col md:flex-row'>
-			<div className='w-full md:w-1/2 flex items-center justify-center bg-[#C8102E] text-white p-8'>
-				<div className='max-w-md text-center space-y-6'>
-					<img
-						src='../src/assets/IMAGES/LOGO.png'
-						alt='Logo'
-						className='mx-auto w-40 h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2'
-					/>
-					<h1 className='text-4xl font-extrabold'>Project Proposal</h1>
-					<p className='text-sm opacity-90'>
-						Create, submit and track project proposals — fast, simple, and
-						secure.
-					</p>
-				</div>
-			</div>
+			<div
+                       className="w-full md:w-1/2 flex items-center justify-center relative p-8 text-white"
+                       style={{
+                         backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg')`,
+                         backgroundSize: "cover",
+                         backgroundPosition: "center",
+                       }}
+                     >
+                       {/* Red overlay */}
+                       <div className="absolute inset-0 bg-[#C8102E]/85"></div>
+                     
+                       {/* Content */}
+                       <div className="relative max-w-md text-center space-y-6">
+                         <img
+                           src="../src/assets/IMAGES/LOGO.png"
+                           alt="Logo"
+                           className="mx-auto w-40 h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2"
+                         />
+                         <h1 className="text-4xl font-extrabold">Project Proposal</h1>
+                         <p className="text-sm opacity-90">
+                           Create, submit and track project proposals — fast, simple, and secure.
+                         </p>
+                       </div>
+                     </div>
 
 			<div className='w-full md:w-1/2 flex items-center justify-center bg-white p-8'>
 				<form
