@@ -81,15 +81,15 @@ const Dashboard: React.FC = () => {
   }, [formData]);
 
   const handleButtonClick = useCallback(() => {
-    if (isFormComplete()) fileInputRef.current?.click();
-  }, [isFormComplete]);
+    fileInputRef.current?.click();
+  }, []);
 
   const handleSubmit = useCallback(() => {
-    if (!selectedFile || !isFormComplete()) return;
+    if (!selectedFile) return;
     console.log('Submitting file:', selectedFile.name);
     console.log('Form data:', formData);
     alert('Research proposal submitted successfully!');
-  }, [selectedFile, formData, isFormComplete]);
+  }, [selectedFile, formData]);
 
   const handleAITemplateCheck = useCallback(async () => {
     if (!selectedFile) { alert('Please select a file first'); return; }
@@ -182,6 +182,7 @@ const Dashboard: React.FC = () => {
         suggestions.push('Assign year for all budget items');
       }
       
+      // ... (Rest of AI check logic remains the same)
       const isValid = issues.length === 0;
       const score = Math.max(0, 100 - (issues.length * 15));
       const formCheckResult: AICheckResult = { 
@@ -219,6 +220,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // ... (Budget helper functions remain the same: addBudgetItem, removeBudgetItem, updateBudgetItem, toggleExpand, useEffect)
   const addBudgetItem = () => {
     const newItem: BudgetItem = { 
       id: formData.budgetItems.length + 1, 
@@ -281,7 +283,7 @@ const Dashboard: React.FC = () => {
     }
   }, [formData.plannedStartDate, formData.plannedEndDate]);
 
-  const isUploadDisabled = !isFormComplete();
+  const isUploadDisabled = false;
   const formSections = [
     { id: 'basic-info', label: 'Basic Information', icon: <FaFileAlt className="w-4 h-4" /> },
     { id: 'research-details', label: 'Research Details', icon: <FaFlask className="w-4 h-4" /> },
@@ -349,26 +351,26 @@ const Dashboard: React.FC = () => {
                 ))}
               </nav>
               
-              {/* Completion Status */}
+              {/* Completion Status - Kept for info, but text updated */}
               <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-700">Completion Status</span>
+                  <span className="text-sm font-semibold text-gray-700">Form Progress</span>
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    isFormComplete() ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    isFormComplete() ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                   }`}>
-                    {isFormComplete() ? 'Ready to Upload' : 'In Progress'}
+                    {isFormComplete() ? 'Complete' : 'Optional'}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
                   <div 
                     className={`h-3 rounded-full transition-all duration-500 ease-out ${
-                      isFormComplete() ? 'bg-green-500' : 'bg-orange-500'
+                      isFormComplete() ? 'bg-green-500' : 'bg-blue-500'
                     }`} 
                     style={{ width: isFormComplete() ? '100%' : '65%' }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-500 text-center">
-                  {isFormComplete() ? 'All requirements completed!' : 'Complete all sections to enable upload'}
+                  {isFormComplete() ? 'Form details completed!' : 'Fill details for better AI analysis'}
                 </p>
               </div>
 
