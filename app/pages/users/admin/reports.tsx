@@ -19,7 +19,6 @@ import {
   Search, 
   Plus, 
   X, 
-  Filter, 
   CheckCircle, 
   Clock, 
   AlertTriangle 
@@ -138,8 +137,13 @@ export default function AdminReports() {
           <Text style={styles.subtitle}>Track bugs and operational issues</Text>
         </View>
 
-        {/* Stats Row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsScroll}>
+        {/* Stats Row - FIXED: Removed Wrapper View, Applied styles directly to ScrollView */}
+        <ScrollView 
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          style={styles.statsScroll} // Position: pulled to edges
+          contentContainerStyle={styles.statsScrollContent} // Padding: internal spacing
+        >
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Open Issues</Text>
             <Text style={styles.statValue}>{stats.open}</Text>
@@ -155,24 +159,6 @@ export default function AdminReports() {
             <View style={styles.statFooter}>
               <CheckCircle size={12} color="#10B981" />
               <Text style={styles.statSub}>Good progress</Text>
-            </View>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Avg Resolution</Text>
-            <Text style={styles.statValue}>{stats.avgResolution}</Text>
-            <View style={styles.statFooter}>
-              <Clock size={12} color="#3B82F6" />
-              <Text style={styles.statSub}>Turnaround time</Text>
-            </View>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Critical</Text>
-            <Text style={[styles.statValue, { color: '#C8102E' }]}>{stats.criticalOpen}</Text>
-            <View style={styles.statFooter}>
-              <AlertTriangle size={12} color="#C8102E" />
-              <Text style={[styles.statSub, { color: '#C8102E' }]}>Prioritize</Text>
             </View>
           </View>
         </ScrollView>
@@ -195,25 +181,27 @@ export default function AdminReports() {
         </View>
 
         {/* Filter Chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsContainer}>
-          {['all', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
-            <TouchableOpacity 
-              key={s}
-              style={[
-                styles.chip, 
-                statusFilter === s && styles.chipActive
-              ]}
-              onPress={() => setStatusFilter(s as any)}
-            >
-              <Text style={[
-                styles.chipText, 
-                statusFilter === s && styles.chipTextActive
-              ]}>
-                {s === 'all' ? 'All' : statusLabel[s as IssueStatus]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.chipsSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScrollContent}>
+            {['all', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
+              <TouchableOpacity 
+                key={s}
+                style={[
+                  styles.chip, 
+                  statusFilter === s && styles.chipActive
+                ]}
+                onPress={() => setStatusFilter(s as any)}
+              >
+                <Text style={[
+                  styles.chipText, 
+                  statusFilter === s && styles.chipTextActive
+                ]}>
+                  {s === 'all' ? 'All' : statusLabel[s as IssueStatus]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* Issues List */}
         <View style={styles.listContainer}>
@@ -250,7 +238,9 @@ export default function AdminReports() {
               );
             })
           ) : (
-            <Text style={styles.placeholderText}>No reports found matching your criteria.</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.placeholderText}>No reports found matching your criteria.</Text>
+            </View>
           )}
         </View>
 
@@ -337,11 +327,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
   },
-  // Stats
+  // --- Stats Styles (Updated) ---
   statsScroll: {
     marginBottom: 20,
     marginHorizontal: -16,
+    flexGrow: 0, 
+  },
+  statsScrollContent: {
     paddingHorizontal: 16,
+    paddingRight: 16, 
   },
   statCard: {
     backgroundColor: '#FFF',
@@ -351,6 +345,12 @@ const styles = StyleSheet.create({
     width: 140,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    flexShrink: 0, 
   },
   statLabel: {
     fontSize: 12,
@@ -404,9 +404,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Chips
-  chipsContainer: {
+  chipsSection: {
     marginBottom: 16,
-    flexDirection: 'row',
+    marginHorizontal: -16,
+  },
+  chipsScrollContent: {
+    paddingHorizontal: 16,
   },
   chip: {
     paddingHorizontal: 16,
@@ -499,11 +502,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#475569',
   },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   placeholderText: {
     fontSize: 14,
     color: '#64748B',
     textAlign: 'center',
-    marginTop: 20,
   },
   // Modal
   modalOverlay: {
