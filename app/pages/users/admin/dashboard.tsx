@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../types/navigation';
+import AdminNavBar from '../../../components/users/admin/sidebar';
 import {
   Users,
   FileText,
@@ -24,6 +25,28 @@ import {
 
 export default function AdminDashboard() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  const handleNavigate = (route: string) => {
+    switch (route) {
+      case 'Dashboard':
+        navigation.navigate('AdminDashboard' as any);
+        break;
+      case 'Accounts':
+        navigation.navigate('AdminAccounts' as any);
+        break;
+      case 'Contents':
+        navigation.navigate('AdminContents' as any);
+        break;
+      case 'Reports':
+        navigation.navigate('AdminReports' as any);
+        break;
+      case 'System':
+        navigation.navigate('AdminSystem' as any);
+        break;
+      default:
+        break;
+    }
+  };
 
   // Helper to map tailwind color names to hex codes for RN
   const getThemeColors = (colorType: string) => {
@@ -230,6 +253,12 @@ export default function AdminDashboard() {
 
         <View style={{ height: 20 }} /> 
       </ScrollView>
+
+      {/* Bottom Navigation Bar */}
+      <AdminNavBar 
+        activeRoute="Dashboard"
+        onNavigate={handleNavigate}
+      />
     </SafeAreaView>
   );
 }
