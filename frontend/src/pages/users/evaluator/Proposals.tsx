@@ -14,21 +14,69 @@ import {
   Tag,
 } from "lucide-react";
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
-import ProposalModal from "../../../components/evaluator-component/ViewSummaryModal"; // Import the new modal
+import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
+
+// 1. Define types for your data
+interface BudgetSource {
+  source: string;
+  ps: string;
+  mooe: string;
+  co: string;
+  total: string;
+}
+
+interface Proposal {
+  id: number;
+  title: string;
+  proponent: string;
+  gender: string;
+  address: string;
+  telephone: string;
+  fax: string;
+  email: string;
+  modeOfImplementation: string;
+  priorityAreas: string;
+  status: string;
+  deadline: string;
+  description: string;
+  projectType: string;
+  agency: string;
+  cooperatingAgencies: string;
+  rdStation: string;
+  classification: string;
+  classificationDetails: string;
+  sector: string;
+  discipline: string;
+  duration: string;
+  startDate: string;
+  endDate: string;
+  budgetSources: BudgetSource[];
+  budgetTotal: string;
+}
 
 export default function Proposals() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
+  // 2. Add type for selectedProposal state
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
   const itemsPerPage = 5;
 
-  const proposals = [
+  // Complete data structure matching ViewSummaryModal requirements
+  // 3. Apply the Proposal[] type to the array
+  const proposals: Proposal[] = [
     {
       id: 1,
       title: "AI Research on Education",
       proponent: "John Doe",
+      gender: "Male",
+      address: "Normal Road, Baliwasan, Zamboanga City",
+      telephone: "(062) 991-1771",
+      fax: "N/A",
+      email: "j.doe@wmsu.edu.ph",
+      modeOfImplementation: "Multi Agency",
+      priorityAreas: "Artificial Intelligence in Education",
       status: "accepted",
       deadline: "Oct 15, 2025",
       description:
@@ -37,7 +85,8 @@ export default function Proposals() {
       agency: "Western Mindanao State University",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Basic",
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
@@ -58,6 +107,13 @@ export default function Proposals() {
       id: 2,
       title: "Smart Grid Energy Management System",
       proponent: "Jane Smith",
+      gender: "Female",
+      address: "Fort Pilar, Rio Hondo, Zamboanga City",
+      telephone: "(062) 991-2002",
+      fax: "N/A",
+      email: "j.smith@zscmst.edu.ph",
+      modeOfImplementation: "Multi Agency",
+      priorityAreas: "Renewable Energy & Smart Grids",
       status: "pending",
       deadline: "Oct 20, 2025",
       description:
@@ -67,6 +123,7 @@ export default function Proposals() {
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
+      classificationDetails: "Technology Promotion/Commercialization",
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
       duration: "36 months",
@@ -94,6 +151,13 @@ export default function Proposals() {
       id: 3,
       title: "IoT-Based Energy Monitoring",
       proponent: "Michael Lee",
+      gender: "Male",
+      address: "Dr. Evangelista St., Sta. Catalina, Zamboanga City",
+      telephone: "(062) 991-3333",
+      fax: "(062) 991-3334",
+      email: "m.lee@zcmc.doh.gov.ph",
+      modeOfImplementation: "Single Agency",
+      priorityAreas: "Internet of Things (IoT)",
       status: "rejected",
       deadline: "Oct 10, 2025",
       description: "IoT sensors for real-time energy consumption monitoring",
@@ -101,7 +165,8 @@ export default function Proposals() {
       agency: "Zamboanga City Medical Center",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Basic",
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
       duration: "30 months",
@@ -122,6 +187,13 @@ export default function Proposals() {
       id: 4,
       title: "Quantum Computing Research",
       proponent: "Dr. Sarah Chen",
+      gender: "Female",
+      address: "Gov. Camins Ave, Zamboanga City",
+      telephone: "(062) 991-4444",
+      fax: "N/A",
+      email: "s.chen@msu.edu.ph",
+      modeOfImplementation: "Basic Research",
+      priorityAreas: "Quantum Computing",
       status: "pending",
       deadline: "Oct 25, 2025",
       description: "Advanced quantum computing algorithms for cryptography",
@@ -129,7 +201,8 @@ export default function Proposals() {
       agency: "Mindanao State University",
       cooperatingAgencies: "DOST RO9, DICT RO9, Private Sector",
       rdStation: "Computer Science Research Lab",
-      classification: "Basic Research",
+      classification: "Research",
+      classificationDetails: "Applied",
       sector: "Information Technology",
       discipline: "Computer Science",
       duration: "24 months",
@@ -157,6 +230,13 @@ export default function Proposals() {
       id: 5,
       title: "Renewable Energy Storage Optimization",
       proponent: "David Wilson",
+      gender: "Male",
+      address: "Gov. Camins Ave, Zamboanga City",
+      telephone: "(062) 991-5555",
+      fax: "N/A",
+      email: "d.wilson@msu.edu.ph",
+      modeOfImplementation: "Multi Agency",
+      priorityAreas: "Energy Storage Systems",
       status: "accepted",
       deadline: "Oct 18, 2025",
       description: "Next-generation battery technology for renewable energy",
@@ -165,6 +245,7 @@ export default function Proposals() {
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
       rdStation: "Renewable Energy Research Lab",
       classification: "Development",
+      classificationDetails: "Technology Promotion/Commercialization",
       sector: "Energy and Power",
       discipline: "Electrical Engineering",
       duration: "24 months",
@@ -192,6 +273,13 @@ export default function Proposals() {
       id: 6,
       title: "Neural Network Optimization",
       proponent: "Lisa Park",
+      gender: "Female",
+      address: "La Purisima St, Zamboanga City",
+      telephone: "(062) 991-6666",
+      fax: "N/A",
+      email: "l.park@adzu.edu.ph",
+      modeOfImplementation: "Applied Research",
+      priorityAreas: "Artificial Intelligence",
       status: "pending",
       deadline: "Oct 22, 2025",
       description: "Optimization techniques for deep neural networks",
@@ -199,7 +287,8 @@ export default function Proposals() {
       agency: "Ateneo de Zamboanga University",
       cooperatingAgencies: "DOST RO9, DICT RO9",
       rdStation: "AI Research Center",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Applied",
       sector: "Artificial Intelligence",
       discipline: "Computer Science and Mathematics",
       duration: "18 months",
@@ -220,6 +309,13 @@ export default function Proposals() {
       id: 7,
       title: "Smart Energy Distribution Network",
       proponent: "Alex Johnson",
+      gender: "Male",
+      address: "La Purisima St, Zamboanga City",
+      telephone: "(062) 991-7777",
+      fax: "N/A",
+      email: "a.johnson@adzu.edu.ph",
+      modeOfImplementation: "Development",
+      priorityAreas: "Smart Cities",
       status: "pending",
       deadline: "Oct 28, 2025",
       description:
@@ -229,6 +325,7 @@ export default function Proposals() {
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
       rdStation: "Urban Planning Research Institute",
       classification: "Development",
+      classificationDetails: "Pilot Testing",
       sector: "Public Safety and Security",
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
@@ -256,6 +353,13 @@ export default function Proposals() {
       id: 8,
       title: "Machine Learning for Power Systems",
       proponent: "Dr. Emma White",
+      gender: "Female",
+      address: "Pasonanca, Zamboanga City",
+      telephone: "(062) 991-8888",
+      fax: "N/A",
+      email: "e.white@zpmc.gov.ph",
+      modeOfImplementation: "Applied Research",
+      priorityAreas: "Power Systems",
       status: "rejected",
       deadline: "Oct 12, 2025",
       description:
@@ -264,7 +368,8 @@ export default function Proposals() {
       agency: "Zamboanga Peninsula Medical Center",
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
       rdStation: "Medical AI Research Unit",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Applied",
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
       duration: "30 months",
@@ -299,10 +404,17 @@ export default function Proposals() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  const statusOrder = { pending: 0, accepted: 1, rejected: 2 };
+  // 4. FIX: Use Record<string, number> to allow string indexing
+  const statusOrder: Record<string, number> = {
+    pending: 0,
+    accepted: 1,
+    rejected: 2,
+  };
+
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const orderA = statusOrder[a.status as keyof typeof statusOrder] ?? 3;
-    const orderB = statusOrder[b.status as keyof typeof statusOrder] ?? 3;
+    // 5. These lines will now work because statusOrder accepts any string key
+    const orderA = statusOrder[a.status] ?? 3;
+    const orderB = statusOrder[b.status] ?? 3;
     return orderA - orderB;
   });
 
@@ -313,6 +425,7 @@ export default function Proposals() {
     startIndex + itemsPerPage
   );
 
+  // 6. FIX: Add ': string' type to parameters
   const getStatusColor = (status: string) => {
     switch (status) {
       case "accepted":
@@ -326,6 +439,7 @@ export default function Proposals() {
     }
   };
 
+  // 7. FIX: Add ': string' type
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "accepted":
@@ -339,6 +453,7 @@ export default function Proposals() {
     }
   };
 
+  // 8. FIX: Add ': string' type
   const getProjectTypeColor = (type: string) => {
     switch (type) {
       case "ICT":
@@ -356,6 +471,7 @@ export default function Proposals() {
     }
   };
 
+  // 9. FIX: Add ': number' type
   const handleViewClick = (proposalId: number) => {
     setSelectedProposal(proposalId);
   };
@@ -618,11 +734,13 @@ export default function Proposals() {
         </main>
       </div>
 
-      <ProposalModal
-        isOpen={!!selectedProposal}
-        proposal={proposal}
-        onClose={closeModal}
-      />
+      {selectedProposal && proposal && (
+        <ProposalModal
+          isOpen={!!selectedProposal}
+          proposal={proposal}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 }

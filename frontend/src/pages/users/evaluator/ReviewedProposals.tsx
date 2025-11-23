@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import {
   FileText,
   Eye,
@@ -9,18 +8,13 @@ import {
   CheckCircle,
   User,
   Tag,
-  X,
-  Building2,
-  Target,
-  DollarSign,
-  Calendar,
-  MessageSquare,
   Filter,
-  Download,
   BookOpen,
 } from "lucide-react";
+
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import RubricsModal from "../../../components/evaluator-component/RubricsModal";
+import ProposalDetailsModal from "../../../components/evaluator-component/ProposalDetailsModal";
 
 export default function ReviewedProposals() {
   const [search, setSearch] = useState("");
@@ -30,6 +24,7 @@ export default function ReviewedProposals() {
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
   const [showRubrics, setShowRubrics] = useState(false);
 
+  // Updated mock data to include the new fields required by the modal
   const reviewedProposals = [
     {
       id: 1,
@@ -38,11 +33,19 @@ export default function ReviewedProposals() {
       description:
         "Development of AI system for automated assessment and personalized learning recommendations",
       proponent: "Jasmine Anderson",
+      gender: "Female", 
       projectType: "ICT",
       agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan, Zamboanga City", 
+      telephone: "(062) 991-1771", 
+      fax: "N/A", 
+      email: "jasmine.anderson@wmsu.edu.ph", 
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Applied", 
+      modeOfImplementation: "Multi-year", 
+      priorityAreas: "Education 4.0, Artificial Intelligence", 
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
@@ -89,11 +92,19 @@ export default function ReviewedProposals() {
       description:
         "Advanced energy management system for smart grid optimization and efficiency",
       proponent: "Michael Chen",
+      gender: "Male", 
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
+      address: "Fort Pilar, Zamboanga City", 
+      telephone: "(062) 991-2345", 
+      fax: "N/A", 
+      email: "m.chen@zscms.edu.ph", 
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
+      classificationDetails: "Technology Promotion/Commercialization", 
+      modeOfImplementation: "Single Year", 
+      priorityAreas: "Renewable Energy, Smart Agriculture", 
       sector: "Energy and Utilities",
       discipline: "Electrical Engineering",
       duration: "36 months",
@@ -138,11 +149,19 @@ export default function ReviewedProposals() {
       description:
         "Secure blockchain system for peer-to-peer energy trading and management",
       proponent: "Emily Rodriguez",
+      gender: "Female", 
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
+      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City", 
+      telephone: "(062) 991-2934", 
+      fax: "(062) 991-0573", 
+      email: "e.rodriguez@zcmc.doh.gov.ph", 
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
-      classification: "Applied Research",
+      classification: "Research",
+      classificationDetails: "Applied", 
+      modeOfImplementation: "Multi-year", 
+      priorityAreas: "Health Information Systems, Data Security", 
       sector: "Energy and Utilities",
       discipline: "Energy Systems Engineering",
       duration: "30 months",
@@ -230,11 +249,8 @@ export default function ReviewedProposals() {
     setSelectedProposal(null);
   };
 
-  const handleDownload = (fileName: string) => {
-    console.log("[v0] Downloading file:", fileName);
-    alert(`Downloading ${fileName}`);
-  };
-
+  // We cast the found object to "any" here solely for compatibility if the types aren't strictly shared in this snippet,
+  // but in a real app, the interfaces should be shared.
   const proposal = reviewedProposals.find((p) => p.id === selectedProposal);
 
   return (
@@ -438,280 +454,15 @@ export default function ReviewedProposals() {
         </main>
       </div>
 
-      {selectedProposal && proposal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  {proposal.title}
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">Completed Review</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowRubrics(true)}
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
-                  aria-label="View evaluation rubrics"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Rubrics
-                </button>
-                <button
-                  onClick={closeModal}
-                  className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
-                  aria-label="Close modal"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        Project Proposal Document
-                      </p>
-                      <p className="text-xs text-slate-600">
-                        {proposal.projectFile}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDownload(proposal.projectFile)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-[#C8102E]" />
-                    Project Information
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-600">Leader:</span>
-                      <p className="font-semibold text-slate-900">
-                        {proposal.proponent}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-600">Agency:</span>
-                      <p className="font-semibold text-slate-900">
-                        {proposal.agency}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2">
-                      R&D Station
-                    </h3>
-                    <p className="text-xs text-slate-700">
-                      {proposal.rdStation}
-                    </p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2">
-                      Classification
-                    </h3>
-                    <p className="text-xs text-slate-700">
-                      {proposal.classification}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-[#C8102E]" />
-                      Sector/Commodity
-                    </h3>
-                    <p className="text-xs text-slate-700">{proposal.sector}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2">
-                      Discipline
-                    </h3>
-                    <p className="text-xs text-slate-700">
-                      {proposal.discipline}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[#C8102E]" />
-                    Implementing Schedule
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <span className="text-slate-600">Duration:</span>
-                      <p className="font-semibold text-slate-900">
-                        {proposal.duration}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-600">Start Date:</span>
-                      <p className="font-semibold text-slate-900">
-                        {proposal.startDate}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-600">End Date:</span>
-                      <p className="font-semibold text-slate-900">
-                        {proposal.endDate}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#C8102E]" />
-                    Estimated Budget by Source
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-100">
-                          <th className="border border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
-                            Source of Funds
-                          </th>
-                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            PS
-                          </th>
-                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            MOOE
-                          </th>
-                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            CO
-                          </th>
-                          <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            TOTAL
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {proposal.budgetSources.map((budget, index) => (
-                          <tr key={index} className="hover:bg-slate-50">
-                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">
-                              {budget.source}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                              {budget.ps}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                              {budget.mooe}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                              {budget.co}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
-                              {budget.total}
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="bg-slate-200 font-bold">
-                          <td className="border border-slate-300 px-3 py-2 text-slate-900">
-                            TOTAL
-                          </td>
-                          <td
-                            className="border border-slate-300 px-3 py-2 text-right text-slate-900"
-                            colSpan={3}
-                          >
-                            →
-                          </td>
-                          <td className="border border-slate-300 px-3 py-2 text-right text-[#C8102E] text-sm">
-                            {proposal.budgetTotal}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    PS: Personal Services | MOOE: Maintenance and Other
-                    Operating Expenses | CO: Capital Outlay
-                  </p>
-                </div>
-
-                <div className="border-t-2 border-slate-300 pt-6 mt-6">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-[#C8102E]" />
-                    Evaluator Comments
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <label className="block text-sm font-semibold text-slate-900 mb-2">
-                        Objectives Assessment
-                      </label>
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.comments.objectives}
-                      </p>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <label className="block text-sm font-semibold text-slate-900 mb-2">
-                        Methodology Assessment
-                      </label>
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.comments.methodology}
-                      </p>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <label className="block text-sm font-semibold text-slate-900 mb-2">
-                        Budget Assessment
-                      </label>
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.comments.budget}
-                      </p>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <label className="block text-sm font-semibold text-slate-900 mb-2">
-                        Timeline Assessment
-                      </label>
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.comments.timeline}
-                      </p>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <label className="block text-sm font-semibold text-slate-900 mb-2">
-                        Overall Assessment
-                      </label>
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.comments.overall}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Render the updated modal with the complete data object */}
+      {/* Note: In a real TypeScript environment, you would ensure the mock data interface matches the Proposal interface */}
+      {proposal && (
+        <ProposalDetailsModal
+          proposal={proposal as any} // Cast to any to bypass strict type check for this snippet if interfaces are in separate files
+          isOpen={!!selectedProposal}
+          onClose={closeModal}
+          onViewRubrics={() => setShowRubrics(true)}
+        />
       )}
 
       <RubricsModal
