@@ -63,7 +63,7 @@ const ProponentNavbar: React.FC = () => {
   useEffect(() => {
     // Set active link and subtitle based on current path
     const currentPath = location.pathname.toLowerCase();
-    
+
     if (currentPath.includes("/dashboard")) {
       setActiveLink("dashboard");
       setPageSubtitle("Proponent Dashboard");
@@ -90,7 +90,7 @@ const ProponentNavbar: React.FC = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", icon: DashboardIcon, href: "/users/proponent/dashboard/index" },
+    { name: "Dashboard", icon: DashboardIcon, href: "/users/proponent/dashboard" },
     { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
@@ -108,15 +108,15 @@ const ProponentNavbar: React.FC = () => {
         className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${
           scrolled ? "backdrop-blur-md bg-brand/95 shadow-xl" : "bg-brand shadow-lg"
         }`}
-        style={{ backgroundColor: COLORS.brand }} 
+        style={{ backgroundColor: COLORS.brand }}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo and Title */}
             <a
-              href="/users/proponent/dashboard/index"
+              href="/users/proponent/dashboard"
               className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brandLight focus:ring-offset-2"
-              onClick={() => handleNavClick("dashboard", "/users/proponent/dashboard/index")}
+              onClick={() => handleNavClick("dashboard", "/users/proponent/dashboard")}
               aria-label="Dashboard - WMSU Project Proposal"
             >
               <div className="relative">
@@ -148,7 +148,7 @@ const ProponentNavbar: React.FC = () => {
               {navItems.map((item) => {
                 const lowerItem = item.name.toLowerCase();
                 const isActive = activeLink === lowerItem;
-                
+
                 return (
                   <a
                     key={item.name}
@@ -172,7 +172,7 @@ const ProponentNavbar: React.FC = () => {
                   </a>
                 );
               })}
-              
+
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
@@ -214,7 +214,7 @@ const ProponentNavbar: React.FC = () => {
       </header>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav 
+      <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-red-700 shadow-2xl"
         style={{ backgroundColor: COLORS.brand }}
         role="navigation"
@@ -225,7 +225,7 @@ const ProponentNavbar: React.FC = () => {
             const lowerItem = item.name.toLowerCase();
             const isActive = activeLink === lowerItem;
             const IconComponent = item.icon;
-            
+
             return (
               <a
                 key={item.name}
@@ -235,8 +235,8 @@ const ProponentNavbar: React.FC = () => {
                   handleNavClick(item.name, item.href);
                 }}
                 className={`flex flex-col items-center py-3 px-2 flex-1 min-w-0 transition-all duration-200 ${
-                  isActive 
-                    ? "text-white bg-red-800" 
+                  isActive
+                    ? "text-white bg-red-800"
                     : "text-white/90 hover:bg-red-800"
                 }`}
                 aria-current={isActive ? "page" : undefined}

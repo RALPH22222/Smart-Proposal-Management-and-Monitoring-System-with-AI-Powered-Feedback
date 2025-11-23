@@ -75,7 +75,7 @@ function App() {
           <Route path="/users/rnd/*" element={<RndMainLayout />} />
 
           {/* Proponent */}
-          <Route path="/users/proponent/dashboard/index" element={<Dashboard />} />
+          <Route path="/users/proponent/dashboard" element={<Dashboard />} />
           <Route path="/users/proponent/profile" element={<Profile />} />
           <Route path="/users/proponent/settings" element={<Settings />} />
         </Routes>

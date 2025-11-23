@@ -1,21 +1,20 @@
+import { api } from '@utils/axios';
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
+
+type SignUpResponse = {
+  message: string;
+}
 
 export default function Register() {
 	const [email, setEmail] = useState('');
 	const [name, setName] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [otpVerified, setOtpVerified] = useState(false);
 
 	const handleRegister = async (e?: React.FormEvent) => {
 		e?.preventDefault();
-		if (!otpVerified)
-			return Swal.fire({
-				icon: 'warning',
-				title: 'Verify email',
-				text: 'Please verify your email first.'
-			});
+
 		if (!name || !password)
 			return Swal.fire({
 				icon: 'warning',
@@ -25,24 +24,20 @@ export default function Register() {
 
 		try {
 			setLoading(true);
-			const res = await fetch('/api/auth/register', {
+			const res = await api.post<SignUpResponse>('/api/auth/register', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, email, password, role: 'Proponent' })
+				body: JSON.stringify({ name, email, password, role: 'proponent' })
 			});
-			if (!res.ok) {
-				const err = await res.json().catch(() => null);
-				throw new Error(err?.message || 'Registration failed');
-			}
+
 			Swal.fire({
 				icon: 'success',
 				title: 'Registered',
-				text: 'Account created successfully.'
+				text: res.data.message
 			});
 			setName('');
 			setEmail('');
 			setPassword('');
-			setOtpVerified(false);
 		} catch (err) {
 			if (err instanceof Error) {
 				Swal.fire({
@@ -94,6 +89,18 @@ export default function Register() {
 					<p className='text-sm text-gray-600'>
 						Input all the field to create an account and get started.
 					</p>
+
+					<label className='block'>
+						<span className='text-sm font-medium text-gray-700'>name</span>
+						<input
+							type='text'
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							placeholder='Your username'
+							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
+						/>
+					</label>
+
 					<label className='block'>
 						<span className='text-sm font-medium text-gray-700'>Email</span>
 						<input
@@ -101,16 +108,6 @@ export default function Register() {
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							placeholder='Email address'
-							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-						/>
-					</label>
-					<label className='block'>
-						<span className='text-sm font-medium text-gray-700'>Username</span>
-						<input
-							type='text'
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder='Your username'
 							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
 						/>
 					</label>
@@ -140,14 +137,13 @@ export default function Register() {
 								setEmail('');
 								setName('');
 								setPassword('');
-								setOtpVerified(false);
 							}}
 							className='inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm'
 						>
 							Reset
 						</button>
 					</div>
-					
+
 					<div className='text-sm text-center text-gray-600'>
 						Already have an account?{' '}
 						<a

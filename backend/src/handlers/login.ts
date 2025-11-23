@@ -14,7 +14,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     return {
       statusCode: error.status || 400,
       body: JSON.stringify({
-        message: error.message,
+        message: error.message || error.code,
       }),
     };
   }

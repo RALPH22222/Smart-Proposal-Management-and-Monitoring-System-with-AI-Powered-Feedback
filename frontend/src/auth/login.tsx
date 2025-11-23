@@ -3,14 +3,14 @@ import Swal from "sweetalert2";
 // import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { api } from "@utils/axios";
 
+type LoginResponse = {
+  message: string;
+};
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  type LoginResponse = {
-    message: string;
-  };
 
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
