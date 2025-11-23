@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types/navigation';
@@ -100,9 +102,15 @@ export default function RegisterPage() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Left Section (Logo) */}
-      <View style={styles.bannerContainer}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#C8102E" />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Left Section (Logo) */}
+        <View style={styles.bannerContainer}>
         <Image
           source={require('../assets/images/LOGO.png')}
           style={styles.logo}
@@ -224,12 +232,20 @@ export default function RegisterPage() {
           </Text>
         </Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     flexGrow: 1,
     backgroundColor: '#fff',
   },

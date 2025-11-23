@@ -90,7 +90,7 @@ const ProponentNavbar: React.FC = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", icon: DashboardIcon, href: "/users/proponent/dashboard" },
+    { name: "Dashboard", icon: DashboardIcon, href: "/users/proponent/dashboard/index" },
     { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
