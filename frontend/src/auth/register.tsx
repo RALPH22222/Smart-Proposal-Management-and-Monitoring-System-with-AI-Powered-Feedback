@@ -1,5 +1,6 @@
 import { api } from '@utils/axios';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 type SignUpResponse = {
@@ -11,6 +12,7 @@ export default function Register() {
 	const [name, setName] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
+	const navigate = useNavigate();
 
 	const handleRegister = async (e?: React.FormEvent) => {
 		e?.preventDefault();
@@ -24,11 +26,13 @@ export default function Register() {
 
 		try {
 			setLoading(true);
-			const res = await api.post<SignUpResponse>('/api/auth/register', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ name, email, password, role: 'proponent' })
-			});
+			const res = await api.post<SignUpResponse>('/auth/sign-up',
+			  { name, email, password, role: 'proponent' },
+				{
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },);
 
 			Swal.fire({
 				icon: 'success',
@@ -38,6 +42,7 @@ export default function Register() {
 			setName('');
 			setEmail('');
 			setPassword('');
+			navigate('/login');
 		} catch (err) {
 			if (err instanceof Error) {
 				Swal.fire({
@@ -65,7 +70,7 @@ export default function Register() {
                      >
                        {/* Red overlay */}
                        <div className="absolute inset-0 bg-[#C8102E]/85"></div>
-                     
+
                        {/* Content */}
                        <div className="relative max-w-md text-center space-y-6">
                          <img
