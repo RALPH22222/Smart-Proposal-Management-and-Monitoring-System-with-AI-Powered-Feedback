@@ -9,6 +9,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const { data, error } = await authService.signup(email, password);
 
   if (error) {
+    console.error('Error during sign up: ', JSON.stringify(error, null, 2));
     return {
       statusCode: error.status || 400,
       body: JSON.stringify({
@@ -16,6 +17,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
       }),
     };
   }
+
+  console.log('Data response: ', JSON.stringify(data, null, 2))
+  console.log('Successfully logged in.')
   return {
     statusCode: 200,
     body: JSON.stringify({
