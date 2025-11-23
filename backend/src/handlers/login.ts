@@ -1,6 +1,7 @@
 import { APIGatewayProxyHandler, APIGatewayProxyEvent } from "aws-lambda";
 import { AuthService } from "../services/auth.service";
 import { supabase } from "../lib/supabase";
+import { setCookieString } from "../utils/cookies";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
   console.log(JSON.stringify(event, null, 2));
@@ -26,6 +27,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
       message: "Successfully logged in.",
     }),
     headers: {
+      'Set-Cookie': setCookieString('tk', data.session!.access_token),
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
