@@ -45,12 +45,46 @@ export class BackendStack extends Stack {
       },
     });
 
+    const create_proposal_lamda = new NodejsFunction(this, "pms-create-propposal", {
+      functionName: "pms-create-propposal",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_proposal_lamda = new NodejsFunction(this, "pms-get-propposal", {
+      functionName: "pms-get-propposal",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const api = new RestApi(this, "pms-api-gateway", {
       restApiName: "pms-api-gateway",
       deployOptions: {
         stageName: "api",
       },
     });
+
+    // /proposal
+    const proposal = api.root.addResource("proposal");
+
+    // /proposal/create
+    const create_proposal = proposal.addResource("create");
+    create_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(create_proposal_lamda));
+
+    // /proposal/view
+    const get_proposal = proposal.addResource("view");
+    get_proposal.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_lamda));
+
     // /auth
     const auth = api.root.addResource("auth");
 
@@ -63,7 +97,7 @@ export class BackendStack extends Stack {
     signup.addMethod(HttpMethod.POST, new LambdaIntegration(signup_lambda));
 
     // cors
-    const cors = api.root.addResource('{proxy+}');
+    const cors = api.root.addResource("{proxy+}");
     cors.addMethod(HttpMethod.OPTIONS, new LambdaIntegration(cors_lambda));
   }
 }
