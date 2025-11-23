@@ -15,6 +15,7 @@ import {
   Microscope,
   Tags,
   Briefcase,
+  Beaker, // Icon for the new section
 } from "lucide-react";
 
 interface BudgetSource {
@@ -25,23 +26,22 @@ interface BudgetSource {
   total: string;
 }
 
-// Updated Interface to include new fields
 interface Proposal {
   id: number;
   title: string;
   description: string;
   proponent: string;
-  gender: string;           // Added
-  address: string;          // Added
-  telephone: string;        // Added
-  fax: string;              // Added
-  email: string;            // Added
+  gender: string;
+  address: string;
+  telephone: string;
+  fax: string;
+  email: string;
   agency: string;
   rdStation: string;
   classification: string;
-  classificationDetails: string; // Added
-  modeOfImplementation: string;  // Added
-  priorityAreas: string;         // Added
+  classificationDetails: string;
+  modeOfImplementation: string;
+  priorityAreas: string;
   sector: string;
   discipline: string;
   duration: string;
@@ -56,6 +56,7 @@ interface Proposal {
     budget: string;
     timeline: string;
     overall: string;
+    rdStation: string;
   };
 }
 
@@ -135,14 +136,13 @@ export default function ProposalDetailsModal({
               </button>
             </div>
 
-            {/* Leader & Agency Information (Updated Layout) */}
+            {/* Leader & Agency Information */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
                 <User className="w-4 h-4 text-[#C8102E]" />
                 Leader & Agency Information
               </h3>
 
-              {/* Leader Name & Gender */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
                   <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
@@ -162,7 +162,6 @@ export default function ProposalDetailsModal({
                 </div>
               </div>
 
-              {/* Agency & Address */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
                   <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
@@ -186,7 +185,6 @@ export default function ProposalDetailsModal({
                 </div>
               </div>
 
-              {/* Contact Details */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
                 <div>
                   <span className="text-xs text-slate-500">Telephone</span>
@@ -214,7 +212,7 @@ export default function ProposalDetailsModal({
               </div>
             </div>
 
-            {/* R&D Station & Classification (Updated Titles & Details) */}
+            {/* R&D Station & Classification */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
@@ -239,7 +237,7 @@ export default function ProposalDetailsModal({
               </div>
             </div>
 
-            {/* Mode & Priority Areas (Added) */}
+            {/* Mode & Priority Areas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
@@ -377,7 +375,7 @@ export default function ProposalDetailsModal({
               </p>
             </div>
 
-            {/* Evaluator Comments */}
+            {/* Evaluator Comments Section */}
             <div className="border-t-2 border-slate-300 pt-6 mt-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[#C8102E]" />
@@ -431,6 +429,26 @@ export default function ProposalDetailsModal({
                 </div>
               </div>
             </div>
+
+            {/* R&D Station Section (Big Words & 1 Box) */}
+            <div className="border-t-2 border-slate-300 pt-6 mt-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Beaker className="w-5 h-5 text-[#C8102E]" />
+                Research & Development Station Comment
+              </h3>
+
+              {/* The "1 box" */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  {proposal.comments.rdStation || (
+                    <span className="text-slate-400 italic">
+                      No specific comments provided for R&D Station alignment.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
           </div>
         </div>
 

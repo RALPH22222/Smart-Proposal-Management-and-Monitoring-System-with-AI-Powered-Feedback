@@ -12,11 +12,15 @@ import {
   XCircle,
   Clock,
   Tag,
+  Gavel,
 } from "lucide-react";
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
+// Import the new component
+import DecisionModal from "../../../components/evaluator-component/DecisionModal";
 
-// 1. Define types for your data
+// --- 1. Define Types ---
+
 interface BudgetSource {
   source: string;
   ps: string;
@@ -59,12 +63,15 @@ export default function Proposals() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  // 2. Add type for selectedProposal state
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
+
+  const [decisionModalOpen, setDecisionModalOpen] = useState(false);
+  const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(
+    null
+  );
+
   const itemsPerPage = 5;
 
-  // Complete data structure matching ViewSummaryModal requirements
-  // 3. Apply the Proposal[] type to the array
   const proposals: Proposal[] = [
     {
       id: 1,
@@ -404,7 +411,6 @@ export default function Proposals() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // 4. FIX: Use Record<string, number> to allow string indexing
   const statusOrder: Record<string, number> = {
     pending: 0,
     accepted: 1,
@@ -412,7 +418,6 @@ export default function Proposals() {
   };
 
   const sortedFiltered = [...filtered].sort((a, b) => {
-    // 5. These lines will now work because statusOrder accepts any string key
     const orderA = statusOrder[a.status] ?? 3;
     const orderB = statusOrder[b.status] ?? 3;
     return orderA - orderB;
@@ -425,7 +430,6 @@ export default function Proposals() {
     startIndex + itemsPerPage
   );
 
-  // 6. FIX: Add ': string' type to parameters
   const getStatusColor = (status: string) => {
     switch (status) {
       case "accepted":
@@ -439,7 +443,6 @@ export default function Proposals() {
     }
   };
 
-  // 7. FIX: Add ': string' type
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "accepted":
@@ -453,7 +456,6 @@ export default function Proposals() {
     }
   };
 
-  // 8. FIX: Add ': string' type
   const getProjectTypeColor = (type: string) => {
     switch (type) {
       case "ICT":
@@ -471,7 +473,6 @@ export default function Proposals() {
     }
   };
 
-  // 9. FIX: Add ': number' type
   const handleViewClick = (proposalId: number) => {
     setSelectedProposal(proposalId);
   };
@@ -480,7 +481,30 @@ export default function Proposals() {
     setSelectedProposal(null);
   };
 
+  const handleEvaluateClick = (proposalId: number) => {
+    setProposalToEvaluate(proposalId);
+    setDecisionModalOpen(true);
+  };
+
+  const closeDecisionModal = () => {
+    setDecisionModalOpen(false);
+    setProposalToEvaluate(null);
+  };
+
+  const handleSubmitDecision = (
+    status: "accepted" | "rejected",
+    remarks: string
+  ) => {
+    // Here you would typically make an API call to update the status
+    console.log(`Proposal ${proposalToEvaluate} updated to ${status}`);
+    console.log(`Remarks: ${remarks}`);
+
+    // For demo purposes, we just close the modal
+    closeDecisionModal();
+  };
+
   const proposal = proposals.find((p) => p.id === selectedProposal);
+  const evaluationProposal = proposals.find((p) => p.id === proposalToEvaluate);
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
@@ -543,10 +567,7 @@ export default function Proposals() {
 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Tag
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
+                  <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
                 </div>
                 <select
                   value={typeFilter}
@@ -609,18 +630,12 @@ export default function Proposals() {
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                           <div className="flex items-center gap-1.5">
-                            <User
-                              className="w-3 h-3"
-                              aria-hidden="true"
-                            />
+                            <User className="w-3 h-3" aria-hidden="true" />
                             <span>{proposal.proponent}</span>
                           </div>
                           {proposal.status === "pending" && (
                             <div className="flex items-center gap-1.5 text-red-600 font-semibold">
-                              <Calendar
-                                className="w-3 h-3"
-                                aria-hidden="true"
-                              />
+                              <Calendar className="w-3 h-3" aria-hidden="true" />
                               <span>Deadline: {proposal.deadline}</span>
                             </div>
                           )}
@@ -657,22 +672,15 @@ export default function Proposals() {
                           </button>
 
                           {proposal.status === "pending" && (
-                            <>
-                              <button
-                                className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
-                                aria-label={`Accept ${proposal.title}`}
-                                title="Accept proposal"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
-                                aria-label={`Reject ${proposal.title}`}
-                                title="Reject proposal"
-                              >
-                                Reject
-                              </button>
-                            </>
+                            <button
+                              onClick={() => handleEvaluateClick(proposal.id)}
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              aria-label={`${proposal.title}`}
+                              title="Action"
+                            >
+                              <Gavel className="w-3 h-3" />
+                              Action
+                            </button>
                           )}
                         </div>
                       </div>
@@ -739,6 +747,15 @@ export default function Proposals() {
           isOpen={!!selectedProposal}
           proposal={proposal}
           onClose={closeModal}
+        />
+      )}
+
+      {decisionModalOpen && evaluationProposal && (
+        <DecisionModal
+          isOpen={decisionModalOpen}
+          proposalTitle={evaluationProposal.title}
+          onClose={closeDecisionModal}
+          onSubmit={handleSubmitDecision}
         />
       )}
     </div>
