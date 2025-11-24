@@ -1,8 +1,8 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { AuthService } from "../services/auth.service";
-import { supabase } from "../lib/supabase";
-import { setCookieString } from "../utils/cookies";
-import { buildCorsHeaders } from "../utils/cors";
+import { AuthService } from "../../services/auth.service";
+import { supabase } from "../../lib/supabase";
+import { setCookieString } from "../../utils/cookies";
+import { buildCorsHeaders } from "../../utils/cors";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const authService = new AuthService(supabase);
@@ -10,7 +10,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { data, error } = await authService.login(email, password);
 
   if (error) {
-    console.error('Error during login: ', JSON.stringify(error, null, 2))
+    console.error("Error during login: ", JSON.stringify(error, null, 2));
     return {
       statusCode: error.status || 400,
       body: JSON.stringify({
@@ -19,8 +19,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  console.log('Data response: ', JSON.stringify(data, null, 2))
-  console.log('Successfully logged in.')
+  console.log("Data response: ", JSON.stringify(data, null, 2));
+  console.log("Successfully logged in.");
 
   return {
     statusCode: 200,
@@ -28,7 +28,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       message: "Successfully logged in.",
     }),
     headers: {
-      'Set-Cookie': setCookieString('tk', data.session!.access_token),
+      "Set-Cookie": setCookieString("tk", data.session!.access_token),
     },
   };
 });

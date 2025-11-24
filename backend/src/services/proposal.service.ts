@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { Status, ResearchClass, DevelopmentClass, ImplementationMode, PriorityArea } from "../types/proposal";
 
 type ProposalInput = {
+  proponent_id: number;
   department_id: number;
   sector_id: number;
   discpline_id: number;
@@ -16,6 +17,9 @@ type ProposalInput = {
   priority_area: PriorityArea;
   plan_start_date: Date;
   plant_end_date: Date;
+  source: string;
+  ps: number;
+  mooe: number;
 };
 
 export class ProposalService {
