@@ -23,6 +23,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.84.0",
     "aws-cdk-lib": "2.215.0",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "zod": "^4.1.13"
   }
 }

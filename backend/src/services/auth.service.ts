@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Role } from "../constants/user";
+import { SignUpInput } from "../schemas/sign-up-schema";
 
 export class AuthService {
   constructor(private db: SupabaseClient) {}
@@ -12,7 +12,7 @@ export class AuthService {
     return { data, error };
   }
 
-  async signup(email: string, password: string, name: string, role: typeof Role[keyof typeof Role]) {
+  async signup({ email, password, role, name }: SignUpInput) {
     const { data, error } = await this.db.auth.signUp({
       email: email,
       password: password,
