@@ -19,6 +19,17 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   console.log('Data response: ', JSON.stringify(data, null, 2))
+
+  if (data.user && data.user.role !== 'authenticated' && data.user.role === '') {
+    console.error('Email already exists. ')
+    return {
+      statusCode: 409,
+      body: JSON.stringify({
+        message: 'Email already exists.'
+      }),
+    };
+  }
+
   console.log('Successfully Signed up.')
   return {
     statusCode: 200,
