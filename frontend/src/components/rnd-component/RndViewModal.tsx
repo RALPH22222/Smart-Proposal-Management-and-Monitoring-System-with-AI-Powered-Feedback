@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   X,
   Building2,
@@ -13,63 +14,21 @@ import {
   Microscope, 
   Tags,       
   Briefcase,  
-  BookOpen,
-  MessageSquare,
-  UserCheck,
+  BookOpen,   
 } from "lucide-react";
+import type { Proposal } from '../../types/InterfaceProposal';
 
-interface BudgetSource {
-  source: string;
-  ps: string;
-  mooe: string;
-  co: string;
-  total: string;
-}
-
-export interface Proposal {
-  id: number;
-  title: string;
-  proponent: string;
-  gender: string;
-  address: string;
-  telephone: string;
-  fax: string;
-  email: string;
-  status: string;
-  deadline: string;
-  description: string;
-  projectType: string;
-  agency: string;
-  cooperatingAgencies: string;
-  rdStation: string;
-  classification: string;
-  classificationDetails: string;
-  modeOfImplementation: string;
-  priorityAreas: string;
-  sector: string;
-  discipline: string;
-  duration: string;
-  startDate: string;
-  endDate: string;
-  budgetSources: BudgetSource[];
-  budgetTotal: string;
-  assignedRdStaff?: string;
-  rdCommentsToEvaluator?: string;
-  evaluationDeadline?: string;
-  assignedEvaluators?: string[];
-}
-
-interface ProposalModalProps {
+interface DetailedProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  proposal: Proposal | null | undefined;
+  proposal: Proposal | null;
 }
 
-export default function ProposalModal({
+const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   isOpen,
   onClose,
   proposal,
-}: ProposalModalProps) {
+}) => {
   if (!isOpen || !proposal) return null;
 
   return (
@@ -97,7 +56,6 @@ export default function ProposalModal({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-
             {/* 1. Leader & Agency Information */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
@@ -163,7 +121,6 @@ export default function ProposalModal({
                 <div>
                   <span className="text-xs text-slate-500">Fax</span>
                   <div className="flex items-center gap-1.5">
-                    {/* Added Telephone icon for Fax as requested */}
                     <Phone className="w-3 h-3 text-slate-400" />
                     <p className="text-sm text-slate-900">
                       {proposal.fax}
@@ -207,7 +164,6 @@ export default function ProposalModal({
                   <Tags className="w-4 h-4 text-[#C8102E]" />
                   Classification
                 </h3>
-                {/* Updated to display Mode: Classification (e.g., Development: Pilot Testing) */}
                 <p className="text-xs sm:text-sm text-slate-700">
                   <span className="font-semibold text-slate-900">
                     {proposal.classification}: 
@@ -364,73 +320,9 @@ export default function ProposalModal({
                 Expenses | CO: Capital Outlay
               </p>
             </div>
-
-            {/* R&D Assignment & Comments Section  */}
-            {(proposal.assignedRdStaff || proposal.rdCommentsToEvaluator) && (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-blue-200 pb-2">
-                  <UserCheck className="w-4 h-4 text-[#C8102E]" />
-                  R&D Staff Assignment & Instructions
-                </h3>
-
-                {/* R&D Staff Assignment */}
-                {proposal.assignedRdStaff && (
-                  <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      Assigned R&D Staff
-                    </span>
-                    <p className="font-semibold text-slate-900 text-sm">
-                      {proposal.assignedRdStaff}
-                    </p>
-                  </div>
-                )}
-
-                {/* Evaluation Deadline */}
-                {proposal.evaluationDeadline && (
-                  <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      Evaluation Deadline
-                    </span>
-                    <p className="font-semibold text-slate-900 text-sm">
-                      {proposal.evaluationDeadline}
-                    </p>
-                  </div>
-                )}
-
-                {/* Assigned Evaluators */}
-                {proposal.assignedEvaluators && proposal.assignedEvaluators.length > 0 && (
-                  <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      Assigned Evaluators
-                    </span>
-                    <div className="mt-1 space-y-1">
-                      {proposal.assignedEvaluators.map((evaluator, index) => (
-                        <p key={index} className="font-medium text-slate-900 text-sm">
-                          • {evaluator}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* R&D Comments to Evaluator */}
-                {proposal.rdCommentsToEvaluator && (
-                  <div className="pt-2 border-t border-blue-200">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      R&D Comments to Evaluator
-                    </span>
-                    <div className="flex items-start gap-1.5 mt-1">
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-slate-700 leading-relaxed">
-                        {proposal.rdCommentsToEvaluator}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
+
         {/* Modal Footer */}
         <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
           <button
@@ -443,4 +335,6 @@ export default function ProposalModal({
       </div>
     </div>
   );
-}
+};
+
+export default DetailedProposalModal;

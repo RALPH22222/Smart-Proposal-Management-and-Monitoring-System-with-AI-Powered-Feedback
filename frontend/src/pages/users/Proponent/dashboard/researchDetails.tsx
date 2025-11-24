@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FaFlask,
   FaUniversity,
@@ -17,7 +17,207 @@ interface ResearchDetailsProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
+// Predefined options for dropdowns
+const researchStations = [
+  'College of Computing Studies',
+  'Agricultural Research Center',
+  'Medical Informatics Department',
+  'Computer Science Research Lab',
+  'Renewable Energy Research Lab',
+  'AI Research Center',
+  'Urban Planning Research Institute',
+  'Medical AI Research Unit'
+];
+
+const sectors = [
+  'Education Technology',
+  'Agriculture and Fisheries',
+  'Health and Wellness',
+  'Information Technology',
+  'Energy and Power',
+  'Artificial Intelligence',
+  'Public Safety and Security',
+  'Environmental Technology'
+];
+
+const disciplines = [
+  'Information and Communication Technology',
+  'Agricultural Engineering',
+  'Health Information Technology',
+  'Computer Science',
+  'Electrical Engineering',
+  'Computer Science and Mathematics',
+  'Civil Engineering and ICT',
+  'Medical Technology and ICT'
+];
+
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChange }) => {
+  // State for dropdowns
+  const [isResearchStationOpen, setIsResearchStationOpen] = useState(false);
+  const [isSectorOpen, setIsSectorOpen] = useState(false);
+  const [isDisciplineOpen, setIsDisciplineOpen] = useState(false);
+  
+  const [researchStationSearch, setResearchStationSearch] = useState('');
+  const [sectorSearch, setSectorSearch] = useState('');
+  const [disciplineSearch, setDisciplineSearch] = useState('');
+  
+  const [filteredResearchStations, setFilteredResearchStations] = useState(researchStations);
+  const [filteredSectors, setFilteredSectors] = useState(sectors);
+  const [filteredDisciplines, setFilteredDisciplines] = useState(disciplines);
+
+  // Filter research stations based on search
+  useEffect(() => {
+    const filtered = researchStations.filter(station =>
+      station.toLowerCase().includes(researchStationSearch.toLowerCase())
+    );
+    setFilteredResearchStations(filtered);
+  }, [researchStationSearch]);
+
+  // Filter sectors based on search
+  useEffect(() => {
+    const filtered = sectors.filter(sector =>
+      sector.toLowerCase().includes(sectorSearch.toLowerCase())
+    );
+    setFilteredSectors(filtered);
+  }, [sectorSearch]);
+
+  // Filter disciplines based on search
+  useEffect(() => {
+    const filtered = disciplines.filter(discipline =>
+      discipline.toLowerCase().includes(disciplineSearch.toLowerCase())
+    );
+    setFilteredDisciplines(filtered);
+  }, [disciplineSearch]);
+
+  // Handle research station selection
+  const handleResearchStationSelect = (station: string) => {
+    const fakeEvent = {
+      target: {
+        name: 'researchStation',
+        value: station
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+    setResearchStationSearch(station);
+    setIsResearchStationOpen(false);
+  };
+
+  // Handle sector selection
+  const handleSectorSelect = (sector: string) => {
+    const fakeEvent = {
+      target: {
+        name: 'sectorCommodity',
+        value: sector
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+    setSectorSearch(sector);
+    setIsSectorOpen(false);
+  };
+
+  // Handle discipline selection
+  const handleDisciplineSelect = (discipline: string) => {
+    const fakeEvent = {
+      target: {
+        name: 'discipline',
+        value: discipline
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+    setDisciplineSearch(discipline);
+    setIsDisciplineOpen(false);
+  };
+
+  // Handle custom input for research station
+  const handleResearchStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResearchStationSearch(e.target.value);
+    
+    const fakeEvent = {
+      target: {
+        name: 'researchStation',
+        value: e.target.value
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Handle custom input for sector
+  const handleSectorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSectorSearch(e.target.value);
+    
+    const fakeEvent = {
+      target: {
+        name: 'sectorCommodity',
+        value: e.target.value
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Handle custom input for discipline
+  const handleDisciplineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisciplineSearch(e.target.value);
+    
+    const fakeEvent = {
+      target: {
+        name: 'discipline',
+        value: e.target.value
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Handle Mode of Implementation as single select
+  const handleImplementationModeChange = (mode: string) => {
+    // Create a new object with all modes set to false, then set the selected one to true
+    const newImplementationMode = {
+      singleAgency: false,
+      multiAgency: false,
+      basicResearch: false,
+      appliedResearch: false,
+      development: false
+    };
+    
+    newImplementationMode[mode as keyof typeof newImplementationMode] = true;
+    
+    const fakeEvent = {
+      target: {
+        name: 'implementationMode',
+        value: newImplementationMode
+      }
+    } as any;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      
+      if (!target.closest('.research-station-dropdown')) {
+        setIsResearchStationOpen(false);
+      }
+      
+      if (!target.closest('.sector-dropdown')) {
+        setIsSectorOpen(false);
+      }
+      
+      if (!target.closest('.discipline-dropdown')) {
+        setIsDisciplineOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-8">
       <div className="max-w-5xl w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -33,49 +233,125 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         </div>
       </div>
 
-      <div className="space-y-2">
+      {/* Research & Development Station with Dropdown */}
+      <div className="space-y-2 research-station-dropdown">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <FaUniversity className="text-gray-400" />
           Research & Development Station
         </label>
-        <input
-          type="text"
-          name="researchStation"
-          value={formData.researchStation}
-          onChange={onInputChange}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-          placeholder="Enter research station"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            name="researchStation"
+            value={formData.researchStation}
+            onChange={handleResearchStationChange}
+            onFocus={() => setIsResearchStationOpen(true)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+            placeholder="Search or type research station"
+          />
+          
+          {/* Research Station Dropdown */}
+          {isResearchStationOpen && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              {filteredResearchStations.length > 0 ? (
+                filteredResearchStations.map((station, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                    onClick={() => handleResearchStationSelect(station)}
+                  >
+                    <span className="text-sm text-gray-700">{station}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                  No stations found. You can type a custom research station.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
+        {/* Sector/Commodity with Dropdown */}
+        <div className="space-y-2 sector-dropdown">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <FaTag className="text-gray-400" />
             Sector/Commodity
           </label>
-          <input
-            type="text"
-            name="sectorCommodity"
-            value={formData.sectorCommodity}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-            placeholder="Enter sector/commodity"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="sectorCommodity"
+              value={formData.sectorCommodity}
+              onChange={handleSectorChange}
+              onFocus={() => setIsSectorOpen(true)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+              placeholder="Search or type sector/commodity"
+            />
+            
+            {/* Sector Dropdown */}
+            {isSectorOpen && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {filteredSectors.length > 0 ? (
+                  filteredSectors.map((sector, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                      onClick={() => handleSectorSelect(sector)}
+                    >
+                      <span className="text-sm text-gray-700">{sector}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                    No sectors found. You can type a custom sector.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="space-y-2">
+
+        {/* Discipline with Dropdown */}
+        <div className="space-y-2 discipline-dropdown">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <FaGraduationCap className="text-gray-400" />
             Discipline
           </label>
-          <input
-            type="text"
-            name="discipline"
-            value={formData.discipline}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-            placeholder="Enter discipline"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              name="discipline"
+              value={formData.discipline}
+              onChange={handleDisciplineChange}
+              onFocus={() => setIsDisciplineOpen(true)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+              placeholder="Search or type discipline"
+            />
+            
+            {/* Discipline Dropdown */}
+            {isDisciplineOpen && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {filteredDisciplines.length > 0 ? (
+                  filteredDisciplines.map((discipline, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                      onClick={() => handleDisciplineSelect(discipline)}
+                    >
+                      <span className="text-sm text-gray-700">{discipline}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                    No disciplines found. You can type a custom discipline.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -223,6 +499,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         )}
       </div>
 
+      {/* Mode of Implementation - Updated to Single Select */}
       <div className="space-y-4">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <FaCog className="text-gray-400" />
@@ -232,12 +509,12 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
           {Object.entries(formData.implementationMode).map(([key, value]) => (
             <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200 flex-1">
               <input
-                type="checkbox"
+                type="radio"
                 id={`implementationMode.${key}`}
-                name={`implementationMode.${key}`}
+                name="implementationMode"
                 checked={value}
-                onChange={onInputChange}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
+                onChange={() => handleImplementationModeChange(key)}
+                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
               />
               <label htmlFor={`implementationMode.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
                 {key.replace(/([A-Z])/g, ' $1').trim()}

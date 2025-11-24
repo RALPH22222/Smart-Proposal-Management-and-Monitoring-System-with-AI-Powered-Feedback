@@ -23,7 +23,6 @@ import {
 	type CollaborationSession,
 	type Reviewer
 } from '../../types/InterfaceProposal';
-import EvaluatorAssignmentModal from './RnDEvaluatorAssignmentModal';
 import { type Evaluator } from '../../types/evaluator';
 import templatePDF from '../../assets/template/DOST-Template.pdf';
 
@@ -97,9 +96,9 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 	const [evaluationDeadline, setEvaluationDeadline] = useState('14');
 	const [structuredComments, setStructuredComments] =
 		useState<StructuredComments>({
-			introduction: {
+			objectives: {
 				id: '1',
-				title: 'Introduction',
+				title: 'Objectives',
 				content: '',
 				lastModified: '',
 				author: currentUser.name
@@ -111,16 +110,23 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 				lastModified: '',
 				author: currentUser.name
 			},
-			projectScope: {
+			budget: {
 				id: '3',
-				title: 'Project Scope / Goal',
+				title: 'Budget',
 				content: '',
 				lastModified: '',
 				author: currentUser.name
 			},
-			conclusion: {
+			timeline: {
 				id: '4',
-				title: 'Conclusion',
+				title: 'Timeline',
+				content: '',
+				lastModified: '',
+				author: currentUser.name
+			},
+			overall: {
+				id: '5',
+				title: 'Overall',
 				content: '',
 				lastModified: '',
 				author: currentUser.name
@@ -139,7 +145,7 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 	const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both'>('both');
 
 	const [attachments, setAttachments] = useState<AttachmentFile[]>([]);
-	const [activeSection, setActiveSection] = useState<string>('introduction');
+	const [activeSection, setActiveSection] = useState<string>('objectives');
 	const [typingSection, setTypingSection] = useState<string>('');
 	const [showEvaluatorModal, setShowEvaluatorModal] = useState(false);
 
@@ -149,9 +155,9 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 			setDecision('Sent to Evaluators');
 			setEvaluationDeadline('14');
 			setStructuredComments({
-				introduction: {
+				objectives: {
 					id: '1',
-					title: 'Introduction',
+					title: 'Objectives',
 					content: '',
 					lastModified: '',
 					author: currentUser.name
@@ -163,16 +169,23 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 					lastModified: '',
 					author: currentUser.name
 				},
-				projectScope: {
+				budget: {
 					id: '3',
-					title: 'Project Scope / Goal',
+					title: 'Budget',
 					content: '',
 					lastModified: '',
 					author: currentUser.name
 				},
-				conclusion: {
+					timeline: {
 					id: '4',
-					title: 'Conclusion',
+					title: 'Timeline',
+					content: '',
+					lastModified: '',
+					author: currentUser.name
+				},
+				overall: {
+					id: '5',
+					title: 'Overall',
 					content: '',
 					lastModified: '',
 					author: currentUser.name
@@ -180,7 +193,7 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 				additional: []
 			});
 			setAttachments([]);
-			setActiveSection('introduction');
+			setActiveSection('objectives');
 			setShowAnonymitySelection(false);
 			setShowProponentInfo('both');
 		}
@@ -191,10 +204,10 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 		if (decision === 'Rejected Proposal') {
 			setStructuredComments((prev) => ({
 				...prev,
-				introduction: {
-					...prev.introduction,
+				objectives: {
+					...prev.objectives,
 					content:
-						prev.introduction.content ||
+						prev.objectives.content ||
 						'After careful review of this proposal, we have determined that it does not meet the required standards for approval. The following concerns have been identified:\n\n1. [Specify main concern]\n2. [Additional concerns if any]\n\nWe recommend that the proponent address these issues before resubmission.',
 					lastModified: new Date().toISOString()
 				}
@@ -404,24 +417,30 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 
 	const sections = [
 		{
-			key: 'introduction',
-			title: 'Introduction',
-			data: structuredComments.introduction
+			key: 'objectives',
+			title: 'Objectives Assessment',
+			data: structuredComments.objectives
 		},
 		{
 			key: 'methodology',
-			title: 'Methodology',
+			title: 'Methodology Assessment',
 			data: structuredComments.methodology
 		},
 		{
-			key: 'projectScope',
-			title: 'Project Scope / Goal',
-			data: structuredComments.projectScope
+			key: 'budget',
+			title: 'Budget Assessment',
+			data: structuredComments.budget
 		},
 		{
-			key: 'conclusion',
-			title: 'Conclusion',
-			data: structuredComments.conclusion
+		       key: 'timeline',
+			title: 'Timeline Assessment',
+			data: structuredComments.timeline
+		},
+		{
+		
+			key: 'overall',
+			title: 'Overall Asessment',
+			data: structuredComments.overall
 		},
 		...structuredComments.additional.map((section, index) => ({
 			key: `additional-${index}`,
@@ -838,9 +857,9 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 												: 'Rejection Explanation'}
 										</h4>
 										<textarea
-											value={structuredComments.introduction.content}
+											value={structuredComments.objectives.content}
 											onChange={(e) =>
-												handleCommentChange('introduction', e.target.value)
+												handleCommentChange('objectives', e.target.value)
 											}
 											rows={4}
 											className='w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] focus:border-transparent resize-none'
@@ -970,14 +989,6 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
 					</div>
 				</div>
 			)}
-
-			{/* Evaluator Assignment Modal */}
-			<EvaluatorAssignmentModal
-				proposal={proposal}
-				isOpen={showEvaluatorModal}
-				onClose={() => setShowEvaluatorModal(false)}
-				onAssignEvaluators={handleEvaluatorAssignment}
-			/>
 		</>
 	);
 };

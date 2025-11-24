@@ -56,6 +56,10 @@ interface Proposal {
   endDate: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  assignedRdStaff?: string;
+  rdCommentsToEvaluator?: string;
+  evaluationDeadline?: string;
+  // assignedEvaluators?: string[];
 }
 
 export default function Proposals() {
@@ -109,6 +113,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,250,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Maria Santos",
+      rdCommentsToEvaluator: "Please focus on evaluating the technical feasibility and scalability of the AI algorithms proposed. Pay special attention to the data privacy considerations for student data.",
+      evaluationDeadline: "November 15, 2025",
     },
     {
       id: 2,
@@ -153,6 +161,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,100,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Carlos Reyes",
+      rdCommentsToEvaluator: "Evaluate the integration of IoT sensors with existing grid infrastructure. Assess the cost-benefit analysis and potential impact on rural communities.",
+      evaluationDeadline: "November 20, 2025",
     },
     {
       id: 3,
@@ -189,6 +201,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,800,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Angela Rivera",
+      rdCommentsToEvaluator: "This proposal was rejected due to insufficient technical details and lack of clear implementation timeline. Focus on providing constructive feedback for resubmission.",
+      evaluationDeadline: "November 10, 2025",
     },
     {
       id: 4,
@@ -232,6 +248,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,500,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. John Smith",
+      rdCommentsToEvaluator: "High-priority proposal. Please evaluate the quantum algorithm efficiency and potential real-world applications. Consider the availability of required quantum computing resources.",
+      evaluationDeadline: "November 25, 2025",
     },
     {
       id: 5,
@@ -275,6 +295,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,500,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Maria Santos",
+      rdCommentsToEvaluator: "Excellent proposal with strong industry partnerships. Focus evaluation on battery lifespan, environmental impact, and commercialization potential.",
+      evaluationDeadline: "November 18, 2025",
     },
     {
       id: 6,
@@ -311,6 +335,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,500,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Carlos Reyes",
+      rdCommentsToEvaluator: "Please evaluate the novelty of the optimization techniques and their applicability to real-world problems. Consider computational requirements and scalability.",
+      evaluationDeadline: "November 22, 2025",
     },
     {
       id: 7,
@@ -355,6 +383,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱3,200,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. Angela Rivera",
+      rdCommentsToEvaluator: "Multi-agency collaboration proposal. Evaluate integration challenges with existing urban infrastructure and potential regulatory hurdles.",
+      evaluationDeadline: "November 28, 2025",
     },
     {
       id: 8,
@@ -399,6 +431,10 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,750,000.00",
+      // R&D Assignment Data
+      assignedRdStaff: "Dr. John Smith",
+      rdCommentsToEvaluator: "Proposal lacked clear methodology for ML model validation. Please provide detailed feedback on improving the technical approach and experimental design.",
+      evaluationDeadline: "November 12, 2025",
     },
   ];
 

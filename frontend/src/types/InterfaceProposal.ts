@@ -1,19 +1,47 @@
 // Enhanced TypeScript interfaces for the Advanced Proposal Management System
+export interface BudgetSource {
+       source: string;
+       ps: string;
+       mooe: string;
+       co: string;
+       total: string;
+     }
+
 export interface Proposal {
-	id: string;
-	title: string;
-	documentUrl: string;
-	status: ProposalStatus;
-	submittedBy: string;
-	submittedDate: string;
-	lastModified: string;
-	category?: string;
-	budget?: number;
-	duration?: string;
-	assignedEvaluators?: string[];
-	evaluationDeadline?: string;
+       id: string;
+       title: string;
+       documentUrl: string;
+       description: string;
+       status: ProposalStatus;
+       submittedBy: string;
+       submittedDate: string;
+       lastModified: string;
+       proponent: string;
+       gender: string;
+       address: string;
+       telephone: string;
+       fax: string;
+       email: string;
+       deadline: string;
+       projectType: string;
+       agency: string;
+       cooperatingAgencies: string;
+       rdStation: string;
+       classification: string;
+       classificationDetails: string;
+       modeOfImplementation: string;
+       priorityAreas: string;
+       sector: string;
+       discipline: string;
+       duration: string;
+       startDate: string;
+       endDate: string;
+       budgetSources: BudgetSource[];
+       budgetTotal: string;
 	rdStaffReviewer?: string;
-}
+	evaluationDeadline?: string;
+
+     }
 
 export type ProposalStatus =
 	| 'Pending'
@@ -36,11 +64,11 @@ export interface CommentSection {
 }
 
 export interface StructuredComments {
-	introduction: CommentSection;
+	objectives: CommentSection;
 	methodology: CommentSection;
-	projectScope: CommentSection;
-	conclusion: CommentSection;
-	budget?: CommentSection;
+	budget: CommentSection;
+	timeline: CommentSection;
+	overall: CommentSection;
 	references?: CommentSection;
 	additional: CommentSection[];
 }
