@@ -173,18 +173,13 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     onInputChange(fakeEvent);
   };
 
-  // Handle Mode of Implementation as single select
-  const handleImplementationModeChange = (mode: string) => {
-    // Create a new object with all modes set to false, then set the selected one to true
+  // Handle Mode of Implementation as single select (only Single Agency and Multi Agency)
+  const handleImplementationModeChange = (mode: 'singleAgency' | 'multiAgency') => {
+    // Create a new object with both modes set to false, then set the selected one to true
     const newImplementationMode = {
-      singleAgency: false,
-      multiAgency: false,
-      basicResearch: false,
-      appliedResearch: false,
-      development: false
+      singleAgency: mode === 'singleAgency',
+      multiAgency: mode === 'multiAgency'
     };
-    
-    newImplementationMode[mode as keyof typeof newImplementationMode] = true;
     
     const fakeEvent = {
       target: {
@@ -499,28 +494,42 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         )}
       </div>
 
-      {/* Mode of Implementation - Updated to Single Select */}
+      {/* Mode of Implementation - Only Single Agency and Multi Agency */}
       <div className="space-y-4">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <FaCog className="text-gray-400" />
           Mode of Implementation *
         </label>
-        <div className="flex flex-col sm:flex-row gap-4">
-          {Object.entries(formData.implementationMode).map(([key, value]) => (
-            <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200 flex-1">
-              <input
-                type="radio"
-                id={`implementationMode.${key}`}
-                name="implementationMode"
-                checked={value}
-                onChange={() => handleImplementationModeChange(key)}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-              />
-              <label htmlFor={`implementationMode.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </label>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+          {/* Single Agency Option */}
+          <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+            <input
+              type="radio"
+              id="implementationMode.singleAgency"
+              name="implementationMode"
+              checked={formData.implementationMode.singleAgency}
+              onChange={() => handleImplementationModeChange('singleAgency')}
+              className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+            />
+            <label htmlFor="implementationMode.singleAgency" className="ml-3 text-sm font-medium text-gray-700">
+              Single Agency
+            </label>
+          </div>
+          
+          {/* Multi Agency Option */}
+          <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+            <input
+              type="radio"
+              id="implementationMode.multiAgency"
+              name="implementationMode"
+              checked={formData.implementationMode.multiAgency}
+              onChange={() => handleImplementationModeChange('multiAgency')}
+              className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
+            />
+            <label htmlFor="implementationMode.multiAgency" className="ml-3 text-sm font-medium text-gray-700">
+              Multi Agency
+            </label>
+          </div>
         </div>
       </div>
 
