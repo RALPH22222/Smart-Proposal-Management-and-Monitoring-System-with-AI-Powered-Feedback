@@ -9,11 +9,9 @@ import {
   User,
   Tag,
   Filter,
-  BookOpen,
 } from "lucide-react";
 
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
-import RubricsModal from "../../../components/evaluator-component/RubricsModal";
 import ProposalDetailsModal from "../../../components/evaluator-component/ProposalDetailsModal";
 
 export default function ReviewedProposals() {
@@ -22,9 +20,7 @@ export default function ReviewedProposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
-  const [showRubrics, setShowRubrics] = useState(false);
 
-  // Updated mock data to include the new fields required by the modal
   const reviewedProposals = [
     {
       id: 1,
@@ -33,19 +29,19 @@ export default function ReviewedProposals() {
       description:
         "Development of AI system for automated assessment and personalized learning recommendations",
       proponent: "Jasmine Anderson",
-      gender: "Female", 
+      gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan, Zamboanga City", 
-      telephone: "(062) 991-1771", 
-      fax: "N/A", 
-      email: "jasmine.anderson@wmsu.edu.ph", 
+      address: "Normal Road, Baliwasan, Zamboanga City",
+      telephone: "(062) 991-1771",
+      fax: "N/A",
+      email: "jasmine.anderson@wmsu.edu.ph",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
       classification: "Research",
-      classificationDetails: "Applied", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Education 4.0, Artificial Intelligence", 
+      classificationDetails: "Applied",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Education 4.0, Artificial Intelligence",
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
@@ -62,28 +58,20 @@ export default function ReviewedProposals() {
       ],
       budgetTotal: "₱1,250,000.00",
       projectFile: "AI_Educational_Assessment_Proposal.pdf",
-      comments: {
-        objectives:
-          "The objectives are well-defined and align with current educational needs. The focus on personalized learning is particularly relevant.",
-        methodology:
-          "The proposed methodology is sound and follows established research practices. The use of machine learning algorithms is appropriate for this study.",
-        budget:
-          "Budget allocation appears reasonable and well-justified. Equipment costs are within acceptable ranges for this type of research.",
-        timeline:
-          "The 24-month timeline is realistic given the scope of work. Milestones are clearly defined and achievable.",
-        overall:
-          "This is a strong proposal with clear objectives, solid methodology, and appropriate budget. Recommended for approval with minor revisions to the data collection timeline.",
+      
+      // Ratings used for the 1-5 buttons
+      ratings: {
+        objectives: 5,
+        methodology: 4,
+        budget: 5,
+        timeline: 4,
       },
-      rdComments: {
-        objectivesAssessment:
-          "The evaluator's assessment of the objectives is comprehensive and accurate. The identification of personalized learning as a key focus is well-justified. I concur with this evaluation.",
-        methodologyAssessment:
-          "The evaluator correctly identified the soundness of the methodology. I would add that the proposed machine learning approach aligns well with current industry standards and best practices.",
-        budgetAssessment:
-          "The evaluator's budget analysis is thorough. The allocation for equipment and personnel is appropriate for this scope. No additional concerns from my review.",
-        additionalInsights:
-          "The evaluator's overall assessment is fair and balanced. The proposal demonstrates strong merit and the recommended approval is justified.",
-      },
+      
+      // The Decision
+      decision: "Approve",
+      
+      // Single string comment (formerly overall)
+      comment: "This is a strong proposal with clear objectives, solid methodology, and appropriate budget. Recommended for approval with minor revisions to the data collection timeline."
     },
     {
       id: 2,
@@ -92,19 +80,19 @@ export default function ReviewedProposals() {
       description:
         "Advanced energy management system for smart grid optimization and efficiency",
       proponent: "Michael Chen",
-      gender: "Male", 
+      gender: "Male",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
-      address: "Fort Pilar, Zamboanga City", 
-      telephone: "(062) 991-2345", 
-      fax: "N/A", 
-      email: "m.chen@zscms.edu.ph", 
+      address: "Fort Pilar, Zamboanga City",
+      telephone: "(062) 991-2345",
+      fax: "N/A",
+      email: "m.chen@zscms.edu.ph",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization", 
-      modeOfImplementation: "Single Year", 
-      priorityAreas: "Renewable Energy, Smart Agriculture", 
+      classificationDetails: "Technology Promotion/Commercialization",
+      modeOfImplementation: "Single Year",
+      priorityAreas: "Renewable Energy, Smart Agriculture",
       sector: "Energy and Utilities",
       discipline: "Electrical Engineering",
       duration: "36 months",
@@ -128,19 +116,14 @@ export default function ReviewedProposals() {
       ],
       budgetTotal: "₱2,100,000.00",
       projectFile: "Energy_Management_Proposal.pdf",
-      comments: {
-        objectives:
-          "Objectives are comprehensive and address critical needs in sustainable agriculture. The focus on rural communities is commendable.",
-        methodology:
-          "The IoT implementation strategy is well-planned. Field testing protocols are thorough and appropriate for agricultural settings.",
-        budget:
-          "Budget is well-structured with clear allocation for hardware, software, and field operations. Costs are justified and competitive.",
-        timeline:
-          "The 36-month timeline allows for proper development, testing, and deployment phases. Seasonal considerations are well-integrated.",
-        overall:
-          "Excellent proposal with strong potential for significant impact on sustainable farming practices. Highly recommended for funding.",
+      ratings: {
+        objectives: 5,
+        methodology: 5,
+        budget: 3,
+        timeline: 5,
       },
-      rdComments: null,
+      decision: "Approve",
+      comment: "Excellent proposal with strong potential for significant impact on sustainable farming practices. Highly recommended for funding."
     },
     {
       id: 3,
@@ -149,19 +132,19 @@ export default function ReviewedProposals() {
       description:
         "Secure blockchain system for peer-to-peer energy trading and management",
       proponent: "Emily Rodriguez",
-      gender: "Female", 
+      gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
-      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City", 
-      telephone: "(062) 991-2934", 
-      fax: "(062) 991-0573", 
-      email: "e.rodriguez@zcmc.doh.gov.ph", 
+      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City",
+      telephone: "(062) 991-2934",
+      fax: "(062) 991-0573",
+      email: "e.rodriguez@zcmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
       classification: "Research",
-      classificationDetails: "Applied", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Health Information Systems, Data Security", 
+      classificationDetails: "Applied",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Health Information Systems, Data Security",
       sector: "Energy and Utilities",
       discipline: "Energy Systems Engineering",
       duration: "30 months",
@@ -178,28 +161,14 @@ export default function ReviewedProposals() {
       ],
       budgetTotal: "₱1,800,000.00",
       projectFile: "Energy_Trading_Proposal.pdf",
-      comments: {
-        objectives:
-          "The objectives clearly address data security and interoperability challenges in healthcare. Privacy considerations are well-articulated.",
-        methodology:
-          "Blockchain implementation approach is technically sound. Security protocols meet healthcare data protection standards.",
-        budget:
-          "Budget allocation is appropriate for blockchain development and healthcare system integration. Security infrastructure costs are justified.",
-        timeline:
-          "Timeline accounts for regulatory compliance and pilot testing phases. Implementation schedule is realistic.",
-        overall:
-          "Strong proposal addressing critical healthcare data management needs. Recommended for approval with emphasis on data privacy compliance.",
+      ratings: {
+        objectives: 5,
+        methodology: 2,
+        budget: 2,
+        timeline: 3,
       },
-      rdComments: {
-        objectivesAssessment:
-          "The evaluator's assessment of the objectives is solid. However, I would recommend emphasizing the need for stronger stakeholder engagement with healthcare regulatory bodies during the implementation phase.",
-        methodologyAssessment:
-          "The evaluator correctly identified the technical soundness of the blockchain approach. I concur, though I suggest additional focus on interoperability testing with existing hospital systems.",
-        budgetAssessment:
-          "The evaluator's budget review is adequate. I note that security infrastructure costs may need adjustment based on final compliance requirements with healthcare data protection standards.",
-        additionalInsights:
-          "The evaluator's recommendation for approval with conditions is appropriate. The emphasis on data privacy compliance is well-placed and should be a priority during implementation.",
-      },
+      decision: "Revise",
+      comment: "Strong proposal addressing critical healthcare data management needs. Recommended for approval with emphasis on data privacy compliance."
     },
   ];
 
@@ -249,8 +218,6 @@ export default function ReviewedProposals() {
     setSelectedProposal(null);
   };
 
-  // We cast the found object to "any" here solely for compatibility if the types aren't strictly shared in this snippet,
-  // but in a real app, the interfaces should be shared.
   const proposal = reviewedProposals.find((p) => p.id === selectedProposal);
 
   return (
@@ -269,13 +236,6 @@ export default function ReviewedProposals() {
                 decision.
               </p>
             </div>
-            <button
-              onClick={() => setShowRubrics(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium self-start sm:self-auto whitespace-nowrap"
-            >
-              <BookOpen className="w-4 h-4" />
-              View Rubrics
-            </button>
           </div>
         </header>
 
@@ -455,20 +415,13 @@ export default function ReviewedProposals() {
       </div>
 
       {/* Render the updated modal with the complete data object */}
-      {/* Note: In a real TypeScript environment, you would ensure the mock data interface matches the Proposal interface */}
       {proposal && (
         <ProposalDetailsModal
-          proposal={proposal as any} // Cast to any to bypass strict type check for this snippet if interfaces are in separate files
+          proposal={proposal as any}
           isOpen={!!selectedProposal}
           onClose={closeModal}
-          onViewRubrics={() => setShowRubrics(true)}
         />
       )}
-
-      <RubricsModal
-        isOpen={showRubrics}
-        onClose={() => setShowRubrics(false)}
-      />
     </div>
   );
 }

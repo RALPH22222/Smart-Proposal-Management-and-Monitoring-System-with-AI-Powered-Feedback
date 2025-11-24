@@ -12,7 +12,6 @@ import {
   Filter,
 } from "lucide-react";
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
-import RubricsModal from "../../../components/evaluator-component/RubricsModal";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 
 export default function EndorsedProposals() {
@@ -21,7 +20,6 @@ export default function EndorsedProposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
-  const [showRubrics, setShowRubrics] = useState(false);
 
   const endorsedProposals = [
     {
@@ -31,19 +29,19 @@ export default function EndorsedProposals() {
       description:
         "Development of AI system for automated assessment and personalized learning recommendations",
       proponent: "Jasmine Anderson",
-      gender: "Female", 
+      gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan, Zamboanga City", 
-      telephone: "(062) 991-1771", 
-      fax: "N/A", 
-      email: "jasmine.anderson@wmsu.edu.ph", 
+      address: "Normal Road, Baliwasan, Zamboanga City",
+      telephone: "(062) 991-1771",
+      fax: "N/A",
+      email: "jasmine.anderson@wmsu.edu.ph",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
       classification: "Research",
-      classificationDetails: "Applied", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Education 4.0, Artificial Intelligence", 
+      classificationDetails: "Applied",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Education 4.0, Artificial Intelligence",
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
@@ -68,19 +66,19 @@ export default function EndorsedProposals() {
       description:
         "Advanced energy management system for smart grid optimization and efficiency",
       proponent: "Michael Chen",
-      gender: "Male", 
+      gender: "Male",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
-      address: "Fort Pilar, Zamboanga City", 
-      telephone: "(062) 991-2345", 
-      fax: "(062) 991-2346", 
-      email: "m.chen@zscms.edu.ph", 
+      address: "Fort Pilar, Zamboanga City",
+      telephone: "(062) 991-2345",
+      fax: "(062) 991-2346",
+      email: "m.chen@zscms.edu.ph",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
-      classificationDetails: "Pilot Testing", 
-      modeOfImplementation: "Single Year", 
-      priorityAreas: "Renewable Energy, Smart Agriculture", 
+      classificationDetails: "Pilot Testing",
+      modeOfImplementation: "Single Year",
+      priorityAreas: "Renewable Energy, Smart Agriculture",
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
       duration: "36 months",
@@ -112,19 +110,19 @@ export default function EndorsedProposals() {
       description:
         "Secure blockchain system for peer-to-peer energy trading and management",
       proponent: "Emily Rodriguez",
-      gender: "Female", 
+      gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
-      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City", 
-      telephone: "(062) 991-2934", 
-      fax: "N/A", 
-      email: "e.rodriguez@zcmc.doh.gov.ph", 
+      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City",
+      telephone: "(062) 991-2934",
+      fax: "N/A",
+      email: "e.rodriguez@zcmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
       classification: "Research",
-      classificationDetails: "Applied", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Health Information Systems, Data Security", 
+      classificationDetails: "Applied",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Health Information Systems, Data Security",
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
       duration: "30 months",
@@ -149,19 +147,19 @@ export default function EndorsedProposals() {
       description:
         "Advanced battery management system for solar and wind energy storage facilities",
       proponent: "James Wilson",
-      gender: "Male", 
+      gender: "Male",
       projectType: "Energy",
       agency: "Mindanao State University",
-      address: "Marawi City, Lanao del Sur", 
-      telephone: "(063) 221-4050", 
-      fax: "N/A", 
-      email: "j.wilson@msumain.edu.ph", 
+      address: "Marawi City, Lanao del Sur",
+      telephone: "(063) 221-4050",
+      fax: "N/A",
+      email: "j.wilson@msumain.edu.ph",
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
       rdStation: "Renewable Energy Research Lab",
       classification: "Development",
-      classificationDetails: "Pilot Testing", 
-      modeOfImplementation: "Single Year", 
-      priorityAreas: "Energy Efficiency, Renewable Energy", 
+      classificationDetails: "Pilot Testing",
+      modeOfImplementation: "Single Year",
+      priorityAreas: "Energy Efficiency, Renewable Energy",
       sector: "Energy and Power",
       discipline: "Electrical Engineering",
       duration: "24 months",
@@ -193,19 +191,19 @@ export default function EndorsedProposals() {
       description:
         "Distributed IoT network for real-time energy consumption monitoring and optimization",
       proponent: "Maria Santos",
-      gender: "Female", 
+      gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan, Zamboanga City", 
-      telephone: "(062) 991-1771", 
-      fax: "(062) 991-1771", 
-      email: "maria.santos@wmsu.edu.ph", 
+      address: "Normal Road, Baliwasan, Zamboanga City",
+      telephone: "(062) 991-1771",
+      fax: "(062) 991-1771",
+      email: "maria.santos@wmsu.edu.ph",
       cooperatingAgencies: "DENR RO9, BFAR RO9, LGU Coastal Areas",
       rdStation: "Marine Biology Research Center",
       classification: "Research",
-      classificationDetails: "Applied", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Environmental Conservation, IoT", 
+      classificationDetails: "Applied",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Environmental Conservation, IoT",
       sector: "Environment and Natural Resources",
       discipline: "Marine Science",
       duration: "36 months",
@@ -237,19 +235,19 @@ export default function EndorsedProposals() {
       description:
         "Intelligent building management system using AI for energy optimization",
       proponent: "Robert Kim",
-      gender: "Male", 
+      gender: "Male",
       projectType: "ICT",
       agency: "Ateneo de Zamboanga University",
-      address: "La Purisima St, Zamboanga City", 
-      telephone: "(062) 991-0871", 
-      fax: "N/A", 
-      email: "r.kim@adzu.edu.ph", 
+      address: "La Purisima St, Zamboanga City",
+      telephone: "(062) 991-0871",
+      fax: "N/A",
+      email: "r.kim@adzu.edu.ph",
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
       rdStation: "Urban Planning Research Institute",
       classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization", 
-      modeOfImplementation: "Single Year", 
-      priorityAreas: "Smart Cities, Public Safety", 
+      classificationDetails: "Technology Promotion/Commercialization",
+      modeOfImplementation: "Single Year",
+      priorityAreas: "Smart Cities, Public Safety",
       sector: "Public Safety and Security",
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
@@ -281,19 +279,19 @@ export default function EndorsedProposals() {
       description:
         "Advanced control system for autonomous microgrid operations",
       proponent: "Dr. Lisa Martinez",
-      gender: "Female", 
+      gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga Peninsula Medical Center",
-      address: "High Ridge, Zamboanga City", 
-      telephone: "(062) 955-0104", 
-      fax: "N/A", 
-      email: "l.martinez@zpmc.doh.gov.ph", 
+      address: "High Ridge, Zamboanga City",
+      telephone: "(062) 955-0104",
+      fax: "N/A",
+      email: "l.martinez@zpmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
       rdStation: "Telemedicine Research Unit",
       classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Digital Health, Rural Medicine", 
+      classificationDetails: "Technology Promotion/Commercialization",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Digital Health, Rural Medicine",
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
       duration: "30 months",
@@ -325,19 +323,19 @@ export default function EndorsedProposals() {
       description:
         "ML-based predictive model for renewable energy generation forecasting",
       proponent: "Prof. Daniel Lee",
-      gender: "Male", 
+      gender: "Male",
       projectType: "ICT",
       agency: "Mindanao State University",
-      address: "Marawi City, Lanao del Sur", 
-      telephone: "(063) 221-4052", 
-      fax: "N/A", 
-      email: "d.lee@msumain.edu.ph", 
+      address: "Marawi City, Lanao del Sur",
+      telephone: "(063) 221-4052",
+      fax: "N/A",
+      email: "d.lee@msumain.edu.ph",
       cooperatingAgencies: "PAGASA RO9, DENR RO9, NEDA RO9",
       rdStation: "Climate Science Research Center",
       classification: "Research",
-      classificationDetails: "Basic", 
-      modeOfImplementation: "Multi-year", 
-      priorityAreas: "Climate Change Adaptation, Data Science", 
+      classificationDetails: "Basic",
+      modeOfImplementation: "Multi-year",
+      priorityAreas: "Climate Change Adaptation, Data Science",
       sector: "Environment and Climate",
       discipline: "Atmospheric Science and Data Science",
       duration: "36 months",
@@ -475,6 +473,10 @@ export default function EndorsedProposals() {
                   <option value="All">All Types</option>
                   <option value="ICT">ICT</option>
                   <option value="Energy">Energy</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Public Safety">Public Safety</option>
+                  <option value="Environment">Environment</option>
                 </select>
               </div>
             </div>
@@ -564,7 +566,7 @@ export default function EndorsedProposals() {
                 <p className="text-slate-500 max-w-sm mx-auto">
                   {search
                     ? "Try adjusting your search criteria."
-                    : "No proposals are available for review yet."}
+                    : "No proposals have been reviewed yet."}
                 </p>
               </div>
             )}
@@ -574,8 +576,8 @@ export default function EndorsedProposals() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
               <span>
                 Showing {startIndex + 1}-
-                {Math.min(startIndex + itemsPerPage, filtered.length)} of{" "}
-                {filtered.length} proposals
+                {Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
+                {sortedFiltered.length} proposals
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -614,15 +616,9 @@ export default function EndorsedProposals() {
           isOpen={!!selectedProposal}
           proposal={proposal as any}
           onClose={closeModal}
-          onViewRubrics={() => setShowRubrics(true)}
           onSubmit={handleSubmitReview}
         />
       )}
-
-      <RubricsModal
-        isOpen={showRubrics}
-        onClose={() => setShowRubrics(false)}
-      />
     </div>
   );
 }

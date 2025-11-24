@@ -1,26 +1,49 @@
-import type React from "react"
-import { useState } from "react"
-import { NavLink } from "react-router-dom"
-import { Menu, X, LayoutDashboard, FileText, CheckCircle, RefreshCw, Settings, LogOut, Bell } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  FileText,
+  CheckCircle,
+  RefreshCw,
+  Settings,
+  LogOut,
+  Bell,
+} from "lucide-react";
 
-const accent = "#C10003"
+const accent = "#C10003";
 
 const Sidebar: React.FC = () => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const mainLinks = [
-    { to: "/users/evaluator/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    {
+      to: "/users/evaluator/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+    },
     { to: "/users/evaluator/proposals", label: "Proposals", icon: FileText },
     { to: "/users/evaluator/review", label: "Under Review", icon: RefreshCw },
-    { to: "/users/evaluator/reviewed", label: "Completed Reviews", icon: CheckCircle },
-    { to: "/users/evaluator/notifications", label: "Notifications", icon: Bell, badge: "4" },
-  ]
+    {
+      to: "/users/evaluator/reviewed",
+      label: "Completed Reviews",
+      icon: CheckCircle,
+    },
+    {
+      to: "/users/evaluator/notifications",
+      label: "Notifications",
+      icon: Bell,
+      badge: "4",
+    },
+  ];
 
   const bottomLinks = [
     { to: "/users/evaluator/settings", label: "Settings", icon: Settings },
     { to: "/", label: "Logout", icon: LogOut },
-  ]
+  ];
 
   return (
     <>
@@ -29,7 +52,11 @@ const Sidebar: React.FC = () => {
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200"
         aria-label="Toggle menu"
       >
-        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {isMobileMenuOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
       </button>
 
       {isMobileMenuOpen && (
@@ -42,7 +69,9 @@ const Sidebar: React.FC = () => {
 
       <aside
         className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex flex-col z-40 transition-transform duration-300 ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          isMobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
         }`}
       >
         {/* Enhanced Header with Animation */}
@@ -82,11 +111,15 @@ const Sidebar: React.FC = () => {
                         : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
                     }`
                   }
-                  style={({ isActive }) => (isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {})}
+                  style={({ isActive }) =>
+                    isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}
+                  }
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.to ? "scale-110" : ""}`}
+                      className={`w-5 h-5 transition-all duration-300 ${
+                        hoveredItem === ln.to ? "scale-110" : ""
+                      }`}
                       style={{ color: accent }}
                     />
                     {/* Animated glow effect */}
@@ -104,8 +137,8 @@ const Sidebar: React.FC = () => {
                         ln.badge === "!"
                           ? "bg-red-500 text-white animate-pulse"
                           : ln.badge === "NEW"
-                            ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
-                            : "bg-red-100 text-red-600"
+                          ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
+                          : "bg-red-100 text-red-600"
                       } ${hoveredItem === ln.to ? "scale-110" : ""}`}
                     >
                       {ln.badge}
@@ -131,11 +164,13 @@ const Sidebar: React.FC = () => {
                       isActive
                         ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02]"
                         : ln.to === "/"
-                          ? "text-gray-600 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-100/30 hover:text-red-600 hover:scale-[1.01]"
-                          : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 hover:text-gray-800 hover:scale-[1.01]"
+                        ? "text-gray-600 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-100/30 hover:text-red-600 hover:scale-[1.01]"
+                        : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 hover:text-gray-800 hover:scale-[1.01]"
                     }`
                   }
-                  style={({ isActive }) => (isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {})}
+                  style={({ isActive }) =>
+                    isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}
+                  }
                 >
                   <Icon
                     className={`w-5 h-5 transition-all duration-300 ${
@@ -151,7 +186,7 @@ const Sidebar: React.FC = () => {
         </nav>
       </aside>
     </>
-  )
-}
+  );
+};
 
 export default Sidebar;

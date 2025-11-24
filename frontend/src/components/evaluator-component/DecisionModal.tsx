@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  ClipboardEdit,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { ClipboardEdit, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 
 interface DecisionModalProps {
   isOpen: boolean;
@@ -71,7 +66,7 @@ export default function DecisionModal({
                   setDecision("accepted");
                   if (error) setError("");
                 }}
-                className={`relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "accepted"
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
                     : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50 text-slate-500"
@@ -84,7 +79,9 @@ export default function DecisionModal({
                 )}
                 <CheckCircle
                   className={`w-8 h-8 ${
-                    decision === "accepted" ? "text-emerald-600" : "text-slate-300"
+                    decision === "accepted"
+                      ? "text-emerald-600"
+                      : "text-slate-300"
                   }`}
                 />
                 <span className="font-bold text-sm">Accept</span>
@@ -96,7 +93,7 @@ export default function DecisionModal({
                   setDecision("rejected");
                   if (error) setError("");
                 }}
-                className={`relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
+                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "rejected"
                     ? "border-red-500 bg-red-50 text-red-700 shadow-sm"
                     : "border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500"

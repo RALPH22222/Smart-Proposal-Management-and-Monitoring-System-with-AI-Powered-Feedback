@@ -165,9 +165,7 @@ export default function ProposalModal({
                   <div className="flex items-center gap-1.5">
                     {/* Added Telephone icon for Fax as requested */}
                     <Phone className="w-3 h-3 text-slate-400" />
-                    <p className="text-sm text-slate-900">
-                      {proposal.fax}
-                    </p>
+                    <p className="text-sm text-slate-900">{proposal.fax}</p>
                   </div>
                 </div>
                 <div>
@@ -210,7 +208,7 @@ export default function ProposalModal({
                 {/* Updated to display Mode: Classification (e.g., Development: Pilot Testing) */}
                 <p className="text-xs sm:text-sm text-slate-700">
                   <span className="font-semibold text-slate-900">
-                    {proposal.classification}: 
+                    {proposal.classification}:
                   </span>{" "}
                   {proposal.classificationDetails}
                 </p>
