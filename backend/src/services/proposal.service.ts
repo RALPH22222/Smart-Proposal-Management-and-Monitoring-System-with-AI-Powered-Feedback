@@ -1,32 +1,25 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Status, ResearchClass, DevelopmentClass, ImplementationMode, PriorityArea } from "../types/proposal";
-
-type ProposalInput = {
-  proponent_id: number;
-  department_id: number;
-  sector_id: number;
-  discpline_id: number;
-  agency_id: number;
-  program_title: string;
-  project_title: string;
-  email?: string;
-  phone?: string;
-  research_class: ResearchClass;
-  development_class: DevelopmentClass;
-  implementation_mode: ImplementationMode;
-  priority_area: PriorityArea;
-  plan_start_date: Date;
-  plant_end_date: Date;
-  source: string;
-  ps: number;
-  mooe: number;
-};
+import { Status } from "../types/proposal";
+import { ProposalInput } from "../schemas/proposal-schema";
 
 export class ProposalService {
   constructor(private db: SupabaseClient) {}
 
   async create(payload: ProposalInput) {
-    const { error } = await this.db.from("proposals").insert({ ...payload, status: Status.REVIEW_RND });
+    const { budget, ...proposal } = payload;
+    const { data, error } = await this.db
+      .from("proposals")
+      .insert({ ...proposal, status: Status.REVIEW_RND })
+      .select()
+      .single();
+
+    if (!error) {
+      const proposal_id = data.id;
+      const estimated_budget = budget.map((item) => ({ ...item, proposal_id }));
+      const budget_result = await this.db.from("estimated_budget").insert(estimated_budget);
+
+      return { error: budget_result.error };
+    }
 
     return { error };
   }
@@ -40,6 +33,32 @@ export class ProposalService {
       discipline:disciplines(name),
       agency:agencies(name)
     `);
+
+    return { data, error };
+  }
+
+  async getAgency(search: string) {
+    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+  async getCooperatingAgency(search: string) {
+    const { data, error } = await this.db.from("cooperating_agencies").select(`*`).ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+  async getDepartment(search: string) {
+    const { data, error } = await this.db.from("departments").select(`*`).ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+  async getDiscipline(search: string) {
+    const { data, error } = await this.db.from("disciplines").select(`*`).ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+  async getSector(search: string) {
+    const { data, error } = await this.db.from("sectors").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }

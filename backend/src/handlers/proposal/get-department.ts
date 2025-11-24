@@ -2,26 +2,11 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
-import { proposalSchema } from "../../schemas/proposal-schema";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  const payload = JSON.parse(event.body || "{}");
-
-  // Payload Validation
-  const result = proposalSchema.safeParse(payload);
-
-  if (result.error) {
-    return {
-      statusCode: 409,
-      body: JSON.stringify({
-        type: "validation_error",
-        data: result.error.issues,
-      }),
-    };
-  }
-
+  const search = event.queryStringParameters?.search ?? "";
   const proposalService = new ProposalService(supabase);
-  const { error } = await proposalService.create(result.data);
+  const { data, error } = await proposalService.getDepartment(search);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
@@ -35,8 +20,6 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({
-      message: "Successfully created a proposal.",
-    }),
+    body: JSON.stringify(data),
   };
 });

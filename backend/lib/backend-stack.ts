@@ -85,6 +85,61 @@ export class BackendStack extends Stack {
       },
     });
 
+    const get_agency_lamda = new NodejsFunction(this, "pms-get-agency", {
+      functionName: "pms-get-agency",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-agency.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_cooperating_agency_lamda = new NodejsFunction(this, "pms-cooperating-agency", {
+      functionName: "pms-cooperating-agency",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-cooperating-agency.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_department_lamda = new NodejsFunction(this, "pms-get-department", {
+      functionName: "pms-get-department",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-department.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_discipline_lamda = new NodejsFunction(this, "pms-get-discipline", {
+      functionName: "pms-get-discipline",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-discipline.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_sector_lamda = new NodejsFunction(this, "pms-get-sector", {
+      functionName: "pms-get-sector",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-sector.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const verify_token_lambda = new NodejsFunction(this, "pms-verify-token", {
       functionName: "pms-verify-token",
       memorySize: 128,
@@ -145,5 +200,25 @@ export class BackendStack extends Stack {
       // authorizer: requestAuthorizer,
       // authorizationType:  AuthorizationType.CUSTOM,
     });
+
+    // /proposal/view-agency
+    const get_agency = proposal.addResource("view-agency");
+    get_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_lamda));
+
+    // /proposal/view-cooperating-agency
+    const get_cooperating_agency = proposal.addResource("view-cooperating-sector");
+    get_cooperating_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_cooperating_agency_lamda));
+
+    // /proposal/view-department
+    const get_department = proposal.addResource("view-department");
+    get_department.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lamda));
+
+    // /proposal/view-discipline
+    const get_discipline = proposal.addResource("view-discipline");
+    get_discipline.addMethod(HttpMethod.GET, new LambdaIntegration(get_discipline_lamda));
+
+    // /proposal/view-sector
+    const get_sector = proposal.addResource("view-sector");
+    get_sector.addMethod(HttpMethod.GET, new LambdaIntegration(get_sector_lamda));
   }
 }
