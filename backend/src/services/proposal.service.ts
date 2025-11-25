@@ -57,23 +57,33 @@ export class ProposalService {
 
     return { data, error };
   }
+
   async getCooperatingAgency(search: string) {
     const { data, error } = await this.db.from("cooperating_agencies").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
+
   async getDepartment(search: string) {
     const { data, error } = await this.db.from("departments").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
+
   async getDiscipline(search: string) {
     const { data, error } = await this.db.from("disciplines").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
+
   async getSector(search: string) {
     const { data, error } = await this.db.from("sectors").select(`*`).ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+
+  async getTag(search: string) {
+    const { data, error } = await this.db.from("tags").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  EvaluatorStatus,
   ResearchClass,
   DevelopmentClass,
   ImplementationMode,
@@ -36,5 +37,7 @@ export const proposalSchema = z.object({
 });
 
 export const proposalStatusSchema = z.enum(Status);
+
+export const proposalEvaluatorStatusSchema = z.enum(EvaluatorStatus);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;

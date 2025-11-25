@@ -16,14 +16,8 @@ export class BackendStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const SUPABASE_KEY = StringParameter.valueForStringParameter(
-      this,
-      "/pms/backend/SUPABASE_KEY",
-    );
-    const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(
-      this,
-      "/pms/backend/SUPABASE_SECRET_JWT",
-    );
+    const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
+    const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_SECRET_JWT");
 
     const authorizer_lambda = new NodejsFunction(this, "pms-authorizer", {
       functionName: "pms-authorizer",
@@ -69,25 +63,16 @@ export class BackendStack extends Stack {
       },
     });
 
-    const create_proposal_lamda = new NodejsFunction(
-      this,
-      "pms-create-propposal",
-      {
-        functionName: "pms-create-propposal",
-        memorySize: 128,
-        runtime: Runtime.NODEJS_22_X,
-        timeout: Duration.seconds(10),
-        entry: path.resolve(
-          "src",
-          "handlers",
-          "proposal",
-          "create-proposal.ts",
-        ),
-        environment: {
-          SUPABASE_KEY,
-        },
+    const create_proposal_lamda = new NodejsFunction(this, "pms-create-propposal", {
+      functionName: "pms-create-propposal",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
-    );
+    });
 
     const get_proposal_lamda = new NodejsFunction(this, "pms-get-propposal", {
       functionName: "pms-get-propposal",
@@ -95,6 +80,17 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_proposal_evaluator_lamda = new NodejsFunction(this, "pms-get-propposal-evaluator", {
+      functionName: "pms-get-propposal-evaluator",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proposal-evaluator.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -111,55 +107,38 @@ export class BackendStack extends Stack {
       },
     });
 
-    const get_cooperating_agency_lamda = new NodejsFunction(
-      this,
-      "pms-cooperating-agency",
-      {
-        functionName: "pms-cooperating-agency",
-        memorySize: 128,
-        runtime: Runtime.NODEJS_22_X,
-        timeout: Duration.seconds(10),
-        entry: path.resolve(
-          "src",
-          "handlers",
-          "proposal",
-          "get-cooperating-agency.ts",
-        ),
-        environment: {
-          SUPABASE_KEY,
-        },
+    const get_cooperating_agency_lamda = new NodejsFunction(this, "pms-cooperating-agency", {
+      functionName: "pms-cooperating-agency",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-cooperating-agency.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
-    );
+    });
 
-    const get_department_lamda = new NodejsFunction(
-      this,
-      "pms-get-department",
-      {
-        functionName: "pms-get-department",
-        memorySize: 128,
-        runtime: Runtime.NODEJS_22_X,
-        timeout: Duration.seconds(10),
-        entry: path.resolve("src", "handlers", "proposal", "get-department.ts"),
-        environment: {
-          SUPABASE_KEY,
-        },
+    const get_department_lamda = new NodejsFunction(this, "pms-get-department", {
+      functionName: "pms-get-department",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-department.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
-    );
+    });
 
-    const get_discipline_lamda = new NodejsFunction(
-      this,
-      "pms-get-discipline",
-      {
-        functionName: "pms-get-discipline",
-        memorySize: 128,
-        runtime: Runtime.NODEJS_22_X,
-        timeout: Duration.seconds(10),
-        entry: path.resolve("src", "handlers", "proposal", "get-discipline.ts"),
-        environment: {
-          SUPABASE_KEY,
-        },
+    const get_discipline_lamda = new NodejsFunction(this, "pms-get-discipline", {
+      functionName: "pms-get-discipline",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-discipline.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
-    );
+    });
 
     const get_sector_lamda = new NodejsFunction(this, "pms-get-sector", {
       functionName: "pms-get-sector",
@@ -167,6 +146,17 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-sector.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_tag_lamda = new NodejsFunction(this, "pms-get-tag", {
+      functionName: "pms-get-tag",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-tag.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -190,26 +180,19 @@ export class BackendStack extends Stack {
       },
     });
 
-    const requestAuthorizer = new RequestAuthorizer(
-      this,
-      "pms-request-authorizer",
-      {
-        handler: authorizer_lambda,
-        identitySources: [
-          IdentitySource.header("Cookie"), // tell API Gateway to pass Cookie header
-        ],
-      },
-    );
+    const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
+      handler: authorizer_lambda,
+      identitySources: [
+        IdentitySource.header("Cookie"), // tell API Gateway to pass Cookie header
+      ],
+    });
 
     // /auth
     const auth = api.root.addResource("auth");
 
     // /auth/verify-token
     const verify_token = auth.addResource("verify-token");
-    verify_token.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(verify_token_lambda),
-    );
+    verify_token.addMethod(HttpMethod.GET, new LambdaIntegration(verify_token_lambda));
 
     // /auth/login
     const login = auth.addResource("login");
@@ -228,81 +211,65 @@ export class BackendStack extends Stack {
 
     // /proposal/create (protected)
     const create_proposal = proposal.addResource("create");
-    create_proposal.addMethod(
-      HttpMethod.POST,
-      new LambdaIntegration(create_proposal_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    create_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(create_proposal_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view (protected)
     const get_proposal = proposal.addResource("view");
-    get_proposal.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_proposal_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    get_proposal.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-evaluator (protected)
+    const get_proposal_evaluator = proposal.addResource("view-evaluator");
+    get_proposal_evaluator.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_evaluator_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view-agency
     const get_agency = proposal.addResource("view-agency");
-    get_agency.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_agency_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    get_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view-cooperating-agency
-    const get_cooperating_agency = proposal.addResource(
-      "view-cooperating-sector",
-    );
-    get_cooperating_agency.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_cooperating_agency_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    const get_cooperating_agency = proposal.addResource("view-cooperating-sector");
+    get_cooperating_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_cooperating_agency_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view-department
     const get_department = proposal.addResource("view-department");
-    get_department.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_department_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    get_department.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view-discipline
     const get_discipline = proposal.addResource("view-discipline");
-    get_discipline.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_discipline_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    get_discipline.addMethod(HttpMethod.GET, new LambdaIntegration(get_discipline_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/view-sector
     const get_sector = proposal.addResource("view-sector");
-    get_sector.addMethod(
-      HttpMethod.GET,
-      new LambdaIntegration(get_sector_lamda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    get_sector.addMethod(HttpMethod.GET, new LambdaIntegration(get_sector_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-sector
+    const get_tag = proposal.addResource("view-tag");
+    get_tag.addMethod(HttpMethod.GET, new LambdaIntegration(get_tag_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
   }
 }
