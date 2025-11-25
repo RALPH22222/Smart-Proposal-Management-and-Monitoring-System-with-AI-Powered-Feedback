@@ -16,9 +16,7 @@ export class ProposalService {
     if (!error) {
       const proposal_id = data.id;
       const estimated_budget = budget.map((item) => ({ ...item, proposal_id }));
-      const budget_result = await this.db
-        .from("estimated_budget")
-        .insert(estimated_budget);
+      const budget_result = await this.db.from("estimated_budget").insert(estimated_budget);
 
       return { error: budget_result.error };
     }
@@ -38,7 +36,7 @@ export class ProposalService {
     `);
 
     if (search) {
-      filters.push(`title.ilike.${search}`);
+      filters.push(`project_title.ilike.%${search}%`);
     }
 
     if (status) {
@@ -55,42 +53,27 @@ export class ProposalService {
   }
 
   async getAgency(search: string) {
-    const { data, error } = await this.db
-      .from("agencies")
-      .select(`*`)
-      .ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
   async getCooperatingAgency(search: string) {
-    const { data, error } = await this.db
-      .from("cooperating_agencies")
-      .select(`*`)
-      .ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("cooperating_agencies").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
   async getDepartment(search: string) {
-    const { data, error } = await this.db
-      .from("departments")
-      .select(`*`)
-      .ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("departments").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
   async getDiscipline(search: string) {
-    const { data, error } = await this.db
-      .from("disciplines")
-      .select(`*`)
-      .ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("disciplines").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
   async getSector(search: string) {
-    const { data, error } = await this.db
-      .from("sectors")
-      .select(`*`)
-      .ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("sectors").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
