@@ -19,15 +19,223 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { type Project, type ProjectStatus, type ProjectPhase } from '../../../types/InterfaceProject';
-import { projectApi } from '../../../services/RndProjectApi/ProjectApi';
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
+
+// MOCK DATA since API is missing
+const MOCK_PROJECTS: any[] = [
+  {
+    id: '1',
+    projectId: 'PROJ-2025-001',
+    title: 'AI-Based Crop Disease Detection System',
+    description: 'Developing a mobile application using computer vision to detect early signs of diseases in local crops. This project aims to empower farmers with real-time diagnostic tools to prevent widespread crop failure.',
+    principalInvestigator: 'Dr. Maria Santos',
+    department: 'College of Computer Studies',
+    status: 'Active',
+    currentPhase: 'Execution',
+    startDate: '2025-01-15',
+    endDate: '2025-12-15',
+    budget: 500000,
+    completionPercentage: 35,
+    researchArea: 'Agriculture Technology',
+    collaborators: ['Department of Agriculture', 'Local Farmers Coop'],
+    milestones: [
+      { name: 'Data Collection', dueDate: '2025-03-15', completed: true, description: 'Gathering 10,000+ images of various crop diseases from local farms.' },
+      { name: 'Model Training', dueDate: '2025-06-30', completed: false, description: 'Training the CNN model with the collected dataset and optimizing for mobile devices.' },
+      { name: 'Beta Testing', dueDate: '2025-09-15', completed: false, description: 'Field testing with 50 pilot farmers.' },
+      { name: 'Final Deployment', dueDate: '2025-12-01', completed: false, description: 'Release of the app to the public play store.' }
+    ],
+    // Extended fields for Modal
+    gender: 'Female',
+    address: 'Zamboanga City',
+    telephone: '991-1234',
+    email: 'msantos@wmsu.edu.ph',
+    agency: 'WMSU',
+    cooperatingAgencies: 'DA, DOST',
+    rdStation: 'Zamboanga Peninsula',
+    classification: 'Applied Research',
+    classificationDetails: 'Technology Development',
+    modeOfImplementation: 'Single Institution',
+    priorityAreas: 'Smart Agriculture',
+    sector: 'Agriculture, Aquatic and Natural Resources',
+    discipline: 'Information Technology',
+    duration: '12 Months',
+    budgetSources: [
+      { source: 'GAA', ps: '150,000', mooe: '200,000', co: '50,000', total: '400,000' },
+      { source: 'Counterpart', ps: '50,000', mooe: '50,000', co: '0', total: '100,000' }
+    ],
+    budgetTotal: '500,000'
+  },
+  {
+    id: '2',
+    projectId: 'PROJ-2025-002',
+    title: 'Renewable Energy Integration for Rural Schools',
+    description: 'Assessment and implementation of solar energy solutions for off-grid schools in the region. This project seeks to provide sustainable power to improve educational facilities in remote barangays.',
+    principalInvestigator: 'Engr. Robert Lee',
+    department: 'College of Engineering',
+    status: 'Planning',
+    currentPhase: 'Planning',
+    startDate: '2025-04-01',
+    endDate: '2026-03-31',
+    budget: 1200000,
+    completionPercentage: 10,
+    researchArea: 'Renewable Energy',
+    collaborators: ['Department of Energy', 'DepEd'],
+    milestones: [
+       { name: 'Site Survey', dueDate: '2025-05-15', completed: false, description: 'Conducting ocular inspections and energy audits on 5 target schools.' },
+       { name: 'System Design', dueDate: '2025-07-20', completed: false, description: 'Designing the solar PV layout and battery storage systems.' },
+       { name: 'Procurement', dueDate: '2025-09-10', completed: false, description: 'Bidding and purchasing of solar panels and inverters.' }
+    ],
+     // Extended fields
+    gender: 'Male',
+    address: 'Zamboanga City',
+    telephone: '992-5678',
+    email: 'rlee@wmsu.edu.ph',
+    agency: 'WMSU',
+    cooperatingAgencies: 'DOE',
+    rdStation: 'Western Mindanao',
+    classification: 'Development',
+    classificationDetails: 'Pilot Testing',
+    modeOfImplementation: 'Collaborative',
+    priorityAreas: 'Renewable Energy',
+    sector: 'Energy and Utilities',
+    discipline: 'Electrical Engineering',
+    duration: '12 Months',
+    budgetSources: [
+       { source: 'Grant', ps: '0', mooe: '1,200,000', co: '0', total: '1,200,000' }
+    ],
+    budgetTotal: '1,200,000'
+  },
+  {
+    id: '3',
+    projectId: 'PROJ-2024-015',
+    title: 'Community-Based Disaster Risk Reduction Management System',
+    description: 'Developing an integrated early warning system for flood-prone coastal communities using IoT sensors and SMS alerts. This aims to reduce casualties during monsoon seasons.',
+    principalInvestigator: 'Dr. Elena Cruz',
+    department: 'College of Science and Mathematics',
+    status: 'On Hold',
+    currentPhase: 'Monitoring',
+    startDate: '2024-06-01',
+    endDate: '2025-06-01',
+    budget: 750000,
+    completionPercentage: 60,
+    researchArea: 'Disaster Risk Reduction',
+    collaborators: ['LGU Zamboanga', 'NDRRMC'],
+    milestones: [
+      { name: 'Sensor Fabrication', dueDate: '2024-08-30', completed: true, description: 'Assembling 20 water level sensors.' },
+      { name: 'Installation', dueDate: '2024-11-15', completed: true, description: 'Deploying sensors in critical river basins.' },
+      { name: 'System Calibration', dueDate: '2025-01-30', completed: false, description: 'Adjusting sensor sensitivity based on initial rainfall data.' },
+      { name: 'Community Training', dueDate: '2025-04-15', completed: false, description: 'Conducting workshops for Barangay officials on system usage.' }
+    ],
+    // Extended fields
+    gender: 'Female',
+    address: 'Zamboanga City',
+    telephone: '991-0001',
+    email: 'ecruz@wmsu.edu.ph',
+    agency: 'WMSU',
+    cooperatingAgencies: 'LGU',
+    rdStation: 'Zamboanga City',
+    classification: 'Applied Research',
+    classificationDetails: 'Prototype Development',
+    modeOfImplementation: 'Collaborative',
+    priorityAreas: 'Disaster Mitigation',
+    sector: 'Environment',
+    discipline: 'Environmental Science',
+    duration: '12 Months',
+    budgetSources: [
+      { source: 'WMSU Core', ps: '200,000', mooe: '300,000', co: '250,000', total: '750,000' }
+    ],
+    budgetTotal: '750,000'
+  },
+  {
+    id: '4',
+    projectId: 'PROJ-2023-089',
+    title: 'Development of Halal-Compliant Food Processing Techniques',
+    description: 'Researching new preservation methods for seafood products that adhere strictly to Halal standards, aiming to boost the local export industry.',
+    principalInvestigator: 'Prof. Abdul Malik',
+    department: 'College of Home Economics',
+    status: 'Completed',
+    currentPhase: 'Closing',
+    startDate: '2023-01-10',
+    endDate: '2024-01-10',
+    budget: 350000,
+    completionPercentage: 100,
+    researchArea: 'Food Technology',
+    collaborators: ['DOST-IX', 'Halal Board'],
+    milestones: [
+      { name: 'Literature Review', dueDate: '2023-02-28', completed: true, description: 'Comprehensive review of Halal standards and existing preservation methods.' },
+      { name: 'Lab Experiments', dueDate: '2023-07-15', completed: true, description: 'Testing various natural preservatives on tuna and sardines.' },
+      { name: 'Sensory Evaluation', dueDate: '2023-10-30', completed: true, description: 'Taste tests and acceptability surveys.' },
+      { name: 'Final Report', dueDate: '2024-01-10', completed: true, description: 'Submission of full technical report and financial liquidation.' }
+    ],
+    // Extended fields
+    gender: 'Male',
+    address: 'Isabela City',
+    telephone: '993-4455',
+    email: 'amalik@wmsu.edu.ph',
+    agency: 'WMSU',
+    cooperatingAgencies: 'DOST',
+    rdStation: 'Basilan',
+    classification: 'Basic Research',
+    classificationDetails: 'Process Improvement',
+    modeOfImplementation: 'Single Institution',
+    priorityAreas: 'Halal Industry',
+    sector: 'Industry, Energy and Emerging Technology',
+    discipline: 'Food Science',
+    duration: '12 Months',
+    budgetSources: [
+      { source: 'GAA', ps: '100,000', mooe: '250,000', co: '0', total: '350,000' }
+    ],
+    budgetTotal: '350,000'
+  },
+  {
+    id: '5',
+    projectId: 'PROJ-2025-005',
+    title: 'Marine Biodiversity Assessment of Zamboanga Peninsula',
+    description: 'A comprehensive survey of coral reef health and fish population dynamics in protected marine sanctuaries to inform policy making.',
+    principalInvestigator: 'Dr. James Reid',
+    department: 'College of Forestry and Environmental Studies',
+    status: 'Active',
+    currentPhase: 'Execution',
+    startDate: '2025-02-01',
+    endDate: '2026-02-01',
+    budget: 850000,
+    completionPercentage: 20,
+    researchArea: 'Marine Biology',
+    collaborators: ['DENR', 'BFAR'],
+    milestones: [
+      { name: 'Equipment Procurement', dueDate: '2025-03-01', completed: true, description: 'Purchase of diving gear and underwater cameras.' },
+      { name: 'Initial Dive Surveys', dueDate: '2025-05-15', completed: false, description: 'Conducting transect surveys in Sta. Cruz Islands.' },
+      { name: 'Data Analysis Phase 1', dueDate: '2025-09-30', completed: false, description: 'Analyzing video footage and water samples.' },
+      { name: 'Stakeholder Presentation', dueDate: '2025-12-10', completed: false, description: 'Presenting preliminary findings to LGU.' }
+    ],
+    // Extended fields
+    gender: 'Male',
+    address: 'Zamboanga City',
+    telephone: '991-8899',
+    email: 'jreid@wmsu.edu.ph',
+    agency: 'WMSU',
+    cooperatingAgencies: 'DENR, BFAR',
+    rdStation: 'Sulu Sea',
+    classification: 'Basic Research',
+    classificationDetails: 'Ecological Assessment',
+    modeOfImplementation: 'Collaborative',
+    priorityAreas: 'Biodiversity',
+    sector: 'Environment',
+    discipline: 'Marine Biology',
+    duration: '12 Months',
+    budgetSources: [
+      { source: 'External Grant', ps: '300,000', mooe: '400,000', co: '150,000', total: '850,000' }
+    ],
+    budgetTotal: '850,000'
+  }
+];
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
 }
 
 const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);  
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -74,8 +282,9 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const data = await projectApi.fetchProjects();
-      setProjects(data);
+      // Simulate API call with mock data
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setProjects(MOCK_PROJECTS as Project[]);
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {

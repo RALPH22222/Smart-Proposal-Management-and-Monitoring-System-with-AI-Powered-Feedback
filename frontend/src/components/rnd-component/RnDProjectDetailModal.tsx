@@ -5,16 +5,52 @@ import {
   MapPin,
   DollarSign,
   X,
-  AlertCircle,
   Clock,
   CheckCircle,
-  FileText,
   TrendingUp,
   Users,
   Target,
-  BarChart3
+  BarChart3,
+  Building2,
+  Phone,
+  Mail,
+  Microscope,
+  Tags,
+  Briefcase,
+  BookOpen,
+  FileText
 } from 'lucide-react';
 import { type Project, type ProjectStatus, type ProjectPhase } from '../../types/InterfaceProject';
+
+interface BudgetSource {
+  source: string;
+  ps: string;
+  mooe: string;
+  co: string;
+  total: string;
+}
+
+// Extend the Project type locally to support the detailed fields
+// Removed assignment/evaluator related fields based on request
+interface ExtendedProject extends Project {
+  proponent?: string;
+  gender?: string;
+  address?: string;
+  telephone?: string;
+  email?: string;
+  agency?: string;
+  cooperatingAgencies?: string;
+  rdStation?: string;
+  classification?: string;
+  classificationDetails?: string;
+  modeOfImplementation?: string;
+  priorityAreas?: string;
+  sector?: string;
+  discipline?: string;
+  duration?: string;
+  budgetSources?: BudgetSource[];
+  budgetTotal?: string;
+}
 
 interface RnDProjectDetailModalProps {
   project: Project | null;
@@ -26,28 +62,23 @@ interface RnDProjectDetailModalProps {
 }
 
 const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
-  project,
+  project: baseProject,
   isOpen,
   onClose,
   getStatusBadge,
   getPhaseBadge,
   getDaysRemaining
 }) => {
-  if (!project || !isOpen) return null;
+  if (!baseProject || !isOpen) return null;
 
+  const project = baseProject as ExtendedProject;
   const daysRemaining = getDaysRemaining(project.endDate);
   const isOverdue = daysRemaining < 0 && project.completionPercentage < 100;
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header - Compact */}
+        {/* Header */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -85,16 +116,15 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Main Content - Single Scrollable Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-6">
-            {/* Key Metrics Row */}
+            
+            {/* Top Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Timeline Status */}
               <div className={`p-3 rounded-lg border ${
-                isOverdue 
-                  ? 'bg-red-50 border-red-200' 
-                  : 'bg-green-50 border-green-200'
+                isOverdue ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
               }`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className={`w-4 h-4 ${isOverdue ? 'text-red-600' : 'text-green-600'}`} />
@@ -151,77 +181,266 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Project Details Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Research Station */}
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#C8102E]" />
-                    Research & Development Station
-                  </h4>
-                  <p className="text-sm text-slate-700">{project.researchArea}</p>
+            {/* Detailed Proposal Info */}
+            <div className="space-y-4 sm:space-y-6">
+
+              {/* 1. Leader & Agency Information */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
+                  <User className="w-4 h-4 text-[#C8102E]" />
+                  Leader & Agency Information
+                </h3>
+
+                {/* Leader Name & Gender */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                      Leader / Proponent
+                    </span>
+                    <p className="font-semibold text-slate-900 text-sm">
+                      {project.principalInvestigator}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                      Gender
+                    </span>
+                    <p className="font-medium text-slate-900 text-sm">
+                      {project.gender || 'N/A'}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Collaborators */}
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#C8102E]" />
-                    Collaborators
-                  </h4>
-                  {project.collaborators && project.collaborators.length > 0 ? (
-                    <ul className="text-sm text-slate-700 space-y-2">
-                      {project.collaborators.map((collaborator, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-[#C8102E] rounded-full flex-shrink-0"></div>
-                          <span>{collaborator}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-slate-500">No collaborators listed</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-6">
-                {/* Project Description */}
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#C8102E]" />
-                    Project Description
-                  </h4>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {project.description}
-                  </p>
-                </div>
-
-                {/* Timeline Details */}
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#C8102E]" />
-                    Project Timeline
-                  </h4>
-                  <div className="space-y-2 text-sm text-slate-700">
-                    <div className="flex justify-between">
-                      <span>Start Date:</span>
-                      <span className="font-medium">{new Date(project.startDate).toLocaleDateString()}</span>
+                {/* Agency & Address */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                      Agency
+                    </span>
+                    <div className="flex items-start gap-1.5 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                      <p className="font-medium text-slate-900 text-sm">
+                        {project.agency || project.department}
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span>End Date:</span>
-                      <span className="font-medium">{new Date(project.endDate).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                      Address
+                    </span>
+                    <div className="flex items-start gap-1.5 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                      <p className="text-slate-900 text-sm">{project.address || 'N/A'}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Duration:</span>
-                      <span className="font-medium">
-                        {Math.ceil((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
-                      </span>
+                  </div>
+                </div>
+
+                {/* Contact Details (Fax removed) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                  <div>
+                    <span className="text-xs text-slate-500">Telephone</span>
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-slate-400" />
+                      <p className="text-sm text-slate-900">
+                        {project.telephone || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500">Email</span>
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-3 h-3 text-slate-400" />
+                      <p className="text-sm text-slate-900">{project.email || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* 2. Cooperating Agencies */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#C8102E]" />
+                  Cooperating Agencies
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {project.cooperatingAgencies || (project.collaborators ? project.collaborators.join(', ') : 'None')}
+                </p>
+              </div>
+
+              {/* R&D Station & Classification */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <Microscope className="w-4 h-4 text-[#C8102E]" />
+                    Research & Development Station
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    {project.rdStation || project.researchArea}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <Tags className="w-4 h-4 text-[#C8102E]" />
+                    Classification
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    <span className="font-semibold text-slate-900">
+                      {project.classification || 'N/A'}:
+                    </span>{" "}
+                    {project.classificationDetails}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mode & Priority Areas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#C8102E]" />
+                    Mode of Implementation
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    {project.modeOfImplementation || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-[#C8102E]" />
+                    Priority Areas
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    {project.priorityAreas || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Sector & Discipline */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-[#C8102E]" />
+                    Sector/Commodity
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    {project.sector || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-[#C8102E]" />
+                    Discipline
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-700">
+                    {project.discipline || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Schedule */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#C8102E]" />
+                  Implementing Schedule
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
+                  <div>
+                    <span className="text-slate-500 text-xs uppercase tracking-wide">
+                      Duration
+                    </span>
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {project.duration || `${Math.ceil((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} days`}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs uppercase tracking-wide">
+                      Start Date
+                    </span>
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {new Date(project.startDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 text-xs uppercase tracking-wide">
+                      End Date
+                    </span>
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {new Date(project.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Table */}
+              {project.budgetSources && (
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-[#C8102E]" />
+                    Estimated Budget by Source
+                  </h3>
+                  <div className="overflow-x-auto rounded-lg border border-slate-300">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100">
+                          <th className="border-b border-r border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
+                            Source of Funds
+                          </th>
+                          <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            PS
+                          </th>
+                          <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            MOOE
+                          </th>
+                          <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            CO
+                          </th>
+                          <th className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                            TOTAL
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {project.budgetSources.map((budget, index) => (
+                          <tr key={index} className="hover:bg-slate-50">
+                            <td className="border-b border-r border-slate-300 px-3 py-2 font-medium text-slate-800">
+                              {budget.source}
+                            </td>
+                            <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                              {budget.ps}
+                            </td>
+                            <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                              {budget.mooe}
+                            </td>
+                            <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                              {budget.co}
+                            </td>
+                            <td className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
+                              {budget.total}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-slate-200 font-bold">
+                          <td className="border-r border-slate-300 px-3 py-2 text-slate-900">
+                            TOTAL
+                          </td>
+                          <td
+                            className="border-r border-slate-300 px-3 py-2 text-right text-slate-900"
+                            colSpan={3}
+                          >
+                            →
+                          </td>
+                          <td className="px-3 py-2 text-right text-[#C8102E] text-sm">
+                            {project.budgetTotal || project.budget.toLocaleString()}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 italic">
+                    PS: Personal Services | MOOE: Maintenance and Other Operating
+                    Expenses | CO: Capital Outlay
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Milestones Section */}
