@@ -217,9 +217,9 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 				<div className="flex justify-end p-4 sm:p-6 border-t border-slate-200 bg-slate-50">
 					<button
 						onClick={onClose}
-						className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#9d0d24] transition-colors duration-200 cursor-pointer font-medium text-sm sm:text-base"
+						className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-2 bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer font-medium text-sm sm:text-base"
 					>
-						Close Assessment
+						Close
 					</button>
 				</div>
 			</div>

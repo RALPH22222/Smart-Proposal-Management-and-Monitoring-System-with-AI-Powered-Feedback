@@ -287,9 +287,9 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 				<div className='p-4 border-t bg-gray-50 flex justify-end gap-3'>
 					<button
 						onClick={onClose}
-						className='px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium'
+						className='px-4 py-2 rounded-md bg-white border border-slate-300 rounded-lg hover:bg-slate-100 text-gray-700 font-medium'
 					>
-						Cancel
+						Close
 					</button>
 					<button
 						onClick={handleConfirm}

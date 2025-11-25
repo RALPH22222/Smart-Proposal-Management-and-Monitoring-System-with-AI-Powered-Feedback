@@ -30,8 +30,8 @@ import ReviewProposals from "./pages/users/evaluator/ReviewProposals";
 import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
 
 //Proponent
-import Dashboard from "./pages/users/proponent/dashboard";
-import Profile from "./pages/users/proponent/Profile";
+import Submission from "./pages/users/proponent/submission";
+import Profile from "./pages/users/proponent/profile";
 import Settings from "./pages/users/proponent/settings";
 
 // Loading animation
@@ -75,7 +75,7 @@ function App() {
           <Route path="/users/rnd/*" element={<RndMainLayout />} />
 
           {/* Proponent */}
-          <Route path="/users/proponent/dashboard" element={<Dashboard />} />
+          <Route path="/users/proponent/submission" element={<Submission />} />
           <Route path="/users/proponent/profile" element={<Profile />} />
           <Route path="/users/proponent/settings" element={<Settings />} />
         </Routes>

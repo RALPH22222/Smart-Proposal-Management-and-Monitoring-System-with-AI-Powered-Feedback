@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
 import StatusStepper from "../../../components/proponent-component/StatusStepper";
+import ProjectPortfolio from "./projectPortfolio";
+import ShareModal from "../../../components/proponent-component/ShareModal";
+import CommentsModal from "../../../components/proponent-component/CommentsModal";
+import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import { 
   FaChevronLeft, 
   FaChevronRight, 
@@ -15,14 +19,8 @@ import {
   FaClipboardCheck,
   FaUsers,
   FaClock,
-  FaArrowRight,
   FaTablet,
-  FaShareAlt,
-  FaUserPlus,
-  FaLink,
-  FaBell,
-  FaTimes,
-  FaComment
+  FaBell
 } from 'react-icons/fa';
 
 type Project = {
@@ -93,34 +91,29 @@ const mockProjects: Project[] = [
     priority: 'high',
     evaluators: 5
   },
-  { 
-    id: "p6", 
-    title: "Cultural Heritage Preservation", 
-    currentIndex: 5,
-    submissionDate: "2023-12-20",
-    lastUpdated: "2024-02-02",
-    budget: "₱180,000",
-    duration: "8 months",
-    priority: 'low',
-    evaluators: 2
-  },
 ];
 
 const stageLabels = [
-  "Draft",
-  "Under Review",
-  "Technical Evaluation",
-  "Budget Assessment",
-  "Final Approval",
+  "R&D Evaluation",
+  "Evaluators Assessment",
+  "Endorsement",
+  "Approval",
   "Completed"
 ];
 
+const currentStageLabels = [
+  "Submitted",
+  "R&D Evaluation",
+  "Evaluators Assessment",
+  "Endorsement",
+  "Project Approved"
+];
+
 const stageDescriptions = [
-  "Proposal is being prepared and reviewed by the submitter",
-  "Initial screening and administrative review by R&D committee",
-  "Technical evaluation by subject matter experts and evaluators",
+  "Proposal will be reviewed by the R&D staff",
+  "Under review by the assigned evaluators.",
+  "This will be reviewed to assess if it is eligible for endorsement.",
   "Financial review and budget allocation assessment",
-  "Final approval process by the review board",
   "Project has been approved and ready for implementation"
 ];
 
@@ -129,22 +122,25 @@ const Profile: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
   
-  // Share modal state
+  // Modal states
   const [shareOpen, setShareOpen] = useState(false);
   const [shareProject, setShareProject] = useState<Project | null>(null);
   const [shareEmail, setShareEmail] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Notification state (added)
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState(() => [
     { id: 'n1', title: 'New comment on "AgriTech Digital Transformation"', time: '2h', read: false },
     { id: 'n2', title: 'Budget review requested for "Digital Library Modernization"', time: '1d', read: false },
     { id: 'n3', title: 'Proposal "Renewable Energy Research" moved to Draft', time: '3d', read: true }
   ]);
+
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentProject, setCommentProject] = useState<Project | null>(null);
+
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
-  // close notifications when clicking outside
+  // Close notifications when clicking outside
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (!notifRef.current) return;
@@ -156,55 +152,28 @@ const Profile: React.FC = () => {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [notificationsOpen]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const toggleNotifications = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setNotificationsOpen(v => !v);
-  };
-
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const markRead = (id: string) => {
-    setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
-  // comments modal state and storage (per-project)
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentProject, setCommentProject] = useState<Project | null>(null);
-  const [commentsMap] = useState<Record<string, { id: string; text: string; author?: string; time: string }[]>>({
-    // initial demo comments
-    p2: [{ id: 'c1', text: 'Please clarify the methodology section.', author: 'Evaluator A', time: '2d' }],
-    p3: [{ id: 'c2', text: 'Budget needs revision.', author: 'Evaluator B', time: '1d' }]
-  });
-
-  const openComments = (project: Project) => {
-    setCommentProject(project);
-    setCommentsOpen(true);
-
-  };
-
-  const closeComments = () => {
-    setCommentsOpen(false);
-    setCommentProject(null);
-
-  };
-
   const current = mockProjects[activeIndex];
 
+  // Filter projects by status
+  const draftProjects = mockProjects.filter(p => p.currentIndex === 0);
+  const reviewProjects = mockProjects.filter(p => p.currentIndex === 1);
+  const evaluationProjects = mockProjects.filter(p => p.currentIndex === 2);
+  const budgetProjects = mockProjects.filter(p => p.currentIndex === 3);
+  const approvalProjects = mockProjects.filter(p => p.currentIndex === 4);
+  const completedProjects = mockProjects.filter(p => p.currentIndex === 5);
+
+  // Navigation functions
   const prev = () => setActiveIndex((i) => Math.max(0, i - 1));
   const next = () => setActiveIndex((i) => Math.min(mockProjects.length - 1, i + 1));
 
+  // Helper functions
   const getStatusColor = (index: number) => {
     const colors = [
       "bg-gray-100 text-gray-800 border border-gray-300",
       "bg-blue-100 text-blue-800 border border-blue-300",
       "bg-purple-100 text-purple-800 border border-purple-300",
       "bg-orange-100 text-orange-800 border border-orange-300",
-      "bg-yellow-100 text-yellow-800 border border-yellow-300",
-      "bg-green-100 text-green-800 border border-green-300"
+      "bg-green-100 text-green-800 border border-green-300",
     ];
     return colors[index] || colors[0];
   };
@@ -230,15 +199,7 @@ const Profile: React.FC = () => {
     return icons[index] || icons[0];
   };
 
-  // Filter projects by status
-  const draftProjects = mockProjects.filter(p => p.currentIndex === 0);
-  const reviewProjects = mockProjects.filter(p => p.currentIndex === 1);
-  const evaluationProjects = mockProjects.filter(p => p.currentIndex === 2);
-  const budgetProjects = mockProjects.filter(p => p.currentIndex === 3);
-  const approvalProjects = mockProjects.filter(p => p.currentIndex === 4);
-  const completedProjects = mockProjects.filter(p => p.currentIndex === 5);
-
-  // Open share modal for a project
+  // Event handlers
   const openShare = (project: Project) => {
     setShareProject(project);
     setShareOpen(true);
@@ -251,6 +212,29 @@ const Profile: React.FC = () => {
     setShareProject(null);
     setShareEmail("");
     setCopied(false);
+  };
+
+  const openComments = (project: Project) => {
+    setCommentProject(project);
+    setCommentsOpen(true);
+  };
+
+  const closeComments = () => {
+    setCommentsOpen(false);
+    setCommentProject(null);
+  };
+
+  const toggleNotifications = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setNotificationsOpen(v => !v);
+  };
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const markRead = (id: string) => {
+    setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const copyLink = async () => {
@@ -266,20 +250,25 @@ const Profile: React.FC = () => {
   };
 
   const inviteEmail = () => {
-    // placeholder: in real app send invite via API
     if (!shareEmail || !shareProject) return;
-    // simulate invite by clearing field and showing a brief confirmation
     setShareEmail("");
-    // you could show a toast here; for now reuse copied flag as a quick indicator
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Comments data
+  const commentsMap: Record<string, { id: string; text: string; author?: string; time: string }[]> = {
+    p2: [{ id: 'c1', text: 'Please clarify the methodology section.', author: 'Evaluator A', time: '2d' }],
+    p3: [{ id: 'c2', text: 'Budget needs revision.', author: 'Evaluator B', time: '1d' }]
+  };
+
+  const currentComments = commentProject ? commentsMap[commentProject.id] || [] : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <ProponentNavbar />
-
-      {/* Spacer for fixed navbar height */}
       <div className="h-16" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
@@ -312,57 +301,15 @@ const Profile: React.FC = () => {
                   )}
                 </button>
 
-                {/* Notifications dropdown */}
-                {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-                      <div className="text-sm font-semibold text-gray-800">Notifications</div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); markAllRead(); }}
-                          className="text-xs text-gray-500 hover:text-gray-700"
-                        >
-                          Mark all read
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setNotificationsOpen(false); }}
-                          className="p-1 text-gray-400 hover:text-gray-700"
-                          aria-label="Close notifications"
-                        >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="max-h-56 overflow-y-auto">
-                      {notifications.length === 0 && (
-                        <div className="p-4 text-sm text-gray-500">No notifications</div>
-                      )}
-                      {notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-start gap-3 ${n.read ? 'bg-white' : 'bg-gray-50'}`}
-                          onClick={(e) => { e.stopPropagation(); markRead(n.id); /* optionally navigate */ }}
-                        >
-                          <div className="w-2.5 h-2.5 mt-1 rounded-full" style={{ background: n.read ? 'transparent' : '#C8102E' }} />
-                          <div className="flex-1">
-                            <div className="text-sm text-gray-800">{n.title}</div>
-                            <div className="text-xs text-gray-500 mt-1">{n.time}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="px-4 py-2 border-t border-gray-100 text-center">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); /* navigate to notifications page if exists */ setNotificationsOpen(false); }}
-                        className="text-sm text-[#C8102E] font-medium"
-                      >
-                        View all
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <NotificationsDropdown
+                  isOpen={notificationsOpen}
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onClose={() => setNotificationsOpen(false)}
+                  onMarkAllRead={markAllRead}
+                  onMarkRead={markRead}
+                  onViewAll={() => setNotificationsOpen(false)}
+                />
               </div>
 
               {/* View Mode Toggle */}
@@ -392,7 +339,7 @@ const Profile: React.FC = () => {
           </div>
           
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-3">
             <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 lg:gap-3">
                 <div className="p-1 lg:p-2 bg-gray-100 rounded-lg">
@@ -408,35 +355,11 @@ const Profile: React.FC = () => {
             <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 lg:gap-3">
                 <div className="p-1 lg:p-2 bg-blue-100 rounded-lg">
-                  <FaClock className="text-blue-600 text-sm lg:text-base" />
-                </div>
-                <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{draftProjects.length + reviewProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">In Progress</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-orange-100 rounded-lg">
-                  <FaUsers className="text-orange-600 text-sm lg:text-base" />
+                  <FaUsers className="text-blue-600 text-sm lg:text-base" />
                 </div>
                 <div>
                   <p className="text-lg lg:text-2xl font-bold text-gray-800">{evaluationProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Evaluation</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-yellow-100 rounded-lg">
-                  <FaMoneyBillWave className="text-yellow-600 text-sm lg:text-base" />
-                </div>
-                <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{budgetProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Budget Review</p>
+                  <p className="text-xs lg:text-sm text-gray-600">Evaluated by R&D</p>
                 </div>
               </div>
             </div>
@@ -448,7 +371,19 @@ const Profile: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-lg lg:text-2xl font-bold text-gray-800">{approvalProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Final Review</p>
+                  <p className="text-xs lg:text-sm text-gray-600">Assessed by Evaluator</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="p-1 lg:p-2 bg-orange-100 rounded-lg">
+                  <FaMoneyBillWave className="text-orange-600 text-sm lg:text-base" />
+                </div>
+                <div>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{budgetProjects.length}</p>
+                  <p className="text-xs lg:text-sm text-gray-600">Endorsed Project</p>
                 </div>
               </div>
             </div>
@@ -513,7 +448,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(current.currentIndex)}`}>
-                        {stageLabels[current.currentIndex]}
+                        {currentStageLabels[current.currentIndex]}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${getPriorityColor(current.priority)}`}>
                         {current.priority.toLowerCase()} Priority
@@ -521,15 +456,15 @@ const Profile: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Current Stage Description */}
-                  <div className="bg-blue-50 rounded-xl p-4 mb-6 border border-blue-200">
+                  {/* Next Stage Description */}
+                  <div className="bg-red-50 rounded-xl p-4 mb-6 border border-red-200">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg mt-1">
-                        {getStageIcon(current.currentIndex)}
-                      </div>
                       <div>
-                        <h4 className="font-semibold text-blue-900 mb-1">Current Stage: {stageLabels[current.currentIndex]}</h4>
-                        <p className="text-blue-800 text-sm">{stageDescriptions[current.currentIndex]}</p>
+                        <h4 className="font-semibold text-red-900 mb-1">
+                          {current.currentIndex === stageLabels.length - 1 ? "Stage: " : "Next Stage: "}
+                          {stageLabels[current.currentIndex]}
+                        </h4>
+                        <p className="text-red-800 text-sm">{stageDescriptions[current.currentIndex]}</p>
                       </div>
                     </div>
                   </div>
@@ -567,19 +502,6 @@ const Profile: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Duration:</span>
                       <span className="font-semibold text-gray-800">{current.duration}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-300">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Started</span>
-                      <span>Expected Completion</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div 
-                        className="bg-[#C8102E] h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${(current.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                      ></div>
                     </div>
                   </div>
                 </div>
@@ -663,321 +585,42 @@ const Profile: React.FC = () => {
                   onClick={() => setProjectTab('budget')}
                   className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'budget' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
-                  Budget Approval ({budgetProjects.length})
+                  Project Approved ({budgetProjects.length})
                 </button>
               </div>
               <div className="text-xs text-gray-500">Toggle view and browse projects</div>
             </div>
 
-            {/* Determine which projects to show */}
-            {(() => {
-              const projectsToShow = projectTab === 'all' ? mockProjects : budgetProjects;
-              return viewMode === 'grid' ? (
-                <div className="p-4 lg:p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-                    {projectsToShow.map((project) => (
-                      <div
-                        key={project.id}
-                        onClick={() => setActiveIndex(mockProjects.findIndex(p => p.id === project.id))}
-                        className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-800 text-sm lg:text-base group-hover:text-[#C8102E] transition-colors line-clamp-2">
-                              {project.title}
-                            </h4>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 ml-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(project.priority)}`}>
-                              {project.priority.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center justify-between text-xs text-gray-600">
-                            <span>Budget:</span>
-                            <span className="font-semibold">{project.budget}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-gray-600">
-                            <span>Duration:</span>
-                            <span className="font-semibold">{project.duration}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-gray-600">
-                            <span>Evaluators:</span>
-                            <span className="font-semibold">{project.evaluators}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                            <span>Progress</span>
-                            <span className="font-semibold">
-                              {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {/* For budget tab show approved amount highlight */}
-                        <div className="flex items-center justify-between">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
-                            {stageLabels[project.currentIndex]}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {projectTab === 'budget' && (
-                              <span className="text-xs px-2 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full">
-                                Approved: {project.budget}
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); openShare(project); }}
-                              className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                              title="Share project"
-                            >
-                              <FaShareAlt className="text-sm text-gray-600" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); openComments(project); }}
-                              className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                              title="Comments"
-                            >
-                              <FaComment className="text-sm text-gray-600" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Project Title</th>
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden xl:table-cell">Evaluators</th>
-                        {projectTab === 'budget' && (
-                          <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
-                        )}
-                        <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {projectsToShow.map((project) => (
-                        <tr
-                          key={project.id}
-                          className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                          onClick={() => setActiveIndex(mockProjects.findIndex(p => p.id === project.id))}
-                        >
-                          <td className="px-4 lg:px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#C8102E] group-hover:text-white transition-colors">
-                                {getStageIcon(project.currentIndex)}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base">
-                                  {project.title}
-                                </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(project.priority)}`}>
-                                    {project.priority.toUpperCase()}
-                                  </span>
-                                  <span className="text-xs text-gray-500 hidden sm:inline">
-                                    {new Date(project.submissionDate).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
-                              {stageLabels[project.currentIndex]}
-                            </span>
-                          </td>
-                          <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">
-                            {project.budget}
-                          </td>
-                          <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
-                            {project.duration}
-                          </td>
-                          <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden xl:table-cell">
-                            <div className="flex items-center gap-1">
-                              <FaUsers className="text-gray-400" />
-                              {project.evaluators}
-                            </div>
-                          </td>
-                          {projectTab === 'budget' && (
-                            <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">
-                              {project.budget}
-                            </td>
-                          )}
-                          <td className="px-4 lg:px-6 py-4">
-                            <div className="flex items-center gap-2 justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-xs text-gray-600 font-medium hidden sm:inline">
-                                  {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {(project.currentIndex === 1 || project.currentIndex === 2) && (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); openComments(project); }}
-                                    className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#f8fafb] hover:border-[#C8102E] transition-colors text-xs"
-                                    title="Comments"
-                                  >
-                                    <FaComment className="text-sm text-gray-600" />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); openShare(project); }}
-                                  className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                                  title="Share project"
-                                >
-                                  <FaShareAlt className="text-sm text-gray-600" />
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setActiveIndex(mockProjects.findIndex(p => p.id === project.id)); }}
-                                  className="text-gray-400 hover:text-[#C8102E] transition-colors text-xs hidden sm:inline"
-                                  title="Open project"
-                                >
-                                  <FaArrowRight />
-                                </button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
+             {/* Project Portfolio Component */}
+             <ProjectPortfolio
+               projects={mockProjects}
+               viewMode={viewMode}
+               projectTab={projectTab}
+               onShareClick={openShare}
+               onCommentsClick={openComments}
+               budgetProjects={budgetProjects}
+             />
           </div>
         </section>
       </main>
 
-      {/* Share Modal */}
-      {shareOpen && shareProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={closeShare} />
-          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-lg">
-                  <FaShareAlt className="text-white" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800">{shareProject.title}</h4>
-                  <p className="text-xs text-gray-500">Share access with team members or copy link</p>
-                </div>
-              </div>
-              <button onClick={closeShare} className="text-gray-400 hover:text-gray-700">Close</button>
-            </div>
+      {/* Modals */}
+      <ShareModal
+        isOpen={shareOpen}
+        project={shareProject}
+        shareEmail={shareEmail}
+        copied={copied}
+        onClose={closeShare}
+        onEmailChange={setShareEmail}
+        onCopyLink={copyLink}
+        onInviteEmail={inviteEmail}
+      />
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-600">Project link</label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    readOnly
-                    value={`${window.location.origin}/projects/${shareProject.id}`}
-                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700"
-                  />
-                  <button
-                    onClick={copyLink}
-                    className="px-3 py-2 rounded-md bg-[#C8102E] text-white text-sm hover:opacity-90"
-                  >
-                    {copied ? "Copied" : <><FaLink className="inline mr-1" /> Copy</>}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-600">Invite by email</label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    value={shareEmail}
-                    onChange={(e) => setShareEmail(e.target.value)}
-                    placeholder="name@organization.com"
-                    className="flex-1 px-3 py-2 rounded-md border border-gray-200 text-sm"
-                  />
-                  <button
-                    onClick={inviteEmail}
-                    className="px-3 py-2 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6]"
-                  >
-                    <FaUserPlus className="inline mr-1 text-sm" /> Invite
-                  </button>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">Invited users will receive a link to access this project (demo).</p>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button onClick={closeShare} className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-gray-700">Close</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comments Modal (view-only) */}
-      {commentsOpen && commentProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={closeComments} />
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-gray-200 p-6 z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-lg">
-                  <FaComment className="text-white" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Comments — {commentProject.title}</h4>
-    
-                </div>
-              </div>
-              <button onClick={closeComments} className="text-gray-400 hover:text-gray-700">Close</button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="max-h-80 overflow-y-auto space-y-3">
-                {(commentsMap[commentProject.id] ?? []).length === 0 && (
-                  <div className="text-sm text-gray-500">No comments yet.</div>
-                )}
-                {(commentsMap[commentProject.id] ?? []).map(c => (
-                  <div key={c.id} className="p-3 bg-gray-50 border border-gray-100 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-800">{c.author ?? 'Evaluator'}</div>
-                      <div className="text-xs text-gray-400">{c.time}</div>
-                    </div>
-                    <div className="text-sm text-gray-700 mt-1">{c.text}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button onClick={closeComments} className="px-4 py-2 rounded-md bg-gray-100 border border-gray-200 text-gray-700">Close</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CommentsModal
+        isOpen={commentsOpen}
+        project={commentProject}
+        onClose={closeComments}
+      />
     </div>
   );
 };

@@ -10,7 +10,7 @@ const COLORS = {
   lightGray: "#f8f9fa",
 };
 
-const DashboardIcon = ({ isActive }: { isActive: boolean }) => (
+const SubmissionIcon = ({ isActive }: { isActive: boolean }) => (
   <svg className={`w-6 h-6 ${isActive ? 'text-white' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
   </svg>
@@ -49,8 +49,8 @@ const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
 
 const ProponentNavbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [activeLink, setActiveLink] = useState("dashboard");
-  const [pageSubtitle, setPageSubtitle] = useState("Proponent Dashboard");
+  const [activeLink, setActiveLink] = useState("submission");
+  const [pageSubtitle, setPageSubtitle] = useState("Proponent Submission");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -64,9 +64,9 @@ const ProponentNavbar: React.FC = () => {
     // Set active link and subtitle based on current path
     const currentPath = location.pathname.toLowerCase();
 
-    if (currentPath.includes("/dashboard")) {
-      setActiveLink("dashboard");
-      setPageSubtitle("Proponent Dashboard");
+    if (currentPath.includes("/submission")) {
+      setActiveLink("submission");
+      setPageSubtitle("Proponent Submission");
     } else if (currentPath.includes("/profile")) {
       setActiveLink("profile");
       setPageSubtitle("Proponent Profile");
@@ -75,8 +75,8 @@ const ProponentNavbar: React.FC = () => {
       setPageSubtitle("Proponent Settings");
     } else {
       // Default case
-      setActiveLink("dashboard");
-      setPageSubtitle("Proponent Dashboard");
+      setActiveLink("submission");
+      setPageSubtitle("Proponent Submission");
     }
 
     window.addEventListener("scroll", handleScroll);
@@ -90,7 +90,7 @@ const ProponentNavbar: React.FC = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", icon: DashboardIcon, href: "/users/proponent/dashboard" },
+    { name: "Submission", icon: SubmissionIcon, href: "/users/proponent/submission" },
     { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
@@ -114,10 +114,10 @@ const ProponentNavbar: React.FC = () => {
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo and Title */}
             <a
-              href="/users/proponent/dashboard"
+              href="/users/proponent/submission"
               className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brandLight focus:ring-offset-2"
-              onClick={() => handleNavClick("dashboard", "/users/proponent/dashboard")}
-              aria-label="Dashboard - WMSU Project Proposal"
+              onClick={() => handleNavClick("submission", "/users/proponent/submission")}
+              aria-label="Submission - WMSU Project Proposal"
             >
               <div className="relative">
                 <img

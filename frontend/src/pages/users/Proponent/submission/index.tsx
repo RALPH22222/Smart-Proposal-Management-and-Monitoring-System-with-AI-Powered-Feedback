@@ -8,7 +8,7 @@ import UploadSidebar from './uploadSidebar';
 import AIModal from '../../../../components/proponent-component/aiModal';
 import type { FormData, AICheckResult, BudgetItem } from '../../../../types/proponent-form';
 
-const Dashboard: React.FC = () => {
+const Submission: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isCheckingTemplate, setIsCheckingTemplate] = useState(false);
@@ -480,4 +480,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default Submission;
