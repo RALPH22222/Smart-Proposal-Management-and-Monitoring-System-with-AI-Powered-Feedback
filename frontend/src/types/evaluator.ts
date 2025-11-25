@@ -12,7 +12,6 @@ export interface Evaluator {
 	completedReviews: number;
 	department: string;
 	agency: string;
-
 }
 
 export interface Assignment {
@@ -61,6 +60,12 @@ export interface EvaluatorDecision {
 	decision: 'Approve' | 'Revise' | 'Reject';
 	comments: string;
 	submittedDate: string;
+	ratings?: {
+		objectives: number;
+		methodology: number;
+		budget: number;
+		timeline: number;
+	};
 }
 
 export interface TrackingTableRow {
