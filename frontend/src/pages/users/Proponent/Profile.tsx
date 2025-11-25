@@ -3,7 +3,6 @@ import ProponentNavbar from "../../../components/proponent-component/Proponent-n
 import StatusStepper from "../../../components/proponent-component/StatusStepper";
 import ProjectPortfolio from "./projectPortfolio";
 import ShareModal from "../../../components/proponent-component/ShareModal";
-import CommentsModal from "../../../components/proponent-component/CommentsModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import { 
   FaChevronLeft, 
@@ -61,18 +60,18 @@ const mockProjects: Project[] = [
   { 
     id: "p3", 
     title: "STEM Education Enhancement", 
-    currentIndex: 4,
+    currentIndex: 3,
     submissionDate: "2024-01-05",
     lastUpdated: "2024-02-01",
     budget: "₱150,000",
     duration: "6 months",
     priority: 'medium',
-    evaluators: 4
+    evaluators: 3
   },
   { 
     id: "p4", 
     title: "Digital Library Modernization", 
-    currentIndex: 3,
+    currentIndex: 4,
     submissionDate: "2024-01-12",
     lastUpdated: "2024-01-30",
     budget: "₱300,000",
@@ -83,7 +82,7 @@ const mockProjects: Project[] = [
   { 
     id: "p5", 
     title: "Renewable Energy Research", 
-    currentIndex: 0,
+    currentIndex: 2,
     submissionDate: "2024-02-01",
     lastUpdated: "2024-02-01",
     budget: "₱750,000",
@@ -97,7 +96,7 @@ const stageLabels = [
   "R&D Evaluation",
   "Evaluators Assessment",
   "Endorsement",
-  "Approval",
+  "Funding", 
   "Completed"
 ];
 
@@ -106,7 +105,7 @@ const currentStageLabels = [
   "R&D Evaluation",
   "Evaluators Assessment",
   "Endorsement",
-  "Project Approved"
+  "Funded"
 ];
 
 const stageDescriptions = [
@@ -160,7 +159,7 @@ const Profile: React.FC = () => {
   const evaluationProjects = mockProjects.filter(p => p.currentIndex === 2);
   const budgetProjects = mockProjects.filter(p => p.currentIndex === 3);
   const approvalProjects = mockProjects.filter(p => p.currentIndex === 4);
-  const completedProjects = mockProjects.filter(p => p.currentIndex === 5);
+  const fundedProjects = mockProjects.filter(p => p.currentIndex === 5);
 
   // Navigation functions
   const prev = () => setActiveIndex((i) => Math.max(0, i - 1));
@@ -339,7 +338,7 @@ const Profile: React.FC = () => {
           </div>
           
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
             <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
               <div className="flex items-center gap-2 lg:gap-3">
                 <div className="p-1 lg:p-2 bg-gray-100 rounded-lg">
@@ -382,20 +381,8 @@ const Profile: React.FC = () => {
                   <FaMoneyBillWave className="text-orange-600 text-sm lg:text-base" />
                 </div>
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{budgetProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Endorsed Project</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-green-100 rounded-lg">
-                  <FaCheckCircle className="text-green-600 text-sm lg:text-base" />
-                </div>
-                <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{completedProjects.length}</p>
-                  <p className="text-xs lg:text-sm text-gray-600">Completed</p>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{fundedProjects.length}</p>
+                  <p className="text-xs lg:text-sm text-gray-600">Funded Project</p>
                 </div>
               </div>
             </div>
@@ -558,7 +545,7 @@ const Profile: React.FC = () => {
                 <div className="flex items-center gap-2 text-xs">
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Completed</span>
+                    <span>Funded</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -585,7 +572,7 @@ const Profile: React.FC = () => {
                   onClick={() => setProjectTab('budget')}
                   className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'budget' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
-                  Project Approved ({budgetProjects.length})
+                  Funded Project ({budgetProjects.length})
                 </button>
               </div>
               <div className="text-xs text-gray-500">Toggle view and browse projects</div>
@@ -597,7 +584,6 @@ const Profile: React.FC = () => {
                viewMode={viewMode}
                projectTab={projectTab}
                onShareClick={openShare}
-               onCommentsClick={openComments}
                budgetProjects={budgetProjects}
              />
           </div>
@@ -616,11 +602,7 @@ const Profile: React.FC = () => {
         onInviteEmail={inviteEmail}
       />
 
-      <CommentsModal
-        isOpen={commentsOpen}
-        project={commentProject}
-        onClose={closeComments}
-      />
+
     </div>
   );
 };

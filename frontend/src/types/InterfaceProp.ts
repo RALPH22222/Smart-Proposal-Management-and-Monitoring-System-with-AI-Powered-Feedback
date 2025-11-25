@@ -1,7 +1,7 @@
 export interface Proposal {
   id: string;
   title: string;
-  status: 'pending' | 'revise' | 'approved' | 'reject';
+  status: 'r&D Evaluation' | 'revise' | 'funded' | 'reject';
   proponent: string;
   gender: string;
   agency: string;

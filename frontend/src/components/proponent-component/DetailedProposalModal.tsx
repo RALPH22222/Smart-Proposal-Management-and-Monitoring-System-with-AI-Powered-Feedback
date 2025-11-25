@@ -105,10 +105,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       const updatedProposal = {
         ...editedProposal,
         uploadedFile: newFileUrl,
-        status: 'pending', // Change back to pending after revision
+        status: 'r&d Evaluation', // Change back to r&d review after revision
         lastUpdated: new Date().toISOString().split('T')[0]
       };
-      onUpdateProposal(updatedProposal);
+      // onUpdateProposal(updatedProposal);
       setIsEditing(false);
       setNewFile(null);
     }
@@ -122,7 +122,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const currentData = isEditing ? editedProposal : proposal;
   const canEdit = proposal.status === 'revise' && isEditing;
-  const isApproved = proposal.status === 'approved';
+  const isFunded = proposal.status === 'funded';
 
   // Comments data based on status
   const reviseComments = [
@@ -156,10 +156,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'r&D Evaluation': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'revise': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'reject': return 'bg-red-100 text-red-800 border-red-200';
-      case 'approved': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'funded': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -170,9 +170,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       : 'bg-slate-50 border-slate-200 text-slate-700';
   };
 
-  // Function to render input field with check icon for approved status
-  const renderApprovedField = (content: React.ReactNode, fieldName?: string) => {
-    if (isApproved && !isEditing) {
+  // Function to render input field with check icon for funded status
+  const renderFundedField = (content: React.ReactNode, fieldName?: string) => {
+    if (isFunded && !isEditing) {
       return (
         <div className="relative">
           {content}
@@ -185,9 +185,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return content;
   };
 
-  // Function to render text area with check icon for approved status
-  const renderApprovedTextArea = (content: React.ReactNode) => {
-    if (isApproved && !isEditing) {
+  // Function to render text area with check icon for funded status
+  const renderFundedTextArea = (content: React.ReactNode) => {
+    if (isFunded && !isEditing) {
       return (
         <div className="relative">
           {content}
@@ -200,9 +200,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return content;
   };
 
-  // Function to render budget table cell with check icon for approved status
-  const renderApprovedTableCell = (content: React.ReactNode, isLastCell = false) => {
-    if (isApproved && !isEditing) {
+  // Function to render budget table cell with check icon for funded status
+  const renderFundedTableCell = (content: React.ReactNode, isLastCell = false) => {
+    if (isFunded && !isEditing) {
       return (
         <div className="relative">
           {content}
@@ -324,7 +324,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <p className="font-semibold text-slate-900 text-sm relative">
                         {currentData.proponent}
                       </p>
@@ -346,7 +346,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       <option value="Other">Other</option>
                     </select>
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <p className="font-medium text-slate-900 text-sm">
                         {currentData.gender}
                       </p>
@@ -369,7 +369,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <div className="flex items-start gap-1.5 mt-0.5">
                         <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
                         <p className="font-medium text-slate-900 text-sm">
@@ -391,7 +391,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       rows={2}
                     />
                   ) : (
-                    renderApprovedTextArea(
+                    renderFundedTextArea(
                       <div className="flex items-start gap-1.5 mt-0.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
                         <p className="text-slate-900 text-sm">{currentData.address}</p>
@@ -413,7 +413,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <div className="flex items-center gap-1.5">
                         <Phone className="w-3 h-3 text-slate-400" />
                         <p className="text-sm text-slate-900">
@@ -433,7 +433,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <div className="flex items-center gap-1.5">
                         <Phone className="w-3 h-3 text-slate-400" />
                         <p className="text-sm text-slate-900">
@@ -453,7 +453,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <div className="flex items-center gap-1.5">
                         <Mail className="w-3 h-3 text-slate-400" />
                         <p className="text-sm text-slate-900">{currentData.email}</p>
@@ -478,7 +478,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   rows={3}
                 />
               ) : (
-                renderApprovedTextArea(
+                renderFundedTextArea(
                   <p className="text-xs sm:text-sm text-slate-700">
                     {currentData.cooperatingAgencies}
                   </p>
@@ -501,7 +501,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${getInputClass(canEdit)}`}
                   />
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       {currentData.rdStation}
                     </p>
@@ -531,7 +531,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     />
                   </div>
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       <span className="font-semibold text-slate-900">
                         {currentData.classification}: 
@@ -558,7 +558,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${getInputClass(canEdit)}`}
                   />
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       {currentData.modeOfImplementation}
                     </p>
@@ -578,7 +578,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${getInputClass(canEdit)}`}
                   />
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       {currentData.priorityAreas}
                     </p>
@@ -602,7 +602,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${getInputClass(canEdit)}`}
                   />
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       {currentData.sector}
                     </p>
@@ -622,7 +622,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     className={`w-full px-3 py-2 border rounded-lg text-sm ${getInputClass(canEdit)}`}
                   />
                 ) : (
-                  renderApprovedField(
+                  renderFundedField(
                     <p className="text-xs sm:text-sm text-slate-700">
                       {currentData.discipline}
                     </p>
@@ -650,7 +650,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <p className="font-semibold text-slate-900 mt-1">
                         {currentData.duration}
                       </p>
@@ -669,7 +669,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <p className="font-semibold text-slate-900 mt-1">
                         {currentData.startDate}
                       </p>
@@ -688,7 +688,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       className={`w-full px-3 py-2 border rounded-lg text-sm mt-1 ${getInputClass(canEdit)}`}
                     />
                   ) : (
-                    renderApprovedField(
+                    renderFundedField(
                       <p className="font-semibold text-slate-900 mt-1">
                         {currentData.endDate}
                       </p>
@@ -737,7 +737,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               className={`w-full px-2 py-1 border rounded ${getInputClass(canEdit)}`}
                             />
                           ) : (
-                            renderApprovedTableCell(budget.source)
+                            renderFundedTableCell(budget.source)
                           )}
                         </td>
                         <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
@@ -749,7 +749,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               className={`w-full px-2 py-1 border rounded text-right ${getInputClass(canEdit)}`}
                             />
                           ) : (
-                            renderApprovedTableCell(budget.ps)
+                            renderFundedTableCell(budget.ps)
                           )}
                         </td>
                         <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
@@ -761,7 +761,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               className={`w-full px-2 py-1 border rounded text-right ${getInputClass(canEdit)}`}
                             />
                           ) : (
-                            renderApprovedTableCell(budget.mooe)
+                            renderFundedTableCell(budget.mooe)
                           )}
                         </td>
                         <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
@@ -773,7 +773,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               className={`w-full px-2 py-1 border rounded text-right ${getInputClass(canEdit)}`}
                             />
                           ) : (
-                            renderApprovedTableCell(budget.co)
+                            renderFundedTableCell(budget.co)
                           )}
                         </td>
                         <td className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
@@ -785,7 +785,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               className={`w-full px-2 py-1 border rounded text-right ${getInputClass(canEdit)}`}
                             />
                           ) : (
-                            renderApprovedTableCell(budget.total, true)
+                            renderFundedTableCell(budget.total, true)
                           )}
                         </td>
                       </tr>
@@ -802,7 +802,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       </td>
                       <td className="px-3 py-2 text-right text-[#C8102E] text-sm relative">
                         {currentData.budgetTotal}
-                        {isApproved && !isEditing && (
+                        {isFunded && !isEditing && (
                           <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           </div>
@@ -917,7 +917,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="text-xs text-slate-500">
             {isEditing ? 'Editing mode: You can modify the proposal details' : 'View mode: Read-only view'}
-            {isApproved && !isEditing && ' • All fields have been approved'}
+            {isFunded && !isEditing && ' • All fields have been funded'}
           </div>
           <div className="flex items-center gap-2">
             {isEditing && (

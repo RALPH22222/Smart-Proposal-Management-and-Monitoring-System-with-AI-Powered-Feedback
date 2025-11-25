@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { 
   FaShareAlt, 
-  FaComment,
   FaUsers,
   FaMoneyBillWave,
   FaClipboardCheck,
@@ -28,7 +27,6 @@ interface ProjectPortfolioProps {
   viewMode: 'grid' | 'list';
   projectTab: 'all' | 'budget';
   onShareClick: (project: Project) => void;
-  onCommentsClick: (project: Project) => void;
   budgetProjects: Project[];
 }
 
@@ -37,7 +35,6 @@ const ProjectPortfolio: React.FC<ProjectPortfolioProps> = ({
   viewMode,
   projectTab,
   onShareClick,
-  onCommentsClick,
   budgetProjects
 }) => {
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
@@ -49,7 +46,7 @@ const ProjectPortfolio: React.FC<ProjectPortfolioProps> = ({
       "bg-blue-100 text-blue-800 border border-blue-300",
       "bg-purple-100 text-purple-800 border border-purple-300",
       "bg-orange-100 text-orange-800 border border-orange-300",
-      "bg-yellow-100 text-yellow-800 border border-yellow-300",
+      // "bg-yellow-100 text-yellow-800 border border-yellow-300",
       "bg-green-100 text-green-800 border border-green-300"
     ];
     return colors[index] || colors[0];
@@ -81,13 +78,13 @@ const ProjectPortfolio: React.FC<ProjectPortfolioProps> = ({
     "R&D Evaluation", 
     "Evaluators Assessment",
     "Endorsement",
-    "Project Approved"
+    "Funded"
   ];
 
 const handleCardClick = (project: Project) => {
   // Generate random status for demo with proper typing
-  const getRandomStatus = (): 'pending' | 'revise' | 'approved' | 'reject' => {
-    const statuses = ['pending', 'revise', 'approved', 'reject'] as const;
+  const getRandomStatus = (): 'r&D Evaluation' | 'revise' | 'funded' | 'reject' => {
+    const statuses = ['r&D Evaluation', 'revise', 'funded', 'reject'] as const;
     return statuses[Math.floor(Math.random() * statuses.length)];
   };
 
@@ -183,38 +180,29 @@ const handleCardClick = (project: Project) => {
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>Progress</span>
-                    <span className="font-semibold">
-                      {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                    <span className="text-xs text-gray-600 font-medium hidden sm:inline">
+                      {project.currentIndex === 4 ? 100 : Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                    ></div>
+                      style={{ width: `${project.currentIndex === 4 ? 100 : (project.currentIndex / (stageLabels.length - 1)) * 100}%` }}                    ></div>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
-                      {projectTab === 'budget' && project.currentIndex === 4 ? "Project Approved" : stageLabels[project.currentIndex]}
+                      {project.currentIndex === 4 ? "Funded" : stageLabels[project.currentIndex]}
                     </span>
-                    {projectTab === 'budget' && (
+                    {project.currentIndex === 4 && (
                       <span className="text-xs px-2 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full">
                         Approved: {project.budget}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onCommentsClick(project); }}
-                      className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                      title="View comments"
-                    >
-                      <FaComment className="text-sm text-gray-600" />
-                    </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onShareClick(project); }}
@@ -313,22 +301,14 @@ const handleCardClick = (project: Project) => {
                       <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(project.currentIndex / (stageLabels.length - 1)) * 100}%` }}
-                        ></div>
+                          style={{ width: `${project.currentIndex === 4 ? 100 : (project.currentIndex / (stageLabels.length - 1)) * 100}%` }}                        ></div>
                       </div>
-                      <span className="text-xs text-gray-600 font-medium hidden sm:inline">
-                        {Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
-                      </span>
+                     <span className="font-semibold">
+                       {project.currentIndex === 4 ? 100 : Math.round((project.currentIndex / (stageLabels.length - 1)) * 100)}%
+                     </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onCommentsClick(project); }}
-                        className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
-                        title="View comments"
-                      >
-                        <FaComment className="text-sm text-gray-600" />
-                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onShareClick(project); }}
                         className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"

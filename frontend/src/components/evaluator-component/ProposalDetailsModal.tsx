@@ -7,7 +7,6 @@ import {
   Calendar,
   DollarSign,
   MessageSquare,
-  BookOpen,
   User,
   MapPin,
   Phone,
@@ -15,8 +14,55 @@ import {
   Microscope,
   Tags,
   Briefcase,
-  Beaker, // Icon for the new section
+  BookOpen,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
 } from "lucide-react";
+
+// --- Data Constants ---
+const RATING_CRITERIA = {
+  objectives: {
+    label: "Objectives Assessment",
+    descriptions: {
+      5: "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
+      4: "Objectives are clear and relevant with well-defined metrics and good alignment",
+      3: "Objectives are understandable but lack specificity in some areas or could be more significant",
+      2: "Objectives are vague, poorly justified, or lack clear connection to project scope",
+      1: "Objectives are unclear, not measurable, or insignificant to the research field",
+    },
+  },
+  methodology: {
+    label: "Methodology Assessment",
+    descriptions: {
+      5: "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
+      4: "Methodology is sound with appropriate methods, tools, and realistic timeline",
+      3: "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
+      2: "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
+      1: "Methodology is inadequate, not clearly described, or fundamentally flawed",
+    },
+  },
+  budget: {
+    label: "Budget Assessment",
+    descriptions: {
+      5: "Budget is well-justified, realistic, efficiently allocated, with clear cost breakdown and sound financial management plan",
+      4: "Budget is appropriate with minor justification gaps or minor allocation concerns",
+      3: "Budget is acceptable but lacks detailed justification for some line items",
+      2: "Budget appears inflated or inadequately justified with unclear allocation logic",
+      1: "Budget is unrealistic, poorly justified, or raises concerns about cost efficiency",
+    },
+  },
+  timeline: {
+    label: "Timeline Assessment",
+    descriptions: {
+      5: "Timeline is realistic, well-structured with clear milestones, deliverables, and contingency buffers",
+      4: "Timeline is reasonable with appropriate milestones and reasonable contingency planning",
+      3: "Timeline is acceptable but somewhat ambitious or lacks detailed milestone descriptions",
+      2: "Timeline appears unrealistic, poorly structured, or lacks clear milestones",
+      1: "Timeline is not feasible, unclear, or unrealistic given the project scope",
+    },
+  },
+};
 
 interface BudgetSource {
   source: string;
@@ -50,34 +96,45 @@ interface Proposal {
   budgetSources: BudgetSource[];
   budgetTotal: string;
   projectFile: string;
-  comments: {
-    objectives: string;
-    methodology: string;
-    budget: string;
-    timeline: string;
-    overall: string;
-    rdStation: string;
+  ratings?: {
+    objectives: number;
+    methodology: number;
+    budget: number;
+    timeline: number;
   };
+  decision?: string;
+  comment: string; // Single string comment
 }
 
 interface ProposalDetailsModalProps {
   proposal: Proposal | undefined;
   isOpen: boolean;
   onClose: () => void;
-  onViewRubrics: () => void;
 }
 
 export default function ProposalDetailsModal({
   proposal,
   isOpen,
   onClose,
-  onViewRubrics,
 }: ProposalDetailsModalProps) {
   if (!isOpen || !proposal) return null;
 
   const handleDownload = (fileName: string) => {
     console.log("[v0] Downloading file:", fileName);
     alert(`Downloading ${fileName}`);
+  };
+
+  const getRatingColor = (value: number) => {
+    if (value >= 4) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (value === 3) return "bg-blue-100 text-blue-700 border-blue-200";
+    return "bg-amber-100 text-amber-700 border-amber-200";
+  };
+
+  const getButtonStyles = (isSelected: boolean) => {
+    if (isSelected) {
+      return "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105 font-bold";
+    }
+    return "bg-slate-50 text-slate-300 border-slate-100";
   };
 
   return (
@@ -93,13 +150,6 @@ export default function ProposalDetailsModal({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={onViewRubrics}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
-            >
-              <BookOpen className="w-4 h-4" />
-              Rubrics
-            </button>
-            <button
               onClick={onClose}
               className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
             >
@@ -111,7 +161,6 @@ export default function ProposalDetailsModal({
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-            
             {/* File Download Section */}
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -230,7 +279,7 @@ export default function ProposalDetailsModal({
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
                   <span className="font-semibold text-slate-900">
-                    {proposal.classification}: 
+                    {proposal.classification}:
                   </span>{" "}
                   {proposal.classificationDetails}
                 </p>
@@ -369,86 +418,140 @@ export default function ProposalDetailsModal({
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                PS: Personal Services | MOOE: Maintenance and Other Operating
-                Expenses | CO: Capital Outlay
-              </p>
             </div>
 
-            {/* Evaluator Comments Section */}
+            {/* Evaluator Comments & Ratings Section (Read-Only) */}
             <div className="border-t-2 border-slate-300 pt-6 mt-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[#C8102E]" />
-                Evaluator Comments
+                Evaluator Review Details
               </h3>
 
-              <div className="space-y-4">
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
-                    Objectives Assessment
+              <div className="space-y-6">
+                {/* Loop for the 4 main rated sections */}
+                {["objectives", "methodology", "budget", "timeline"].map(
+                  (key) => {
+                    const field = key as keyof typeof RATING_CRITERIA;
+                    // Safe access with fallback 0
+                    const ratingValue = proposal.ratings?.[field] || 0;
+                    const ratingDesc =
+                      (RATING_CRITERIA[field].descriptions as any)[
+                        ratingValue
+                      ] || "No rating provided.";
+
+                    return (
+                      <div
+                        key={key}
+                        className="bg-slate-50 p-4 rounded-xl border border-slate-200"
+                      >
+                        <div className="mb-3">
+                          <label className="block text-sm font-bold text-slate-900">
+                            {RATING_CRITERIA[field].label}
+                          </label>
+                        </div>
+
+                        {/* 1-5 Visual Indicators (Read-Only) */}
+                        <div className="flex gap-2 mb-3">
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <div
+                              key={num}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border transition-all duration-200 cursor-default ${getButtonStyles(
+                                ratingValue === num
+                              )}`}
+                            >
+                              {num}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Rating Description ONLY */}
+                        <div
+                          className={`text-xs p-3 rounded-lg border ${
+                            ratingValue > 0
+                              ? getRatingColor(ratingValue)
+                              : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                          }`}
+                        >
+                          {ratingDesc}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+
+                {/* Comments */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">
+                    Comments
                   </label>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {proposal.comments.objectives}
-                  </p>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
+                    {proposal.comment}
+                  </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
-                    Methodology Assessment
-                  </label>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {proposal.comments.methodology}
-                  </p>
-                </div>
+                {/* Suggested Decision Section (Read-Only) */}
+                <div className="border-t border-slate-200 pt-6 mt-2">
+                  <h4 className="block text-sm font-bold text-slate-900 mb-3">
+                    Suggested Decision
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Approve Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
+                        proposal.decision === "Approve"
+                          ? "bg-green-600 text-white border-green-600 shadow-md"
+                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                      }`}
+                    >
+                      <CheckCircle
+                        className={`w-5 h-5 ${
+                          proposal.decision === "Approve"
+                            ? "text-white"
+                            : "text-slate-300"
+                        }`}
+                      />
+                      <span className="font-semibold text-sm">Approve</span>
+                    </div>
 
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
-                    Budget Assessment
-                  </label>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {proposal.comments.budget}
-                  </p>
-                </div>
+                    {/* Revise Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
+                        proposal.decision === "Revise"
+                          ? "bg-yellow-500 text-white border-yellow-500 shadow-md"
+                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                      }`}
+                    >
+                      <AlertCircle
+                        className={`w-5 h-5 ${
+                          proposal.decision === "Revise"
+                            ? "text-white"
+                            : "text-slate-300"
+                        }`}
+                      />
+                      <span className="font-semibold text-sm">Revise</span>
+                    </div>
 
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
-                    Timeline Assessment
-                  </label>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {proposal.comments.timeline}
-                  </p>
-                </div>
-
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <label className="block text-sm font-semibold text-slate-900 mb-2">
-                    Overall Assessment
-                  </label>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {proposal.comments.overall}
-                  </p>
+                    {/* Reject Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
+                        proposal.decision === "Reject"
+                          ? "bg-red-700 text-white border-red-700 shadow-md"
+                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                      }`}
+                    >
+                      <XCircle
+                        className={`w-5 h-5 ${
+                          proposal.decision === "Reject"
+                            ? "text-white"
+                            : "text-slate-300"
+                        }`}
+                      />
+                      <span className="font-semibold text-sm">Reject</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* R&D Station Section (Big Words & 1 Box) */}
-            <div className="border-t-2 border-slate-300 pt-6 mt-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <Beaker className="w-5 h-5 text-[#C8102E]" />
-                Research & Development Station Comment
-              </h3>
-
-              {/* The "1 box" */}
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <p className="text-sm text-slate-700 leading-relaxed">
-                  {proposal.comments.rdStation || (
-                    <span className="text-slate-400 italic">
-                      No specific comments provided for R&D Station alignment.
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-
           </div>
         </div>
 
