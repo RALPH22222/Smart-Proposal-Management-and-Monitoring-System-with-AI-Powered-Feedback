@@ -341,7 +341,6 @@ export default function EvaluatorSettings() {
         navigation.navigate('EvaluatorCompleted');
         break;
       case 'Settings':
-        // Already on settings
         break;
       default:
         break;

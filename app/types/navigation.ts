@@ -6,6 +6,7 @@ export type RootStackParamList = {
   AdminContents: undefined;
   AdminReports: undefined;
   AdminSystem: undefined;
+  AdminSettings: undefined;
   EvaluatorDashboard: undefined;
   EvaluatorProposals: undefined;
   EvaluatorUnderReview: undefined;
