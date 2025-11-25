@@ -18,6 +18,12 @@ interface EvaluatorDecision {
 	decision: string;
 	comments: string;
 	submittedDate: string;
+	ratings?: {
+		objectives: number;
+		methodology: number;
+		budget: number;
+		timeline: number;
+	};
 }
 
 interface EvaluatorDecisionModalProps {
@@ -28,6 +34,49 @@ interface EvaluatorDecisionModalProps {
 	proposalId: string;
 }
 
+const RATING_CRITERIA = {
+	objectives: {
+		label: "Objectives Assessment",
+		descriptions: {
+			5: "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
+			4: "Objectives are clear and relevant with well-defined metrics and good alignment",
+			3: "Objectives are understandable but lack specificity in some areas or could be more significant",
+			2: "Objectives are vague, poorly justified, or lack clear connection to project scope",
+			1: "Objectives are unclear, not measurable, or insignificant to the research field",
+		},
+	},
+	methodology: {
+		label: "Methodology Assessment",
+		descriptions: {
+			5: "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
+			4: "Methodology is sound with appropriate methods, tools, and realistic timeline",
+			3: "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
+			2: "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
+			1: "Methodology is inadequate, not clearly described, or fundamentally flawed",
+		},
+	},
+	budget: {
+		label: "Budget Assessment",
+		descriptions: {
+			5: "Budget is well-justified, realistic, efficiently allocated, with clear cost breakdown and sound financial management plan",
+			4: "Budget is appropriate with minor justification gaps or minor allocation concerns",
+			3: "Budget is acceptable but lacks detailed justification for some line items",
+			2: "Budget appears inflated or inadequately justified with unclear allocation logic",
+			1: "Budget is unrealistic, poorly justified, or raises concerns about cost efficiency",
+		},
+	},
+	timeline: {
+		label: "Timeline Assessment",
+		descriptions: {
+			5: "Timeline is realistic, well-structured with clear milestones, deliverables, and contingency buffers",
+			4: "Timeline is reasonable with appropriate milestones and reasonable contingency planning",
+			3: "Timeline is acceptable but somewhat ambitious or lacks detailed milestone descriptions",
+			2: "Timeline appears unrealistic, poorly structured, or lacks clear milestones",
+			1: "Timeline is not feasible, unclear, or unrealistic given the project scope",
+		},
+	},
+};
+
 const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 	isOpen,
 	onClose,
@@ -36,14 +85,6 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 	proposalId
 }) => {
 	if (!isOpen) return null;
-
-	const assessmentData = {
-		objectiveAssessment: "The project objectives are clearly defined and aligned with institutional goals. The AI implementation shows strong potential for improving student learning outcomes.",
-		methodologyAssessment: "Research methodology is sound and well-structured. The use of machine learning algorithms is appropriate for the stated objectives.",
-		budgetAssessment: "Budget allocation is reasonable and well-justified. However, some line items could benefit from more detailed breakdown.",
-		timelineAssessment: "Project timeline is realistic and accounts for potential delays. Milestones are clearly defined and achievable.",
-		overallAssessment: decision.comments
-	};
 
 	const getDecisionColor = (decision: string) => {
 		switch (decision) {
@@ -69,6 +110,12 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 			default:
 				return <FileText className='w-4 h-4 sm:w-5 sm:h-5 text-slate-600' />;
 		}
+	};
+
+	const getRatingColor = (value: number) => {
+		if (value >= 4) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+		if (value === 3) return "bg-blue-100 text-blue-700 border-blue-200";
+		return "bg-amber-100 text-amber-700 border-amber-200";
 	};
 
 	return (
@@ -153,63 +200,108 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 							<span className="font-semibold text-sm sm:text-base">Decision: {decision.decision}</span>
 						</div>
 
-						{/* Assessment Sections */}
-						<div className="space-y-3 sm:space-y-4">
-							{/* Objective Assessment */}
-							<div className="bg-slate-50 rounded-lg p-3 sm:p-4">
-								<h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
-									<CheckCircle className="w-4 h-4 text-[#C8102E] flex-shrink-0" />
-									<span className="text-xs sm:text-sm">Objective Assessment</span>
+						{/* Ratings Section */}
+						{decision.ratings && (
+							<div className="space-y-4">
+								<h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+									<MessageSquare className="w-5 h-5 text-[#C8102E]" />
+									Evaluator Ratings
 								</h3>
-								<p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-									{assessmentData.objectiveAssessment}
-								</p>
-							</div>
 
-							{/* Methodology Assessment */}
-							<div className="bg-slate-50 rounded-lg p-3 sm:p-4">
-								<h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
-									<FileText className="w-4 h-4 text-[#C8102E] flex-shrink-0" />
-									<span className="text-xs sm:text-sm">Methodology Assessment</span>
-								</h3>
-								<p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-									{assessmentData.methodologyAssessment}
-								</p>
-							</div>
+								{/* Objectives Rating */}
+								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+									<div className="flex items-center justify-between mb-3">
+										<label className="text-sm font-semibold text-slate-900">
+											{RATING_CRITERIA.objectives.label}
+										</label>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-bold text-slate-700">
+												 <span
+                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
+                                                                                     >
+                                                                                       {decision.ratings.timeline}/5
+                                                                                     </span>											
+											</span>
+										</div>
+									</div>
+									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.objectives)}`}>
+										{(RATING_CRITERIA.objectives.descriptions as any)[decision.ratings.objectives]}
+									</div>
+								</div>
 
-							{/* Budget Assessment */}
-							<div className="bg-slate-50 rounded-lg p-3 sm:p-4">
-								<h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
-									<TrendingUp className="w-4 h-4 text-[#C8102E] flex-shrink-0" />
-									<span className="text-xs sm:text-sm">Budget Assessment</span>
-								</h3>
-								<p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-									{assessmentData.budgetAssessment}
-								</p>
-							</div>
+								{/* Methodology Rating */}
+								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+									<div className="flex items-center justify-between mb-3">
+										<label className="text-sm font-semibold text-slate-900">
+											{RATING_CRITERIA.methodology.label}
+										</label>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-bold text-slate-700">
+												 <span
+                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
+                                                                                     >
+                                                                                       {decision.ratings.timeline}/5
+                                                                                     </span>											
+											</span>
+										</div>
+									</div>
+									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.methodology)}`}>
+										{(RATING_CRITERIA.methodology.descriptions as any)[decision.ratings.methodology]}
+									</div>
+								</div>
 
-							{/* Timeline Assessment */}
-							<div className="bg-slate-50 rounded-lg p-3 sm:p-4">
-								<h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
-									<Clock className="w-4 h-4 text-[#C8102E] flex-shrink-0" />
-									<span className="text-xs sm:text-sm">Timeline Assessment</span>
-								</h3>
-								<p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-									{assessmentData.timelineAssessment}
-								</p>
-							</div>
+								{/* Budget Rating */}
+								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+									<div className="flex items-center justify-between mb-3">
+										<label className="text-sm font-semibold text-slate-900">
+											{RATING_CRITERIA.budget.label}
+										</label>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-bold text-slate-700">
+												 <span
+                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
+                                                                                     >
+                                                                                       {decision.ratings.timeline}/5
+                                                                             </span>											</span>
+										</div>
+									</div>
+									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
+										{(RATING_CRITERIA.budget.descriptions as any)[decision.ratings.budget]}
+									</div>
+								</div>
 
-							{/* Overall Assessment */}
-							<div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
-								<h3 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-									<MessageSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
-									<span className="text-xs sm:text-sm">Overall Assessment</span>
-								</h3>
-								<p className="text-xs sm:text-sm text-blue-700 leading-relaxed">
-									{assessmentData.overallAssessment}
-								</p>
+								{/* Timeline Rating */}
+								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+									<div className="flex items-center justify-between mb-3">
+										<label className="text-sm font-semibold text-slate-900">
+											{RATING_CRITERIA.timeline.label}
+										</label>
+										<div className="flex items-center gap-2">
+											<span className="text-sm font-bold text-slate-700">
+												 <span
+                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
+                                                                                     >
+                                                                                       {decision.ratings.timeline}/5
+                                                                                     </span>
+											</span>
+										</div>
+									</div>
+									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.timeline)}`}>
+										{(RATING_CRITERIA.timeline.descriptions as any)[decision.ratings.timeline]}
+									</div>
+								</div>
 							</div>
-						</div>
+						)}
+
+						{/* Comments */}
+                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                       <label className="block text-sm font-bold text-slate-900 mb-2">
+                                         Comments
+                                       </label>
+                                       <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
+                                         {decision.comments}
+                                       </div>
+                                     </div>
 					</div>
 				</div>
 
