@@ -7,7 +7,6 @@ export interface Proposal {
   agency: string;
   address: string;
   telephone: string;
-  fax: string;
   email: string;
   cooperatingAgencies: string;
   rdStation: string;

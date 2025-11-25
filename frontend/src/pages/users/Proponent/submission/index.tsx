@@ -24,11 +24,11 @@ const Submission: React.FC = () => {
     leaderGender: '', 
     agencyName: '',
     agencyAddress: '', 
-    telephoneFaxEmail: '', 
+    telephone: '',
+    tags: '',
+    email: '',
     cooperatingAgencies: '', 
     researchStation: '',
-    
-    // Updated classification structure
     classificationType: '',
     researchType: { 
       basic: false, 
@@ -64,7 +64,9 @@ const Submission: React.FC = () => {
       formData.leaderGender,
       formData.agencyName,
       formData.agencyAddress, 
-      formData.telephoneFaxEmail, 
+      formData.tags, 
+      formData.email,
+      formData.telephone,
       formData.plannedStartDate,
       formData.plannedEndDate, 
       formData.duration

@@ -108,22 +108,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
 
               {/* Contact Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                 <div>
                   <span className="text-xs text-slate-500">Telephone</span>
                   <div className="flex items-center gap-1.5">
                     <Phone className="w-3 h-3 text-slate-400" />
                     <p className="text-sm text-slate-900">
                       {proposal.telephone}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xs text-slate-500">Fax</span>
-                  <div className="flex items-center gap-1.5">
-                    <Phone className="w-3 h-3 text-slate-400" />
-                    <p className="text-sm text-slate-900">
-                      {proposal.fax}
                     </p>
                   </div>
                 </div>

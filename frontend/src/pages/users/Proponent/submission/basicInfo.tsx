@@ -6,7 +6,9 @@ import {
   FaBuilding,
   FaPhone,
   FaEnvelope,
-  FaUniversity
+  FaUniversity,
+  FaTags,
+  FaTimes
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -42,14 +44,36 @@ const agenciesList = [
   { id: 24, name: 'Local Government Unit (LGU)' },
 ];
 
+const tagsOptions = [
+  { id: 1, name: 'Agriculture' },
+  { id: 2, name: 'Technology' },
+  { id: 3, name: 'Education' },
+  { id: 4, name: 'Healthcare' },
+  { id: 5, name: 'Environment' },
+  { id: 6, name: 'Infrastructure' },
+  { id: 7, name: 'Security' },
+  { id: 8, name: 'Research' },
+  { id: 9, name: 'Development' },
+  { id: 10, name: 'Innovation' },
+  { id: 11, name: 'Sustainability' },
+  { id: 12, name: 'Community' },
+  { id: 13, name: 'Digital' },
+  { id: 14, name: 'Renewable Energy' },
+  { id: 15, name: 'Other' },
+];
+
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange }) => {
   const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
   const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
+  const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
   const [agencySearchTerm, setAgencySearchTerm] = useState('');
   const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState('');
+  const [tagsSearchTerm, setTagsSearchTerm] = useState('');
   const [selectedAgencies, setSelectedAgencies] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [filteredAgencies, setFilteredAgencies] = useState(agenciesList);
   const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState(agenciesList);
+  const [filteredTags, setFilteredTags] = useState(tagsOptions);
 
   // Filter agencies based on search term for Agency Name
   useEffect(() => {
@@ -66,6 +90,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     );
     setFilteredCooperatingAgencies(filtered);
   }, [cooperatingSearchTerm]);
+
+  // Filter tags based on search term
+  useEffect(() => {
+    const filtered = tagsOptions.filter(tag =>
+      tag.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())
+    );
+    setFilteredTags(filtered);
+  }, [tagsSearchTerm]);
 
   // Handle agency selection for Cooperating Agencies
   const handleAgencySelect = (agency: { id: number; name: string }) => {
@@ -137,6 +169,50 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onInputChange(fakeEvent);
   };
 
+  // Handle tag selection
+  const handleTagSelect = (tag: { id: number; name: string }) => {
+    const isSelected = selectedTags.includes(tag.name);
+    
+    let newSelectedTags;
+    if (isSelected) {
+      newSelectedTags = selectedTags.filter(t => t !== tag.name);
+    } else {
+      newSelectedTags = [...selectedTags, tag.name];
+    }
+    
+    setSelectedTags(newSelectedTags);
+    
+    // Update form data with comma-separated tag names
+    const tagNames = newSelectedTags.join(', ');
+    const fakeEvent = {
+      target: {
+        name: 'discipline', // or whatever field name you want to use
+        value: tagNames
+      }
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+    
+    onInputChange(fakeEvent);
+    setTagsSearchTerm('');
+    setIsTagsDropdownOpen(false);
+  };
+
+  // Handle tag removal
+  const handleTagRemove = (tagName: string) => {
+    const newSelectedTags = selectedTags.filter(t => t !== tagName);
+    setSelectedTags(newSelectedTags);
+    
+    // Update form data
+    const tagNames = newSelectedTags.join(', ');
+    const fakeEvent = {
+      target: {
+        name: 'discipline', // or whatever field name you want to use
+        value: tagNames
+      }
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -148,6 +224,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       
       if (!target.closest('.cooperating-agency-dropdown-container')) {
         setIsCooperatingDropdownOpen(false);
+      }
+      
+      if (!target.closest('.tags-dropdown-container')) {
+        setIsTagsDropdownOpen(false);
       }
     };
 
@@ -287,7 +367,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             />
         </div>
           
-          <div className="space-y-2">
+        <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <FaEnvelope className="text-gray-400" />
               Email *
@@ -300,7 +380,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
               placeholder="Enter email address"
             />
-          </div>
+        </div>
       </div>
 
       {/* Updated Cooperating Agencies Section */}
@@ -390,6 +470,70 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                       className="w-4 h-4 text-[#C8102E] rounded focus:ring-[#C8102E]"
                     />
                     <span className="text-sm text-gray-700">{agency.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tags Input Section */}
+      <div className="space-y-2 tags-dropdown-container">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <FaTags className="text-gray-400" />
+          Tags
+        </label>
+        
+        {/* Selected Tags Display */}
+        {selectedTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            {selectedTags.map((tag, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm"
+              >
+                <FaTags className="w-3 h-3" />
+                <span>{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => handleTagRemove(tag)}
+                  className="hover:text-blue-600 transition-colors duration-200 text-base font-semibold"
+                >
+                  <FaTimes className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search tags or select from options"
+            value={tagsSearchTerm}
+            onChange={(e) => setTagsSearchTerm(e.target.value)}
+            onFocus={() => setIsTagsDropdownOpen(true)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+          />
+          
+          {/* Tags Dropdown Menu */}
+          {isTagsDropdownOpen && filteredTags.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              {filteredTags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 ${
+                    selectedTags.includes(tag.name) ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                  }`}
+                  onClick={() => handleTagSelect(tag)}
+                >
+                  <div className="flex items-center gap-3">
+                    <FaTags className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-700">{tag.name}</span>
+                    {selectedTags.includes(tag.name) && (
+                      <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
+                    )}
                   </div>
                 </div>
               ))}

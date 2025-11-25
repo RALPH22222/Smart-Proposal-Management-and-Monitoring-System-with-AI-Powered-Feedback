@@ -98,7 +98,6 @@ const handleCardClick = (project: Project) => {
     agency: "University of the Philippines",
     address: "Quezon City, Philippines",
     telephone: "+63 2 1234 5678",
-    fax: "+63 2 1234 5679",
     email: "maria.santos@up.edu.ph",
     cooperatingAgencies: "DOST, CHED, DepEd",
     rdStation: "UP Research Station",

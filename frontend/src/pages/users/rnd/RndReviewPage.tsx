@@ -319,11 +319,6 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                           {proposal.title}
                         </h2>
 
-                        {/* Added description line */}
-                        <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">
-                          {proposal.description || 'Research proposal submitted for review and evaluation.'}
-                        </p>
-
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                           <div className="flex items-center gap-1.5">
                             <User className="w-3 h-3" aria-hidden="true" />

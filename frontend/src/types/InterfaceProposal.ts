@@ -11,7 +11,6 @@ export interface Proposal {
        id: string;
        title: string;
        documentUrl: string;
-       description: string;
        status: ProposalStatus;
        submittedBy: string;
        submittedDate: string;
