@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { ResearchClass, DevelopmentClass, ImplementationMode, PriorityArea } from "../types/proposal";
+import {
+  ResearchClass,
+  DevelopmentClass,
+  ImplementationMode,
+  PriorityArea,
+  Status,
+} from "../types/proposal";
 
 export const proposalSchema = z.object({
   proponent_id: z.number(),
@@ -28,5 +34,7 @@ export const proposalSchema = z.object({
     )
     .min(1),
 });
+
+export const proposalStatusSchema = z.enum(Status);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;

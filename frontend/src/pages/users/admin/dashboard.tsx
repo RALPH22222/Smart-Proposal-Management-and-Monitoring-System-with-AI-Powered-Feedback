@@ -1,5 +1,5 @@
-import React from 'react';
-import Sidebar from '../../../components/admin-component/sidebar';
+import React from "react";
+import Sidebar from "../../../components/admin-component/sidebar";
 import {
   Users,
   FileText,
@@ -10,7 +10,7 @@ import {
   BarChart3,
   Cpu,
   Shield,
-  Activity
+  Activity,
 } from "lucide-react";
 
 export default function DashboardAdmin() {
@@ -281,13 +281,15 @@ export default function DashboardAdmin() {
                           className="p-3 text-slate-600 text-xs tabular-nums hidden lg:table-cell"
                           role="cell"
                         >
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            metric.status === 'up' 
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : metric.status === 'warning'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}>
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              metric.status === "up"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : metric.status === "warning"
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                  : "bg-blue-50 text-blue-700 border border-blue-200"
+                            }`}
+                          >
                             {metric.trend}
                           </span>
                         </td>
@@ -301,7 +303,9 @@ export default function DashboardAdmin() {
               <div className="p-4 bg-slate-50 border-t border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                   <button
-                    onClick={() => (window.location.href = "/users/admin/system")}
+                    onClick={() =>
+                      (window.location.href = "/users/admin/system")
+                    }
                     className="text-[#C8102E] hover:text-[#A00E26] font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-opacity-50 rounded px-2 py-1 cursor-pointer"
                     aria-label="View system details"
                   >
@@ -381,19 +385,24 @@ export default function DashboardAdmin() {
                 </h4>
                 <div className="space-y-3 text-xs text-slate-600">
                   {userActivity.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between">
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between"
+                    >
                       <span>{user.role}</span>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-slate-800">
                           {user.active}/{user.total}
                         </span>
-                        <span className={`px-2 py-1 rounded-full ${
-                          parseInt(user.percentage) > 80 
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : parseInt(user.percentage) > 60
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 rounded-full ${
+                            parseInt(user.percentage) > 80
+                              ? "bg-emerald-100 text-emerald-700"
+                              : parseInt(user.percentage) > 60
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
                           {user.percentage}
                         </span>
                       </div>

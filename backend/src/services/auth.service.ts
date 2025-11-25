@@ -27,12 +27,13 @@ export class AuthService {
     return { data, error };
   }
 
-  async verifytoken(token: string) {
+  async verifyToken(token: string) {
     const supabase_secret_jwt = process.env.SUPABASE_SECRET_JWT;
 
     if (!supabase_secret_jwt) {
       return {
         error: {
+          type: "missing_environment_variable",
           message: "Missing SUPABASE SECRET JWT",
         },
       };

@@ -18,14 +18,14 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   const cookies = parseCookie(cookie_str);
 
-  const { data, error } = await authService.verifytoken(cookies.tk);
+  const { data, error } = await authService.verifyToken(cookies.tk);
 
   if (error) {
     console.error("Error verify token: ", JSON.stringify(error, null, 2));
     return {
       statusCode: 400,
       body: JSON.stringify({
-        message: "Error verify token",
+        message: "Unauthorized access",
       }),
     };
   }
