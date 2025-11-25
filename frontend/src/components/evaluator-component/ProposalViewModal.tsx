@@ -37,7 +37,6 @@ export interface Proposal {
   email: string;
   status: string;
   deadline: string;
-  description: string;
   projectType: string;
   agency: string;
   cooperatingAgencies: string;

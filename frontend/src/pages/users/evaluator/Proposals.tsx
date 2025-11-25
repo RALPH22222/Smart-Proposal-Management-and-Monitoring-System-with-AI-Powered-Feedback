@@ -42,7 +42,6 @@ interface Proposal {
   priorityAreas: string;
   status: string;
   deadline: string;
-  description: string;
   projectType: string;
   agency: string;
   cooperatingAgencies: string;
@@ -90,8 +89,6 @@ export default function Proposals() {
       priorityAreas: "Artificial Intelligence in Education",
       status: "accepted",
       deadline: "Oct 15, 2025",
-      description:
-        "Comprehensive study on AI applications in educational systems",
       projectType: "ICT",
       agency: "Western Mindanao State University",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
@@ -115,7 +112,8 @@ export default function Proposals() {
       budgetTotal: "₱1,250,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Maria Santos",
-      rdCommentsToEvaluator: "Please focus on evaluating the technical feasibility and scalability of the AI algorithms proposed. Pay special attention to the data privacy considerations for student data.",
+      rdCommentsToEvaluator:
+        "Please focus on evaluating the technical feasibility and scalability of the AI algorithms proposed. Pay special attention to the data privacy considerations for student data.",
       evaluationDeadline: "November 15, 2025",
     },
     {
@@ -131,8 +129,6 @@ export default function Proposals() {
       priorityAreas: "Renewable Energy & Smart Grids",
       status: "pending",
       deadline: "Oct 20, 2025",
-      description:
-        "Advanced energy management system for smart grid optimization",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
@@ -163,7 +159,8 @@ export default function Proposals() {
       budgetTotal: "₱2,100,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Carlos Reyes",
-      rdCommentsToEvaluator: "Evaluate the integration of IoT sensors with existing grid infrastructure. Assess the cost-benefit analysis and potential impact on rural communities.",
+      rdCommentsToEvaluator:
+        "Evaluate the integration of IoT sensors with existing grid infrastructure. Assess the cost-benefit analysis and potential impact on rural communities.",
       evaluationDeadline: "November 20, 2025",
     },
     {
@@ -179,7 +176,6 @@ export default function Proposals() {
       priorityAreas: "Internet of Things (IoT)",
       status: "rejected",
       deadline: "Oct 10, 2025",
-      description: "IoT sensors for real-time energy consumption monitoring",
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
@@ -203,7 +199,8 @@ export default function Proposals() {
       budgetTotal: "₱1,800,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Angela Rivera",
-      rdCommentsToEvaluator: "This proposal was rejected due to insufficient technical details and lack of clear implementation timeline. Focus on providing constructive feedback for resubmission.",
+      rdCommentsToEvaluator:
+        "This proposal was rejected due to insufficient technical details and lack of clear implementation timeline. Focus on providing constructive feedback for resubmission.",
       evaluationDeadline: "November 10, 2025",
     },
     {
@@ -219,7 +216,6 @@ export default function Proposals() {
       priorityAreas: "Quantum Computing",
       status: "pending",
       deadline: "Oct 25, 2025",
-      description: "Advanced quantum computing algorithms for cryptography",
       projectType: "ICT",
       agency: "Mindanao State University",
       cooperatingAgencies: "DOST RO9, DICT RO9, Private Sector",
@@ -250,7 +246,8 @@ export default function Proposals() {
       budgetTotal: "₱2,500,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. John Smith",
-      rdCommentsToEvaluator: "High-priority proposal. Please evaluate the quantum algorithm efficiency and potential real-world applications. Consider the availability of required quantum computing resources.",
+      rdCommentsToEvaluator:
+        "High-priority proposal. Please evaluate the quantum algorithm efficiency and potential real-world applications. Consider the availability of required quantum computing resources.",
       evaluationDeadline: "November 25, 2025",
     },
     {
@@ -266,7 +263,6 @@ export default function Proposals() {
       priorityAreas: "Energy Storage Systems",
       status: "accepted",
       deadline: "Oct 18, 2025",
-      description: "Next-generation battery technology for renewable energy",
       projectType: "Energy",
       agency: "Mindanao State University",
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
@@ -297,7 +293,8 @@ export default function Proposals() {
       budgetTotal: "₱2,500,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Maria Santos",
-      rdCommentsToEvaluator: "Excellent proposal with strong industry partnerships. Focus evaluation on battery lifespan, environmental impact, and commercialization potential.",
+      rdCommentsToEvaluator:
+        "Excellent proposal with strong industry partnerships. Focus evaluation on battery lifespan, environmental impact, and commercialization potential.",
       evaluationDeadline: "November 18, 2025",
     },
     {
@@ -313,7 +310,6 @@ export default function Proposals() {
       priorityAreas: "Artificial Intelligence",
       status: "pending",
       deadline: "Oct 22, 2025",
-      description: "Optimization techniques for deep neural networks",
       projectType: "ICT",
       agency: "Ateneo de Zamboanga University",
       cooperatingAgencies: "DOST RO9, DICT RO9",
@@ -337,7 +333,8 @@ export default function Proposals() {
       budgetTotal: "₱1,500,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Carlos Reyes",
-      rdCommentsToEvaluator: "Please evaluate the novelty of the optimization techniques and their applicability to real-world problems. Consider computational requirements and scalability.",
+      rdCommentsToEvaluator:
+        "Please evaluate the novelty of the optimization techniques and their applicability to real-world problems. Consider computational requirements and scalability.",
       evaluationDeadline: "November 22, 2025",
     },
     {
@@ -353,8 +350,6 @@ export default function Proposals() {
       priorityAreas: "Smart Cities",
       status: "pending",
       deadline: "Oct 28, 2025",
-      description:
-        "AI-powered energy distribution optimization for urban areas",
       projectType: "Energy",
       agency: "Ateneo de Zamboanga University",
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
@@ -385,7 +380,8 @@ export default function Proposals() {
       budgetTotal: "₱3,200,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. Angela Rivera",
-      rdCommentsToEvaluator: "Multi-agency collaboration proposal. Evaluate integration challenges with existing urban infrastructure and potential regulatory hurdles.",
+      rdCommentsToEvaluator:
+        "Multi-agency collaboration proposal. Evaluate integration challenges with existing urban infrastructure and potential regulatory hurdles.",
       evaluationDeadline: "November 28, 2025",
     },
     {
@@ -401,8 +397,6 @@ export default function Proposals() {
       priorityAreas: "Power Systems",
       status: "rejected",
       deadline: "Oct 12, 2025",
-      description:
-        "ML-powered predictive maintenance for power generation systems",
       projectType: "ICT",
       agency: "Zamboanga Peninsula Medical Center",
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
@@ -433,7 +427,8 @@ export default function Proposals() {
       budgetTotal: "₱2,750,000.00",
       // R&D Assignment Data
       assignedRdStaff: "Dr. John Smith",
-      rdCommentsToEvaluator: "Proposal lacked clear methodology for ML model validation. Please provide detailed feedback on improving the technical approach and experimental design.",
+      rdCommentsToEvaluator:
+        "Proposal lacked clear methodology for ML model validation. Please provide detailed feedback on improving the technical approach and experimental design.",
       evaluationDeadline: "November 12, 2025",
     },
   ];
@@ -660,10 +655,6 @@ export default function Proposals() {
                           {proposal.title}
                         </h2>
 
-                        <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">
-                          {proposal.description}
-                        </p>
-
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                           <div className="flex items-center gap-1.5">
                             <User className="w-3 h-3" aria-hidden="true" />
@@ -671,7 +662,10 @@ export default function Proposals() {
                           </div>
                           {proposal.status === "pending" && (
                             <div className="flex items-center gap-1.5 text-red-600 font-semibold">
-                              <Calendar className="w-3 h-3" aria-hidden="true" />
+                              <Calendar
+                                className="w-3 h-3"
+                                aria-hidden="true"
+                              />
                               <span>Deadline: {proposal.deadline}</span>
                             </div>
                           )}

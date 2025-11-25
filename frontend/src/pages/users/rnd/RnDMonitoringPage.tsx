@@ -13,7 +13,6 @@ import {
   Eye,
   BarChart3,
   Target,
-  Users,
   DollarSign,
   MapPin,
   ChevronLeft,
