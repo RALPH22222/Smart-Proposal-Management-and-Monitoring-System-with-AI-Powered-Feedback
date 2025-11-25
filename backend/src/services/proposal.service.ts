@@ -52,6 +52,35 @@ export class ProposalService {
     return { data, error };
   }
 
+  async getEvaluatorProposals(search?: string, status?: Status) {
+    let query = this.db.from("proposal_evaluators").select(`
+        *,
+        evaluator:users(name),
+        proposal:proposals!inner(
+          *,
+          proponent:users(name),
+          department:departments(name),
+          sector:sectors(name),
+          discipline:disciplines(name),
+          agency:agencies(name)
+        )
+      `);
+
+    if (search) {
+      // filter on related table column
+      query = query.ilike("proposal.project_title", `%${search}%`);
+    }
+
+    if (status) {
+      // filter on base table column
+      query = query.eq("status", status);
+    }
+
+    const { data, error } = await query;
+
+    return { data, error };
+  }
+
   async getAgency(search: string) {
     const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
 

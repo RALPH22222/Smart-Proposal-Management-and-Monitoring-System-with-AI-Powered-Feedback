@@ -28,7 +28,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getAll(search, status);
+  const { data, error } = await proposalService.getEvaluatorProposals(search, status);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
