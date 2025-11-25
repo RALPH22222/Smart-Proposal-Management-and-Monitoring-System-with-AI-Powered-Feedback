@@ -22,7 +22,7 @@ import {
   FileCheck,
   CheckCircle2
 } from "lucide-react";
-import type { Proposal, BudgetSource } from '../../types/InterfaceProp';
+import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
 interface DetailedProposalModalProps {
   isOpen: boolean;

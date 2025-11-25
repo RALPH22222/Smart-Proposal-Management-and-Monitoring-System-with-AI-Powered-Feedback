@@ -284,6 +284,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <option value="">Select Sex</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
+            <option value="other">Prefer not to say</option>
           </select>
         </div>
         <div className="space-y-2">

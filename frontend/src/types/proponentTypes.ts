@@ -1,3 +1,30 @@
+export interface Project {
+  id: string;
+  title: string;
+  currentIndex: number;
+  submissionDate: string;
+  lastUpdated: string;
+  budget: string;
+  duration: string;
+  priority: 'high' | 'medium' | 'low';
+  evaluators: number;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  time: string;
+  read: boolean;
+}
+
+export interface BudgetSource {
+  source: string;
+  ps: string;
+  mooe: string;
+  co: string;
+  total: string;
+}
+
 export interface Proposal {
   id: string;
   title: string;
@@ -22,14 +49,6 @@ export interface Proposal {
   budgetSources: BudgetSource[];
   budgetTotal: string;
   uploadedFile: string;
-  lastUpdated: string; 
+  lastUpdated: string;
   deadline?: string;
-}
-
-export interface BudgetSource {
-  source: string;
-  ps: string;
-  mooe: string;
-  co: string;
-  total: string;
 }

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
 import StatusStepper from "../../../components/proponent-component/StatusStepper";
-import ProjectPortfolio from "./projectPortfolio";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
+import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
 import { 
   FaChevronLeft, 
   FaChevronRight, 
@@ -12,114 +12,38 @@ import {
   FaCalendarAlt,
   FaUser,
   FaChartLine,
-  FaSearch,
   FaCheckCircle,
   FaMoneyBillWave,
   FaClipboardCheck,
   FaUsers,
   FaClock,
   FaTablet,
-  FaBell
+  FaBell,
+  FaShareAlt
 } from 'react-icons/fa';
 
-type Project = {
-  id: string;
-  title: string;
-  currentIndex: number;
-  submissionDate: string;
-  lastUpdated: string;
-  budget: string;
-  duration: string;
-  priority: 'high' | 'medium' | 'low';
-  evaluators: number;
-};
-
-const mockProjects: Project[] = [
-  { 
-    id: "p1", 
-    title: "Community Health Outreach Program", 
-    currentIndex: 2,
-    submissionDate: "2024-01-15",
-    lastUpdated: "2024-01-28",
-    budget: "₱250,000",
-    duration: "12 months",
-    priority: 'high',
-    evaluators: 3
-  },
-  { 
-    id: "p2", 
-    title: "AgriTech Digital Transformation", 
-    currentIndex: 1,
-    submissionDate: "2024-01-10",
-    lastUpdated: "2024-01-25",
-    budget: "₱500,000",
-    duration: "18 months",
-    priority: 'high',
-    evaluators: 2
-  },
-  { 
-    id: "p3", 
-    title: "STEM Education Enhancement", 
-    currentIndex: 3,
-    submissionDate: "2024-01-05",
-    lastUpdated: "2024-02-01",
-    budget: "₱150,000",
-    duration: "6 months",
-    priority: 'medium',
-    evaluators: 3
-  },
-  { 
-    id: "p4", 
-    title: "Digital Library Modernization", 
-    currentIndex: 4,
-    submissionDate: "2024-01-12",
-    lastUpdated: "2024-01-30",
-    budget: "₱300,000",
-    duration: "9 months",
-    priority: 'medium',
-    evaluators: 3
-  },
-  { 
-    id: "p5", 
-    title: "Renewable Energy Research", 
-    currentIndex: 2,
-    submissionDate: "2024-02-01",
-    lastUpdated: "2024-02-01",
-    budget: "₱750,000",
-    duration: "24 months",
-    priority: 'high',
-    evaluators: 5
-  },
-];
-
-const stageLabels = [
-  "R&D Evaluation",
-  "Evaluators Assessment",
-  "Endorsement",
-  "Funding", 
-  "Completed"
-];
-
-const currentStageLabels = [
-  "Submitted",
-  "R&D Evaluation",
-  "Evaluators Assessment",
-  "Endorsement",
-  "Funded"
-];
-
-const stageDescriptions = [
-  "Proposal will be reviewed by the R&D staff",
-  "Under review by the assigned evaluators.",
-  "This will be reviewed to assess if it is eligible for endorsement.",
-  "Financial review and budget allocation assessment",
-  "Project has been approved and ready for implementation"
-];
+import type { Project, Proposal, Notification, BudgetSource } from '../../../types/proponentTypes';
+import { 
+  mockProjects, 
+  stageLabels, 
+  currentStageLabels, 
+  stageDescriptions, 
+  initialNotifications,
+  stageLabelsList,
+  commentsMap
+} from '../../../types/mockData';
+import { 
+  getStatusColor, 
+  getPriorityColor, 
+  getStageIcon 
+} from '../../../types/helpers';
 
 const Profile: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
+  const [detailedModalOpen, setDetailedModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
   
   // Modal states
   const [shareOpen, setShareOpen] = useState(false);
@@ -128,18 +52,14 @@ const Profile: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(() => [
-    { id: 'n1', title: 'New comment on "AgriTech Digital Transformation"', time: '2h', read: false },
-    { id: 'n2', title: 'Budget review requested for "Digital Library Modernization"', time: '1d', read: false },
-    { id: 'n3', title: 'Proposal "Renewable Energy Research" moved to Draft', time: '3d', read: true }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentProject, setCommentProject] = useState<Project | null>(null);
 
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Close notifications when clicking outside.
+  // Close notifications when clicking outside
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (!notifRef.current) return;
@@ -147,7 +67,11 @@ const Profile: React.FC = () => {
         setNotificationsOpen(false);
       }
     };
-    if (notificationsOpen) document.addEventListener('mousedown', onDocClick);
+    
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', onDocClick);
+    }
+    
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [notificationsOpen]);
 
@@ -165,39 +89,6 @@ const Profile: React.FC = () => {
   const prev = () => setActiveIndex((i) => Math.max(0, i - 1));
   const next = () => setActiveIndex((i) => Math.min(mockProjects.length - 1, i + 1));
 
-  // Helper functions
-  const getStatusColor = (index: number) => {
-    const colors = [
-      "bg-gray-100 text-gray-800 border border-gray-300",
-      "bg-blue-100 text-blue-800 border border-blue-300",
-      "bg-purple-100 text-purple-800 border border-purple-300",
-      "bg-orange-100 text-orange-800 border border-orange-300",
-      "bg-green-100 text-green-800 border border-green-300",
-    ];
-    return colors[index] || colors[0];
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors = {
-      high: "bg-red-100 text-red-800 border border-red-300",
-      medium: "bg-yellow-100 text-yellow-800 border border-yellow-300",
-      low: "bg-green-100 text-green-800 border border-green-300"
-    };
-    return colors[priority as keyof typeof colors] || colors.medium;
-  };
-
-  const getStageIcon = (index: number) => {
-    const icons = [
-      <FaFileAlt className="text-gray-600" />,
-      <FaSearch className="text-blue-600" />,
-      <FaUsers className="text-purple-600" />,
-      <FaMoneyBillWave className="text-orange-600" />,
-      <FaClipboardCheck className="text-yellow-600" />,
-      <FaCheckCircle className="text-green-600" />
-    ];
-    return icons[index] || icons[0];
-  };
-
   // Event handlers
   const openShare = (project: Project) => {
     setShareProject(project);
@@ -211,6 +102,54 @@ const Profile: React.FC = () => {
     setShareProject(null);
     setShareEmail("");
     setCopied(false);
+  };
+
+  const handleCardClick = (project: Project) => {
+    const getRandomStatus = (): 'r&D Evaluation' | 'revise' | 'funded' | 'reject' => {
+      const statuses = ['r&D Evaluation', 'revise', 'funded', 'reject'] as const;
+      return statuses[Math.floor(Math.random() * statuses.length)];
+    };
+
+    const proposal: Proposal = {
+      id: project.id,
+      title: project.title,
+      status: getRandomStatus(),
+      proponent: "Dr. Maria Santos",
+      gender: "Female",
+      agency: "University of the Philippines",
+      address: "Quezon City, Philippines",
+      telephone: "+63 2 1234 5678",
+      email: "maria.santos@up.edu.ph",
+      cooperatingAgencies: "DOST, CHED, DepEd",
+      rdStation: "UP Research Station",
+      classification: "Applied Research",
+      classificationDetails: "Technology Development",
+      modeOfImplementation: "In-house",
+      priorityAreas: "Education, Technology",
+      sector: "Education",
+      discipline: "Computer Science",
+      duration: "12 months",
+      startDate: "2024-01-01",
+      endDate: "2024-12-31",
+      budgetSources: [{
+        source: "DOST Grant",
+        ps: "₱500,000",
+        mooe: "₱300,000",
+        co: "₱200,000",
+        total: "₱1,000,000"
+      }],
+      budgetTotal: "₱1,000,000",
+      uploadedFile: "/sample-proposal.pdf",
+      lastUpdated: new Date().toISOString().split('T')[0]
+    };
+    
+    setSelectedProject(proposal);
+    setDetailedModalOpen(true);
+  };
+
+  const handleUpdateProposal = (updatedProposal: Proposal) => {
+    console.log('Updated proposal:', updatedProposal);
+    setDetailedModalOpen(false);
   };
 
   const openComments = (project: Project) => {
@@ -233,12 +172,15 @@ const Profile: React.FC = () => {
   };
 
   const markRead = (id: string) => {
-    setNotifications((prev) => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setNotifications((prev) => 
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
   };
 
   const copyLink = async () => {
     if (!shareProject) return;
     const url = `${window.location.origin}/projects/${shareProject.id}`;
+    
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -256,14 +198,191 @@ const Profile: React.FC = () => {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
-
-  // Comments data
-  const commentsMap: Record<string, { id: string; text: string; author?: string; time: string }[]> = {
-    p2: [{ id: 'c1', text: 'Please clarify the methodology section.', author: 'Evaluator A', time: '2d' }],
-    p3: [{ id: 'c2', text: 'Budget needs revision.', author: 'Evaluator B', time: '1d' }]
-  };
-
+  const projectsToShow = projectTab === 'all' ? mockProjects : budgetProjects;
   const currentComments = commentProject ? commentsMap[commentProject.id] || [] : [];
+
+  // Project Portfolio rendering functions
+  const renderGridView = () => (
+    <div className="p-4 lg:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+        {projectsToShow.map((project) => (
+          <div
+            key={project.id}
+            className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group"
+            onClick={() => handleCardClick(project)}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-gray-800 text-sm lg:text-base group-hover:text-[#C8102E] transition-colors line-clamp-2">
+                  {project.title}
+                </h4>
+              </div>
+              <div className="flex flex-col items-end gap-1 ml-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(project.priority)}`}>
+                  {project.priority.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between text-xs text-gray-600">
+                <span>Budget:</span>
+                <span className="font-semibold">{project.budget}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-600">
+                <span>Duration:</span>
+                <span className="font-semibold">{project.duration}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-600">
+                <span>Evaluators:</span>
+                <span className="font-semibold">{project.evaluators}</span>
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                <span>Progress</span>
+                <span className="text-xs text-gray-600 font-medium hidden sm:inline">
+                  {project.currentIndex === 4 ? 100 : Math.round((project.currentIndex / (stageLabelsList.length - 1)) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${project.currentIndex === 4 ? 100 : (project.currentIndex / (stageLabelsList.length - 1)) * 100}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
+                  {project.currentIndex === 4 ? "Funded" : stageLabelsList[project.currentIndex]}
+                </span>
+                {project.currentIndex === 4 && (
+                  <span className="text-xs px-2 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full">
+                    Approved: {project.budget}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    openShare(project); 
+                  }}
+                  className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                  title="Share project"
+                >
+                  <FaShareAlt className="text-sm text-gray-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderListView = () => (
+    <div className="overflow-x-auto">
+      <table className="min-w-full">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Project Title</th>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden xl:table-cell">Evaluators</th>
+            {projectTab === 'budget' && (
+              <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
+            )}
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {projectsToShow.map((project) => (
+            <tr
+              key={project.id}
+              className="hover:bg-gray-50 transition-colors cursor-pointer group"
+              onClick={() => handleCardClick(project)}
+            >
+              <td className="px-4 lg:px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#C8102E] group-hover:text-white transition-colors">
+                    {getStageIcon(project.currentIndex)}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base">
+                      {project.title}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(project.priority)}`}>
+                        {project.priority.toUpperCase()}
+                      </span>
+                      <span className="text-xs text-gray-500 hidden sm:inline">
+                        {new Date(project.submissionDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 lg:px-6 py-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.currentIndex)}`}>
+                  {stageLabelsList[project.currentIndex]}
+                </span>
+              </td>
+              <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">
+                {project.budget}
+              </td>
+              <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
+                {project.duration}
+              </td>
+              <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden xl:table-cell">
+                <div className="flex items-center gap-1">
+                  <FaUsers className="text-gray-400" />
+                  {project.evaluators}
+                </div>
+              </td>
+              {projectTab === 'budget' && (
+                <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">
+                  {project.budget}
+                </td>
+              )}
+              <td className="px-4 lg:px-6 py-4">
+                <div className="flex items-center gap-2 justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${project.currentIndex === 4 ? 100 : (project.currentIndex / (stageLabelsList.length - 1)) * 100}%` }}
+                      ></div>
+                    </div>
+                   <span className="font-semibold">
+                     {project.currentIndex === 4 ? 100 : Math.round((project.currentIndex / (stageLabelsList.length - 1)) * 100)}%
+                   </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                      className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
+                      title="Share project"
+                    >
+                      <FaShareAlt className="text-sm text-gray-600" />
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -279,8 +398,12 @@ const Profile: React.FC = () => {
                 <FaUser className="text-white text-xl lg:text-2xl" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Project Portfolio</h1>
-                <p className="text-gray-600 mt-1 text-sm lg:text-base">Monitor your research proposals through the entire lifecycle</p>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">
+                  Project Portfolio
+                </h1>
+                <p className="text-gray-600 mt-1 text-sm lg:text-base">
+                  Monitor your research proposals through the entire lifecycle
+                </p>
               </div>
             </div>
             
@@ -345,7 +468,9 @@ const Profile: React.FC = () => {
                   <FaFileAlt className="text-gray-600 text-sm lg:text-base" />
                 </div>
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{mockProjects.length}</p>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                    {mockProjects.length}
+                  </p>
                   <p className="text-xs lg:text-sm text-gray-600">Total Projects</p>
                 </div>
               </div>
@@ -357,7 +482,9 @@ const Profile: React.FC = () => {
                   <FaUsers className="text-blue-600 text-sm lg:text-base" />
                 </div>
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{evaluationProjects.length}</p>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                    {evaluationProjects.length}
+                  </p>
                   <p className="text-xs lg:text-sm text-gray-600">Evaluated by R&D</p>
                 </div>
               </div>
@@ -369,7 +496,9 @@ const Profile: React.FC = () => {
                   <FaClipboardCheck className="text-purple-600 text-sm lg:text-base" />
                 </div>
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{approvalProjects.length}</p>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                    {approvalProjects.length}
+                  </p>
                   <p className="text-xs lg:text-sm text-gray-600">Assessed by Evaluator</p>
                 </div>
               </div>
@@ -381,7 +510,9 @@ const Profile: React.FC = () => {
                   <FaMoneyBillWave className="text-orange-600 text-sm lg:text-base" />
                 </div>
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">{fundedProjects.length}</p>
+                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                    {fundedProjects.length}
+                  </p>
                   <p className="text-xs lg:text-sm text-gray-600">Funded Project</p>
                 </div>
               </div>
@@ -412,7 +543,9 @@ const Profile: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div className="flex-1">
-                      <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">{current.title}</h3>
+                      <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">
+                        {current.title}
+                      </h3>
                       <div className="flex flex-wrap gap-3 lg:gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <FaCalendarAlt className="text-gray-400" />
@@ -448,19 +581,21 @@ const Profile: React.FC = () => {
                     <div className="flex items-start gap-3">
                       <div>
                         <h4 className="font-semibold text-red-900 mb-1">
-                          {current.currentIndex === stageLabels.length - 1 ? "Stage: " : "Next Stage: "}
+                          {current.currentIndex === stageLabels.length - 1 
+                            ? "Stage: " 
+                            : "Next Stage: "}
                           {stageLabels[current.currentIndex]}
                         </h4>
-                        <p className="text-red-800 text-sm">{stageDescriptions[current.currentIndex]}</p>
+                        <p className="text-red-800 text-sm">
+                          {stageDescriptions[current.currentIndex]}
+                        </p>
                       </div>
                     </div>
                   </div>
                   
                   {/* Status Stepper */}
                   <div className="mt-4">
-                    <StatusStepper 
-                      currentIndex={current.currentIndex}
-                    />
+                    <StatusStepper currentIndex={current.currentIndex} />
                   </div>
                 </div>
                 
@@ -470,25 +605,35 @@ const Profile: React.FC = () => {
                     <div className="text-2xl lg:text-3xl font-bold text-[#C8102E] mb-1">
                       {Math.round((current.currentIndex / (stageLabels.length - 1)) * 100)}%
                     </div>
-                    <div className="text-sm text-gray-600 font-medium">Overall Progress</div>
+                    <div className="text-sm text-gray-600 font-medium">
+                      Overall Progress
+                    </div>
                   </div>
                   
                   <div className="space-y-3 text-xs lg:text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Stage Progress:</span>
-                      <span className="font-semibold text-gray-800">{current.currentIndex + 1}/{stageLabels.length}</span>
+                      <span className="font-semibold text-gray-800">
+                        {current.currentIndex + 1}/{stageLabels.length}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Last Updated:</span>
-                      <span className="font-semibold text-gray-800">{new Date(current.lastUpdated).toLocaleDateString()}</span>
+                      <span className="font-semibold text-gray-800">
+                        {new Date(current.lastUpdated).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Evaluators:</span>
-                      <span className="font-semibold text-gray-800">{current.evaluators}</span>
+                      <span className="font-semibold text-gray-800">
+                        {current.evaluators}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Duration:</span>
-                      <span className="font-semibold text-gray-800">{current.duration}</span>
+                      <span className="font-semibold text-gray-800">
+                        {current.duration}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -539,7 +684,9 @@ const Profile: React.FC = () => {
                     <FaListAlt className="text-[#C8102E]" />
                     Project Portfolio
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">Complete overview of all your research proposals</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Complete overview of all your research proposals
+                  </p>
                 </div>
                 
                 <div className="flex items-center gap-2 text-xs">
@@ -564,28 +711,32 @@ const Profile: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setProjectTab('all')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'all' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    projectTab === 'all' 
+                      ? 'bg-[#C8102E] text-white' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
                   All Projects
                 </button>
                 <button
                   onClick={() => setProjectTab('budget')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${projectTab === 'budget' ? 'bg-[#C8102E] text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+                  className={`px-3 py-1 rounded-md text-sm font-medium ${
+                    projectTab === 'budget' 
+                      ? 'bg-[#C8102E] text-white' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
                 >
                   Funded Project ({budgetProjects.length})
                 </button>
               </div>
-              <div className="text-xs text-gray-500">Toggle view and browse projects</div>
+              <div className="text-xs text-gray-500">
+                Toggle view and browse projects
+              </div>
             </div>
 
-             {/* Project Portfolio Component */}
-             <ProjectPortfolio
-               projects={mockProjects}
-               viewMode={viewMode}
-               projectTab={projectTab}
-               onShareClick={openShare}
-               budgetProjects={budgetProjects}
-             />
+            {/* Project Portfolio View */}
+            {viewMode === 'grid' ? renderGridView() : renderListView()}
           </div>
         </section>
       </main>
@@ -602,7 +753,12 @@ const Profile: React.FC = () => {
         onInviteEmail={inviteEmail}
       />
 
-
+      <DetailedProposalModal
+        isOpen={detailedModalOpen}
+        onClose={() => setDetailedModalOpen(false)}
+        proposal={selectedProject}
+        onUpdateProposal={handleUpdateProposal}
+      />
     </div>
   );
 };
