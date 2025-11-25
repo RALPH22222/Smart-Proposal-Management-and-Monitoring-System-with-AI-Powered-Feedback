@@ -15,7 +15,8 @@ export interface FormData {
   leaderGender: string;
   agencyName: string;
   agencyAddress: string;
-  telephoneFaxEmail: string;
+  email: string;
+  telephone: number;
   cooperatingAgencies: string;
   researchStation: string;
   

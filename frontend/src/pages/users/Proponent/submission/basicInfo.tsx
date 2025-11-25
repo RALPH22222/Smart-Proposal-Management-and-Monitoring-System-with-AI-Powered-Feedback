@@ -5,6 +5,7 @@ import {
   FaMapMarkerAlt,
   FaBuilding,
   FaPhone,
+  FaEnvelope,
   FaUniversity
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
@@ -271,20 +272,35 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           </div>
         </div>
         
-        <div className="md:col-span-2 space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaPhone className="text-gray-400" />
-            Telephone/Fax/Email *
-          </label>
-          <input
-            type="text"
-            name="telephoneFaxEmail"
-            value={formData.telephoneFaxEmail}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-            placeholder="Enter contact information"
-          />
+        <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <FaPhone className="text-gray-400" />
+              Telephone *
+            </label>
+            <input
+              type="tel"
+              name="telephone"
+              value={formData.telephone}
+              onChange={onInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+              placeholder="Enter telephone number"
+            />
         </div>
+          
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <FaEnvelope className="text-gray-400" />
+              Email *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={onInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+              placeholder="Enter email address"
+            />
+          </div>
       </div>
 
       {/* Updated Cooperating Agencies Section */}
