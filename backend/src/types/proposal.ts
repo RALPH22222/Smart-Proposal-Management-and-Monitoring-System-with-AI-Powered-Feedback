@@ -29,3 +29,12 @@ export enum PriorityArea {
   COCONUT_INDUSTRY = "coconut_industry",
   OTHER_PRIORITY_AREAS = "other_priority_areas",
 }
+
+export enum EvaluatorStatus {
+  PENDING = "pending",
+  FOR_REVIEW = "for_review",
+  APPROVE = "approve",
+  REVISE = "revise",
+  REJECT = "reject",
+  DECLINE = "decline",
+}
