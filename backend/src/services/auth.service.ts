@@ -40,6 +40,7 @@ export class AuthService {
     }
 
     try {
+      console.log("Verifying token: ", token);
       const data = jwt.verify(token, supabase_secret_jwt);
       return { data };
     } catch (error) {

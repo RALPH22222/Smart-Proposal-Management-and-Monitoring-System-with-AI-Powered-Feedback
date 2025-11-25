@@ -38,12 +38,26 @@ export const handler = async (
   const { data, error } = await authService.verifyToken(cookies.tk);
 
   if (error && !data) {
+    console.log(
+      "Auth service verify token error: ",
+      JSON.stringify(error, null, 2),
+    );
     throw "Unauthorized";
   }
 
+  console.log(
+    "Auth service verify token data: ",
+    JSON.stringify(data, null, 2),
+  );
+
+  // event.methodArn = arn:aws:execute-api:region:account:apiId/stage/VERB/path/...
+  const [arn, stage, ...rest] = event.methodArn.split("/");
+  const wildcardResource = `${arn}/${stage}/*/*`;
+  // This means: all methods, all paths under this stage for this API
+
   const user_sub = (data as JwtPayload).sub!;
 
-  return generatePolicy(user_sub, "Allow", event.methodArn, {
+  return generatePolicy(user_sub, "Allow", wildcardResource, {
     user_sub: user_sub,
   });
 };
