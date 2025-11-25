@@ -26,15 +26,12 @@ export default function ReviewedProposals() {
       id: 1,
       title: "AI-Powered Educational Assessment System",
       reviewedDate: "Sept 20, 2025",
-      description:
-        "Development of AI system for automated assessment and personalized learning recommendations",
       proponent: "Jasmine Anderson",
       gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
       address: "Normal Road, Baliwasan, Zamboanga City",
       telephone: "(062) 991-1771",
-      fax: "N/A",
       email: "jasmine.anderson@wmsu.edu.ph",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
@@ -77,15 +74,12 @@ export default function ReviewedProposals() {
       id: 2,
       title: "Smart Grid Energy Management System",
       reviewedDate: "Sept 22, 2025",
-      description:
-        "Advanced energy management system for smart grid optimization and efficiency",
       proponent: "Michael Chen",
       gender: "Male",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
       address: "Fort Pilar, Zamboanga City",
       telephone: "(062) 991-2345",
-      fax: "N/A",
       email: "m.chen@zscms.edu.ph",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
@@ -129,15 +123,12 @@ export default function ReviewedProposals() {
       id: 3,
       title: "Blockchain-Based Energy Trading Platform",
       reviewedDate: "Sept 18, 2025",
-      description:
-        "Secure blockchain system for peer-to-peer energy trading and management",
       proponent: "Emily Rodriguez",
       gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
       address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City",
       telephone: "(062) 991-2934",
-      fax: "(062) 991-0573",
       email: "e.rodriguez@zcmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
@@ -321,10 +312,6 @@ export default function ReviewedProposals() {
                           <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
                             {proposal.title}
                           </h2>
-
-                          <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">
-                            {proposal.description}
-                          </p>
 
                           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                             <div className="flex items-center gap-1.5">

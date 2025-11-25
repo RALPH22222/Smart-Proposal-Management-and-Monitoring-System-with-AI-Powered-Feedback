@@ -26,15 +26,12 @@ export default function EndorsedProposals() {
       id: 1,
       title: "AI-Powered Educational Assessment System",
       reviewDeadline: "Oct 25, 2025",
-      description:
-        "Development of AI system for automated assessment and personalized learning recommendations",
       proponent: "Jasmine Anderson",
       gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
       address: "Normal Road, Baliwasan, Zamboanga City",
       telephone: "(062) 991-1771",
-      fax: "N/A",
       email: "jasmine.anderson@wmsu.edu.ph",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
@@ -63,15 +60,12 @@ export default function EndorsedProposals() {
       id: 2,
       title: "Smart Grid Energy Management System",
       reviewDeadline: "Oct 28, 2025",
-      description:
-        "Advanced energy management system for smart grid optimization and efficiency",
       proponent: "Michael Chen",
       gender: "Male",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
       address: "Fort Pilar, Zamboanga City",
       telephone: "(062) 991-2345",
-      fax: "(062) 991-2346",
       email: "m.chen@zscms.edu.ph",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
@@ -107,15 +101,12 @@ export default function EndorsedProposals() {
       id: 3,
       title: "Blockchain-Based Energy Trading Platform",
       reviewDeadline: "Oct 22, 2025",
-      description:
-        "Secure blockchain system for peer-to-peer energy trading and management",
       proponent: "Emily Rodriguez",
       gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga City Medical Center",
       address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City",
       telephone: "(062) 991-2934",
-      fax: "N/A",
       email: "e.rodriguez@zcmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
@@ -144,15 +135,12 @@ export default function EndorsedProposals() {
       id: 4,
       title: "Renewable Energy Storage Optimization",
       reviewDeadline: "Oct 30, 2025",
-      description:
-        "Advanced battery management system for solar and wind energy storage facilities",
       proponent: "James Wilson",
       gender: "Male",
       projectType: "Energy",
       agency: "Mindanao State University",
       address: "Marawi City, Lanao del Sur",
       telephone: "(063) 221-4050",
-      fax: "N/A",
       email: "j.wilson@msumain.edu.ph",
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
       rdStation: "Renewable Energy Research Lab",
@@ -188,15 +176,12 @@ export default function EndorsedProposals() {
       id: 5,
       title: "IoT Sensor Network for Energy Efficiency",
       reviewDeadline: "Nov 2, 2025",
-      description:
-        "Distributed IoT network for real-time energy consumption monitoring and optimization",
       proponent: "Maria Santos",
       gender: "Female",
       projectType: "ICT",
       agency: "Western Mindanao State University",
       address: "Normal Road, Baliwasan, Zamboanga City",
       telephone: "(062) 991-1771",
-      fax: "(062) 991-1771",
       email: "maria.santos@wmsu.edu.ph",
       cooperatingAgencies: "DENR RO9, BFAR RO9, LGU Coastal Areas",
       rdStation: "Marine Biology Research Center",
@@ -232,15 +217,12 @@ export default function EndorsedProposals() {
       id: 6,
       title: "AI-Driven Smart Building Systems",
       reviewDeadline: "Oct 20, 2025",
-      description:
-        "Intelligent building management system using AI for energy optimization",
       proponent: "Robert Kim",
       gender: "Male",
       projectType: "ICT",
       agency: "Ateneo de Zamboanga University",
       address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-0871",
-      fax: "N/A",
       email: "r.kim@adzu.edu.ph",
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
       rdStation: "Urban Planning Research Institute",
@@ -276,15 +258,12 @@ export default function EndorsedProposals() {
       id: 7,
       title: "Microgrid Control System Development",
       reviewDeadline: "Nov 5, 2025",
-      description:
-        "Advanced control system for autonomous microgrid operations",
       proponent: "Dr. Lisa Martinez",
       gender: "Female",
       projectType: "Energy",
       agency: "Zamboanga Peninsula Medical Center",
       address: "High Ridge, Zamboanga City",
       telephone: "(062) 955-0104",
-      fax: "N/A",
       email: "l.martinez@zpmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
       rdStation: "Telemedicine Research Unit",
@@ -320,15 +299,12 @@ export default function EndorsedProposals() {
       id: 8,
       title: "Machine Learning for Energy Forecasting",
       reviewDeadline: "Oct 18, 2025",
-      description:
-        "ML-based predictive model for renewable energy generation forecasting",
       proponent: "Prof. Daniel Lee",
       gender: "Male",
       projectType: "ICT",
       agency: "Mindanao State University",
       address: "Marawi City, Lanao del Sur",
       telephone: "(063) 221-4052",
-      fax: "N/A",
       email: "d.lee@msumain.edu.ph",
       cooperatingAgencies: "PAGASA RO9, DENR RO9, NEDA RO9",
       rdStation: "Climate Science Research Center",
@@ -516,10 +492,6 @@ export default function EndorsedProposals() {
                           <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
                             {proposal.title}
                           </h2>
-
-                          <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">
-                            {proposal.description}
-                          </p>
 
                           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                             <div className="flex items-center gap-1.5">

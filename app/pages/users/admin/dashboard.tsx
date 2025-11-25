@@ -20,7 +20,8 @@ import {
   BarChart3,
   Cpu,
   Shield,
-  ArrowRight
+  ArrowRight,
+  UserCircle2
 } from "lucide-react-native";
 
 export default function AdminDashboard() {
@@ -101,8 +102,18 @@ export default function AdminDashboard() {
         
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Admin Dashboard</Text>
-          <Text style={styles.subtitle}>System overview and performance metrics</Text>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Admin Dashboard</Text>
+            <Text style={styles.subtitle}>System overview and performance metrics</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('AdminSettings')}
+            accessibilityRole="button"
+            accessibilityLabel="Open admin settings"
+          >
+            <UserCircle2 size={32} color="#0F172A" />
+          </TouchableOpacity>
         </View>
 
         {/* Stats Section */}
@@ -275,6 +286,20 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 20,
     marginTop: Platform.OS === 'android' ? 20 : 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerText: {
+    flex: 1,
+  },
+  profileButton: {
+    marginLeft: 12,
+    padding: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,

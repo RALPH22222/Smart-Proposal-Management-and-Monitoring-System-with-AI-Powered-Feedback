@@ -8,6 +8,7 @@ import AdminAccounts from './pages/users/admin/accounts';
 import AdminContents from './pages/users/admin/contents';
 import AdminReports from './pages/users/admin/reports';
 import AdminSystem from './pages/users/admin/system';
+import AdminSettings from './pages/users/admin/settings';
 import EvaluatorDashboard from './pages/users/evaluator/dashboard';
 import EvaluatorProposals from './pages/users/evaluator/proposals';
 import EvaluatorUnderReview from './pages/users/evaluator/ReviewProposals';
@@ -120,6 +121,12 @@ export default function App() {
           component={AdminSystem} 
           options={{ headerShown: false }} 
         />
+        <Stack.Screen 
+          name="AdminSettings" 
+          component={AdminSettings} 
+          options={{ headerShown: false }} 
+        />
+
         <Stack.Screen 
           name="EvaluatorDashboard" 
           component={EvaluatorDashboard} 

@@ -36,7 +36,6 @@ interface Proposal {
   gender: string;
   address: string;
   telephone: string;
-  fax: string;
   email: string;
   modeOfImplementation: string;
   priorityAreas: string;
@@ -83,7 +82,6 @@ export default function Proposals() {
       gender: "Male",
       address: "Normal Road, Baliwasan, Zamboanga City",
       telephone: "(062) 991-1771",
-      fax: "N/A",
       email: "j.doe@wmsu.edu.ph",
       modeOfImplementation: "Multi Agency",
       priorityAreas: "Artificial Intelligence in Education",
@@ -123,7 +121,6 @@ export default function Proposals() {
       gender: "Female",
       address: "Fort Pilar, Rio Hondo, Zamboanga City",
       telephone: "(062) 991-2002",
-      fax: "N/A",
       email: "j.smith@zscmst.edu.ph",
       modeOfImplementation: "Multi Agency",
       priorityAreas: "Renewable Energy & Smart Grids",
@@ -170,7 +167,6 @@ export default function Proposals() {
       gender: "Male",
       address: "Dr. Evangelista St., Sta. Catalina, Zamboanga City",
       telephone: "(062) 991-3333",
-      fax: "(062) 991-3334",
       email: "m.lee@zcmc.doh.gov.ph",
       modeOfImplementation: "Single Agency",
       priorityAreas: "Internet of Things (IoT)",
@@ -210,7 +206,6 @@ export default function Proposals() {
       gender: "Female",
       address: "Gov. Camins Ave, Zamboanga City",
       telephone: "(062) 991-4444",
-      fax: "N/A",
       email: "s.chen@msu.edu.ph",
       modeOfImplementation: "Basic Research",
       priorityAreas: "Quantum Computing",
@@ -257,7 +252,6 @@ export default function Proposals() {
       gender: "Male",
       address: "Gov. Camins Ave, Zamboanga City",
       telephone: "(062) 991-5555",
-      fax: "N/A",
       email: "d.wilson@msu.edu.ph",
       modeOfImplementation: "Multi Agency",
       priorityAreas: "Energy Storage Systems",
@@ -304,7 +298,6 @@ export default function Proposals() {
       gender: "Female",
       address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-6666",
-      fax: "N/A",
       email: "l.park@adzu.edu.ph",
       modeOfImplementation: "Applied Research",
       priorityAreas: "Artificial Intelligence",
@@ -344,7 +337,6 @@ export default function Proposals() {
       gender: "Male",
       address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-7777",
-      fax: "N/A",
       email: "a.johnson@adzu.edu.ph",
       modeOfImplementation: "Development",
       priorityAreas: "Smart Cities",
@@ -391,7 +383,6 @@ export default function Proposals() {
       gender: "Female",
       address: "Pasonanca, Zamboanga City",
       telephone: "(062) 991-8888",
-      fax: "N/A",
       email: "e.white@zpmc.gov.ph",
       modeOfImplementation: "Applied Research",
       priorityAreas: "Power Systems",
