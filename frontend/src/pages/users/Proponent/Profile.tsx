@@ -139,7 +139,7 @@ const Profile: React.FC = () => {
 
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Close notifications when clicking outside
+  // Close notifications when clicking outside.
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (!notifRef.current) return;
