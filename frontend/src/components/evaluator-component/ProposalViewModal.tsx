@@ -11,18 +11,20 @@ import {
   MapPin,
   FileText,
   User,
-  Microscope, 
-  Tags,       
-  Briefcase,  
+  Microscope,
+  Tags,
+  Briefcase,
   BookOpen,
   MessageSquare,
   UserCheck,
+  GitBranch,
+  Clock,
 } from "lucide-react";
 
-  const handleDownload = (fileName: string) => {
-    console.log("Downloading:", fileName);
-    alert(`Downloading ${fileName}`);
-  };
+// Mock download handler
+const handleDownload = (fileName: string) => {
+  alert(`Downloading ${fileName}...`);
+};
 
 interface BudgetSource {
   source: string;
@@ -102,25 +104,105 @@ export default function ProposalModal({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-            {/* File Download */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+            
+            {/* --- UPDATED FILE DOWNLOAD SECTION --- */}
+            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#C8102E]" />
+                Project Documents
+              </h3>
+
+              {/* Logic for Revised Proposal vs Standard */}
+              {proposal.status === "Revised Proposal" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                  {/* Previous Version */}
+                  <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Previous Version
+                      </span>
+                      <span className="text-[10px] text-slate-400">History</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-12 bg-slate-200 rounded flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">
+                          Proposal_v1.pdf
+                        </p>
+                        <p className="text-xs text-slate-500">2.4 MB</p>
+                      </div>
+                      <button
+                        onClick={() => handleDownload("Proposal_v1.pdf")}
+                        className="p-2 text-slate-500 hover:bg-slate-200 rounded-full cursor-pointer"
+                        title="Download Previous Version"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Version */}
+                  <div className="border border-indigo-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-indigo-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-indigo-600 uppercase flex items-center gap-1">
+                        <GitBranch className="w-3 h-3" /> Latest Revision
+                      </span>
+                      <span className="text-[10px] text-indigo-400">
+                        Current
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-12 bg-indigo-50 rounded flex items-center justify-center border border-indigo-100">
+                        <FileText className="w-5 h-5 text-indigo-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {proposal.projectFile || "Proposal_v2_Revised.pdf"}
+                        </p>
+                        <p className="text-xs text-slate-500">2.6 MB</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleDownload(
+                            proposal.projectFile || "Proposal_v2_Revised.pdf"
+                          )
+                        }
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full cursor-pointer"
+                        title="Download Revised Version"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    Project Proposal Document
-                  </p>
+              ) : (
+                // Standard Single Document Card
+                <div
+                  className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
+                  onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
+                      <FileText className="w-5 h-5 text-[#C8102E]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
+                        {proposal.projectFile || "Full Project Proposal.pdf"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        PDF Document • 2.4 MB
+                      </p>
+                    </div>
+                  </div>
+                  <button className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                    <Download className="w-3 h-3" />
+                    Download
+                  </button>
                 </div>
-              </div>
-              <button
-                onClick={() => proposal.projectFile && handleDownload(proposal.projectFile)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+              )}
             </div>
 
             {/* 1. Leader & Agency Information */}
@@ -222,7 +304,6 @@ export default function ProposalModal({
                   <Tags className="w-4 h-4 text-[#C8102E]" />
                   Classification
                 </h3>
-                {/* Updated to display Mode: Classification (e.g., Development: Pilot Testing) */}
                 <p className="text-xs sm:text-sm text-slate-700">
                   <span className="font-semibold text-slate-900">
                     {proposal.classification}:
@@ -380,7 +461,7 @@ export default function ProposalModal({
               </p>
             </div>
 
-            {/* R&D Assignment & Comments Section  */}
+            {/* R&D Assignment & Comments Section */}
             {(proposal.assignedRdStaff || proposal.rdCommentsToEvaluator) && (
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-blue-200 pb-2">
@@ -413,20 +494,24 @@ export default function ProposalModal({
                 )}
 
                 {/* Assigned Evaluators */}
-                {proposal.assignedEvaluators && proposal.assignedEvaluators.length > 0 && (
-                  <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      Assigned Evaluators
-                    </span>
-                    <div className="mt-1 space-y-1">
-                      {proposal.assignedEvaluators.map((evaluator, index) => (
-                        <p key={index} className="font-medium text-slate-900 text-sm">
-                          • {evaluator}
-                        </p>
-                      ))}
+                {proposal.assignedEvaluators &&
+                  proposal.assignedEvaluators.length > 0 && (
+                    <div className="mb-3">
+                      <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                        Assigned Evaluators
+                      </span>
+                      <div className="mt-1 space-y-1">
+                        {proposal.assignedEvaluators.map((evaluator, index) => (
+                          <p
+                            key={index}
+                            className="font-medium text-slate-900 text-sm"
+                          >
+                            • {evaluator}
+                          </p>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* R&D Comments to Evaluator */}
                 {proposal.rdCommentsToEvaluator && (

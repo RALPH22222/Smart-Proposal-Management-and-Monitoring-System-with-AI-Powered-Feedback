@@ -16,10 +16,12 @@ import {
   AlertTriangle,
   XCircle,
   GitBranch,
-  Clock
+  Clock,
+  Briefcase, 
+  BookOpen,   
+  Target,
 } from "lucide-react";
 import type { Proposal, ProposalStatus } from '../../types/InterfaceProposal';
-import templatePDF from '../../assets/template/DOST-Template.pdf';
 
 interface DetailedProposalModalProps {
   isOpen: boolean;
@@ -33,6 +35,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   proposal,
 }) => {
   if (!isOpen || !proposal) return null;
+
+  // --- DOWNLOAD ALERT HANDLER ---
+  const handleDownload = (fileName: string) => {
+    alert(`Downloading ${fileName}...`);
+  };
 
   // Mock Assessment Data
   const mockAssessment = {
@@ -72,11 +79,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               {proposal.title}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0"
-            aria-label="Close modal"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -85,7 +88,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
 
-             {/* 1. REVISION REQUIRED: Show Assessments */}
+             {/* --- DYNAMIC STATUS SECTION --- */}
              {proposal.status === 'Revision Required' && (
                 <div className="bg-orange-50 rounded-lg p-5 border border-orange-200">
                    <h3 className="text-sm font-bold text-orange-800 mb-3 flex items-center gap-2">
@@ -94,48 +97,33 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                    </h3>
                    <div className="space-y-3">
                       <div className="bg-white p-3 rounded border border-orange-100">
-                         <p className="text-xs font-bold text-orange-700 uppercase mb-1">Methodology Assessment</p>
-                         <p className="text-sm text-slate-700">{mockAssessment.methodology}</p>
-                      </div>
-                      <div className="bg-white p-3 rounded border border-orange-100">
-                         <p className="text-xs font-bold text-orange-700 uppercase mb-1">Budget Assessment</p>
-                         <p className="text-sm text-slate-700">{mockAssessment.budget}</p>
-                      </div>
-                      <div className="bg-white p-3 rounded border border-orange-100">
-                         <p className="text-xs font-bold text-orange-700 uppercase mb-1">Timeline Assessment</p>
-                         <p className="text-sm text-slate-700">{mockAssessment.timeline}</p>
-                      </div>
-                      <div className="bg-orange-100 p-3 rounded border border-orange-200">
-                         <p className="text-xs font-bold text-orange-800 uppercase mb-1">Overall Comments</p>
-                         <p className="text-sm text-orange-900 italic">"{mockAssessment.overall}"</p>
+                         <p className="text-xs font-bold text-orange-700 uppercase mb-1">Overall Comments</p>
+                         <p className="text-sm text-slate-700">{mockAssessment.overall}</p>
                       </div>
                    </div>
                 </div>
              )}
-
-            {/* 2. REJECTED: Show Explanation */}
             {proposal.status === 'Rejected Proposal' && (
                 <div className="bg-red-50 rounded-lg p-5 border border-red-200">
                    <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
                       <XCircle className="w-4 h-4" />
                       Rejection Reason
                    </h3>
-                   <p className="text-sm text-red-900 leading-relaxed">
-                      {mockRejection}
-                   </p>
+                   <p className="text-sm text-red-900 leading-relaxed">{mockRejection}</p>
                 </div>
              )}
 
-            {/* 3. DOCUMENTS SECTION */}
+            {/* --- DOCUMENTS SECTION --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[#C8102E]" />
                   Project Documents
                </h3>
                
-               {/* Revised Proposal View */}
+               {/* 1. REVISED PROPOSAL VIEW (Two Cards) */}
                {proposal.status === ('Revised Proposal' as ProposalStatus) ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     
                      {/* Previous Version */}
                      <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
                         <div className="flex items-center justify-between mb-2">
@@ -152,13 +140,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               <p className="text-sm font-medium text-slate-700 truncate">Proposal_v1.pdf</p>
                               <p className="text-xs text-slate-500">2.4 MB</p>
                            </div>
-                           <a href={proposal.documentUrl || templatePDF} download className="p-2 text-slate-500 hover:bg-slate-200 rounded-full">
+                           <button 
+                              onClick={() => handleDownload("Proposal_v1.pdf")}
+                              className="p-2 text-slate-500 hover:bg-slate-200 rounded-full cursor-pointer"
+                              title="Download Previous Version"
+                           >
                               <Download className="w-4 h-4" />
-                           </a>
+                           </button>
                         </div>
                      </div>
 
-                     {/* New Version */}
+                     {/* Latest Version */}
                      <div className="border border-indigo-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-indigo-100">
                         <div className="flex items-center justify-between mb-2">
                            <span className="text-xs font-bold text-indigo-600 uppercase flex items-center gap-1">
@@ -174,15 +166,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               <p className="text-sm font-medium text-slate-900 truncate">Proposal_v2_Revised.pdf</p>
                               <p className="text-xs text-slate-500">2.6 MB</p>
                            </div>
-                           <a href={proposal.documentUrl || templatePDF} download className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full">
+                           <button 
+                              onClick={() => handleDownload("Proposal_v2_Revised.pdf")}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full cursor-pointer"
+                              title="Download Revised Version"
+                           >
                               <Download className="w-4 h-4" />
-                           </a>
+                           </button>
                         </div>
                      </div>
                   </div>
                ) : (
-                  // Standard View
-                  <div className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer">
+                  // 2. STANDARD VIEW (Single Card)
+                  <div 
+                     className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
+                     onClick={() => handleDownload("Full Project Proposal.pdf")}
+                  >
                      <div className="flex items-center gap-3">
                         <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
                            <FileText className="w-5 h-5 text-[#C8102E]" />
@@ -192,19 +191,21 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                            <p className="text-xs text-slate-500">PDF Document • 2.4 MB</p>
                         </div>
                      </div>
-                     <a 
-                        href={proposal.documentUrl || templatePDF} 
-                        download 
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                     <button 
+                        onClick={(e) => {
+                           e.stopPropagation();
+                           handleDownload("Full Project Proposal.pdf");
+                        }}
+                        className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
                      >
                         <Download className="w-3 h-3" />
                         Download
-                     </a>
+                     </button>
                   </div>
                )}
             </div>
 
-            {/* 4. Leader & Agency Information */}
+            {/* --- 1. Leader & Agency Information --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
                 <User className="w-4 h-4 text-[#C8102E]" />
@@ -254,7 +255,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
 
-            {/* 5. Cooperating Agencies */}
+            {/* --- 2. Cooperating Agencies --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#C8102E]" />
@@ -263,12 +264,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <p className="text-xs sm:text-sm text-slate-700">{proposal.cooperatingAgencies}</p>
             </div>
 
-            {/* 6. R&D Station & Classification */}
+            {/* --- 3. R&D Station & Classification --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <Microscope className="w-4 h-4 text-[#C8102E]" />
-                  R&D Station
+                  Research & Development Station
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">{proposal.rdStation}</p>
               </div>
@@ -278,13 +279,48 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Classification
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
-                  <span className="font-semibold text-slate-900">{proposal.classification}:</span>{" "}
-                  {proposal.classificationDetails}
+                  <span className="font-semibold text-slate-900">{proposal.classification}:</span> {proposal.classificationDetails}
                 </p>
               </div>
             </div>
 
-            {/* 7. Schedule */}
+            {/* --- 4. Mode of Implementation & Priority Areas --- */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#C8102E]" />
+                  Mode of Implementation
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700">{proposal.modeOfImplementation}</p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-[#C8102E]" />
+                  Priority Areas
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700">{proposal.priorityAreas}</p>
+              </div>
+            </div>
+
+            {/* --- 5. Sector & Discipline --- */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-[#C8102E]" />
+                  Sector/Commodity
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700">{proposal.sector}</p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#C8102E]" />
+                  Discipline
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-700">{proposal.discipline}</p>
+              </div>
+            </div>
+
+            {/* --- 6. Schedule --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#C8102E]" />
@@ -306,7 +342,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
 
-            {/* 8. Budget Table */}
+            {/* --- 7. Budget Table --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-[#C8102E]" />
@@ -345,6 +381,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 PS: Personal Services | MOOE: Maintenance and Other Operating Expenses | CO: Capital Outlay
               </p>
             </div>
+
           </div>
         </div>
 
