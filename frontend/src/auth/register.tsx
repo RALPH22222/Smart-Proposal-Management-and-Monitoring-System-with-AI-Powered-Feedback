@@ -60,49 +60,51 @@ export default function Register() {
 
 	return (
 		<div className='min-h-screen flex flex-col md:flex-row'>
+			{/* Image/Banner Section - On top for mobile, left for desktop/tablet */}
 			<div
-                       className="w-full md:w-1/2 flex items-center justify-center relative p-8 text-white"
-                       style={{
-                         backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg')`,
-                         backgroundSize: "cover",
-                         backgroundPosition: "center",
-                       }}
-                     >
-                       {/* Red overlay */}
-                       <div className="absolute inset-0 bg-[#C8102E]/85"></div>
+        className="order-1 md:order-1 w-full md:w-1/2 flex items-center justify-center relative p-8 text-white min-h-[40vh] md:min-h-screen"
+        style={{
+          backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Red overlay */}
+        <div className="absolute inset-0 bg-[#C8102E]/85"></div>
 
-                       {/* Content */}
-                       <div className="relative max-w-md text-center space-y-6">
-                         <img
-                           src="../src/assets/IMAGES/LOGO.png"
-                           alt="Logo"
-                           className="mx-auto w-40 h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2"
-                         />
-                         <h1 className="text-4xl font-extrabold">Project Proposal</h1>
-                         <p className="text-sm opacity-90">
-                           Create, submit and track project proposals — fast, simple, and secure.
-                         </p>
-                       </div>
-                     </div>
+        {/* Content */}
+        <div className="relative max-w-md text-center space-y-4 md:space-y-6">
+          <img
+            src="../src/assets/IMAGES/LOGO.png"
+            alt="Logo"
+            className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2 hover:scale-105 transition-transform duration-300 cursor-pointer"
+          />
+          <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">Project Proposal</h1>
+          <p className="text-sm opacity-90 px-4 md:px-0 hover:opacity-100 transition-opacity duration-300">
+            Create, submit and track project proposals — fast, simple, and secure.
+          </p>
+        </div>
+      </div>
 
-			<div className='w-full md:w-1/2 flex items-center justify-center bg-white p-8'>
+			{/* Form Section - Below image on mobile, right for desktop/tablet */}
+			<div className='order-2 md:order-2 w-full md:w-1/2 flex items-center justify-center bg-white p-6 md:p-8'>
 				<form
 					onSubmit={handleRegister}
-					className='w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4'
+					className='w-full max-w-md bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-4 md:space-y-6'
 				>
-					<h2 className='text-2xl font-semibold text-gray-900'>Sign up</h2>
-					<p className='text-sm text-gray-600'>
+					<h2 className='text-xl md:text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer text-center md:text-left'>Sign up</h2>
+					<p className='text-sm text-gray-600 text-center md:text-left'>
 						Input all the field to create an account and get started.
 					</p>
 
 					<label className='block'>
-						<span className='text-sm font-medium text-gray-700'>name</span>
+						<span className='text-sm font-medium text-gray-700'>Name</span>
 						<input
 							type='text'
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder='Your username'
-							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
+							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
 						/>
 					</label>
 
@@ -113,7 +115,7 @@ export default function Register() {
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							placeholder='Email address'
-							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
+							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
 						/>
 					</label>
 
@@ -124,14 +126,15 @@ export default function Register() {
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							placeholder='Password'
-							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
+							className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
 						/>
 					</label>
 
-					<div className='flex gap-3'>
+					<div className='flex flex-col sm:flex-row gap-3'>
 						<button
 							type='submit'
-							className='flex-1 inline-flex items-center justify-center px-4 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm'
+							disabled={loading}
+							className='flex-1 inline-flex items-center justify-center px-4 py-3 md:py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm disabled:opacity-60 hover:bg-[#A50D26] transition-colors duration-300'
 						>
 							{loading ? 'Processing...' : 'Create Account'}
 						</button>
@@ -143,7 +146,7 @@ export default function Register() {
 								setName('');
 								setPassword('');
 							}}
-							className='inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm'
+							className='inline-flex items-center justify-center px-4 py-3 md:py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all duration-300'
 						>
 							Reset
 						</button>
@@ -153,8 +156,10 @@ export default function Register() {
 						Already have an account?{' '}
 						<a
 							href='/login'
-							className='font-semibold'
+							className='font-semibold hover:text-[#A50D26] transition-colors duration-300'
 							style={{ color: '#C8102E' }}
+							onMouseOver={(e) => e.currentTarget.style.color = '#A50D26'}
+							onMouseOut={(e) => e.currentTarget.style.color = '#C8102E'}
 						>
 							Sign in
 						</a>
