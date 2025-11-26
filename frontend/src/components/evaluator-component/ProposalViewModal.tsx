@@ -6,6 +6,7 @@ import {
   Calendar,
   DollarSign,
   Phone,
+  Download,
   Mail,
   MapPin,
   FileText,
@@ -17,6 +18,11 @@ import {
   MessageSquare,
   UserCheck,
 } from "lucide-react";
+
+  const handleDownload = (fileName: string) => {
+    console.log("Downloading:", fileName);
+    alert(`Downloading ${fileName}`);
+  };
 
 interface BudgetSource {
   source: string;
@@ -51,6 +57,7 @@ export interface Proposal {
   endDate: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  projectFile?: string;
   assignedRdStaff?: string;
   rdCommentsToEvaluator?: string;
   evaluationDeadline?: string;
@@ -95,6 +102,26 @@ export default function ProposalModal({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
+            {/* File Download */}
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Project Proposal Document
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => proposal.projectFile && handleDownload(proposal.projectFile)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+            </div>
 
             {/* 1. Leader & Agency Information */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">

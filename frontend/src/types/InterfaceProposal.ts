@@ -8,39 +8,42 @@ export interface BudgetSource {
      }
 
 export interface Proposal {
-       id: string;
-       title: string;
-       documentUrl: string;
-       status: ProposalStatus;
-       submittedBy: string;
-       submittedDate: string;
-       lastModified: string;
-       proponent: string;
-       gender: string;
-       address: string;
-       telephone: string;
-       fax: string;
-       email: string;
-       deadline: string;
-       projectType: string;
-       agency: string;
-       cooperatingAgencies: string;
-       rdStation: string;
-       classification: string;
-       classificationDetails: string;
-       modeOfImplementation: string;
-       priorityAreas: string;
-       sector: string;
-       discipline: string;
-       duration: string;
-       startDate: string;
-       endDate: string;
-       budgetSources: BudgetSource[];
-       budgetTotal: string;
-	rdStaffReviewer?: string;
-	evaluationDeadline?: string;
-
-     }
+      id: string;
+      title: string;
+      documentUrl: string;
+      status: ProposalStatus;
+      submittedBy: string;
+      submittedDate: string;
+      lastModified: string;
+      proponent: string;
+      gender: string;
+      address: string;
+      telephone: string;
+      fax: string;
+      email: string;
+      deadline: string;
+      projectType: string;
+      agency: string;
+      cooperatingAgencies: string;
+      rdStation: string;
+      classification: string;
+      classificationDetails: string;
+      modeOfImplementation: string;
+      priorityAreas: string;
+      sector: string;
+      discipline: string;
+      duration: string;
+      startDate: string;
+      endDate: string;
+      budgetSources: BudgetSource[];
+      budgetTotal: string;
+      projectFile?: string;          
+      rdStaffReviewer?: string;
+      evaluationDeadline?: string;
+      assignedRdStaff?: string;
+      rdCommentsToEvaluator?: string;
+      assignedEvaluators?: string[];
+    }
 
 export type ProposalStatus =
 	| 'Pending'

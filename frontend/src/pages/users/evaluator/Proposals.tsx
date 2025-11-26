@@ -16,10 +16,7 @@ import {
 } from "lucide-react";
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
-// Import the new component
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
-
-// --- 1. Define Types ---
 
 interface BudgetSource {
   source: string;

@@ -170,9 +170,6 @@ export default function ProposalDetailsModal({
                   <p className="text-sm font-semibold text-slate-900">
                     Project Proposal Document
                   </p>
-                  <p className="text-xs text-slate-600">
-                    {proposal.projectFile}
-                  </p>
                 </div>
               </div>
               <button

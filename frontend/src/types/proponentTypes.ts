@@ -28,7 +28,7 @@ export interface BudgetSource {
 export interface Proposal {
   id: string;
   title: string;
-  status: 'r&D Evaluation' | 'revise' | 'funded' | 'reject';
+  status: 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject';
   proponent: string;
   gender: string;
   agency: string;

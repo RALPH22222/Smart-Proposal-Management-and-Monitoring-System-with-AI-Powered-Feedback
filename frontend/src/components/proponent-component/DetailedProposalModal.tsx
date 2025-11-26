@@ -20,7 +20,8 @@ import {
   Edit,
   Eye,
   FileCheck,
-  CheckCircle2
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
@@ -105,10 +106,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       const updatedProposal = {
         ...editedProposal,
         uploadedFile: newFileUrl,
-        status: 'r&d Evaluation', // Change back to r&d review after revision
+        status: 'r&d evaluation', // Change back to r&d evaluation after revision
         lastUpdated: new Date().toISOString().split('T')[0]
       };
-      // onUpdateProposal(updatedProposal);
+      onUpdateProposal(updatedProposal);
       setIsEditing(false);
       setNewFile(null);
     }
@@ -156,7 +157,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'r&D Evaluation': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'r&d evaluation': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'evaluators assessment': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'revise': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'reject': return 'bg-red-100 text-red-800 border-red-200';
       case 'funded': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -297,7 +300,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* Modal Body */}
         {proposal.status === 'revise' && (
             <div className="flex items-center gap-1 text-sm text-amber-600 font-medium bg-amber-50 px-3 py-2 border border-amber-200">
-              <Calendar className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
               Deadline: {proposal.deadline || '2024-12-31 23:59'}
             </div>
         )}

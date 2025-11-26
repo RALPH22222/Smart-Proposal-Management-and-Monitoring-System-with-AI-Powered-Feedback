@@ -56,28 +56,65 @@ export const mockProjects: Project[] = [
     priority: 'high',
     evaluators: 5
   },
+  // Add more projects to cover all statuses
+  { 
+    id: "p6", 
+    title: "Environmental Conservation Study", 
+    currentIndex: 0,
+    submissionDate: "2024-02-05",
+    lastUpdated: "2024-02-05",
+    budget: "₱200,000",
+    duration: "8 months",
+    priority: 'medium',
+    evaluators: 0
+  },
+  { 
+    id: "p7", 
+    title: "AI Research Project", 
+    currentIndex: 3,
+    submissionDate: "2024-01-20",
+    lastUpdated: "2024-02-02",
+    budget: "₱600,000",
+    duration: "15 months",
+    priority: 'high',
+    evaluators: 4
+  },
+  { 
+    id: "p8", 
+    title: "Cultural Heritage Preservation", 
+    currentIndex: 5,
+    submissionDate: "2024-01-08",
+    lastUpdated: "2024-01-29",
+    budget: "₱180,000",
+    duration: "10 months",
+    priority: 'low',
+    evaluators: 2
+  }
 ];
 
 export const stageLabels = [
+  "Pending",
   "R&D Evaluation",
   "Evaluators Assessment",
-  "Endorsement",
+  "Revision", 
   "Funding", 
   "Completed"
 ];
 
 export const currentStageLabels = [
-  "Submitted",
-  "R&D Evaluation",
-  "Evaluators Assessment",
-  "Endorsement",
-  "Funded"
+  "Pending Review",
+  "Under R&D Evaluation",
+  "Under Evaluators Assessment",
+  "Revision Required",
+  "Funding Assessment",
+  "Project Completed"
 ];
 
 export const stageDescriptions = [
+  "Proposal has been submitted and is awaiting initial review",
   "Proposal will be reviewed by the R&D staff",
-  "Under review by the assigned evaluators.",
-  "This will be reviewed to assess if it is eligible for endorsement.",
+  "Under review by the assigned evaluators",
+  "Proposal requires revisions based on evaluator feedback",
   "Financial review and budget allocation assessment",
   "Project has been approved and ready for implementation"
 ];
@@ -97,18 +134,25 @@ export const initialNotifications: Notification[] = [
   },
   { 
     id: 'n3', 
-    title: 'Proposal "Renewable Energy Research" moved to Draft', 
+    title: 'Proposal "STEM Education Enhancement" requires revision', 
     time: '3d', 
+    read: true 
+  },
+  { 
+    id: 'n4', 
+    title: 'Project "Environmental Conservation Study" is now pending review', 
+    time: '5d', 
     read: true 
   }
 ];
 
 export const stageLabelsList = [
-  "Submitted",
+  "Pending",
   "R&D Evaluation", 
   "Evaluators Assessment",
-  "Endorsement",
-  "Funded"
+  "Revision",
+  "Funding",
+  "Completed"
 ];
 
 export const commentsMap: Record<string, { 
@@ -125,8 +169,53 @@ export const commentsMap: Record<string, {
   }],
   p3: [{ 
     id: 'c2', 
-    text: 'Budget needs revision.', 
+    text: 'Budget needs revision in the equipment section.', 
     author: 'Evaluator B', 
     time: '1d' 
+  }],
+  p7: [{ 
+    id: 'c3', 
+    text: 'Please provide more details about the AI algorithms to be used.', 
+    author: 'Evaluator C', 
+    time: '4h' 
   }]
+};
+
+// Helper function to get status from currentIndex
+export const getStatusFromIndex = (currentIndex: number): 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
+  const statusMap: Record<number, 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
+    0: 'pending',
+    1: 'r&d evaluation',
+    2: 'evaluators assessment', 
+    3: 'revise',
+    4: 'funded',
+    5: 'reject'
+  };
+  return statusMap[currentIndex] || 'pending';
+};
+
+// Helper function to get progress percentage from status
+export const getProgressPercentage = (status: string): number => {
+  const progressMap: Record<string, number> = {
+    'pending': 0,
+    'r&d evaluation': 25,
+    'evaluators assessment': 50,
+    'revise': 10,
+    'funded': 100,
+    'reject': 0
+  };
+  return progressMap[status] || 0;
+};
+
+// Helper function to get status label
+export const getStatusLabel = (status: string): string => {
+  const labels: Record<string, string> = {
+    'pending': 'Pending',
+    'r&d evaluation': 'R&D Evaluation',
+    'evaluators assessment': 'Evaluators Assessment', 
+    'revise': 'Revision Required',
+    'funded': 'Funded',
+    'reject': 'Rejected'
+  };
+  return labels[status] || status;
 };

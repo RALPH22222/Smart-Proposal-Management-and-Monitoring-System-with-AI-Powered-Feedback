@@ -3,12 +3,12 @@ import { FileText, Calendar, User, Eye, Gavel, Filter, Search, TrendingUp, Chevr
 import {
   type Proposal,
   type Decision,
-  type ProposalStatus
+  type ProposalStatus,
+  type Reviewer
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal from '../../../components/rnd-component/RndViewModal';
-import { type Reviewer } from '../../../types/InterfaceProposal';
 
 interface ReviewPageProps {
   filter?: ProposalStatus;
