@@ -10,7 +10,7 @@ import {
   ChevronRight,
   CheckCircle,
   XCircle,
-  Clock,
+  RotateCcw,
   Tag,
   Gavel,
 } from "lucide-react";
@@ -470,7 +470,7 @@ export default function Proposals() {
       case "accepted":
         return <CheckCircle className="w-3 h-3" />;
       case "pending":
-        return <Clock className="w-3 h-3" />;
+        return <RotateCcw className="w-3 h-3" />;
       case "rejected":
         return <XCircle className="w-3 h-3" />;
       default:

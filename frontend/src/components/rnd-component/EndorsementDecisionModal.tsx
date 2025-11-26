@@ -205,19 +205,19 @@ export default function DecisionModal({
                 }}
                 className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "revised"
-                    ? "border-orange-500 bg-orange-50 text-orange-700 shadow-md transform scale-[1.02]"
-                    : "border-slate-200 hover:border-orange-200 hover:bg-slate-50 text-slate-500"
+                    ? "border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md transform scale-[1.02]"
+                    : "border-slate-200 hover:border-yellow-200 hover:bg-slate-50 text-slate-500"
                 }`}
               >
                 {decision === "revised" && (
-                  <div className="absolute top-2 right-2 text-orange-600">
-                    <CheckCircle className="w-4 h-4 fill-orange-100" />
+                  <div className="absolute top-2 right-2 text-yellow-600">
+                    <CheckCircle className="w-4 h-4 fill-yellow-100" />
                   </div>
                 )}
                 <RotateCcw
                   className={`w-6 h-6 ${
                     decision === "revised"
-                      ? "text-orange-600"
+                      ? "text-yellow-600"
                       : "text-slate-300"
                   }`}
                 />

@@ -91,7 +91,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 			case 'Approve':
 				return 'text-emerald-600 bg-emerald-50 border-emerald-200';
 			case 'Revise':
-				return 'text-amber-600 bg-amber-50 border-amber-200';
+				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			case 'Reject':
 				return 'text-red-600 bg-red-50 border-red-200';
 			default:
@@ -104,7 +104,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 			case 'Approve':
 				return <CheckCircle className='w-4 h-4 sm:w-5 sm:h-5 text-emerald-600' />;
 			case 'Revise':
-				return <RotateCcw className='w-4 h-4 sm:w-5 sm:h-5 text-amber-600' />;
+				return <RotateCcw className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
 			case 'Reject':
 				return <XCircle className='w-4 h-4 sm:w-5 sm:h-5 text-red-600' />;
 			default:
@@ -115,7 +115,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 	const getRatingColor = (value: number) => {
 		if (value >= 4) return "bg-emerald-100 text-emerald-700 border-emerald-200";
 		if (value === 3) return "bg-blue-100 text-blue-700 border-blue-200";
-		return "bg-amber-100 text-amber-700 border-amber-200";
+		return "bg-yellow-100 text-yellow-700 border-yellow-200";
 	};
 
 	return (

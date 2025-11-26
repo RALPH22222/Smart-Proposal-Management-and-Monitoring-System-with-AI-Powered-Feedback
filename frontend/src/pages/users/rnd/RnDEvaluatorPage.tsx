@@ -332,10 +332,6 @@ export const RnDEvaluatorPage: React.FC = () => {
 											</div>
 
 											<div className="flex items-center gap-3 flex-shrink-0">
-												<span className={getStatusBadge(assignment.status)}>
-													{assignment.status}
-												</span>
-
 												<div className="flex items-center gap-2">
 													<button
 														onClick={() => handleViewHistory(assignment.proposalId)}

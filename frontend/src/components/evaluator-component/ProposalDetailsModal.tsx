@@ -16,7 +16,7 @@ import {
   Briefcase,
   BookOpen,
   CheckCircle,
-  AlertCircle,
+  RotateCcw,
   XCircle,
 } from "lucide-react";
 
@@ -513,7 +513,7 @@ export default function ProposalDetailsModal({
                           : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
                       }`}
                     >
-                      <AlertCircle
+                      <RotateCcw
                         className={`w-5 h-5 ${
                           proposal.decision === "Revise"
                             ? "text-white"

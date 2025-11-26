@@ -10,7 +10,7 @@ import {
   DollarSign,
   MessageSquare,
   CheckCircle,
-  AlertCircle,
+  RotateCcw,
   XCircle,
   User,
   MapPin,
@@ -684,7 +684,7 @@ export default function ReviewModal({
                           : "bg-white text-slate-600 border-slate-200 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50"
                       }`}
                     >
-                      <AlertCircle
+                      <RotateCcw
                         className={`w-5 h-5 ${
                           decision === "Revise"
                             ? "text-white"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, User, Eye, Gavel, Filter, Search, TrendingUp, ChevronLeft, ChevronRight, Tag } from 'lucide-react';
+import { FileText, Calendar, User, Eye, Gavel, Filter, Search, TrendingUp, ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, RefreshCw  } from 'lucide-react';
 import {
   type Proposal,
   type Decision,
@@ -127,19 +127,44 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
   };
 
   const getStatusBadge = (status: ProposalStatus) => {
-    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-
+    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+  
     switch (status) {
       case 'Pending':
-        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
+        return (
+          <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>
+            <Clock className="w-3 h-3" />
+            {status}
+          </span>
+        );
       case 'Sent to Evaluators':
-        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
+        return (
+          <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>
+            <Send className="w-3 h-3" />
+            {status}
+          </span>
+        );
       case 'Rejected Proposal':
-        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
+        return (
+          <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}>
+            <XCircle className="w-3 h-3" />
+            {status}
+          </span>
+        );
       case 'Revision Required':
-        return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
+        return (
+          <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200`}>
+            <RefreshCw className="w-3 h-3" />
+            {status}
+          </span>
+        );
       default:
-        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
+        return (
+          <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}>
+            <FileText className="w-3 h-3" />
+            {status}
+          </span>
+        );
     }
   };
 
@@ -245,6 +270,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                   <option value="Pending">Pending ({getStatusCount('Pending')})</option>
                   <option value="Revision Required">Revision Required ({getStatusCount('Revision Required')})</option>
                   <option value="Sent to Evaluators">Sent to Evaluators ({getStatusCount('Sent to Evaluators')})</option>
+                  {/* <option value */}
                   <option value="Rejected Proposal">Rejected Proposal ({getStatusCount('Rejected Proposal')})</option>
                 </select>
               </div>
@@ -341,10 +367,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                       </div>
 
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        <span className={getStatusBadge(proposal.status)}>
-                          {proposal.status}
-                        </span>
-
+                       {getStatusBadge(proposal.status)}
                         {/* Eye icon button for detailed view */}
                         <button
                           onClick={() => handleViewDetails(proposal)}
