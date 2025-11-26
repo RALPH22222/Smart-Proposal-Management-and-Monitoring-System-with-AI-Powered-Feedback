@@ -3,10 +3,10 @@ import {
   FileText,
   Download,
   Building2,
-  Target,
-  Calendar,
-  DollarSign,
   MessageSquare,
+  CheckCircle,
+  RotateCcw,
+  XCircle,
   User,
   MapPin,
   Phone,
@@ -15,9 +15,9 @@ import {
   Tags,
   Briefcase,
   BookOpen,
-  CheckCircle,
-  RotateCcw,
-  XCircle,
+  Target,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 
 // --- Data Constants ---
@@ -160,25 +160,34 @@ export default function ProposalDetailsModal({
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-            {/* File Download Section */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    Project Proposal Document
-                  </p>
-                </div>
-              </div>
-              <button
+            {/* --- UPDATED FILE DOWNLOAD SECTION --- */}
+            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#C8102E]" />
+                Project Documents
+              </h3>
+              <div
+                className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
                 onClick={() => handleDownload(proposal.projectFile)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
-                <Download className="w-4 h-4" />
-                Download
-              </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
+                    <FileText className="w-5 h-5 text-[#C8102E]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
+                      Project Proposal Document
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      PDF Document • 2.4 MB
+                    </p>
+                  </div>
+                </div>
+                <button className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                  <Download className="w-3 h-3" />
+                  Download
+                </button>
+              </div>
             </div>
 
             {/* Leader & Agency Information */}
@@ -255,7 +264,7 @@ export default function ProposalDetailsModal({
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <Microscope className="w-4 h-4 text-[#C8102E]" />
-                  Research and Development Station
+                  Research & Development Station
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
                   {proposal.rdStation}
@@ -304,14 +313,18 @@ export default function ProposalDetailsModal({
                   <Briefcase className="w-4 h-4 text-[#C8102E]" />
                   Sector/Commodity
                 </h3>
-                <p className="text-xs text-slate-700">{proposal.sector}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.sector}
+                </p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-[#C8102E]" />
                   Discipline
                 </h3>
-                <p className="text-xs text-slate-700">{proposal.discipline}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.discipline}
+                </p>
               </div>
             </div>
 
@@ -409,11 +422,11 @@ export default function ProposalDetailsModal({
               </div>
             </div>
 
-            {/* Evaluator Comments & Ratings Section (Read-Only) */}
+            {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
             <div className="border-t-2 border-slate-300 pt-6 mt-6">
               <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[#C8102E]" />
-                Evaluator Review Details
+                Evaluator Comments & Ratings
               </h3>
 
               <div className="space-y-6">
