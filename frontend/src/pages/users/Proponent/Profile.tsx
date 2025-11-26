@@ -545,7 +545,7 @@ const Profile: React.FC = () => {
         </header>
 
         {/* Featured Project Section */}
-        <section className="mb-8">
+        {/* <section className="mb-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-[#C8102E] to-[#E03A52] px-4 lg:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -561,10 +561,10 @@ const Profile: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-4 lg:p-6">
-              <div className="flex flex-col xl:flex-row gap-6">
+            <div className="p-4 lg:p-6"> */}
+              {/* <div className="flex flex-col xl:flex-row gap-6"> */}
                 {/* Project Details */}
-                <div className="flex-1">
+                {/* <div className="flex-1">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4">
                     <div className="flex-1">
                       <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">
@@ -594,10 +594,10 @@ const Profile: React.FC = () => {
                         {current.priority.toLowerCase()} Priority
                       </span>
                     </div>
-                  </div>
+                  </div> */}
                   
                   {/* Next Stage Description */}
-                  <div className="bg-red-50 rounded-xl p-4 mb-6 border border-red-200">
+                  {/* <div className="bg-red-50 rounded-xl p-4 mb-6 border border-red-200">
                     <div className="flex items-start gap-3">
                       <div>
                         <h4 className="font-semibold text-red-900 mb-1">
@@ -609,16 +609,16 @@ const Profile: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                   
                   {/* Status Stepper */}
-                  <div className="mt-4">
+                  {/* <div className="mt-4">
                     <StatusStepper currentIndex={current.currentIndex} />
                   </div>
-                </div>
+                </div> */}
                 
                 {/* Progress Stats */}
-                <div className="xl:w-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 lg:p-6 border border-gray-300">
+                {/* <div className="xl:w-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 lg:p-6 border border-gray-300">
                   <div className="text-center mb-4">
                     <div className="text-2xl lg:text-3xl font-bold text-[#C8102E] mb-1">
                       {getProgressPercentageByIndex(current.currentIndex)}%
@@ -626,9 +626,9 @@ const Profile: React.FC = () => {
                     <div className="text-sm text-gray-600 font-medium">
                       Overall Progress
                     </div>
-                  </div>
+                  </div> */}
                   
-                  <div className="space-y-3 text-xs lg:text-sm">
+                  {/* <div className="space-y-3 text-xs lg:text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Stage Progress:</span>
                       <span className="font-semibold text-gray-800">
@@ -655,10 +655,10 @@ const Profile: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
               
               {/* Navigation */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
+              {/* <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <button
                     onClick={prev}
@@ -690,7 +690,7 @@ const Profile: React.FC = () => {
               </div>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* All Projects Section */}
         <section>

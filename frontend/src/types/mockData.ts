@@ -92,29 +92,27 @@ export const mockProjects: Project[] = [
   }
 ];
 
+// KEEP THE ORIGINAL STAGE SYSTEM FOR ACTIVE PROJECT OVERVIEW
 export const stageLabels = [
-  "Pending",
   "R&D Evaluation",
-  "Evaluators Assessment",
-  "Revision", 
-  "Funding", 
+  "Evaluators Assessment", 
+  "Endorsement",
+  "Funding",
   "Completed"
 ];
 
 export const currentStageLabels = [
-  "Pending Review",
-  "Under R&D Evaluation",
-  "Under Evaluators Assessment",
-  "Revision Required",
-  "Funding Assessment",
-  "Project Completed"
+  "Submitted",
+  "R&D Evaluation",
+  "Evaluators Assessment",
+  "Endorsement", 
+  "Funded"
 ];
 
 export const stageDescriptions = [
-  "Proposal has been submitted and is awaiting initial review",
   "Proposal will be reviewed by the R&D staff",
-  "Under review by the assigned evaluators",
-  "Proposal requires revisions based on evaluator feedback",
+  "Under review by the assigned evaluators.",
+  "This will be reviewed to assess if it is eligible for endorsement.",
   "Financial review and budget allocation assessment",
   "Project has been approved and ready for implementation"
 ];
@@ -134,25 +132,18 @@ export const initialNotifications: Notification[] = [
   },
   { 
     id: 'n3', 
-    title: 'Proposal "STEM Education Enhancement" requires revision', 
+    title: 'Proposal "Renewable Energy Research" moved to Draft', 
     time: '3d', 
-    read: true 
-  },
-  { 
-    id: 'n4', 
-    title: 'Project "Environmental Conservation Study" is now pending review', 
-    time: '5d', 
     read: true 
   }
 ];
 
 export const stageLabelsList = [
-  "Pending",
+  "Submitted",
   "R&D Evaluation", 
   "Evaluators Assessment",
-  "Revision",
-  "Funding",
-  "Completed"
+  "Endorsement",
+  "Funded"
 ];
 
 export const commentsMap: Record<string, { 
@@ -169,19 +160,13 @@ export const commentsMap: Record<string, {
   }],
   p3: [{ 
     id: 'c2', 
-    text: 'Budget needs revision in the equipment section.', 
+    text: 'Budget needs revision.', 
     author: 'Evaluator B', 
     time: '1d' 
-  }],
-  p7: [{ 
-    id: 'c3', 
-    text: 'Please provide more details about the AI algorithms to be used.', 
-    author: 'Evaluator C', 
-    time: '4h' 
   }]
 };
 
-// Helper function to get status from currentIndex
+// NEW: Helper function to get status from currentIndex for cards and modals
 export const getStatusFromIndex = (currentIndex: number): 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
   const statusMap: Record<number, 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
     0: 'pending',
@@ -194,7 +179,7 @@ export const getStatusFromIndex = (currentIndex: number): 'pending' | 'r&d evalu
   return statusMap[currentIndex] || 'pending';
 };
 
-// Helper function to get progress percentage from status
+// NEW: Helper function to get progress percentage from status for cards
 export const getProgressPercentage = (status: string): number => {
   const progressMap: Record<string, number> = {
     'pending': 0,
@@ -207,7 +192,7 @@ export const getProgressPercentage = (status: string): number => {
   return progressMap[status] || 0;
 };
 
-// Helper function to get status label
+// NEW: Helper function to get status label for cards
 export const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
     'pending': 'Pending',
