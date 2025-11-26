@@ -147,7 +147,7 @@ const EndorsePage: React.FC = () => {
     setIsDecisionModalOpen(false);
   };
 
-  const handleDecisionSubmit = (status: "endorsed" | "returned" | "rejected", remarks: string) => {
+  const handleDecisionSubmit = (status: "endorsed" | "revised" | "rejected", remarks: string) => {
     if (!selectedProposal) return;
 
     // Log the remarks and status
@@ -157,7 +157,7 @@ const EndorsePage: React.FC = () => {
     // Route to existing logic based on status
     if (status === 'endorsed') {
       handleEndorseProposal(selectedProposal.id);
-    } else if (status === 'returned') {
+    } else if (status === 'revised') {
       handleReturnForRevision(selectedProposal.id);
     } else if (status === 'rejected') {
       handleRejectForClarification(selectedProposal.id);
