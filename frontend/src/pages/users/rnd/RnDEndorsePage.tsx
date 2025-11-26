@@ -307,7 +307,7 @@ const EndorsePage: React.FC = () => {
 
         {/* Stats Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Ready for Endorsement</p>
@@ -319,7 +319,7 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Pending Evaluators</p>
@@ -331,7 +331,7 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Approved</p>
@@ -343,7 +343,7 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Need Revision</p>

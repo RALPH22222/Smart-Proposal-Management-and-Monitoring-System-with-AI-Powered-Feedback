@@ -8,6 +8,7 @@ import {
 	AlertCircle,
 	Calendar,
 	CheckCircle,
+	RotateCcw,
 	User
 } from 'lucide-react';
 import { type Statistics, type Activity } from '../../../types/InterfaceProposal';
@@ -61,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 		{
 			title: 'Need Revision',
 			value: statistics.revisionRequiredProposals,
-			icon: AlertCircle,
+			icon: RotateCcw,
 			color: 'text-orange-500',
 			bgColor: 'bg-orange-50',
 			borderColor: 'border-orange-200',
@@ -76,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			case 'submission':
 				return FileText;
 			case 'revision':
-				return AlertCircle;
+				return RotateCcw;
 			default:
 				return FileText;
 		}

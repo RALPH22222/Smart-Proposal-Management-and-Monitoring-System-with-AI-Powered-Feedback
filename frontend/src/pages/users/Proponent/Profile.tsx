@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
-import StatusStepper from "../../../components/proponent-component/StatusStepper";
+// import StatusStepper from "../../../components/proponent-component/StatusStepper";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
@@ -23,6 +23,9 @@ import {
   FaShareAlt,
   FaEdit
 } from 'react-icons/fa';
+import { 
+  Microscope, RotateCcw, FileText, ClipboardCheck, RefreshCw, Award
+} from 'lucide-react';
 
 import type { Project, Proposal, Notification, BudgetSource } from '../../../types/proponentTypes';
 import { 
@@ -471,78 +474,75 @@ const Profile: React.FC = () => {
           </div>
           
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2 lg:gap-3">
-             <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-gray-100 rounded-lg">
-                  <FaFileAlt className="text-gray-600 text-sm lg:text-base" />
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4">
+            {/* Total Projects Card */}
+            <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p>
+                  <p className="text-xl font-bold text-slate-800 tabular-nums">
                     {mockProjects.length}
                   </p>
-                  <p className="text-xs lg:text-sm text-gray-600">Total Projects</p>
                 </div>
+                <FileText className="w-6 h-6 text-slate-600 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
             
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-blue-100 rounded-lg">
-                  <FaUsers className="text-blue-600 text-sm lg:text-base" />
-                </div>
+            {/* R&D Evaluation Card */}
+            <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">R&D Evaluation</p>
+                  <p className="text-xl font-bold text-blue-600 tabular-nums">
                     {rdEvaluation.length}
                   </p>
-                  <p className="text-xs lg:text-sm text-gray-600">R&D Evaluation</p>
                 </div>
+                <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
-            
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-purple-100 rounded-lg">
-                  <FaClipboardCheck className="text-purple-600 text-sm lg:text-base" />
-                </div>
+
+            {/* Evaluators Assessment Card */}
+            <div className="bg-purple-50 shadow-xl rounded-2xl border border-purple-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
+                  <p className="text-xl font-bold text-purple-600 tabular-nums">
                     {evaluatorsAssessment.length}
                   </p>
-                  <p className="text-xs lg:text-sm text-gray-600">Evaluators Assessment</p>
                 </div>
+                <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-orange-100 rounded-lg">
-                  <FaEdit className="text-orange-600 text-sm lg:text-base" />
-                </div>
+            {/* Revision Required Card */}
+            <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Revision Required</p>
+                  <p className="text-xl font-bold text-orange-600 tabular-nums">
                     {revision.length}
                   </p>
-                  <p className="text-xs lg:text-sm text-gray-600">Revision Required</p>
                 </div>
+                <RefreshCw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 lg:gap-3">
-                <div className="p-1 lg:p-2 bg-green-100 rounded-lg">
-                  <FaCheckCircle className="text-green-600 text-sm lg:text-base" />
-                </div>
+            {/* Funded Card */}
+            <div className="bg-green-50 shadow-xl rounded-2xl border border-green-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-lg lg:text-2xl font-bold text-gray-800">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
+                  <p className="text-xl font-bold text-green-600 tabular-nums">
                     {funded.length}
                   </p>
-                  <p className="text-xs lg:text-sm text-gray-600">Funded</p>
                 </div>
+                <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
-        </header>
+        <div>
+      </div>
+    </header>
 
         {/* Featured Project Section */}
         {/* <section className="mb-8">
