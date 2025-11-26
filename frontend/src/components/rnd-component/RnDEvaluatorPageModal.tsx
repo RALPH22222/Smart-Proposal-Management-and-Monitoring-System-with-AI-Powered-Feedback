@@ -39,6 +39,18 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 				name: 'Prof. Ben Reyes',
 				department: 'Information Technology',
 				status: 'Accepts'
+			},
+			{
+				id: 'e7',
+				name: 'Dr. Michael Chen',
+				department: 'Information Technology',
+				status: 'Pending'
+			},
+			{
+				id: 'e8',
+				name: 'Prof. Sarah Johnson',
+				department: 'Information Technology',
+				status: 'Accepts'
 			}
 		],
 		'Computer Science': [
@@ -51,6 +63,18 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 			{
 				id: 'e4',
 				name: 'Prof. David Tan',
+				department: 'Computer Science',
+				status: 'Pending'
+			},
+			{
+				id: 'e9',
+				name: 'Dr. Robert Wilson',
+				department: 'Computer Science',
+				status: 'Accepts'
+			},
+			{
+				id: 'e10',
+				name: 'Prof. Lisa Garcia',
 				department: 'Computer Science',
 				status: 'Pending'
 			}
@@ -67,18 +91,28 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 				name: 'Prof. Eva Martinez',
 				department: 'Engineering',
 				status: 'Rejected'
+			},
+			{
+				id: 'e11',
+				name: 'Dr. James Brown',
+				department: 'Engineering',
+				status: 'Accepts'
+			},
+			{
+				id: 'e12',
+				name: 'Prof. Maria Rodriguez',
+				department: 'Engineering',
+				status: 'Pending'
 			}
 		]
 	};
 
 	const [selectedDepartment, setSelectedDepartment] = useState('');
-	const [availableEvaluators, setAvailableEvaluators] = useState<
-		EvaluatorOption[]
-	>([]);
-	const [selectedEvaluators, setSelectedEvaluators] = useState<
-		EvaluatorOption[]
-	>([]);
+	const [availableEvaluators, setAvailableEvaluators] = useState<EvaluatorOption[]>([]);
+	const [filteredEvaluators, setFilteredEvaluators] = useState<EvaluatorOption[]>([]);
+	const [selectedEvaluators, setSelectedEvaluators] = useState<EvaluatorOption[]>([]);
 	const [currentList, setCurrentList] = useState<EvaluatorOption[]>([]);
+	const [searchQuery, setSearchQuery] = useState('');
 
 	useEffect(() => {
 		// Seed with provided current evaluators, else use a small mock for visibility
@@ -108,10 +142,27 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 		}
 	}, [currentEvaluators]);
 
+	useEffect(() => {
+		// Filter available evaluators based on search query
+		if (searchQuery.trim() === '') {
+			setFilteredEvaluators(availableEvaluators);
+		} else {
+			const query = searchQuery.toLowerCase();
+			const filtered = availableEvaluators.filter(evaluator =>
+				evaluator.name.toLowerCase().includes(query) ||
+				evaluator.department.toLowerCase().includes(query)
+			);
+			setFilteredEvaluators(filtered);
+		}
+	}, [availableEvaluators, searchQuery]);
+
 	const handleDepartmentChange = (dept: string) => {
 		setSelectedDepartment(dept);
-		setAvailableEvaluators(mockEvaluators[dept] || []);
+		const evaluators = mockEvaluators[dept] || [];
+		setAvailableEvaluators(evaluators);
+		setFilteredEvaluators(evaluators);
 		setSelectedEvaluators([]);
+		setSearchQuery(''); // Reset search when department changes
 	};
 
 	const handleEvaluatorSelect = (evaluator: EvaluatorOption) => {
@@ -120,6 +171,10 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 				? prev.filter((ev) => ev.id !== evaluator.id)
 				: [...prev, evaluator]
 		);
+	};
+
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchQuery(e.target.value);
 	};
 
 	const handleReplaceEvaluator = (id: string) => {
@@ -146,7 +201,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 					<h3 className='text-lg font-semibold'>Evaluator Management</h3>
 					<button
 						onClick={onClose}
-                                          className="text-black text-xl hover:bg-white hover:text-black transition-colors duration-300 p-1 rounded-lg"
+						className="text-black text-xl hover:bg-white hover:text-black transition-colors duration-300 p-1 rounded-lg"
 					>
 						✕
 					</button>
@@ -242,43 +297,76 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 					{/* Evaluator Selection */}
 					{selectedDepartment && (
 						<div className='bg-gray-50 p-5 rounded-md border border-gray-200'>
-							<h4 className='font-semibold text-gray-800 mb-3'>
-								Available Evaluators
-							</h4>
-							<div className='space-y-2'>
-								{availableEvaluators.map((evaluator) => (
-									<label
-										key={evaluator.id}
-										className='flex items-center space-x-2'
-									>
-										<input
-											type='checkbox'
-											checked={selectedEvaluators.some(
-												(ev) => ev.id === evaluator.id
-											)}
-											onChange={() => handleEvaluatorSelect(evaluator)}
-											className='text-[#C10003] focus:ring-[#C10003]'
-										/>
-										<span className='text-gray-700 text-sm'>
-											{evaluator.name}
-										</span>
-										<span className='text-gray-500 text-xs ml-2'>
-											({evaluator.department})
-										</span>
-										<span
-											className={`ml-auto text-xs font-medium px-2 py-1 rounded-full ${
-												evaluator.status === 'Accepts'
-													? 'bg-green-100 text-green-700'
-													: evaluator.status === 'Rejected'
-													? 'bg-red-100 text-red-700'
-													: 'bg-yellow-100 text-yellow-800'
-											}`}
+							<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
+								<h4 className='font-semibold text-gray-800'>
+									Available Evaluators
+								</h4>
+								
+								{/* Search Input */}
+								<div className='relative max-w-xs'>
+									<input
+										type='text'
+										placeholder='Search evaluators...'
+										value={searchQuery}
+										onChange={handleSearchChange}
+										className='w-full border border-gray-300 rounded-md pl-3 pr-3 py-2 text-sm focus:ring-2 focus:ring-[#C10003] focus:outline-none'
+									/>
+									{searchQuery && (
+										<button
+											onClick={() => setSearchQuery('')}
+											className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
 										>
-											{evaluator.status}
-										</span>
-									</label>
-								))}
+											✕
+										</button>
+									)}
+								</div>
 							</div>
+
+							{filteredEvaluators.length === 0 ? (
+								<p className='text-gray-500 italic text-sm'>
+									{searchQuery ? 'No evaluators found matching your search.' : 'No evaluators available for this department.'}
+								</p>
+							) : (
+								<div className='space-y-3 max-h-60 overflow-y-auto'>
+									{filteredEvaluators.map((evaluator) => (
+										<label
+											key={evaluator.id}
+											className='flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-md cursor-pointer'
+										>
+											<input
+												type='checkbox'
+												checked={selectedEvaluators.some(
+													(ev) => ev.id === evaluator.id
+												)}
+												onChange={() => handleEvaluatorSelect(evaluator)}
+												className='text-[#C10003] focus:ring-[#C10003]'
+											/>
+											<div className='flex-1'>
+												<span className='text-gray-700 text-sm font-medium'>
+													{evaluator.name}
+												</span>
+												<span className='text-gray-500 text-xs block mt-1'>
+													{evaluator.department}
+												</span>
+											</div>
+											{selectedEvaluators.some((ev) => ev.id === evaluator.id) && (
+												<span className='text-xs text-[#C10003] font-medium'>
+													Selected
+												</span>
+											)}
+										</label>
+									))}
+								</div>
+							)}
+							
+							{/* Selected Count */}
+							{selectedEvaluators.length > 0 && (
+								<div className='mt-3 pt-3 border-t border-gray-200'>
+									<p className='text-sm text-gray-600'>
+										{selectedEvaluators.length} evaluator{selectedEvaluators.length !== 1 ? 's' : ''} selected
+									</p>
+								</div>
+							)}
 						</div>
 					)}
 				</div>
