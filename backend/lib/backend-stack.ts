@@ -85,6 +85,39 @@ export class BackendStack extends Stack {
       },
     });
 
+    const get_proponent_proposal_stats_lamda = new NodejsFunction(this, "pms-get-proponent-proposal-stats", {
+      functionName: "pms-get-proponent-proposal-stats",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proponent-proposal-stats.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_rnd_proposal_stats_lamda = new NodejsFunction(this, "pms-get-rnd-proposal-stats", {
+      functionName: "pms-get-rnd-proposal-stats",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-rnd-proposal-stats.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_evaluator_proposal_stats_lamda = new NodejsFunction(this, "pms-get-evaluator-proposal-stats", {
+      functionName: "pms-get-evaluator-proposal-stats",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-evaluator-proposal-stats.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_proposal_evaluator_lamda = new NodejsFunction(this, "pms-get-propposal-evaluator", {
       functionName: "pms-get-propposal-evaluator",
       memorySize: 128,
@@ -230,6 +263,26 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
+    // /proposal/view-proponent-proponent-stats
+    const get_proponent_proposal_stats = proposal.addResource("view-proponent-proposal-stats");
+    get_proponent_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_proponent_proposal_stats_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-proponent-proponent-stats
+    const get_rnd_proposal_stats = proposal.addResource("view-rnd-proposal-stats");
+    get_rnd_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_rnd_proposal_stats_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-proponent-proponent-stats
+    const get_evaluator_proposal_stats = proposal.addResource("view-evaluator-proposal-stats");
+    get_evaluator_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_evaluator_proposal_stats_lamda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
     // /proposal/view-agency
     const get_agency = proposal.addResource("view-agency");
     get_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_lamda), {

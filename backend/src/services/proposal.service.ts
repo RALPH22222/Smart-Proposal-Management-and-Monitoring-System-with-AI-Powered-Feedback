@@ -52,6 +52,135 @@ export class ProposalService {
     return { data, error };
   }
 
+  async getProponentProposalStats() {
+    try {
+      const queries = {
+        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+
+        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+
+        under_evaluation: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "under_evaluation"),
+
+        revision_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "revision_rnd"),
+
+        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+      };
+
+      const results = await Promise.all(Object.values(queries));
+
+      const data = {
+        total_projects: results[0].count,
+        review_rnd: results[1].count,
+        under_evaluation: results[2].count,
+        revision_rnd: results[3].count,
+        funded: results[4].count,
+      };
+
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  async getRndProposalStats() {
+    try {
+      const queries = {
+        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+
+        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+
+        revision_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "revision_rnd"),
+
+        rejected_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "rejected_rnd"),
+
+        under_evaluation: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "under_evaluation"),
+
+        endorsed_for_funding: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "endorsed_for_funding"),
+
+        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+      };
+
+      const results = await Promise.all(Object.values(queries));
+
+      const data = {
+        total_projects: results[0].count,
+        review_rnd: results[1].count,
+        revision_rnd: results[2].count,
+        rejected_rnd: results[3].count,
+        under_evaluation: results[4].count,
+        endorsed_for_funding: results[5].count,
+        funded: results[6].count,
+      };
+
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  async getEvaluatorProposalStats() {
+    try {
+      const queries = {
+        pending: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending"),
+
+        for_review: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "for_review"),
+
+        approve: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "approve"),
+
+        revise: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "revise"),
+
+        reject: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "reject"),
+
+        decline: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "decline"),
+      };
+
+      const results = await Promise.all(Object.values(queries));
+
+      const data = {
+        pending: results[0].count,
+        for_review: results[1].count,
+        approve: results[2].count,
+        revise: results[3].count,
+        reject: results[4].count,
+        decline: results[5].count,
+      };
+
+      return { data, error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
   async getEvaluatorProposals(search?: string, status?: Status) {
     let query = this.db.from("proposal_evaluators").select(`
         *,
