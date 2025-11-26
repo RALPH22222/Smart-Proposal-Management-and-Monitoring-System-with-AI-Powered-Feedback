@@ -5,7 +5,7 @@ import {
   CheckCircle, 
   XCircle, 
   RotateCcw, 
-  Plus,
+  Plus, 
   Trash2
 } from "lucide-react";
 
@@ -35,7 +35,15 @@ const DEADLINE_OPTIONS = [
   "2 Months"
 ];
 
-export default function DecisionModal({
+// Default rejection message template
+const REJECTION_TEMPLATE = `After careful review of this proposal, we have determined that it does not meet the required standards for approval. The following concerns have been identified:
+
+1. [Specify main concern]
+2. [Additional concerns if any]
+
+We recommend that the proponent address these issues before resubmission.`;
+
+export default function EndorsementDecisionModal({
   isOpen,
   onClose,
   proposalTitle,
@@ -173,11 +181,12 @@ export default function DecisionModal({
                 type="button"
                 onClick={() => {
                   setDecision("endorsed");
+                  setRemarks(""); // Clear text when switching to endorse
                   setError("");
                 }}
                 className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "endorsed"
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md transform scale-[1.02]"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm transform scale-[1.02]"
                     : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50 text-slate-500"
                 }`}
               >
@@ -201,11 +210,13 @@ export default function DecisionModal({
                 type="button"
                 onClick={() => {
                   setDecision("revised");
+                  // Remarks not used here but good to clean up
+                  setRemarks("");
                   setError("");
                 }}
                 className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "revised"
-                    ? "border-orange-500 bg-orange-50 text-orange-700 shadow-md transform scale-[1.02]"
+                    ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm transform scale-[1.02]"
                     : "border-slate-200 hover:border-orange-200 hover:bg-slate-50 text-slate-500"
                 }`}
               >
@@ -229,11 +240,12 @@ export default function DecisionModal({
                 type="button"
                 onClick={() => {
                   setDecision("rejected");
+                  setRemarks(REJECTION_TEMPLATE); // Set default message
                   setError("");
                 }}
                 className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
                   decision === "rejected"
-                    ? "border-red-500 bg-red-50 text-red-700 shadow-md transform scale-[1.02]"
+                    ? "border-red-500 bg-red-50 text-red-700 shadow-sm transform scale-[1.02]"
                     : "border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500"
                 }`}
               >
@@ -298,7 +310,7 @@ export default function DecisionModal({
                       <button
                         key={section}
                         onClick={() => setActiveTab(section)}
-                        className={`cursor-pointer px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors relative top-[1px] ${
+                        className={`cursor-pointer  px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors relative top-[1px] ${
                           activeTab === section
                             ? "bg-[#C8102E] text-white border-t border-x border-[#C8102E]"
                             : "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
