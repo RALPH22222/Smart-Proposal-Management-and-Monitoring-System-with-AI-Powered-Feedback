@@ -53,7 +53,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Revised Proposal': return 'indigo';
+      case 'Revised Proposal': return 'purple';
       case 'Revision Required': return 'orange';
       case 'Rejected Proposal': return 'red';
       case 'Sent to Evaluators': return 'emerald';
@@ -127,7 +127,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                      {/* Previous Version */}
                      <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
                         <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                           <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
                               <Clock className="w-3 h-3" /> Previous Version
                            </span>
                            <span className="text-[10px] text-slate-400">Oct 15, 2023</span>
@@ -151,16 +151,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                      </div>
 
                      {/* Latest Version */}
-                     <div className="border border-indigo-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-indigo-100">
+                     <div className="border border-purple-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-purple-100">
                         <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs font-bold text-indigo-600 uppercase flex items-center gap-1">
+                           <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
                               <GitBranch className="w-3 h-3" /> Latest Revision
                            </span>
-                           <span className="text-[10px] text-indigo-400">Just now</span>
+                           <span className="text-[10px] text-purple-400">Just now</span>
                         </div>
                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-12 bg-indigo-50 rounded flex items-center justify-center border border-indigo-100">
-                              <FileText className="w-5 h-5 text-indigo-500" />
+                           <div className="w-10 h-12 bg-purple-50 rounded flex items-center justify-center border border-purple-100">
+                              <FileText className="w-5 h-5 text-purple-500" />
                            </div>
                            <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-slate-900 truncate">Proposal_v2_Revised.pdf</p>
@@ -168,7 +168,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                            </div>
                            <button 
                               onClick={() => handleDownload("Proposal_v2_Revised.pdf")}
-                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full cursor-pointer"
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer"
                               title="Download Revised Version"
                            >
                               <Download className="w-4 h-4" />

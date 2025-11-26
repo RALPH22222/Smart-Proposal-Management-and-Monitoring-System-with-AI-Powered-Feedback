@@ -147,7 +147,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
         );
       case 'Revised Proposal':
         return (
-          <span className={`${baseClasses} text-indigo-600 bg-indigo-50 border-indigo-200`}>
+          <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}>
             <GitBranch className="w-3 h-3" />
             Revised Proposal
           </span>

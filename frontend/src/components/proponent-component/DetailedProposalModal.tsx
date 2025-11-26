@@ -147,7 +147,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const rejectComments = [
     {
-      section: "Reason for Rejection",
+      section: "Rejection Reason",
       comment: "Project objectives do not align with current organizational priorities and strategic goals. The proposed methodology lacks scientific rigor and sufficient detail, and the budget allocation significantly exceeds available funding limits without proper justification."
     }
   ];
