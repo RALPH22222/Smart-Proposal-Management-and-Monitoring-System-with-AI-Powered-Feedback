@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, User, Eye, Gavel, Filter, Search, TrendingUp, ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, RefreshCw, GitBranch } from 'lucide-react';
+import { FileText, Calendar, User, Eye, Gavel, Filter, Search, ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, RefreshCw, GitBranch } from 'lucide-react';
 import {
   type Proposal,
   type Decision,
