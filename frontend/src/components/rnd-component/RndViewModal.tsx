@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   X,
   Building2,
@@ -11,17 +11,17 @@ import {
   FileText,
   User,
   Microscope,
-  Tags,      
+  Tags,
   Download,
   AlertTriangle,
   XCircle,
   GitBranch,
   Clock,
-  Briefcase, 
-  BookOpen,   
+  Briefcase,
+  BookOpen,
   Target,
 } from "lucide-react";
-import type { Proposal, ProposalStatus } from '../../types/InterfaceProposal';
+import type { Proposal, ProposalStatus } from "../../types/InterfaceProposal";
 
 interface DetailedProposalModalProps {
   isOpen: boolean;
@@ -43,21 +43,33 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   // Mock Assessment Data
   const mockAssessment = {
-    methodology: "The proposed statistical analysis method (ANOVA) needs further justification. Consider using regression analysis for continuous variables.",
-    budget: "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown.",
-    timeline: "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
-    overall: "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation."
+    objectives:
+      "The specific objectives are generally clear but need more measurable indicators (SMART criteria). Objective 2 is currently too broad and needs to be narrowed down.",
+    methodology:
+      "The proposed statistical analysis method (ANOVA) needs further justification. Consider using regression analysis for continuous variables.",
+    budget:
+      "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown.",
+    timeline:
+      "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
+    overall:
+      "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation.",
   };
 
-  const mockRejection = "The proposal does not align with the current priority agenda of the institution. Specifically, the focus on blockchain for this specific agricultural application is not feasible with current resources.";
+  const mockRejection =
+    "The proposal does not align with the current priority agenda of the institution. Specifically, the focus on blockchain for this specific agricultural application is not feasible with current resources.";
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Revised Proposal': return 'purple';
-      case 'Revision Required': return 'orange';
-      case 'Rejected Proposal': return 'red';
-      case 'Sent to Evaluators': return 'emerald';
-      default: return 'amber';
+      case "Revised Proposal":
+        return "purple";
+      case "Revision Required":
+        return "orange";
+      case "Rejected Proposal":
+        return "red";
+      case "Sent to Evaluators":
+        return "emerald";
+      default:
+        return "amber";
     }
   };
 
@@ -69,17 +81,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* Modal Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex-1 pr-4">
-             <div className="flex items-center gap-2 mb-1">
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border border-${statusColor}-200 bg-${statusColor}-50 text-${statusColor}-700`}>
-                   {proposal.status}
-                </span>
-                <span className="text-xs text-slate-500">DOST Form No. 1B</span>
-             </div>
+            <div className="flex items-center gap-2 mb-1">
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border border-${statusColor}-200 bg-${statusColor}-50 text-${statusColor}-700`}
+              >
+                {proposal.status}
+              </span>
+              <span className="text-xs text-slate-500">DOST Form No. 1B</span>
+            </div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
               {proposal.title}
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -87,122 +104,173 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-
-             {/* --- DYNAMIC STATUS SECTION --- */}
-             {proposal.status === 'Revision Required' && (
-                <div className="bg-orange-50 rounded-lg p-5 border border-orange-200">
-                   <h3 className="text-sm font-bold text-orange-800 mb-3 flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4" />
-                      Revision Requirements
-                   </h3>
-                   <div className="space-y-3">
-                      <div className="bg-white p-3 rounded border border-orange-100">
-                         <p className="text-xs font-bold text-orange-700 uppercase mb-1">Overall Comments</p>
-                         <p className="text-sm text-slate-700">{mockAssessment.overall}</p>
-                      </div>
-                   </div>
+            {/* --- DYNAMIC STATUS SECTION --- */}
+            {proposal.status === "Revision Required" && (
+              <div className="bg-orange-50 rounded-lg p-5 border border-orange-200">
+                <h3 className="text-sm font-bold text-orange-800 mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Revision Requirements
+                </h3>
+                <div className="space-y-3">
+                  {/* Added Objectives Assessment */}
+                  <div className="bg-white p-3 rounded border border-orange-100">
+                    <p className="text-xs font-bold text-orange-700 mb-1">
+                      Objectives Assessment
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {mockAssessment.objectives}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-100">
+                    <p className="text-xs font-bold text-orange-700 mb-1">
+                      Methodology Assessment
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {mockAssessment.methodology}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-100">
+                    <p className="text-xs font-bold text-orange-700 mb-1">
+                      Budget Assessment
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {mockAssessment.budget}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded border border-orange-100">
+                    <p className="text-xs font-bold text-orange-700 mb-1">
+                      Timeline Assessment
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {mockAssessment.timeline}
+                    </p>
+                  </div>
+                  <div className="bg-orange-100 p-3 rounded border border-orange-200">
+                    <p className="text-xs font-bold text-orange-800 mb-1">
+                      Overall Comments
+                    </p>
+                    <p className="text-sm text-orange-900 italic">
+                      "{mockAssessment.overall}"
+                    </p>
+                  </div>
                 </div>
-             )}
-            {proposal.status === 'Rejected Proposal' && (
-                <div className="bg-red-50 rounded-lg p-5 border border-red-200">
-                   <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
-                      <XCircle className="w-4 h-4" />
-                      Rejection Reason
-                   </h3>
-                   <p className="text-sm text-red-900 leading-relaxed">{mockRejection}</p>
-                </div>
-             )}
+              </div>
+            )}
+            {proposal.status === "Rejected Proposal" && (
+              <div className="bg-red-50 rounded-lg p-5 border border-red-200">
+                <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
+                  <XCircle className="w-4 h-4" />
+                  Rejection Reason
+                </h3>
+                <p className="text-sm text-red-900 leading-relaxed">
+                  {mockRejection}
+                </p>
+              </div>
+            )}
 
             {/* --- DOCUMENTS SECTION --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#C8102E]" />
-                  Project Documents
-               </h3>
-               
-               {/* 1. REVISED PROPOSAL VIEW (Two Cards) */}
-               {proposal.status === ('Revised Proposal' as ProposalStatus) ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     
-                     {/* Previous Version */}
-                     <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
-                        <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> Previous Version
-                           </span>
-                           <span className="text-[10px] text-slate-400">Oct 15, 2023</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-12 bg-slate-200 rounded flex items-center justify-center">
-                              <FileText className="w-5 h-5 text-slate-400" />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-700 truncate">Proposal_v1.pdf</p>
-                              <p className="text-xs text-slate-500">2.4 MB</p>
-                           </div>
-                           <button 
-                              onClick={() => handleDownload("Proposal_v1.pdf")}
-                              className="p-2 text-slate-500 hover:bg-slate-200 rounded-full cursor-pointer"
-                              title="Download Previous Version"
-                           >
-                              <Download className="w-4 h-4" />
-                           </button>
-                        </div>
-                     </div>
+              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#C8102E]" />
+                Project Documents
+              </h3>
 
-                     {/* Latest Version */}
-                     <div className="border border-purple-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-purple-100">
-                        <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
-                              <GitBranch className="w-3 h-3" /> Latest Revision
-                           </span>
-                           <span className="text-[10px] text-purple-400">Just now</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-12 bg-purple-50 rounded flex items-center justify-center border border-purple-100">
-                              <FileText className="w-5 h-5 text-purple-500" />
-                           </div>
-                           <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">Proposal_v2_Revised.pdf</p>
-                              <p className="text-xs text-slate-500">2.6 MB</p>
-                           </div>
-                           <button 
-                              onClick={() => handleDownload("Proposal_v2_Revised.pdf")}
-                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer"
-                              title="Download Revised Version"
-                           >
-                              <Download className="w-4 h-4" />
-                           </button>
-                        </div>
-                     </div>
+              {/* 1. REVISED PROPOSAL VIEW (Two Cards) */}
+              {proposal.status === ("Revised Proposal" as ProposalStatus) ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Previous Version */}
+                  <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Previous Version
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Oct 15, 2023
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-12 bg-slate-200 rounded flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 truncate">
+                          Proposal_v1.pdf
+                        </p>
+                        <p className="text-xs text-slate-500">2.4 MB</p>
+                      </div>
+                      <button
+                        onClick={() => handleDownload("Proposal_v1.pdf")}
+                        className="p-2 text-slate-500 hover:bg-slate-200 rounded-full cursor-pointer"
+                        title="Download Previous Version"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-               ) : (
-                  // 2. STANDARD VIEW (Single Card)
-                  <div 
-                     className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
-                     onClick={() => handleDownload("Full Project Proposal.pdf")}
+
+                  {/* Latest Version */}
+                  <div className="border border-purple-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-purple-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
+                        <GitBranch className="w-3 h-3" /> Latest Revision
+                      </span>
+                      <span className="text-[10px] text-purple-400">
+                        Just now
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-12 bg-purple-50 rounded flex items-center justify-center border border-purple-100">
+                        <FileText className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          Proposal_v2_Revised.pdf
+                        </p>
+                        <p className="text-xs text-slate-500">2.6 MB</p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          handleDownload("Proposal_v2_Revised.pdf")
+                        }
+                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer"
+                        title="Download Revised Version"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // 2. STANDARD VIEW (Single Card)
+                <div
+                  className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
+                  onClick={() => handleDownload("Full Project Proposal.pdf")}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
+                      <FileText className="w-5 h-5 text-[#C8102E]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
+                        Full Project Proposal.pdf
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        PDF Document • 2.4 MB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload("Full Project Proposal.pdf");
+                    }}
+                    className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
                   >
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
-                           <FileText className="w-5 h-5 text-[#C8102E]" />
-                        </div>
-                        <div>
-                           <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">Full Project Proposal.pdf</p>
-                           <p className="text-xs text-slate-500">PDF Document • 2.4 MB</p>
-                        </div>
-                     </div>
-                     <button 
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           handleDownload("Full Project Proposal.pdf");
-                        }}
-                        className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
-                     >
-                        <Download className="w-3 h-3" />
-                        Download
-                     </button>
-                  </div>
-               )}
+                    <Download className="w-3 h-3" />
+                    Download
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* --- 1. Leader & Agency Information --- */}
@@ -213,24 +281,38 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Leader / Proponent</span>
-                  <p className="font-semibold text-slate-900 text-sm">{proposal.proponent}</p>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
+                    Leader / Proponent
+                  </span>
+                  <p className="font-semibold text-slate-900 text-sm">
+                    {proposal.proponent}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Gender</span>
-                  <p className="font-medium text-slate-900 text-sm">{proposal.gender}</p>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
+                    Gender
+                  </span>
+                  <p className="font-medium text-slate-900 text-sm">
+                    {proposal.gender}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Agency</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
+                    Agency
+                  </span>
                   <div className="flex items-start gap-1.5 mt-0.5">
                     <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                    <p className="font-medium text-slate-900 text-sm">{proposal.agency}</p>
+                    <p className="font-medium text-slate-900 text-sm">
+                      {proposal.agency}
+                    </p>
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Address</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
+                    Address
+                  </span>
                   <div className="flex items-start gap-1.5 mt-0.5">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
                     <p className="text-slate-900 text-sm">{proposal.address}</p>
@@ -242,7 +324,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <span className="text-xs text-slate-500">Telephone</span>
                   <div className="flex items-center gap-1.5">
                     <Phone className="w-3 h-3 text-slate-400" />
-                    <p className="text-sm text-slate-900">{proposal.telephone}</p>
+                    <p className="text-sm text-slate-900">
+                      {proposal.telephone}
+                    </p>
                   </div>
                 </div>
                 <div>
@@ -261,7 +345,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <Users className="w-4 h-4 text-[#C8102E]" />
                 Cooperating Agencies
               </h3>
-              <p className="text-xs sm:text-sm text-slate-700">{proposal.cooperatingAgencies}</p>
+              <p className="text-xs sm:text-sm text-slate-700">
+                {proposal.cooperatingAgencies}
+              </p>
             </div>
 
             {/* --- 3. R&D Station & Classification --- */}
@@ -271,7 +357,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <Microscope className="w-4 h-4 text-[#C8102E]" />
                   Research & Development Station
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{proposal.rdStation}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.rdStation}
+                </p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
@@ -279,7 +367,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Classification
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
-                  <span className="font-semibold text-slate-900">{proposal.classification}:</span> {proposal.classificationDetails}
+                  <span className="font-semibold text-slate-900">
+                    {proposal.classification}:
+                  </span>{" "}
+                  {proposal.classificationDetails}
                 </p>
               </div>
             </div>
@@ -291,14 +382,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <FileText className="w-4 h-4 text-[#C8102E]" />
                   Mode of Implementation
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{proposal.modeOfImplementation}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.modeOfImplementation}
+                </p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <Target className="w-4 h-4 text-[#C8102E]" />
                   Priority Areas
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{proposal.priorityAreas}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.priorityAreas}
+                </p>
               </div>
             </div>
 
@@ -309,14 +404,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <Briefcase className="w-4 h-4 text-[#C8102E]" />
                   Sector/Commodity
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{proposal.sector}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.sector}
+                </p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-[#C8102E]" />
                   Discipline
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{proposal.discipline}</p>
+                <p className="text-xs sm:text-sm text-slate-700">
+                  {proposal.discipline}
+                </p>
               </div>
             </div>
 
@@ -328,16 +427,28 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">Duration</span>
-                  <p className="font-semibold text-slate-900 mt-1">{proposal.duration}</p>
+                  <span className="text-slate-500 text-xs tracking-wide">
+                    Duration
+                  </span>
+                  <p className="font-semibold text-slate-900 mt-1">
+                    {proposal.duration}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">Start Date</span>
-                  <p className="font-semibold text-slate-900 mt-1">{proposal.startDate}</p>
+                  <span className="text-slate-500 text-xs tracking-wide">
+                    Start Date
+                  </span>
+                  <p className="font-semibold text-slate-900 mt-1">
+                    {proposal.startDate}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">End Date</span>
-                  <p className="font-semibold text-slate-900 mt-1">{proposal.endDate}</p>
+                  <span className="text-slate-500 text-xs tracking-wide">
+                    End Date
+                  </span>
+                  <p className="font-semibold text-slate-900 mt-1">
+                    {proposal.endDate}
+                  </p>
                 </div>
               </div>
             </div>
@@ -352,36 +463,65 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-100">
-                      <th className="border-b border-r border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">Source of Funds</th>
-                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">PS</th>
-                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">MOOE</th>
-                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">CO</th>
-                      <th className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">TOTAL</th>
+                      <th className="border-b border-r border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
+                        Source of Funds
+                      </th>
+                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                        PS
+                      </th>
+                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                        MOOE
+                      </th>
+                      <th className="border-b border-r border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                        CO
+                      </th>
+                      <th className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
+                        TOTAL
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {proposal.budgetSources.map((budget, index) => (
                       <tr key={index} className="hover:bg-slate-50">
-                        <td className="border-b border-r border-slate-300 px-3 py-2 font-medium text-slate-800">{budget.source}</td>
-                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">{budget.ps}</td>
-                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">{budget.mooe}</td>
-                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">{budget.co}</td>
-                        <td className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">{budget.total}</td>
+                        <td className="border-b border-r border-slate-300 px-3 py-2 font-medium text-slate-800">
+                          {budget.source}
+                        </td>
+                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                          {budget.ps}
+                        </td>
+                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                          {budget.mooe}
+                        </td>
+                        <td className="border-b border-r border-slate-300 px-3 py-2 text-right text-slate-700">
+                          {budget.co}
+                        </td>
+                        <td className="border-b border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
+                          {budget.total}
+                        </td>
                       </tr>
                     ))}
                     <tr className="bg-slate-200 font-bold">
-                      <td className="border-r border-slate-300 px-3 py-2 text-slate-900">TOTAL</td>
-                      <td className="border-r border-slate-300 px-3 py-2 text-right text-slate-900" colSpan={3}>→</td>
-                      <td className="px-3 py-2 text-right text-[#C8102E] text-sm">{proposal.budgetTotal}</td>
+                      <td className="border-r border-slate-300 px-3 py-2 text-slate-900">
+                        TOTAL
+                      </td>
+                      <td
+                        className="border-r border-slate-300 px-3 py-2 text-right text-slate-900"
+                        colSpan={3}
+                      >
+                        →
+                      </td>
+                      <td className="px-3 py-2 text-right text-[#C8102E] text-sm">
+                        {proposal.budgetTotal}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <p className="text-[10px] text-slate-500 mt-2 italic">
-                PS: Personal Services | MOOE: Maintenance and Other Operating Expenses | CO: Capital Outlay
+                PS: Personal Services | MOOE: Maintenance and Other Operating
+                Expenses | CO: Capital Outlay
               </p>
             </div>
-
           </div>
         </div>
 
