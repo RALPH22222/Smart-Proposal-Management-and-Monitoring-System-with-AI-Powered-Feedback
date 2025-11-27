@@ -234,10 +234,6 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                 Review and evaluate research proposals submitted to WMSU
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <TrendingUp className="w-4 h-4" />
-              <span>Last updated: Today, 2:30 PM</span>
-            </div>
           </div>
         </header>
 

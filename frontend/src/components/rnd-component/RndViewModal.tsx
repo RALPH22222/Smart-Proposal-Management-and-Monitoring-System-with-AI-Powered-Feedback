@@ -213,24 +213,24 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Leader / Proponent</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Leader / Proponent</span>
                   <p className="font-semibold text-slate-900 text-sm">{proposal.proponent}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Gender</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Gender</span>
                   <p className="font-medium text-slate-900 text-sm">{proposal.gender}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Agency</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Agency</span>
                   <div className="flex items-start gap-1.5 mt-0.5">
                     <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
                     <p className="font-medium text-slate-900 text-sm">{proposal.agency}</p>
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Address</span>
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">Address</span>
                   <div className="flex items-start gap-1.5 mt-0.5">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
                     <p className="text-slate-900 text-sm">{proposal.address}</p>
@@ -328,15 +328,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">Duration</span>
+                  <span className="text-slate-500 text-xs tracking-wide">Duration</span>
                   <p className="font-semibold text-slate-900 mt-1">{proposal.duration}</p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">Start Date</span>
+                  <span className="text-slate-500 text-xs tracking-wide">Start Date</span>
                   <p className="font-semibold text-slate-900 mt-1">{proposal.startDate}</p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">End Date</span>
+                  <span className="text-slate-500 text-xs tracking-wide">End Date</span>
                   <p className="font-semibold text-slate-900 mt-1">{proposal.endDate}</p>
                 </div>
               </div>

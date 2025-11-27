@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   X,
   Building2,
@@ -19,6 +20,10 @@ import {
   UserCheck,
   GitBranch,
   Clock,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  HelpCircle
 } from "lucide-react";
 
 // Mock download handler
@@ -42,7 +47,7 @@ export interface Proposal {
   address: string;
   telephone: string;
   email: string;
-  status: string;
+  status: string; 
   deadline: string;
   projectType: string;
   agency: string;
@@ -63,7 +68,7 @@ export interface Proposal {
   assignedRdStaff?: string;
   rdCommentsToEvaluator?: string;
   evaluationDeadline?: string;
-  assignedEvaluators?: string[];
+  evaluatorComment?: string; 
 }
 
 interface ProposalModalProps {
@@ -79,18 +84,93 @@ export default function ProposalModal({
 }: ProposalModalProps) {
   if (!isOpen || !proposal) return null;
 
+  // --- 1. UPDATED COLOR LOGIC ---
+  const getStatusColor = (status: string) => {
+    // Normalize string to lowercase to match your data
+    const s = status.toLowerCase();
+    
+    switch (s) {
+      case 'accepted':
+      case 'approved':
+        return 'emerald'; // Green
+      case 'rejected':
+        return 'red';     // Red
+      case 'pending':
+        return 'amber';   // Orange/Yellow
+      default:
+        return 'slate';   // Grey
+    }
+  };
+
+  const statusColor = getStatusColor(proposal.status);
+
+  // --- 2. UPDATED STATUS MESSAGE BLOCK ---
+  const renderStatusMessage = () => {
+    const commonClasses = "rounded-lg p-5 border mb-6";
+    const status = proposal.status.toLowerCase();
+    
+    // ACCEPTED
+    if (status === 'accepted') {
+      return (
+        <div className={`${commonClasses} bg-emerald-50 border-emerald-200`}>
+          <h3 className="text-sm font-bold text-emerald-800 mb-2 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" />
+            Proposal Accepted
+          </h3>
+          <div className="bg-white/60 p-3 rounded border border-emerald-100">
+             <span className="text-xs font-bold text-emerald-700 mb-1 block">Reason for Approval</span>
+             <p className="text-sm text-emerald-900 leading-relaxed">
+               {proposal.evaluatorComment || "The proposal has been accepted and meets all criteria for funding and implementation. Proceed to the next phase."}
+             </p>
+          </div>
+        </div>
+      );
+    }
+
+    // REJECTED
+    if (status === 'rejected') {
+      return (
+        <div className={`${commonClasses} bg-red-50 border-red-200`}>
+          <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
+            <XCircle className="w-4 h-4" />
+            Proposal Rejected
+          </h3>
+          <div className="bg-white/60 p-3 rounded border border-red-100">
+             <span className="text-xs font-bold text-red-700 mb-1 block">Reason for Rejection</span>
+             <p className="text-sm text-red-900 leading-relaxed">
+               {proposal.evaluatorComment || "The proposal does not align with the current priority agenda of the institution or lacks sufficient methodology details."}
+             </p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Modal Header */}
+        
+        {/* --- MODAL HEADER --- */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex-1 pr-4">
+             {/* Dynamic Status Badge */}
+             <div className="flex items-center gap-2 mb-2">
+                {/* We use inline styles or specific template literals to ensure Tailwind picks up the colors */}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize 
+                  ${statusColor === 'emerald' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : ''}
+                  ${statusColor === 'red' ? 'bg-red-50 border-red-200 text-red-700' : ''}
+                  ${statusColor === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-700' : ''}
+                  ${statusColor === 'slate' ? 'bg-slate-50 border-slate-200 text-slate-700' : ''}
+                `}>
+                   {proposal.status}
+                </span>
+                <span className="text-xs text-slate-500">DOST Form No. 1B</span>
+             </div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
               {proposal.title}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              DOST Form No. 1B - Capsule R&D Proposal
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -101,25 +181,28 @@ export default function ProposalModal({
           </button>
         </div>
 
-        {/* Modal Body */}
+        {/* --- MODAL BODY --- */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+          
+          {/* 1. DYNAMIC STATUS & COMMENT SECTION */}
+          {renderStatusMessage()}
+
           <div className="space-y-4 sm:space-y-6">
             
-            {/* --- UPDATED FILE DOWNLOAD SECTION --- */}
+            {/* 2. FILE DOWNLOAD SECTION */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#C8102E]" />
                 Project Documents
               </h3>
 
-              {/* Logic for Revised Proposal vs Standard */}
               {proposal.status === "Revised Proposal" ? (
+                // Revised Proposal View (Comparison)
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
                   {/* Previous Version */}
                   <div className="border border-slate-300 rounded-lg p-3 bg-slate-100 opacity-75">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> Previous Version
                       </span>
                       <span className="text-[10px] text-slate-400">History</span>
@@ -144,19 +227,19 @@ export default function ProposalModal({
                     </div>
                   </div>
 
-                  {/* New Version */}
-                  <div className="border border-indigo-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-indigo-100">
+                  {/* Latest Version */}
+                  <div className="border border-purple-200 rounded-lg p-3 bg-white shadow-sm ring-1 ring-purple-100">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-indigo-600 uppercase flex items-center gap-1">
+                      <span className="text-xs font-bold text-purple-600 flex items-center gap-1">
                         <GitBranch className="w-3 h-3" /> Latest Revision
                       </span>
-                      <span className="text-[10px] text-indigo-400">
+                      <span className="text-[10px] text-purple-400">
                         Current
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-12 bg-indigo-50 rounded flex items-center justify-center border border-indigo-100">
-                        <FileText className="w-5 h-5 text-indigo-500" />
+                      <div className="w-10 h-12 bg-purple-50 rounded flex items-center justify-center border border-purple-100">
+                        <FileText className="w-5 h-5 text-purple-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-slate-900 truncate">
@@ -170,7 +253,7 @@ export default function ProposalModal({
                             proposal.projectFile || "Proposal_v2_Revised.pdf"
                           )
                         }
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full cursor-pointer"
+                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-full cursor-pointer"
                         title="Download Revised Version"
                       >
                         <Download className="w-4 h-4" />
@@ -205,17 +288,16 @@ export default function ProposalModal({
               )}
             </div>
 
-            {/* 1. Leader & Agency Information */}
+            {/* 3. LEADER & AGENCY INFORMATION */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
                 <User className="w-4 h-4 text-[#C8102E]" />
                 Leader & Agency Information
               </h3>
 
-              {/* Leader Name & Gender */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
                     Leader / Proponent
                   </span>
                   <p className="font-semibold text-slate-900 text-sm">
@@ -223,7 +305,7 @@ export default function ProposalModal({
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
                     Gender
                   </span>
                   <p className="font-medium text-slate-900 text-sm">
@@ -232,10 +314,9 @@ export default function ProposalModal({
                 </div>
               </div>
 
-              {/* Agency & Address */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
                     Agency
                   </span>
                   <div className="flex items-start gap-1.5 mt-0.5">
@@ -246,7 +327,7 @@ export default function ProposalModal({
                   </div>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 tracking-wider font-semibold">
                     Address
                   </span>
                   <div className="flex items-start gap-1.5 mt-0.5">
@@ -256,7 +337,6 @@ export default function ProposalModal({
                 </div>
               </div>
 
-              {/* Contact Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                 <div>
                   <span className="text-xs text-slate-500">Telephone</span>
@@ -277,7 +357,7 @@ export default function ProposalModal({
               </div>
             </div>
 
-            {/* 2. Cooperating Agencies */}
+            {/* 4. COOPERATING AGENCIES */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#C8102E]" />
@@ -288,12 +368,12 @@ export default function ProposalModal({
               </p>
             </div>
 
-            {/* R&D Station & Classification */}
+            {/* 5. STATION & CLASSIFICATION */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <Microscope className="w-4 h-4 text-[#C8102E]" />
-                  Research & Development Station
+                  R&D Station
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
                   {proposal.rdStation}
@@ -313,7 +393,7 @@ export default function ProposalModal({
               </div>
             </div>
 
-            {/* Mode & Priority Areas */}
+            {/* 6. MODE & PRIORITY */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
@@ -335,7 +415,7 @@ export default function ProposalModal({
               </div>
             </div>
 
-            {/* Sector & Discipline */}
+            {/* 7. SECTOR & DISCIPLINE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
@@ -357,7 +437,7 @@ export default function ProposalModal({
               </div>
             </div>
 
-            {/* Schedule */}
+            {/* 8. SCHEDULE */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#C8102E]" />
@@ -365,7 +445,7 @@ export default function ProposalModal({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">
+                  <span className="text-slate-500 text-xs tracking-wide">
                     Duration
                   </span>
                   <p className="font-semibold text-slate-900 mt-1">
@@ -373,7 +453,7 @@ export default function ProposalModal({
                   </p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">
+                  <span className="text-slate-500 text-xs tracking-wide">
                     Start Date
                   </span>
                   <p className="font-semibold text-slate-900 mt-1">
@@ -381,7 +461,7 @@ export default function ProposalModal({
                   </p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs uppercase tracking-wide">
+                  <span className="text-slate-500 text-xs tracking-wide">
                     End Date
                   </span>
                   <p className="font-semibold text-slate-900 mt-1">
@@ -391,7 +471,7 @@ export default function ProposalModal({
               </div>
             </div>
 
-            {/* Budget Table */}
+            {/* 9. BUDGET TABLE */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-[#C8102E]" />
@@ -461,19 +541,19 @@ export default function ProposalModal({
               </p>
             </div>
 
-            {/* R&D Assignment & Comments Section */}
+            {/* 10. R&D ASSIGNMENTS (For Internal Use) */}
             {(proposal.assignedRdStaff || proposal.rdCommentsToEvaluator) && (
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-blue-200 pb-2">
                   <UserCheck className="w-4 h-4 text-[#C8102E]" />
-                  R&D Staff Assignment & Instructions
+                  R&D Staff Assignment
                 </h3>
 
                 {/* R&D Staff Assignment */}
                 {proposal.assignedRdStaff && (
                   <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      Assigned R&D Staff
+                    <span className="text-xs text-slate-500 tracking-wider font-semibold">
+                      Assigned by
                     </span>
                     <p className="font-semibold text-slate-900 text-sm">
                       {proposal.assignedRdStaff}
@@ -484,7 +564,7 @@ export default function ProposalModal({
                 {/* Evaluation Deadline */}
                 {proposal.evaluationDeadline && (
                   <div className="mb-3">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                    <span className="text-xs text-slate-500 tracking-wider font-semibold">
                       Evaluation Deadline
                     </span>
                     <p className="font-semibold text-slate-900 text-sm">
@@ -493,35 +573,15 @@ export default function ProposalModal({
                   </div>
                 )}
 
-                {/* Assigned Evaluators */}
-                {proposal.assignedEvaluators &&
-                  proposal.assignedEvaluators.length > 0 && (
-                    <div className="mb-3">
-                      <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                        Assigned Evaluators
-                      </span>
-                      <div className="mt-1 space-y-1">
-                        {proposal.assignedEvaluators.map((evaluator, index) => (
-                          <p
-                            key={index}
-                            className="font-medium text-slate-900 text-sm"
-                          >
-                            • {evaluator}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                 {/* R&D Comments to Evaluator */}
                 {proposal.rdCommentsToEvaluator && (
                   <div className="pt-2 border-t border-blue-200">
-                    <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                      R&D Comments to Evaluator
+                    <span className="text-sm text-slate-600 tracking-wider font-semibold">
+                      R&D Comments
                     </span>
                     <div className="flex items-start gap-1.5 mt-1">
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-slate-700 leading-relaxed">
+                      <MessageSquare className="w-5 h-5 text-[#C8102E] mt-1 flex-shrink-0" />
+                      <p className="text-lg text-slate-700 leading-relaxed">
                         {proposal.rdCommentsToEvaluator}
                       </p>
                     </div>
@@ -531,7 +591,8 @@ export default function ProposalModal({
             )}
           </div>
         </div>
-        {/* Modal Footer */}
+        
+        {/* --- MODAL FOOTER --- */}
         <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
           <button
             onClick={onClose}
