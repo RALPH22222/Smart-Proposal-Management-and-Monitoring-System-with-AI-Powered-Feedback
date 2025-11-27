@@ -373,7 +373,7 @@ export default function ProposalModal({
               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <Microscope className="w-4 h-4 text-[#C8102E]" />
-                  R&D Station
+                   Research & Development Station
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-700">
                   {proposal.rdStation}
