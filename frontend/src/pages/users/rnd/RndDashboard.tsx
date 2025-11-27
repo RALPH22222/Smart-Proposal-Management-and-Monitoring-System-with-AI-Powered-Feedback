@@ -145,83 +145,117 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 			{/* Content Section */}
 			<section className="flex flex-col xl:flex-row gap-6">
-				{/* Monthly Submissions Chart */}
-				<div
-					className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
-					aria-labelledby="submissions-heading"
-				>
-					<div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50">
-						<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-							<h3 id="submissions-heading" className="text-lg font-bold text-slate-800 flex items-center gap-2">
-								<TrendingUp className="w-5 h-5 text-[#C8102E]" />
-								Monthly Submissions
-							</h3>
-							<div className="flex items-center gap-2 text-xs text-slate-500">
-								<Calendar className="w-4 h-4" />
-								<span>{statistics.monthlySubmissions.length} months tracked</span>
-							</div>
-						</div>
-					</div>
+                           <div
+                             className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
+                             aria-labelledby="submissions-heading"
+                           >
+                             {/* Header */}
+                             <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                               <div>
+                                 <h3 id="submissions-heading" className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                   <TrendingUp className="w-5 h-5 text-[#C8102E]" />
+                                   Monthly Submissions
+                                 </h3>
+                                 <p className="text-sm text-slate-500 mt-1">
+                                   Trends for the last {statistics.monthlySubmissions.length} months
+                                 </p>
+                               </div>
+                               
+                               {/* Legend */}
+                               <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                                 <div className="w-2 h-2 rounded-full bg-[#C8102E]"></div>
+                                 <span className="text-xs font-medium text-slate-600">Volume</span>
+                               </div>
+                             </div>
+                           
+                           {/* Chart Area - Responsive Wrapper */}
+                             <div className="p-4 sm:p-6 flex-1 flex flex-col min-h-[300px]">
+                               <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:overflow-visible sm:mx-0 sm:px-0 scrollbar-hide flex-1 flex flex-col">
+                                 <div className="flex items-end justify-between gap-3 h-64 sm:h-72 xl:h-auto xl:flex-1 w-full min-w-[600px] relative pt-8">
+                                   
+                                   {/* Background Grid Lines */}
+                                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 w-full">
+                                      {[...Array(4)].map((_, i) => (
+                                        <div key={i} className="w-full border-t border-dashed border-slate-100 h-0"></div>
+                                      ))}
+                                   </div>
+                           
+                                   {statistics.monthlySubmissions.map((month) => {
+                                     const maxVal = Math.max(...statistics.monthlySubmissions.map((m) => m.count));
+                                     const heightPercentage = maxVal > 0 ? (month.count / maxVal) * 100 : 0;
+                                     
+                                     return (
+                                       <div key={month.month} className="group flex flex-col items-center flex-1 h-full justify-end relative z-10">
+                                         
+                                         {/* Tooltip */}
+                                         <div className="opacity-0 group-hover:opacity-100 absolute -top-10 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 bg-slate-800 text-white text-xs py-1 px-2 rounded shadow-lg pointer-events-none whitespace-nowrap z-20">
+                                           {month.count} Proposals
+                                           <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800"></div>
+                                         </div>
+                           
+                                         {/* The Bar */}
+                                         <div 
+                                           className="w-full max-w-[40px] bg-gradient-to-t from-slate-200 to-slate-300 group-hover:from-[#C8102E] group-hover:to-red-500 rounded-t-lg transition-all duration-500 relative cursor-pointer"
+                                           style={{ height: `${heightPercentage}%` }}
+                                         >
+                                           {/* Highlight Glow */}
+                                           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-lg"></div>
+                                         </div>
+                           
+                                         {/* X-Axis Label */}
+                                         <span className="mt-3 text-xs font-medium text-slate-500 group-hover:text-slate-800 transition-colors truncate w-full text-center">
+                                           {month.month.substring(0, 3)} 
+                                         </span>
+                                       </div>
+                                     );
+                                   })}
+                                 </div>
+                               </div>
+                             </div>
+                           
+                             {/* Summary Stats Footer */}
+                             <div className="px-4 py-4 sm:px-6 sm:py-5 bg-slate-50 border-t border-slate-200">
+                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0 md:divide-x divide-slate-200">
+                                 
+                                 {/* Stat 1 */}
+                                 <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4 md:first:pl-0">
+                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Total Submissions</p>
+                                   <div className="flex items-baseline gap-2">
+                                     <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                                       {statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0)}
+                                     </span>
+                                     <span className="text-xs text-emerald-600 font-medium bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                                       +12%
+                                     </span>
+                                   </div>
+                                 </div>
+                           
+                                 {/* Stat 2 */}
+                                 <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Peak Month</p>
+                                   <div className="flex items-baseline gap-2">
+                                     <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                                       {Math.max(...statistics.monthlySubmissions.map(m => m.count))}
+                                     </span>
+                                     <span className="text-xs text-slate-400">proposals</span>
+                                   </div>
+                                 </div>
+                           
+                                 {/* Stat 3 */}
+                                 <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Monthly Average</p>
+                                   <div className="flex items-baseline gap-2">
+                                     <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                                       {Math.round(statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0) / statistics.monthlySubmissions.length) || 0}
+                                     </span>
+                                      <span className="text-xs text-slate-400">/ mo</span>
+                                   </div>
+                                 </div>
+                           
+                               </div>
+                             </div>
+                           </div>
 
-					<div className="p-4 sm:p-6 flex-1">
-						<div className="space-y-3 sm:space-y-4">
-							{statistics.monthlySubmissions.map((month) => (
-								<div
-									key={month.month}
-									className="flex items-center justify-between group"
-								>
-									<span className="text-sm font-medium text-slate-700 min-w-20 sm:min-w-24">{month.month}</span>
-									<div className="flex items-center space-x-3 flex-1 max-w-48 sm:max-w-64">
-										<div className="w-full bg-slate-200 rounded-full h-2 sm:h-3">
-											<div
-												className="bg-[#C8102E] h-2 sm:h-3 rounded-full transition-all duration-500 group-hover:bg-[#A00E26]"
-												style={{
-													width: `${
-														(month.count /
-															Math.max(
-																...statistics.monthlySubmissions.map(
-																	(m) => m.count
-																)
-															)
-														) *
-														100
-													}%`
-												}}
-											></div>
-										</div>
-										<span className="text-sm font-bold text-slate-800 w-8 text-right tabular-nums min-w-8">
-											{month.count}
-										</span>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-
-					{/* Summary Stats */}
-					<div className="p-4 sm:p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200">
-						<div className="grid grid-cols-3 gap-2 sm:gap-4">
-							<div className="text-center">
-								<div className="text-xl sm:text-2xl font-bold text-emerald-600">
-									{statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0)}
-								</div>
-								<div className="text-xs text-slate-600">Total Submissions</div>
-							</div>
-							<div className="text-center border-x border-slate-300">
-								<div className="text-xl sm:text-2xl font-bold text-amber-600">
-									{Math.max(...statistics.monthlySubmissions.map(m => m.count))}
-								</div>
-								<div className="text-xs text-slate-600">Peak Month</div>
-							</div>
-							<div className="text-center">
-								<div className="text-xl sm:text-2xl font-bold text-blue-600">
-									{Math.round(statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0) / statistics.monthlySubmissions.length)}
-								</div>
-								<div className="text-xs text-slate-600">Average</div>
-							</div>
-						</div>
-					</div>
-				</div>
 
 				{/* Recent Activity */}
 				<div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full xl:w-80 flex flex-col min-w-0">
