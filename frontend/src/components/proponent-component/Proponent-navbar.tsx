@@ -181,7 +181,7 @@ const ProponentNavbar: React.FC = () => {
               <div className="flex flex-col leading-tight">
                 <span className="text-base lg:text-lg font-bold tracking-tight text-white">
                   <span className="hidden lg:inline">WMSU Project Proposal</span>
-                  <span className="inline lg:hidden">WMSU ProjProp</span>
+                  <span className="inline lg:hidden">WMSU Project Proposal</span>
                 </span>
                 <span className="text-xs lg:text-sm opacity-80 text-white hidden sm:block">
                   {pageSubtitle}
