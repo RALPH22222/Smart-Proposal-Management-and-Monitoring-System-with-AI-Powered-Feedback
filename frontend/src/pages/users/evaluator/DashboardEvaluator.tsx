@@ -258,7 +258,7 @@ export default function DashboardRdec() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                   <button
                     onClick={() =>
-                      (window.location.href = "/users/rdec/proposals")
+                      (window.location.href = "/users/evaluator/Proposals")
                     }
                     className="text-[#C8102E] hover:text-[#A00E26] font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-opacity-50 rounded px-2 py-1 cursor-pointer"
                     aria-label="View all proposals"

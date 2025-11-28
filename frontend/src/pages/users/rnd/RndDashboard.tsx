@@ -219,7 +219,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                  
                                  {/* Stat 1 */}
                                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4 md:first:pl-0">
-                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Total Submissions</p>
+                                   <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Total Submissions</p>
                                    <div className="flex items-baseline gap-2">
                                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
                                        {statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0)}
@@ -232,7 +232,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                            
                                  {/* Stat 2 */}
                                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
-                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Peak Month</p>
+                                   <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Peak Month</p>
                                    <div className="flex items-baseline gap-2">
                                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
                                        {Math.max(...statistics.monthlySubmissions.map(m => m.count))}
@@ -243,7 +243,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                            
                                  {/* Stat 3 */}
                                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
-                                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider md:mb-1">Monthly Average</p>
+                                   <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Monthly Average</p>
                                    <div className="flex items-baseline gap-2">
                                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
                                        {Math.round(statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0) / statistics.monthlySubmissions.length) || 0}

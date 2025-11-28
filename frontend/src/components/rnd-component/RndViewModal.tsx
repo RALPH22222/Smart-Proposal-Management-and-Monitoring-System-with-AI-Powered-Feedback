@@ -20,6 +20,7 @@ import {
   Briefcase,
   BookOpen,
   Target,
+  Timer, // Added for the specific deadline icon
 } from "lucide-react";
 import type { Proposal, ProposalStatus } from "../../types/InterfaceProposal";
 
@@ -57,6 +58,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const mockRejection =
     "The proposal does not align with the current priority agenda of the institution. Specifically, the focus on blockchain for this specific agricultural application is not feasible with current resources.";
+
+  // Mock Revision Deadline (Ideally, this comes from proposal.revisionDeadline)
+  const mockRevisionDeadline = "November 30, 2025 | 5:00 PM";
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -104,13 +108,32 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
+            
             {/* --- DYNAMIC STATUS SECTION --- */}
             {proposal.status === "Revision Required" && (
-              <div className="bg-orange-50 rounded-lg p-5 border border-orange-200">
-                <h3 className="text-sm font-bold text-orange-800 mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Revision Requirements
-                </h3>
+              <div className="bg-orange-50 rounded-lg p-5 border border-orange-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-orange-800 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Revision Requirements
+                  </h3>
+                </div>
+
+                {/* --- NEW: DEADLINE DISPLAY --- */}
+                <div className="mb-5 bg-white border-l-4 border-red-500 rounded shadow-sm p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-red-600 tracking-wider mb-1">
+                      Revision Submission Deadline to the Proponent
+                    </p>
+                    <div className="flex items-center gap-2 text-slate-900">
+                      <Timer className="w-5 h-5 text-red-500" />
+                      <span className="font-medium text-base">
+                        {mockRevisionDeadline}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-3">
                   {/* Added Objectives Assessment */}
                   <div className="bg-white p-3 rounded border border-orange-100">
@@ -156,6 +179,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </div>
               </div>
             )}
+
             {proposal.status === "Rejected Proposal" && (
               <div className="bg-red-50 rounded-lg p-5 border border-red-200">
                 <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">

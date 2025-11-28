@@ -25,7 +25,9 @@ import {
   Clock,
   AlertTriangle,
   XCircle,
-  CheckCircle
+  CheckCircle,
+  Plus,
+  Trash2
 } from "lucide-react";
 import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
@@ -68,15 +70,117 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return null;
   }
 
+  // --- Helper Functions for Calculations ---
+
+  const parseCurrency = (value: string): number => {
+    return parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
+  };
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
+  };
+
+  const calculateDuration = (start: string, end: string): string => {
+    if (!start || !end) return "";
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    // Calculate difference in months
+    let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
+    months -= startDate.getMonth();
+    months += endDate.getMonth();
+    
+    // Adjust if day of month is less
+    if (endDate.getDate() < startDate.getDate()) {
+      months--;
+    }
+    
+    // Ensure minimum of 1 month if dates are valid but close
+    const finalMonths = Math.max(0, months + (endDate.getDate() >= startDate.getDate() ? 1 : 0)); // simple inclusive calc
+    
+    return `${finalMonths} months`;
+  };
+
   // --- Logic Handlers ---
+
   const handleInputChange = (field: keyof Proposal, value: string) => {
     setEditedProposal({ ...editedProposal, [field]: value });
   };
 
+  // Special handler for dates to auto-calc duration
+  const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+    if (!editedProposal) return;
+
+    const updatedProposal = { ...editedProposal, [field]: value };
+    
+    // If both dates are present, recalculate duration
+    if (updatedProposal.startDate && updatedProposal.endDate) {
+      updatedProposal.duration = calculateDuration(updatedProposal.startDate, updatedProposal.endDate);
+    }
+
+    setEditedProposal(updatedProposal);
+  };
+
   const handleBudgetChange = (index: number, field: keyof BudgetSource, value: string) => {
+    if (!editedProposal) return;
+
     const updatedBudgetSources = [...editedProposal.budgetSources];
-    updatedBudgetSources[index] = { ...updatedBudgetSources[index], [field]: value };
-    setEditedProposal({ ...editedProposal, budgetSources: updatedBudgetSources });
+    
+    // Update the specific field
+    updatedBudgetSources[index] = { 
+      ...updatedBudgetSources[index], 
+      [field]: value 
+    };
+
+    // Auto-calculate Row Total if PS, MOOE, or CO changes
+    if (field === 'ps' || field === 'mooe' || field === 'co') {
+      const ps = parseCurrency(updatedBudgetSources[index].ps);
+      const mooe = parseCurrency(updatedBudgetSources[index].mooe);
+      const co = parseCurrency(updatedBudgetSources[index].co);
+      updatedBudgetSources[index].total = formatCurrency(ps + mooe + co);
+    }
+
+    // Auto-calculate Grand Total
+    const grandTotal = updatedBudgetSources.reduce((sum, item) => {
+      return sum + parseCurrency(item.total);
+    }, 0);
+
+    setEditedProposal({ 
+      ...editedProposal, 
+      budgetSources: updatedBudgetSources,
+      budgetTotal: formatCurrency(grandTotal)
+    });
+  };
+
+  const handleAddBudgetItem = () => {
+    if (!editedProposal) return;
+    const newSource: BudgetSource = {
+      source: "New Funding Source",
+      ps: "₱0.00",
+      mooe: "₱0.00",
+      co: "₱0.00",
+      total: "₱0.00"
+    };
+    setEditedProposal({
+      ...editedProposal,
+      budgetSources: [...editedProposal.budgetSources, newSource]
+    });
+  };
+
+  const handleRemoveBudgetItem = (index: number) => {
+    if (!editedProposal) return;
+    const updatedBudgetSources = editedProposal.budgetSources.filter((_, i) => i !== index);
+    
+    // Recalculate Grand Total after removal
+    const grandTotal = updatedBudgetSources.reduce((sum, item) => {
+      return sum + parseCurrency(item.total);
+    }, 0);
+
+    setEditedProposal({
+      ...editedProposal,
+      budgetSources: updatedBudgetSources,
+      budgetTotal: formatCurrency(grandTotal)
+    });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,9 +288,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   // --- Comments Data ---
   const reviseComments = [
-    { section: "Methodology", comment: "The proposed methodology lacks sufficient detail in implementation approach." },
-    { section: "Budget", comment: "Some line items require better justification and cost-benefit analysis." },
-    { section: "Overall", comment: "Project shows promise but requires moderate revisions before proceeding." }
+    { section: "Objectives Assessment", comment: "The specific objectives are generally clear but need more measurable indicators (SMART criteria). Objective 2 is currently too broad and needs to be narrowed down." },
+    { section: "Methodology Assessment", comment: "Some line items require better justification and cost-benefit analysis." },
+    { section: "Budget Assessment", comment: "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown." },
+    { section: "Timeline Assessment", comment: "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month." },
+    { section: "Overall Comments", comment: "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation." }
   ];
   const rejectComments = [
     { section: "Reason for Rejection", comment: "Project objectives do not align with current organizational priorities." }
@@ -248,14 +354,25 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 {theme.icon} R&D Staff Feedback
               </h3>
               <div className="grid gap-3">
-                {activeComments.map((c, i) => (
-                  <div key={i} className="bg-white/60 rounded-lg p-3 border border-white/50">
-                    <span className={`text-xs font-bold  tracking-wider block mb-1 opacity-75 ${theme.text}`}>
-                      {c.section}
-                    </span>
-                    <p className={`text-sm leading-relaxed ${theme.text}`}>{c.comment}</p>
-                  </div>
-                ))}
+                {activeComments.map((c, i) => {
+                  const isRevision = proposal.status === 'revise';
+                  const isOverall = c.section === 'Overall Comments';
+                  
+                  const cardBg = (isRevision && !isOverall) 
+                    ? 'bg-white border-white/50 shadow-sm' 
+                    : 'bg-white/60 border-white/50';
+                  
+                  const textStyle = (isRevision && isOverall) ? 'italic' : '';
+
+                  return (
+                    <div key={i} className={`rounded-lg p-3 border ${cardBg}`}>
+                      <span className={`text-xs font-bold tracking-wider block mb-1 opacity-75 ${theme.text}`}>
+                        {c.section}
+                      </span>
+                      <p className={`text-sm leading-relaxed ${theme.text} ${textStyle}`}>{c.comment}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -336,7 +453,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-500   font-bold tracking-wider">Name</label>
+                  <label className="text-xs text-slate-500  font-bold tracking-wider">Name</label>
                   <div className="mt-1">
                     {canEdit ? (
                       <input 
@@ -467,7 +584,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           {/* 4. Project Details Grid */}
           <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              {/* Helper to render grid items */}
               {[
                 { label: 'Sector', icon: Briefcase, field: 'sector' },
                 { label: 'Discipline', icon: BookOpen, field: 'discipline' },
@@ -507,20 +623,36 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Duration</p>
                   {canEdit ? (
-                    <input type="text" value={currentData.duration} onChange={(e)=>handleInputChange('duration', e.target.value)} className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} />
+                    // Duration is read-only when editing because it is auto-calculated
+                    <input 
+                      type="text" 
+                      value={currentData.duration} 
+                      readOnly 
+                      className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600 cursor-not-allowed" 
+                    />
                   ) : renderFundedField(<p className="text-sm font-semibold text-slate-900">{currentData.duration}</p>)}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="text-xs text-slate-500 mb-1">Start</p>
                     {canEdit ? (
-                      <input type="date" value={currentData.startDate} onChange={(e)=>handleInputChange('startDate', e.target.value)} className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} />
+                      <input 
+                        type="date" 
+                        value={currentData.startDate} 
+                        onChange={(e)=>handleDateChange('startDate', e.target.value)} 
+                        className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} 
+                      />
                     ) : renderFundedField(<p className="text-sm font-medium text-slate-700">{currentData.startDate}</p>)}
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 mb-1">End</p>
                     {canEdit ? (
-                      <input type="date" value={currentData.endDate} onChange={(e)=>handleInputChange('endDate', e.target.value)} className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} />
+                      <input 
+                        type="date" 
+                        value={currentData.endDate} 
+                        onChange={(e)=>handleDateChange('endDate', e.target.value)} 
+                        className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} 
+                      />
                     ) : renderFundedField(<p className="text-sm font-medium text-slate-700">{currentData.endDate}</p>)}
                   </div>
                 </div>
@@ -529,9 +661,19 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
             {/* Budget Table */}
             <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Breakdown
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Breakdown
+                </h3>
+                {canEdit && (
+                  <button 
+                    onClick={handleAddBudgetItem}
+                    className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
+                  >
+                    <Plus className="w-3 h-3" /> Add Item
+                  </button>
+                )}
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                   <thead className="text-xs text-slate-500 bg-slate-50 border-b border-slate-200">
@@ -541,6 +683,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       <th className="px-3 py-2 text-right">MOOE</th>
                       <th className="px-3 py-2 text-right">CO</th>
                       <th className="px-3 py-2 text-right font-bold text-slate-900">Total</th>
+                      {canEdit && <th className="px-3 py-2 w-8"></th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -549,12 +692,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         {['source', 'ps', 'mooe', 'co', 'total'].map((key) => (
                           <td key={key} className={`px-3 py-2 ${key !== 'source' ? 'text-right' : ''}`}>
                             {canEdit ? (
-                              <input 
-                                type="text" 
-                                value={(budget as any)[key]} 
-                                onChange={(e) => handleBudgetChange(index, key as keyof BudgetSource, e.target.value)}
-                                className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(true)} ${key !== 'source' ? 'text-right' : ''}`}
-                              />
+                              key === 'total' ? (
+                                // Total is calculated automatically, read-only
+                                <span className="text-xs font-bold text-slate-900">{budget.total}</span>
+                              ) : (
+                                <input 
+                                  type="text" 
+                                  value={(budget as any)[key]} 
+                                  onChange={(e) => handleBudgetChange(index, key as keyof BudgetSource, e.target.value)}
+                                  className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(true)} ${key !== 'source' ? 'text-right' : ''}`}
+                                />
+                              )
                             ) : (
                               renderFundedField(
                                 <span className={`text-xs font-medium ${key === 'total' ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
@@ -564,11 +712,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             )}
                           </td>
                         ))}
+                        {canEdit && (
+                          <td className="px-3 py-2 text-center">
+                            <button 
+                              onClick={() => handleRemoveBudgetItem(index)}
+                              className="text-slate-400 hover:text-red-500 transition-colors"
+                              title="Remove item"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                     <tr className="bg-slate-50 border-t border-slate-200">
                       <td className="px-3 py-2 font-bold text-slate-900 text-xs">GRAND TOTAL</td>
-                      <td colSpan={4} className="px-3 py-2 text-right font-bold text-[#C8102E] text-sm">
+                      <td colSpan={4 + (canEdit ? 1 : 0)} className="px-3 py-2 text-right font-bold text-[#C8102E] text-sm">
                         {renderFundedField(currentData.budgetTotal)}
                       </td>
                     </tr>

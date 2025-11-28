@@ -275,8 +275,9 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
           </div>
         </section>
 
-        {/* Proposals List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        {/* Proposals List - UPDATED STRUCTURE */}
+        {/* Removed flex-1 and overflow-hidden here to fix whitespace */}
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -290,7 +291,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -299,49 +300,70 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {paginatedProposals.map((proposal) => (
-                  <article
-                    key={proposal.id}
-                    className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
-                          {proposal.title}
-                        </h2>
-
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                          <div className="flex items-center gap-1.5">
-                            <User className="w-3 h-3" />
-                            <span>{proposal.submittedBy}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3 h-3" />
-                            <span>{new Date(proposal.submittedDate).toLocaleDateString()}</span>
-                          </div>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(getMockProjectType(proposal.id))}`}>
-                            <Tag className="w-3 h-3" />
-                            {getMockProjectType(proposal.id)}
+              // NEW TABLE LAYOUT WITHOUT HEADER
+              <table className="min-w-full text-left align-middle">
+                {/* REMOVED THEAD FOR CLEANER LOOK */}
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {paginatedProposals.map((proposal) => (
+                    <tr
+                      key={proposal.id}
+                      className="hover:bg-slate-50 transition-colors duration-200 group"
+                    >
+                      {/* --- COL 1: DETAILS (Title, Meta Info, Type) --- */}
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1.5">
+                          {/* UPDATED: font-medium instead of font-bold */}
+                          <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
+                            {proposal.title}
                           </span>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                            {/* Proponent */}
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{proposal.submittedBy}</span>
+                            </div>
+
+                            {/* Date */}
+                            <div className={`flex items-center gap-1.5 ${proposal.status === 'Pending' ? 'text-[#C8102E] font-medium' : ''}`}>
+                              <Calendar className={`w-3.5 h-3.5 ${proposal.status === 'Pending' ? 'text-[#C8102E]' : 'text-slate-400'}`} />
+                              <span>
+                                {proposal.status === 'Pending' ? 'Deadline: ' : ''} 
+                                {new Date(proposal.submittedDate).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {/* Project Type Badge */}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(
+                                getMockProjectType(proposal.id)
+                              )}`}
+                            >
+                              <Tag className="w-3 h-3" />
+                              {getMockProjectType(proposal.id)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      </td>
 
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                       {getStatusBadge(proposal.status as ExtendedProposalStatus)}
-                        
-                        {/* Eye icon button for detailed view - ALWAYS VISIBLE */}
-                        <button
-                          onClick={() => handleViewDetails(proposal)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
-                          title="View details"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
+                      {/* --- COL 2: STATUS & ACTIONS (Right Aligned) --- */}
+                      <td className="px-6 py-5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-3">
+                          
+                          {/* Status Badge */}
+                          {getStatusBadge(proposal.status as ExtendedProposalStatus)}
 
-                        {/* Action Button - ONLY for Pending or Revised Proposal */}
-                        {(proposal.status === 'Pending' || proposal.status === ('Revised Proposal' as ProposalStatus)) && (
-                          <div className="flex items-center gap-2">
+                          {/* Eye Button */}
+                          <button
+                            onClick={() => handleViewDetails(proposal)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                            title="View details"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </button>
+
+                          {/* Action Button */}
+                          {(proposal.status === "Pending" || proposal.status === ("Revised Proposal" as ProposalStatus)) && (
                             <button
                               onClick={() => handleViewProposal(proposal)}
                               className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
@@ -349,19 +371,19 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                               <Gavel className="w-3 h-3" />
                               Action
                             </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
 
           {/* Pagination */}
           {filteredProposals.length > 0 && (
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+            <div className="p-4 bg-slate-50 border-t border-slate-200">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
                   Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
@@ -370,7 +392,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <ChevronLeft className="w-3 h-3" />
                     Previous
@@ -381,7 +403,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Next
                     <ChevronRight className="w-3 h-3" />
