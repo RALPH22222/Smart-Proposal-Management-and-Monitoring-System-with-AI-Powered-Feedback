@@ -31,7 +31,7 @@ import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
 
 //Proponent
 import Submission from "./pages/users/proponent/submission";
-import Profile from "./pages/users/proponent/profile";
+import Profile from "./pages/users/proponent/Profile";
 import Settings from "./pages/users/proponent/settings";
 
 // Loading animation

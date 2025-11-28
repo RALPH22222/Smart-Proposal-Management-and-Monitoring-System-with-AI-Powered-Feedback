@@ -1,56 +1,37 @@
 import React, { useState, useEffect } from "react";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
-// import StatusStepper from "../../../components/proponent-component/StatusStepper";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
 import { 
-  FaChevronLeft, 
-  FaChevronRight, 
-  FaFileAlt, 
   FaListAlt, 
-  FaCalendarAlt,
   FaUser,
-  FaChartLine,
-  FaCheckCircle,
-  FaMoneyBillWave,
-  FaClipboardCheck,
-  FaTimesCircle,
-  FaUsers,
-  FaClock,
-  FaTablet,
   FaBell,
+  FaTablet,
   FaShareAlt,
-  FaEdit
+  FaUsers
 } from 'react-icons/fa';
 import { 
-  Microscope, RotateCcw, FileText, ClipboardCheck, RefreshCw, Award
+  Microscope, FileText, ClipboardCheck, RefreshCw, Award
 } from 'lucide-react';
 
-import type { Project, Proposal, Notification, BudgetSource } from '../../../types/proponentTypes';
+import type { Project, Proposal, Notification } from '../../../types/proponentTypes';
 import { 
   mockProjects, 
-  stageLabels, 
-  currentStageLabels, 
-  stageDescriptions, 
   initialNotifications,
-  stageLabelsList,
-  commentsMap,
   getStatusFromIndex,
-  getProgressPercentage,
-  getStatusLabel
+  getStatusLabel // FIXED: Changed from getStatusLabelByIndex
 } from '../../../types/mockData';
 import { 
   getStatusColorByIndex, 
   getPriorityColor, 
   getStageIcon,
   getProgressPercentageByIndex,
-  getStatusLabelByIndex,
   filterProjectsByStatus
 } from '../../../types/helpers';
 
 const Profile: React.FC = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
+  // Removed unused activeIndex state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
@@ -65,13 +46,12 @@ const Profile: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
 
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [commentProject, setCommentProject] = useState<Project | null>(null);
+  // Removed unused comments state
 
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
   // Close notifications when clicking outside
-  React.useEffect(() => {
+  useEffect(() => { // Fixed: Using the imported useEffect
     const onDocClick = (e: MouseEvent) => {
       if (!notifRef.current) return;
       if (!notifRef.current.contains(e.target as Node)) {
@@ -86,21 +66,13 @@ const Profile: React.FC = () => {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [notificationsOpen]);
 
-  const current = mockProjects[activeIndex];
-
   // Filter projects by status using helper function
   const { 
-    pending, 
     rdEvaluation, 
     evaluatorsAssessment, 
     revision, 
     funded, 
-    rejected 
   } = filterProjectsByStatus(mockProjects);
-
-  // Navigation functions
-  const prev = () => setActiveIndex((i) => Math.max(0, i - 1));
-  const next = () => setActiveIndex((i) => Math.min(mockProjects.length - 1, i + 1));
 
   // Event handlers
   const openShare = (project: Project) => {
@@ -161,16 +133,6 @@ const Profile: React.FC = () => {
     setDetailedModalOpen(false);
   };
 
-  const openComments = (project: Project) => {
-    setCommentProject(project);
-    setCommentsOpen(true);
-  };
-
-  const closeComments = () => {
-    setCommentsOpen(false);
-    setCommentProject(null);
-  };
-
   const toggleNotifications = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setNotificationsOpen(v => !v);
@@ -208,7 +170,6 @@ const Profile: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
   const projectsToShow = projectTab === 'all' ? mockProjects : funded;
-  const currentComments = commentProject ? commentsMap[commentProject.id] || [] : [];
 
   // Project Portfolio rendering functions
   const renderGridView = () => (
@@ -216,7 +177,8 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         {projectsToShow.map((project) => {
           const progress = getProgressPercentageByIndex(project.currentIndex);
-          const statusLabel = getStatusLabelByIndex(project.currentIndex);
+          // FIXED: Using correct function name
+          const statusLabel = getStatusLabel(project.currentIndex); 
           
           return (
             <div
@@ -314,7 +276,8 @@ const Profile: React.FC = () => {
         <tbody className="divide-y divide-gray-200">
           {projectsToShow.map((project) => {
             const progress = getProgressPercentageByIndex(project.currentIndex);
-            const statusLabel = getStatusLabelByIndex(project.currentIndex);
+            // FIXED: Using correct function name
+            const statusLabel = getStatusLabel(project.currentIndex);
             
             return (
               <tr
@@ -373,9 +336,9 @@ const Profile: React.FC = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                     <span className="font-semibold">
-                       {progress}%
-                     </span>
+                      <span className="font-semibold">
+                        {progress}%
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -421,8 +384,8 @@ const Profile: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Notification bell */}
-              <div className="relative" ref={notifRef}>
+              {/* Notification bell - Added z-50 to fix mobile display */}
+              <div className="relative z-50" ref={notifRef}>
                 <button
                   onClick={toggleNotifications}
                   className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
@@ -540,9 +503,8 @@ const Profile: React.FC = () => {
               </div>
             </div>
           </div>
-        <div>
-      </div>
-    </header>
+        </header>
+
         {/* All Projects Section */}
         <section>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
