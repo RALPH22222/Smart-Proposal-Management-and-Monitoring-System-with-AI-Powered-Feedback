@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 // import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { api } from "@utils/axios";
+import { useNavigate } from "react-router-dom";
 
 type LoginResponse = {
   message: string;
@@ -11,6 +12,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -41,6 +43,7 @@ export default function Login() {
       });
       setEmail("");
       setPassword("");
+      navigate("/users/proponent/dashboard");
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
@@ -55,9 +58,16 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <div className="order-2 md:order-1 w-full md:w-1/2 flex items-center justify-center bg-white p-8">
-        <form onSubmit={handleLogin} className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4">
-          <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">Sign in</h2>
-          <p className="text-sm text-gray-600">Use your institutional account or continue with Google.</p>
+        <form
+          onSubmit={handleLogin}
+          className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4"
+        >
+          <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
+            Sign in
+          </h2>
+          <p className="text-sm text-gray-600">
+            Use your institutional account or continue with Google.
+          </p>
 
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Email</span>
@@ -104,12 +114,12 @@ export default function Login() {
 
           <div className="text-sm text-center text-gray-600">
             Don't have an account?{" "}
-            <a 
-              href="/register" 
-              className="font-semibold hover:text-[#A50D26] transition-colors duration-300" 
+            <a
+              href="/register"
+              className="font-semibold hover:text-[#A50D26] transition-colors duration-300"
               style={{ color: "#C8102E" }}
-              onMouseOver={(e) => e.currentTarget.style.color = '#A50D26'}
-              onMouseOut={(e) => e.currentTarget.style.color = '#C8102E'}
+              onMouseOver={(e) => (e.currentTarget.style.color = "#A50D26")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "#C8102E")}
             >
               Create one
             </a>
@@ -128,7 +138,7 @@ export default function Login() {
       >
         {/* Red Overlay */}
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
-      
+
         {/* Content */}
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
           <img
@@ -136,10 +146,13 @@ export default function Login() {
             alt="Logo"
             className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2 hover:scale-105 transition-transform duration-300 cursor-pointer"
           />
-      
-          <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">Project Proposal</h1>
+
+          <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
+            Project Proposal
+          </h1>
           <p className="text-sm opacity-90 px-4 md:px-0 hover:opacity-100 transition-opacity duration-300">
-            Create, submit and track project proposals — fast, simple, and secure.
+            Create, submit and track project proposals — fast, simple, and
+            secure.
           </p>
         </div>
       </div>

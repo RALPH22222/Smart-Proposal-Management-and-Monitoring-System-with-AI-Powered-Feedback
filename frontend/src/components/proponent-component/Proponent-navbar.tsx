@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../assets/IMAGES/LOGO.png";
+import { useAuthContext } from "../../context/AuthContext";
 
 const COLORS = {
   brand: "#C8102E",
@@ -11,28 +12,63 @@ const COLORS = {
 };
 
 const SubmissionIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg className={`w-6 h-6 ${isActive ? 'text-white' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  <svg
+    className={`w-6 h-6 ${isActive ? "text-white" : "text-white"}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+    />
   </svg>
 );
 
 const ProfileIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg className={`w-6 h-6 ${isActive ? 'text-white' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  <svg
+    className={`w-6 h-6 ${isActive ? "text-white" : "text-white"}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+    />
   </svg>
 );
 
 const SettingsIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg className={`w-6 h-6 ${isActive ? 'text-white' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  <svg
+    className={`w-6 h-6 ${isActive ? "text-white" : "text-white"}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+    />
   </svg>
 );
 
 const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
   <svg
     className={`w-6 h-6 transition-colors duration-300 ${
-      isActive ? 'text-white' : 'text-red-800 group-hover:text-white'
+      isActive ? "text-white" : "text-red-800 group-hover:text-white"
     }`}
     fill="none"
     stroke="currentColor"
@@ -53,6 +89,7 @@ const ProponentNavbar: React.FC = () => {
   const [pageSubtitle, setPageSubtitle] = useState("Proponent Submission");
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuthContext();
 
   const handleScroll = useCallback(() => {
     requestAnimationFrame(() => {
@@ -67,8 +104,8 @@ const ProponentNavbar: React.FC = () => {
     if (currentPath.includes("/submission")) {
       setActiveLink("submission");
       setPageSubtitle("Proponent Submission");
-    } else if (currentPath.includes("/profile")) {
-      setActiveLink("profile");
+    } else if (currentPath.includes("/dashboard")) {
+      setActiveLink("dashboard");
       setPageSubtitle("Proponent Profile");
     } else if (currentPath.includes("/settings")) {
       setActiveLink("settings");
@@ -83,15 +120,21 @@ const ProponentNavbar: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll, location]);
 
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log("Logging out...");
-    navigate("/");
+  const handleLogout = async () => {
+    logout();
   };
 
   const navItems = [
-    { name: "Submission", icon: SubmissionIcon, href: "/users/proponent/submission" },
-    { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
+    {
+      name: "Submission",
+      icon: SubmissionIcon,
+      href: "/users/proponent/submission",
+    },
+    {
+      name: "Dashboard",
+      icon: ProfileIcon,
+      href: "/users/proponent/dashboard",
+    },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
 
@@ -106,7 +149,9 @@ const ProponentNavbar: React.FC = () => {
       <header
         role="banner"
         className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${
-          scrolled ? "backdrop-blur-md bg-brand/95 shadow-xl" : "bg-brand shadow-lg"
+          scrolled
+            ? "backdrop-blur-md bg-brand/95 shadow-xl"
+            : "bg-brand shadow-lg"
         }`}
         style={{ backgroundColor: COLORS.brand }}
       >
@@ -116,7 +161,9 @@ const ProponentNavbar: React.FC = () => {
             <a
               href="/users/proponent/submission"
               className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brandLight focus:ring-offset-2"
-              onClick={() => handleNavClick("submission", "/users/proponent/submission")}
+              onClick={() =>
+                handleNavClick("submission", "/users/proponent/submission")
+              }
               aria-label="Submission - WMSU Project Proposal"
             >
               <div className="relative">
@@ -126,25 +173,30 @@ const ProponentNavbar: React.FC = () => {
                   className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
                 />
               </div>
-               <div className="flex flex-col leading-tight">
-                 <span
-                   className="text-base lg:text-lg font-bold tracking-tight"
-                   style={{ color: COLORS.white }}
-                 >
-                   <span className="hidden lg:inline">WMSU Project Proposal</span>
-                   <span className="inline lg:hidden">WMSU ProjProp</span>
-                 </span>
-                 <span
-                   className="text-xs lg:text-sm opacity-80 hidden lg:block"
-                   style={{ color: COLORS.white }}
-                 >
-                   {pageSubtitle}
-                 </span>
-               </div>
+              <div className="flex flex-col leading-tight">
+                <span
+                  className="text-base lg:text-lg font-bold tracking-tight"
+                  style={{ color: COLORS.white }}
+                >
+                  <span className="hidden lg:inline">
+                    WMSU Project Proposal
+                  </span>
+                  <span className="inline lg:hidden">WMSU ProjProp</span>
+                </span>
+                <span
+                  className="text-xs lg:text-sm opacity-80 hidden lg:block"
+                  style={{ color: COLORS.white }}
+                >
+                  {pageSubtitle}
+                </span>
+              </div>
             </a>
 
             {/* Desktop Menu */}
-            <nav role="navigation" className="hidden md:flex items-center space-x-1 pr-4">
+            <nav
+              role="navigation"
+              className="hidden md:flex items-center space-x-1 pr-4"
+            >
               {navItems.map((item) => {
                 const lowerItem = item.name.toLowerCase();
                 const isActive = activeLink === lowerItem;
@@ -154,7 +206,9 @@ const ProponentNavbar: React.FC = () => {
                     key={item.name}
                     href={item.href}
                     className={`relative px-4 py-2 font-medium transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-white/50 rounded-md ${
-                      isActive ? "font-bold text-white" : "text-white/90 hover:text-brandLight"
+                      isActive
+                        ? "font-bold text-white"
+                        : "text-white/90 hover:text-brandLight"
                     }`}
                     aria-current={isActive ? "page" : undefined}
                     onClick={(e) => {
@@ -166,7 +220,9 @@ const ProponentNavbar: React.FC = () => {
                     {/* Sliding Underline for Hover/Active */}
                     <span
                       className={`absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 ${
-                        isActive ? "w-full bg-white" : "w-0 bg-brandLight group-hover:w-full"
+                        isActive
+                          ? "w-full bg-white"
+                          : "w-0 bg-brandLight group-hover:w-full"
                       }`}
                     />
                   </a>
@@ -241,14 +297,18 @@ const ProponentNavbar: React.FC = () => {
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
-                <div className={`mb-1 transition-transform duration-200 ${
-                  isActive ? "scale-110" : "scale-100"
-                }`}>
+                <div
+                  className={`mb-1 transition-transform duration-200 ${
+                    isActive ? "scale-110" : "scale-100"
+                  }`}
+                >
                   <IconComponent isActive={isActive} />
                 </div>
-                <span className={`text-xs font-medium truncate max-w-full ${
-                  isActive ? "font-bold" : "font-normal"
-                }`}>
+                <span
+                  className={`text-xs font-medium truncate max-w-full ${
+                    isActive ? "font-bold" : "font-normal"
+                  }`}
+                >
                   {item.name}
                 </span>
               </a>
