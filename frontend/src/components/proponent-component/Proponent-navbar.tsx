@@ -117,8 +117,8 @@ const ProponentNavbar: React.FC = () => {
     if (currentPath.includes("/submission")) {
       setActiveLink("submission");
       setPageSubtitle("Proponent Submission");
-    } else if (currentPath.includes("/dashboard")) {
-      setActiveLink("dashboard");
+    } else if (currentPath.includes("/profile")) {
+      setActiveLink("profile");
       setPageSubtitle("Proponent Profile");
     } else if (currentPath.includes("/settings")) {
       setActiveLink("settings");
@@ -138,7 +138,7 @@ const ProponentNavbar: React.FC = () => {
 
   const navItems = [
     { name: "Submission", icon: SubmissionIcon, href: "/users/proponent/submission" },
-    { name: "Dashboard", icon: ProfileIcon, href: "/users/proponent/dashboard" },
+    { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
 

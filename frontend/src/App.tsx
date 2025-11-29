@@ -107,7 +107,7 @@ function App() {
 
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
-              <Route path="/users/proponent/dashboard" element={<Profile />} />
+              <Route path="/users/proponent/profile" element={<Profile />} />
               <Route
                 path="/users/proponent/submission"
                 element={<Submission />}
