@@ -34,7 +34,11 @@ type CookieOptions = {
   sameSite?: CookieSameSite;
 };
 
-export function setCookieString(key: string, value: string, options?: CookieOptions) {
+export function setCookieString(
+  key: string,
+  value: string,
+  options?: CookieOptions,
+) {
   var defaults = {
     secure: true,
     httpOnly: true,
@@ -42,7 +46,7 @@ export function setCookieString(key: string, value: string, options?: CookieOpti
     path: "/",
     expires: null,
     maxAge: null,
-    sameSite: CookieSameSite.Lax,
+    sameSite: CookieSameSite.None,
   };
   if (typeof options == "object") {
     options = Object.assign({}, defaults, options);
@@ -64,8 +68,16 @@ export function setCookieString(key: string, value: string, options?: CookieOpti
     options.expires = new Date(new Date().getTime() + options.maxAge * 1000); // JS operate in Milli-seconds
   }
 
-  if (options.expires && typeof options.expires == "object" && typeof options.expires.toUTCString) {
+  if (
+    options.expires &&
+    typeof options.expires == "object" &&
+    typeof options.expires.toUTCString
+  ) {
     options.expires = options.expires.toUTCString();
+  }
+
+  if (options.maxAge) {
+    cookie = cookie + "; Max-Age=" + options.maxAge.toString();
   }
 
   if (options.expires) {

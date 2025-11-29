@@ -3,8 +3,6 @@ import {
   FaMoneyBillWave,
   FaPlus,
   FaTrash,
-  FaArrowDown,
-  FaArrowUp
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
