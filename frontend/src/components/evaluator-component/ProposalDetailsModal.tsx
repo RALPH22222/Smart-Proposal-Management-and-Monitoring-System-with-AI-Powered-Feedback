@@ -160,6 +160,7 @@ export default function ProposalDetailsModal({
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
+            
             {/* --- UPDATED FILE DOWNLOAD SECTION --- */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
@@ -183,7 +184,7 @@ export default function ProposalDetailsModal({
                     </p>
                   </div>
                 </div>
-                <button className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
                   <Download className="w-3 h-3" />
                   Download
                 </button>
@@ -362,7 +363,7 @@ export default function ProposalDetailsModal({
                 <DollarSign className="w-4 h-4 text-[#C8102E]" />
                 Estimated Budget by Source
               </h3>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-lg border border-slate-300">
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-100">
@@ -420,6 +421,9 @@ export default function ProposalDetailsModal({
                   </tbody>
                 </table>
               </div>
+              <p className="text-[10px] text-slate-500 mt-2 italic">
+                PS: Personal Services | MOOE: Maintenance and Other Operating Expenses | CO: Capital Outlay
+              </p>
             </div>
 
             {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
@@ -502,14 +506,14 @@ export default function ProposalDetailsModal({
                       className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
                         proposal.decision === "Approve"
                           ? "bg-green-600 text-white border-green-600 shadow-md"
-                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                          : "bg-green-50 text-green-400 border-green-200 opacity-70"
                       }`}
                     >
                       <CheckCircle
                         className={`w-5 h-5 ${
                           proposal.decision === "Approve"
                             ? "text-white"
-                            : "text-slate-300"
+                            : "text-green-400"
                         }`}
                       />
                       <span className="font-semibold text-sm">Approve</span>
@@ -520,14 +524,14 @@ export default function ProposalDetailsModal({
                       className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
                         proposal.decision === "Revise"
                           ? "bg-yellow-500 text-white border-yellow-500 shadow-md"
-                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                          : "bg-yellow-50 text-yellow-500 border-yellow-200 opacity-70"
                       }`}
                     >
                       <RotateCcw
                         className={`w-5 h-5 ${
                           proposal.decision === "Revise"
                             ? "text-white"
-                            : "text-slate-300"
+                            : "text-yellow-500"
                         }`}
                       />
                       <span className="font-semibold text-sm">Revise</span>
@@ -538,14 +542,14 @@ export default function ProposalDetailsModal({
                       className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${
                         proposal.decision === "Reject"
                           ? "bg-red-700 text-white border-red-700 shadow-md"
-                          : "bg-slate-50 text-slate-300 border-slate-100 opacity-50"
+                          : "bg-red-50 text-red-400 border-red-200 opacity-70"
                       }`}
                     >
                       <XCircle
                         className={`w-5 h-5 ${
                           proposal.decision === "Reject"
                             ? "text-white"
-                            : "text-slate-300"
+                            : "text-red-400"
                         }`}
                       />
                       <span className="font-semibold text-sm">Reject</span>

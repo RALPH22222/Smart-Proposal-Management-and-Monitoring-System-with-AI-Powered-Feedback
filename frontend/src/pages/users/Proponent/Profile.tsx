@@ -4,41 +4,24 @@ import ProponentNavbar from "../../../components/proponent-component/Proponent-n
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
-import { 
-  FaChevronLeft, 
-  FaChevronRight, 
-  FaFileAlt, 
+import {  
   FaListAlt, 
-  FaCalendarAlt,
   FaUser,
-  FaChartLine,
-  FaCheckCircle,
-  FaMoneyBillWave,
-  FaClipboardCheck,
-  FaTimesCircle,
   FaUsers,
-  FaClock,
   FaTablet,
   FaBell,
-  FaShareAlt,
-  FaEdit
+  FaShareAlt
 } from 'react-icons/fa';
 import { 
-  Microscope, RotateCcw, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
+  Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
 } from 'lucide-react';
 
-import type { Project, Proposal, Notification, BudgetSource } from '../../../types/proponentTypes';
+import type { Project, Proposal, Notification } from '../../../types/proponentTypes';
 import { 
   mockProjects, 
-  stageLabels, 
-  currentStageLabels, 
-  stageDescriptions, 
   initialNotifications,
-  stageLabelsList,
   commentsMap,
-  getStatusFromIndex,
-  getProgressPercentage,
-  getStatusLabel
+  getStatusFromIndex
 } from '../../../types/mockData';
 import { 
   getStatusColorByIndex, 

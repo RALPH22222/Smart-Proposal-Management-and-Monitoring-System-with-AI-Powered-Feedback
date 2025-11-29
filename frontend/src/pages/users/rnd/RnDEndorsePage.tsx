@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { type EndorsementProposal, type EvaluatorDecision } from '../../../types/evaluator';
 import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
-// Import the new Modal
 import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
 
 const EndorsePage: React.FC = () => {

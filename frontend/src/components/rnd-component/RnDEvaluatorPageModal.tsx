@@ -1,31 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Search, 
-  AlertTriangle, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  ChevronDown, 
-  ChevronUp,
-  User as UserIcon
+import {
+  X,
+  Plus,
+  User as UserIcon,
+  ChevronDown,
+  AlertCircle,
+  RefreshCw,
+  Trash2,
+  Check,
+  XCircle,
+  Search
 } from 'lucide-react';
 
-// --- INTERFACES ---
-
-interface ExtensionRequest {
-  requestedDate: string;
-  reason: string;
-}
-
-interface EvaluatorOption {
+// --- Export this interface so the parent page can use it ---
+export interface EvaluatorOption {
   id: string;
   name: string;
   department: string;
   status: 'Accepts' | 'Rejected' | 'Pending';
-  // Optional extension request
-  extensionRequest?: ExtensionRequest; 
 }
 
 interface RnDEvaluatorPageModalProps {
@@ -33,13 +25,15 @@ interface RnDEvaluatorPageModalProps {
   onClose: () => void;
   currentEvaluators?: EvaluatorOption[];
   onReassign: (newEvaluators: EvaluatorOption[]) => void;
+  proposalTitle: string; 
 }
 
 const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   isOpen,
   onClose,
   currentEvaluators = [],
-  onReassign
+  onReassign,
+  proposalTitle = "Untitled Project"
 }) => {
   const departments = [
     'Information Technology',
@@ -47,38 +41,14 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     'Engineering'
   ];
 
-  // --- MOCK DATA ---
+  // --- MOCK DATA FOR AVAILABLE EVALUATORS ---
   const mockEvaluators: Record<string, EvaluatorOption[]> = {
     'Information Technology': [
-      {
-        id: 'e1',
-        name: 'Dr. Alice Santos',
-        department: 'Information Technology',
-        status: 'Pending', // Must be Pending to see request
-        extensionRequest: {
-            requestedDate: '2025-11-20',
-            reason: 'I need an additional week to verify the cryptographic methods proposed in the methodology.'
-        }
-      },
-      {
-        id: 'e2',
-        name: 'Prof. Ben Reyes',
-        department: 'Information Technology',
-        status: 'Accepts'
-      },
-      {
-        id: 'e7',
-        name: 'Dr. Michael Chen',
-        department: 'Information Technology',
-        status: 'Pending' 
-        // No request here, so no alert will show
-      },
-      {
-        id: 'e8',
-        name: 'Prof. Sarah Johnson',
-        department: 'Information Technology',
-        status: 'Accepts'
-      }
+      { id: 'e1', name: 'Dr. Alice Santos', department: 'Information Technology', status: 'Pending' },
+      { id: 'e2', name: 'Prof. Ben Reyes', department: 'Information Technology', status: 'Accepts' },
+      { id: 'e7', name: 'Dr. Michael Chen', department: 'Information Technology', status: 'Pending' },
+      { id: 'e8', name: 'Prof. Sarah Johnson', department: 'Information Technology', status: 'Accepts' },
+      { id: 'e13', name: 'Dr. Emily White', department: 'Information Technology', status: 'Pending' }
     ],
     'Computer Science': [
       { id: 'e3', name: 'Dr. Carla Lim', department: 'Computer Science', status: 'Rejected' },
@@ -86,7 +56,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
       { id: 'e9', name: 'Dr. Robert Wilson', department: 'Computer Science', status: 'Accepts' },
       { id: 'e10', name: 'Prof. Lisa Garcia', department: 'Computer Science', status: 'Pending' }
     ],
-    Engineering: [
+    'Engineering': [
       { id: 'e5', name: 'Dr. John Cruz', department: 'Engineering', status: 'Accepts' },
       { id: 'e6', name: 'Prof. Eva Martinez', department: 'Engineering', status: 'Rejected' },
       { id: 'e11', name: 'Dr. James Brown', department: 'Engineering', status: 'Accepts' },
@@ -97,43 +67,22 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [availableEvaluators, setAvailableEvaluators] = useState<EvaluatorOption[]>([]);
   const [filteredEvaluators, setFilteredEvaluators] = useState<EvaluatorOption[]>([]);
-  const [selectedEvaluators, setSelectedEvaluators] = useState<EvaluatorOption[]>([]);
+  
+  // Single source of truth for assigned evaluators
   const [currentList, setCurrentList] = useState<EvaluatorOption[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Track expanded request row
-  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  // --- STATES FOR MODALS & ACTIONS ---
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [evaluatorToRemove, setEvaluatorToRemove] = useState<EvaluatorOption | null>(null); // For Remove Modal
+  const [replacingId, setReplacingId] = useState<string | null>(null); // Track which row is in "Replace Mode"
 
   // Initialize Data
   useEffect(() => {
     if (currentEvaluators.length > 0) {
       setCurrentList(currentEvaluators);
     } else {
-      // Default Mock if no props passed
-      setCurrentList([
-        {
-          id: 'e1',
-          name: 'Dr. Alice Santos',
-          department: 'Information Technology',
-          status: 'Pending',
-          extensionRequest: {
-             requestedDate: '2025-11-20',
-             reason: 'I need an additional week to verify the cryptographic methods proposed.'
-          }
-        },
-        {
-          id: 'e3',
-          name: 'Dr. Carla Lim',
-          department: 'Computer Science',
-          status: 'Accepts'
-        },
-        {
-          id: 'e5',
-          name: 'Dr. John Cruz',
-          department: 'Engineering',
-          status: 'Rejected'
-        }
-      ]);
+      setCurrentList([]);
     }
   }, [currentEvaluators]);
 
@@ -156,355 +105,364 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     const evaluators = mockEvaluators[dept] || [];
     setAvailableEvaluators(evaluators);
     setFilteredEvaluators(evaluators);
-    setSelectedEvaluators([]);
     setSearchQuery('');
   };
 
-  const handleEvaluatorSelect = (evaluator: EvaluatorOption) => {
-    setSelectedEvaluators((prev) =>
-      prev.some((ev) => ev.id === evaluator.id)
-        ? prev.filter((ev) => ev.id !== evaluator.id)
-        : [...prev, evaluator]
-    );
+  // --- ADD LOGIC ---
+  const handleAddEvaluator = (evaluator: EvaluatorOption) => {
+    if (currentList.some(ev => ev.id === evaluator.id)) return;
+    const newEvaluator: EvaluatorOption = { ...evaluator, status: 'Pending' };
+    setCurrentList(prev => [...prev, newEvaluator]);
   };
 
-  const handleReplaceEvaluator = (id: string) => {
-    setCurrentList((prev) => prev.filter((ev) => ev.id !== id));
+  // --- REMOVE LOGIC (With Confirmation) ---
+  const initiateRemove = (evaluator: EvaluatorOption) => {
+    setEvaluatorToRemove(evaluator); // Opens the confirmation modal
   };
 
-  const handleRemoveEvaluator = (id: string) => {
-    setCurrentList((prev) => prev.filter((ev) => ev.id !== id));
+  const confirmRemove = () => {
+    if (evaluatorToRemove) {
+      setCurrentList(prev => prev.filter(ev => ev.id !== evaluatorToRemove.id));
+      setEvaluatorToRemove(null); // Close modal
+    }
   };
 
-  const handleConfirm = () => {
-    const updatedEvaluators = [...currentList, ...selectedEvaluators];
-    onReassign(updatedEvaluators);
+  // --- REPLACE LOGIC (Dropdown) ---
+  const initiateReplace = (id: string) => {
+    setReplacingId(id); // Turns the row into edit mode
+  };
+
+  const cancelReplace = () => {
+    setReplacingId(null);
+  };
+
+  const confirmReplace = (originalId: string, newEvaluatorId: string, department: string) => {
+    if (!newEvaluatorId) return;
+
+    // Find the new evaluator object from the full mock list
+    const candidates = mockEvaluators[department] || [];
+    const newEvaluatorObj = candidates.find(c => c.id === newEvaluatorId);
+
+    if (newEvaluatorObj) {
+      // Swap in the list
+      setCurrentList(prev => prev.map(ev => {
+        if (ev.id === originalId) {
+          // Replace old with new, reset status to Pending
+          return { ...newEvaluatorObj, status: 'Pending' }; 
+        }
+        return ev;
+      }));
+    }
+    setReplacingId(null); // Exit edit mode
+  };
+
+  // --- SAVE FLOW ---
+  const handleSaveClick = () => setShowSaveConfirmation(true);
+  
+  const handleFinalConfirmSave = () => {
+    onReassign(currentList);
+    setShowSaveConfirmation(false);
     onClose();
-  };
-
-  // --- DEADLINE EXTENSION LOGIC ---
-
-  const toggleRequestView = (id: string) => {
-    setExpandedRequestId(prev => prev === id ? null : id);
-  };
-
-  const handleExtensionDecision = (id: string, approved: boolean) => {
-    // In a real app, this would make an API call.
-    // Here we just remove the extensionRequest object from the state to simulate "Handled".
-    setCurrentList(prev => prev.map(ev => {
-      if (ev.id === id) {
-        const { extensionRequest, ...rest } = ev; 
-        return rest; // Return object without the request
-      }
-      return ev;
-    }));
-    setExpandedRequestId(null);
-    // Optional: alert(`Request ${approved ? 'Accepted' : 'Rejected'}`);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black/50 bg-opacity-50 flex justify-center items-center z-50 p-4 animate-in fade-in duration-200'>
-      <div className='bg-white rounded-lg w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]'>
-        
-        {/* Header */}
-        <div className='bg-gray-100 border-b border-slate-200 text-gray-800 px-6 py-4 flex justify-between items-center'>
-          <h3 className='text-lg font-semibold'>Evaluator Management</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className='p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar'>
+    <>
+      <div className='fixed inset-0 bg-black/50 bg-opacity-50 flex justify-center items-center z-50 p-4 animate-in fade-in duration-200'>
+        <div className='bg-white rounded-lg w-full max-w-4xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]'>
           
-          {/* --- SECTION 1: CURRENT EVALUATORS --- */}
-          <div className='bg-gray-50 p-5 rounded-md border border-gray-200'>
-            <h4 className='font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-                Current Evaluators
-                <span className="text-xs font-normal text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
-                    {currentList.length} Assigned
-                </span>
-            </h4>
-            
-            {currentList.length > 0 ? (
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-                <table className='w-full text-sm'>
-                  <thead className='bg-gray-100 border-b border-gray-200'>
-                    <tr>
-                      <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Name</th>
-                      <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Department</th>
-                      <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Status</th>
-                      <th className='px-4 py-3 text-center text-gray-600 font-semibold'>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {currentList.map((ev) => {
-                      // Logic: Only show extension options if Pending AND has request
-                      const hasPendingRequest = ev.status === 'Pending' && ev.extensionRequest;
-                      const isExpanded = expandedRequestId === ev.id;
+          {/* Header */}
+          <div className='bg-gray-100 border-b border-slate-200 text-gray-800 px-6 py-4 flex justify-between items-center'>
+            <h3 className='text-lg font-semibold'>Evaluator Management</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-                      return (
-                        <React.Fragment key={ev.id}>
-                          <tr className={`hover:bg-gray-50 transition-colors ${hasPendingRequest ? 'bg-amber-50/30' : ''}`}>
-                            
-                            {/* Name Column */}
-                            <td className='px-4 py-3 text-gray-800 font-medium'>
-                              {ev.name}
-                              {hasPendingRequest && (
-                                <div className="inline-flex items-center gap-1 ml-2 text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200">
-                                    <Clock className="w-3 h-3" />
-                                    <span>Extension Request</span>
+          {/* Body */}
+          <div className='p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar'>
+            
+            {/* --- SECTION 1: CURRENT EVALUATORS --- */}
+            <div className='bg-gray-50 p-5 rounded-md border border-gray-200'>
+              <h4 className='font-semibold text-gray-800 mb-4 flex items-center gap-2'>
+                  Current Evaluators
+                  <span className="text-xs font-bold text-white bg-[#C10003] px-2 py-0.5 rounded-full shadow-sm">
+                      {currentList.length} Assigned
+                  </span>
+              </h4>
+              
+              {currentList.length > 0 ? (
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <table className='w-full text-sm'>
+                    <thead className='bg-gray-100 border-b border-gray-200'>
+                      <tr>
+                        <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Name</th>
+                        <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Department</th>
+                        <th className='px-4 py-3 text-left text-gray-600 font-semibold'>Status</th>
+                        <th className='px-4 py-3 text-center text-gray-600 font-semibold w-48'>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {currentList.map((ev) => (
+                        <tr key={ev.id} className="hover:bg-gray-50 transition-colors">
+                          <td className='px-4 py-3 text-gray-800 font-medium'>
+                            {ev.name}
+                          </td>
+                          <td className='px-4 py-3 text-gray-600'>{ev.department}</td>
+                          <td className='px-4 py-3'>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border
+                                  ${ev.status === 'Accepts' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                    ev.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' : 
+                                    'bg-amber-50 text-amber-700 border-amber-200'}`}
+                              >
+                                      {ev.status}
+                              </span>
+                          </td>
+                          <td className='px-4 py-3 text-center'>
+                              {ev.status === 'Accepts' ? (
+                                <span className="text-xs text-gray-400 italic flex items-center justify-center gap-1">
+                                  <Check className="w-3 h-3" /> Confirmed
+                                </span>
+                              ) : replacingId === ev.id ? (
+                                // --- REPLACE MODE (Dropdown) ---
+                                <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                                  <select 
+                                    className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-[#C10003] outline-none"
+                                    onChange={(e) => confirmReplace(ev.id, e.target.value, ev.department)}
+                                    defaultValue=""
+                                    autoFocus
+                                  >
+                                    <option value="" disabled>Select Replacement</option>
+                                    {(mockEvaluators[ev.department] || [])
+                                      .filter(c => !currentList.some(curr => curr.id === c.id))
+                                      .map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                      ))
+                                    }
+                                  </select>
+                                  <button 
+                                    onClick={cancelReplace}
+                                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500"
+                                    title="Cancel"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                // --- NORMAL ACTION BUTTONS ---
+                                <div className="flex items-center justify-center gap-2">
+                                    <button
+                                        onClick={() => initiateReplace(ev.id)}
+                                        className='flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs rounded-md font-medium transition-colors'
+                                    >
+                                        <RefreshCw className="w-3 h-3" /> Replace
+                                    </button>
+                                    <button
+                                        onClick={() => initiateRemove(ev)}
+                                        className='flex items-center gap-1 px-3 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-md font-medium transition-colors'
+                                    >
+                                        <Trash2 className="w-3 h-3" /> Remove
+                                    </button>
                                 </div>
                               )}
-                            </td>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className='text-gray-500 italic'>No evaluators currently assigned.</p>
+              )}
+            </div>
 
-                            {/* Department Column */}
-                            <td className='px-4 py-3 text-gray-600'>{ev.department}</td>
-
-                            {/* Status Column */}
-                            <td className='px-4 py-3'>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border
-                                    ${ev.status === 'Accepts' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                      ev.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' : 
-                                      'bg-yellow-50 text-yellow-700 border-yellow-200'}`}
-                                >
-                                    {ev.status}
-                                </span>
-                            </td>
-
-                            {/* Actions Column */}
-                            <td className='px-4 py-3 text-center'>
-                                <div className="flex items-center justify-center gap-2">
-                                    {hasPendingRequest ? (
-                                        // Special Action for Pending Request
-                                        <button
-                                            onClick={() => toggleRequestView(ev.id)}
-                                            className={`flex items-center gap-1 px-3 py-1 text-xs rounded-md font-medium transition-colors border
-                                                ${isExpanded 
-                                                    ? 'bg-amber-100 text-amber-800 border-amber-300' 
-                                                    : 'bg-white text-amber-600 border-amber-200 hover:bg-amber-50'
-                                                }`}
-                                        >
-                                            {isExpanded ? <ChevronUp className="w-3 h-3"/> : <AlertTriangle className="w-3 h-3"/>}
-                                            {isExpanded ? 'Hide Details' : 'Review Request'}
-                                        </button>
-                                    ) : (
-                                        // Standard Actions
-                                        <>
-                                            <button
-                                                onClick={() => handleReplaceEvaluator(ev.id)}
-                                                className='px-3 py-1 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs rounded-md font-medium transition-colors'
-                                            >
-                                                Replace
-                                            </button>
-                                            <button
-                                                onClick={() => handleRemoveEvaluator(ev.id)}
-                                                className='px-3 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-md font-medium transition-colors'
-                                            >
-                                                Remove
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </td>
-                          </tr>
-
-                          {/* --- EXPANDABLE REQUEST DETAILS --- */}
-                          {hasPendingRequest && isExpanded && (
-                              <tr className="bg-amber-50/50 animate-in fade-in duration-200 border-b border-amber-100">
-                                  <td colSpan={4} className="p-4">
-                                      <div className="bg-white border border-amber-200 rounded-lg p-4 shadow-sm max-w-2xl mx-auto relative">
-                                          {/* Arrow Indicator */}
-                                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-amber-200 rotate-45"></div>
-                                          
-                                          <div className="flex items-start gap-3">
-                                              <div className="bg-amber-100 p-2 rounded-full flex-shrink-0">
-                                                  <Calendar className="w-5 h-5 text-amber-600" />
-                                              </div>
-                                              <div className="flex-1">
-                                                  <div className="flex justify-between items-start mb-2">
-                                                      <div>
-                                                          <h5 className="text-sm font-bold text-gray-900">Deadline Extension Requested</h5>
-                                                          <p className="text-xs text-gray-500">
-                                                              Requesting change from <span className="font-medium text-gray-700">Oct 20, 2025</span> to:
-                                                          </p>
-                                                      </div>
-                                                      <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-sm font-bold border border-amber-200">
-                                                          {new Date(ev.extensionRequest!.requestedDate).toLocaleDateString()}
-                                                      </div>
-                                                  </div>
-                                                  
-                                                  <div className="bg-gray-50 p-3 rounded border border-gray-200 text-sm text-gray-700 italic mb-4">
-                                                      <span className="font-semibold text-gray-500 not-italic text-xs block mb-1">Reason:</span>
-                                                      "{ev.extensionRequest!.reason}"
-                                                  </div>
-
-                                                  <div className="flex gap-3 justify-end pt-1 border-t border-amber-100">
-                                                      <button 
-                                                          onClick={() => handleExtensionDecision(ev.id, false)}
-                                                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-red-600 bg-white border border-red-200 rounded hover:bg-red-50 transition-colors"
-                                                      >
-                                                          <XCircle className="w-3.5 h-3.5" /> Reject
-                                                      </button>
-                                                      <button 
-                                                          onClick={() => handleExtensionDecision(ev.id, true)}
-                                                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded hover:bg-emerald-700 shadow-sm transition-colors"
-                                                      >
-                                                          <CheckCircle className="w-3.5 h-3.5" /> Accept Extension
-                                                      </button>
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </td>
-                              </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            {/* --- SECTION 2: ADD NEW EVALUATORS --- */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Select Department</label>
+              <div className="relative">
+                  <select
+                  value={selectedDepartment}
+                  onChange={(e) => handleDepartmentChange(e.target.value)}
+                  className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#C10003] focus:outline-none bg-white appearance-none cursor-pointer'
+                  >
+                  <option value=''>-- Choose Department --</option>
+                  {departments.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-            ) : (
-              <p className='text-gray-500 italic'>No evaluators currently assigned.</p>
+            </div>
+
+            {selectedDepartment && (
+              <div className='bg-gray-50 p-5 rounded-md border border-gray-200 animate-in slide-in-from-bottom-2 duration-300'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
+                  <h4 className='font-semibold text-gray-800'>Available Evaluators</h4>
+                  <div className='relative w-full sm:w-64'>
+                    <input
+                      type='text'
+                      placeholder='Search evaluators...'
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className='w-full border border-gray-300 rounded-md pl-9 pr-8 py-2 text-sm focus:ring-2 focus:ring-[#C10003] focus:outline-none'
+                    />
+                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1'
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {filteredEvaluators.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+                      <UserIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className='text-gray-500 italic text-sm'>
+                      {searchQuery ? 'No evaluators found matching your search.' : 'No evaluators available for this department.'}
+                      </p>
+                  </div>
+                ) : (
+                  <div className='space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar'>
+                    {filteredEvaluators.map((evaluator) => {
+                        const isAlreadyAssigned = currentList.some(ev => ev.id === evaluator.id);
+                        if (isAlreadyAssigned) return null; 
+
+                        return (
+                          <div
+                              key={evaluator.id}
+                              onClick={() => handleAddEvaluator(evaluator)}
+                              className="group flex items-center space-x-3 p-3 rounded-lg border bg-white border-gray-200 hover:border-[#C10003] hover:shadow-md cursor-pointer transition-all duration-200"
+                          >
+                              <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#C10003]/10 transition-colors">
+                                      <Plus className="w-5 h-5 text-gray-400 group-hover:text-[#C10003]" />
+                                  </div>
+                              </div>
+                              
+                              <div className='flex-1'>
+                                  <div className="flex justify-between items-center">
+                                      <span className="text-sm font-semibold text-gray-700 group-hover:text-[#C10003]">
+                                          {evaluator.name}
+                                      </span>
+                                  </div>
+                                  <span className='text-gray-500 text-xs block mt-0.5'>
+                                      {evaluator.department}
+                                  </span>
+                              </div>
+                          </div>
+                        );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          {/* --- SECTION 2: ADD NEW EVALUATORS --- */}
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Select Department</label>
-            <div className="relative">
-                <select
-                value={selectedDepartment}
-                onChange={(e) => handleDepartmentChange(e.target.value)}
-                className='w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-[#C10003] focus:outline-none bg-white appearance-none cursor-pointer'
-                >
-                <option value=''>-- Choose Department --</option>
-                {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
+          {/* Footer */}
+          <div className='p-4 border-t border-slate-200 bg-gray-50 flex justify-end gap-3'>
+            <button
+              onClick={onClose}
+              className='px-4 py-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium transition-colors text-sm'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveClick}
+              className='px-4 py-2 rounded-md text-white font-medium bg-[#C10003] hover:bg-[#A00002] shadow-sm transition-colors text-sm'
+            >
+              Save Changes
+            </button>
           </div>
-
-          {selectedDepartment && (
-            <div className='bg-gray-50 p-5 rounded-md border border-gray-200 animate-in slide-in-from-bottom-2 duration-300'>
-              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-                <h4 className='font-semibold text-gray-800'>Available Evaluators</h4>
-                
-                {/* Search Input */}
-                <div className='relative w-full sm:w-64'>
-                  <input
-                    type='text'
-                    placeholder='Search evaluators...'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className='w-full border border-gray-300 rounded-md pl-9 pr-8 py-2 text-sm focus:ring-2 focus:ring-[#C10003] focus:outline-none'
-                  />
-                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1'
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {filteredEvaluators.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
-                    <UserIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className='text-gray-500 italic text-sm'>
-                    {searchQuery ? 'No evaluators found matching your search.' : 'No evaluators available for this department.'}
-                    </p>
-                </div>
-              ) : (
-                <div className='space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar'>
-                  {filteredEvaluators.map((evaluator) => {
-                      const isSelected = selectedEvaluators.some((ev) => ev.id === evaluator.id);
-                      const isAlreadyAssigned = currentList.some(ev => ev.id === evaluator.id);
-                      
-                      if (isAlreadyAssigned) return null; // Don't show already assigned
-
-                      return (
-                        <label
-                            key={evaluator.id}
-                            className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all duration-200
-                                ${isSelected 
-                                    ? 'bg-red-50 border-red-200 shadow-sm' 
-                                    : 'bg-white border-gray-200 hover:border-red-200 hover:shadow-sm'
-                                }`}
-                        >
-                            <div className="relative flex items-center">
-                                <input
-                                type='checkbox'
-                                checked={isSelected}
-                                onChange={() => handleEvaluatorSelect(evaluator)}
-                                className='peer h-4 w-4 cursor-pointer text-[#C10003] focus:ring-[#C10003] border-gray-300 rounded transition-all'
-                                />
-                            </div>
-                            
-                            <div className='flex-1'>
-                                <div className="flex justify-between items-center">
-                                    <span className={`text-sm font-semibold ${isSelected ? 'text-[#C10003]' : 'text-gray-700'}`}>
-                                        {evaluator.name}
-                                    </span>
-                                    {/* STATUS REMOVED FROM HERE AS REQUESTED */}
-                                </div>
-                                <span className='text-gray-500 text-xs block mt-0.5'>
-                                    {evaluator.department}
-                                </span>
-                            </div>
-                        </label>
-                      );
-                  })}
-                </div>
-              )}
-              
-              {/* Selected Count */}
-              {selectedEvaluators.length > 0 && (
-                <div className='mt-4 pt-3 border-t border-gray-200 flex justify-between items-center'>
-                  <p className='text-sm font-medium text-gray-700'>
-                    {selectedEvaluators.length} new evaluator{selectedEvaluators.length !== 1 ? 's' : ''} selected
-                  </p>
-                  <button 
-                    onClick={() => setSelectedEvaluators([])}
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    Clear selection
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className='p-4 border-t border-slate-200 bg-gray-50 flex justify-end gap-3'>
-          <button
-            onClick={onClose}
-            className='px-4 py-2 rounded-md bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium transition-colors text-sm'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            className='px-4 py-2 rounded-md text-white font-medium bg-[#C10003] hover:bg-[#A00002] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors text-sm'
-            disabled={selectedEvaluators.length === 0}
-          >
-            Confirm Reassignment
-          </button>
         </div>
       </div>
-    </div>
+
+      {/* --- SAVE CONFIRMATION MODAL --- */}
+      {showSaveConfirmation && (
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden transform scale-100 transition-transform">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-[#C10003]" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Confirm Assignments</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-4 leading-relaxed">
+                Are you sure you want to assign the following evaluators to the <span className="font-bold text-gray-900">{proposalTitle}</span> project?
+              </p>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-3 max-h-40 overflow-y-auto mb-6 custom-scrollbar">
+                <ul className="space-y-2">
+                  {currentList.map((ev) => (
+                    <li key={ev.id} className="flex items-center gap-2 text-sm text-gray-700">
+                      <UserIcon className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium">{ev.name}</span>
+                      <span className="text-xs text-gray-500">({ev.department})</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowSaveConfirmation(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleFinalConfirmSave}
+                  className="px-4 py-2 text-sm font-bold text-white bg-[#C10003] rounded-lg hover:bg-[#A00002] shadow-sm transition-colors"
+                >
+                  Yes, Assign
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- REMOVE CONFIRMATION MODAL --- */}
+      {evaluatorToRemove && (
+        <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden transform scale-100 transition-transform">
+            <div className="p-6 text-center">
+              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <XCircle className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Remove Evaluator?</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure to remove <span className="font-bold text-gray-900">{evaluatorToRemove.name}</span> for evaluating?
+              </p>
+              
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setEvaluatorToRemove(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRemove}
+                  className="px-4 py-2 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm transition-colors"
+                >
+                  Yes, Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

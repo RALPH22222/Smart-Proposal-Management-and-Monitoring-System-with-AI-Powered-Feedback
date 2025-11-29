@@ -13,6 +13,7 @@ import {
   Clock,
   Tag,
   Gavel,
+  CalendarClock,
 } from "lucide-react";
 import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
@@ -54,7 +55,6 @@ interface Proposal {
   assignedRdStaff?: string;
   rdCommentsToEvaluator?: string;
   evaluationDeadline?: string;
-  // assignedEvaluators?: string[];
 }
 
 export default function Proposals() {
@@ -64,6 +64,7 @@ export default function Proposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
+  // Decision Modal State
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(
     null
@@ -105,7 +106,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,250,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Maria Santos",
       rdCommentsToEvaluator:
         "Please focus on evaluating the technical feasibility and scalability of the AI algorithms proposed. Pay special attention to the data privacy considerations for student data.",
@@ -121,7 +121,7 @@ export default function Proposals() {
       email: "j.smith@zscmst.edu.ph",
       modeOfImplementation: "Multi Agency",
       priorityAreas: "Renewable Energy & Smart Grids",
-      status: "pending",
+      status: "extension_requested", // CHANGED: pending -> extension_requested
       deadline: "Oct 20, 2025",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
@@ -151,7 +151,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,100,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Carlos Reyes",
       rdCommentsToEvaluator:
         "Evaluate the integration of IoT sensors with existing grid infrastructure. Assess the cost-benefit analysis and potential impact on rural communities.",
@@ -190,7 +189,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,800,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Angela Rivera",
       rdCommentsToEvaluator:
         "This proposal was rejected due to insufficient technical details and lack of clear implementation timeline. Focus on providing constructive feedback for resubmission.",
@@ -236,7 +234,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,500,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. John Smith",
       rdCommentsToEvaluator:
         "High-priority proposal. Please evaluate the quantum algorithm efficiency and potential real-world applications. Consider the availability of required quantum computing resources.",
@@ -282,7 +279,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,500,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Maria Santos",
       rdCommentsToEvaluator:
         "Excellent proposal with strong industry partnerships. Focus evaluation on battery lifespan, environmental impact, and commercialization potential.",
@@ -321,7 +317,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱1,500,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Carlos Reyes",
       rdCommentsToEvaluator:
         "Please evaluate the novelty of the optimization techniques and their applicability to real-world problems. Consider computational requirements and scalability.",
@@ -367,7 +362,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱3,200,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. Angela Rivera",
       rdCommentsToEvaluator:
         "Multi-agency collaboration proposal. Evaluate integration challenges with existing urban infrastructure and potential regulatory hurdles.",
@@ -413,7 +407,6 @@ export default function Proposals() {
         },
       ],
       budgetTotal: "₱2,750,000.00",
-      // R&D Assignment Data
       assignedRdStaff: "Dr. John Smith",
       rdCommentsToEvaluator:
         "Proposal lacked clear methodology for ML model validation. Please provide detailed feedback on improving the technical approach and experimental design.",
@@ -432,13 +425,14 @@ export default function Proposals() {
 
   const statusOrder: Record<string, number> = {
     pending: 0,
-    accepted: 1,
-    rejected: 2,
+    extension_requested: 1,
+    accepted: 2,
+    rejected: 3,
   };
 
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const orderA = statusOrder[a.status] ?? 3;
-    const orderB = statusOrder[b.status] ?? 3;
+    const orderA = statusOrder[a.status] ?? 4;
+    const orderB = statusOrder[b.status] ?? 4;
     return orderA - orderB;
   });
 
@@ -457,6 +451,8 @@ export default function Proposals() {
         return "text-amber-600 bg-amber-50 border-amber-200";
       case "rejected":
         return "text-red-600 bg-red-50 border-red-200";
+      case "extension_requested":
+        return "text-blue-600 bg-blue-50 border-blue-200";
       default:
         return "text-slate-600 bg-slate-50 border-slate-200";
     }
@@ -470,9 +466,16 @@ export default function Proposals() {
         return <Clock className="w-3 h-3" />;
       case "rejected":
         return <XCircle className="w-3 h-3" />;
+      case "extension_requested":
+        return <CalendarClock className="w-3 h-3" />;
       default:
         return null;
     }
+  };
+
+  const formatStatus = (status: string) => {
+    if (status === "extension_requested") return "Extension Requested";
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const getProjectTypeColor = (type: string) => {
@@ -511,19 +514,22 @@ export default function Proposals() {
   };
 
   const handleSubmitDecision = (
-    status: "accepted" | "rejected",
-    remarks: string
+    status: "accepted" | "rejected" | "extension",
+    remarks: string,
+    newDeadline?: string
   ) => {
-    // Here you would typically make an API call to update the status
-    console.log(`Proposal ${proposalToEvaluate} updated to ${status}`);
+    console.log(`Proposal ${proposalToEvaluate} Decision: ${status}`);
     console.log(`Remarks: ${remarks}`);
-
-    // For demo purposes, we just close the modal
+    if (status === "extension" && newDeadline) {
+      console.log(`Requested New Deadline: ${newDeadline}`);
+    }
     closeDecisionModal();
   };
 
   const proposal = proposals.find((p) => p.id === selectedProposal);
-  const evaluationProposal = proposals.find((p) => p.id === proposalToEvaluate);
+  const evaluationProposal = proposals.find(
+    (p) => p.id === proposalToEvaluate
+  );
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
@@ -581,12 +587,18 @@ export default function Proposals() {
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
                   <option value="rejected">Rejected</option>
+                  <option value="extension_requested">
+                    Extension Requested
+                  </option>
                 </select>
               </div>
 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                  <Tag
+                    className="h-4 w-4 text-slate-400"
+                    aria-hidden="true"
+                  />
                 </div>
                 <select
                   value={typeFilter}
@@ -675,8 +687,7 @@ export default function Proposals() {
                           )}`}
                         >
                           {getStatusIcon(proposal.status)}
-                          {proposal.status.charAt(0).toUpperCase() +
-                            proposal.status.slice(1)}
+                          {formatStatus(proposal.status)}
                         </span>
 
                         <div className="flex items-center gap-2">

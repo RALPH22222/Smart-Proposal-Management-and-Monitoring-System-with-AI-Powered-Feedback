@@ -398,29 +398,6 @@ const Submission: React.FC = () => {
                   </button>
                 ))}
               </nav>
-              
-              {/* Completion Status */}
-              <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-700">Form Progress</span>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    isFormComplete() ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {isFormComplete() ? 'Complete' : 'Optional'}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                  <div 
-                    className={`h-3 rounded-full transition-all duration-500 ease-out ${
-                      isFormComplete() ? 'bg-green-500' : 'bg-blue-500'
-                    }`} 
-                    style={{ width: isFormComplete() ? '100%' : '65%' }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500 text-center">
-                  {isFormComplete() ? 'Form details completed!' : 'Fill details for better AI analysis'}
-                </p>
-              </div>
 
               {/* AI Assistant Button Wrapper */}
               <div className="relative group w-full mt-6 rounded-xl overflow-hidden p-[2px]">
