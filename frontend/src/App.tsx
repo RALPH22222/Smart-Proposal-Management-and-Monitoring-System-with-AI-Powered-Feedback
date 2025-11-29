@@ -19,7 +19,7 @@ import System from "./pages/users/admin/system";
 import SettingsAdmin from "./pages/users/admin/settings";
 
 // R&D
-import RndMainLayout from './pages/users/rnd/RnDMainLayout';
+import RndMainLayout from "./pages/users/rnd/RnDMainLayout";
 
 // Evaluator
 import DashboardEvaluator from "./pages/users/evaluator/DashboardEvaluator";
@@ -31,7 +31,7 @@ import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
 
 //Proponent
 import Submission from "./pages/users/proponent/submission";
-import Profile from "./pages/users/proponent/profile";
+import Profile from "./pages/users/proponent/Profile";
 import Settings from "./pages/users/proponent/settings";
 
 // Loading animation
@@ -40,47 +40,84 @@ import {
   LocationWatcher,
   LoadingOverlay,
 } from "./contexts/LoadingContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { Role } from "./types/auth";
+import RedirectAuthenticated from "./components/RedirectAuthenticated";
+import { AuthProvider } from "./context/AuthProvider";
 
 function App() {
   return (
     <BrowserRouter>
-      <LoadingProvider>
-        <LocationWatcher />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contacts" element={<Contacts />} />
-          {/* <Route path="/services" element={<Services />} /> */}
-          <Route path="/faqs" element={<FAQ />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
+      <AuthProvider>
+        <LoadingProvider>
+          <LocationWatcher />
+          <Routes>
+            <Route element={<RedirectAuthenticated />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contacts" element={<Contacts />} />
+              {/* <Route path="/services" element={<Services />} /> */}
+              <Route path="/faqs" element={<FAQ />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+            </Route>
 
-          {/* Admin */}
-          <Route path="/users/admin/dashboard" element={<DashboardAdmin />} />
-          <Route path="/users/admin/accounts" element={<Accounts />} />
-          <Route path="/users/admin/reports" element={<Reports />} />
-          <Route path="/users/admin/contents" element={<Contents />} />
-          <Route path="/users/admin/system" element={<System />} />
-          <Route path="/users/admin/settings" element={<SettingsAdmin />} />
+            {/* Admin */}
+            <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
+              <Route
+                path="/users/admin/dashboard"
+                element={<DashboardAdmin />}
+              />
+              <Route path="/users/admin/accounts" element={<Accounts />} />
+              <Route path="/users/admin/reports" element={<Reports />} />
+              <Route path="/users/admin/contents" element={<Contents />} />
+              <Route path="/users/admin/system" element={<System />} />
+              <Route path="/users/admin/settings" element={<SettingsAdmin />} />
+            </Route>
 
-          {/* Evaluator */}
-          <Route path="/users/evaluator/dashboard" element={<DashboardEvaluator />} />
-          <Route path="/users/evaluator/proposals" element={<Proposals />} />
-          <Route path="/users/evaluator/notifications" element={<Notifications />} />
-          <Route path="/users/evaluator/settings" element={<SettingsEvaluator />} />
-          <Route path="/users/evaluator/review" element={<ReviewProposals />} />
-					<Route path="/users/evaluator/reviewed" element={<ReviewedProposals />} />
+            {/* Evaluator */}
+            <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
+              <Route
+                path="/users/evaluator/dashboard"
+                element={<DashboardEvaluator />}
+              />
+              <Route path="/users/evaluator/proposals" element={<Proposals />} />
+              <Route
+                path="/users/evaluator/notifications"
+                element={<Notifications />}
+              />
+              <Route
+                path="/users/evaluator/settings"
+                element={<SettingsEvaluator />}
+              />
+              <Route
+                path="/users/evaluator/review"
+                element={<ReviewProposals />}
+              />
+              <Route
+                path="/users/evaluator/reviewed"
+                element={<ReviewedProposals />}
+              />
+            </Route>
 
-          {/* R&D */}
-          <Route path="/users/rnd/*" element={<RndMainLayout />} />
+            {/* R&D */}
+            <Route element={<ProtectedRoute roles={[Role.RND]} />}>
+              <Route path="/users/rnd/*" element={<RndMainLayout />} />
+            </Route>
 
-          {/* Proponent */}
-          <Route path="/users/proponent/submission" element={<Submission />} />
-          <Route path="/users/proponent/profile" element={<Profile />} />
-          <Route path="/users/proponent/settings" element={<Settings />} />
-        </Routes>
-        <LoadingOverlay />
-      </LoadingProvider>
+            {/* Proponent */}
+            <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
+              <Route path="/users/proponent/profile" element={<Profile />} />
+              <Route
+                path="/users/proponent/submission"
+                element={<Submission />}
+              />
+              <Route path="/users/proponent/settings" element={<Settings />} />
+            </Route>
+          </Routes>
+          <LoadingOverlay />
+        </LoadingProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

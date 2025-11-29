@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import ProponentNavbar from "../../../../components/proponent-component/Proponent-navbar";
-import { FaFileAlt, FaFlask, FaMoneyBillWave, FaRobot, FaSpinner } from 'react-icons/fa';
+import { FaFileAlt, FaFlask, FaMoneyBillWave } from 'react-icons/fa';
 import BasicInformation from './basicInfo';
 import ResearchDetails from './researchDetails';
 import BudgetSection from './budgetSection';
@@ -15,6 +15,7 @@ const Submission: React.FC = () => {
   const [isCheckingForm, setIsCheckingForm] = useState(false);
   const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
   const [showAIModal, setShowAIModal] = useState(false);
+  
   const [years, setYears] = useState<string[]>([]);
   const [activeSection, setActiveSection] = useState<string>('basic-info');
   
@@ -30,23 +31,10 @@ const Submission: React.FC = () => {
     cooperatingAgencies: '', 
     researchStation: '',
     classificationType: '',
-    researchType: { 
-      basic: false, 
-      applied: false
-    },
+    researchType: { basic: false, applied: false },
     developmentType: '',
-    
-    implementationMode: { 
-      singleAgency: false, 
-      multiAgency: false 
-    },
-    priorityAreas: { 
-      stand: false, 
-      coconutIndustry: false, 
-      exportWinners: false, 
-      otherPriorityAreas: false, 
-      supportIndustries: false 
-    },
+    implementationMode: { singleAgency: false, multiAgency: false },
+    priorityAreas: { stand: false, coconutIndustry: false, exportWinners: false, otherPriorityAreas: false, supportIndustries: false },
     sectorCommodity: '', 
     discipline: '', 
     duration: '', 
@@ -59,39 +47,21 @@ const Submission: React.FC = () => {
 
   const isFormComplete = useCallback(() => {
     const requiredFields = [
-      formData.programTitle, 
-      formData.projectTitle, 
-      formData.leaderGender,
-      formData.agencyName,
-      formData.agencyAddress, 
-      formData.tags, 
-      formData.email,
-      formData.telephone,
-      formData.plannedStartDate,
-      formData.plannedEndDate, 
-      formData.duration
+      formData.programTitle, formData.projectTitle, formData.leaderGender,
+      formData.agencyName, formData.agencyAddress, formData.tags, 
+      formData.email, formData.telephone, formData.plannedStartDate,
+      formData.plannedEndDate, formData.duration
     ];
     
-    // Updated classification validation
     const hasValidClassification = formData.classificationType !== '' && 
-      (
-        (formData.classificationType === 'research' && 
-          (formData.researchType.basic || formData.researchType.applied)) ||
-        (formData.classificationType === 'development' && 
-          formData.developmentType !== '')
-      );
+      ((formData.classificationType === 'research' && (formData.researchType.basic || formData.researchType.applied)) ||
+       (formData.classificationType === 'development' && formData.developmentType !== ''));
     
     const hasImplementationMode = Object.values(formData.implementationMode).some(value => value);
     const hasPriorityArea = Object.values(formData.priorityAreas).some(value => value);
-    const hasValidBudgetItems = formData.budgetItems.every(item => 
-      item.source.trim() !== '' && item.year !== ''
-    );
+    const hasValidBudgetItems = formData.budgetItems.every(item => item.source.trim() !== '' && item.year !== '');
     
-    return requiredFields.every(field => field.trim() !== '') && 
-           hasValidClassification && 
-           hasImplementationMode && 
-           hasPriorityArea && 
-           hasValidBudgetItems;
+    return requiredFields.every(field => field.trim() !== '') && hasValidClassification && hasImplementationMode && hasPriorityArea && hasValidBudgetItems;
   }, [formData]);
 
   const handleButtonClick = useCallback(() => {
@@ -100,8 +70,6 @@ const Submission: React.FC = () => {
 
   const handleSubmit = useCallback(() => {
     if (!selectedFile) return;
-    console.log('Submitting file:', selectedFile.name);
-    console.log('Form data:', formData);
     alert('Research proposal submitted successfully!');
   }, [selectedFile, formData]);
 
@@ -115,16 +83,11 @@ const Submission: React.FC = () => {
         issues: [
           'Missing executive summary section',
           'Budget justification needs more detail', 
-          'References format inconsistent',
-          'Methodology section could be more detailed', 
-          'Timeline visualization missing'
+          'References format inconsistent'
         ],
         suggestions: [
           'Add a 200-word executive summary highlighting key objectives',
-          'Include detailed budget breakdown per quarter with justifications',
-          'Use APA 7th edition formatting for all references',
-          'Expand methodology to include data collection procedures',
-          'Add a Gantt chart for better timeline visualization'
+          'Use APA 7th edition formatting for all references'
         ],
         score: Math.floor(Math.random() * 40) + 60, 
         type: 'template', 
@@ -140,68 +103,34 @@ const Submission: React.FC = () => {
   const handleAIFormCheck = useCallback(async () => {
     setIsCheckingForm(true); 
     setShowAIModal(true);
+    
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const issues: string[] = []; 
       const suggestions: string[] = [];
       
       if (!formData.programTitle || formData.programTitle.length < 10) {
         issues.push('Program title is too short or missing');
-        suggestions.push('Make program title more descriptive (minimum 10 characters)');
+        suggestions.push('Make program title more descriptive');
       }
-      if (!formData.projectTitle || formData.projectTitle.length < 10) {
-        issues.push('Project title is too short or missing');
-        suggestions.push('Ensure project title clearly describes the research focus');
-      }
-      if (!formData.agencyName) {
-        issues.push('Agency name missing');
-        suggestions.push('Provide the name of the agency/institution');
-      }
-      if (!formData.agencyAddress) {
-        issues.push('Agency address missing');
-        suggestions.push('Provide complete agency address for correspondence');
-      }
-      if (!formData.plannedStartDate || !formData.plannedEndDate) {
-        issues.push('Project timeline not fully defined');
-        suggestions.push('Set clear start and end dates for the research period');
-      }
+      if (!formData.projectTitle) issues.push('Project title is missing');
+      if (!formData.agencyName) issues.push('Agency name missing');
       
-      // Updated classification validation for AI check
       if (!formData.classificationType) {
         issues.push('No classification type selected');
-        suggestions.push('Select either Research or Development classification');
-      } else if (formData.classificationType === 'research' && 
-                 !formData.researchType.basic && !formData.researchType.applied) {
-        issues.push('No research type selected');
-        suggestions.push('Select either Basic or Applied research type');
-      } else if (formData.classificationType === 'development' && 
-                 !formData.developmentType) {
-        issues.push('No development type selected');
-        suggestions.push('Select either Coconut Industry or Other Priority Areas');
-      }
-      
-      const selectedPriorityAreas = Object.values(formData.priorityAreas).filter(v => v).length;
-      if (selectedPriorityAreas === 0) {
-        issues.push('No priority areas selected');
-        suggestions.push('Select relevant priority areas for better alignment');
+        suggestions.push('Select Research or Development');
       }
       
       const totalBudget = formData.budgetItems.reduce((sum, item) => sum + item.total, 0);
       if (totalBudget === 0) {
         issues.push('Budget amounts not specified');
-        suggestions.push('Add budget amounts for PS, MOOE and CO categories');
-      }
-      if (formData.budgetItems.some(item => !item.source)) {
-        issues.push('Some budget items missing funding source');
-        suggestions.push('Specify funding source for all budget items');
-      }
-      if (formData.budgetItems.some(item => !item.year)) {
-        issues.push('Some budget items missing year allocation');
-        suggestions.push('Assign year for all budget items');
+        suggestions.push('Add budget amounts');
       }
       
       const isValid = issues.length === 0;
       const score = Math.max(0, 100 - (issues.length * 15));
+      
       const formCheckResult: AICheckResult = { 
         isValid, 
         issues, 
@@ -210,158 +139,81 @@ const Submission: React.FC = () => {
         type: 'form', 
         title: 'Form Completion Analysis' 
       };
+      
       setAiCheckResult(formCheckResult);
     } catch (error) {
       console.error('AI form check failed:', error); 
       alert('AI form check failed. Please try again.');
     } finally { setIsCheckingForm(false); }
-  }, [formData, activeSection]);
+  }, [formData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    
-    // Handle classification type changes
     if (name === 'classificationType') {
-      setFormData(prev => ({ 
-        ...prev, 
-        classificationType: value as 'research' | 'development',
-        // Reset the sub-selections when changing main classification
-        researchType: { basic: false, applied: false },
-        developmentType: ''
-      }));
-    }
-    // Handle research type radio buttons
-    else if (name === 'researchType.basic') {
-      setFormData(prev => ({ 
-        ...prev, 
-        researchType: { basic: true, applied: false }
-      }));
-    }
-    else if (name === 'researchType.applied') {
-      setFormData(prev => ({ 
-        ...prev, 
-        researchType: { basic: false, applied: true }
-      }));
-    }
-    // Handle development type radio buttons
-    else if (name === 'developmentType') {
-      setFormData(prev => ({ 
-        ...prev, 
-        developmentType: value as 'coconutIndustry' | 'otherPriorityAreas'
-      }));
-    }
-    // Handle other nested fields
-    else if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev, 
-        [parent]: { 
-          ...prev[parent as keyof typeof prev] as Record<string, unknown>, 
-          [child]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value 
-        }
-      }));
-    } else {
-      setFormData(prev => ({ 
-        ...prev, 
-        [name]: type === 'checkbox' ? 
-          (e.target as HTMLInputElement).checked : value 
-      }));
-    }
+        setFormData(prev => ({ ...prev, classificationType: value as any, researchType: { basic: false, applied: false }, developmentType: '' }));
+      } else if (name === 'researchType.basic') {
+        setFormData(prev => ({ ...prev, researchType: { basic: true, applied: false } }));
+      } else if (name === 'researchType.applied') {
+        setFormData(prev => ({ ...prev, researchType: { basic: false, applied: true } }));
+      } else if (name === 'developmentType') {
+        setFormData(prev => ({ ...prev, developmentType: value as any }));
+      } else if (name === 'implementationMode') {
+         const val = value as any;
+         setFormData(prev => ({ ...prev, implementationMode: val }));
+      } else if (name.includes('.')) {
+        const [parent, child] = name.split('.');
+        setFormData(prev => ({ ...prev, [parent]: { ...prev[parent as keyof typeof prev] as any, [child]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value } }));
+      } else {
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value }));
+      }
   };
 
   const addBudgetItem = () => {
-    const newItem: BudgetItem = { 
-      id: formData.budgetItems.length + 1, 
-      source: '', 
-      ps: 0,
-      mooe: 0, 
-      co: 0, 
-      total: 0, 
-      isExpanded: false, 
-      year: years[0] || '' 
-    };
+    const newItem: BudgetItem = { id: Date.now(), source: '', ps: 0, mooe: 0, co: 0, total: 0, isExpanded: false, year: years[0] || '' };
     setFormData(prev => ({ ...prev, budgetItems: [...prev.budgetItems, newItem] }));
   };
-
-  const removeBudgetItem = (id: number) => {
-    if (formData.budgetItems.length > 1) {
-      setFormData(prev => ({ ...prev, budgetItems: prev.budgetItems.filter(item => item.id !== id) }));
-    }
-  };
-
+  const removeBudgetItem = (id: number) => setFormData(prev => ({ ...prev, budgetItems: prev.budgetItems.filter(item => item.id !== id) }));
   const updateBudgetItem = (id: number, field: string, value: string | number) => {
     setFormData(prev => ({
-      ...prev, 
-      budgetItems: prev.budgetItems.map(item => {
+      ...prev, budgetItems: prev.budgetItems.map(item => {
         if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
-          // Update total when any of the budget fields change
-          if (field === 'ps' || field === 'mooe' || field === 'co') {
-            updatedItem.total = (Number(updatedItem.ps) || 0) + (Number(updatedItem.mooe) || 0) + (Number(updatedItem.co) || 0);
-          }
-          return updatedItem;
+          const updated = { ...item, [field]: value };
+          if (['ps', 'mooe', 'co'].includes(field)) updated.total = (Number(updated.ps)||0) + (Number(updated.mooe)||0) + (Number(updated.co)||0);
+          return updated;
         }
         return item;
       })
     }));
   };
-
-  const toggleExpand = (id: number) => {
-    setFormData(prev => ({
-      ...prev, 
-      budgetItems: prev.budgetItems.map(item => 
-        item.id === id ? { ...item, isExpanded: !item.isExpanded } : item
-      )
-    }));
-  };
+  const toggleExpand = (id: number) => setFormData(prev => ({ ...prev, budgetItems: prev.budgetItems.map(item => item.id === id ? { ...item, isExpanded: !item.isExpanded } : item) }));
 
   useEffect(() => {
     if (formData.plannedStartDate && formData.plannedEndDate) {
       const startYear = new Date(formData.plannedStartDate).getFullYear();
       const endYear = new Date(formData.plannedEndDate).getFullYear();
-      const yearsArray: string[] = [];
+      const yearsArray = [];
       for (let year = startYear; year <= endYear; year++) yearsArray.push(year.toString());
       setYears(yearsArray);
-      if (yearsArray.length > 0) {
-        setFormData(prev => ({
-          ...prev, 
-          budgetItems: prev.budgetItems.map(item => ({ ...item, year: yearsArray[0] }))
-        }));
-      }
     }
   }, [formData.plannedStartDate, formData.plannedEndDate]);
 
-  const isUploadDisabled = false;
   const formSections = [
-    { id: 'basic-info', label: 'Basic Information', icon: <FaFileAlt className="w-4 h-4" /> },
-    { id: 'research-details', label: 'Research Details', icon: <FaFlask className="w-4 h-4" /> },
-    { id: 'budget', label: 'Budget', icon: <FaMoneyBillWave className="w-4 h-4" /> },
+    { id: 'basic-info', label: 'Basic Info', icon: <FaFileAlt /> }, // Shortened label for better mobile fit
+    { id: 'research-details', label: 'Research', icon: <FaFlask /> },
+    { id: 'budget', label: 'Budget', icon: <FaMoneyBillWave /> },
   ];
 
   const renderActiveSection = () => {
     switch (activeSection) {
-      case 'basic-info':
-        return <BasicInformation formData={formData} onInputChange={handleInputChange} />;
-      case 'research-details':
-        return <ResearchDetails formData={formData} onInputChange={handleInputChange} />;
-      case 'budget':
-        return (
-          <BudgetSection
-            formData={formData}
-            years={years}
-            onBudgetItemAdd={addBudgetItem}
-            onBudgetItemRemove={removeBudgetItem}
-            onBudgetItemUpdate={updateBudgetItem}
-            onBudgetItemToggle={toggleExpand}
-          />
-        );
-      default:
-        return <BasicInformation formData={formData} onInputChange={handleInputChange} />;
+      case 'basic-info': return <BasicInformation formData={formData} onInputChange={handleInputChange} />;
+      case 'research-details': return <ResearchDetails formData={formData} onInputChange={handleInputChange} />;
+      case 'budget': return <BudgetSection formData={formData} years={years} onBudgetItemAdd={addBudgetItem} onBudgetItemRemove={removeBudgetItem} onBudgetItemUpdate={updateBudgetItem} onBudgetItemToggle={toggleExpand} />;
+      default: return <BasicInformation formData={formData} onInputChange={handleInputChange} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 mt-4">
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
       <ProponentNavbar />
       
       <AIModal
@@ -372,85 +224,59 @@ const Submission: React.FC = () => {
         checkType={isCheckingTemplate ? 'template' : 'form'}
       />
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8 mt-16">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
-          <div className="xl:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100">
-              <h3 className="font-bold text-gray-800 mb-6 text-lg flex items-center gap-2">
-                <FaFileAlt className="text-[#C8102E]" />Research Proposal
-              </h3>
-              <nav className="space-y-3">
-                {formSections.map((section) => (
-                  <button 
-                    key={section.id} 
-                    onClick={() => setActiveSection(section.id)}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center space-x-3 group ${
-                      activeSection === section.id 
-                        ? 'bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white shadow-lg' 
-                        : 'text-gray-600 hover:bg-gray-50 hover:shadow-md border border-transparent hover:border-gray-200'
-                    }`}
-                  >
-                    <div className={`transition-transform duration-200 ${activeSection === section.id ? 'scale-110' : 'group-hover:scale-105'}`}>
-                      {section.icon}
-                    </div>
-                    <span className="font-semibold">{section.label}</span>
-                  </button>
-                ))}
-              </nav>
-
-              {/* AI Assistant Button Wrapper */}
-              <div className="relative group w-full mt-6 rounded-xl overflow-hidden p-[2px]">
-                {!isCheckingForm && (
-                  <div className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#393BB2_50%,#E2E8F0_100%)]" 
-                       style={{ backgroundImage: 'conic-gradient(from 90deg at 50% 50%, #313deaff 40%, #efefefff 60%, #f51111 100%)' }} 
-                  />
-                )}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8 pt-24">
         
-                <button
-                  onClick={handleAIFormCheck}
-                  disabled={isCheckingForm}
-                  className={`relative h-full w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-                    isCheckingForm 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-red-600 to-blue-800 hover:from-red-500 hover:to-blue-700 text-white'
-                  }`}
-                >
-                  {isCheckingForm ? (
-                    <>
-                      <FaSpinner className="w-4 h-4 animate-spin" />
-                      Analyzing Form...
-                    </>
-                  ) : (
-                    <>
-                      <FaRobot className="w-4 h-4" />
-                      AI Form Assistant
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
           {/* Main Form Content */}
-          <div className="xl:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8 border border-gray-100">
+          <div className="lg:col-span-3 flex flex-col gap-6">
+            
+            {/* Top Navigation Buttons (Fixed: Horizontal on Mobile) */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              {formSections.map((section) => {
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`
+                      flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-3 
+                      px-2 py-3 sm:px-6 sm:py-4 
+                      rounded-xl sm:rounded-full 
+                      font-bold text-[10px] sm:text-sm 
+                      transition-all duration-300 shadow-sm border cursor-pointer
+                      ${isActive 
+                        ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-md transform scale-105 z-10' 
+                        : 'bg-white text-gray-600 hover:text-[#C8102E] hover:border-[#C8102E] border-gray-200 hover:shadow-md'
+                      }
+                    `}
+                  >
+                    <span className="text-base sm:text-lg">{section.icon}</span>
+                    <span className="text-center">{section.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Form Container */}
+            <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
               {renderActiveSection()}
             </div>
           </div>
 
           {/* Upload Sidebar */}
-          <div className="xl:col-span-1">
+          <div className="lg:col-span-1">
             <UploadSidebar
               formData={formData}
               selectedFile={selectedFile}
-              isFormComplete={isFormComplete()}
               isCheckingTemplate={isCheckingTemplate}
+              isCheckingForm={isCheckingForm}
+              onAIFormCheck={handleAIFormCheck}
               onFileSelect={setSelectedFile}
               onAITemplateCheck={handleAITemplateCheck}
               onSubmit={handleSubmit}
               onFileButtonClick={handleButtonClick}
-              isUploadDisabled={isUploadDisabled}
+              isUploadDisabled={false}
             />
           </div>
         </div>
