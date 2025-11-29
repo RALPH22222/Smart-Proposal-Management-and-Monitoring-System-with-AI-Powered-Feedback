@@ -15,7 +15,7 @@ import EvaluatorUnderReview from './pages/users/evaluator/ReviewProposals';
 import EvaluatorCompleted from './pages/users/evaluator/ReviewedProposals';
 import EvaluatorSettings from './pages/users/evaluator/Settings';
 import EvaluatorNotifications from './pages/users/evaluator/notification';
-import ProponentsDashboard from './pages/users/proponents/dashboard';
+import ProponentsDashboard from './pages/users/proponents/profile';
 import RndDashboard from './pages/users/rnd/dashboard';
 import LandingPage from './pages/landingpage';
 

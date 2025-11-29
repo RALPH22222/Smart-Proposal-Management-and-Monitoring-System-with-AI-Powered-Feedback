@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Building2,
-  Users,
   Target,
   Calendar,
   DollarSign,
@@ -23,7 +22,6 @@ import {
   FileCheck,
   CheckCircle2,
   Clock,
-  AlertTriangle,
   XCircle,
   CheckCircle,
   Plus,
@@ -194,8 +192,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       if (newFileUrl && !submittedFiles.includes(newFileUrl)) {
         setSubmittedFiles(prev => [...prev, newFileUrl]);
       }
-      const updatedProposal = {
-        ...editedProposal,
+      const updatedProposal: Proposal = {
+        ...(editedProposal as Proposal),
         uploadedFile: newFileUrl,
         status: 'r&d evaluation',
         lastUpdated: new Date().toISOString().split('T')[0]
