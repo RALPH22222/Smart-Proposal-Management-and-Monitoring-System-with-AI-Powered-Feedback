@@ -61,9 +61,9 @@ function App() {
             </Route>
 
             {/* Proponent */}
-            <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
+            {/* <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}> */}
               <Route path="/users/proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
-            </Route>
+            {/* </Route> */}
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>

@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom'; // Import useSearchParams
 import ProponentNavbar from '../../../components/proponent-component/Proponent-navbar';
 
-// Page Components
-import Submission from './submission'
+// Import Page Components
+import Submission from './submission';
 import Profile from './Profile';
 import Settings from './settings';
 import Monitoring from './monitoring';
 
-const ProponentLayout: React.FC = () => {
-  // Controls which page is visible
-  const [currentPage, setCurrentPage] = useState('submission');
+const ProponentMainLayout: React.FC = () => {
+  // Use search params to control the "page" state without changing routes in App.tsx
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Get current tab from URL, default to 'submission'
+  const currentTab = searchParams.get('tab') || 'submission';
+
+  const handlePageChange = (page: string) => {
+    setSearchParams({ tab: page });
+  };
 
   const renderContent = () => {
-    switch (currentPage) {
+    switch (currentTab) {
       case 'submission':
         return <Submission />;
       case 'profile':
@@ -20,7 +28,7 @@ const ProponentLayout: React.FC = () => {
       case 'settings':
         return <Settings />;
       case 'monitoring':
-        return <Monitoring />;  
+        return <Monitoring />;
       default:
         return <Submission />;
     }
@@ -28,10 +36,10 @@ const ProponentLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navbar  */}
+      {/* Navbar controls the URL params */}
       <ProponentNavbar 
-        currentPage={currentPage} 
-        onPageChange={setCurrentPage} 
+        currentPage={currentTab} 
+        onPageChange={handlePageChange} 
       />
 
       {/* Main Content Area */}
@@ -42,4 +50,4 @@ const ProponentLayout: React.FC = () => {
   );
 };
 
-export default ProponentLayout;
+export default ProponentMainLayout;

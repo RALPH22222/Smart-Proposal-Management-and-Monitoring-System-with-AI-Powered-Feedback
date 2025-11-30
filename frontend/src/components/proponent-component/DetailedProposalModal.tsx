@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { useNavigate } from 'react-router-dom'; // 1. Ensure this is imported
 import {
   X,
   Building2,
@@ -37,8 +37,6 @@ interface DetailedProposalModalProps {
   onClose: () => void;
   proposal: Proposal | null;
   onUpdateProposal?: (proposal: Proposal) => void;
-  // onManageMilestones prop is no longer strictly necessary if we navigate internally, 
-  // but kept for backward compatibility if you use it elsewhere.
   onManageMilestones?: () => void; 
 }
 
@@ -49,13 +47,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onUpdateProposal,
   onManageMilestones,
 }) => {
-  const navigate = useNavigate(); // 2. Initialize navigate hook
+  const navigate = useNavigate(); // 2. Hook initialization
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
 
-  // --- Initialization Effects ---
   useEffect(() => {
     if (proposal) {
       setEditedProposal(proposal);
@@ -169,10 +166,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setIsEditing(false);
   };
 
-  // --- 3. Navigation Handler ---
+  // --- 3. FIXED: Navigation Handler ---
   const handleNavigateToMonitoring = () => {
-    onClose(); // Close the modal first
-    navigate('/users/proponent/monitoring'); 
+    onClose();
+    navigate('/users/proponent/ProponentMainLayout?tab=monitoring'); 
   };
 
   // --- Helper Variables ---
