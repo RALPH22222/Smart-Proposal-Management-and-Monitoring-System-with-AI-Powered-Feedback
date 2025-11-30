@@ -15,29 +15,16 @@ const EvaluatorLayout: React.FC = () => {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard />;
-      
       case 'proposals':
         return <Proposals />;
-      
       case 'review': 
         return <ReviewPage />; 
-      
       case 'reviewed':
         return <ReviewedPage />;
-      
       case 'notifications':
         return <Notifications />;
-      
       case 'settings':
         return <Settings />;
-        
-      case 'monitoring':
-         return <div className="p-6">Monitoring Page (Placeholder)</div>;
-      
-      case 'logout':
-        window.location.href = '/'; 
-        return null;
-
       default:
         return <Dashboard />;
     }

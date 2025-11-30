@@ -1,44 +1,24 @@
 import React, { useState } from "react";
-import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
-// import StatusStepper from "../../../components/proponent-component/StatusStepper";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
 import { 
-  FaChevronLeft, 
-  FaChevronRight, 
-  FaFileAlt, 
   FaListAlt, 
-  FaCalendarAlt,
-  FaUser,
-  FaChartLine,
-  FaCheckCircle,
-  FaMoneyBillWave,
-  FaClipboardCheck,
-  FaTimesCircle,
-  FaUsers,
-  FaClock,
-  FaTablet,
-  FaBell,
+  FaUsers, 
+  FaBell, 
+  FaTablet, 
   FaShareAlt,
-  FaEdit
 } from 'react-icons/fa';
 import { 
-  Microscope, RotateCcw, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
+  Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
 } from 'lucide-react';
 
-import type { Project, Proposal, Notification, BudgetSource } from '../../../types/proponentTypes';
+import type { Project, Proposal, Notification } from '../../../types/proponentTypes';
 import { 
   mockProjects, 
-  stageLabels, 
-  currentStageLabels, 
-  stageDescriptions, 
   initialNotifications,
-  stageLabelsList,
   commentsMap,
-  getStatusFromIndex,
-  getProgressPercentage,
-  getStatusLabel
+  getStatusFromIndex
 } from '../../../types/mockData';
 import { 
   getStatusColorByIndex, 
@@ -464,247 +444,244 @@ const Profile: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <ProponentNavbar />
-      <div className="h-16" />
+    // Removed min-h-screen and ProponentNavbar since layout handles it
+    // Removed pt-16 spacer
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      {/* Header Section */}
+      <header className="mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg">
+              <FaUsers className="text-white text-xl lg:text-2xl" />
+            </div>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">
+                Project Portfolio
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm lg:text-base">
+                Monitor your research proposals through the entire lifecycle
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* Notification bell */}
+            <div className="relative z-40" ref={notifRef}>
+              <button
+                onClick={toggleNotifications}
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                title="Notifications"
+              >
+                <FaBell className="text-lg" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Header Section */}
-        <header className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg">
-                <FaUser className="text-white text-xl lg:text-2xl" />
-              </div>
+              <NotificationsDropdown
+                isOpen={notificationsOpen}
+                notifications={notifications}
+                unreadCount={unreadCount}
+                onClose={() => setNotificationsOpen(false)}
+                onMarkAllRead={markAllRead}
+                onMarkRead={markRead}
+                onViewAll={() => setNotificationsOpen(false)}
+              />
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'grid' 
+                    ? 'bg-[#C8102E] text-white shadow-md' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FaTablet className="text-sm" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === 'list' 
+                    ? 'bg-[#C8102E] text-white shadow-md' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FaListAlt className="text-sm" />
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4">
+          {/* Total Projects Card */}
+          <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">
-                  Project Portfolio
-                </h1>
-                <p className="text-gray-600 mt-1 text-sm lg:text-base">
-                  Monitor your research proposals through the entire lifecycle
+                <p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p>
+                <p className="text-xl font-bold text-slate-800 tabular-nums">
+                  {mockProjects.length}
                 </p>
               </div>
+              <FileText className="w-6 h-6 text-slate-600 group-hover:scale-110 transition-transform duration-300" />
             </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Notification bell */}
-              <div className="relative" ref={notifRef}>
-                <button
-                  onClick={toggleNotifications}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
-                  title="Notifications"
-                >
-                  <FaBell className="text-lg" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                <NotificationsDropdown
-                  isOpen={notificationsOpen}
-                  notifications={notifications}
-                  unreadCount={unreadCount}
-                  onClose={() => setNotificationsOpen(false)}
-                  onMarkAllRead={markAllRead}
-                  onMarkRead={markRead}
-                  onViewAll={() => setNotificationsOpen(false)}
-                />
+          </div>
+          
+          {/* R&D Evaluation Card */}
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">R&D Evaluation</p>
+                <p className="text-xl font-bold text-blue-600 tabular-nums">
+                  {rdEvaluation.length}
+                </p>
               </div>
+              <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
 
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    viewMode === 'grid' 
-                      ? 'bg-[#C8102E] text-white shadow-md' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <FaTablet className="text-sm" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all duration-200 ${
-                    viewMode === 'list' 
-                      ? 'bg-[#C8102E] text-white shadow-md' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <FaListAlt className="text-sm" />
-                </button>
+          {/* Evaluators Assessment Card */}
+          <div className="bg-purple-50 shadow-xl rounded-2xl border border-purple-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
+                <p className="text-xl font-bold text-purple-600 tabular-nums">
+                  {evaluatorsAssessment.length}
+                </p>
+              </div>
+              <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
+
+          {/* Revision Required Card */}
+          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Revision Required</p>
+                <p className="text-xl font-bold text-orange-600 tabular-nums">
+                  {revision.length}
+                </p>
+              </div>
+              <RefreshCw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
+
+          {/* Funded Card */}
+          <div className="bg-green-50 shadow-xl rounded-2xl border border-green-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
+                <p className="text-xl font-bold text-green-600 tabular-nums">
+                  {funded.length}
+                </p>
+              </div>
+              <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* All Projects Section */}
+      <section>
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <FaListAlt className="text-[#C8102E]" />
+                  Project Portfolio
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Complete overview of all your research proposals
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Funded</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span>In Progress</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>High Priority</span>
+                </div>
               </div>
             </div>
           </div>
           
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4">
-            {/* Total Projects Card */}
-            <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p>
-                  <p className="text-xl font-bold text-slate-800 tabular-nums">
-                    {mockProjects.length}
-                  </p>
-                </div>
-                <FileText className="w-6 h-6 text-slate-600 group-hover:scale-110 transition-transform duration-300" />
-              </div>
-            </div>
-            
-            {/* R&D Evaluation Card */}
-            <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">R&D Evaluation</p>
-                  <p className="text-xl font-bold text-blue-600 tabular-nums">
-                    {rdEvaluation.length}
-                  </p>
-                </div>
-                <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
-              </div>
+          {/* Tabs & Search Filter Row */}
+          <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setProjectTab('all')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  projectTab === 'all' 
+                    ? 'bg-[#C8102E] text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                All Projects
+              </button>
+              <button
+                onClick={() => setProjectTab('budget')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  projectTab === 'budget' 
+                    ? 'bg-[#C8102E] text-white' 
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Funded Project ({funded.length})
+              </button>
             </div>
 
-            {/* Evaluators Assessment Card */}
-            <div className="bg-purple-50 shadow-xl rounded-2xl border border-purple-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
-                  <p className="text-xl font-bold text-purple-600 tabular-nums">
-                    {evaluatorsAssessment.length}
-                  </p>
+            {/* SEARCH & FILTER CONTROLS */}
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400" />
                 </div>
-                <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                <input
+                  type="text"
+                  placeholder="Search projects..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
+                />
               </div>
-            </div>
-
-            {/* Revision Required Card */}
-            <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Revision Required</p>
-                  <p className="text-xl font-bold text-orange-600 tabular-nums">
-                    {revision.length}
-                  </p>
+              
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <Filter className="h-3 w-3 text-slate-400" />
                 </div>
-                <RefreshCw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
-              </div>
-            </div>
-
-            {/* Funded Card */}
-            <div className="bg-green-50 shadow-xl rounded-2xl border border-green-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
-                  <p className="text-xl font-bold text-green-600 tabular-nums">
-                    {funded.length}
-                  </p>
-                </div>
-                <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="appearance-none bg-white pl-8 pr-8 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] cursor-pointer"
+                >
+                  <option value="All">All Types</option>
+                  <option value="ICT">ICT</option>
+                  <option value="Agriculture">Agriculture</option>
+                  <option value="Energy">Energy</option>
+                  <option value="Health">Health</option>
+                  <option value="Research">Research</option>
+                </select>
               </div>
             </div>
           </div>
-        </header>
 
-        {/* All Projects Section */}
-        <section>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <FaListAlt className="text-[#C8102E]" />
-                    Project Portfolio
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Complete overview of all your research proposals
-                  </p>
-                </div>
-                
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Funded</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span>In Progress</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <span>High Priority</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Tabs & Search Filter Row */}
-            <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setProjectTab('all')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    projectTab === 'all' 
-                      ? 'bg-[#C8102E] text-white' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  All Projects
-                </button>
-                <button
-                  onClick={() => setProjectTab('budget')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    projectTab === 'budget' 
-                      ? 'bg-[#C8102E] text-white' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Funded Project ({funded.length})
-                </button>
-              </div>
-
-              {/* SEARCH & FILTER CONTROLS */}
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
-                  />
-                </div>
-                
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                    <Filter className="h-3 w-3 text-slate-400" />
-                  </div>
-                  <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="appearance-none bg-white pl-8 pr-8 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] cursor-pointer"
-                  >
-                    <option value="All">All Types</option>
-                    <option value="ICT">ICT</option>
-                    <option value="Agriculture">Agriculture</option>
-                    <option value="Energy">Energy</option>
-                    <option value="Health">Health</option>
-                    <option value="Research">Research</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Project Portfolio View */}
-            {viewMode === 'grid' ? renderGridView() : renderListView()}
-          </div>
-        </section>
-      </main>
+          {/* Project Portfolio View */}
+          {viewMode === 'grid' ? renderGridView() : renderListView()}
+        </div>
+      </section>
 
       {/* Modals */}
       <ShareModal

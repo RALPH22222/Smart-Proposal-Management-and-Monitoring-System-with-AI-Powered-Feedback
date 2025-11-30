@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 import {
   X,
   Building2,
@@ -26,8 +27,8 @@ import {
   CheckCircle,
   Plus,
   Trash2,
-  Play,       // Icon for the button
-  Rocket      // Icon for the banner
+  Play,       
+  Rocket      
 } from "lucide-react";
 import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
@@ -36,7 +37,9 @@ interface DetailedProposalModalProps {
   onClose: () => void;
   proposal: Proposal | null;
   onUpdateProposal?: (proposal: Proposal) => void;
-  onManageMilestones?: () => void; // New prop to handle navigation
+  // onManageMilestones prop is no longer strictly necessary if we navigate internally, 
+  // but kept for backward compatibility if you use it elsewhere.
+  onManageMilestones?: () => void; 
 }
 
 const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
@@ -46,6 +49,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onUpdateProposal,
   onManageMilestones,
 }) => {
+  const navigate = useNavigate(); // 2. Initialize navigate hook
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -165,6 +169,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setIsEditing(false);
   };
 
+  // --- 3. Navigation Handler ---
+  const handleNavigateToMonitoring = () => {
+    onClose(); // Close the modal first
+    navigate('/users/proponent/monitoring'); 
+  };
+
   // --- Helper Variables ---
   const currentData = isEditing ? editedProposal : proposal;
   const canEdit = proposal.status === 'revise' && isEditing;
@@ -265,7 +275,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
           
-          {/* 1. NEW: Start Milestone Action (Only if Funded) */}
+          {/* 1. Start Milestone Action (Only if Funded) */}
           {isFunded && (
              <div className="bg-purple-50 rounded-xl border border-purple-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden group">
                 {/* Decorative Background Icon */}
@@ -280,8 +290,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                    </p>
                 </div>
                 
+                {/* Updated Button to Navigate */}
                 <button 
-                   onClick={onManageMilestones}
+                   onClick={handleNavigateToMonitoring} 
                    className="relative z-10 flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 whitespace-nowrap"
                 >
                    <Play className="w-4 h-4 fill-current" />

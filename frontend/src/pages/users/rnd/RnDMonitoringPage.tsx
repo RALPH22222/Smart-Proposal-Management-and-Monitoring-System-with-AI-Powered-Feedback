@@ -9,7 +9,6 @@ import {
   FileText,
   Search,
   Filter,
-  Download,
   Eye,
   BarChart3,
   Target,
@@ -38,7 +37,6 @@ const MOCK_PROJECTS: Project[] = [
     completionPercentage: 35,
     researchArea: 'Agriculture Technology',
     lastModified: '2025-02-01',
-    // New fields for testing Active Modal
     fundRequests: [
        { id: 'fr1', amount: 50000, reason: 'Additional GPU Server costs', dateRequested: '2025-06-01', status: 'Pending'}
     ],
@@ -48,7 +46,7 @@ const MOCK_PROJECTS: Project[] = [
         id: 'm2', 
         name: 'Model Training', 
         dueDate: '2025-06-30', 
-        status: 'Review Required', // Simulating a submitted milestone
+        status: 'Review Required',
         submissionDate: '2025-06-28',
         submissionProof: 'Training logs and accuracy report attached. Model reached 95% accuracy.',
         completed: false

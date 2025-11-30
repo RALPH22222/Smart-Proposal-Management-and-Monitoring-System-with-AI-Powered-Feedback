@@ -17,6 +17,10 @@ import EvaluatorSettings from './pages/users/evaluator/Settings';
 import EvaluatorNotifications from './pages/users/evaluator/notification';
 import ProponentsDashboard from './pages/users/proponents/profile';
 import RndDashboard from './pages/users/rnd/dashboard';
+import RndProposals from './pages/users/rnd/review';
+import RndEvaluators from './pages/users/rnd/evaluatorpage';
+import RndEndorsements from './pages/users/rnd/endorsePage';
+import RndMonitoring from './pages/users/rnd/monitoring';
 import LandingPage from './pages/landingpage';
 
 const Stack = createStackNavigator();
@@ -32,6 +36,40 @@ const smoothTransitionConfig = {
 
 // Screen options with smooth transitions for evaluator screens
 const evaluatorScreenOptions = {
+  headerShown: false,
+  ...TransitionPresets.SlideFromRightIOS,
+  transitionSpec: {
+    open: smoothTransitionConfig,
+    close: smoothTransitionConfig,
+  },
+  cardStyleInterpolator: ({ current, next, layouts }) => {
+    return {
+      cardStyle: {
+        transform: [
+          {
+            translateX: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [layouts.screen.width, 0],
+            }),
+          },
+        ],
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.5, 0.9, 1],
+          outputRange: [0, 0.25, 0.7, 1],
+        }),
+      },
+      overlayStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 0.5],
+        }),
+      },
+    };
+  },
+};
+
+// Screen options with smooth transitions for R&D screens
+const rndScreenOptions = {
   headerShown: false,
   ...TransitionPresets.SlideFromRightIOS,
   transitionSpec: {
@@ -162,10 +200,32 @@ export default function App() {
           component={ProponentsDashboard} 
           options={{ headerShown: false }} 
         />
+        
+        {/* R&D Screens */}
         <Stack.Screen 
           name="RndDashboard" 
           component={RndDashboard} 
-          options={{ headerShown: false }} 
+          options={rndScreenOptions} 
+        />
+        <Stack.Screen 
+          name="RndProposals" 
+          component={RndProposals} 
+          options={rndScreenOptions} 
+        />
+        <Stack.Screen 
+          name="RndEvaluators" 
+          component={RndEvaluators} 
+          options={rndScreenOptions} 
+        />
+        <Stack.Screen 
+          name="RndEndorsements" 
+          component={RndEndorsements} 
+          options={rndScreenOptions} 
+        />
+        <Stack.Screen 
+          name="RndMonitoring" 
+          component={RndMonitoring} 
+          options={rndScreenOptions} 
         />
       </Stack.Navigator>
     </NavigationContainer>

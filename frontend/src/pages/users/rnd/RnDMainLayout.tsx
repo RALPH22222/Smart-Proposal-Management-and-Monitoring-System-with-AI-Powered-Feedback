@@ -3,6 +3,7 @@ import Sidebar from '../../../components/rnd-component/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndReviewPage';
 import Monitoring from './RnDMonitoringPage';
+import Settings from './RndSettings'
 import {
 	type Statistics,
 	type Activity
@@ -53,16 +54,16 @@ const MainLayout: React.FC = () => {
 				);
 			case 'proposals':
 				return <ReviewPage onStatsUpdate={loadData} />;
-			case 'monitoring':
-				return <Monitoring onStatsUpdate={loadData} />;
 			case 'revisions':
 				return (
 					<ReviewPage filter='Revision Required' onStatsUpdate={loadData} />
 				);
-			case 'endorsements':
-				return <EndorsePage />;
 			case 'evaluators':
 				return <EvaluatorPage />;
+			case 'endorsements':
+				return <EndorsePage />;
+			case 'monitoring':
+				return <Monitoring onStatsUpdate={loadData} />;
 			case 'reports':
 				return (
 					<div className='p-6'>
@@ -71,14 +72,7 @@ const MainLayout: React.FC = () => {
 					</div>
 				);
 			case 'settings':
-				return (
-					<div className='p-6'>
-						<h1 className='text-2xl font-bold text-gray-900 mb-4'>Settings</h1>
-						<p className='text-gray-600'>
-							Profile and account settings go here.
-						</p>
-					</div>
-				);
+				return <Settings />;
 			default:
 				return (
 					<Dashboard statistics={statistics} recentActivity={recentActivity} />

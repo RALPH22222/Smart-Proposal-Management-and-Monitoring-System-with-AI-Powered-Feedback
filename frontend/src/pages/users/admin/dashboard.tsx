@@ -1,12 +1,9 @@
-import React from "react";
 import Sidebar from "../../../components/admin-component/sidebar";
 import {
   Users,
   FileText,
   CheckCircle,
-  XCircle,
   Clock,
-  AlertCircle,
   BarChart3,
   Cpu,
   Shield,
