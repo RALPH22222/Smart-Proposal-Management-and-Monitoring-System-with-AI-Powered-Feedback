@@ -8,12 +8,23 @@ import {
   Status,
 } from "../types/proposal";
 
+const fileSchema = z.object({
+  fieldname: z.string(),
+  mimetype: z.enum([
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]),
+  size: z.number(),
+  filename: z.string(),
+});
+
 export const proposalSchema = z.object({
-  proponent_id: z.number(),
-  department_id: z.number(),
-  sector_id: z.number(),
-  discipline_id: z.number(),
-  agency_id: z.number(),
+  proponent_id: z.coerce.number(),
+  department_id: z.coerce.number(),
+  sector_id: z.coerce.number(),
+  discipline_id: z.coerce.number(),
+  agency_id: z.coerce.number(),
   program_title: z.string(),
   project_title: z.string(),
   email: z.string().optional(),
@@ -21,26 +32,44 @@ export const proposalSchema = z.object({
   research_class: z.enum(ResearchClass),
   development_class: z.enum(DevelopmentClass),
   implementation_mode: z.enum(ImplementationMode),
-  priority_areas: z.array(z.enum(PriorityArea)),
+  priority_areas: z.preprocess(
+    (val) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val); // becomes real array
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    z.array(z.enum(PriorityArea)),
+  ),
   plan_start_date: z.coerce.date(),
   plan_end_date: z.coerce.date(),
-  proposal_file: z
-    .file()
-    .mime([
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]),
-  budget: z
-    .array(
-      z.object({
-        source: z.string(),
-        ps: z.float64(),
-        mooe: z.float64(),
-        co: z.float64(),
-      }),
-    )
-    .min(1),
+  proposal_file: fileSchema,
+  budget: z.preprocess(
+    (val) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val); // becomes real array
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    z
+      .array(
+        z.object({
+          source: z.string(),
+          ps: z.float64(),
+          mooe: z.float64(),
+          co: z.float64(),
+        }),
+      )
+      .min(1),
+  ),
 });
 
 export const forwardToEvaluatorsSchema = z.object({
