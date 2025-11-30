@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-// Components
 import Sidebar from '../../../components/evaluator-component/EvaluatorSide';
 import Dashboard from './DashboardEvaluator';
 import ReviewPage from './ReviewProposals';  
@@ -32,7 +31,7 @@ const EvaluatorLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar - Controls the layout state */}
+      {/* Sidebar */}
       <Sidebar 
         currentPage={currentPage} 
         onPageChange={setCurrentPage}

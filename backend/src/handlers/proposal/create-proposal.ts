@@ -1,42 +1,75 @@
-import { APIGatewayProxyEvent } from "aws-lambda";
-import { ProposalService } from "../../services/proposal.service";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { supabase } from "../../lib/supabase";
-import { buildCorsHeaders } from "../../utils/cors";
+import { ProposalService } from "../../services/proposal.service";
 import { proposalSchema } from "../../schemas/proposal-schema";
+import { buildCorsHeaders } from "../../utils/cors";
+import multipart from "lambda-multipart-parser";
 
-export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  const payload = JSON.parse(event.body || "{}");
+const s3Client = new S3Client({});
 
-  // Payload Validation
-  const result = proposalSchema.safeParse(payload);
+export const handler = buildCorsHeaders(async (event) => {
+  if (!process.env.PROPOSAL_BUCKET_NAME) {
+    throw new Error("PROPOSAL_BUCKET_NAME is not defined");
+  }
+  const Bucket = process.env.PROPOSAL_BUCKET_NAME;
 
-  if (result.error) {
+  const payload = await multipart.parse(event);
+
+  const { files, ...body } = payload;
+
+  // Validate form fields
+  const validation = proposalSchema.safeParse({
+    ...body,
+    proposal_file: files[0],
+  });
+  if (!validation.success) {
     return {
-      statusCode: 409,
+      statusCode: 400,
       body: JSON.stringify({
         type: "validation_error",
-        data: result.error.issues,
+        data: validation.error.issues,
       }),
     };
   }
 
-  const proposalService = new ProposalService(supabase);
-  const { error } = await proposalService.create(result.data);
+  const { proposal_file, ...data } = validation.data;
 
-  if (error) {
-    console.error("Supabase error: ", JSON.stringify(error, null, 2));
+  // Create Proposal + Proposal Version
+  const proposalService = new ProposalService(supabase);
+  const { data: proposal, error: createError } = await proposalService.create({
+    ...data,
+  });
+
+  if (createError || !proposal) {
+    console.error("Error creating proposal", createError);
+
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: "Internal server error.",
+        message: "Failed to create proposal",
       }),
     };
   }
+
+  // Upload file to S3 bucket
+  const Key = `proposals/${proposal.id}/${proposal_file.name}`;
+  const command = new PutObjectCommand({
+    Bucket,
+    Key,
+    Body: proposal_file,
+  });
+  await s3Client.send(command);
+
+  // Create version
+  await proposalService.createVersion({
+    proposal_id: proposal.id,
+    file_url: `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`,
+  });
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: "Successfully created a proposal.",
+      message: "Proposal submitted successfully",
     }),
   };
 });

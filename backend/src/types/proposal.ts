@@ -38,3 +38,7 @@ export enum EvaluatorStatus {
   REJECT = "reject",
   DECLINE = "decline",
 }
+
+export type ProposalRow = {
+  id: number;
+};

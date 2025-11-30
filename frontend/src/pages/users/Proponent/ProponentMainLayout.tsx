@@ -28,14 +28,13 @@ const ProponentLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* 1. Navbar is rendered ONCE here */}
+      {/* Navbar  */}
       <ProponentNavbar 
         currentPage={currentPage} 
         onPageChange={setCurrentPage} 
       />
 
-      {/* 2. Main Content Area */}
-      {/* pt-20 ensures content isn't hidden behind the fixed navbar */}
+      {/* Main Content Area */}
       <main className="flex-1 w-full h-full pt-20">
         {renderContent()}
       </main>
