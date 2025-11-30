@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { ProposalService } from "../../services/proposal.service";
 import { proposalSchema } from "../../schemas/proposal-schema";
 import { buildCorsHeaders } from "../../utils/cors";
+import multipart from "lambda-multipart-parser";
 
 const s3Client = new S3Client({});
 
@@ -12,10 +13,15 @@ export const handler = buildCorsHeaders(async (event) => {
   }
   const Bucket = process.env.PROPOSAL_BUCKET_NAME;
 
-  const body = Buffer.from(event.body || "", "base64");
+  const payload = await multipart.parse(event);
+
+  const { files, ...body } = payload;
 
   // Validate form fields
-  const validation = proposalSchema.safeParse(body);
+  const validation = proposalSchema.safeParse({
+    ...body,
+    proposal_file: files[0],
+  });
   if (!validation.success) {
     return {
       statusCode: 400,
