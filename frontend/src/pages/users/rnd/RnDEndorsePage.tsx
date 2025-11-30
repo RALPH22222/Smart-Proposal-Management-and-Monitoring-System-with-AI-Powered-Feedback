@@ -6,7 +6,6 @@ import {
   FileText,
   User,
   MessageSquare,
-  TrendingUp,
   ChevronLeft,
   ChevronRight,
   Gavel

@@ -66,6 +66,10 @@ export interface Proposal {
   rdCommentsToEvaluator?: string;
   evaluationDeadline?: string;
   evaluatorComment?: string;
+  // New fields for extension logic (optional in case data is missing)
+  requestedExtensionDate?: string;
+  extensionReason?: string;
+  extensionStatus?: "pending" | "accepted" | "rejected"; 
 }
 
 interface ProposalModalProps {
@@ -150,30 +154,82 @@ export default function ProposalModal({
     
     // EXTENSION REQUESTED
     if (status === "extension_requested") {
+       // Determine status of the extension request itself (if any)
+       const extStatus = proposal.extensionStatus || "pending"; 
+       
+       let extensionHeader = "Extension Requested";
+       let extensionColor = "blue";
+       let extensionIcon = <Clock className="w-4 h-4" />;
+       
+       if(extStatus === 'accepted') {
+           extensionHeader = "Extension Approved";
+           extensionColor = "emerald";
+           extensionIcon = <CheckCircle className="w-4 h-4" />;
+       } else if (extStatus === 'rejected') {
+           extensionHeader = "Extension Rejected";
+           extensionColor = "red";
+           extensionIcon = <XCircle className="w-4 h-4" />;
+       }
+
+       const bgClass = `bg-${extensionColor}-50`;
+       const borderClass = `border-${extensionColor}-200`;
+       const textClass = `text-${extensionColor}-800`;
+       const subTextClass = `text-${extensionColor}-700`;
+       const contentTextClass = `text-${extensionColor}-900`;
+
        return (
-        <div className={`${commonClasses} bg-blue-50 border-blue-200`}>
-          <h3 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Extension Requested
+        <div className={`${commonClasses} ${bgClass} ${borderClass}`}>
+          <h3 className={`text-sm font-bold ${textClass} mb-2 flex items-center gap-2`}>
+            {extensionIcon}
+            {extensionHeader}
           </h3>
-          <div className="bg-white/60 p-3 rounded border border-blue-100 space-y-2">
-             <div>
-                <span className="text-xs font-bold text-blue-700 mb-1 block">
-                   Requested New Deadline
-                </span>
-                <p className="text-sm font-semibold text-blue-900">
-                   {/* Mock date logic if not provided in prop */}
-                   November 30, 2025 
-                </p>
+          <div className={`bg-white/60 p-3 rounded border border-${extensionColor}-100 space-y-3`}>
+             
+             {/* Status Badge inside the box */}
+             <div className="flex items-center gap-2 mb-2">
+                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
+                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                     extStatus === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                     extStatus === 'accepted' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                     'bg-red-100 text-red-700 border-red-200'
+                 }`}>
+                    {extStatus}
+                 </span>
              </div>
+
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <span className={`text-xs font-bold ${subTextClass} mb-1 block`}>
+                       Requested New Deadline
+                    </span>
+                    <p className={`text-sm font-semibold ${contentTextClass}`}>
+                       {proposal.requestedExtensionDate || "November 30, 2025"} 
+                    </p>
+                </div>
+             </div>
+             
              <div>
-                <span className="text-xs font-bold text-blue-700 mb-1 block">
+                <span className={`text-xs font-bold ${subTextClass} mb-1 block`}>
                    Reason for Extension
                 </span>
-                <p className="text-sm text-blue-900 leading-relaxed">
-                   The evaluator requires additional time to thoroughly assess the technical complexity of the proposed methodology.
+                <p className={`text-sm ${contentTextClass} leading-relaxed`}>
+                   {proposal.extensionReason || "The evaluator requires additional time to thoroughly assess the technical complexity of the proposed methodology."}
                 </p>
              </div>
+
+             {/* Optional R&D Response Message */}
+             {extStatus !== 'pending' && (
+                 <div className="pt-2 mt-2 border-t border-white/50">
+                     <span className={`text-xs font-bold ${subTextClass} mb-1 block`}>
+                        R&D Response
+                     </span>
+                     <p className={`text-sm ${contentTextClass} italic`}>
+                        {extStatus === 'accepted' 
+                            ? "Your request for an extension has been approved. Please submit your evaluation by the new deadline." 
+                            : "Your request has been denied. Please prioritize this evaluation or contact the R&D office immediately."}
+                     </p>
+                 </div>
+             )}
           </div>
         </div>
       );

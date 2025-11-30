@@ -1,26 +1,29 @@
-import type React from "react"
-import { useState } from "react"
-import { NavLink } from "react-router-dom"
-import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X } from "lucide-react"
+import React, { useState } from "react";
+import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X } from "lucide-react";
 
-const accent = "#C10003"
+interface SidebarProps {
+  currentPage: string;
+  onPageChange: (page: string) => void;
+}
 
-const Sidebar: React.FC = () => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+const accent = "#C10003";
+
+const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const mainLinks = [
-    { to: "/users/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/users/admin/accounts", label: "Accounts", icon: Users },
-    { to: "/users/admin/contents", label: "Contents", icon: FileText },
-    { to: "/users/admin/reports", label: "Reports", icon: Bell, badge: "5" },
-    { to: "/users/admin/system", label: "System", icon: Server }, // Changed from Reviews to System
-  ]
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "accounts", label: "Accounts", icon: Users },
+    { id: "contents", label: "Contents", icon: FileText },
+    { id: "reports", label: "Reports", icon: Bell, badge: "5" },
+    { id: "system", label: "System", icon: Server },
+  ];
 
   const bottomLinks = [
-    { to: "/users/admin/settings", label: "Settings", icon: Settings },
-    { to: "/", label: "Logout", icon: LogOut },
-  ]
+    { id: "settings", label: "Settings", icon: Settings },
+    { id: "logout", label: "Logout", icon: LogOut },
+  ];
 
   return (
     <>
@@ -48,7 +51,7 @@ const Sidebar: React.FC = () => {
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Enhanced Header with Animation */}
+        {/* Header */}
         <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-r from-red-50 to-red-50/30 border border-red-100/50 shadow-sm">
           <div
             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md transform transition-transform duration-300 hover:scale-110 hover:rotate-3"
@@ -68,35 +71,37 @@ const Sidebar: React.FC = () => {
         </div>
 
         <nav className="flex flex-col gap-2 flex-1">
-          {/* Main Navigation Links with Enhanced Styling */}
+          {/* Main Navigation Links */}
           <div className="space-y-1">
             {mainLinks.map((ln) => {
               const Icon = ln.icon;
+              const isActive = currentPage === ln.id;
+
               return (
-                <NavLink
-                  key={ln.to}
-                  to={ln.to}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => setHoveredItem(ln.to)}
+                <button
+                  key={ln.id}
+                  onClick={() => {
+                    onPageChange(ln.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  onMouseEnter={() => setHoveredItem(ln.id)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  className={({ isActive }) =>
-                    `group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
-                      isActive
-                        ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
-                        : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
-                    }`
-                  }
-                  style={({ isActive }) => (isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {})}
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
+                    isActive
+                      ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
+                  }`}
+                  style={isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}}
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.to ? "scale-110" : ""}`}
+                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.id ? "scale-110" : ""}`}
                       style={{ color: accent }}
                     />
                     {/* Animated glow effect */}
                     <div
                       className={`absolute inset-0 w-5 h-5 rounded-full transition-opacity duration-300 ${
-                        hoveredItem === ln.to ? "opacity-20" : "opacity-0"
+                        hoveredItem === ln.id ? "opacity-20" : "opacity-0"
                       }`}
                       style={{ backgroundColor: accent, filter: "blur(8px)" }}
                     />
@@ -110,53 +115,53 @@ const Sidebar: React.FC = () => {
                           : ln.badge === "NEW"
                             ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
                             : "bg-red-100 text-red-600"
-                      } ${hoveredItem === ln.to ? "scale-110" : ""}`}
+                      } ${hoveredItem === ln.id ? "scale-110" : ""}`}
                     >
                       {ln.badge}
                     </span>
                   )}
-                </NavLink>
+                </button>
               );
             })}
           </div>
 
-          {/* Enhanced Bottom Navigation */}
+          {/* Bottom Links */}
           <div className="mt-auto pt-4 border-t border-gray-200/60 space-y-1">
             {bottomLinks.map((ln) => {
               const Icon = ln.icon;
+              const isActive = currentPage === ln.id;
+
               return (
-                <NavLink
-                  key={ln.to}
-                  to={ln.to}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  onMouseEnter={() => setHoveredItem(ln.to)}
+                <button
+                  key={ln.id}
+                  onClick={() => {
+                    onPageChange(ln.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  onMouseEnter={() => setHoveredItem(ln.id)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  className={({ isActive }) =>
-                    `group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
-                      isActive
-                        ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02]"
-                        : ln.to === "/"
-                          ? "text-gray-600 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-100/30 hover:text-red-600 hover:scale-[1.01]"
-                          : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 hover:text-gray-800 hover:scale-[1.01]"
-                    }`
-                  }
-                  style={({ isActive }) => (isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {})}
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
+                    isActive
+                      ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
+                  }`}
+                  style={isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}}
                 >
-                  <Icon
-                    className={`w-5 h-5 transition-all duration-300 ${
-                      hoveredItem === ln.to ? "scale-110" : ""
-                    } ${ln.to === "/" ? "group-hover:rotate-12" : ""}`}
-                    style={{ color: ln.to === "/" ? "#dc2626" : accent }}
-                  />
-                  <span>{ln.label}</span>
-                </NavLink>
+                  <div className="relative">
+                    <Icon
+                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.id ? "scale-110" : ""}`}
+                      style={{ color: accent }}
+                    />
+                  </div>
+                  <span className="flex-1">{ln.label}</span>
+                </button>
               );
             })}
           </div>
         </nav>
       </aside>
     </>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default AdminSidebar;
