@@ -10,12 +10,6 @@ import {
 
 const fileSchema = z.object({
   fieldname: z.string(),
-  mimetype: z.enum([
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ]),
-  size: z.number(),
   filename: z.string(),
 });
 
