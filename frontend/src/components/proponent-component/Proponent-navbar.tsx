@@ -209,7 +209,7 @@ const ProponentNavbar: React.FC = () => {
               })}
               <button
                 onClick={handleLogout}
-                className="ml-4 px-5 py-2 rounded-lg font-semibold bg-white text-charcoal hover:bg-brandLight hover:text-white transition-all shadow-md flex items-center gap-2"
+                className="ml-4 px-5 py-2 rounded-lg font-semibold bg-white text-[#C8102E] hover:bg-red-800 hover:text-white transition-all shadow-md flex items-center gap-2"
               >
                 {/* Use a dark icon for desktop white button */}
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
