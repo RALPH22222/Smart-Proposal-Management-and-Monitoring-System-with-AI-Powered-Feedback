@@ -23,6 +23,7 @@
     "typescript": "~5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.940.0",
     "@supabase/supabase-js": "^2.84.0",
     "aws-cdk-lib": "2.215.0",
     "busboy": "^1.6.0",

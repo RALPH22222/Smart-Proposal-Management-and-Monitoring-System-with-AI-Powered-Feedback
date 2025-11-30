@@ -1,11 +1,15 @@
 import { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { ProposalRow, Status } from "../types/proposal";
-import { ForwardToEvaluatorsInput, ProposalInput, ProposalVersionInput } from "../schemas/proposal-schema";
+import {
+  ForwardToEvaluatorsInput,
+  ProposalInput,
+  ProposalVersionInput,
+} from "../schemas/proposal-schema";
 
 export class ProposalService {
   constructor(private db: SupabaseClient) {}
 
-  async create(payload: ProposalInput): Promise<{
+  async create(payload: Omit<ProposalInput, "proposal_file">): Promise<{
     data: ProposalRow | null;
     error: PostgrestError | null;
   }> {
@@ -37,10 +41,13 @@ export class ProposalService {
   }
 
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
-    const { proposal_id, evaluator_id, deadline_at, commentsForEvaluators } = input;
+    const { proposal_id, evaluator_id, deadline_at, commentsForEvaluators } =
+      input;
 
     const deadline_number_weeks = new Date();
-    deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
+    deadline_number_weeks.setDate(
+      deadline_number_weeks.getDate() + deadline_at,
+    );
 
     const assignmentsPayload = evaluator_id.map((evaluator) => ({
       proposal_id: proposal_id,
@@ -110,9 +117,14 @@ export class ProposalService {
   async getProponentProposalStats() {
     try {
       const queries = {
-        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+        total: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true }),
 
-        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+        review_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "review_rnd"),
 
         under_evaluation: this.db
           .from("proposals")
@@ -124,7 +136,10 @@ export class ProposalService {
           .select("*", { count: "exact", head: true })
           .eq("status", "revision_rnd"),
 
-        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+        funded: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "funded"),
       };
 
       const results = await Promise.all(Object.values(queries));
@@ -146,9 +161,14 @@ export class ProposalService {
   async getRndProposalStats() {
     try {
       const queries = {
-        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+        total: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true }),
 
-        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+        review_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "review_rnd"),
 
         revision_rnd: this.db
           .from("proposals")
@@ -170,7 +190,10 @@ export class ProposalService {
           .select("*", { count: "exact", head: true })
           .eq("status", "endorsed_for_funding"),
 
-        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+        funded: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "funded"),
       };
 
       const results = await Promise.all(Object.values(queries));
@@ -209,9 +232,15 @@ export class ProposalService {
           .select("*", { count: "exact", head: true })
           .eq("status", "approve"),
 
-        revise: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "revise"),
+        revise: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "revise"),
 
-        reject: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "reject"),
+        reject: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "reject"),
 
         decline: this.db
           .from("proposal_evaluators")
@@ -266,37 +295,55 @@ export class ProposalService {
   }
 
   async getAgency(search: string) {
-    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("agencies")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getCooperatingAgency(search: string) {
-    const { data, error } = await this.db.from("cooperating_agencies").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("cooperating_agencies")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getDepartment(search: string) {
-    const { data, error } = await this.db.from("departments").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("departments")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getDiscipline(search: string) {
-    const { data, error } = await this.db.from("disciplines").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("disciplines")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getSector(search: string) {
-    const { data, error } = await this.db.from("sectors").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("sectors")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getTag(search: string) {
-    const { data, error } = await this.db.from("tags").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("tags")
+      .select(`*`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
