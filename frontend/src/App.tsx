@@ -7,7 +7,6 @@ import Login from "./auth/login";
 import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
 import Contacts from "./pages/contacts";
-// import Services from "./pages/services";
 import FAQ from "./pages/faqs";
 
 // Admin

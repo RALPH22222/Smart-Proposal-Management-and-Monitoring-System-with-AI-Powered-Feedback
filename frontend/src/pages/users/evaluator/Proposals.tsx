@@ -121,7 +121,7 @@ export default function Proposals() {
       email: "j.smith@zscmst.edu.ph",
       modeOfImplementation: "Multi Agency",
       priorityAreas: "Renewable Energy & Smart Grids",
-      status: "extension_requested", // CHANGED: pending -> extension_requested
+      status: "extension_requested",
       deadline: "Oct 20, 2025",
       projectType: "Energy",
       agency: "Zamboanga State College of Marine Sciences",
@@ -502,7 +502,7 @@ export default function Proposals() {
   const closeModal = () => {
     setSelectedProposal(null);
   };
-
+ 
   const handleEvaluateClick = (proposalId: number) => {
     setProposalToEvaluate(proposalId);
     setDecisionModalOpen(true);
@@ -782,8 +782,8 @@ export default function Proposals() {
       {decisionModalOpen && evaluationProposal && (
         <DecisionModal
           isOpen={decisionModalOpen}
-          proposalTitle={evaluationProposal.title}
           onClose={closeDecisionModal}
+          proposalTitle={evaluationProposal.title}
           onSubmit={handleSubmitDecision}
         />
       )}
