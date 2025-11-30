@@ -15,10 +15,10 @@ import {
   Gavel,
   CalendarClock,
 } from "lucide-react";
-import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
 
+// ... (Keep the BudgetSource and Proposal interfaces as they are)
 interface BudgetSource {
   source: string;
   ps: string;
@@ -414,6 +414,7 @@ export default function Proposals() {
     },
   ];
 
+  // ... (Keep filtering/sorting logic)
   const filtered = proposals.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -502,7 +503,7 @@ export default function Proposals() {
   const closeModal = () => {
     setSelectedProposal(null);
   };
- 
+
   const handleEvaluateClick = (proposalId: number) => {
     setProposalToEvaluate(proposalId);
     setDecisionModalOpen(true);
@@ -527,250 +528,233 @@ export default function Proposals() {
   };
 
   const proposal = proposals.find((p) => p.id === selectedProposal);
-  const evaluationProposal = proposals.find(
-    (p) => p.id === proposalToEvaluate
-  );
+  const evaluationProposal = proposals.find((p) => p.id === proposalToEvaluate);
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
-      <Sidebar />
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+      {/* Header */}
+      <header className="flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+              Evaluator Proposals
+            </h1>
+            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+              Manage and review submitted research proposals. Track status and
+              take actions.
+            </p>
+          </div>
+        </div>
+      </header>
 
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 overflow-hidden pt-16 lg:pt-6">
-        <header className="flex-shrink-0">
+      {/* Filter Section */}
+      <section className="flex-shrink-0" aria-label="Filter proposals">
+        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <div className="relative flex-1 max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search proposals or proponents..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                aria-label="Search proposals"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                aria-label="Filter by status"
+              >
+                <option value="All">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="extension_requested">Extension Requested</option>
+              </select>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                aria-label="Filter by project type"
+              >
+                <option value="All">All Types</option>
+                <option value="ICT">ICT</option>
+                <option value="Energy">Energy</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Public Safety">Public Safety</option>
+                <option value="Environment">Environment</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 text-xs text-slate-600">
+            Showing {sortedFiltered.length} of {proposals.length} proposals
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Table */}
+      <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <div className="p-4 border-b border-slate-200 bg-slate-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                Evaluator Proposals
-              </h1>
-              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Manage and review submitted research proposals. Track status and
-                take actions.
-              </p>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#C8102E]" />
+              Research Proposals
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <User className="w-4 h-4" />
+              <span>{proposals.length} total proposals</span>
             </div>
           </div>
-        </header>
+        </div>
 
-        <section className="flex-shrink-0" aria-label="Filter proposals">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search proposals or proponents..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Search proposals"
-                />
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Filter
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Filter by status"
+        <div className="flex-1 overflow-y-auto">
+          {paginatedProposals.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {paginatedProposals.map((proposal) => (
+                <article
+                  key={proposal.id}
+                  className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
+                  aria-labelledby={`proposal-title-${proposal.id}`}
                 >
-                  <option value="All">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="extension_requested">
-                    Extension Requested
-                  </option>
-                </select>
-              </div>
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2
+                        id={`proposal-title-${proposal.id}`}
+                        className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
+                      >
+                        {proposal.title}
+                      </h2>
 
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Tag
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Filter by project type"
-                >
-                  <option value="All">All Types</option>
-                  <option value="ICT">ICT</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Agriculture">Agriculture</option>
-                  <option value="Public Safety">Public Safety</option>
-                  <option value="Environment">Environment</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 text-xs text-slate-600">
-              Showing {sortedFiltered.length} of {proposals.length} proposals
-            </div>
-          </div>
-        </section>
-
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#C8102E]" />
-                Research Proposals
-              </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <User className="w-4 h-4" />
-                <span>{proposals.length} total proposals</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {paginatedProposals.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {paginatedProposals.map((proposal) => (
-                  <article
-                    key={proposal.id}
-                    className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
-                    aria-labelledby={`proposal-title-${proposal.id}`}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h2
-                          id={`proposal-title-${proposal.id}`}
-                          className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
-                        >
-                          {proposal.title}
-                        </h2>
-
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                          <div className="flex items-center gap-1.5">
-                            <User className="w-3 h-3" aria-hidden="true" />
-                            <span>{proposal.proponent}</span>
-                          </div>
-                          {proposal.status === "pending" && (
-                            <div className="flex items-center gap-1.5 text-red-600 font-semibold">
-                              <Calendar
-                                className="w-3 h-3"
-                                aria-hidden="true"
-                              />
-                              <span>Deadline: {proposal.deadline}</span>
-                            </div>
-                          )}
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                              proposal.projectType
-                            )}`}
-                          >
-                            <Tag className="w-3 h-3" />
-                            {proposal.projectType}
-                          </span>
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3" aria-hidden="true" />
+                          <span>{proposal.proponent}</span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {proposal.status === "pending" && (
+                          <div className="flex items-center gap-1.5 text-red-600 font-semibold">
+                            <Calendar className="w-3 h-3" aria-hidden="true" />
+                            <span>Deadline: {proposal.deadline}</span>
+                          </div>
+                        )}
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 ${getStatusColor(
-                            proposal.status
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
+                            proposal.projectType
                           )}`}
                         >
-                          {getStatusIcon(proposal.status)}
-                          {formatStatus(proposal.status)}
+                          <Tag className="w-3 h-3" />
+                          {proposal.projectType}
                         </span>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleViewClick(proposal.id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
-                            aria-label={`View details for ${proposal.title}`}
-                            title="View details"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
-
-                          {proposal.status === "pending" && (
-                            <button
-                              onClick={() => handleEvaluateClick(proposal.id)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                              aria-label={`${proposal.title}`}
-                              title="Action"
-                            >
-                              <Gavel className="w-3 h-3" />
-                              Action
-                            </button>
-                          )}
-                        </div>
                       </div>
                     </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 px-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No proposals found
-                </h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  {search || statusFilter !== "All"
-                    ? "Try adjusting your search or filter criteria."
-                    : "No proposals have been submitted yet."}
-                </p>
-              </div>
-            )}
-          </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-              <span>
-                Showing {startIndex + 1}-
-                {Math.min(startIndex + itemsPerPage, filtered.length)} of{" "}
-                {filtered.length} proposals
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  }
-                  disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  Previous
-                </button>
-                <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 ${getStatusColor(
+                          proposal.status
+                        )}`}
+                      >
+                        {getStatusIcon(proposal.status)}
+                        {formatStatus(proposal.status)}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewClick(proposal.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
+                          aria-label={`View details for ${proposal.title}`}
+                          title="View details"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+
+                        {proposal.status === "pending" && (
+                          <button
+                            onClick={() => handleEvaluateClick(proposal.id)}
+                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                            aria-label={`${proposal.title}`}
+                            title="Action"
+                          >
+                            <Gavel className="w-3 h-3" />
+                            Action
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 px-4">
+              <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-slate-400" />
               </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No proposals found
+              </h3>
+              <p className="text-slate-500 max-w-sm mx-auto">
+                {search || statusFilter !== "All"
+                  ? "Try adjusting your search or filter criteria."
+                  : "No proposals have been submitted yet."}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+            <span>
+              Showing {startIndex + 1}-
+              {Math.min(startIndex + itemsPerPage, filtered.length)} of{" "}
+              {filtered.length} proposals
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                Previous
+              </button>
+              <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Next
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
+      {/* Modals */}
       {selectedProposal && proposal && (
         <ProposalModal
           isOpen={!!selectedProposal}

@@ -21,12 +21,13 @@ import SettingsAdmin from "./pages/users/admin/settings";
 import RndMainLayout from "./pages/users/rnd/RnDMainLayout";
 
 // Evaluator
-import DashboardEvaluator from "./pages/users/evaluator/DashboardEvaluator";
-import Proposals from "./pages/users/evaluator/Proposals";
-import Notifications from "./pages/users/evaluator/Notifications";
-import SettingsEvaluator from "./pages/users/evaluator/Settings";
-import ReviewProposals from "./pages/users/evaluator/ReviewProposals";
-import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
+import EvaluatorMainLayout from "./pages/users/evaluator/MainLayout";
+// import DashboardEvaluator from "./pages/users/evaluator/DashboardEvaluator";
+// import Proposals from "./pages/users/evaluator/Proposals";
+// import Notifications from "./pages/users/evaluator/Notifications";
+// import SettingsEvaluator from "./pages/users/evaluator/Settings";
+// import ReviewProposals from "./pages/users/evaluator/ReviewProposals";
+// import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
 
 //Proponent
 import Submission from "./pages/users/proponent/submission";
@@ -55,7 +56,6 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/about" element={<About />} />
               <Route path="/contacts" element={<Contacts />} />
-              {/* <Route path="/services" element={<Services />} /> */}
               <Route path="/faqs" element={<FAQ />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
@@ -76,27 +76,7 @@ function App() {
 
             {/* Evaluator */}
             <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
-              <Route
-                path="/users/evaluator/dashboard"
-                element={<DashboardEvaluator />}
-              />
-              <Route path="/users/evaluator/proposals" element={<Proposals />} />
-              <Route
-                path="/users/evaluator/notifications"
-                element={<Notifications />}
-              />
-              <Route
-                path="/users/evaluator/settings"
-                element={<SettingsEvaluator />}
-              />
-              <Route
-                path="/users/evaluator/review"
-                element={<ReviewProposals />}
-              />
-              <Route
-                path="/users/evaluator/reviewed"
-                element={<ReviewedProposals />}
-              />
+              <Route path="/users/evaluator/*" element={<EvaluatorMainLayout />}/>
             </Route>
 
             {/* R&D */}
