@@ -22,20 +22,17 @@ const mockUsers: User[] = [
 const Accounts: React.FC = () => {
   const { setLoading } = useLoading();
   
-  // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Table State
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [roleFilter, setRoleFilter] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // page-level loading
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -48,7 +45,6 @@ const Accounts: React.FC = () => {
     };
   }, [setLoading]);
 
-  // Derived State
   const uniqueRoles = useMemo(() => Array.from(new Set(mockUsers.map(user => user.role))).sort(), []);
 
   const filteredUsers = useMemo(() => {
@@ -57,8 +53,7 @@ const Accounts: React.FC = () => {
       const matchesSearch = 
         fullName.includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.agency && user.agency.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.specialties && user.specialties.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase())));
+        (user.agency && user.agency.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesStatus = statusFilter === "All" || user.status === statusFilter;
       const matchesRole = roleFilter === "All" || user.role === roleFilter;
@@ -73,7 +68,6 @@ const Accounts: React.FC = () => {
     return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
   }, [currentPage, filteredUsers]);
 
-  // Handlers
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
@@ -131,21 +125,19 @@ const Accounts: React.FC = () => {
 
           <section className="mb-6">
             <div className="flex flex-col gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-              {/* Search Bar */}
               <div className="relative flex-1 min-w-0">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search users, email, agency, or specialties"
+                  placeholder="Search users, email, agency..."
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   className="pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full min-w-0"
                 />
               </div>
               
-              {/* Filters and Add Button */}
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
                 <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
                   <select
@@ -176,7 +168,6 @@ const Accounts: React.FC = () => {
             </div>
           </section>
 
-          {/* Users Table */}
           <section className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -186,7 +177,6 @@ const Accounts: React.FC = () => {
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell min-w-[160px]">Email</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Role</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell min-w-[120px]">Agency</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell min-w-[150px]">Specialties</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Status</th>
                     <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Actions</th>
                   </tr>
@@ -209,18 +199,6 @@ const Accounts: React.FC = () => {
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell"><div className="truncate max-w-[160px]">{user.email}</div></td>
                           <td className="px-3 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{user.role}</div></td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell"><div className="truncate max-w-[120px]">{user.agency || "N/A"}</div></td>
-                          <td className="px-3 py-4 hidden lg:table-cell">
-                            <div className="text-sm text-gray-600">
-                              {user.specialties && user.specialties.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {user.specialties.slice(0, 2).map((specialty) => (
-                                    <span key={specialty} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 truncate max-w-[100px]">{specialty}</span>
-                                  ))}
-                                  {user.specialties.length > 2 && <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">+{user.specialties.length - 2} more</span>}
-                                </div>
-                              ) : "N/A"}
-                            </div>
-                          </td>
                           <td className="px-3 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === "Active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                               {user.status}
@@ -242,13 +220,12 @@ const Accounts: React.FC = () => {
                       );
                     })
                   ) : (
-                    <tr><td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500">No users found</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">No users found</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination */}
             {filteredUsers.length > 0 && (
               <div className="px-4 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-gray-700 whitespace-nowrap">
@@ -262,7 +239,6 @@ const Accounts: React.FC = () => {
             )}
           </section>
 
-          {/* Modals */}
           <AddAccountModal
             isOpen={showAddModal}
             onClose={handleCloseModal}

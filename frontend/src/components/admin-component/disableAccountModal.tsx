@@ -56,7 +56,7 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({ isOpen, onClo
               onClick={onConfirm}
               className={`flex-1 px-4 py-2 rounded-md transition-colors font-medium ${
                 user.status === "Active" 
-                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  ? "bg-[#C8102E] hover:bg-[#A00D26] text-white"
                   : "bg-green-600 hover:bg-green-700 text-white"
               }`}
             >
