@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// Removed ProponentNavbar import as it's handled by the layout
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 

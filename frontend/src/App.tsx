@@ -25,9 +25,6 @@ import EvaluatorMainLayout from "./pages/users/evaluator/MainLayout";
 
 //Proponent
 import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
-// import Submission from "./pages/users/proponent/submission";
-// import Profile from "./pages/users/proponent/Profile";
-// import Settings from "./pages/users/proponent/settings";
 
 // Loading animation
 import {
@@ -81,7 +78,7 @@ function App() {
 
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
-              <Route path="/users/proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
+              <Route path="/users/proponent/*" element={<ProponentMainLayout />} />
             </Route>
           </Routes>
           <LoadingOverlay />

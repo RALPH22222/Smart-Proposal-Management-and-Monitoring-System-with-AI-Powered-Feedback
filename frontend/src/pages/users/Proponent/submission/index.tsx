@@ -5,7 +5,7 @@ import ResearchDetails from './researchDetails';
 import BudgetSection from './budgetSection';
 import UploadSidebar from './uploadSidebar';
 import AIModal from '../../../../components/proponent-component/aiModal';
-import type { FormData, AICheckResult, BudgetItem } from '../../../../types/proponent-form';
+import type { FormData, AICheckResult } from '../../../../types/proponent-form';
 
 const Submission: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
