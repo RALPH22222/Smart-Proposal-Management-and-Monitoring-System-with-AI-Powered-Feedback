@@ -22,17 +22,12 @@ import RndMainLayout from "./pages/users/rnd/RnDMainLayout";
 
 // Evaluator
 import EvaluatorMainLayout from "./pages/users/evaluator/MainLayout";
-// import DashboardEvaluator from "./pages/users/evaluator/DashboardEvaluator";
-// import Proposals from "./pages/users/evaluator/Proposals";
-// import Notifications from "./pages/users/evaluator/Notifications";
-// import SettingsEvaluator from "./pages/users/evaluator/Settings";
-// import ReviewProposals from "./pages/users/evaluator/ReviewProposals";
-// import ReviewedProposals from "./pages/users/evaluator/ReviewedProposals";
 
 //Proponent
-import Submission from "./pages/users/proponent/submission";
-import Profile from "./pages/users/proponent/Profile";
-import Settings from "./pages/users/proponent/settings";
+import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
+// import Submission from "./pages/users/proponent/submission";
+// import Profile from "./pages/users/proponent/Profile";
+// import Settings from "./pages/users/proponent/settings";
 
 // Loading animation
 import {
@@ -86,12 +81,7 @@ function App() {
 
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
-              <Route path="/users/proponent/profile" element={<Profile />} />
-              <Route
-                path="/users/proponent/submission"
-                element={<Submission />}
-              />
-              <Route path="/users/proponent/settings" element={<Settings />} />
+              <Route path="/users/proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
             </Route>
           </Routes>
           <LoadingOverlay />

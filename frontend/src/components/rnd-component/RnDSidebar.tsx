@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => onPageChange(item.id)}
+                  onClick={() => onPageChange(item.id) }
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`group relative flex items-center justify-center p-3 rounded-xl text-sm font-medium transition-all duration-300 transform ${
