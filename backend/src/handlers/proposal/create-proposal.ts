@@ -12,7 +12,7 @@ export const handler = buildCorsHeaders(async (event) => {
   }
   const Bucket = process.env.PROPOSAL_BUCKET_NAME;
 
-  const body = JSON.parse(event.body || "{}");
+  const body = Buffer.from(event.body || "", "base64");
 
   // Validate form fields
   const validation = proposalSchema.safeParse(body);

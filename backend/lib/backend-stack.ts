@@ -329,6 +329,7 @@ export class BackendStack extends Stack {
       deployOptions: {
         stageName: "api",
       },
+      binaryMediaTypes: ["multipart/form-data"],
     });
 
     const requestAuthorizer = new RequestAuthorizer(
