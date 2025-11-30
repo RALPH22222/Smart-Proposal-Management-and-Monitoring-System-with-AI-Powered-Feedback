@@ -15,4 +15,9 @@ export type RootStackParamList = {
   EvaluatorNotifications: undefined;
   ProponentsDashboard: undefined;
   RndDashboard: undefined;
+  RndProposals: undefined;
+  RndEvaluators: undefined;
+  RndEndorsements: undefined;
+  RndMonitoring: undefined;
+  RndSettings: undefined;
 };
