@@ -19,7 +19,7 @@ const fileSchema = z.object({
 });
 
 export const proposalSchema = z.object({
-  proponent_id: z.coerce.number(),
+  proponent_id: z.string(),
   department_id: z.coerce.number(),
   sector_id: z.coerce.number(),
   discipline_id: z.coerce.number(),
