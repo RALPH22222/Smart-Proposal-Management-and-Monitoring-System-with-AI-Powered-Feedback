@@ -1,27 +1,39 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Status } from "../types/proposal";
-import { ForwardToEvaluatorsInput, ProposalInput } from "../schemas/proposal-schema";
+import { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { ProposalRow, Status } from "../types/proposal";
+import { ForwardToEvaluatorsInput, ProposalInput, ProposalVersionInput } from "../schemas/proposal-schema";
 
 export class ProposalService {
   constructor(private db: SupabaseClient) {}
 
-  async create(payload: ProposalInput) {
+  async create(payload: ProposalInput): Promise<{
+    data: ProposalRow | null;
+    error: PostgrestError | null;
+  }> {
     const { budget, ...proposal } = payload;
+
     const { data, error } = await this.db
       .from("proposals")
       .insert({ ...proposal, status: Status.REVIEW_RND })
       .select()
       .single();
 
-    if (!error) {
-      const proposal_id = data.id;
-      const estimated_budget = budget.map((item) => ({ ...item, proposal_id }));
-      const budget_result = await this.db.from("estimated_budget").insert(estimated_budget);
+    return {
+      data: data as ProposalRow | null,
+      error,
+    };
+  }
 
-      return { error: budget_result.error };
-    }
+  async createVersion(payload: ProposalVersionInput) {
+    const { data, error } = await this.db
+      .from("proposal_version")
+      .insert({
+        proposal_id: payload.proposal_id,
+        file_url: payload.file_url,
+      })
+      .select()
+      .single();
 
-    return { error };
+    return { data, error };
   }
 
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {

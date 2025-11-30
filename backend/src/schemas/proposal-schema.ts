@@ -24,6 +24,7 @@ export const proposalSchema = z.object({
   priority_areas: z.array(z.enum(PriorityArea)),
   plan_start_date: z.coerce.date(),
   plan_end_date: z.coerce.date(),
+  proposal_file: z.file(),
   budget: z
     .array(
       z.object({
@@ -43,10 +44,14 @@ export const forwardToEvaluatorsSchema = z.object({
   commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
 });
 
-export const proposalStatusSchema = z.enum(Status);
+export const proposalVersionSchema = z.object({
+  proposal_id: z.number().min(1),
+  file_url: z.string().url(),
+});
 
+export const proposalStatusSchema = z.enum(Status);
 export const proposalEvaluatorStatusSchema = z.enum(EvaluatorStatus);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
-
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
+export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;

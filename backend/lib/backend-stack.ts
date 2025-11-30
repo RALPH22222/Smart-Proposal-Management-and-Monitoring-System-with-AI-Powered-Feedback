@@ -63,17 +63,6 @@ export class BackendStack extends Stack {
       },
     });
 
-    const create_account_admin_lambda = new NodejsFunction(this, "pms-create-account-admin", {
-      functionName: "pms-create-account-admin",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "auth", "create-account-admin.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
     const create_proposal_lamda = new NodejsFunction(this, "pms-create-propposal", {
       functionName: "pms-create-propposal",
       memorySize: 128,
@@ -260,10 +249,6 @@ export class BackendStack extends Stack {
     // /auth/sign-up
     const signup = auth.addResource("sign-up");
     signup.addMethod(HttpMethod.POST, new LambdaIntegration(signup_lambda));
-
-    // /auth/create-account-admin
-    const create_account_admin = auth.addResource("create-account-admin");
-    create_account_admin.addMethod(HttpMethod.POST, new LambdaIntegration(create_account_admin_lambda));
 
     // cors
     const cors = api.root.addResource("{proxy+}");
