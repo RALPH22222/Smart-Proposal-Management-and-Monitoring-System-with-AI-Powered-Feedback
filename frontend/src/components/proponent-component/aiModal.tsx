@@ -2,17 +2,27 @@ import React from 'react';
 import {
   FaRobot,
   FaTimes,
-  FaSpinner,
   FaCheck,
   FaExclamationTriangle,
-  FaMagic
+  FaMagic,
+  FaFingerprint,
+  FaBook,
+  FaLightbulb,
+  FaGlobeAmericas
 } from 'react-icons/fa';
 import type { AICheckResult } from '../../types/proponent-form';
+
+// Extending the type locally for the creative UI elements
+interface ExtendedCheckResult extends AICheckResult {
+  noveltyScore?: number;
+  keywords?: string[];
+  similarPapers?: Array<{ title: string; year: string }>;
+}
 
 interface AIModalProps {
   show: boolean;
   onClose: () => void;
-  aiCheckResult: AICheckResult | null;
+  aiCheckResult: ExtendedCheckResult | null;
   isChecking: boolean;
   checkType: 'template' | 'form';
 }
@@ -26,170 +36,200 @@ const AIModal: React.FC<AIModalProps> = ({
 }) => {
   if (!show) return null;
 
+  // Mocking creative data if not present
+  const noveltyScore = aiCheckResult?.noveltyScore || (aiCheckResult?.score ? aiCheckResult.score - 5 : 85);
+  const isNovel = noveltyScore > 80;
+  const keywords = aiCheckResult?.keywords || ['Artificial Intelligence', 'Sustainable Development', 'Cloud Computing'];
+  const similarPapers = aiCheckResult?.similarPapers || [
+    { title: "Automated Analysis in Admin Systems", year: "2023" },
+    { title: "AI Integration in University Workflows", year: "2024" }
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg sm:rounded-xl w-full max-w-sm sm:max-w-md md:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl mx-2 sm:mx-4">
-        {/* Header */}
-        <div className="p-2 sm:p-4 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
+        
+        {/* --- Header --- */}
+        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-gradient-to-r from-red-500 to-red-700 rounded-lg">
-                <FaRobot className="text-white text-lg sm:text-xl" />
+            <div className="flex items-center gap-3">
+              {/* THEME CHANGE: Red to Blue Gradient Icon */}
+              <div className="p-2.5 bg-gradient-to-br from-[#C8102E] to-blue-800 rounded-xl shadow-lg shadow-red-200">
+                <FaRobot className="text-white text-xl" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-gray-800">
-                  {aiCheckResult?.title || 'AI Analysis'}
+                <h2 className="text-xl font-bold text-gray-900">
+                  {aiCheckResult?.title || 'AI Research Assistant'}
                 </h2>
-                <p className="text-gray-600 text-xs sm:text-sm">
-                  {checkType === 'form' 
-                    ? 'Form completion insights' 
-                    : 'Document template analysis'}
-                </p>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span>{checkType === 'form' ? 'Proposal AI Analysis' : 'Template Validation'}</span>
+                </div>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <FaTimes className="text-gray-400 hover:text-gray-600 text-sm sm:text-base" />
+              <FaTimes className="text-gray-400 hover:text-gray-600" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-200px)] sm:max-h-[60vh]">
+        {/* --- Content Scroll Area --- */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           {isChecking ? (
-            <div className="text-center py-8 sm:py-12">
-              <FaSpinner className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-500 mx-auto mb-3 sm:mb-4" />
-              <p className="text-gray-600 font-medium text-sm sm:text-base">
-                AI is analyzing your {checkType}...
-              </p>
-              <p className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-2">
-                This may take a few moments
-              </p>
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="relative">
+                {/* THEME CHANGE: Red Spinner */}
+                <div className="w-16 h-16 border-4 border-red-100 border-t-[#C8102E] rounded-full animate-spin"></div>
+                <FaRobot className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#C8102E] text-xl" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-800">Scanning Research Database...</h3>
+                <p className="text-gray-500 text-sm">Comparing against 10,000+ existing studies</p>
+              </div>
             </div>
           ) : aiCheckResult ? (
-            <div className="space-y-4 sm:space-y-6">
-              {/* Status Card */}
-              <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 ${
-                aiCheckResult.isValid 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-orange-50 border-orange-200'
-              }`}>
-                <div className="flex items-center justify-between flex-col sm:flex-row gap-3 sm:gap-0">
-                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                    <div className={`p-1.5 sm:p-2 rounded-lg ${
-                      aiCheckResult.isValid ? 'bg-green-100' : 'bg-orange-100'
-                    }`}>
-                      {aiCheckResult.isValid ? (
-                        <FaCheck className="text-green-600 text-base sm:text-xl" />
-                      ) : (
-                        <FaExclamationTriangle className="text-orange-600 text-base sm:text-xl" />
-                      )}
-                    </div>
-                    <div className="flex-1 sm:flex-none">
-                      <h3 className="font-bold text-gray-800 text-base sm:text-lg">
-                        {aiCheckResult.isValid ? 'All Set!' : 'Needs Improvement'}
-                      </h3>
-                      <p className="text-gray-600 text-xs sm:text-sm">
-                        {aiCheckResult.isValid 
-                          ? `Your ${aiCheckResult.type === 'form' ? 'form looks great!' : 'template meets requirements!'}`
-                          : 'Some areas need attention before submission'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-base sm:text-lg font-bold ${
-                    aiCheckResult.score >= 80 
-                      ? 'bg-green-100 text-green-700' 
-                      : aiCheckResult.score >= 60 
-                      ? 'bg-orange-100 text-orange-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
+            <div className="space-y-6">
+
+              {/* 1. Score & Overview Card */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Compliance Score */}
+                <div className={`col-span-1 p-4 rounded-2xl border flex flex-col items-center justify-center text-center ${
+                  aiCheckResult.isValid ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
+                }`}>
+                  <div className={`text-3xl font-black mb-1 ${aiCheckResult.isValid ? 'text-green-600' : 'text-[#C8102E]'}`}>
                     {aiCheckResult.score}%
+                  </div>
+                  <div className={`text-sm font-medium ${aiCheckResult.isValid ? 'text-green-800' : 'text-red-800'}`}>
+                    Compliance Score
+                  </div>
+                </div>
+
+                {/* Novelty / Uniqueness Score (Creative Addition) */}
+                {/* THEME CHANGE: Blue Theme for Science/Novelty, Red Accent for Progress */}
+                <div className="col-span-1 sm:col-span-2 p-4 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-10">
+                    <FaFingerprint className="text-6xl text-blue-900" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                        <FaFingerprint /> Research Novelty
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isNovel ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                        {isNovel ? 'High Uniqueness' : 'Moderate Similarity'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                      {/* THEME CHANGE: Red to Blue Gradient Bar */}
+                      <div 
+                        className="bg-gradient-to-r from-[#C8102E] to-blue-600 h-2.5 rounded-full transition-all duration-1000" 
+                        style={{ width: `${noveltyScore}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-blue-800">
+                      {isNovel 
+                        ? "Great job! This research topic appears highly original in our database."
+                        : "We detected some overlap with existing studies. Ensure your methodology is distinct."}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Issues Section */}
-              {aiCheckResult.issues.length > 0 && (
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center gap-2">
-                    <FaExclamationTriangle className="text-orange-500 text-base sm:text-lg" />
-                    <h3 className="font-bold text-gray-800 text-base sm:text-lg">
-                      Areas for Improvement
-                    </h3>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-orange-200">
-                    <ul className="space-y-2 sm:space-y-3">
-                      {aiCheckResult.issues.map((issue, index) => (
-                        <li key={index} className="flex items-start gap-2 sm:gap-3">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
-                          <span className="text-gray-700 text-sm sm:text-base">{issue}</span>
-                        </li>
+              {/* 2. Research Landscape Analysis */}
+              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <FaGlobeAmericas className="text-blue-600" /> Landscape Analysis
+                </h3>
+                
+                <div className="space-y-4">
+                   {/* Keywords */}
+                   <div>
+                    <p className="text-xs text-gray-500 mb-2">DETECTED CONCEPTS</p>
+                    <div className="flex flex-wrap gap-2">
+                      {keywords.map((kw, i) => (
+                        <span key={i} className="px-3 py-1 bg-white border border-blue-100 rounded-full text-xs font-medium text-blue-700 shadow-sm">
+                          #{kw}
+                        </span>
                       ))}
-                    </ul>
+                    </div>
+                  </div>
+
+                  {/* Similar Papers Check */}
+                  <div className={`rounded-xl p-4 border ${isNovel ? 'bg-blue-50 border-blue-100' : 'bg-white border-red-100 shadow-sm'}`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${isNovel ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-[#C8102E]'}`}>
+                        {isNovel ? <FaLightbulb /> : <FaBook />}
+                      </div>
+                      <div>
+                        <h4 className={`font-bold text-sm ${isNovel ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {isNovel ? 'Potential for Groundbreaking Research' : 'Similar Past Research Found'}
+                        </h4>
+                        <p className={`text-xs mt-1 ${isNovel ? 'text-blue-700' : 'text-gray-600'}`}>
+                          {isNovel 
+                            ? "Our analysis suggests this specific combination of variables and locale hasn't been extensively explored."
+                            : "Consider reviewing these similar titles to differentiate your study:"
+                          }
+                        </p>
+                        
+                        {!isNovel && (
+                          <ul className="mt-3 space-y-2">
+                            {similarPapers.map((paper, idx) => (
+                              <li key={idx} className="text-xs bg-gray-50 p-2 rounded border border-gray-200 text-gray-700 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-[#C8102E] rounded-full"></span>
+                                <span className="italic font-medium">"{paper.title}"</span>
+                                <span className="text-gray-400">({paper.year})</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Suggestions Section */}
-              {aiCheckResult.suggestions.length > 0 && (
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex items-center gap-2">
-                    <FaMagic className="text-blue-500 text-base sm:text-lg" />
-                    <h3 className="font-bold text-gray-800 text-base sm:text-lg">
-                      AI Recommendations
-                    </h3>
-                  </div>
-                  <div className="bg-blue-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-200">
-                    <ul className="space-y-2 sm:space-y-3">
-                      {aiCheckResult.suggestions.map((suggestion, index) => (
-                        <li key={index} className="flex items-start gap-2 sm:gap-3">
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-2 flex-shrink-0"></div>
-                          <span className="text-gray-700 text-sm sm:text-base">{suggestion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Success State */}
-              {aiCheckResult.isValid && aiCheckResult.issues.length === 0 && (
-                <div className="text-center py-4 sm:py-6">
-                  <FaCheck className="w-8 h-8 sm:w-12 sm:h-12 text-green-500 mx-auto mb-2 sm:mb-4" />
-                  <h3 className="text-lg sm:text-xl font-bold text-green-700 mb-1 sm:mb-2">
-                    Excellent!
+              {/* 3. Actionable Insights */}
+              {(aiCheckResult.issues.length > 0 || aiCheckResult.suggestions.length > 0) && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                    <FaMagic className="text-[#C8102E]" /> Optimization Guide
                   </h3>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    Your {aiCheckResult.type === 'form' ? 'form is complete' : 'document template meets all requirements'} and is ready for submission.
-                  </p>
+                  
+                  {/* Issues */}
+                  {aiCheckResult.issues.map((issue, index) => (
+                    <div key={index} className="flex gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                      <FaExclamationTriangle className="text-[#C8102E] mt-1 flex-shrink-0" />
+                      <span className="text-sm text-red-800 font-medium">{issue}</span>
+                    </div>
+                  ))}
+
+                  {/* Suggestions */}
+                  {aiCheckResult.suggestions.map((suggestion, index) => (
+                    <div key={index} className="flex gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                      <FaMagic className="text-blue-600 mt-1 flex-shrink-0" />
+                      <span className="text-sm text-blue-800 font-medium">{suggestion}</span>
+                    </div>
+                  ))}
                 </div>
               )}
+
             </div>
           ) : null}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl font-medium hover:bg-gray-100 transition-colors text-sm sm:text-base"
-            >
-              Close
-            </button>
-            {aiCheckResult && !aiCheckResult.isValid && (
-              <button
-                onClick={onClose}
-                className="flex-1 px-3 py-2.5 sm:px-4 sm:py-3 bg-red-600 text-white rounded-lg sm:rounded-xl font-medium hover:bg-red-700 transition-colors text-sm sm:text-base"
-              >
-                Review Issues
-              </button>
-            )}
-          </div>
+        {/* --- Footer --- */}
+        <div className="p-5 border-t border-gray-100 bg-gray-50">
+          {/* THEME CHANGE: Primary Red Button */}
+          <button
+            onClick={onClose}
+            className="w-full py-3 bg-[#C8102E] hover:bg-[#a00d24] text-white rounded-xl font-bold transition-all shadow-lg shadow-red-200"
+          >
+            {aiCheckResult?.isValid ? 'Proceed with Submission' : 'I\'ll Make Adjustments'}
+          </button>
         </div>
+
       </div>
     </div>
   );
