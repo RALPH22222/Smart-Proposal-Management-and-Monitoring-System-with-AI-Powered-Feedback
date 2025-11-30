@@ -42,6 +42,12 @@ export class BackendStack extends Stack {
       {
         bucketName: `pms-proposal-attachments-bucket-${stageName}`,
         publicReadAccess: true,
+        blockPublicAccess: {
+          blockPublicAcls: false,
+          blockPublicPolicy: false,
+          ignorePublicAcls: false,
+          restrictPublicBuckets: false,
+        },
         removalPolicy: RemovalPolicy.RETAIN,
       },
     );
