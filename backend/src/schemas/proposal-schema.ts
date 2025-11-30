@@ -10,6 +10,11 @@ import {
 
 const fileSchema = z.object({
   fieldname: z.string(),
+  contentType: z.enum([
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]),
   filename: z.string(),
 });
 
