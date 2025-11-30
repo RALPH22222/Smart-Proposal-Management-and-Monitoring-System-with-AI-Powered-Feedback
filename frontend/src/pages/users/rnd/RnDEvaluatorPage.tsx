@@ -6,14 +6,15 @@ import {
   FileText,
   Search,
   Filter,
-  History,
   ChevronLeft,
   ChevronRight,
-  X,
+  ClipboardCheck
 } from 'lucide-react';
 
 import RnDEvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
+
+// --- INTERFACES ---
 
 interface Assignment {
   id: string;
@@ -23,32 +24,47 @@ interface Assignment {
   evaluatorNames: string[];
   department: string;
   deadline: string;
-  status: 'Pending' | 'Accepts' | 'Completed' | 'Overdue' | 'Rejected';
+  status: 'Pending' | 'Accepts' | 'Completed' | 'Overdue' | 'Rejected' | 'Extension Requested';
 }
 
 interface HistoryRecord {
   id: string;
+  evaluatorId: string;
   evaluatorName: string;
   decision: 'Accept' | 'Reject';
   comment: string;
   date: string;
 }
 
+interface ExtensionRequest {
+  requestId: string;
+  evaluatorId: string;
+  evaluatorName: string;
+  reason: string;
+  requestedNewDate: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+}
+
+interface ProposalHistoryData {
+  records: HistoryRecord[];
+  extensionRequests: ExtensionRequest[]; 
+}
+
 export const RnDEvaluatorPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [selectedProposalHistory, setSelectedProposalHistory] = useState<HistoryRecord[]>([]);
   
-  // Modal States
+  // Edit Assignment Modal States
   const [showModal, setShowModal] = useState(false);
   const [currentEvaluators, setCurrentEvaluators] = useState<EvaluatorOption[]>([]);
   const [selectedProposalTitle, setSelectedProposalTitle] = useState('');
+  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const [assignments] = useState<Assignment[]>([
+  // --- MOCK ASSIGNMENTS ---
+  const [assignments, setAssignments] = useState<Assignment[]>([
     {
       id: '1',
       proposalId: 'p1',
@@ -57,7 +73,7 @@ export const RnDEvaluatorPage: React.FC = () => {
       evaluatorNames: ['Dr. Alice Santos', 'Prof. Ben Reyes'],
       department: 'Information Technology',
       deadline: '2025-10-20',
-      status: 'Accepts'
+      status: 'Extension Requested' 
     },
     {
       id: '2',
@@ -80,51 +96,150 @@ export const RnDEvaluatorPage: React.FC = () => {
       status: 'Rejected'
     },
     {
-      id: '4',
-      proposalId: 'p4',
-      proposalTitle: 'Machine Learning for Agricultural Optimization',
-      evaluatorIds: ['e6', 'e7'],
-      evaluatorNames: ['Dr. Maria Santos', 'Prof. Carlos Reyes'],
-      department: 'Agriculture',
-      deadline: '2025-11-05',
-      status: 'Completed'
-    },
-    {
-      id: '5',
-      proposalId: 'p5',
-      proposalTitle: 'Renewable Energy Microgrid Systems',
-      evaluatorIds: ['e8'],
-      evaluatorNames: ['Engr. David Tan'],
-      department: 'Engineering',
-      deadline: '2025-09-15',
-      status: 'Overdue'
-    }
+        id: '4',
+        proposalId: 'p4',
+        proposalTitle: 'Machine Learning for Agricultural Optimization',
+        evaluatorIds: ['e6', 'e7'],
+        evaluatorNames: ['Dr. Maria Santos', 'Prof. Carlos Reyes'],
+        department: 'Agriculture',
+        deadline: '2025-11-05',
+        status: 'Completed'
+      },
+      {
+        id: '5',
+        proposalId: 'p5',
+        proposalTitle: 'Renewable Energy Microgrid Systems',
+        evaluatorIds: ['e8'],
+        evaluatorNames: ['Engr. David Tan'],
+        department: 'Engineering',
+        deadline: '2025-09-15',
+        status: 'Overdue'
+      }
   ]);
 
-  const mockHistoryData: Record<string, HistoryRecord[]> = {
-    p1: [
-      { id: 'h1', evaluatorName: 'Dr. Alice Santos', decision: 'Accept', comment: 'Excellent and feasible research idea.', date: '2025-10-02' },
-      { id: 'h2', evaluatorName: 'Prof. Ben Reyes', decision: 'Reject', comment: 'Needs better scope definition.', date: '2025-10-03' }
-    ]
-  };
+  // --- MOCK HISTORY & EXTENSION DATA ---
+  const [mockHistoryData, setMockHistoryData] = useState<Record<string, ProposalHistoryData>>({
+    p1: {
+      records: [
+        { id: 'h1', evaluatorId: 'e2', evaluatorName: 'Prof. Ben Reyes', decision: 'Accept', comment: 'Excellent and feasible research idea.', date: '2025-10-02' },
+      ],
+      extensionRequests: [
+        {
+          requestId: 'ext1',
+          evaluatorId: 'e1',
+          evaluatorName: 'Dr. Alice Santos',
+          reason: 'Need more time to review the updated dataset schema.',
+          requestedNewDate: '2025-10-25',
+          status: 'Pending'
+        }
+      ]
+    },
+    p3: {
+        records: [
+            { id: 'h2', evaluatorId: 'e5', evaluatorName: 'Prof. Eva Martinez', decision: 'Reject', comment: 'Methodology is unclear.', date: '2025-10-02' },
+            { id: 'h3', evaluatorId: 'e4', evaluatorName: 'Dr. John Cruz', decision: 'Reject', comment: 'Budget is too high.', date: '2025-10-02' }
+        ],
+        extensionRequests: []
+    }
+  });
 
-  const handleViewHistory = (proposalId: string) => {
-    setSelectedProposalHistory(mockHistoryData[proposalId] || []);
-    setShowHistoryModal(true);
+  // --- ACTIONS ---
+
+  // Handle Extension actions directly from the Modal
+  const handleExtensionAction = (evaluatorId: string, action: 'Accept' | 'Reject') => {
+    if (!selectedProposalId) return;
+
+    // 1. Update Mock Data (Backend Simulation)
+    setMockHistoryData((prev) => {
+        const currentData = prev[selectedProposalId];
+        if (!currentData) return prev;
+        
+        const updatedExtensions: ExtensionRequest[] = currentData.extensionRequests.map((req) => 
+            req.evaluatorId === evaluatorId 
+            ? { ...req, status: (action === 'Accept' ? 'Approved' : 'Rejected') as ExtensionRequest['status'] }
+            : req
+        );
+
+        return {
+            ...prev,
+            [selectedProposalId]: {
+                ...currentData,
+                extensionRequests: updatedExtensions
+            }
+        };
+    });
+
+    // 2. Update the "Current Evaluators" list currently visible in the modal
+    // This allows the modal to re-render immediately without closing
+    setCurrentEvaluators(prev => prev.map(ev => {
+        if (ev.id === evaluatorId) {
+            // If approved, we might clear the request or change status. 
+            // For now, let's change status to Pending (with new date implied) or whatever logic fits.
+            return { 
+                ...ev, 
+                status: action === 'Accept' ? 'Pending' : 'Pending', // Reset status 
+                extensionReason: undefined, // Clear extension UI
+                extensionDate: undefined 
+            };
+        }
+        return ev;
+    }));
+
+    // 3. Update main table status if needed (Optional)
+    if(action === 'Accept') {
+         setAssignments(prev => prev.map(a => 
+             a.proposalId === selectedProposalId && a.status === 'Extension Requested'
+             ? { ...a, status: 'Pending' } // Reset general status
+             : a
+         ));
+    }
   };
 
   const handleEdit = (id: string) => {
     const record = assignments.find((a) => a.id === id);
     if (record) {
       setSelectedProposalTitle(record.proposalTitle);
-      setCurrentEvaluators(
-        record.evaluatorNames.map((name, index) => ({
-          id: record.evaluatorIds[index] || `temp-${index}`,
+      setSelectedProposalId(record.proposalId);
+
+      // --- MERGE LOGIC ---
+      // We need to combine the basic assignment info with the detailed history/extension info
+      const historyData = mockHistoryData[record.proposalId] || { records: [], extensionRequests: [] };
+
+      const mergedEvaluators: EvaluatorOption[] = record.evaluatorNames.map((name, index) => {
+        const evId = record.evaluatorIds[index] || `temp-${index}`;
+        
+        // Check for specific history (Decision)
+        const historyRecord = historyData.records.find(h => h.evaluatorId === evId);
+        
+        // Check for specific extension request
+        const extensionReq = historyData.extensionRequests.find(ext => ext.evaluatorId === evId && ext.status === 'Pending');
+
+        let status: EvaluatorOption['status'] = 'Pending';
+        let comment = undefined;
+        let extensionDate = undefined;
+        let extensionReason = undefined;
+
+        if (extensionReq) {
+            status = 'Extension Requested';
+            extensionDate = extensionReq.requestedNewDate;
+            extensionReason = extensionReq.reason;
+        } else if (historyRecord) {
+            status = historyRecord.decision === 'Accept' ? 'Accepts' : 'Rejected';
+            comment = historyRecord.comment;
+        }
+
+        return {
+          id: evId,
           name,
           department: record.department,
-          status: record.status === 'Rejected' ? 'Rejected' : record.status === 'Accepts' ? 'Accepts' : 'Pending'
-        }))
-      );
+          status,
+          comment,
+          extensionDate,
+          extensionReason
+        };
+      });
+
+      setCurrentEvaluators(mergedEvaluators);
       setShowModal(true);
     }
   };
@@ -149,7 +264,6 @@ export const RnDEvaluatorPage: React.FC = () => {
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
-        
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -163,6 +277,33 @@ export const RnDEvaluatorPage: React.FC = () => {
             </div>
           </div>
         </header>
+
+         {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
+             <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Evaluators</h4>
+                <p className="text-2xl font-bold text-purple-700">
+                  {new Set(assignments.flatMap(a => a.evaluatorIds)).size}
+                </p>
+             </div>
+             <div className="p-2 rounded-xl">
+               <ClipboardCheck className="w-6 h-6 text-purple-600" />
+             </div>
+           </div>
+
+           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
+             <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Proposals</h4>
+                <p className="text-2xl font-bold text-slate-800">
+                  {new Set(assignments.map(a => a.proposalId)).size}
+                </p>
+             </div>
+             <div className="p-2 rounded-xl">
+               <FileText className="w-6 h-6 text-slate-600" />
+             </div>
+           </div>
+        </div>
 
         {/* Filters */}
         <section className="flex-shrink-0">
@@ -189,6 +330,7 @@ export const RnDEvaluatorPage: React.FC = () => {
                      <option value="All">All Statuses</option>
                      <option value="Pending">Pending</option>
                      <option value="Accepts">Accepts</option>
+                     <option value="Extension Requested">Extension Requested</option>
                      <option value="Completed">Completed</option>
                      <option value="Overdue">Overdue</option>
                      <option value="Rejected">Rejected</option>
@@ -224,14 +366,22 @@ export const RnDEvaluatorPage: React.FC = () => {
                                <Clock className="w-3 h-3" />
                                <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
                             </div>
+                            {/* Status Badge in List */}
+                            {/* <span className={`px-2 py-0.5 rounded-full font-medium border ${
+                                assignment.status === 'Extension Requested' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                assignment.status === 'Accepts' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                assignment.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                                assignment.status === 'Overdue' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}>
+                                {assignment.status}
+                            </span> */}
                          </div>
                       </div>
                       <div className="flex items-center gap-2">
-                         <button onClick={() => handleViewHistory(assignment.proposalId)} className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                            <History className="w-4 h-4" />
-                         </button>
+                         {/* Removed separate History Button */}
                          <button onClick={() => handleEdit(assignment.id)} className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1">
-                            <Edit2 className="w-3 h-3" /> Edit
+                            <Edit2 className="w-3 h-3" /> Action
                          </button>
                       </div>
                    </div>
@@ -267,77 +417,15 @@ export const RnDEvaluatorPage: React.FC = () => {
              </div>
            </div>
         </main>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-             <h4 className="text-sm font-semibold text-slate-800 mb-2">Total Evaluators</h4>
-             <p className="text-2xl font-bold text-[#C8102E]">
-                {new Set(assignments.flatMap(a => a.evaluatorIds)).size}
-             </p>
-           </div>
-           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-             <h4 className="text-sm font-semibold text-slate-800 mb-2">Total Proposals</h4>
-             <p className="text-2xl font-bold text-[#C8102E]">
-                {new Set(assignments.map(a => a.proposalId)).size}
-             </p>
-           </div>
-        </div>
       </div>
 
-      {/* History Modal */}
-      {showHistoryModal && (
-         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-               <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                  <div>
-                     <h2 className="text-xl font-bold text-slate-900">Evaluation History</h2>
-                     <p className="text-sm text-slate-600 mt-1">Previous evaluation decisions and comments</p>
-                  </div>
-                  <button onClick={() => setShowHistoryModal(false)} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
-                     <X className="w-5 h-5 text-slate-500" />
-                  </button>
-               </div>
-               <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                  {selectedProposalHistory.length === 0 ? (
-                     <div className="text-center py-8">
-                        <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500">No history records found for this proposal.</p>
-                     </div>
-                  ) : (
-                     <div className="space-y-4">
-                        {selectedProposalHistory.map((record) => (
-                           <div key={record.id} className="bg-slate-50 rounded-lg p-4 border border-slate-200 mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                 <h4 className="font-semibold text-slate-800">{record.evaluatorName}</h4>
-                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    record.decision === 'Accept' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                                 }`}>
-                                    {record.decision}
-                                 </span>
-                              </div>
-                              <p className="text-sm text-slate-700 mb-2">{record.comment}</p>
-                              <p className="text-xs text-slate-500">{new Date(record.date).toLocaleDateString()}</p>
-                           </div>
-                        ))}
-                     </div>
-                  )}
-               </div>
-               <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end">
-                  <button onClick={() => setShowHistoryModal(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors">
-                     Close
-                  </button>
-               </div>
-            </div>
-         </div>
-      )}
-
-      {/* --- ASSIGNMENT MANAGEMENT MODAL (IMPORTED) --- */}
+      {/* --- MERGED MODAL --- */}
       <RnDEvaluatorPageModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         currentEvaluators={currentEvaluators}
         onReassign={handleReassignEvaluators}
+        onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
       />
     </div>

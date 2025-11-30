@@ -45,6 +45,14 @@ export interface EvaluatorAssignmentData {
 	assignedBy: string;
 }
 
+export interface BudgetRow {
+  source: string;
+  ps: number;
+  mooe: number;
+  co: number;
+  total: number;
+}
+
 export interface EndorsementProposal {
 	id: string;
 	title: string;
@@ -52,6 +60,7 @@ export interface EndorsementProposal {
 	evaluatorDecisions: EvaluatorDecision[];
 	overallRecommendation: 'Approve' | 'Revise' | 'Reject';
 	readyForEndorsement: boolean;
+	budget?: BudgetRow[];
 }
 
 export interface EvaluatorDecision {

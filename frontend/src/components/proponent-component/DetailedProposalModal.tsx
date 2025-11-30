@@ -661,7 +661,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Breakdown
+                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Estimated Budget by Source
                 </h3>
                 {canEdit && (
                   <button 

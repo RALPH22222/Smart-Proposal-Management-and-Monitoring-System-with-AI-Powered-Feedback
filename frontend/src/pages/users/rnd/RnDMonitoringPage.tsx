@@ -16,217 +16,132 @@ import {
   DollarSign,
   MapPin,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle // Added for Delayed status
 } from 'lucide-react';
-import { type Project, type ProjectStatus, type ProjectPhase } from '../../../types/InterfaceProject';
+import { type Project, type ProjectStatus } from '../../../types/InterfaceProject'; // Removed ProjectPhase
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
 
-// MOCK DATA since API is missing
-const MOCK_PROJECTS: any[] = [
+// --- UPDATED MOCK DATA ---
+const MOCK_PROJECTS: Project[] = [
   {
     id: '1',
     projectId: 'PROJ-2025-001',
     title: 'AI-Based Crop Disease Detection System',
-    description: 'Developing a mobile application using computer vision to detect early signs of diseases in local crops. This project aims to empower farmers with real-time diagnostic tools to prevent widespread crop failure.',
+    description: 'Developing a mobile application using computer vision to detect early signs of diseases in local crops.',
     principalInvestigator: 'Dr. Maria Santos',
     department: 'College of Computer Studies',
     status: 'Active',
-    currentPhase: 'Execution',
     startDate: '2025-01-15',
     endDate: '2025-12-15',
     budget: 500000,
     completionPercentage: 35,
     researchArea: 'Agriculture Technology',
-    collaborators: ['Department of Agriculture', 'Local Farmers Coop'],
+    lastModified: '2025-02-01',
+    // New fields for testing Active Modal
+    fundRequests: [
+       { id: 'fr1', amount: 50000, reason: 'Additional GPU Server costs', dateRequested: '2025-06-01', status: 'Pending'}
+    ],
     milestones: [
-      { name: 'Data Collection', dueDate: '2025-03-15', completed: true, description: 'Gathering 10,000+ images of various crop diseases from local farms.' },
-      { name: 'Model Training', dueDate: '2025-06-30', completed: false, description: 'Training the CNN model with the collected dataset and optimizing for mobile devices.' },
-      { name: 'Beta Testing', dueDate: '2025-09-15', completed: false, description: 'Field testing with 50 pilot farmers.' },
-      { name: 'Final Deployment', dueDate: '2025-12-01', completed: false, description: 'Release of the app to the public play store.' }
+      { id: 'm1', name: 'Data Collection', dueDate: '2025-03-15', status: 'Completed', completed: true },
+      { 
+        id: 'm2', 
+        name: 'Model Training', 
+        dueDate: '2025-06-30', 
+        status: 'Review Required', // Simulating a submitted milestone
+        submissionDate: '2025-06-28',
+        submissionProof: 'Training logs and accuracy report attached. Model reached 95% accuracy.',
+        completed: false
+      },
+      { id: 'm3', name: 'Beta Testing', dueDate: '2025-09-15', status: 'Pending', completed: false }
     ],
-    // Extended fields for Modal
-    gender: 'Female',
-    address: 'Zamboanga City',
-    telephone: '991-1234',
-    email: 'msantos@wmsu.edu.ph',
-    agency: 'WMSU',
-    cooperatingAgencies: 'DA, DOST',
-    rdStation: 'Zamboanga Peninsula',
-    classification: 'Applied Research',
-    classificationDetails: 'Technology Development',
-    modeOfImplementation: 'Single Institution',
-    priorityAreas: 'Smart Agriculture',
-    sector: 'Agriculture, Aquatic and Natural Resources',
-    discipline: 'Information Technology',
-    duration: '12 Months',
-    budgetSources: [
-      { source: 'GAA', ps: '150,000', mooe: '200,000', co: '50,000', total: '400,000' },
-      { source: 'Counterpart', ps: '50,000', mooe: '50,000', co: '0', total: '100,000' }
-    ],
-    budgetTotal: '500,000'
   },
   {
     id: '2',
     projectId: 'PROJ-2025-002',
     title: 'Renewable Energy Integration for Rural Schools',
-    description: 'Assessment and implementation of solar energy solutions for off-grid schools in the region. This project seeks to provide sustainable power to improve educational facilities in remote barangays.',
+    description: 'Assessment and implementation of solar energy solutions.',
     principalInvestigator: 'Engr. Robert Lee',
     department: 'College of Engineering',
     status: 'Planning',
-    currentPhase: 'Planning',
     startDate: '2025-04-01',
     endDate: '2026-03-31',
     budget: 1200000,
-    completionPercentage: 10,
+    completionPercentage: 0,
     researchArea: 'Renewable Energy',
-    collaborators: ['Department of Energy', 'DepEd'],
+    lastModified: '2025-01-01',
     milestones: [
-       { name: 'Site Survey', dueDate: '2025-05-15', completed: false, description: 'Conducting ocular inspections and energy audits on 5 target schools.' },
-       { name: 'System Design', dueDate: '2025-07-20', completed: false, description: 'Designing the solar PV layout and battery storage systems.' },
-       { name: 'Procurement', dueDate: '2025-09-10', completed: false, description: 'Bidding and purchasing of solar panels and inverters.' }
-    ],
-     // Extended fields
-    gender: 'Male',
-    address: 'Zamboanga City',
-    telephone: '992-5678',
-    email: 'rlee@wmsu.edu.ph',
-    agency: 'WMSU',
-    cooperatingAgencies: 'DOE',
-    rdStation: 'Western Mindanao',
-    classification: 'Development',
-    classificationDetails: 'Pilot Testing',
-    modeOfImplementation: 'Collaborative',
-    priorityAreas: 'Renewable Energy',
-    sector: 'Energy and Utilities',
-    discipline: 'Electrical Engineering',
-    duration: '12 Months',
-    budgetSources: [
-       { source: 'Grant', ps: '0', mooe: '1,200,000', co: '0', total: '1,200,000' }
-    ],
-    budgetTotal: '1,200,000'
+       { id: 'p1', name: 'Site Survey', dueDate: '2025-05-15', status: 'Proposed', description: 'Ocular inspection of 5 schools.', completed: false },
+       { id: 'p2', name: 'System Design', dueDate: '2025-07-20', status: 'Proposed', description: 'Solar PV layout drafts.', completed: false }
+    ]
   },
   {
     id: '3',
     projectId: 'PROJ-2024-015',
-    title: 'Community-Based Disaster Risk Reduction Management System',
-    description: 'Developing an integrated early warning system for flood-prone coastal communities using IoT sensors and SMS alerts. This aims to reduce casualties during monsoon seasons.',
+    title: 'Community-Based Disaster Risk Reduction',
+    description: 'Integrated early warning system for flood-prone communities.',
     principalInvestigator: 'Dr. Elena Cruz',
-    department: 'College of Science and Mathematics',
+    department: 'College of Science',
     status: 'On Hold',
-    currentPhase: 'Monitoring',
     startDate: '2024-06-01',
     endDate: '2025-06-01',
     budget: 750000,
     completionPercentage: 60,
-    researchArea: 'Disaster Risk Reduction',
-    collaborators: ['LGU Zamboanga', 'NDRRMC'],
-    milestones: [
-      { name: 'Sensor Fabrication', dueDate: '2024-08-30', completed: true, description: 'Assembling 20 water level sensors.' },
-      { name: 'Installation', dueDate: '2024-11-15', completed: true, description: 'Deploying sensors in critical river basins.' },
-      { name: 'System Calibration', dueDate: '2025-01-30', completed: false, description: 'Adjusting sensor sensitivity based on initial rainfall data.' },
-      { name: 'Community Training', dueDate: '2025-04-15', completed: false, description: 'Conducting workshops for Barangay officials on system usage.' }
+    researchArea: 'Disaster Risk',
+    lastModified: '2024-12-01',
+    onHoldReason: 'Awaiting release of LGU counterpart funds.',
+    fundRequests: [
+         { id: 'fr2', amount: 20000, reason: 'Legal fees for MOA notarization', dateRequested: '2024-08-01', status: 'Pending'}
     ],
-    // Extended fields
-    gender: 'Female',
-    address: 'Zamboanga City',
-    telephone: '991-0001',
-    email: 'ecruz@wmsu.edu.ph',
-    agency: 'WMSU',
-    cooperatingAgencies: 'LGU',
-    rdStation: 'Zamboanga City',
-    classification: 'Applied Research',
-    classificationDetails: 'Prototype Development',
-    modeOfImplementation: 'Collaborative',
-    priorityAreas: 'Disaster Mitigation',
-    sector: 'Environment',
-    discipline: 'Environmental Science',
-    duration: '12 Months',
-    budgetSources: [
-      { source: 'WMSU Core', ps: '200,000', mooe: '300,000', co: '250,000', total: '750,000' }
-    ],
-    budgetTotal: '750,000'
+    milestones: []
   },
   {
     id: '4',
     projectId: 'PROJ-2023-089',
-    title: 'Development of Halal-Compliant Food Processing Techniques',
-    description: 'Researching new preservation methods for seafood products that adhere strictly to Halal standards, aiming to boost the local export industry.',
+    title: 'Halal-Compliant Food Processing',
+    description: 'New preservation methods for seafood products.',
     principalInvestigator: 'Prof. Abdul Malik',
     department: 'College of Home Economics',
     status: 'Completed',
-    currentPhase: 'Closing',
     startDate: '2023-01-10',
     endDate: '2024-01-10',
     budget: 350000,
     completionPercentage: 100,
     researchArea: 'Food Technology',
-    collaborators: ['DOST-IX', 'Halal Board'],
+    lastModified: '2024-01-10',
     milestones: [
-      { name: 'Literature Review', dueDate: '2023-02-28', completed: true, description: 'Comprehensive review of Halal standards and existing preservation methods.' },
-      { name: 'Lab Experiments', dueDate: '2023-07-15', completed: true, description: 'Testing various natural preservatives on tuna and sardines.' },
-      { name: 'Sensory Evaluation', dueDate: '2023-10-30', completed: true, description: 'Taste tests and acceptability surveys.' },
-      { name: 'Final Report', dueDate: '2024-01-10', completed: true, description: 'Submission of full technical report and financial liquidation.' }
-    ],
-    // Extended fields
-    gender: 'Male',
-    address: 'Isabela City',
-    telephone: '993-4455',
-    email: 'amalik@wmsu.edu.ph',
-    agency: 'WMSU',
-    cooperatingAgencies: 'DOST',
-    rdStation: 'Basilan',
-    classification: 'Basic Research',
-    classificationDetails: 'Process Improvement',
-    modeOfImplementation: 'Single Institution',
-    priorityAreas: 'Halal Industry',
-    sector: 'Industry, Energy and Emerging Technology',
-    discipline: 'Food Science',
-    duration: '12 Months',
-    budgetSources: [
-      { source: 'GAA', ps: '100,000', mooe: '250,000', co: '0', total: '350,000' }
-    ],
-    budgetTotal: '350,000'
+      { id: 'c1', name: 'Literature Review', dueDate: '2023-02-28', status: 'Completed', completed: true },
+      { id: 'c2', name: 'Final Report', dueDate: '2024-01-10', status: 'Completed', completed: true }
+    ]
   },
   {
     id: '5',
     projectId: 'PROJ-2025-005',
-    title: 'Marine Biodiversity Assessment of Zamboanga Peninsula',
-    description: 'A comprehensive survey of coral reef health and fish population dynamics in protected marine sanctuaries to inform policy making.',
+    title: 'Marine Biodiversity Assessment',
+    description: 'Comprehensive survey of coral reef health.',
     principalInvestigator: 'Dr. James Reid',
-    department: 'College of Forestry and Environmental Studies',
-    status: 'Active',
-    currentPhase: 'Execution',
+    department: 'Forestry',
+    status: 'Delayed',
     startDate: '2025-02-01',
     endDate: '2026-02-01',
     budget: 850000,
     completionPercentage: 20,
     researchArea: 'Marine Biology',
-    collaborators: ['DENR', 'BFAR'],
+    lastModified: '2025-03-10',
     milestones: [
-      { name: 'Equipment Procurement', dueDate: '2025-03-01', completed: true, description: 'Purchase of diving gear and underwater cameras.' },
-      { name: 'Initial Dive Surveys', dueDate: '2025-05-15', completed: false, description: 'Conducting transect surveys in Sta. Cruz Islands.' },
-      { name: 'Data Analysis Phase 1', dueDate: '2025-09-30', completed: false, description: 'Analyzing video footage and water samples.' },
-      { name: 'Stakeholder Presentation', dueDate: '2025-12-10', completed: false, description: 'Presenting preliminary findings to LGU.' }
-    ],
-    // Extended fields
-    gender: 'Male',
-    address: 'Zamboanga City',
-    telephone: '991-8899',
-    email: 'jreid@wmsu.edu.ph',
-    agency: 'WMSU',
-    cooperatingAgencies: 'DENR, BFAR',
-    rdStation: 'Sulu Sea',
-    classification: 'Basic Research',
-    classificationDetails: 'Ecological Assessment',
-    modeOfImplementation: 'Collaborative',
-    priorityAreas: 'Biodiversity',
-    sector: 'Environment',
-    discipline: 'Marine Biology',
-    duration: '12 Months',
-    budgetSources: [
-      { source: 'External Grant', ps: '300,000', mooe: '400,000', co: '150,000', total: '850,000' }
-    ],
-    budgetTotal: '850,000'
+       { 
+         id: 'd1', 
+         name: 'Equipment Procurement', 
+         dueDate: '2025-03-01', 
+         status: 'Delayed', 
+         completed: false,
+         extensionRequest: {
+            newDate: '2025-04-15',
+            reason: 'Supplier stocks unavailable due to shipping issues.',
+            status: 'Pending'
+         }
+       }
+    ]
   }
 ];
 
@@ -235,13 +150,13 @@ interface MonitoringPageProps {
 }
 
 const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
-  const [projects, setProjects] = useState<Project[]>([]);  
+  const [projects, setProjects] = useState<Project[]>([]);   
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'All'>('All');
-  const [phaseFilter, setPhaseFilter] = useState<ProjectPhase | 'All'>('All');
+  // Removed phaseFilter state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -251,18 +166,13 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
     loadProjects();
   }, []);
 
-  // Filter projects based on status, phase and search term
+  // Filter projects based on status and search term (Removed Phase logic)
   useEffect(() => {
     let filtered = projects;
 
     // Apply status filter
     if (statusFilter !== 'All') {
       filtered = filtered.filter(project => project.status === statusFilter);
-    }
-
-    // Apply phase filter
-    if (phaseFilter !== 'All') {
-      filtered = filtered.filter(project => project.currentPhase === phaseFilter);
     }
 
     // Apply search filter
@@ -277,12 +187,11 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
 
     setFilteredProjects(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [projects, statusFilter, phaseFilter, searchTerm]);
+  }, [projects, statusFilter, searchTerm]);
 
   const loadProjects = async () => {
     try {
       setLoading(true);
-      // Simulate API call with mock data
       await new Promise(resolve => setTimeout(resolve, 800));
       setProjects(MOCK_PROJECTS as Project[]);
     } catch (error) {
@@ -307,10 +216,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
     return projects.filter(p => p.status === status).length;
   };
 
-  const getPhaseCount = (phase: ProjectPhase) => {
-    return projects.filter(p => p.currentPhase === phase).length;
-  };
-
   const getTotalBudget = () => {
     return projects.reduce((sum, project) => sum + project.budget, 0);
   };
@@ -319,11 +224,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
     if (projects.length === 0) return 0;
     const totalCompletion = projects.reduce((sum, project) => sum + project.completionPercentage, 0);
     return Math.round(totalCompletion / projects.length);
-  };
-
-  const getOverdueProjects = () => {
-    const today = new Date();
-    return projects.filter(project => new Date(project.endDate) < today && project.completionPercentage < 100);
   };
 
   // Pagination
@@ -357,12 +257,12 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
       trend: '+15%',
     },
     {
-      title: 'At Risk',
-      value: getStatusCount('At Risk'),
-      icon: AlertCircle,
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-50',
-      trend: '+5%',
+      title: 'Delayed',
+      value: getStatusCount('Delayed'),
+      icon: AlertTriangle,
+      color: 'text-yellow-500',
+      bgColor: 'bg-yellow-50',
+      trend: '+2%',
     },
     {
       title: 'Total Budget',
@@ -391,30 +291,13 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
       case 'Completed':
         return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
       case 'On Hold':
-        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
+        return `${baseClasses} text-slate-600 bg-slate-100 border-slate-200`;
       case 'At Risk':
-        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
+        return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
+      case 'Delayed':
+        return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
       case 'Planning':
         return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
-      default:
-        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
-    }
-  };
-
-  const getPhaseBadge = (phase: ProjectPhase) => {
-    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-    
-    switch (phase) {
-      case 'Conceptualization':
-        return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
-      case 'Planning':
-        return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
-      case 'Execution':
-        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
-      case 'Monitoring':
-        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
-      case 'Closing':
-        return `${baseClasses} text-green-600 bg-green-50 border-green-200`;
       default:
         return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
     }
@@ -520,37 +403,12 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                   <option value="All">All Statuses</option>
                   <option value="Active">Active ({getStatusCount('Active')})</option>
                   <option value="Completed">Completed ({getStatusCount('Completed')})</option>
-                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
-                  <option value="At Risk">At Risk ({getStatusCount('At Risk')})</option>
+                  <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
                   <option value="Planning">Planning ({getStatusCount('Planning')})</option>
+                  <option value="At Risk">At Risk ({getStatusCount('At Risk')})</option>
+                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
                 </select>
               </div>
-
-              {/* Phase Filter */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <BarChart3 className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                </div>
-                <select
-                  value={phaseFilter}
-                  onChange={(e) => setPhaseFilter(e.target.value as ProjectPhase | 'All')}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Filter by phase"
-                >
-                  <option value="All">All Phases</option>
-                  <option value="Conceptualization">Conceptualization ({getPhaseCount('Conceptualization')})</option>
-                  <option value="Planning">Planning ({getPhaseCount('Planning')})</option>
-                  <option value="Execution">Execution ({getPhaseCount('Execution')})</option>
-                  <option value="Monitoring">Monitoring ({getPhaseCount('Monitoring')})</option>
-                  <option value="Closing">Closing ({getPhaseCount('Closing')})</option>
-                </select>
-              </div>
-
-              {/* Export Button */}
-              <button className="inline-flex items-center justify-center px-4 py-2.5 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-sm font-medium">
-                <Download className="w-4 h-4 mr-2" />
-                Export Report
-              </button>
             </div>
 
             <div className="mt-4 text-xs text-slate-600">
@@ -582,7 +440,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No projects found</h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
-                  {searchTerm || statusFilter !== 'All' || phaseFilter !== 'All'
+                  {searchTerm || statusFilter !== 'All'
                     ? 'Try adjusting your search or filter criteria.'
                     : 'No projects have been added yet.'}
                 </p>
@@ -591,7 +449,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
               <div className="divide-y divide-slate-100">
                 {paginatedProjects.map((project) => {
                   const daysRemaining = getDaysRemaining(project.endDate);
-                  const isOverdue = daysRemaining < 0 && project.completionPercentage < 100;
+                  // Adjusted overdue logic to check if not completed
+                  const isOverdue = daysRemaining < 0 && project.status !== 'Completed';
                   
                   return (
                     <article
@@ -630,12 +489,17 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                           <div className="flex items-center gap-3 mb-2">
                             <div className="w-32 bg-slate-200 rounded-full h-2">
                               <div
-                                className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${project.completionPercentage}%` }}
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                    project.status === 'Completed' ? 'bg-blue-600' : 
+                                    project.status === 'At Risk' ? 'bg-orange-500' :
+                                    project.status === 'Delayed' ? 'bg-yellow-500' :
+                                    'bg-green-600'
+                                }`}
+                                style={{ width: project.status === 'Completed' ? '100%' : `${project.completionPercentage}%` }}
                               ></div>
                             </div>
                             <span className="text-xs font-medium text-slate-700">
-                              {project.completionPercentage}% Complete
+                              {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
                             </span>
                           </div>
 
@@ -659,9 +523,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                           <div className="flex flex-col gap-2 items-end">
                             <span className={getStatusBadge(project.status)}>
                               {project.status}
-                            </span>
-                            <span className={getPhaseBadge(project.currentPhase)}>
-                              {project.currentPhase}
                             </span>
                           </div>
 
@@ -716,14 +577,11 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
             </div>
           )}
         </main>
-         {/* Project Detail Modal */}
+         {/* Project Detail Modal - Props Updated to match new Modal Architecture */}
          <RnDProjectDetailModal
            project={selectedProject}
            isOpen={isDetailModalOpen}
            onClose={handleCloseModal}
-           getStatusBadge={getStatusBadge}
-           getPhaseBadge={getPhaseBadge}
-           getDaysRemaining={getDaysRemaining}
          />
       </div>
     </div>

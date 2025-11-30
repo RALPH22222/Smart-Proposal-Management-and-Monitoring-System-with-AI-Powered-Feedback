@@ -11,7 +11,11 @@ import {
   ChevronRight,
   Gavel
 } from 'lucide-react';
-import { type EndorsementProposal, type EvaluatorDecision } from '../../../types/evaluator';
+import { 
+  type EndorsementProposal, 
+  type EvaluatorDecision,
+  type BudgetRow  // Add this import
+} from '../../../types/evaluator';
 import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
 import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
 
@@ -31,6 +35,7 @@ const EndorsePage: React.FC = () => {
   const [selectedProposal, setSelectedProposal] = useState<{
     title: string;
     id: string;
+    budget?: BudgetRow[];
   } | null>(null);
 
   const itemsPerPage = 5;
@@ -41,6 +46,10 @@ const EndorsePage: React.FC = () => {
       id: 'PROP-2025-001',
       title: 'Development of AI-Powered Student Learning Analytics Platform',
       submittedBy: 'Dr. Maria Santos',
+      budget: [
+        { source: "DOST-GIA", ps: 150000, mooe: 50000, co: 50000, total: 250000 },
+        { source: "University Counterpart", ps: 0, mooe: 20000, co: 0, total: 20000 }
+      ],
       evaluatorDecisions: [
         {
           evaluatorId: 'eval-1',
@@ -66,6 +75,10 @@ const EndorsePage: React.FC = () => {
       id: 'PROP-2025-003',
       title: 'Blockchain-Based Academic Credential Verification System',
       submittedBy: 'Dr. Angela Rivera',
+      budget: [
+        { source: "Research Grant", ps: 80000, mooe: 40000, co: 0, total: 120000 },
+        { source: "Internal Funding", ps: 20000, mooe: 10000, co: 5000, total: 35000 }
+      ],
       evaluatorDecisions: [
         {
           evaluatorId: 'eval-4',
@@ -132,13 +145,15 @@ const EndorsePage: React.FC = () => {
   const handleCloseEvaluatorModal = () => {
     setIsEvaluatorModalOpen(false);
     setSelectedDecision(null);
-    // We don't clear selectedProposal here to prevent flickering if switching modals, 
-    // but strictly speaking, we could clear it if no other modal is open.
   };
 
   // --- Handlers for Decision Modal ---
-  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string) => {
-    setSelectedProposal({ title: proposalTitle, id: proposalId });
+  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[]) => {
+    setSelectedProposal({ 
+      title: proposalTitle, 
+      id: proposalId,
+      budget: budgetData
+    });
     setIsDecisionModalOpen(true);
   };
 
@@ -282,6 +297,7 @@ const EndorsePage: React.FC = () => {
         isOpen={isDecisionModalOpen}
         onClose={handleCloseDecisionModal}
         proposalTitle={selectedProposal?.title || ''}
+        budgetData={selectedProposal?.budget}
         onSubmit={handleDecisionSubmit}
       />
 
@@ -481,7 +497,7 @@ const EndorsePage: React.FC = () => {
                       {proposal.readyForEndorsement && (
                         <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id)}
+                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget)}
                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3 h-3" />
