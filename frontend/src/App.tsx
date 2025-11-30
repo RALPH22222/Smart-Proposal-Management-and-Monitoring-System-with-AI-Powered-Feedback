@@ -63,7 +63,7 @@ function App() {
             </Route>
 
             {/* Admin */}
-            {/* <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
               <Route
                 path="/users/admin/dashboard"
                 element={<DashboardAdmin />}
@@ -73,10 +73,10 @@ function App() {
               <Route path="/users/admin/contents" element={<Contents />} />
               <Route path="/users/admin/system" element={<System />} />
               <Route path="/users/admin/settings" element={<SettingsAdmin />} />
-            {/* </Route> */}
+            </Route>
 
             {/* Evaluator */}
-            {/* <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
               <Route
                 path="/users/evaluator/dashboard"
                 element={<DashboardEvaluator />}
@@ -98,12 +98,12 @@ function App() {
                 path="/users/evaluator/reviewed"
                 element={<ReviewedProposals />}
               />
-            {/* </Route> */}
+            </Route>
 
             {/* R&D */}
-            {/* <Route element={<ProtectedRoute roles={[Role.RND]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.RND]} />}>
               <Route path="/users/rnd/*" element={<RndMainLayout />} />
-            {/* </Route> */}
+            </Route>
 
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>

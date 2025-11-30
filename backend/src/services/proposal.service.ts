@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Status } from "../types/proposal";
-import { ProposalInput } from "../schemas/proposal-schema";
+import { ForwardToEvaluatorsInput, ProposalInput } from "../schemas/proposal-schema";
 
 export class ProposalService {
   constructor(private db: SupabaseClient) {}
@@ -22,6 +22,49 @@ export class ProposalService {
     }
 
     return { error };
+  }
+
+  async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
+    const { proposal_id, evaluator_id, deadline_at, commentsForEvaluators } = input;
+
+    const deadline_number_weeks = new Date();
+    deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
+
+    const assignmentsPayload = evaluator_id.map((evaluator) => ({
+      proposal_id: proposal_id,
+      evaluator_id: evaluator,
+      forwarded_by_rnd_id: rnd_id,
+      deadline_at: deadline_number_weeks.toISOString(),
+      comments_for_evaluators: commentsForEvaluators ?? null,
+      status: "pending",
+    }));
+
+    const { error: insertError, data: assignments } = await this.db
+      .from("proposal_evaluators")
+      .insert(assignmentsPayload)
+      .select("*");
+
+    if (insertError) {
+      return { error: insertError, assignments: null };
+    }
+
+    const { error: updateError } = await this.db
+      .from("proposals")
+      .update({
+        status: "under_evaluation",
+        updated_at: new Date().toISOString(),
+        evaluation_deadline_at: deadline_number_weeks.toISOString(),
+      })
+      .eq("id", proposal_id);
+
+    if (updateError) {
+      return { error: updateError, assignments: null };
+    }
+
+    return {
+      error: null,
+      assignments,
+    };
   }
 
   async getAll(search?: string, status?: Status) {
