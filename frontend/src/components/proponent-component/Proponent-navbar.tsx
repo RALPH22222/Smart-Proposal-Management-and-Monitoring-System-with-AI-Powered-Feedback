@@ -11,7 +11,7 @@ const COLORS = {
   lightGray: "#f8f9fa",
 };
 
-// --- ICONS (Kept as provided) ---
+// --- ICONS ---
 const SubmissionIcon = ({ isActive }: { isActive: boolean }) => (
   <svg
     className={`w-6 h-6 ${isActive ? "text-white" : "text-white"}`}
@@ -24,6 +24,23 @@ const SubmissionIcon = ({ isActive }: { isActive: boolean }) => (
       strokeLinejoin="round"
       strokeWidth={2}
       d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+    />
+  </svg>
+);
+
+// New Monitoring Icon
+const MonitoringIcon = ({ isActive }: { isActive: boolean }) => (
+  <svg
+    className={`w-6 h-6 ${isActive ? "text-white" : "text-white"}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
     />
   </svg>
 );
@@ -69,7 +86,7 @@ const SettingsIcon = ({ isActive }: { isActive: boolean }) => (
 const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
   <svg
     className={`w-6 h-6 transition-colors duration-300 ${
-      isActive ? "text-white" : "text-white" // Changed to always be white for mobile menu compatibility
+      isActive ? "text-white" : "text-white"
     }`}
     fill="none"
     stroke="currentColor"
@@ -84,7 +101,6 @@ const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
   </svg>
 );
 
-// New Menu Icons
 const MenuIcon = () => (
   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -114,9 +130,14 @@ const ProponentNavbar: React.FC = () => {
 
   useEffect(() => {
     const currentPath = location.pathname.toLowerCase();
+    
+    // Updated logic to include Monitoring
     if (currentPath.includes("/submission")) {
       setActiveLink("submission");
       setPageSubtitle("Proponent Submission");
+    } else if (currentPath.includes("/monitoring")) {
+      setActiveLink("monitoring");
+      setPageSubtitle("Project Monitoring");
     } else if (currentPath.includes("/profile")) {
       setActiveLink("profile");
       setPageSubtitle("Proponent Profile");
@@ -136,15 +157,17 @@ const ProponentNavbar: React.FC = () => {
     logout();
   };
 
+  // Added Monitoring to navItems
   const navItems = [
     { name: "Submission", icon: SubmissionIcon, href: "/users/proponent/submission" },
+    { name: "Monitoring", icon: MonitoringIcon, href: "/users/proponent/monitoring" },
     { name: "Profile", icon: ProfileIcon, href: "/users/proponent/profile" },
     { name: "Settings", icon: SettingsIcon, href: "/users/proponent/settings" },
   ];
 
   const handleNavClick = (item: string, href: string) => {
     setActiveLink(item.toLowerCase());
-    setIsMobileMenuOpen(false); // Close menu on click
+    setIsMobileMenuOpen(false);
     navigate(href);
   };
 
@@ -209,12 +232,11 @@ const ProponentNavbar: React.FC = () => {
               })}
               <button
                 onClick={handleLogout}
-                className="ml-4 px-5 py-2 rounded-lg font-semibold bg-white text-[#C8102E] hover:bg-red-800 hover:text-white transition-all shadow-md flex items-center gap-2"
+                className="ml-4 px-5 py-2 rounded-lg font-semibold bg-white text-red-800 hover:bg-red-800 hover:text-white transition-all shadow-md flex items-center gap-2"
               >
-                {/* Use a dark icon for desktop white button */}
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                 </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
                 <span>Logout</span>
               </button>
             </nav>
@@ -234,7 +256,7 @@ const ProponentNavbar: React.FC = () => {
           className={`md:hidden absolute top-16 left-0 w-full border-b border-red-800 shadow-xl transition-all duration-300 ease-in-out transform origin-top ${
             isMobileMenuOpen ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0 h-0 overflow-hidden"
           }`}
-          style={{ backgroundColor: COLORS.brand }} // Using brand color for background
+          style={{ backgroundColor: COLORS.brand }}
         >
           <div className="flex flex-col p-4 space-y-2">
             {navItems.map((item) => {

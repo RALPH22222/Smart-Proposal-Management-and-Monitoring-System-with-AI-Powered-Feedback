@@ -10,7 +10,6 @@ import {
   Check,
   XCircle,
   Search,
-  Clock,
   MessageSquare,
   Calendar
 } from 'lucide-react';

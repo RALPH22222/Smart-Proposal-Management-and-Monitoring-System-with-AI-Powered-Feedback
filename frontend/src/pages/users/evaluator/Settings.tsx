@@ -1,6 +1,5 @@
 import type React from "react";
 import { useState } from "react";
-import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 
 const PRIMARY = "#C8102E";
 
@@ -283,65 +282,57 @@ const RdecSettings: React.FC = () => {
   >("profile");
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 gap-0 lg:gap-6">
-      <Sidebar />
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+      <header className="flex-shrink-0">
+        <h1 className="text-2xl font-bold text-slate-900">Evaluator Settings</h1>
+        <p className="text-slate-600 mt-1">
+          Manage your account, security and preferences.
+        </p>
+      </header>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-6">
-        <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-          <header>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Evaluator Settings
-            </h1>
-            <p className="text-slate-600 mt-1">
-              Manage your account, security and preferences.
-            </p>
-          </header>
+      {/* Tabs */}
+      <div className="bg-white shadow rounded-lg border border-slate-200 flex-shrink-0">
+        <nav className="flex gap-2 sm:gap-6 px-4 sm:px-6 overflow-x-auto">
+          {[
+            {
+              id: "profile",
+              label: "Profile",
+            },
+            {
+              id: "security",
+              label: "Security",
+            },
+            {
+              id: "notifications",
+              label: "Notifications",
+            },
+            {
+              id: "preferences",
+              label: "Preferences",
+            },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`py-3 px-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                activeTab === t.id
+                  ? "border-red-600 text-red-600"
+                  : "border-transparent text-slate-600 hover:text-slate-800 hover:border-slate-200"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-          {/* Tabs */}
-          <div className="bg-white shadow rounded-lg border border-slate-200">
-            <nav className="flex gap-2 sm:gap-6 px-4 sm:px-6 overflow-x-auto">
-              {[
-                {
-                  id: "profile",
-                  label: "Profile",
-                },
-                {
-                  id: "security",
-                  label: "Security",
-                },
-                {
-                  id: "notifications",
-                  label: "Notifications",
-                },
-                {
-                  id: "preferences",
-                  label: "Preferences",
-                },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id as any)}
-                  className={`py-3 px-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                    activeTab === t.id
-                      ? "border-red-600 text-red-600"
-                      : "border-transparent text-slate-600 hover:text-slate-800 hover:border-slate-200"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Tab Content */}
-          <div>
-            {activeTab === "profile" && <ProfileSection />}
-            {activeTab === "security" && <SecuritySection />}
-            {activeTab === "notifications" && <NotificationsSection />}
-            {activeTab === "preferences" && <PreferencesSection />}
-          </div>
-        </div>
-      </main>
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto pb-6">
+        {activeTab === "profile" && <ProfileSection />}
+        {activeTab === "security" && <SecuritySection />}
+        {activeTab === "notifications" && <NotificationsSection />}
+        {activeTab === "preferences" && <PreferencesSection />}
+      </div>
     </div>
   );
 };

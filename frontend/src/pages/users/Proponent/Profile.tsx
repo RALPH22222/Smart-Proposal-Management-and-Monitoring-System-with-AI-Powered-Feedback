@@ -333,11 +333,6 @@ const Profile: React.FC = () => {
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}>
                       {statusLabel}
                     </span>
-                    {project.currentIndex === 4 && (
-                      <span className="text-xs px-2 py-1 bg-green-50 border border-green-100 text-green-700 rounded-full">
-                        Approved
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -370,7 +365,6 @@ const Profile: React.FC = () => {
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
-            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden xl:table-cell">Evaluators</th>
             {projectTab === 'budget' && (
               <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
             )}
@@ -429,12 +423,6 @@ const Profile: React.FC = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
                     {project.duration}
-                  </td>
-                  <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden xl:table-cell">
-                    <div className="flex items-center gap-1">
-                      <FaUsers className="text-gray-400" />
-                      {project.evaluators}
-                    </div>
                   </td>
                   {projectTab === 'budget' && (
                     <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">

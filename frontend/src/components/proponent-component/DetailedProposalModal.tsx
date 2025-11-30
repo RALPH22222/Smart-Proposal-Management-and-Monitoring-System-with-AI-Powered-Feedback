@@ -25,7 +25,9 @@ import {
   XCircle,
   CheckCircle,
   Plus,
-  Trash2
+  Trash2,
+  Play,       // Icon for the button
+  Rocket      // Icon for the banner
 } from "lucide-react";
 import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
@@ -34,6 +36,7 @@ interface DetailedProposalModalProps {
   onClose: () => void;
   proposal: Proposal | null;
   onUpdateProposal?: (proposal: Proposal) => void;
+  onManageMilestones?: () => void; // New prop to handle navigation
 }
 
 const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
@@ -41,6 +44,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onClose,
   proposal,
   onUpdateProposal,
+  onManageMilestones,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
@@ -68,8 +72,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return null;
   }
 
-  // --- Helper Functions for Calculations ---
-
+  // --- Helper Functions ---
   const parseCurrency = (value: string): number => {
     return parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
   };
@@ -82,103 +85,55 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     if (!start || !end) return "";
     const startDate = new Date(start);
     const endDate = new Date(end);
-    
-    // Calculate difference in months
     let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
     months -= startDate.getMonth();
     months += endDate.getMonth();
-    
-    // Adjust if day of month is less
-    if (endDate.getDate() < startDate.getDate()) {
-      months--;
-    }
-    
-    // Ensure minimum of 1 month if dates are valid but close
-    const finalMonths = Math.max(0, months + (endDate.getDate() >= startDate.getDate() ? 1 : 0)); // simple inclusive calc
-    
+    if (endDate.getDate() < startDate.getDate()) months--;
+    const finalMonths = Math.max(0, months + (endDate.getDate() >= startDate.getDate() ? 1 : 0));
     return `${finalMonths} months`;
   };
 
   // --- Logic Handlers ---
-
   const handleInputChange = (field: keyof Proposal, value: string) => {
     setEditedProposal({ ...editedProposal, [field]: value });
   };
 
-  // Special handler for dates to auto-calc duration
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
     if (!editedProposal) return;
-
     const updatedProposal = { ...editedProposal, [field]: value };
-    
-    // If both dates are present, recalculate duration
     if (updatedProposal.startDate && updatedProposal.endDate) {
       updatedProposal.duration = calculateDuration(updatedProposal.startDate, updatedProposal.endDate);
     }
-
     setEditedProposal(updatedProposal);
   };
 
   const handleBudgetChange = (index: number, field: keyof BudgetSource, value: string) => {
     if (!editedProposal) return;
-
     const updatedBudgetSources = [...editedProposal.budgetSources];
-    
-    // Update the specific field
-    updatedBudgetSources[index] = { 
-      ...updatedBudgetSources[index], 
-      [field]: value 
-    };
-
-    // Auto-calculate Row Total if PS, MOOE, or CO changes
+    updatedBudgetSources[index] = { ...updatedBudgetSources[index], [field]: value };
     if (field === 'ps' || field === 'mooe' || field === 'co') {
       const ps = parseCurrency(updatedBudgetSources[index].ps);
       const mooe = parseCurrency(updatedBudgetSources[index].mooe);
       const co = parseCurrency(updatedBudgetSources[index].co);
       updatedBudgetSources[index].total = formatCurrency(ps + mooe + co);
     }
-
-    // Auto-calculate Grand Total
-    const grandTotal = updatedBudgetSources.reduce((sum, item) => {
-      return sum + parseCurrency(item.total);
-    }, 0);
-
-    setEditedProposal({ 
-      ...editedProposal, 
-      budgetSources: updatedBudgetSources,
-      budgetTotal: formatCurrency(grandTotal)
-    });
+    const grandTotal = updatedBudgetSources.reduce((sum, item) => sum + parseCurrency(item.total), 0);
+    setEditedProposal({ ...editedProposal, budgetSources: updatedBudgetSources, budgetTotal: formatCurrency(grandTotal) });
   };
 
   const handleAddBudgetItem = () => {
     if (!editedProposal) return;
     const newSource: BudgetSource = {
-      source: "New Funding Source",
-      ps: "₱0.00",
-      mooe: "₱0.00",
-      co: "₱0.00",
-      total: "₱0.00"
+      source: "New Funding Source", ps: "₱0.00", mooe: "₱0.00", co: "₱0.00", total: "₱0.00"
     };
-    setEditedProposal({
-      ...editedProposal,
-      budgetSources: [...editedProposal.budgetSources, newSource]
-    });
+    setEditedProposal({ ...editedProposal, budgetSources: [...editedProposal.budgetSources, newSource] });
   };
 
   const handleRemoveBudgetItem = (index: number) => {
     if (!editedProposal) return;
     const updatedBudgetSources = editedProposal.budgetSources.filter((_, i) => i !== index);
-    
-    // Recalculate Grand Total after removal
-    const grandTotal = updatedBudgetSources.reduce((sum, item) => {
-      return sum + parseCurrency(item.total);
-    }, 0);
-
-    setEditedProposal({
-      ...editedProposal,
-      budgetSources: updatedBudgetSources,
-      budgetTotal: formatCurrency(grandTotal)
-    });
+    const grandTotal = updatedBudgetSources.reduce((sum, item) => sum + parseCurrency(item.total), 0);
+    setEditedProposal({ ...editedProposal, budgetSources: updatedBudgetSources, budgetTotal: formatCurrency(grandTotal) });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,56 +173,19 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   // --- Design Helpers ---
   const getStatusTheme = (status: string) => {
     const s = status.toLowerCase();
-    if (['pending'].includes(s)) {
-      return {
-        bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800',
-        icon: <Clock className="w-5 h-5 text-yellow-600" />, label: 'Pending'
-      };
-    }
-    if (['funded', 'accepted', 'approved'].includes(s)) {
-      return {
-        bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800',
-        icon: <CheckCircle className="w-5 h-5 text-emerald-600" />, label: 'Project Funded'
-      };
-    }
-    if (['rejected', 'disapproved', 'reject'].includes(s)) {
-      return {
-        bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800',
-        icon: <XCircle className="w-5 h-5 text-red-600" />, label: 'Proposal Rejected'
-      };
-    }
-    if (['revise', 'revision'].includes(s)) {
-      return {
-        bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800',
-        icon: <RefreshCw className="w-5 h-5 text-orange-600" />, label: 'Revision Required'
-      };
-    }
-    if (['r&d evaluation'].includes(s)) {
-      return {
-        bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800',
-        icon: <Microscope className="w-5 h-5 text-blue-600" />, label: 'Under R&D Evaluation'
-      }
-    }
-       if (['evaluators assessment'].includes(s)) {
-      return {
-        bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800',
-        icon: <FileCheck className="w-5 h-5 text-purple-600" />, label: 'Under Evaluators Assessment'
-      }
-    }
-
-    return {
-      bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700',
-      icon: <Clock className="w-5 h-5 text-slate-500" />, label: 'Under Evaluation'
-    };
+    if (['pending'].includes(s)) return { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: <Clock className="w-5 h-5 text-yellow-600" />, label: 'Pending' };
+    if (['funded', 'accepted', 'approved'].includes(s)) return { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: <CheckCircle className="w-5 h-5 text-emerald-600" />, label: 'Project Funded' };
+    if (['rejected', 'disapproved', 'reject'].includes(s)) return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: <XCircle className="w-5 h-5 text-red-600" />, label: 'Proposal Rejected' };
+    if (['revise', 'revision'].includes(s)) return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: <RefreshCw className="w-5 h-5 text-orange-600" />, label: 'Revision Required' };
+    if (['r&d evaluation'].includes(s)) return { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: <Microscope className="w-5 h-5 text-blue-600" />, label: 'Under R&D Evaluation' };
+    if (['evaluators assessment'].includes(s)) return { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: <FileCheck className="w-5 h-5 text-purple-600" />, label: 'Under Evaluators Assessment' };
+    return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', icon: <Clock className="w-5 h-5 text-slate-500" />, label: 'Under Evaluation' };
   };
 
   const theme = getStatusTheme(proposal.status);
-
-  // --- Input Field Renderers ---
+  
   const getInputClass = (editable: boolean) => {
-    return editable 
-      ? 'bg-white border-slate-300 text-slate-900 focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E] shadow-sm' 
-      : 'bg-transparent border-transparent text-slate-900 font-medium px-0';
+    return editable ? 'bg-white border-slate-300 text-slate-900 focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E] shadow-sm' : 'bg-transparent border-transparent text-slate-900 font-medium px-0';
   };
 
   const renderFundedField = (content: React.ReactNode) => {
@@ -335,6 +253,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </button>
           </div>
         </div>
+        
         {/* Revision Deadline Banner */}
         {proposal.status === 'revise' && (
           <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
@@ -342,10 +261,36 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             Deadline for Revision: {proposal.deadline || '2024-12-31 23:59'}
           </div>
         )}
+
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
           
-          {/* 1. Status Banner & Comments */}
+          {/* 1. NEW: Start Milestone Action (Only if Funded) */}
+          {isFunded && (
+             <div className="bg-purple-50 rounded-xl border border-purple-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden group">
+                {/* Decorative Background Icon */}
+                <Rocket className="absolute -right-4 -bottom-4 w-32 h-32 text-purple-100 opacity-50 group-hover:rotate-12 transition-transform duration-700" />
+                
+                <div className="relative z-10">
+                   <h3 className="text-lg font-bold text-purple-900 mb-1 flex items-center gap-2">
+                      <Rocket className="w-5 h-5 text-purple-600" /> Ready for Implementation?
+                   </h3>
+                   <p className="text-sm text-purple-700 max-w-md">
+                      This project has been fully funded. You can now proceed to track your progress, manage budget utilization, and submit reports.
+                   </p>
+                </div>
+                
+                <button 
+                   onClick={onManageMilestones}
+                   className="relative z-10 flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 whitespace-nowrap"
+                >
+                   <Play className="w-4 h-4 fill-current" />
+                   Start Your Milestone
+                </button>
+             </div>
+          )}
+
+          {/* 2. Status Banner & Comments */}
           {(proposal.status === 'revise' || proposal.status === 'reject') && (
             <div className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}>
               <h3 className={`text-sm font-bold ${theme.text} mb-3 flex items-center gap-2`}>
@@ -355,11 +300,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 {activeComments.map((c, i) => {
                   const isRevision = proposal.status === 'revise';
                   const isOverall = c.section === 'Overall Comments';
-                  
-                  const cardBg = (isRevision && !isOverall) 
-                    ? 'bg-white border-white/50 shadow-sm' 
-                    : 'bg-white/60 border-white/50';
-                  
+                  const cardBg = (isRevision && !isOverall) ? 'bg-white border-white/50 shadow-sm' : 'bg-white/60 border-white/50';
                   const textStyle = (isRevision && isOverall) ? 'italic' : '';
 
                   return (
@@ -375,7 +316,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           )}
 
-          {/* 2. File Management Section */}
+          {/* 3. File Management Section */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -442,16 +383,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Proponent & Agency Details */}
+          {/* 4. Proponent & Agency Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Proponent Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
                 <User className="w-4 h-4 text-[#C8102E]" /> Proponent Details
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-500  font-bold tracking-wider">Name</label>
+                  <label className="text-xs text-slate-500 font-bold tracking-wider">Name</label>
                   <div className="mt-1">
                     {canEdit ? (
                       <input 
@@ -465,9 +405,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     )}
                   </div>
                 </div>
+                {/* ... existing gender/phone inputs ... */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-500  font-bold tracking-wider">Gender</label>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider">Gender</label>
                     <div className="mt-1">
                       {canEdit ? (
                         <select 
@@ -519,12 +460,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
 
-            {/* Agency Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-[#C8102E]" /> Agency Information
               </h3>
               <div className="space-y-3">
+                 {/* ... existing agency inputs ... */}
                 <div>
                   <label className="text-xs text-slate-500 font-bold tracking-wider">Agency</label>
                   <div className="mt-1">
@@ -579,7 +520,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
 
-          {/* 4. Project Details Grid */}
+          {/* 5. Project Details Grid */}
           <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
               {[
@@ -610,9 +551,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
 
-          {/* 5. Schedule & Budget */}
+          {/* 6. Schedule & Budget */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Schedule */}
             <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#C8102E]" /> Schedule
@@ -621,7 +561,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Duration</p>
                   {canEdit ? (
-                    // Duration is read-only when editing because it is auto-calculated
                     <input 
                       type="text" 
                       value={currentData.duration} 
@@ -657,7 +596,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
 
-            {/* Budget Table */}
             <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -691,7 +629,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           <td key={key} className={`px-3 py-2 ${key !== 'source' ? 'text-right' : ''}`}>
                             {canEdit ? (
                               key === 'total' ? (
-                                // Total is calculated automatically, read-only
                                 <span className="text-xs font-bold text-slate-900">{budget.total}</span>
                               ) : (
                                 <input 

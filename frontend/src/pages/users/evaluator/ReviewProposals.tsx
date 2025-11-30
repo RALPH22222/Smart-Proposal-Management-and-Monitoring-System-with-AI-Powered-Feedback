@@ -11,7 +11,6 @@ import {
   Tag,
   Filter,
 } from "lucide-react";
-import Sidebar from "../../../components/evaluator-component/EvaluatorSide";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 
 export default function EndorsedProposals() {
@@ -393,193 +392,193 @@ export default function EndorsedProposals() {
   const proposal = endorsedProposals.find((p) => p.id === selectedProposal);
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 overflow-hidden pt-16 lg:pt-6">
-        <header className="flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                Review Proposals
-              </h1>
-              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Track proposals that have been submitted for evaluation review.
-              </p>
-            </div>
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+      {/* Header */}
+      <header className="flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+              Review Proposals
+            </h1>
+            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+              Track proposals that have been submitted for evaluation review.
+            </p>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <section
-          className="flex-shrink-0"
-          aria-label="Filter endorsed proposals"
-        >
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search proposals..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Search endorsed proposals"
+      {/* Filter Section */}
+      <section
+        className="flex-shrink-0"
+        aria-label="Filter endorsed proposals"
+      >
+        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <div className="relative flex-1 max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search
+                  className="h-4 w-4 text-slate-400"
+                  aria-hidden="true"
                 />
               </div>
+              <input
+                type="text"
+                placeholder="Search proposals..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                aria-label="Search endorsed proposals"
+              />
+            </div>
 
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Filter
-                    className="h-4 w-4 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Filter by project type"
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter
+                  className="h-4 w-4 text-slate-400"
+                  aria-hidden="true"
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                aria-label="Filter by project type"
+              >
+                <option value="All">All Types</option>
+                <option value="ICT">ICT</option>
+                <option value="Energy">Energy</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Agriculture">Agriculture</option>
+                <option value="Public Safety">Public Safety</option>
+                <option value="Environment">Environment</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 text-xs text-slate-600">
+            Showing {sortedFiltered.length} of {endorsedProposals.length}{" "}
+            proposals for review
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Table */}
+      <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <div className="p-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#C8102E]" />
+              Review Proposals
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <CheckCircle className="w-4 h-4" />
+              <span>{endorsedProposals.length} total for review</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {paginatedProposals.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {paginatedProposals.map((proposal) => (
+                <article
+                  key={proposal.id}
+                  className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                 >
-                  <option value="All">All Types</option>
-                  <option value="ICT">ICT</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Agriculture">Agriculture</option>
-                  <option value="Public Safety">Public Safety</option>
-                  <option value="Environment">Environment</option>
-                </select>
-              </div>
-            </div>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
+                          {proposal.title}
+                        </h2>
 
-            <div className="mt-4 text-xs text-slate-600">
-              Showing {sortedFiltered.length} of {endorsedProposals.length}{" "}
-              proposals for review
-            </div>
-          </div>
-        </section>
-
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#C8102E]" />
-                Review Proposals
-              </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <CheckCircle className="w-4 h-4" />
-                <span>{endorsedProposals.length} total for review</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {paginatedProposals.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {paginatedProposals.map((proposal) => (
-                  <article
-                    key={proposal.id}
-                    className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
-                  >
-                    <div className="flex flex-col gap-4">
-                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
-                            {proposal.title}
-                          </h2>
-
-                          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                              <User className="w-3 h-3" />
-                              <span>{proposal.proponent}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-red-600 font-semibold">
-                              <Clock className="w-3 h-3" />
-                              <span>Review by: {proposal.reviewDeadline}</span>
-                            </div>
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                                proposal.projectType
-                              )}`}
-                            >
-                              <Tag className="w-3 h-3" />
-                              {proposal.projectType}
-                            </span>
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                          <div className="flex items-center gap-1.5">
+                            <User className="w-3 h-3" />
+                            <span>{proposal.proponent}</span>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => handleReviewClick(proposal.id)}
-                            className="inline-flex items-center justify-center gap-1 px-4 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 transition-all text-xs font-medium cursor-pointer"
+                          <div className="flex items-center gap-1.5 text-red-600 font-semibold">
+                            <Clock className="w-3 h-3" />
+                            <span>Review by: {proposal.reviewDeadline}</span>
+                          </div>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
+                              proposal.projectType
+                            )}`}
                           >
-                            <Eye className="w-3 h-3" />
-                            Review
-                          </button>
+                            <Tag className="w-3 h-3" />
+                            {proposal.projectType}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 px-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No proposals found
-                </h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  {search
-                    ? "Try adjusting your search criteria."
-                    : "No proposals have been reviewed yet."}
-                </p>
-              </div>
-            )}
-          </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-              <span>
-                Showing {startIndex + 1}-
-                {Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
-                {sortedFiltered.length} proposals
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  }
-                  disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  Previous
-                </button>
-                <span>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
-                >
-                  Next
-                  <ChevronRight className="w-3 h-3" />
-                </button>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleReviewClick(proposal.id)}
+                          className="inline-flex items-center justify-center gap-1 px-4 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 transition-all text-xs font-medium cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3" />
+                          Review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 px-4">
+              <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-slate-400" />
               </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No proposals found
+              </h3>
+              <p className="text-slate-500 max-w-sm mx-auto">
+                {search
+                  ? "Try adjusting your search criteria."
+                  : "No proposals have been reviewed yet."}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+            <span>
+              Showing {startIndex + 1}-
+              {Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
+              {sortedFiltered.length} proposals
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.max(prev - 1, 1))
+                }
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                Previous
+              </button>
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
+              >
+                Next
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       {/* Review Modal */}
       {/* Passing "any" to bypass strict type check for mock data if needed, but the structure matches ReviewModal's expectation */}
