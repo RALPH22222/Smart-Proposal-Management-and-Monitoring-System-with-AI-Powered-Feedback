@@ -14,7 +14,6 @@ export const handler = buildCorsHeaders(async (event) => {
   const Bucket = process.env.PROPOSAL_BUCKET_NAME;
 
   const payload = await multipart.parse(event);
-  console.log("payload: ", JSON.stringify(payload, null, 2));
 
   const { files, ...body } = payload;
 
