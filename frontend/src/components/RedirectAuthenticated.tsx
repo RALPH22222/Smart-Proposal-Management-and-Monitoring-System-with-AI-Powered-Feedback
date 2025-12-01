@@ -5,7 +5,7 @@ const RedirectAuthenticated: React.FC = () => {
 
   if (_user) {
     const user = JSON.parse(_user);
-    return <Navigate to={`/users/${user.role}/dashboard`} replace />;
+    return <Navigate to={`/users/${user.role}/${user.role}MainLayout`} replace />;
   }
 
   return <Outlet />;

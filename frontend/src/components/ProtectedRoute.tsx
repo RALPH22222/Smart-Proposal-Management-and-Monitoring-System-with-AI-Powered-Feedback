@@ -25,16 +25,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
         if (roles && !roles.includes(user.role)) {
           switch (user.role) {
             case Role.PROPONENT:
-              navigate("/users/proponent/profile");
+              navigate("/users/proponent/proponentMainLayout");
               break;
             case Role.EVALUATOR:
-              navigate("/users/evaluator/dashboard");
+              navigate("/users/evaluator/evaluatorMainLayout");
               break;
             case Role.RND:
-              navigate("/users/rnd/dashboard");
+              navigate("/users/rnd/rndMainLayout");
               break;
             case Role.ADMIN:
-              navigate("/users/admin/dashboard");
+              navigate("/users/admin/adminMainLayout");
               break;
             default: {
               Swal.fire({

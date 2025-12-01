@@ -13,13 +13,13 @@ import FAQ from "./pages/faqs";
 import AdminMainLayout from "./pages/users/admin/AdminMainLayout";
 
 // R&D
-import RndMainLayout from "./pages/users/rnd/RnDMainLayout";
+import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 
 // Evaluator
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
@@ -47,23 +47,23 @@ function App() {
 
             {/* Admin */}
             <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
-              <Route path="/users/admin/AdminMainLayout" element={<AdminMainLayout />} />
+              <Route path="/users/admin/adminMainLayout" element={<AdminMainLayout />} />
             </Route>
 
             {/* Evaluator */}
             <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
-              <Route path="/users/evaluator/EvaluatorMainLayout" element={<EvaluatorMainLayout />} />
+              <Route path="/users/evaluator/evaluatorMainLayout" element={<EvaluatorMainLayout />} />
             </Route>
 
             {/* R&D */}
             <Route element={<ProtectedRoute roles={[Role.RND]} />}>
-              <Route path="/users/rnd/RndMainLayout" element={<RndMainLayout />} />
+              <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
             </Route>
 
             {/* Proponent */}
-            {/* <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}> */}
-              <Route path="/users/proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
-            {/* </Route> */}
+            <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
+              <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
+            </Route>
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>
