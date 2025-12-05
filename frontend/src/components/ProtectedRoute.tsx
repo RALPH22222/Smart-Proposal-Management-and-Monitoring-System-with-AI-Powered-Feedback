@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   // Verify token and authorization
   // 1. Check if user is authenticated -> call veriyToken API
   // 2. Check if user has required roles (if roles prop is provided)
-  // 3. If not authenticated or not authorized, redirect to login page
+  // 3. If not authenticated or not authorized, redirect to login pageas
   useEffect(() => {
     const verifyAuthentication = async () => {
       const user = await verifyToken();

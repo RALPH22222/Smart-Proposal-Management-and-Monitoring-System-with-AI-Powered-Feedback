@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
 
