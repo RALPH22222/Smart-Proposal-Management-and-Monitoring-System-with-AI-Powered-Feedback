@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X } from "lucide-react";
+import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;
@@ -11,6 +12,8 @@ const accent = "#C10003";
 const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { logout } = useAuthContext();
 
   const mainLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,6 +27,10 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     { id: "settings", label: "Settings", icon: Settings },
     { id: "logout", label: "Logout", icon: LogOut },
   ];
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <>
@@ -86,7 +93,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
                   }}
                   onMouseEnter={() => setHoveredItem(ln.id)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
+                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
                     isActive
                       ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
                       : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
@@ -135,12 +142,12 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
                 <button
                   key={ln.id}
                   onClick={() => {
-                    onPageChange(ln.id);
+                    handleLogout();
                     setIsMobileMenuOpen(false);
                   }}
                   onMouseEnter={() => setHoveredItem(ln.id)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
+                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
                     isActive
                       ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
                       : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"

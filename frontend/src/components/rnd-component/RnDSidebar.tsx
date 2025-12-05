@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { type Statistics } from '../../types/InterfaceProposal';
+import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;
@@ -28,6 +29,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const accent = "#C10003";
 
+  const { logout } = useAuthContext();
+
   const mainLinks = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'proposals', label: 'Proposals', icon: FileText },
@@ -40,6 +43,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'logout', label: 'Logout', icon: LogOut },
   ];
+
+  const handleLogout = () => {
+    logout();
+  };
 
   // Mobile menu toggle button
   const MobileToggleButton = () => (
@@ -88,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => onPageChange(item.id)}
+                  onClick={() => handleLogout()}
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`group relative flex items-center justify-center p-3 rounded-xl text-sm font-medium transition-all duration-300 transform ${
@@ -234,7 +241,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => {
-                    onPageChange(item.id);
+                    handleLogout();
                     setIsMobileMenuOpen(false);
                   }}
                   onMouseEnter={() => setHoveredItem(item.id)}

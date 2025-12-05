@@ -10,6 +10,7 @@ import {
   LogOut,
   Bell,
 } from "lucide-react";
+import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;
@@ -21,6 +22,8 @@ const accent = "#C10003";
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { logout } = useAuthContext();
 
   // Define navigation items with IDs
   const mainLinks = [
@@ -54,6 +57,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
     { id: "settings", label: "Settings", icon: Settings },
     { id: "logout", label: "Logout", icon: LogOut },
   ];
+
+  const handleLogout = () => {
+    logout();
+  };
 
   return (
     <>
@@ -175,7 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
                 <button
                   key={ln.id}
                   onClick={() => {
-                    onPageChange(ln.id);
+                    handleLogout();
                     setIsMobileMenuOpen(false);
                   }}
                   onMouseEnter={() => setHoveredItem(ln.id)}
