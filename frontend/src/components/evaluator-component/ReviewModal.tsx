@@ -12,8 +12,8 @@ import {
   MapPin,
   Phone,
   Mail,
-  Clock,      // Added
-  GitBranch,  // Added
+  Clock,  
+  GitBranch,  
 } from "lucide-react";
 
 const RATING_CRITERIA = {
@@ -76,7 +76,7 @@ interface Proposal {
   address: string;
   telephone: string;
   email: string;
-  status: string; // Added status to interface to support the logic
+  status: string;
   agency: string;
   cooperatingAgencies: string;
   rdStation: string;

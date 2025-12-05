@@ -19,7 +19,7 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
@@ -36,34 +36,34 @@ function App() {
           <LocationWatcher />
           <Routes>
             {/* Public Routes */}
-            <Route element={<RedirectAuthenticated />}>
+            {/* <Route element={<RedirectAuthenticated />}> */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/about" element={<About />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/faqs" element={<FAQ />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
-            </Route>
+            {/* </Route> */}
 
             {/* Admin */}
-            <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
+            {/* <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}> */}
               <Route path="/users/admin/adminMainLayout" element={<AdminMainLayout />} />
-            </Route>
+            {/* </Route> */}
 
             {/* Evaluator */}
-            <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
+            {/* <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}> */}
               <Route path="/users/evaluator/evaluatorMainLayout" element={<EvaluatorMainLayout />} />
-            </Route>
+            {/* </Route> */}
 
             {/* R&D */}
-            <Route element={<ProtectedRoute roles={[Role.RND]} />}>
+            {/* <Route element={<ProtectedRoute roles={[Role.RND]} />}> */}
               <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
-            </Route>
+            {/* </Route> */}
 
             {/* Proponent */}
-            <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
+            {/* <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}> */}
               <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
-            </Route>
+            {/* </Route> */}
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>

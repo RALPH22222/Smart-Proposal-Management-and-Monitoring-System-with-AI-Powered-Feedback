@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FaFileAlt,
-  FaCalendarAlt,
-  FaBuilding,
-  FaPhone,
-  FaEnvelope,
-  FaUniversity,
-  FaTags,
-  FaTimes
-} from 'react-icons/fa';
+  FileText,
+  Building2,
+  Phone,
+  Mail,
+  Users,
+  Tags,
+  X,
+  Clock
+} from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 
 interface BasicInformationProps {
@@ -61,18 +61,31 @@ const tagsOptions = [
   { id: 15, name: 'Other' },
 ];
 
+const durationOptions = [
+  '3 months',
+  '6 months',
+  '1 year',
+  '2 years',
+  '3 years'
+];
+
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange }) => {
   const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
   const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
+  const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false); // New state for duration dropdown
+
   const [agencySearchTerm, setAgencySearchTerm] = useState('');
   const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState('');
   const [tagsSearchTerm, setTagsSearchTerm] = useState('');
+  
   const [selectedAgencies, setSelectedAgencies] = useState<{ id: number; name: string }[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
   const [filteredAgencies, setFilteredAgencies] = useState(agenciesList);
   const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState(agenciesList);
   const [filteredTags, setFilteredTags] = useState(tagsOptions);
+  const [filteredDurationOptions, setFilteredDurationOptions] = useState(durationOptions); // New state for filtered durations
 
   // Filter agencies based on search term for Agency Name
   useEffect(() => {
@@ -97,6 +110,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     );
     setFilteredTags(filtered);
   }, [tagsSearchTerm]);
+
+  // Filter duration based on input
+  useEffect(() => {
+    const filtered = durationOptions.filter(d => 
+      d.toLowerCase().includes((formData.duration || '').toLowerCase())
+    );
+    setFilteredDurationOptions(filtered);
+  }, [formData.duration]);
 
   // Handle agency selection for Cooperating Agencies
   const handleAgencySelect = (agency: { id: number; name: string }) => {
@@ -212,6 +233,18 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onInputChange(fakeEvent);
   };
 
+  // Handle Duration Selection
+  const handleDurationSelect = (value: string) => {
+    const fakeEvent = {
+      target: {
+        name: 'duration',
+        value: value
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(fakeEvent);
+    setIsDurationDropdownOpen(false);
+  };
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -228,6 +261,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       if (!target.closest('.tags-dropdown-container')) {
         setIsTagsDropdownOpen(false);
       }
+
+      if (!target.closest('.duration-dropdown-container')) {
+        setIsDurationDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -239,7 +276,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
-            <FaFileAlt className="text-[#C8102E] text-xl" />
+            <FileText className="text-[#C8102E] w-5 h-5" />
           </div>
           Basic Information
         </h2>
@@ -272,36 +309,75 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             placeholder="Enter project title"
           />
         </div>
+
+        {/* Replaced Sex with School Year */}
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Select Sex *</label>
-          <select
-            name="leaderGender"
-            value={formData.leaderGender}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-          >
-            <option value="">Select Sex</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Prefer not to say</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Duration (months) *</label>
+          <label className="block text-sm font-semibold text-gray-700">School Year *</label>
           <input
-            type="number"
-            name="duration"
-            value={formData.duration}
+            type="text"
+            name="schoolYear"
+            value={(formData as any).schoolYear || ''}
             onChange={onInputChange}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-            placeholder="Enter duration"
+            placeholder="e.g. 2023-2024"
           />
+        </div>
+
+        {/* Duration Dropdown Field */}
+        <div className="space-y-2 duration-dropdown-container">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Clock className="text-gray-400 w-4 h-4" />
+            Duration *
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              name="duration"
+              value={formData.duration}
+              onChange={(e) => {
+                onInputChange(e);
+                setIsDurationDropdownOpen(true);
+              }}
+              onFocus={() => setIsDurationDropdownOpen(true)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+              placeholder="e.g., 6 months, 1 year"
+            />
+            
+            {/* Duration Dropdown */}
+            {isDurationDropdownOpen && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {/* Standard Options */}
+                {filteredDurationOptions.map((opt) => (
+                  <div
+                    key={opt}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                    onClick={() => handleDurationSelect(opt)}
+                  >
+                    <span className="text-sm text-gray-700">{opt}</span>
+                  </div>
+                ))}
+                
+                {/* Add Custom Option if it doesn't match strict option */}
+                {formData.duration && !durationOptions.some(opt => opt.toLowerCase() === formData.duration.toLowerCase()) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDurationSelect(formData.duration)}
+                    className="w-full px-4 py-3 text-left text-sm text-[#C8102E] hover:bg-gray-50 transition-colors duration-200 flex items-center gap-2 border-t border-gray-100"
+                  >
+                    <span className="font-medium">+ Add "</span>
+                    <span className="font-semibold">{formData.duration}</span>
+                    <span className="font-medium">" as duration</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Updated Agency Name Field with Dropdown */}
         <div className="md:col-span-2 space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaBuilding className="text-gray-400" />
+            <Building2 className="text-gray-400 w-4 h-4" />
             Agency/Address *
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -354,7 +430,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         
         <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <FaPhone className="text-gray-400" />
+              <Phone className="text-gray-400 w-4 h-4" />
               Telephone *
             </label>
             <input
@@ -369,7 +445,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           
         <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <FaEnvelope className="text-gray-400" />
+              <Mail className="text-gray-400 w-4 h-4" />
               Email *
             </label>
             <input
@@ -383,10 +459,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
       </div>
 
-      {/* Updated Cooperating Agencies Section */}
+      {/* Cooperating Agencies Section */}
       <div className="space-y-2 cooperating-agency-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaUniversity className="text-gray-400" />
+          <Users className="text-gray-400 w-4 h-4" />
           Cooperating Agencies
         </label>
         
@@ -404,7 +480,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   onClick={() => handleAgencyRemove(agency.id)}
                   className="hover:text-[#C8102E]/70 transition-colors duration-200 text-base font-semibold"
                 >
-                  ×
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             ))}
@@ -481,7 +557,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Tags Input Section */}
       <div className="space-y-2 tags-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaTags className="text-gray-400" />
+          <Tags className="text-gray-400 w-4 h-4" />
           Tags
         </label>
         
@@ -493,14 +569,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 key={index}
                 className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm"
               >
-                <FaTags className="w-3 h-3" />
+                <Tags className="w-3 h-3" />
                 <span>{tag}</span>
                 <button
                   type="button"
                   onClick={() => handleTagRemove(tag)}
                   className="hover:text-blue-600 transition-colors duration-200 text-base font-semibold"
                 >
-                  <FaTimes className="w-3 h-3" />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             ))}
@@ -529,7 +605,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   onClick={() => handleTagSelect(tag)}
                 >
                   <div className="flex items-center gap-3">
-                    <FaTags className="w-4 h-4 text-gray-400" />
+                    <Tags className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-700">{tag.name}</span>
                     {selectedTags.includes(tag.name) && (
                       <div className="ml-auto w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -539,35 +615,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaCalendarAlt className="text-gray-400" />
-            Planned Start Date *
-          </label>
-          <input
-            type="date"
-            name="plannedStartDate"
-            value={formData.plannedStartDate}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaCalendarAlt className="text-gray-400" />
-            Planned End Date *
-          </label>
-          <input
-            type="date"
-            name="plannedEndDate"
-            value={formData.plannedEndDate}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-          />
         </div>
       </div>
     </div>
