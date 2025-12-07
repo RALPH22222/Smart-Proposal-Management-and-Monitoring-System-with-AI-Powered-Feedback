@@ -43,7 +43,7 @@ export default function Login() {
       });
       setEmail("");
       setPassword("");
-      navigate("/users/proponent/proponentMainLayout");
+      navigate("/profile-setup");
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",

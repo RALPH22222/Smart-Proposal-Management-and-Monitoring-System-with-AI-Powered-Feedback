@@ -2,7 +2,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Register from "./auth/register";
 import Login from "./auth/login";
-
+import ProfileSetup from "./auth/profileSetup";
 // Public
 import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
@@ -43,6 +43,7 @@ function App() {
               <Route path="/faqs" element={<FAQ />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile-setup" element={<ProfileSetup />} />
             </Route>
 
             {/* Admin */}
