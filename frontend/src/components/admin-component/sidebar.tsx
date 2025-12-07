@@ -82,18 +82,18 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
         <nav className="flex flex-col gap-2 flex-1">
           {/* Main Navigation Links */}
           <div className="space-y-1">
-            {mainLinks.map((ln) => {
-              const Icon = ln.icon;
-              const isActive = currentPage === ln.id;
+            {mainLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
 
               return (
                 <button
-                  key={ln.id}
+                  key={item.id}
                   onClick={() => {
-                    onPageChange(ln.id);
+                    onPageChange(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  onMouseEnter={() => setHoveredItem(ln.id)}
+                  onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
                     isActive
@@ -104,29 +104,29 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.id ? "scale-110" : ""}`}
+                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === item.id ? "scale-110" : ""}`}
                       style={{ color: accent }}
                     />
                     {/* Animated glow effect */}
                     <div
                       className={`absolute inset-0 w-5 h-5 rounded-full transition-opacity duration-300 ${
-                        hoveredItem === ln.id ? "opacity-20" : "opacity-0"
+                        hoveredItem === item.id ? "opacity-20" : "opacity-0"
                       }`}
                       style={{ backgroundColor: accent, filter: "blur(8px)" }}
                     />
                   </div>
-                  <span className="flex-1">{ln.label}</span>
-                  {ln.badge && (
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
                     <span
                       className={`px-2 py-1 text-xs font-bold rounded-full transition-all duration-300 ${
-                        ln.badge === "!"
+                        item.badge === "!"
                           ? "bg-red-500 text-white animate-pulse"
-                          : ln.badge === "NEW"
+                          : item.badge === "NEW"
                             ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
                             : "bg-red-100 text-red-600"
-                      } ${hoveredItem === ln.id ? "scale-110" : ""}`}
+                      } ${hoveredItem === item.id ? "scale-110" : ""}`}
                     >
-                      {ln.badge}
+                      {item.badge}
                     </span>
                   )}
                 </button>
@@ -136,18 +136,22 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
 
           {/* Bottom Links */}
           <div className="mt-auto pt-4 border-t border-gray-200/60 space-y-1">
-            {bottomLinks.map((ln) => {
-              const Icon = ln.icon;
-              const isActive = currentPage === ln.id;
+            {bottomLinks.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
 
               return (
                 <button
-                  key={ln.id}
+                  key={item.id}
                   onClick={() => {
-                    handleLogout();
+                    if(item.id === "logout") {
+                      handleLogout();
+                    } else {
+                      onPageChange(item.id);
+                    }
                     setIsMobileMenuOpen(false);
                   }}
-                  onMouseEnter={() => setHoveredItem(ln.id)}
+                  onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
                     isActive
@@ -158,11 +162,11 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === ln.id ? "scale-110" : ""}`}
+                      className={`w-5 h-5 transition-all duration-300 ${hoveredItem === item.id ? "scale-110" : ""}`}
                       style={{ color: accent }}
                     />
                   </div>
-                  <span className="flex-1">{ln.label}</span>
+                  <span className="flex-1">{item.label}</span>
                 </button>
               );
             })}
