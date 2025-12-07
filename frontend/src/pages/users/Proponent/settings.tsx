@@ -1,10 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, LayoutDashboard, Shuffle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import {
   changeMyPassword,
   getMyProfile,
   updateMyAvatar,
-  updateMyName, // You will likely need to replace this with a new function like 'updateProfileDetails' in your service
+  updateMyName, 
   type UserProfile
 } from '../../../services/user/userService';
 
@@ -22,7 +24,6 @@ const DEPARTMENTS = [
 const ROLES = ["Lead Proponent", "Co-Lead Proponent"];
 
 // --- Extended Interface ---
-// Extending the UserProfile to include the new fields from ProfileSetup
 interface ExtendedUserProfile extends UserProfile {
   firstName?: string;
   middleInitial?: string;
@@ -34,6 +35,7 @@ interface ExtendedUserProfile extends UserProfile {
 }
 
 const Settings: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,6 @@ const Settings: React.FC = () => {
         const me = await getMyProfile() as ExtendedUserProfile;
         setProfile(me);
         
-        // Map existing profile data to form state
         setFormData({
             firstName: me.firstName || '',
             middleInitial: me.middleInitial || '',
@@ -114,17 +115,9 @@ const Settings: React.FC = () => {
       return;
     }
 
-    // TODO: You need to implement 'updateProfileDetails' in your userService to accept these fields
-    // For now, I am using 'updateMyName' as a placeholder for where the API call goes.
-    // const updated = await withFeedback(
-    //   () => updateProfileDetails(formData), 
-    //   'Profile updated successfully'
-    // );
-    
-    // Placeholder using existing function (will only save name until you update service)
     const fullName = `${formData.firstName} ${formData.lastName}`;
     const updated = await withFeedback(
-        () => updateMyName(fullName), // REPLACE THIS with your new service call
+        () => updateMyName(fullName),
         'Profile updated'
     );
 
@@ -163,12 +156,42 @@ const Settings: React.FC = () => {
     setConfirmPassword('');
   };
 
+  // --- ROLE SWITCH HANDLER ---
+  const handleSwitchRole = (targetRole: 'proponent' | 'evaluator' | 'rnd') => {
+    Swal.fire({
+      title: 'Switch Workspace?',
+      text: `You are about to switch to the ${targetRole.toUpperCase()} view.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#C8102E',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Yes, switch',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        let path = '';
+        switch (targetRole) {
+          case 'evaluator':
+            path = '/users/evaluator/evaluatorMainLayout';
+            break;
+          case 'rnd':
+            path = '/users/rnd/rndMainLayout';
+            break;
+          case 'proponent':
+          default:
+            path = '/users/proponent/proponentMainLayout';
+            break;
+        }
+        navigate(path);
+      }
+    });
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <header className='mb-6'>
         <h1 className='text-2xl font-bold text-gray-800'>Account Settings</h1>
         <p className='text-sm text-gray-500'>
-          Manage your personal information and academic details.
+          Manage your personal information, academic details, and workspace roles.
         </p>
       </header>
 
@@ -217,7 +240,7 @@ const Settings: React.FC = () => {
          </div>
       </section>
 
-      {/* --- Main Profile Form (Replicates Profile Setup) --- */}
+      {/* --- Main Profile Form --- */}
       <form onSubmit={onSaveProfile}>
         
         {/* Personal Info */}
@@ -337,7 +360,51 @@ const Settings: React.FC = () => {
 
       </form>
 
-      {/* --- Security Section (Kept as standard settings feature) --- */}
+      {/* --- Switch Role Section --- */}
+      <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6'>
+        <div className="flex items-center gap-3 mb-4 border-b pb-2">
+            <Shuffle className="text-gray-800" size={20} />
+            <h2 className='text-lg font-medium text-gray-800'>Switch Workspace</h2>
+        </div>
+        
+        <p className="text-sm text-gray-600 mb-4">
+            Access different dashboards based on your assigned roles.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Proponent Button */}
+            <button
+                type="button"
+                onClick={() => handleSwitchRole('proponent')}
+                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
+            >
+                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
+                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">Proponent</span>
+            </button>
+
+            {/* Evaluator Button */}
+            <button
+                type="button"
+                onClick={() => handleSwitchRole('evaluator')}
+                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
+            >
+                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
+                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">Evaluator</span>
+            </button>
+
+            {/* RND Button */}
+            <button
+                type="button"
+                onClick={() => handleSwitchRole('rnd')}
+                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
+            >
+                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
+                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">RND</span>
+            </button>
+        </div>
+      </section>
+
+      {/* --- Security Section --- */}
       <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6'>
         <h2 className='text-lg font-medium text-gray-800 mb-4 border-b pb-2'>Security</h2>
         <form
@@ -360,7 +427,7 @@ const Settings: React.FC = () => {
               className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
             />
           </div>
-          <div></div> {/* Spacer */}
+          <div></div> 
           
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
