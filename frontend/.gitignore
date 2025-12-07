@@ -25,4 +25,8 @@ dist-ssr
 *.sw?
 
 
+<<<<<<< Updated upstream
 .env
+=======
+.env
+>>>>>>> Stashed changes
