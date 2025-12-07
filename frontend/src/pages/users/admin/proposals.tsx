@@ -7,10 +7,10 @@ import {
   type Reviewer
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
-import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
-import DetailedProposalModal from '../../../components/rnd-component/RndViewModal';
+import ProposalModal from '../../../components/admin-component/AdminProposalModal';
+import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 
-interface ReviewPageProps {
+interface AdminProposalPageProps {
   filter?: ProposalStatus;
   onStatsUpdate?: () => void;
 }
@@ -18,7 +18,7 @@ interface ReviewPageProps {
 // Extended Status type to include Revised Proposal locally for this view
 type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal';
 
-const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
+const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUpdate }) => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +222,7 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
 
   return (  
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col p-6 gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -437,4 +437,4 @@ const ReviewPage: React.FC<ReviewPageProps> = ({ filter, onStatsUpdate }) => {
   );
 };
 
-export default ReviewPage;
+export default AdminProposalPage;

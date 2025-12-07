@@ -8,6 +8,7 @@ import {
   Users,
   Send,
   Eye,
+  Beaker 
 } from 'lucide-react';
 import {
   type Proposal,
@@ -21,7 +22,7 @@ import {
 import { type Evaluator } from '../../types/evaluator';
 import templatePDF from '../../assets/template/DOST-Template.pdf';
 
-interface RnDProposalModalProps {
+interface AdminProposalModalProps {
   proposal: Proposal | null;
   isOpen: boolean;
   onClose: () => void;
@@ -31,7 +32,7 @@ interface RnDProposalModalProps {
   currentUser: Reviewer;
 }
 
-const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
+const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   proposal,
   isOpen,
   onClose,
@@ -82,7 +83,37 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     }
   ];
 
-  const [decision, setDecision] = useState<DecisionType>('Sent to Evaluators');
+  const rndStaffList: Evaluator[] = [
+    {
+      id: 'rnd-1',
+      name: 'Dr. R&D Lead',
+      department: 'R&D',
+      specialty: ['Research Management'],
+      availabilityStatus: 'Available',
+      currentWorkload: 3,
+      maxWorkload: 10,
+      rating: 5.0,
+      completedReviews: 50,
+      email: 'rnd.lead@wmsu.edu.ph',
+      agency: 'WMSU - R&D Center'
+    },
+    {
+      id: 'rnd-2',
+      name: 'Ms. R&D Specialist',
+      department: 'R&D',
+      specialty: ['Project Monitoring'],
+      availabilityStatus: 'Available',
+      currentWorkload: 1,
+      maxWorkload: 5,
+      rating: 4.7,
+      completedReviews: 12,
+      email: 'rnd.spec@wmsu.edu.ph',
+      agency: 'WMSU - R&D Center'
+    }
+  ];
+
+  // Explicit type definition to support the extra option and avoid TS errors
+  const [decision, setDecision] = useState<DecisionType | 'Assign to RnD'>('Assign to RnD');
   const [evaluationDeadline, setEvaluationDeadline] = useState('14');
   const [structuredComments, setStructuredComments] =
     useState<StructuredComments>({
@@ -130,17 +161,19 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [selectedEvaluator, setSelectedEvaluator] = useState<Evaluator | null>(null);
   const [selectedEvaluators, setSelectedEvaluators] = useState<Evaluator[]>([]);
 
+  // R&D Staff Assignment State
+  const [selectedRnDStaff, setSelectedRnDStaff] = useState<Evaluator | null>(null);
+
   const [showAnonymitySelection, setShowAnonymitySelection] = useState(false);
   const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both'>('both');
 
   const [activeSection, setActiveSection] = useState<string>('objectives');
   const [typingSection, setTypingSection] = useState<string>('');
 
-  // --- FIXED: Reset modal state ONLY when proposal ID changes ---
-  // Using proposal?.id prevents the modal from resetting while you type if the parent re-renders
+  // Reset modal state when proposal changes or modal opens
   useEffect(() => {
     if (isOpen && proposal) {
-      setDecision('Sent to Evaluators');
+      setDecision('Assign to RnD');
       setEvaluationDeadline('14');
       setStructuredComments({
         objectives: {
@@ -184,8 +217,9 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       setShowAnonymitySelection(false);
       setShowProponentInfo('both');
       setSelectedEvaluators([]);
+      setSelectedRnDStaff(null);
     }
-  }, [isOpen, proposal?.id, currentUser.name]);
+  }, [isOpen, proposal, currentUser.name]);
 
   // Set default comment for reject decision
   useEffect(() => {
@@ -246,21 +280,22 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
     if (!proposal) return;
 
-    if (decision === 'Sent to Evaluators' && userRole === 'R&D Staff') {
+    if (decision === 'Sent to Evaluators') {
       handleForwardToEvaluators();
       return;
     }
+
     const decisionData: Decision = {
       proposalId: proposal.id,
-      decision: decision as DecisionType,
+      decision: decision as any,
       structuredComments,
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
       evaluationDeadline:
-        decision === 'Sent to Evaluators' || decision === 'Revision Required'
+        decision === 'Revision Required' || decision === 'Assign to RnD'
           ? new Date(
-              Date.now() + parseInt(evaluationDeadline) * 24 * 60 * 60 * 1000
+              Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000
             ).toISOString()
           : undefined
     };
@@ -273,11 +308,6 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     setShowAnonymitySelection(true);
   };
 
-  const handleAnonymitySelection = (option: 'name' | 'agency' | 'both') => {
-    setShowProponentInfo(option);
-  };
-
-  // --- FIXED: Actual Submission Logic for Anonymity Modal ---
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
@@ -301,12 +331,12 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     onClose();
   };
 
-  const getDecisionButtonText = (decisionType: DecisionType) => {
+  const getDecisionButtonText = (decisionType: DecisionType | 'Assign to RnD') => {
     switch (decisionType) {
+      case 'Assign to RnD':
+        return 'Assign to R&D Staff';
       case 'Sent to Evaluators':
-        return userRole === 'R&D Staff'
-          ? 'Sent to Evaluators'
-          : 'Approve Proposal';
+        return 'Sent to Evaluators'; // FIXED: Changed from "Approve Proposal" to "Sent to Evaluators"
       case 'Revision Required':
         return 'Send back to Proponent with Feedback';
       case 'Rejected Proposal':
@@ -454,10 +484,11 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                   <div className='space-y-2'>
                     {(
                       [
+                        'Assign to RnD',
                         'Sent to Evaluators',
                         'Revision Required',
                         'Rejected Proposal'
-                      ] as DecisionType[]
+                      ] as (DecisionType | 'Assign to RnD')[]
                     ).map((option) => (
                       <label
                         key={option}
@@ -469,14 +500,16 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                           value={option}
                           checked={decision === option}
                           onChange={(e) =>
-                            setDecision(e.target.value as DecisionType)
+                            setDecision(e.target.value as DecisionType | 'Assign to RnD')
                           }
                           className='w-3 h-3 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
                         />
                         <div className='ml-2 flex-1'>
                           <span
                             className={`text-xs font-medium ${
-                              option === 'Sent to Evaluators'
+                              option === 'Assign to RnD'
+                                ? 'text-blue-700'
+                                : option === 'Sent to Evaluators'
                                 ? 'text-green-700'
                                 : option === 'Revision Required'
                                 ? 'text-orange-700'
@@ -492,15 +525,17 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                 </div>
 
                 {/* Time Limit Section */}
-                {(decision === 'Sent to Evaluators' || decision === 'Revision Required') && (
+                {(decision === 'Sent to Evaluators' || decision === 'Revision Required' || decision === 'Assign to RnD') && (
                   <div className='p-4 border-b border-gray-200'>
                     <h4 className='text-base font-semibold text-gray-800 mb-3'>
-                      {decision === 'Sent to Evaluators' ? 'Evaluation Time Limit' : 'Revision Time Limit'}
+                      {decision === 'Sent to Evaluators' ? 'Evaluation Time Limit' : 'Assignment/Revision Time Limit'}
                     </h4>
                     <div className='space-y-2'>
                       <label className='block text-xs font-medium text-gray-700'>
                         {decision === 'Sent to Evaluators'
                           ? 'Deadline for evaluators to complete review:'
+                          : decision === 'Assign to RnD'
+                          ? 'Deadline for R&D staff to complete task:'
                           : 'Deadline for proponent to submit revision:'}
                       </label>
                       <select
@@ -515,8 +550,43 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       <p className='text-xs text-gray-500'>
                         {decision === 'Sent to Evaluators'
                           ? 'Evaluators will be notified of this deadline when the proposal is assigned to them.'
+                          : decision === 'Assign to RnD'
+                          ? 'Assigned R&D staff will be notified of this deadline.'
                           : 'The proponent will be notified of this deadline for their revision.'}
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* R&D Staff Assignment Section - Only show for "Assign to RnD" */}
+                {decision === 'Assign to RnD' && (
+                  <div className='p-4 border-b border-gray-200'>
+                    <h4 className='text-base font-semibold text-gray-800 mb-3'>
+                       R&D Staff Assignment
+                    </h4>
+                    <div className='mb-3'>
+                        <label className='block text-xs font-medium text-gray-700 mb-1'>
+                          Select R&D Staff
+                        </label>
+                        <div className='flex items-center gap-2'>
+                          <select
+                            value={selectedRnDStaff?.id || ''}
+                            onChange={(e) => {
+                              const selected = rndStaffList.find(
+                                (staff) => staff.id === e.target.value
+                              );
+                              setSelectedRnDStaff(selected || null);
+                            }}
+                            className='flex-1 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] focus:border-transparent'
+                          >
+                            <option value=''>-- Choose Staff --</option>
+                            {rndStaffList.map((staff) => (
+                              <option key={staff.id} value={staff.id}>
+                                {staff.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                     </div>
                   </div>
                 )}
@@ -758,8 +828,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     >
                       Cancel
                     </button>
-                    {decision === 'Sent to Evaluators' &&
-                    userRole === 'R&D Staff' ? (
+                    {decision === 'Sent to Evaluators' ? (
                       <button
                         type='button'
                         onClick={handleForwardToEvaluators}
@@ -768,6 +837,14 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         <Send className='w-3 h-3' />
                         <span>Forward to Evaluators</span>
                       </button>
+                    ) : decision === 'Assign to RnD' ? (
+                        <button
+                          type='submit'
+                          className='w-full px-3 py-2 text-xs text-white bg-[#C10003] hover:bg-[#A00002] rounded-lg transition-colors font-medium flex items-center justify-center gap-1'
+                        >
+                           <Beaker className='w-3 h-3' />
+                           <span>Assign to R&D</span>
+                        </button>
                     ) : (
                       <button
                         type='submit'
@@ -807,7 +884,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     name='proponentInfo'
                     value='both'
                     checked={showProponentInfo === 'both'}
-                    onChange={() => handleAnonymitySelection('both')}
+                    onChange={() => setShowProponentInfo('both')}
                     className='w-4 h-4 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
                   />
                   <div className='ml-3 flex-1'>
@@ -822,7 +899,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     name='proponentInfo'
                     value='name'
                     checked={showProponentInfo === 'name'}
-                    onChange={() => handleAnonymitySelection('name')}
+                    onChange={() => setShowProponentInfo('name')}
                     className='w-4 h-4 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
                   />
                   <div className='ml-3 flex-1'>
@@ -837,7 +914,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     name='proponentInfo'
                     value='agency'
                     checked={showProponentInfo === 'agency'}
-                    onChange={() => handleAnonymitySelection('agency')}
+                    onChange={() => setShowProponentInfo('agency')}
                     className='w-4 h-4 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
                   />
                   <div className='ml-3 flex-1'>
@@ -869,4 +946,4 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   );
 };
 
-export default RnDProposalModal;
+export default AdminProposalModal;

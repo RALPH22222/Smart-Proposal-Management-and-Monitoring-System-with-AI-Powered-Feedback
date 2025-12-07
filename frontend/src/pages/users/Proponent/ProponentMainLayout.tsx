@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom"; // Import useSearchParams
+import { useSearchParams } from "react-router-dom";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
 
 // Import Page Components
@@ -8,10 +8,8 @@ import Settings from "./settings";
 import Monitoring from "./monitoring";
 
 const ProponentMainLayout: React.FC = () => {
-  // Use search params to control the "page" state without changing routes in App.tsx
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Get current tab from URL, default to 'submission'
   const currentTab = searchParams.get("tab") || "submission";
 
   const handlePageChange = (page: string) => {
