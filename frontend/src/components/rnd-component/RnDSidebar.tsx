@@ -241,7 +241,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => {
-                    handleLogout();
+                    if(item.id === "logout") {
+                      handleLogout();
+                    } else {
+                      onPageChange(item.id);
+                    }
                     setIsMobileMenuOpen(false);
                   }}
                   onMouseEnter={() => setHoveredItem(item.id)}
