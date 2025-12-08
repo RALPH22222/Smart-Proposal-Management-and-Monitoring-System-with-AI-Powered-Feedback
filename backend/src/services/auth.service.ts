@@ -13,13 +13,13 @@ export class AuthService {
     return { data, error };
   }
 
-  async signup({ email, password, role, first_name, last_name }: SignUpInput) {
+  async signup({ email, password, roles, first_name, last_name }: SignUpInput) {
     const { data, error } = await this.db!.auth.signUp({
       email: email,
       password: password,
       options: {
         data: {
-          role,
+          roles,
           first_name,
           last_name,
         },
