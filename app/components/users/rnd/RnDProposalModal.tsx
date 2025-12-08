@@ -99,7 +99,7 @@ export interface Evaluator {
 }
 
 interface EnhancedProposalModalProps {
-  proposal: Proposal | null;
+  proposal: Proposal | null; // Allow null here for safety
   isOpen: boolean;
   onClose: () => void;
   onSubmitDecision: (decision: Decision) => void;
@@ -273,9 +273,12 @@ const EnhancedProposalModal: React.FC<EnhancedProposalModalProps> = ({
   };
 
   const confirmEvaluatorAssignment = () => {
+    // FIX: Add safety check to ensure proposal exists
+    if (!proposal) return;
+
     const deadlineIso = new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString();
     const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' } = {
-      proposalId: proposal!.id,
+      proposalId: proposal.id,
       decision: 'Sent to Evaluators',
       structuredComments,
       attachments: [],
