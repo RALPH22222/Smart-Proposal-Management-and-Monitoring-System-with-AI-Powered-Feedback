@@ -2,7 +2,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Register from "./auth/register";
 import Login from "./auth/login";
-
+import ProfileSetup from "./auth/profileSetup";
 // Public
 import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
@@ -13,7 +13,7 @@ import FAQ from "./pages/faqs";
 import AdminMainLayout from "./pages/users/admin/AdminMainLayout";
 
 // R&D
-import RndMainLayout from "./pages/users/rnd/RnDMainLayout";
+import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 
 // Evaluator
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
@@ -43,26 +43,27 @@ function App() {
               <Route path="/faqs" element={<FAQ />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile-setup" element={<ProfileSetup />} />
             </Route>
 
             {/* Admin */}
             <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
-              <Route path="/users/admin/AdminMainLayout" element={<AdminMainLayout />} />
+              <Route path="/users/admin/adminMainLayout" element={<AdminMainLayout />} />
             </Route>
 
             {/* Evaluator */}
             <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
-              <Route path="/users/evaluator/EvaluatorMainLayout" element={<EvaluatorMainLayout />} />
+              <Route path="/users/evaluator/evaluatorMainLayout" element={<EvaluatorMainLayout />} />
             </Route>
 
             {/* R&D */}
             <Route element={<ProtectedRoute roles={[Role.RND]} />}>
-              <Route path="/users/rnd/RndMainLayout" element={<RndMainLayout />} />
+              <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
             </Route>
 
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
-              <Route path="/users/proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
+              <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
             </Route>
           </Routes>
           <LoadingOverlay />

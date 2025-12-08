@@ -31,7 +31,7 @@ export interface FormData {
     pilotTesting?: boolean;
     techPromotion?: boolean;
   };
-  developmentType: 'coconutIndustry' | 'otherPriorityAreas' | '';
+  developmentType: 'pilotTesting' | 'techPromotion' | '';
   
   implementationMode: {
     singleAgency: boolean;

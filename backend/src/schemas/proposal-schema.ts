@@ -73,18 +73,9 @@ export const proposalSchema = z.object({
 
 export const forwardToEvaluatorsSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
-  evaluator_id: z
-    .array(z.string().min(1))
-    .nonempty("At least one evaluator is required"),
-  deadline_at: z
-    .number()
-    .int()
-    .positive()
-    .max(90, "Deadline cannot be more than 90 days"),
-  commentsForEvaluators: z
-    .string()
-    .max(2000, "Comments are too long")
-    .optional(),
+  evaluator_id: z.array(z.string().min(1)).nonempty("At least one evaluator is required"),
+  deadline_at: z.number().int().positive().max(90, "Deadline cannot be more than 90 days"),
+  commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
 });
 
 export const proposalVersionSchema = z.object({
@@ -96,7 +87,5 @@ export const proposalStatusSchema = z.enum(Status);
 export const proposalEvaluatorStatusSchema = z.enum(EvaluatorStatus);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
-export type ForwardToEvaluatorsInput = z.infer<
-  typeof forwardToEvaluatorsSchema
->;
+export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
 export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;

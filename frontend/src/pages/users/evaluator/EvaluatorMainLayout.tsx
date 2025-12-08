@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useSearchParams } from "react-router-dom";
 import Sidebar from '../../../components/evaluator-component/EvaluatorSide';
 import Dashboard from './DashboardEvaluator';
 import ReviewPage from './ReviewProposals';  
@@ -8,10 +8,16 @@ import Notifications from './Notifications';
 import Settings from './Settings';
 
 const EvaluatorLayout: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentTab = searchParams.get("tab") || "submission";
+
+  const handlePageChange = (page: string) => {
+    setSearchParams({ tab: page });
+  };
 
   const renderContent = () => {
-    switch (currentPage) {
+    switch (currentTab) {
       case 'dashboard':
         return <Dashboard />;
       case 'proposals':
@@ -33,8 +39,8 @@ const EvaluatorLayout: React.FC = () => {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
-        currentPage={currentPage} 
-        onPageChange={setCurrentPage}
+        currentPage={currentTab} 
+        onPageChange={handlePageChange}
       />
 
       {/* Main Content Area */}

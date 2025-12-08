@@ -120,10 +120,10 @@ const LandingPage: React.FC = () => {
              </span>
            </div>
            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
-             Research Oversight Ethics Commitee
+              Research Development & Evaluation Center
            </h2>
            <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-             The central hub REOC for research excellence at Western Mindanao State University. 
+             The central hub RDEC for research excellence at Western Mindanao State University. 
              We facilitate innovative research projects, provide administrative support, 
              and ensure compliance with academic standards and funding requirements.
            </p>

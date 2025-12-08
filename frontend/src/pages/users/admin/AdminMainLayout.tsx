@@ -1,31 +1,42 @@
-import React, { useState } from 'react';
-import AdminSidebar from '../../../components/admin-component/sidebar';
+import { useSearchParams } from "react-router-dom";
+import AdminSidebar from "../../../components/admin-component/sidebar";
 
-// Import Pages
-import Dashboard from './dashboard';
-import Accounts from './accounts';
-import Contents from './contents';
-import Reports from './dashboard';
-import Settings from './accounts';
-import System from './contents';
+import Dashboard from "./dashboard";
+import Accounts from "./accounts";
+import Contents from "./contents";
+import Reports from "./reports";
+import Settings from "./settings";
+import System from "./system";
+import Proposals from "./proposals"
+import Evaluators from "./evaluator"
 
 const AdminLayout: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentTab = searchParams.get("tab") || "dashboard";
+
+  const handlePageChange = (page: string) => {
+    setSearchParams({ tab: page });
+  };
 
   const renderContent = () => {
-    switch (currentPage) {
-      case 'dashboard':
+    switch (currentTab) {
+      case "dashboard":
         return <Dashboard />;
-      case 'accounts':
+      case "accounts":
         return <Accounts />;
-      case 'contents':
+      case "proposals":
+        return <Proposals />;   
+      case "evaluators":
+        return <Evaluators />;    
+      case "contents":
         return <Contents />;
-      case 'reports':
+      case "reports":
         return <Reports />;
-      case 'system':
-        return <Settings />;
-      case 'settings':
+      case "system":
         return <System />;
+      case "settings":
+        return <Settings />;
       default:
         return <Dashboard />;
     }
@@ -33,16 +44,11 @@ const AdminLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-      {/* 1. Sidebar - Controlled by props */}
-      <AdminSidebar 
-        currentPage={currentPage} 
-        onPageChange={setCurrentPage} 
-      />
+      {/* Sidebar - Controlled by props */}
+      <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} />
 
-      {/* 2. Main Content Area */}
-      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">
-        {renderContent()}
-      </main>
+      {/* Main Content Area */}
+      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">{renderContent()}</main>
     </div>
   );
 };

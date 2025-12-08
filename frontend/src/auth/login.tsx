@@ -43,7 +43,7 @@ export default function Login() {
       });
       setEmail("");
       setPassword("");
-      navigate("/users/proponent/ProponentMainLayout");
+      navigate("/profile-setup");
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
@@ -58,16 +58,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       <div className="order-2 md:order-1 w-full md:w-1/2 flex items-center justify-center bg-white p-8">
-        <form
-          onSubmit={handleLogin}
-          className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4"
-        >
+        <form onSubmit={handleLogin} className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4">
           <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
             Sign in
           </h2>
-          <p className="text-sm text-gray-600">
-            Use your institutional account or continue with Google.
-          </p>
+          <p className="text-sm text-gray-600">Use your institutional account or continue with Google.</p>
 
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Email</span>
@@ -151,8 +146,7 @@ export default function Login() {
             Project Proposal
           </h1>
           <p className="text-sm opacity-90 px-4 md:px-0 hover:opacity-100 transition-opacity duration-300">
-            Create, submit and track project proposals — fast, simple, and
-            secure.
+            Create, submit and track project proposals — fast, simple, and secure.
           </p>
         </div>
       </div>

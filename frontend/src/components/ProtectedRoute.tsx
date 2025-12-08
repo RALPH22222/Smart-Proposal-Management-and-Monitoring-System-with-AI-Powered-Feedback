@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   // Verify token and authorization
   // 1. Check if user is authenticated -> call veriyToken API
   // 2. Check if user has required roles (if roles prop is provided)
-  // 3. If not authenticated or not authorized, redirect to login page
+  // 3. If not authenticated or not authorized, redirect to login pageas
   useEffect(() => {
     const verifyAuthentication = async () => {
       const user = await verifyToken();
@@ -25,16 +25,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
         if (roles && !roles.includes(user.role)) {
           switch (user.role) {
             case Role.PROPONENT:
-              navigate("/users/proponent/profile");
+              navigate("/users/proponent/proponentMainLayout");
               break;
             case Role.EVALUATOR:
-              navigate("/users/evaluator/dashboard");
+              navigate("/users/evaluator/evaluatorMainLayout");
               break;
             case Role.RND:
-              navigate("/users/rnd/dashboard");
+              navigate("/users/rnd/rndMainLayout");
               break;
             case Role.ADMIN:
-              navigate("/users/admin/dashboard");
+              navigate("/users/admin/adminMainLayout");
               break;
             default: {
               Swal.fire({

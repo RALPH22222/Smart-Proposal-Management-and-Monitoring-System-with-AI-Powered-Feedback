@@ -581,7 +581,6 @@ export default function EndorsedProposals() {
       </main>
 
       {/* Review Modal */}
-      {/* Passing "any" to bypass strict type check for mock data if needed, but the structure matches ReviewModal's expectation */}
       {proposal && (
         <ReviewModal
           isOpen={!!selectedProposal}

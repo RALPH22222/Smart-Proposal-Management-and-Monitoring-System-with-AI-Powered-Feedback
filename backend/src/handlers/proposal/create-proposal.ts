@@ -52,11 +52,11 @@ export const handler = buildCorsHeaders(async (event) => {
   }
 
   // Upload file to S3 bucket
-  const Key = `proposals/${proposal.id}/${proposal_file.name}`;
+  const Key = `proposals/${proposal.id}/${proposal_file.filename}`;
   const command = new PutObjectCommand({
     Bucket,
     Key,
-    Body: proposal_file,
+    Body: files[0].content,
   });
   await s3Client.send(command);
 

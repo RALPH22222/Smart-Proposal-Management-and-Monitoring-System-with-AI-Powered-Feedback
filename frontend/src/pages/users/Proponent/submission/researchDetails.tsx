@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  FaFlask,
-  FaUniversity,
-  FaTag,
-  FaGraduationCap,
-  FaCog,
-  FaStar,
-  FaSearch,
-  FaRocket,
-  FaFolderOpen
-} from 'react-icons/fa';
+  FlaskConical,
+  University,
+  Tag,
+  GraduationCap,
+  Settings,
+  Star,
+  Search,
+  Rocket,
+  FolderOpen,
+  Plus,
+  X
+} from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 
 interface ResearchDetailsProps {
@@ -17,7 +19,7 @@ interface ResearchDetailsProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-// Predefined options for dropdowns
+// Predefined options
 const researchStations = [
   'College of Computing Studies',
   'Agricultural Research Center',
@@ -51,299 +53,293 @@ const disciplines = [
   'Medical Technology and ICT'
 ];
 
+// Default Priority Areas Labels
+const defaultPriorities = [
+  'Stand',
+  'Coconut Industry',
+  'Export Winners',
+  'Support Industries'
+];
+
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChange }) => {
-  // State for dropdowns
+  // --- State ---
   const [isResearchStationOpen, setIsResearchStationOpen] = useState(false);
   const [isSectorOpen, setIsSectorOpen] = useState(false);
   const [isDisciplineOpen, setIsDisciplineOpen] = useState(false);
-  
+
   const [researchStationSearch, setResearchStationSearch] = useState('');
   const [sectorSearch, setSectorSearch] = useState('');
   const [disciplineSearch, setDisciplineSearch] = useState('');
-  
+
   const [filteredResearchStations, setFilteredResearchStations] = useState(researchStations);
   const [filteredSectors, setFilteredSectors] = useState(sectors);
   const [filteredDisciplines, setFilteredDisciplines] = useState(disciplines);
 
-  // Filter research stations based on search
+  // Custom Input States
+  const [customResearchType, setCustomResearchType] = useState('');
+  const [customDevelopmentType, setCustomDevelopmentType] = useState('');
+  const [customPriorityInput, setCustomPriorityInput] = useState('');
+
+  // Refs for click outside
+  const researchStationRef = useRef<HTMLDivElement>(null);
+  const sectorRef = useRef<HTMLDivElement>(null);
+  const disciplineRef = useRef<HTMLDivElement>(null);
+
+  // --- Effects ---
+
+  // Filtering effects
   useEffect(() => {
-    const filtered = researchStations.filter(station =>
-      station.toLowerCase().includes(researchStationSearch.toLowerCase())
-    );
-    setFilteredResearchStations(filtered);
+    setFilteredResearchStations(researchStations.filter(s => s.toLowerCase().includes(researchStationSearch.toLowerCase())));
   }, [researchStationSearch]);
 
-  // Filter sectors based on search
   useEffect(() => {
-    const filtered = sectors.filter(sector =>
-      sector.toLowerCase().includes(sectorSearch.toLowerCase())
-    );
-    setFilteredSectors(filtered);
+    setFilteredSectors(sectors.filter(s => s.toLowerCase().includes(sectorSearch.toLowerCase())));
   }, [sectorSearch]);
 
-  // Filter disciplines based on search
   useEffect(() => {
-    const filtered = disciplines.filter(discipline =>
-      discipline.toLowerCase().includes(disciplineSearch.toLowerCase())
-    );
-    setFilteredDisciplines(filtered);
+    setFilteredDisciplines(disciplines.filter(d => d.toLowerCase().includes(disciplineSearch.toLowerCase())));
   }, [disciplineSearch]);
 
-  // Handle research station selection
-  const handleResearchStationSelect = (station: string) => {
-    const fakeEvent = {
-      target: {
-        name: 'researchStation',
-        value: station
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-    setResearchStationSearch(station);
-    setIsResearchStationOpen(false);
-  };
-
-  // Handle sector selection
-  const handleSectorSelect = (sector: string) => {
-    const fakeEvent = {
-      target: {
-        name: 'sectorCommodity',
-        value: sector
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-    setSectorSearch(sector);
-    setIsSectorOpen(false);
-  };
-
-  // Handle discipline selection
-  const handleDisciplineSelect = (discipline: string) => {
-    const fakeEvent = {
-      target: {
-        name: 'discipline',
-        value: discipline
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-    setDisciplineSearch(discipline);
-    setIsDisciplineOpen(false);
-  };
-
-  // Handle custom input for research station
-  const handleResearchStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setResearchStationSearch(e.target.value);
-    
-    const fakeEvent = {
-      target: {
-        name: 'researchStation',
-        value: e.target.value
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-  };
-
-  // Handle custom input for sector
-  const handleSectorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSectorSearch(e.target.value);
-    
-    const fakeEvent = {
-      target: {
-        name: 'sectorCommodity',
-        value: e.target.value
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-  };
-
-  // Handle custom input for discipline
-  const handleDisciplineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDisciplineSearch(e.target.value);
-    
-    const fakeEvent = {
-      target: {
-        name: 'discipline',
-        value: e.target.value
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-  };
-
-  // Handle Mode of Implementation as single select (only Single Agency and Multi Agency)
-  const handleImplementationModeChange = (mode: 'singleAgency' | 'multiAgency') => {
-    // Create a new object with both modes set to false, then set the selected one to true
-    const newImplementationMode = {
-      singleAgency: mode === 'singleAgency',
-      multiAgency: mode === 'multiAgency'
-    };
-    
-    const fakeEvent = {
-      target: {
-        name: 'implementationMode',
-        value: newImplementationMode
-      }
-    } as any;
-    
-    onInputChange(fakeEvent);
-  };
-
-  // Close dropdowns when clicking outside
+  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      
-      if (!target.closest('.research-station-dropdown')) {
-        setIsResearchStationOpen(false);
-      }
-      
-      if (!target.closest('.sector-dropdown')) {
-        setIsSectorOpen(false);
-      }
-      
-      if (!target.closest('.discipline-dropdown')) {
-        setIsDisciplineOpen(false);
-      }
+      if (researchStationRef.current && !researchStationRef.current.contains(event.target as Node)) setIsResearchStationOpen(false);
+      if (sectorRef.current && !sectorRef.current.contains(event.target as Node)) setIsSectorOpen(false);
+      if (disciplineRef.current && !disciplineRef.current.contains(event.target as Node)) setIsDisciplineOpen(false);
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // --- Handlers ---
+
+  // Text Input Handlers (Station, Sector, Discipline)
+  const handleTextSelect = (name: string, value: string, setSearch: (s: string) => void, setOpen: (b: boolean) => void) => {
+    const fakeEvent = { target: { name, value } } as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(fakeEvent);
+    setSearch(value);
+    setOpen(false);
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>, setSearch: (s: string) => void) => {
+    setSearch(e.target.value);
+    onInputChange(e);
+  };
+
+  // Classification Handlers
+  const handleResearchTypeChange = (type: 'basic' | 'applied' | 'other', customValue?: string) => {
+    const newResearchType = {
+      basic: type === 'basic',
+      applied: type === 'applied',
+      other: type === 'other' ? (customValue || customResearchType) : undefined
+    };
+
+    if (type === 'other' && customValue !== undefined) {
+      setCustomResearchType(customValue);
+    }
+    
+    const fakeEvent = { 
+      target: { 
+        name: 'researchType', 
+        value: newResearchType 
+      } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  const handleDevelopmentTypeChange = (type: 'pilotTesting' | 'techPromotion' | 'other', customValue?: string) => {
+    let valueToSend = type;
+    if (type === 'other') {
+      valueToSend = (customValue || customDevelopmentType) as any; 
+      if (customValue !== undefined) setCustomDevelopmentType(customValue);
+    }
+
+    const fakeEvent = { 
+      target: { 
+        name: 'developmentType', 
+        value: valueToSend 
+      } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Mode of Implementation Handler
+  const handleImplementationModeChange = (mode: 'singleAgency' | 'multiAgency') => {
+    const newMode = {
+      singleAgency: mode === 'singleAgency',
+      multiAgency: mode === 'multiAgency'
+    };
+    
+    const fakeEvent = { 
+      target: { 
+        name: 'implementationMode', 
+        value: newMode 
+      } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Priority Areas Handlers
+  const handlePriorityAreaChange = (key: string, checked: boolean) => {
+    const currentPriorities = formData.priorityAreas || {};
+    const newPriorityAreas = {
+      ...currentPriorities,
+      [key]: checked
+    };
+    
+    const fakeEvent = { 
+      target: { 
+        name: 'priorityAreas', 
+        value: newPriorityAreas 
+      } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  const handleAddCustomPriority = () => {
+    if (!customPriorityInput.trim()) return;
+    
+    // Add new priority area initialized to true
+    handlePriorityAreaChange(customPriorityInput.trim(), true);
+    setCustomPriorityInput('');
+  };
+
+  const handleDeletePriority = (key: string) => {
+    const newPriorityAreas = { ...(formData.priorityAreas || {}) } as Record<string, boolean>;
+    // Explicitly delete key to remove it from the object
+    delete newPriorityAreas[key];
+    
+    const fakeEvent = { 
+      target: { 
+        name: 'priorityAreas', 
+        value: newPriorityAreas 
+      } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(fakeEvent);
+  };
+
+  // Helper to safely check if a priority is selected
+  const isPrioritySelected = (key: string): boolean => {
+    if (!formData.priorityAreas) return false;
+    const areas = formData.priorityAreas as Record<string, boolean>;
+    return areas[key] === true;
+  };
+
+  if (!formData) return <div className="p-4 text-gray-500">Loading...</div>;
+
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div className="max-w-5xl w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">
-            <FaFlask className="text-[#C8102E] text-xl" />
+            <FlaskConical className="text-[#C8102E] w-5 h-5" />
           </div>
           Research Details
         </h2>
-        <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+        <div className="flex items-center gap-2 text-sm text-green-600 font-medium select-none">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
           Required
         </div>
       </div>
 
-      {/* Research & Development Station with Dropdown */}
-      <div className="space-y-2 research-station-dropdown">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaUniversity className="text-gray-400" />
+      {/* Research & Development Station */}
+      <div className="space-y-2" ref={researchStationRef}>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+          <University className="text-gray-400 w-4 h-4" />
           Research & Development Station
         </label>
         <div className="relative">
           <input
             type="text"
             name="researchStation"
-            value={formData.researchStation}
-            onChange={handleResearchStationChange}
+            value={formData.researchStation || ''}
+            onChange={(e) => handleTextChange(e, setResearchStationSearch)}
             onFocus={() => setIsResearchStationOpen(true)}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
             placeholder="Search or type research station"
           />
-          
-          {/* Research Station Dropdown */}
-          {isResearchStationOpen && (
+          {isResearchStationOpen && filteredResearchStations.length > 0 && (
             <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              {filteredResearchStations.length > 0 ? (
-                filteredResearchStations.map((station, index) => (
-                  <div
-                    key={index}
-                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
-                    onClick={() => handleResearchStationSelect(station)}
-                  >
-                    <span className="text-sm text-gray-700">{station}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                  No stations found. You can type a custom research station.
+              {filteredResearchStations.map((station, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 select-none"
+                  onClick={() => handleTextSelect('researchStation', station, setResearchStationSearch, setIsResearchStationOpen)}
+                >
+                  <span className="text-sm text-gray-700">{station}</span>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Sector/Commodity with Dropdown */}
-        <div className="space-y-2 sector-dropdown">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaTag className="text-gray-400" />
+        {/* Sector/Commodity */}
+        <div className="space-y-2" ref={sectorRef}>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+            <Tag className="text-gray-400 w-4 h-4" />
             Sector/Commodity
           </label>
           <div className="relative">
             <input
               type="text"
               name="sectorCommodity"
-              value={formData.sectorCommodity}
-              onChange={handleSectorChange}
+              value={formData.sectorCommodity || ''}
+              onChange={(e) => handleTextChange(e, setSectorSearch)}
               onFocus={() => setIsSectorOpen(true)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
               placeholder="Search or type sector/commodity"
             />
-            
-            {/* Sector Dropdown */}
-            {isSectorOpen && (
+            {isSectorOpen && filteredSectors.length > 0 && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredSectors.length > 0 ? (
-                  filteredSectors.map((sector, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleSectorSelect(sector)}
-                    >
-                      <span className="text-sm text-gray-700">{sector}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                    No sectors found. You can type a custom sector.
+                {filteredSectors.map((sector, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 select-none"
+                    onClick={() => handleTextSelect('sectorCommodity', sector, setSectorSearch, setIsSectorOpen)}
+                  >
+                    <span className="text-sm text-gray-700">{sector}</span>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* Discipline with Dropdown */}
-        <div className="space-y-2 discipline-dropdown">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaGraduationCap className="text-gray-400" />
+        {/* Discipline */}
+        <div className="space-y-2" ref={disciplineRef}>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+            <GraduationCap className="text-gray-400 w-4 h-4" />
             Discipline
           </label>
           <div className="relative">
             <input
               type="text"
               name="discipline"
-              value={formData.discipline}
-              onChange={handleDisciplineChange}
+              value={formData.discipline || ''}
+              onChange={(e) => handleTextChange(e, setDisciplineSearch)}
               onFocus={() => setIsDisciplineOpen(true)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
               placeholder="Search or type discipline"
             />
-            
-            {/* Discipline Dropdown */}
-            {isDisciplineOpen && (
+            {isDisciplineOpen && filteredDisciplines.length > 0 && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredDisciplines.length > 0 ? (
-                  filteredDisciplines.map((discipline, index) => (
-                    <div
-                      key={index}
-                      className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
-                      onClick={() => handleDisciplineSelect(discipline)}
-                    >
-                      <span className="text-sm text-gray-700">{discipline}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                    No disciplines found. You can type a custom discipline.
+                {filteredDisciplines.map((discipline, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 select-none"
+                    onClick={() => handleTextSelect('discipline', discipline, setDisciplineSearch, setIsDisciplineOpen)}
+                  >
+                    <span className="text-sm text-gray-700">{discipline}</span>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -353,209 +349,247 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
       {/* Classification Type Selection */}
       <div className="space-y-6">
         <div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <FaFolderOpen className="text-gray-400" />
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+            <FolderOpen className="text-gray-400 w-4 h-4" />
             Classification Type *
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-              <input
-                type="radio"
-                id="classificationType.research"
-                name="classificationType"
-                checked={formData.classificationType === 'research'}
-                onChange={() => onInputChange({
-                  target: {
-                    name: 'classificationType',
-                    value: 'research'
-                  }
-                } as React.ChangeEvent<HTMLInputElement>)}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-              />
-              <label htmlFor="classificationType.research" className="ml-3 text-sm font-medium text-gray-700">
-                Research Classification
-              </label>
-            </div>
-            <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-              <input
-                type="radio"
-                id="classificationType.development"
-                name="classificationType"
-                checked={formData.classificationType === 'development'}
-                onChange={() => onInputChange({
-                  target: {
-                    name: 'classificationType',
-                    value: 'development'
-                  }
-                } as React.ChangeEvent<HTMLInputElement>)}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-              />
-              <label htmlFor="classificationType.development" className="ml-3 text-sm font-medium text-gray-700">
-                Development Classification
-              </label>
-            </div>
+            {['research', 'development'].map((type) => (
+              <div
+                key={type}
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${
+                  formData.classificationType === type 
+                    ? 'border-black' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => onInputChange({ target: { name: 'classificationType', value: type } } as React.ChangeEvent<HTMLInputElement>)}
+              >
+                <input
+                  type="radio"
+                  name="classificationType"
+                  checked={formData.classificationType === type}
+                  readOnly
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 pointer-events-none"
+                />
+                <span className="ml-3 text-sm font-medium text-gray-700 capitalize">
+                  {type} Classification
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Research Classification - Only shows when Research is selected */}
+        {/* Research Classification */}
         {formData.classificationType === 'research' && (
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <FaSearch className="text-gray-400" />
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+              <Search className="text-gray-400 w-4 h-4" />
               Research Classification *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-                <input
-                  type="radio"
-                  id="researchType.basic"
-                  name="researchType"
-                  checked={formData.researchType.basic}
-                  onChange={() => onInputChange({
-                    target: {
-                      name: 'researchType.basic',
-                      checked: true
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>)}
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-                />
-                <label htmlFor="researchType.basic" className="ml-3 text-sm font-medium text-gray-700">
-                  Basic Research
-                </label>
+              <div 
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.researchType?.basic ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => handleResearchTypeChange('basic')}
+              >
+                <input type="radio" checked={!!formData.researchType?.basic} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                <span className="ml-3 text-sm font-medium text-gray-700">Basic Research</span>
               </div>
-              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-                <input
-                  type="radio"
-                  id="researchType.applied"
-                  name="researchType"
-                  checked={formData.researchType.applied}
-                  onChange={() => onInputChange({
-                    target: {
-                      name: 'researchType.applied',
-                      checked: true
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>)}
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-                />
-                <label htmlFor="researchType.applied" className="ml-3 text-sm font-medium text-gray-700">
-                  Applied Research
-                </label>
+              <div 
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.researchType?.applied ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => handleResearchTypeChange('applied')}
+              >
+                <input type="radio" checked={!!formData.researchType?.applied} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                <span className="ml-3 text-sm font-medium text-gray-700">Applied Research</span>
+              </div>
+              {/* Custom Research Type */}
+              <div 
+                className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none sm:col-span-2 ${(formData.researchType as any)?.other ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                    handleResearchTypeChange('other', customResearchType || 'Custom Type');
+                  }
+                }}
+              >
+                <div className="flex items-center">
+                  <input type="radio" checked={!!(formData.researchType as any)?.other} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                  <span className="ml-3 text-sm font-medium text-gray-700">Other (Specify)</span>
+                </div>
+                {(formData.researchType as any)?.other !== undefined && (
+                  <input
+                    type="text"
+                    value={customResearchType}
+                    onChange={(e) => handleResearchTypeChange('other', e.target.value)}
+                    className="mt-2 ml-8 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1"
+                    placeholder="Enter research classification..."
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Development Classification - Only shows when Development is selected */}
+        {/* Development Classification */}
         {formData.classificationType === 'development' && (
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <FaRocket className="text-gray-400" /> 
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+              <Rocket className="text-gray-400 w-4 h-4" /> 
               Development Classification *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-                <input
-                  type="radio"
-                  id="developmentType.coconutIndustry"
-                  name="developmentType"
-                  checked={formData.developmentType === 'coconutIndustry'}
-                  onChange={() => onInputChange({
-                    target: {
-                      name: 'developmentType',
-                      value: 'coconutIndustry'
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>)}
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-                />
-                <label htmlFor="developmentType.coconutIndustry" className="ml-3 text-sm font-medium text-gray-700">
-                  Coconut Industry
-                </label>
+              <div 
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.developmentType === 'pilotTesting' ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => handleDevelopmentTypeChange('pilotTesting')}
+              >
+                <input type="radio" checked={formData.developmentType === 'pilotTesting'} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                <span className="ml-3 text-sm font-medium text-gray-700">Pilot Testing</span>
               </div>
-              <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-                <input
-                  type="radio"
-                  id="developmentType.otherPriorityAreas"
-                  name="developmentType"
-                  checked={formData.developmentType === 'otherPriorityAreas'}
-                  onChange={() => onInputChange({
-                    target: {
-                      name: 'developmentType',
-                      value: 'otherPriorityAreas'
-                    }
-                  } as React.ChangeEvent<HTMLInputElement>)}
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-                />
-                <label htmlFor="developmentType.otherPriorityAreas" className="ml-3 text-sm font-medium text-gray-700">
-                  Other Priority Areas (Public Safety, SDG5)
-                </label>
+              <div 
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.developmentType === 'techPromotion' ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={() => handleDevelopmentTypeChange('techPromotion')}
+              >
+                <input type="radio" checked={formData.developmentType === 'techPromotion'} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                <span className="ml-3 text-sm font-medium text-gray-700">Technology Promotion/Commercialization</span>
+              </div>
+              {/* Custom Development Type */}
+              <div 
+                className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none sm:col-span-2 ${
+                  formData.developmentType !== 'pilotTesting' && formData.developmentType !== 'techPromotion' 
+                  ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                    handleDevelopmentTypeChange('other', customDevelopmentType || 'Custom Type');
+                  }
+                }}
+              >
+                <div className="flex items-center">
+                  <input type="radio" checked={formData.developmentType !== 'pilotTesting' && formData.developmentType !== 'techPromotion'} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+                  <span className="ml-3 text-sm font-medium text-gray-700">Other (Specify)</span>
+                </div>
+                {(formData.developmentType !== 'pilotTesting' && formData.developmentType !== 'techPromotion') && (
+                  <input
+                    type="text"
+                    value={customDevelopmentType}
+                    onChange={(e) => handleDevelopmentTypeChange('other', e.target.value)}
+                    className="mt-2 ml-8 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1"
+                    placeholder="Enter development classification..."
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Mode of Implementation - Only Single Agency and Multi Agency */}
+      {/* Mode of Implementation */}
       <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaCog className="text-gray-400" />
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+          <Settings className="text-gray-400 w-4 h-4" />
           Mode of Implementation *
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-          {/* Single Agency Option */}
-          <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-            <input
-              type="radio"
-              id="implementationMode.singleAgency"
-              name="implementationMode"
-              checked={formData.implementationMode.singleAgency}
-              onChange={() => handleImplementationModeChange('singleAgency')}
-              className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-            />
-            <label htmlFor="implementationMode.singleAgency" className="ml-3 text-sm font-medium text-gray-700">
-              Single Agency
-            </label>
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.implementationMode?.singleAgency ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleImplementationModeChange('singleAgency')}
+          >
+            <input type="radio" checked={!!formData.implementationMode?.singleAgency} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Single Agency</span>
           </div>
           
-          {/* Multi Agency Option */}
-          <div className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
-            <input
-              type="radio"
-              id="implementationMode.multiAgency"
-              name="implementationMode"
-              checked={formData.implementationMode.multiAgency}
-              onChange={() => handleImplementationModeChange('multiAgency')}
-              className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300"
-            />
-            <label htmlFor="implementationMode.multiAgency" className="ml-3 text-sm font-medium text-gray-700">
-              Multi Agency
-            </label>
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.implementationMode?.multiAgency ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleImplementationModeChange('multiAgency')}
+          >
+            <input type="radio" checked={!!formData.implementationMode?.multiAgency} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Multi Agency</span>
           </div>
         </div>
       </div>
 
+      {/* Priority Areas */}
       <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <FaStar className="text-gray-400" />
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+          <Star className="text-gray-400 w-4 h-4" />
           Priority Areas *
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {Object.entries(formData.priorityAreas).map(([key, value]) => (
-            <div key={key} className="flex items-center p-3 border border-gray-200 rounded-xl hover:border-[#C8102E] transition-colors duration-200">
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {/* Default Options */}
+          {defaultPriorities.map((priority) => (
+            <div 
+              key={priority}
+              className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${
+                isPrioritySelected(priority) ? 'border-black' : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => handlePriorityAreaChange(priority, !isPrioritySelected(priority))}
+            >
               <input
                 type="checkbox"
-                id={`priorityAreas.${key}`}
-                name={`priorityAreas.${key}`}
-                checked={value}
-                onChange={onInputChange}
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded"
+                checked={isPrioritySelected(priority)}
+                readOnly
+                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded pointer-events-none"
               />
-              <label htmlFor={`priorityAreas.${key}`} className="ml-3 text-sm font-medium text-gray-700 capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()}
-              </label>
+              <span className="ml-3 text-sm font-medium text-gray-700">{priority}</span>
+            </div>
+          ))}
+
+          {/* Custom Options (Added by user) - ONLY show if true */}
+          {formData.priorityAreas && Object.entries(formData.priorityAreas as Record<string, boolean>)
+            .filter(([key, value]) => !defaultPriorities.includes(key) && value === true) // Only show if not default AND value is true
+            .map(([key]) => (
+            <div 
+              key={key} 
+              className="flex items-center justify-between p-3 border border-black rounded-xl select-none"
+            >
+              <div className="flex items-center overflow-hidden">
+                <input
+                  type="checkbox"
+                  checked={true}
+                  readOnly
+                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded pointer-events-none flex-shrink-0"
+                />
+                <span className="ml-3 text-sm font-medium text-gray-700 truncate">{key}</span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeletePriority(key);
+                }}
+                className="text-gray-400 hover:text-red-500 transition-colors ml-2"
+              >
+                <X className="cursor-pointer w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
+
+        {/* Add Custom Priority Area */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Add custom priority area..."
+            value={customPriorityInput}
+            onChange={(e) => setCustomPriorityInput(e.target.value)}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddCustomPriority();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleAddCustomPriority}
+            className="px-4 py-2 bg-[#C8102E] text-white rounded-xl hover:bg-[#A00E26] transition-colors flex items-center gap-2 text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" /> Add
+          </button>
+        </div>
       </div>
+
     </div>
   );
 };
