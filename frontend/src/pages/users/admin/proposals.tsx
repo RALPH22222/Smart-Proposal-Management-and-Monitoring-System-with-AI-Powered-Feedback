@@ -1,36 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, User, Eye, Gavel, Filter, Search, ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, RefreshCw, GitBranch } from 'lucide-react';
+import { 
+  FileText, Calendar, User, Eye, Filter, Search, 
+  ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, 
+  RefreshCw, GitBranch, Bot, UserCog, Pen
+} from 'lucide-react';
 import {
   type Proposal,
   type Decision,
   type ProposalStatus,
   type Reviewer
 } from '../../../types/InterfaceProposal';
-import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
+import { adminProposalApi as proposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
+import ChangeRndModal from '../../../components/admin-component/changeRndModal';
 
 interface AdminProposalPageProps {
   filter?: ProposalStatus;
   onStatsUpdate?: () => void;
 }
 
-// Extended Status type to include Revised Proposal locally for this view
-type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal';
+// Extended Status type for the filter dropdown
+type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Unassigned' | 'Assigned to RnD';
 
 const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUpdate }) => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal States
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedProposalForView, setSelectedProposalForView] = useState<Proposal | null>(null);
+  const [selectedProposalForChange, setSelectedProposalForChange] = useState<Proposal | null>(null);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isChangeRdModalOpen, setIsChangeRdModalOpen] = useState(false);
+  
+  // Filter State
   const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const currentUser: Reviewer = { name: 'Dr. John Smith' } as Reviewer;
+  
+  // Mock Current User
+  const currentUser: Reviewer = { name: 'Admin User', role: 'R&D Staff', id: 'admin-1', email: 'admin@wmsu.edu.ph' };
 
   // Load proposals on component mount
   useEffect(() => {
@@ -43,9 +59,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
 
     // Apply status filter
     if (statusFilter !== 'All') {
-      filtered = filtered.filter(
-        (proposal) => proposal.status === statusFilter
-      );
+      if (statusFilter === 'Unassigned') {
+         // Filter for proposals specifically waiting for R&D assignment (Pending + No Staff)
+         filtered = filtered.filter(p => !p.assignedRdStaff && (p.status === 'Pending' || p.status === 'Revised Proposal'));
+      } else {
+         filtered = filtered.filter(proposal => proposal.status === statusFilter);
+      }
     }
 
     // Apply search filter
@@ -66,25 +85,15 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     try {
       setLoading(true);
       const data = await proposalApi.fetchProposals();
-      
-      // --- MOCK DATA TRANSFORMATION FOR DEMO PURPOSES ---
-      // This forces specific statuses to visualize the UI requirements
-      const mockTransformedData = data.map((prop, index) => {
-        if (index === 0) return { ...prop, status: 'Revised Proposal' as ProposalStatus }; // Mock Revised
-        if (index === 1) return { ...prop, status: 'Revision Required' as ProposalStatus }; // Mock Revision Required
-        if (index === 2) return { ...prop, status: 'Sent to Evaluators' as ProposalStatus }; // Mock Sent
-        if (index === 3) return { ...prop, status: 'Pending' as ProposalStatus }; // Changed from Rejected to Pending
-        return prop; // Others remain pending or original status
-      });
-      // --------------------------------------------------
-
-      setProposals(mockTransformedData);
+      setProposals(data);
     } catch (error) {
       console.error('Error loading proposals:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // --- Handlers ---
 
   const handleViewProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal);
@@ -96,21 +105,53 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     setIsViewModalOpen(true);
   };
 
+  // Handler for opening the Change R&D Modal
+  const handleChangeRdStaff = (proposal: Proposal) => {
+    setSelectedProposalForChange(proposal);
+    setIsChangeRdModalOpen(true);
+  }
+
+  // Handler for Confirming Change from ChangeRndModal
+  const confirmRdChange = async (proposalId: string, newStaffName: string) => {
+    // In a real app, API call here
+    
+    // Update local state and set status to 'Assigned to RnD'
+    setProposals(prev => prev.map(p => 
+      p.id === proposalId 
+      ? { 
+          ...p, 
+          assignedRdStaff: newStaffName, 
+          status: 'Assigned to RnD' as ProposalStatus, 
+          lastModified: new Date().toISOString() 
+        } 
+      : p
+    ));
+    setIsChangeRdModalOpen(false);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedProposal(null);
   };
 
+  // Handler for the Main Action Modal
   const handleSubmitDecision = async (decision: Decision) => {
     try {
       await proposalApi.submitDecision(decision);
 
-      const newStatus: ProposalStatus =
-        decision.decision === 'Sent to Evaluators'
-          ? 'Sent to Evaluators'
-          : decision.decision === 'Rejected Proposal'
-          ? 'Rejected Proposal'
-          : 'Revision Required';
+      // Determine new status based on decision
+      let newStatus: ProposalStatus;
+
+      if (decision.decision === 'Sent to Evaluators') {
+        newStatus = 'Sent to Evaluators';
+      } else if (decision.decision === 'Rejected Proposal') {
+        newStatus = 'Rejected Proposal';
+      } else if (decision.decision === 'Revision Required') {
+        newStatus = 'Revision Required';
+      } else {
+        // This handles the "Assign to RnD" decision from the main modal
+        newStatus = 'Assigned to RnD';
+      }
 
       setProposals((prev) =>
         prev.map((proposal) =>
@@ -118,6 +159,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             ? {
                 ...proposal,
                 status: newStatus,
+                // Use existing staff or the selected one if passed (defaulting here for safety)
+                assignedRdStaff: proposal.assignedRdStaff || 'Dr. R&D Lead',
                 lastModified: new Date().toISOString()
               }
             : proposal
@@ -134,57 +177,40 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     }
   };
 
-  const getStatusBadge = (status: ExtendedProposalStatus) => {
+  // --- Helper: Status Badge Logic ---
+  const getStatusBadge = (proposal: Proposal) => {
     const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-  
-    switch (status) {
-      case 'Pending':
-        return (
-          <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>
-            <Clock className="w-3 h-3" />
-            {status}
-          </span>
-        );
+    
+    // Check specific status string
+    switch (proposal.status) {
+      case 'Assigned to RnD': 
+      // Also catch cases where it might still be pending but has staff assigned
+      case 'Pending': 
+        if (proposal.assignedRdStaff) {
+             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}><Bot className="w-3 h-3" />Assigned to RnD</span>;
+        }
+        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}><Clock className="w-3 h-3" />Pending</span>;
+      
       case 'Revised Proposal':
-        return (
-          <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}>
-            <GitBranch className="w-3 h-3" />
-            Revised Proposal
-          </span>
-        );
+        if (proposal.assignedRdStaff) {
+             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}><Bot className="w-3 h-3" />Assigned to RnD</span>;
+        }
+        return <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}><GitBranch className="w-3 h-3" />Revised Proposal</span>;
+      
       case 'Sent to Evaluators':
-        return (
-          <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>
-            <Send className="w-3 h-3" />
-            {status}
-          </span>
-        );
+        return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}><Send className="w-3 h-3" />Sent to Evaluators</span>;
       case 'Rejected Proposal':
-        return (
-          <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}>
-            <XCircle className="w-3 h-3" />
-            {status}
-          </span>
-        );
+        return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}><XCircle className="w-3 h-3" />Rejected Proposal</span>;
       case 'Revision Required':
-        return (
-          <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200`}>
-            <RefreshCw className="w-3 h-3" />
-            {status}
-          </span>
-        );
+        return <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200`}><RefreshCw className="w-3 h-3" />Revision Required</span>;
       default:
-        return (
-          <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}>
-            <FileText className="w-3 h-3" />
-            {status}
-          </span>
-        );
+        return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}><FileText className="w-3 h-3" />{proposal.status}</span>;
     }
   };
 
   const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
     if (status === 'All') return proposals.length;
+    if (status === 'Unassigned') return proposals.filter(p => !p.assignedRdStaff && (p.status === 'Pending' || p.status === 'Revised Proposal')).length;
     return proposals.filter((p) => p.status === status).length;
   };
 
@@ -237,7 +263,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           </div>
         </header>
 
-        {/* Filters and Search */}
+        {/* Filters */}
         <section className="flex-shrink-0" aria-label="Filter proposals">
           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
@@ -261,9 +287,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as ExtendedProposalStatus | 'All')}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
+                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors cursor-pointer"
                 >
                   <option value="All">All Statuses ({getStatusCount('All')})</option>
+                  <option value="Unassigned">Unassigned ({getStatusCount('Unassigned')})</option>
+                  <option value="Assigned to RnD">Assigned to RnD ({getStatusCount('Assigned to RnD')})</option>
                   <option value="Pending">Pending ({getStatusCount('Pending')})</option>
                   <option value="Revised Proposal">Revised Proposal ({getStatusCount('Revised Proposal' as any)})</option>
                   <option value="Revision Required">Revision Required ({getStatusCount('Revision Required')})</option>
@@ -275,8 +303,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           </div>
         </section>
 
-        {/* Proposals List - UPDATED STRUCTURE */}
-        {/* Removed flex-1 and overflow-hidden here to fix whitespace */}
+        {/* Proposals List */}
         <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -300,39 +327,31 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               </div>
             ) : (
-              // NEW TABLE LAYOUT WITHOUT HEADER
               <table className="min-w-full text-left align-middle">
-                {/* REMOVED THEAD FOR CLEANER LOOK */}
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {paginatedProposals.map((proposal) => (
                     <tr
                       key={proposal.id}
                       className="hover:bg-slate-50 transition-colors duration-200 group"
                     >
-                      {/* --- COL 1: DETAILS (Title, Meta Info, Type) --- */}
+                      {/* --- COL 1: DETAILS --- */}
                       <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          {/* UPDATED: font-medium instead of font-bold */}
+                        <div className="flex flex-col gap-2">
                           <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
                             {proposal.title}
                           </span>
 
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                            {/* Proponent */}
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
                               <span>{proposal.submittedBy}</span>
                             </div>
-
-                            {/* Date */}
-                            <div className={`flex items-center gap-1.5 ${proposal.status === 'Pending' ? 'text-[#C8102E] font-medium' : ''}`}>
-                              <Calendar className={`w-3.5 h-3.5 ${proposal.status === 'Pending' ? 'text-[#C8102E]' : 'text-slate-400'}`} />
+                            <div className={'flex items-center gap-1.5'}>
+                              <Calendar className={'w-3.5 h-3.5 text-slate-400'} />
                               <span>
-                                {proposal.status === 'Pending' ? 'Deadline: ' : ''} 
-                                {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
-
                             {/* Project Type Badge */}
                             <span
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(
@@ -346,12 +365,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                         </div>
                       </td>
 
-                      {/* --- COL 2: STATUS & ACTIONS (Right Aligned) --- */}
+                      {/* --- COL 2: ACTIONS (Admin Power) --- */}
                       <td className="px-6 py-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-3">
                           
                           {/* Status Badge */}
-                          {getStatusBadge(proposal.status as ExtendedProposalStatus)}
+                          {getStatusBadge(proposal)}
 
                           {/* Eye Button */}
                           <button
@@ -362,16 +381,33 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                             <Eye className="w-3 h-3" />
                           </button>
 
-                          {/* Action Button */}
-                          {(proposal.status === "Pending" || proposal.status === ("Revised Proposal" as ProposalStatus)) && (
+                          {/* LOGIC FOR BUTTONS:
+                             1. Unassigned + (Pending or Revised) -> Show "Action" (to Assign)
+                             2. Assigned -> Show "Change R&D"
+                          */}
+                          
+                          {/* Case 1: Needs Assignment */}
+                          {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
                             <button
                               onClick={() => handleViewProposal(proposal)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24]"
                             >
-                              <Gavel className="w-3 h-3" />
+                              <Pen className="w-3 h-3" />
                               Action
                             </button>
                           )}
+
+                          {/* Case 2: Already Assigned (Status is Assigned to RnD, OR it has a staff member but hasn't moved to next stage yet) */}
+                          {(proposal.status === 'Assigned to RnD' || (proposal.assignedRdStaff && (proposal.status === 'Pending' || proposal.status === 'Revised Proposal'))) && (
+                             <button
+                               onClick={() => handleChangeRdStaff(proposal)}
+                               className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                             >
+                               <UserCog className="w-3 h-3" />
+                               Change R&D
+                             </button>
+                          )}
+
                         </div>
                       </td>
                     </tr>
@@ -420,7 +456,6 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onSubmitDecision={handleSubmitDecision}
-          userRole='R&D Staff'
           currentUser={currentUser}
         />
 
@@ -431,6 +466,17 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             setIsViewModalOpen(false);
             setSelectedProposalForView(null);
           }}
+        />
+
+        {/* New Change R&D Modal */}
+        <ChangeRndModal 
+          proposal={selectedProposalForChange}
+          isOpen={isChangeRdModalOpen}
+          onClose={() => {
+            setIsChangeRdModalOpen(false);
+            setSelectedProposalForChange(null);
+          }}
+          onConfirm={confirmRdChange}
         />
       </div>
     </div>

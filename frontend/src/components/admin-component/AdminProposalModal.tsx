@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  FileText,
-  User,
-  Calendar,
   Clock,
-  Users,
   Send,
   Eye,
   Beaker 
@@ -16,19 +12,15 @@ import {
   type DecisionType,
   type StructuredComments,
   type CommentSection,
-  type CollaborationSession,
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
-import templatePDF from '../../assets/template/DOST-Template.pdf';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
   isOpen: boolean;
   onClose: () => void;
   onSubmitDecision: (decision: Decision) => void;
-  userRole: 'R&D Staff' | 'Evaluator';
-  collaborationSession?: CollaborationSession;
   currentUser: Reviewer;
 }
 
@@ -37,8 +29,6 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   isOpen,
   onClose,
   onSubmitDecision,
-  userRole,
-  collaborationSession,
   currentUser
 }) => {
   const evaluators: Evaluator[] = [
@@ -390,24 +380,14 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     <>
       {/* Main Modal */}
       <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4'>
-        <div className='bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[100vh] overflow-hidden'>
+        <div className='bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[100vh] overflow-hidden'>
           {/* Modal Header */}
           <div className='p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50'>
             <div className='flex-1 text-gray-600'>
               <div className='flex items-center gap-3 mb-1'>
                 <h2 className='text-lg font-bold text-black'>
-                  {userRole === 'R&D Staff'
-                    ? 'Review Proposal'
-                    : 'Evaluate Proposal'}
+                  'Review Proposal'
                 </h2>
-                {userRole === 'Evaluator' && collaborationSession && (
-                  <div className='flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-2 py-1'>
-                    <Users className='w-3 h-3' />
-                    <span className='text-xs'>
-                      {collaborationSession.activeEvaluators.length} evaluators
-                    </span>
-                  </div>
-                )}
               </div>
               <h3 className='text-base font-medium opacity-90 line-clamp-2'>
                 {proposal.title}
@@ -432,49 +412,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
           </div>
 
           <div className='flex flex-col lg:flex-row h-full max-h-[calc(90vh-64px)] min-h-[500px]'>
-            {/* Document Preview Section */}
-            <div className='flex-1 p-4 lg:border-r border-gray-200 min-h-0 overflow-hidden'>
-              <div className='mb-3 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs text-gray-600'>
-                <div className='flex items-center gap-1'>
-                  <User className='w-3 h-3' />
-                  <span className='truncate'>By: {proposal.submittedBy}</span>
-                </div>
-                <div className='flex items-center gap-1'>
-                  <Calendar className='w-3 h-3' />
-                  <span className='truncate'>
-                    Submitted:{' '}
-                    {new Date(proposal.submittedDate).toLocaleDateString()}
-                  </span>
-                </div>
-                {proposal.rdStaffReviewer && (
-                  <div className='flex items-center gap-1'>
-                    <User className='w-3 h-3' />
-                    <span className='truncate'>
-                      R&D Reviewer: {proposal.rdStaffReviewer}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className='bg-gray-100 rounded-lg h-[100px] min-h-[460px] flex items-center justify-center overflow-hidden'>
-                {proposal.documentUrl ? (
-                <iframe
-                  src={proposal.documentUrl || templatePDF}
-                  className='w-full h-full rounded-lg border-0'
-                  title={`Document for ${proposal.title}`}
-                />
-                ) : (
-                  <div className='text-center text-gray-500'>
-                    <FileText className='w-12 h-12 mx-auto mb-2 opacity-50' />
-                    <p className='text-sm font-medium'>Document Preview</p>
-                    <p className='text-xs'>Document preview would appear here</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Review Form Section */}
-            <div className='w-full lg:w-[450px] border-t lg:border-t-0 border-gray-200 overflow-y-auto'>
+            <div className='w-full border-t lg:border-t-0 border-gray-200 overflow-y-auto'>
               <form onSubmit={handleSubmit} className='h-full flex flex-col'>
                 {/* Decision Options */}
                 <div className='p-4 border-b border-gray-200'>
@@ -628,7 +567,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                       </select>
                     </div>
 
-                    {/* Step 2: Evaluator Dropdown */}
+                    {/* Evaluator Dropdown */}
                     {selectedDepartment && (
                       <div className='mb-3'>
                         <label className='block text-xs font-medium text-gray-700 mb-1'>
@@ -772,23 +711,6 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                           className='w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] focus:border-transparent resize-none'
                           placeholder={`Enter your comments for ${section.title.toLowerCase()}...`}
                         />
-
-                        {/* Typing Indicator */}
-                        {typingSection === section.key &&
-                          userRole === 'Evaluator' && (
-                            <p className='text-xs text-blue-600 mt-1 animate-pulse'>
-                              You are typing...
-                            </p>
-                          )}
-
-                        {/* Collaboration Indicators */}
-                        {userRole === 'Evaluator' &&
-                          collaborationSession?.typingIndicators[section.key] && (
-                            <p className='text-xs text-green-600 mt-1 animate-pulse'>
-                              {collaborationSession.typingIndicators[section.key]}{' '}
-                              is typing...
-                            </p>
-                          )}
                       </div>
                     ))}
                   </div>

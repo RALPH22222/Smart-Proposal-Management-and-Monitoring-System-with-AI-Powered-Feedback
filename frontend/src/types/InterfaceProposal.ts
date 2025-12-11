@@ -21,7 +21,6 @@ export interface Proposal {
       telephone: string;
       fax: string;
       email: string;
-      deadline: string;
       projectType: string;
       agency: string;
       cooperatingAgencies: string;
@@ -47,10 +46,13 @@ export interface Proposal {
 
 export type ProposalStatus =
 	| 'Pending'
-	| 'Under Review'
-	| 'Sent to Evaluators'
-	| 'Revision Required'
-	| 'Rejected Proposal';
+  | 'Under Review'
+  | 'Sent to Evaluators'
+  | 'Revision Required'
+  | 'Rejected Proposal'
+  | 'Revised Proposal'
+	| 'Assigned to RnD'
+  | 'Unassigned';
 
 export type DecisionType =
 	| 'Sent to Evaluators'
@@ -93,6 +95,7 @@ export interface Decision {
 	reviewedBy: string;
 	reviewedDate: string;
 	evaluationDeadline?: string;
+	assignedEvaluators?: string[];
 }
 
 export interface Reviewer {
