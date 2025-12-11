@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Ensure this is imported
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   Building2,
@@ -27,8 +27,9 @@ import {
   CheckCircle,
   Plus,
   Trash2,
-  Play,       
-  Rocket      
+  Play,
+  Users,
+  ShieldCheck // Added for the Co-Lead icon
 } from "lucide-react";
 import type { Proposal, BudgetSource } from '../../types/proponentTypes';
 
@@ -37,7 +38,7 @@ interface DetailedProposalModalProps {
   onClose: () => void;
   proposal: Proposal | null;
   onUpdateProposal?: (proposal: Proposal) => void;
-  onManageMilestones?: () => void; 
+  onManageMilestones?: () => void;
 }
 
 const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
@@ -47,12 +48,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onUpdateProposal,
   onManageMilestones,
 }) => {
-  const navigate = useNavigate(); // 2. Hook initialization
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
-
+  
   useEffect(() => {
     if (proposal) {
       setEditedProposal(proposal);
@@ -166,16 +167,30 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setIsEditing(false);
   };
 
-  // --- 3. FIXED: Navigation Handler ---
-  const handleNavigateToMonitoring = () => {
-    onClose();
-    navigate('/users/proponent/ProponentMainLayout?tab=monitoring'); 
+  // --- START PROJECT HANDLER ---
+  const handleStartImplementation = () => {
+    if (onUpdateProposal && proposal) {
+      // Just confirm and proceed, no need to add new data
+      const updatedProposal: Proposal = { 
+        ...proposal, 
+        status: 'active' 
+      };
+      onUpdateProposal(updatedProposal);
+
+      onClose();
+      navigate('/users/proponent/ProponentMainLayout?tab=monitoring');
+    }
   };
 
   // --- Helper Variables ---
   const currentData = isEditing ? editedProposal : proposal;
   const canEdit = proposal.status === 'revise' && isEditing;
   const isFunded = proposal.status === 'funded';
+
+  // Parse Co-Proponents for Display
+  const coProponentsList = proposal.coProponent 
+    ? proposal.coProponent.split(',').map(s => s.trim()).filter(Boolean) 
+    : [];
 
   // --- Design Helpers ---
   const getStatusTheme = (status: string) => {
@@ -272,29 +287,67 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
           
-          {/* 1. Start Milestone Action (Only if Funded) */}
+          {/* 1. Funded Card - Display Assigned Team & Start */}
           {isFunded && (
-             <div className="bg-purple-50 rounded-xl border border-purple-100 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden group">
-                {/* Decorative Background Icon */}
-                <Rocket className="absolute -right-4 -bottom-4 w-32 h-32 text-purple-100 opacity-50 group-hover:rotate-12 transition-transform duration-700" />
+             <div className="bg-green-50 rounded-xl border border-green-200 p-6 relative overflow-hidden group shadow-sm">
                 
+                {/* Content */}
                 <div className="relative z-10">
-                   <h3 className="text-lg font-bold text-purple-900 mb-1 flex items-center gap-2">
-                      <Rocket className="w-5 h-5 text-purple-600" /> Ready for Implementation?
-                   </h3>
-                   <p className="text-sm text-purple-700 max-w-md">
-                      This project has been fully funded. You can now proceed to track your progress, manage budget utilization, and submit reports.
-                   </p>
+                   <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex-1">
+                         <h3 className="text-lg font-bold text-green-900 mb-2 flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-green-600" /> Project Funding Approved
+                         </h3>
+                         <p className="text-sm text-green-800 leading-relaxed mb-4">
+                            Congratulations! Your project has been fully funded. Below is the confirmed Project Leadership Team as indicated in your proposal. Click start to proceed to the monitoring phase.
+                         </p>
+                      </div>
+
+                      {/* Display Box */}
+                      <div className="w-full md:w-96 bg-white p-5 rounded-lg border border-green-200 shadow-sm flex flex-col justify-between">
+                         <div>
+                            <div className="mb-4">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
+                                   <User className="w-3.5 h-3.5" /> Project Leader
+                                </label>
+                                <div className="bg-slate-50 border border-slate-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
+                                   {proposal.proponent}
+                                </div>
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
+                                   <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader Proponent(s)
+                                </label>
+                                
+                                {coProponentsList.length > 0 ? (
+                                   <div className="flex flex-wrap gap-2">
+                                      {coProponentsList.map((name, index) => (
+                                         <span key={index} className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200">
+                                            {name}
+                                         </span>
+                                      ))}
+                                   </div>
+                                ) : (
+                                   <div className="text-xs text-slate-400 italic bg-slate-50 p-2 rounded border border-slate-100">
+                                      No co-lead proponent indicated.
+                                   </div>
+                                )}
+                            </div>
+                         </div>
+                         
+                         <button
+                            onClick={handleStartImplementation}
+                            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm mt-2"
+                         >
+                            <Play className="w-4 h-4" /> Start Project Implementation
+                         </button>
+                      </div>
+                   </div>
                 </div>
                 
-                {/* Updated Button to Navigate */}
-                <button 
-                   onClick={handleNavigateToMonitoring} 
-                   className="relative z-10 flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 whitespace-nowrap"
-                >
-                   <Play className="w-4 h-4 fill-current" />
-                   Start Your Milestone
-                </button>
+                {/* Decorative Background Icon */}
+                <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-40 pointer-events-none" />
              </div>
           )}
 
@@ -473,7 +526,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <Building2 className="w-4 h-4 text-[#C8102E]" /> Agency Information
               </h3>
               <div className="space-y-3">
-                 {/* ... existing agency inputs ... */}
                 <div>
                   <label className="text-xs text-slate-500 font-bold tracking-wider">Agency</label>
                   <div className="mt-1">

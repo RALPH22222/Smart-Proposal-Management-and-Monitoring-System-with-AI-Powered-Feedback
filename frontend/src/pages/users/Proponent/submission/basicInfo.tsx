@@ -51,14 +51,14 @@ const tagsOptions = [
   { id: 5, name: 'Environment' },
   { id: 6, name: 'Infrastructure' },
   { id: 7, name: 'Security' },
-  { id: 8, name: 'Research' },
+  { id: 8, name: 'Research' },  
   { id: 9, name: 'Development' },
   { id: 10, name: 'Innovation' },
   { id: 11, name: 'Sustainability' },
   { id: 12, name: 'Community' },
   { id: 13, name: 'Digital' },
   { id: 14, name: 'Renewable Energy' },
-  { id: 15, name: 'Other' },
+  { id: 15, name: 'Other' }
 ];
 
 const durationOptions = [

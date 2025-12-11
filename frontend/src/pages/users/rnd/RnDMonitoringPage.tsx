@@ -16,10 +16,12 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle // Added for Delayed status
+  AlertTriangle,
+  Ban 
 } from 'lucide-react';
-import { type Project, type ProjectStatus } from '../../../types/InterfaceProject'; // Removed ProjectPhase
+import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
+import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal'; 
 
 // --- UPDATED MOCK DATA ---
 const MOCK_PROJECTS: Project[] = [
@@ -29,6 +31,7 @@ const MOCK_PROJECTS: Project[] = [
     title: 'AI-Based Crop Disease Detection System',
     description: 'Developing a mobile application using computer vision to detect early signs of diseases in local crops.',
     principalInvestigator: 'Dr. Maria Santos',
+    coProponent: 'Engr. John Doe',
     department: 'College of Computer Studies',
     status: 'Active',
     startDate: '2025-01-15',
@@ -61,37 +64,17 @@ const MOCK_PROJECTS: Project[] = [
     description: 'Assessment and implementation of solar energy solutions.',
     principalInvestigator: 'Engr. Robert Lee',
     department: 'College of Engineering',
-    status: 'Planning',
+    status: 'Active', // CHANGED FROM PLANNING TO ACTIVE
     startDate: '2025-04-01',
     endDate: '2026-03-31',
     budget: 1200000,
-    completionPercentage: 0,
+    completionPercentage: 10,
     researchArea: 'Renewable Energy',
     lastModified: '2025-01-01',
     milestones: [
        { id: 'p1', name: 'Site Survey', dueDate: '2025-05-15', status: 'Proposed', description: 'Ocular inspection of 5 schools.', completed: false },
        { id: 'p2', name: 'System Design', dueDate: '2025-07-20', status: 'Proposed', description: 'Solar PV layout drafts.', completed: false }
     ]
-  },
-  {
-    id: '3',
-    projectId: 'PROJ-2024-015',
-    title: 'Community-Based Disaster Risk Reduction',
-    description: 'Integrated early warning system for flood-prone communities.',
-    principalInvestigator: 'Dr. Elena Cruz',
-    department: 'College of Science',
-    status: 'On Hold',
-    startDate: '2024-06-01',
-    endDate: '2025-06-01',
-    budget: 750000,
-    completionPercentage: 60,
-    researchArea: 'Disaster Risk',
-    lastModified: '2024-12-01',
-    onHoldReason: 'Awaiting release of LGU counterpart funds.',
-    fundRequests: [
-         { id: 'fr2', amount: 20000, reason: 'Legal fees for MOA notarization', dateRequested: '2024-08-01', status: 'Pending'}
-    ],
-    milestones: []
   },
   {
     id: '4',
@@ -118,6 +101,7 @@ const MOCK_PROJECTS: Project[] = [
     title: 'Marine Biodiversity Assessment',
     description: 'Comprehensive survey of coral reef health.',
     principalInvestigator: 'Dr. James Reid',
+    coProponent: 'Marine Lab Inc.',
     department: 'Forestry',
     status: 'Delayed',
     startDate: '2025-02-01',
@@ -134,9 +118,9 @@ const MOCK_PROJECTS: Project[] = [
          status: 'Delayed', 
          completed: false,
          extensionRequest: {
-            newDate: '2025-04-15',
-            reason: 'Supplier stocks unavailable due to shipping issues.',
-            status: 'Pending'
+           newDate: '2025-04-15',
+           reason: 'Supplier stocks unavailable due to shipping issues.',
+           status: 'Pending'
          }
        }
     ]
@@ -151,29 +135,32 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
   const [projects, setProjects] = useState<Project[]>([]);   
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modals state
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  // Block Modal State
+  const [projectToBlock, setProjectToBlock] = useState<Project | null>(null);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'All'>('All');
-  // Removed phaseFilter state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Load projects on component mount
+  // Load projects
   useEffect(() => {
     loadProjects();
   }, []);
 
-  // Filter projects based on status and search term (Removed Phase logic)
   useEffect(() => {
     let filtered = projects;
 
-    // Apply status filter
     if (statusFilter !== 'All') {
       filtered = filtered.filter(project => project.status === statusFilter);
     }
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -184,7 +171,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
     }
 
     setFilteredProjects(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [projects, statusFilter, searchTerm]);
 
   const loadProjects = async () => {
@@ -204,9 +191,29 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
     setIsDetailModalOpen(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedProject(null);
+  };
+
+  // --- BLOCKING HANDLERS ---
+  const handleOpenBlockModal = (project: Project) => {
+    setProjectToBlock(project);
+    setIsBlockModalOpen(true);
+  };
+
+  const handleCloseBlockModal = () => {
+    setIsBlockModalOpen(false);
+    setProjectToBlock(null);
+  };
+
+  const handleConfirmBlock = () => {
+    if (projectToBlock) {
+      const updatedProjects = projects.filter(p => p.id !== projectToBlock.id);
+      setProjects(updatedProjects);
+      handleCloseBlockModal();
+      alert(`Project ${projectToBlock.projectId} has been shut down and proponents blocked.`);
+    }
   };
 
   // Statistics calculations
@@ -288,14 +295,10 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
         return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
       case 'Completed':
         return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
-      case 'On Hold':
-        return `${baseClasses} text-slate-600 bg-slate-100 border-slate-200`;
       case 'At Risk':
         return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
       case 'Delayed':
         return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
-      case 'Planning':
-        return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
       default:
         return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
     }
@@ -379,11 +382,10 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Search projects by title, ID, or PI..."
+                  placeholder="Search projects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Search projects"
                 />
               </div>
 
@@ -396,15 +398,12 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
                   className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  aria-label="Filter by status"
                 >
                   <option value="All">All Statuses</option>
                   <option value="Active">Active ({getStatusCount('Active')})</option>
                   <option value="Completed">Completed ({getStatusCount('Completed')})</option>
                   <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
-                  <option value="Planning">Planning ({getStatusCount('Planning')})</option>
                   <option value="At Risk">At Risk ({getStatusCount('At Risk')})</option>
-                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
                 </select>
               </div>
             </div>
@@ -440,42 +439,37 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                 <p className="text-slate-500 max-w-sm mx-auto">
                   {searchTerm || statusFilter !== 'All'
                     ? 'Try adjusting your search or filter criteria.'
-                    : 'No projects have been added yet.'}
+                    : 'No projects available.'}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {paginatedProjects.map((project) => {
                   const daysRemaining = getDaysRemaining(project.endDate);
-                  // Adjusted overdue logic to check if not completed
                   const isOverdue = daysRemaining < 0 && project.status !== 'Completed';
                   
                   return (
                     <article
                       key={project.id}
                       className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
-                      aria-labelledby={`project-title-${project.id}`}
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
-                          <h2
-                            id={`project-title-${project.id}`}
-                            className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
-                          >
+                          <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
                             {project.title}
                           </h2>
 
                           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-2">
                             <div className="flex items-center gap-1.5">
-                              <User className="w-3 h-3" aria-hidden="true" />
+                              <User className="w-3 h-3" />
                               <span>{project.principalInvestigator}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <MapPin className="w-3 h-3" aria-hidden="true" />
+                              <MapPin className="w-3 h-3" />
                               <span>{project.department}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3" aria-hidden="true" />
+                              <Calendar className="w-3 h-3" />
                               <span>{new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
@@ -488,10 +482,10 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                             <div className="w-32 bg-slate-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full transition-all duration-500 ${
-                                    project.status === 'Completed' ? 'bg-blue-600' : 
-                                    project.status === 'At Risk' ? 'bg-orange-500' :
-                                    project.status === 'Delayed' ? 'bg-yellow-500' :
-                                    'bg-green-600'
+                                  project.status === 'Completed' ? 'bg-blue-600' : 
+                                  project.status === 'At Risk' ? 'bg-orange-500' :
+                                  project.status === 'Delayed' ? 'bg-yellow-500' :
+                                  'bg-green-600'
                                 }`}
                                 style={{ width: project.status === 'Completed' ? '100%' : `${project.completionPercentage}%` }}
                               ></div>
@@ -501,7 +495,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                             </span>
                           </div>
 
-                          {/* Timeline Status */}
                           <div className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
                             {isOverdue ? (
                               <div className="flex items-center gap-1.5">
@@ -528,10 +521,18 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
                             <button
                               onClick={() => handleViewProjectDetails(project)}
                               className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
-                              aria-label={`View details for ${project.title}`}
                             >
                               <Eye className="w-3 h-3 mr-1" />
                               View Details
+                            </button>
+                            {/* Block Button */}
+                            <button
+                              onClick={() => handleOpenBlockModal(project)}
+                              className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium border border-gray-200 hover:border-red-200"
+                              title="Block Proponent & Shutdown Project"
+                            >
+                              <Ban className="w-3 h-3 mr-1" />
+                              Block
                             </button>
                           </div>
                         </div>
@@ -575,12 +576,21 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
             </div>
           )}
         </main>
-         {/* Project Detail Modal - Props Updated to match new Modal Architecture */}
-         <RnDProjectDetailModal
-           project={selectedProject}
-           isOpen={isDetailModalOpen}
-           onClose={handleCloseModal}
-         />
+        
+        {/* Project Detail Modal */}
+        <RnDProjectDetailModal
+          project={selectedProject}
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseDetailModal}
+        />
+
+        {/* Block Project Modal */}
+        <BlockProjectModal 
+          isOpen={isBlockModalOpen}
+          project={projectToBlock}
+          onClose={handleCloseBlockModal}
+          onConfirm={handleConfirmBlock}
+        />
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ const About: React.FC = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               <span className="text-transparent bg-clip-text">
                 <span className="text-gray-800">About</span>{' '}
-                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">WMSU Project Proposal</span> 
+                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">Smart Project Proposal</span> 
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
@@ -56,7 +56,7 @@ const About: React.FC = () => {
               </h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
                 Founded by dedicated professionals with extensive experience in academic 
-                research and project development, WMSU Project Proposal was born from a 
+                research and project development, Smart Project Proposal was born from a 
                 simple observation: many brilliant ideas at our university never see the 
                 light of day due to inadequate proposal writing.
               </p>
