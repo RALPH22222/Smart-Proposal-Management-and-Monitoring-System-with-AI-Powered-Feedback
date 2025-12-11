@@ -1,22 +1,18 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
-import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, SkipForward, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 // --- Interfaces ---
 interface UserProfileData {
-  firstName: string;
-  middleInitial: string;
-  lastName: string;
   birthdate: string;
   sex: 'Male' | 'Female' | 'Prefer not to say' | '';
-  role: 'Lead Proponent' | 'Co-Lead Proponent' | '';
-  department: string;
+  rdStation: string; 
   profilePicture: File | null;
 }
 
 // --- Constants ---
-const DEPARTMENTS = [
+const RD_STATIONS = [
   "College of Computing Studies",
   "College of Engineering",
   "College of Architecture",
@@ -25,8 +21,6 @@ const DEPARTMENTS = [
   "College of Education",
   "College of Nursing"
 ];
-
-const ROLES = ["Lead Proponent", "Co-Lead Proponent"];
 
 const STEPS = [
   { id: 1, title: "Personal Info", icon: <User size={18} /> },
@@ -39,13 +33,9 @@ export default function ProfileSetup() {
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [formData, setFormData] = useState<UserProfileData>({
-    firstName: '',
-    middleInitial: '',
-    lastName: '',
     birthdate: '',
     sex: '',
-    role: '',
-    department: '',
+    rdStation: '',
     profilePicture: null,
   });
 
@@ -75,20 +65,24 @@ export default function ProfileSetup() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    
+    const successTitle = formData.profilePicture ? 'Profile Updated!' : 'Profile Setup Skipped';
+    const successText = formData.profilePicture 
+        ? 'Your information and photo have been saved.' 
+        : 'Your information has been saved without a photo.';
+
     console.log("Submitting Profile:", formData);
 
-    // TODO: Add your API call here to save 'formData' to the backend
-    
-    // Simulate Success
+    // TODO: Add API call here
+
     await Swal.fire({
       icon: 'success',
-      title: 'Setup Complete!',
-      text: 'Your profile has been updated.',
+      title: successTitle,
+      text: successText,
       timer: 1500,
       showConfirmButton: false
     });
 
-    // REDIRECT CHANGE: Go to Main Layout
     navigate("/users/proponent/proponentMainLayout");
   };
 
@@ -109,67 +103,30 @@ export default function ProfileSetup() {
     switch (currentStep) {
       case 1:
         return (
-          <div key="step1" className={`space-y-4 relative z-10 ${animationClass}`}>
+          <div key="step1" className={`space-y-6 relative z-10 ${animationClass}`}>
             <h3 className="text-xl font-semibold text-gray-900 border-b pb-2 border-gray-100">
               Personal Details
             </h3>
             
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="First Name"
-                  className="block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
-                />
-              </div>
-              <div className="w-24">
-                <label className="block text-sm font-medium text-gray-700 mb-1">M.I.</label>
-                <input
-                type="text"
-                name="middleInitial"
-                maxLength={2}
-                value={formData.middleInitial}
-                onChange={handleChange}
-                placeholder="M.I." 
-                className="block w-full rounded-lg border border-gray-200 px-2 py-2 placeholder:text-xs focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
-            />
-            </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                placeholder="Enter your last name"
-                className="block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
-              />
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Birthdate</label>
                 <input
                   type="date"
                   name="birthdate"
                   value={formData.birthdate}
                   onChange={handleChange}
-                  className="block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
+                  className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
                 />
               </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sex</label>
                 <select
                   name="sex"
                   value={formData.sex}
                   onChange={handleChange}
-                  className="block w-full rounded-lg border border-gray-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
+                  className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
                 >
                   <option value="" disabled>Select Sex</option>
                   <option value="Male">Male</option>
@@ -188,44 +145,35 @@ export default function ProfileSetup() {
               Academic Information
             </h3>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Department / College</label>
+            <div className="relative">
+              {/* Tooltip Label Container */}
+              <div className="group w-fit relative flex items-center gap-2 mb-2 cursor-help">
+                <label className="block text-sm font-medium text-gray-700 group-hover:text-[#C8102E] transition-colors">
+                    Research and Development Station
+                </label>
+                <HelpCircle size={16} className="text-gray-400 group-hover:text-[#C8102E] transition-colors" />
+                
+                {/* Tooltip Popup */}
+                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <p className="leading-relaxed">
+                        Select the specific college, unit, or center where your research activities are primarily based or affiliated.
+                    </p>
+                    {/* Tooltip Arrow */}
+                    <div className="absolute left-6 top-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-gray-900"></div>
+                </div>
+              </div>
+
               <select
-                name="department"
-                value={formData.department}
+                name="rdStation"
+                value={formData.rdStation}
                 onChange={handleChange}
-                className="block w-full rounded-lg border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200 bg-white/80 backdrop-blur-sm"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
               >
-                <option value="" disabled>Select Department</option>
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>{dept}</option>
+                <option value="" disabled>Select Station / Center</option>
+                {RD_STATIONS.map((station) => (
+                  <option key={station} value={station}>{station}</option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role in Project</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {ROLES.map((role) => (
-                  <label
-                    key={role}
-                    className={`cursor-pointer relative flex items-center justify-center p-4 rounded-lg border transition-all duration-200 bg-white/80 backdrop-blur-sm
-                      ${formData.role === role 
-                        ? 'border-[#C8102E] bg-red-50/90 text-[#C8102E] font-medium ring-1 ring-[#C8102E]' 
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/90'}`}
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value={role}
-                      checked={formData.role === role}
-                      onChange={handleChange}
-                      className="hidden"
-                    />
-                    <span>{role}</span>
-                  </label>
-                ))}
-              </div>
             </div>
           </div>
         );
@@ -239,8 +187,8 @@ export default function ProfileSetup() {
 
             <div className="flex flex-col items-center justify-center pt-4">
               <div className="relative group">
-                <div className={`w-40 h-40 rounded-full border-4 shadow-lg overflow-hidden flex items-center justify-center bg-gray-100 
-                  ${previewUrl ? 'border-[#C8102E]' : 'border-gray-200'}`}>
+                <div className={`w-40 h-40 rounded-full border-[6px] shadow-lg overflow-hidden flex items-center justify-center bg-gray-50 
+                  ${previewUrl ? 'border-[#C8102E]' : 'border-white ring-1 ring-gray-200'}`}>
                   {previewUrl ? (
                     <img src={previewUrl} alt="Profile Preview" className="w-full h-full object-cover" />
                   ) : (
@@ -248,7 +196,7 @@ export default function ProfileSetup() {
                   )}
                 </div>
                 
-                <label htmlFor="profile-upload" className="absolute bottom-0 right-0 bg-[#C8102E] hover:bg-[#A50D26] text-white p-3 rounded-full cursor-pointer shadow-md transition-transform transform hover:scale-105">
+                <label htmlFor="profile-upload" className="absolute bottom-1 right-1 bg-[#C8102E] hover:bg-[#A50D26] text-white p-3 rounded-full cursor-pointer shadow-lg transition-transform transform hover:scale-110 active:scale-95 border-4 border-white">
                   <Camera size={20} />
                 </label>
                 <input
@@ -259,9 +207,11 @@ export default function ProfileSetup() {
                   className="hidden"
                 />
               </div>
-              <p className="mt-4 text-sm text-gray-500 bg-white/50 px-2 py-1 rounded">
-                Click the camera icon to upload. <br/> Allowed formats: JPG, PNG.
-              </p>
+              <div className="mt-6 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm inline-block font-medium">
+                {previewUrl 
+                    ? "Looking good! Click 'Complete' to finish." 
+                    : "Upload a photo or skip to finish setup."}
+              </div>
             </div>
           </div>
         );
@@ -291,7 +241,7 @@ export default function ProfileSetup() {
 
       <div className="min-h-screen relative flex items-center justify-center p-4">
         
-        {/* Background Image Layer */}
+        {/* Background Image Layer (RESTORED TO ORIGINAL DESIGN) */}
         <div 
           className="absolute inset-0 z-0"
           style={{
@@ -304,75 +254,81 @@ export default function ProfileSetup() {
         </div>
 
         {/* Stepper Card */}
-        <div className="relative z-10 w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
+        <div className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px] border border-gray-100">
           
           {/* WATERMARK LOGO */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 overflow-hidden">
               <img 
                   src="../src/assets/IMAGES/LOGO.png" 
                   alt="Logo Watermark" 
-                  className="max-w-[60%] max-h-[60%] object-contain opacity-10" 
+                  className="max-w-[50%] max-h-[50%] object-contain opacity-[0.03]" 
               />
           </div>
 
           {/* Header */}
-          <div className="bg-gray-50 border-b border-gray-100 p-6 relative z-20">
-              <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Profile Setup</h2>
-                  <span className="text-sm font-medium text-[#C8102E] bg-red-50 px-3 py-1 rounded-full">
+          <div className="bg-white px-8 pt-8 pb-4 relative z-20">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Profile Setup</h2>
+                    <p className="text-gray-500 text-sm mt-1">Complete your information to get started.</p>
+                  </div>
+                  <span className="text-xs font-bold text-[#C8102E] bg-red-50 border border-red-100 px-3 py-1.5 rounded-full uppercase tracking-wide">
                       Step {currentStep} of 3
                   </span>
               </div>
               
-              <div className="flex justify-between relative">
-                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 -z-0 transform -translate-y-1/2 rounded-full"></div>
+              {/* Progress Bar Container */}
+              <div className="relative px-4">
+                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-100 -z-0 transform -translate-y-1/2 rounded-full"></div>
                   <div 
-                      className="absolute top-1/2 left-0 h-1 bg-[#C8102E] -z-0 transform -translate-y-1/2 rounded-full transition-all duration-300 ease-in-out"
+                      className="absolute top-1/2 left-0 h-1 bg-[#C8102E] -z-0 transform -translate-y-1/2 rounded-full transition-all duration-500 ease-in-out"
                       style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
                   ></div>
 
-                  {STEPS.map((step) => {
-                      const isActive = step.id === currentStep;
-                      const isCompleted = step.id < currentStep;
+                  <div className="flex justify-between relative w-full">
+                      {STEPS.map((step) => {
+                          const isActive = step.id === currentStep;
+                          const isCompleted = step.id < currentStep;
 
-                      return (
-                          <div key={step.id} className="relative z-10 flex flex-col items-center">
-                              <div 
-                                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
-                                  ${isActive || isCompleted 
-                                      ? 'bg-[#C8102E] border-[#C8102E] text-white' 
-                                      : 'bg-white border-gray-300 text-gray-400'}`}
-                              >
-                                  {isCompleted ? <Check size={18} /> : step.icon}
+                          return (
+                              <div key={step.id} className="relative z-10 flex flex-col items-center group cursor-default">
+                                  <div 
+                                      className={`w-11 h-11 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 shadow-sm
+                                      ${isActive || isCompleted 
+                                          ? 'bg-[#C8102E] border-[#C8102E] text-white scale-110' 
+                                          : 'bg-white border-gray-200 text-gray-400 group-hover:border-gray-300'}`}
+                                  >
+                                      {isCompleted ? <Check size={20} strokeWidth={3} /> : step.icon}
+                                  </div>
+                                  <span className={`text-[10px] sm:text-xs mt-3 font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-[#C8102E]' : 'text-gray-400'}`}>
+                                      {step.title}
+                                  </span>
                               </div>
-                              <span className={`text-xs mt-2 font-medium ${isActive ? 'text-[#C8102E]' : 'text-gray-400'}`}>
-                                  {step.title}
-                              </span>
-                          </div>
-                      );
-                  })}
+                          );
+                      })}
+                  </div>
               </div>
           </div>
 
           {/* Content Body */}
-          <div className="flex-1 p-6 md:p-8 overflow-y-auto relative z-10">
+          <div className="flex-1 px-8 py-6 overflow-y-auto relative z-10 custom-scrollbar">
               <form id="profile-form" onSubmit={handleSubmit} className="h-full">
                   {renderStepContent()}
               </form>
           </div>
 
           {/* Footer */}
-          <div className="bg-gray-50 p-6 border-t border-gray-100 flex justify-between items-center relative z-20">
+          <div className="bg-gray-50 px-8 py-6 border-t border-gray-100 flex justify-between items-center relative z-20">
               <button
                   type="button"
                   onClick={prevStep}
                   disabled={currentStep === 1}
-                  className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200
+                  className={`flex items-center px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200
                       ${currentStep === 1 
                           ? 'text-gray-300 cursor-not-allowed' 
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200'}`}
               >
-                  <ChevronLeft size={18} className="mr-1" />
+                  <ChevronLeft size={18} className="mr-1.5" />
                   Back
               </button>
 
@@ -380,19 +336,20 @@ export default function ProfileSetup() {
                   <button
                       type="button"
                       onClick={nextStep}
-                      className="flex items-center px-6 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm hover:bg-[#A50D26] transition-colors duration-300"
+                      className="flex items-center px-6 py-2.5 bg-[#C8102E] text-white rounded-xl font-bold text-sm shadow-md hover:bg-[#A50D26] hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300"
                   >
-                      Next
-                      <ChevronRight size={18} className="ml-1" />
+                      Next Step
+                      <ChevronRight size={18} className="ml-1.5" />
                   </button>
               ) : (
                   <button
                       type="submit"
                       form="profile-form"
-                      className="flex items-center px-6 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm hover:bg-[#A50D26] transition-colors duration-300"
+                      className={`flex items-center px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transform hover:-translate-y-0.5 transition-all duration-300 text-white
+                        ${previewUrl ? 'bg-[#C8102E] hover:bg-[#A50D26]' : 'bg-gray-800 hover:bg-gray-900'}`}
                   >
-                      Complete Setup
-                      <Check size={18} className="ml-1" />
+                      {previewUrl ? 'Finish & Upload' : 'Skip & Finish'}
+                      {previewUrl ? <Check size={18} className="ml-2" /> : <SkipForward size={18} className="ml-2" />}
                   </button>
               )}
           </div>
