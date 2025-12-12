@@ -78,6 +78,11 @@ export const forwardToEvaluatorsSchema = z.object({
   commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
 });
 
+export const forwardToRndSchema = z.object({
+  proposal_id: z.number().min(1, "Proposal ID is required"),
+  rnd_id: z.array(z.string().min(1)).nonempty("At least one R&D is required"),
+});
+
 export const proposalVersionSchema = z.object({
   proposal_id: z.number().min(1),
   file_url: z.string().url(),
@@ -88,4 +93,5 @@ export const proposalEvaluatorStatusSchema = z.enum(EvaluatorStatus);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
+export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;
 export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;

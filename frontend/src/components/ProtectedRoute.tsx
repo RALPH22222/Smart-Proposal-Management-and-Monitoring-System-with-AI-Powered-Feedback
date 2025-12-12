@@ -12,19 +12,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   const { verifyToken, loading } = useAuthContext();
   const navigate = useNavigate();
 
-  // Verify token and authorization
-  // 1. Check if user is authenticated -> call veriyToken API
-  // 2. Check if user has required roles (if roles prop is provided)
-  // 3. If not authenticated or not authorized, redirect to login pageas
   useEffect(() => {
     const verifyAuthentication = async () => {
       const user = await verifyToken();
 
-      if (user) {
-        // Check for roles if provided
-        if (roles && !roles.includes(user.role)) {
-          switch (user.role) {
-            case Role.PROPONENT:
+      if (!user) {
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      if (roles && roles.length > 0) {
+        // does the user have at least one allowed role?
+        const hasRequiredRole = roles.some((r) => user.roles.includes(r));
+
+        if (!hasRequiredRole) {
+          // user is logged in but not allowed on this route
+          // just send them to the first dashboard they have
+          const role = user.roles[0];
+
+          switch (role) {
+            case Role.LEAD_PROPONENT || Role.PROPONENT:
               navigate("/users/proponent/proponentMainLayout");
               break;
             case Role.EVALUATOR:
@@ -48,15 +56,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
             }
           }
         }
-      } else {
-        console.log("User not authenticated");
       }
     };
 
     verifyAuthentication();
-  }, []);
+  }, [roles, navigate, verifyToken]);
 
-  // Show loading spinner while checking authentication
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -68,7 +73,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
     );
   }
 
-  // User is authenticated, render the protected content
   return <Outlet />;
 };
 

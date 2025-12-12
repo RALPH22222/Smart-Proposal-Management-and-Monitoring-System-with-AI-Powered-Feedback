@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  roles: Role[];
   avatar?: string;
 }
 
@@ -27,16 +27,16 @@ export type SupabaseAuthToken = {
   user_metadata: {
     email_verified: boolean;
     name: string;
-    role: Role;
+    roles: Role[];
   };
   session_id: string;
 };
 
 export enum Role {
-  PROPONENT = "proponent",
+  LEAD_PROPONENT = "lead_proponent",
   EVALUATOR = "evaluator",
   RND = "rnd",
   RDEC = "rdec",
-  PROJECT_LEAD = "project_lead",
+  PROPONENT = "proponent",
   ADMIN = "admin",
 }

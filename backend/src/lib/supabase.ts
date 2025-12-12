@@ -7,4 +7,4 @@ if (!supabaseKey) {
 }
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const PROPOSAL_FILES_BUCKET = "proposal_files";
+// export const PROPOSAL_FILES_BUCKET = "proposal_files";

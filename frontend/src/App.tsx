@@ -61,8 +61,8 @@ function App() {
               <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
             </Route>
 
-            {/* Proponent */}
-            <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
+            {/* Lead Proponent & Co-Lead Proponent */}
+            <Route element={<ProtectedRoute roles={[Role.LEAD_PROPONENT, Role.PROPONENT]} />}>
               <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
             </Route>
           </Routes>
