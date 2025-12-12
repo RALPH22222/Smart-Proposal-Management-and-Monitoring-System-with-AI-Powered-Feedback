@@ -53,12 +53,6 @@ const LandingPage: React.FC = () => {
           >
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, styles.registerButton]}
-            onPress={() => navigation.navigate('Register')}
-          >
-            <Text style={styles.buttonText}>Register</Text>
-          </TouchableOpacity>
         </Animated.View>
       )}
     </View>

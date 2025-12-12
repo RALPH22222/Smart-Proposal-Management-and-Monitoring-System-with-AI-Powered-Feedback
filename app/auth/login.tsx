@@ -9,62 +9,49 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Modal,
-  TouchableWithoutFeedback,
   SafeAreaView,
   StatusBar,
 } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types/navigation';
+import { supabase } from '../lib/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const handleSignInPress = () => {
-    setModalVisible(true);
-  };
-  const handleRoleSelect = async (role: string) => {
-    setModalVisible(false); 
+
+  const handleSignInPress = async () => {
+    // Basic validation
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password.');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      // 1. Authenticate with Supabase Auth
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setEmail('');
       setPassword('');
-      switch (role) {
-        case 'Admin':
-          navigation.navigate('AdminDashboard'); 
-          break;
+      navigation.navigate('ProponentsDashboard');
 
-        case 'Evaluator':
-          navigation.navigate('EvaluatorDashboard');
-          break;
-
-        case 'Proponent':
-          navigation.navigate('ProponentsDashboard');
-          break;
-
-        case 'RND':
-          navigation.navigate('RndDashboard');
-          break;
-
-        default:
-          Alert.alert('Login Success', `Welcome back! Signed in as ${role}.`);
-          break;
-      }
-    }, 1500);
-  };
-
-  const handleReset = () => {
-    setEmail('');
-    setPassword('');
-  };
-
-  const handleGoogleLogin = () => {
-    Alert.alert('Frontend Info', 'Google Login logic (Firebase/Auth) goes here.');
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +64,6 @@ export default function LoginScreen() {
       >
         {/* Left Section (Logo / Banner) */}
         <View style={styles.bannerContainer}>
-        {/* NOTE: In your local project, use require('../assets/images/LOGO.png') */}
         <Image
           source={require('../assets/images/LOGO.png')} 
           style={styles.logo}
@@ -136,94 +122,8 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>Sign in</Text>
             )}
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.resetBtn]}
-            onPress={handleReset}
-          >
-            <Text style={styles.resetText}>Reset</Text>
-          </TouchableOpacity>
         </View>
-
-        {/* Google Sign In */}
-        <View style={styles.dividerContainer}>
-          <Text style={styles.dividerText}>or continue with</Text>
-        </View>
-
-        <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-          <Text style={styles.googleButtonText}>Sign in with Google</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.footerText}>
-          Dont have an account?{' '}
-          <Text
-            style={styles.linkText}
-            onPress={() => navigation.navigate('Register')}
-          >
-            Sign up
-          </Text>
-        </Text>
       </View>
-
-      {/* ROLE SELECTION MODAL */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        {/* TouchableWithoutFeedback closes modal when clicking outside */}
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            {/* Prevent clicks inside the modal content from closing it */}
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Role</Text>
-                <Text style={styles.modalSubtitle}>
-                  Please select your role to proceed.
-                </Text>
-
-                <View style={styles.roleList}>
-                  <TouchableOpacity
-                    style={styles.roleButton}
-                    onPress={() => handleRoleSelect('Admin')}
-                  >
-                    <Text style={styles.roleButtonText}>Admin</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.roleButton}
-                    onPress={() => handleRoleSelect('Evaluator')}
-                  >
-                    <Text style={styles.roleButtonText}>Evaluator</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.roleButton}
-                    onPress={() => handleRoleSelect('Proponent')}
-                  >
-                    <Text style={styles.roleButtonText}>Proponent</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.roleButton}
-                    onPress={() => handleRoleSelect('RND')}
-                  >
-                    <Text style={styles.roleButtonText}>RND</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -241,7 +141,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#fff',
   },
-  // Banner Styles (Matched to Register.tsx)
   bannerContainer: {
     backgroundColor: '#C8102E',
     alignItems: 'center',
@@ -268,7 +167,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
-  // Form Styles
   formContainer: {
     flex: 1,
     padding: 24,
@@ -318,107 +216,9 @@ const styles = StyleSheet.create({
   primaryBtn: {
     backgroundColor: '#C8102E',
   },
-  resetBtn: {
-    backgroundColor: '#f8f8f8',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-  },
-  resetText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  dividerContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerText: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  googleButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  googleButtonText: {
-    color: '#374151',
-    fontWeight: '500',
-  },
-  footerText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#555',
-  },
-  linkText: {
-    color: '#C8102E',
-    fontWeight: '600',
-  },
-  // Modal Specific Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dimmed background
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
-    // Shadow for elevation
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  roleList: {
-    width: '100%',
-    gap: 12, // Spacing between buttons
-    marginBottom: 16,
-  },
-  roleButton: {
-    backgroundColor: '#C8102E',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  roleButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
