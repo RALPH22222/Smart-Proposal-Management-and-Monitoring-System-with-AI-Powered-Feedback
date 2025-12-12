@@ -13,18 +13,22 @@ import {
   Clock,
   Tag,
   Gavel,
-  CalendarClock,
+  CalendarClock
 } from "lucide-react";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
 
-// ... (Keep the BudgetSource and Proposal interfaces as they are)
 interface BudgetSource {
   source: string;
   ps: string;
   mooe: string;
   co: string;
   total: string;
+}
+
+interface Agency {
+  name: string;
+  address: string;
 }
 
 interface Proposal {
@@ -40,7 +44,7 @@ interface Proposal {
   status: string;
   deadline: string;
   projectType: string;
-  agency: string;
+  agency: Agency[]; 
   cooperatingAgencies: string;
   rdStation: string;
   classification: string;
@@ -64,7 +68,6 @@ export default function Proposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
-  // Decision Modal State
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(
     null
@@ -72,6 +75,7 @@ export default function Proposals() {
 
   const itemsPerPage = 5;
 
+  // --- MOCK DATA ---
   const proposals: Proposal[] = [
     {
       id: 1,
@@ -86,7 +90,10 @@ export default function Proposals() {
       status: "accepted",
       deadline: "Oct 15, 2025",
       projectType: "ICT",
-      agency: "Western Mindanao State University",
+      agency: [
+        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
+        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      ],
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
       classification: "Research",
@@ -124,7 +131,11 @@ export default function Proposals() {
       status: "extension_requested",
       deadline: "Oct 20, 2025",
       projectType: "Energy",
-      agency: "Zamboanga State College of Marine Sciences",
+      // CHANGED: Agency is now an array of objects
+      agency: [
+         { name: "Zamboanga State College of Marine Sciences", address: "Fort Pilar, Z.C." },
+         { name: "ZamboEcoZone", address: "San Ramon, Z.C." }
+      ],
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
@@ -169,7 +180,10 @@ export default function Proposals() {
       status: "rejected",
       deadline: "Oct 10, 2025",
       projectType: "Energy",
-      agency: "Zamboanga City Medical Center",
+      // CHANGED: Single Agency still uses Array format
+      agency: [
+        { name: "Zamboanga City Medical Center", address: "Sta. Catalina, Z.C." }
+      ],
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
       classification: "Research",
@@ -202,12 +216,14 @@ export default function Proposals() {
       address: "Gov. Camins Ave, Zamboanga City",
       telephone: "(062) 991-4444",
       email: "s.chen@msu.edu.ph",
-      modeOfImplementation: "Basic Research",
+      modeOfImplementation: "Single Agency",
       priorityAreas: "Quantum Computing",
       status: "pending",
       deadline: "Oct 25, 2025",
       projectType: "ICT",
-      agency: "Mindanao State University",
+      agency: [
+         { name: "Mindanao State University", address: "Marawi City / Zamboanga" }
+      ],
       cooperatingAgencies: "DOST RO9, DICT RO9, Private Sector",
       rdStation: "Computer Science Research Lab",
       classification: "Research",
@@ -252,7 +268,11 @@ export default function Proposals() {
       status: "accepted",
       deadline: "Oct 18, 2025",
       projectType: "Energy",
-      agency: "Mindanao State University",
+      // CHANGED: Multi Agency
+      agency: [
+         { name: "Mindanao State University", address: "Marawi City" },
+         { name: "Palawan State University", address: "Puerto Princesa" }
+      ],
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
       rdStation: "Renewable Energy Research Lab",
       classification: "Development",
@@ -292,12 +312,14 @@ export default function Proposals() {
       address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-6666",
       email: "l.park@adzu.edu.ph",
-      modeOfImplementation: "Applied Research",
+      modeOfImplementation: "Single Agency",
       priorityAreas: "Artificial Intelligence",
       status: "pending",
       deadline: "Oct 22, 2025",
       projectType: "ICT",
-      agency: "Ateneo de Zamboanga University",
+      agency: [
+         { name: "Ateneo de Zamboanga University", address: "La Purisima St, Z.C." }
+      ],
       cooperatingAgencies: "DOST RO9, DICT RO9",
       rdStation: "AI Research Center",
       classification: "Research",
@@ -330,12 +352,14 @@ export default function Proposals() {
       address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-7777",
       email: "a.johnson@adzu.edu.ph",
-      modeOfImplementation: "Development",
+      modeOfImplementation: "Single Agency",
       priorityAreas: "Smart Cities",
       status: "pending",
       deadline: "Oct 28, 2025",
       projectType: "Energy",
-      agency: "Ateneo de Zamboanga University",
+      agency: [
+         { name: "Ateneo de Zamboanga University", address: "La Purisima St, Z.C." }
+      ],
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
       rdStation: "Urban Planning Research Institute",
       classification: "Development",
@@ -375,12 +399,16 @@ export default function Proposals() {
       address: "Pasonanca, Zamboanga City",
       telephone: "(062) 991-8888",
       email: "e.white@zpmc.gov.ph",
-      modeOfImplementation: "Applied Research",
+      modeOfImplementation: "Multi Agency",
       priorityAreas: "Power Systems",
       status: "rejected",
       deadline: "Oct 12, 2025",
       projectType: "ICT",
-      agency: "Zamboanga Peninsula Medical Center",
+      // CHANGED: Multi Agency
+      agency: [
+         { name: "Zamboanga Peninsula Medical Center", address: "Pasonanca, Z.C." },
+         { name: "Western Mindanao State University", address: "Baliwasan, Z.C." }
+      ],
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
       rdStation: "Medical AI Research Unit",
       classification: "Research",
@@ -662,6 +690,7 @@ export default function Proposals() {
                           <Tag className="w-3 h-3" />
                           {proposal.projectType}
                         </span>
+
                       </div>
                     </div>
 

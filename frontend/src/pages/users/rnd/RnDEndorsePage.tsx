@@ -281,7 +281,7 @@ const EndorsePage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
       {/* Existing Evaluator Modal */}
       <EvaluatorDecisionModal
         isOpen={isEvaluatorModalOpen}

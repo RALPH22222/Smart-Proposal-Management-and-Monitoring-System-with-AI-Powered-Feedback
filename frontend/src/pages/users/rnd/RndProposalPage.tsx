@@ -221,7 +221,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   }
 
   return (  
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">

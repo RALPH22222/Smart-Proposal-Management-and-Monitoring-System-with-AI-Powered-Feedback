@@ -9,6 +9,7 @@ import Settings from "./settings";
 import System from "./system";
 import Proposals from "./proposals"
 import Evaluators from "./evaluator"
+import Monitoring from "./monitoring"
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -29,6 +30,8 @@ const AdminLayout: React.FC = () => {
         return <Proposals />; 
       case "evaluators":
         return <Evaluators />;    
+      case "monitoring":
+        return <Monitoring />; 
       case "contents":
         return <Contents />;
       case "reports":

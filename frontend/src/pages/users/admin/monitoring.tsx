@@ -127,11 +127,11 @@ const MOCK_PROJECTS: Project[] = [
   }
 ];
 
-interface MonitoringPageProps {
+interface AdminMonitoringPageProps {
   onStatsUpdate?: () => void;
 }
 
-const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
+const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = ({ onStatsUpdate }) => {
   const [projects, setProjects] = useState<Project[]>([]);   
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -596,4 +596,4 @@ const MonitoringPage: React.FC<MonitoringPageProps> = ({ onStatsUpdate }) => {
   );
 };
 
-export default MonitoringPage;
+export default AdminMonitoringPage;

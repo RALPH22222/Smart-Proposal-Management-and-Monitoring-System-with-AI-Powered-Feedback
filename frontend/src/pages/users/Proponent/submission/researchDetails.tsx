@@ -4,7 +4,6 @@ import {
   University,
   Tag,
   GraduationCap,
-  Settings,
   Star,
   Search,
   Rocket,
@@ -19,7 +18,8 @@ interface ResearchDetailsProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-// Predefined options
+// --- CONSTANTS ---
+
 const researchStations = [
   'College of Computing Studies',
   'Agricultural Research Center',
@@ -53,12 +53,32 @@ const disciplines = [
   'Medical Technology and ICT'
 ];
 
-// Default Priority Areas Labels
-const defaultPriorities = [
-  'Stand',
+// Combined Built-in Priorities
+const builtInPriorities = [
+  // Stand & Industries
+  'STAND',
+  'Public Safety',
   'Coconut Industry',
   'Export Winners',
-  'Support Industries'
+  'Support Industries',
+  // SDGs
+  'SDG 1: No Poverty',
+  'SDG 2: Zero Hunger',
+  'SDG 3: Good Health and Well-being',
+  'SDG 4: Quality Education',
+  'SDG 5: Gender Equality',
+  'SDG 6: Clean Water and Sanitation',
+  'SDG 7: Affordable and Clean Energy',
+  'SDG 8: Decent Work and Economic Growth',
+  'SDG 9: Industry, Innovation and Infrastructure',
+  'SDG 10: Reduced Inequalities',
+  'SDG 11: Sustainable Cities and Communities',
+  'SDG 12: Responsible Consumption and Production',
+  'SDG 13: Climate Action',
+  'SDG 14: Life Below Water',
+  'SDG 15: Life on Land',
+  'SDG 16: Peace, Justice and Strong Institutions',
+  'SDG 17: Partnerships for the Goals'
 ];
 
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChange }) => {
@@ -66,6 +86,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
   const [isResearchStationOpen, setIsResearchStationOpen] = useState(false);
   const [isSectorOpen, setIsSectorOpen] = useState(false);
   const [isDisciplineOpen, setIsDisciplineOpen] = useState(false);
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
 
   const [researchStationSearch, setResearchStationSearch] = useState('');
   const [sectorSearch, setSectorSearch] = useState('');
@@ -74,16 +95,20 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
   const [filteredResearchStations, setFilteredResearchStations] = useState(researchStations);
   const [filteredSectors, setFilteredSectors] = useState(sectors);
   const [filteredDisciplines, setFilteredDisciplines] = useState(disciplines);
+  const [filteredPriorities, setFilteredPriorities] = useState(builtInPriorities);
 
   // Custom Input States
   const [customResearchType, setCustomResearchType] = useState('');
   const [customDevelopmentType, setCustomDevelopmentType] = useState('');
-  const [customPriorityInput, setCustomPriorityInput] = useState('');
+  
+  // Priority Area State
+  const [priorityInput, setPriorityInput] = useState('');
 
   // Refs for click outside
   const researchStationRef = useRef<HTMLDivElement>(null);
   const sectorRef = useRef<HTMLDivElement>(null);
   const disciplineRef = useRef<HTMLDivElement>(null);
+  const priorityRef = useRef<HTMLDivElement>(null);
 
   // --- Effects ---
 
@@ -100,12 +125,18 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     setFilteredDisciplines(disciplines.filter(d => d.toLowerCase().includes(disciplineSearch.toLowerCase())));
   }, [disciplineSearch]);
 
+  // Priority filtering effect
+  useEffect(() => {
+    setFilteredPriorities(builtInPriorities.filter(p => p.toLowerCase().includes(priorityInput.toLowerCase())));
+  }, [priorityInput]);
+
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (researchStationRef.current && !researchStationRef.current.contains(event.target as Node)) setIsResearchStationOpen(false);
       if (sectorRef.current && !sectorRef.current.contains(event.target as Node)) setIsSectorOpen(false);
       if (disciplineRef.current && !disciplineRef.current.contains(event.target as Node)) setIsDisciplineOpen(false);
+      if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) setIsPriorityOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -113,7 +144,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
 
   // --- Handlers ---
 
-  // Text Input Handlers (Station, Sector, Discipline)
   const handleTextSelect = (name: string, value: string, setSearch: (s: string) => void, setOpen: (b: boolean) => void) => {
     const fakeEvent = { target: { name, value } } as React.ChangeEvent<HTMLInputElement>;
     onInputChange(fakeEvent);
@@ -165,69 +195,39 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     onInputChange(fakeEvent);
   };
 
-  // Mode of Implementation Handler
-  const handleImplementationModeChange = (mode: 'singleAgency' | 'multiAgency') => {
-    const newMode = {
-      singleAgency: mode === 'singleAgency',
-      multiAgency: mode === 'multiAgency'
-    };
-    
-    const fakeEvent = { 
-      target: { 
-        name: 'implementationMode', 
-        value: newMode 
-      } 
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
+  // --- Priority Areas Handlers ---
+
+  const handlePrioritySelect = (value: string) => {
+    setPriorityInput(value);
+    setIsPriorityOpen(false);
   };
 
-  // Priority Areas Handlers
-  const handlePriorityAreaChange = (key: string, checked: boolean) => {
+  const handleAddPriority = () => {
+    if (!priorityInput.trim()) return;
+    
     const currentPriorities = formData.priorityAreas || {};
     const newPriorityAreas = {
       ...currentPriorities,
-      [key]: checked
+      [priorityInput.trim()]: true
     };
     
     const fakeEvent = { 
-      target: { 
-        name: 'priorityAreas', 
-        value: newPriorityAreas 
-      } 
+      target: { name: 'priorityAreas', value: newPriorityAreas } 
     } as unknown as React.ChangeEvent<HTMLInputElement>;
     
     onInputChange(fakeEvent);
-  };
-
-  const handleAddCustomPriority = () => {
-    if (!customPriorityInput.trim()) return;
-    
-    // Add new priority area initialized to true
-    handlePriorityAreaChange(customPriorityInput.trim(), true);
-    setCustomPriorityInput('');
+    setPriorityInput(''); 
   };
 
   const handleDeletePriority = (key: string) => {
     const newPriorityAreas = { ...(formData.priorityAreas || {}) } as Record<string, boolean>;
-    // Explicitly delete key to remove it from the object
     delete newPriorityAreas[key];
     
     const fakeEvent = { 
-      target: { 
-        name: 'priorityAreas', 
-        value: newPriorityAreas 
-      } 
+      target: { name: 'priorityAreas', value: newPriorityAreas } 
     } as unknown as React.ChangeEvent<HTMLInputElement>;
     
     onInputChange(fakeEvent);
-  };
-
-  // Helper to safely check if a priority is selected
-  const isPrioritySelected = (key: string): boolean => {
-    if (!formData.priorityAreas) return false;
-    const areas = formData.priorityAreas as Record<string, boolean>;
-    return areas[key] === true;
   };
 
   if (!formData) return <div className="p-4 text-gray-500">Loading...</div>;
@@ -482,112 +482,77 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
         )}
       </div>
 
-      {/* Mode of Implementation */}
-      <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-          <Settings className="text-gray-400 w-4 h-4" />
-          Mode of Implementation *
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-          <div 
-            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.implementationMode?.singleAgency ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
-            onClick={() => handleImplementationModeChange('singleAgency')}
-          >
-            <input type="radio" checked={!!formData.implementationMode?.singleAgency} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
-            <span className="ml-3 text-sm font-medium text-gray-700">Single Agency</span>
-          </div>
-          
-          <div 
-            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.implementationMode?.multiAgency ? 'border-black' : 'border-gray-200 hover:border-gray-300'}`}
-            onClick={() => handleImplementationModeChange('multiAgency')}
-          >
-            <input type="radio" checked={!!formData.implementationMode?.multiAgency} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
-            <span className="ml-3 text-sm font-medium text-gray-700">Multi Agency</span>
-          </div>
-        </div>
-      </div>
-
       {/* Priority Areas */}
-      <div className="space-y-4">
+      <div className="space-y-4" ref={priorityRef}>
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <Star className="text-gray-400 w-4 h-4" />
           Priority Areas *
         </label>
+
+        {/* Selected Priority Chips */}
+        {formData.priorityAreas && Object.keys(formData.priorityAreas).length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {Object.entries(formData.priorityAreas as Record<string, boolean>)
+               .filter(([_, value]) => value === true)
+               .map(([key]) => (
+                <div key={key} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium">
+                  {key}
+                  <button 
+                    type="button" 
+                    onClick={() => handleDeletePriority(key)}
+                    className="hover:text-red-500 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+            ))}
+          </div>
+        )}
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          {/* Default Options */}
-          {defaultPriorities.map((priority) => (
-            <div 
-              key={priority}
-              className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${
-                isPrioritySelected(priority) ? 'border-black' : 'border-gray-200 hover:border-gray-300'
-              }`}
-              onClick={() => handlePriorityAreaChange(priority, !isPrioritySelected(priority))}
-            >
-              <input
-                type="checkbox"
-                checked={isPrioritySelected(priority)}
-                readOnly
-                className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded pointer-events-none"
-              />
-              <span className="ml-3 text-sm font-medium text-gray-700">{priority}</span>
-            </div>
-          ))}
-
-          {/* Custom Options (Added by user) - ONLY show if true */}
-          {formData.priorityAreas && Object.entries(formData.priorityAreas as Record<string, boolean>)
-            .filter(([key, value]) => !defaultPriorities.includes(key) && value === true) // Only show if not default AND value is true
-            .map(([key]) => (
-            <div 
-              key={key} 
-              className="flex items-center justify-between p-3 border border-black rounded-xl select-none"
-            >
-              <div className="flex items-center overflow-hidden">
-                <input
-                  type="checkbox"
-                  checked={true}
-                  readOnly
-                  className="h-5 w-5 text-[#C8102E] focus:ring-[#C8102E] border-gray-300 rounded pointer-events-none flex-shrink-0"
-                />
-                <span className="ml-3 text-sm font-medium text-gray-700 truncate">{key}</span>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeletePriority(key);
-                }}
-                className="text-gray-400 hover:text-red-500 transition-colors ml-2"
-              >
-                <X className="cursor-pointer w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Add Custom Priority Area */}
+        {/* Input Area (Custom Dropdown + Text Input) */}
         <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Add custom priority area..."
-            value={customPriorityInput}
-            onChange={(e) => setCustomPriorityInput(e.target.value)}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent text-sm"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAddCustomPriority();
-              }
-            }}
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Select or type a priority area (e.g. SDG 1, Stand)..."
+              value={priorityInput}
+              onChange={(e) => setPriorityInput(e.target.value)}
+              onFocus={() => setIsPriorityOpen(true)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddPriority();
+                }
+              }}
+            />
+            {/* Custom Dropdown */}
+            {isPriorityOpen && filteredPriorities.length > 0 && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                {filteredPriorities.map((item, index) => (
+                  <div
+                    key={index}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0 select-none"
+                    onClick={() => handlePrioritySelect(item)}
+                  >
+                    <span className="text-sm text-gray-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             type="button"
-            onClick={handleAddCustomPriority}
-            className="px-4 py-2 bg-[#C8102E] text-white rounded-xl hover:bg-[#A00E26] transition-colors flex items-center gap-2 text-sm font-medium"
+            onClick={handleAddPriority}
+            disabled={!priorityInput.trim()}
+            className="px-4 py-2 bg-[#C8102E] text-white rounded-xl hover:bg-[#A00E26] transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" /> Add
           </button>
         </div>
+        <p className="text-xs text-gray-500">
+           Select from the list or type your own custom priority area.
+        </p>
       </div>
 
     </div>

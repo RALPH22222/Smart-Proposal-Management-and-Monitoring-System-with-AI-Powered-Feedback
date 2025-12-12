@@ -96,7 +96,7 @@ const MainLayout: React.FC = () => {
 			</div>
 
 			{/* Main Content */}
-			<div className='flex-1 p-6 bg-gray-50 overflow-y-auto'>
+			<div className='flex-1 bg-gray-50 overflow-y-auto'>
 				{renderCurrentPage()}
 			</div>
 		</div>

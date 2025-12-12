@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X, File, UserPen} from "lucide-react";
+import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X, File, UserPen, BarChart3} from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
@@ -20,6 +20,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     { id: "accounts", label: "Accounts", icon: Users },
     { id: "proposals", label: "Proposals", icon: FileText },
     { id: "evaluators", label: "Evaluators", icon: UserPen },
+    { id: "monitoring", label: "Monitoring", icon: BarChart3 },
     { id: "contents", label: "Contents", icon: File },
     { id: "reports", label: "Reports", icon: Bell, badge: "5" },
     { id: "system", label: "System", icon: Server },

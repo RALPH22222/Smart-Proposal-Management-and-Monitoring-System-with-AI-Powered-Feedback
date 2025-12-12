@@ -262,7 +262,7 @@ export const RnDEvaluatorPage: React.FC = () => {
   const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">

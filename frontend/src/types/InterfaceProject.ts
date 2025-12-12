@@ -38,6 +38,7 @@ export interface Project {
   title: string;
   description: string;
   principalInvestigator: string;
+  coProponent?: string;
   department: string;
   researchArea: string;
   startDate: string;

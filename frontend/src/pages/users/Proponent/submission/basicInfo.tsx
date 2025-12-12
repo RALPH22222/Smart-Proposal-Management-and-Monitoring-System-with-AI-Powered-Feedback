@@ -7,7 +7,12 @@ import {
   Users,
   Tags,
   X,
-  Clock
+  Clock,
+  Settings,
+  Plus,
+  Trash2,
+  MapPin,
+  Briefcase
 } from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -70,32 +75,49 @@ const durationOptions = [
 ];
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange }) => {
-  const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
+  const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState<{ index: number, isOpen: boolean }>({ index: -1, isOpen: false });
   const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
-  const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false); // New state for duration dropdown
+  const [isDurationDropdownOpen, setIsDurationDropdownOpen] = useState(false);
 
-  const [agencySearchTerm, setAgencySearchTerm] = useState('');
   const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState('');
   const [tagsSearchTerm, setTagsSearchTerm] = useState('');
   
   const [selectedAgencies, setSelectedAgencies] = useState<{ id: number; name: string }[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
+  // Initialize dynamic agency list
+  const [agencyList, setAgencyList] = useState<{ name: string; address: string }[]>([
+    { name: formData.agencyName || '', address: formData.agencyAddress || '' }
+  ]);
+  
   const [filteredAgencies, setFilteredAgencies] = useState(agenciesList);
   const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState(agenciesList);
   const [filteredTags, setFilteredTags] = useState(tagsOptions);
-  const [filteredDurationOptions, setFilteredDurationOptions] = useState(durationOptions); // New state for filtered durations
+  const [filteredDurationOptions, setFilteredDurationOptions] = useState(durationOptions);
 
-  // Filter agencies based on search term for Agency Name
+  // --- Effects ---
+
+  // Handle Mode Change (Sync formData to local agencyList state)
   useEffect(() => {
+    const isMulti = formData.implementationMode?.multiAgency;
+    if (isMulti && agencyList.length < 2) {
+         // If switching to Multi, ensure at least 2 inputs
+         setAgencyList(prev => [...prev, { name: '', address: '' }]);
+    } else if (!isMulti && agencyList.length > 1) {
+         // If switching to Single, keep only the first one
+         setAgencyList(prev => [prev[0]]);
+    }
+  }, [formData.implementationMode]);
+
+  // Filter agencies for dynamic inputs
+  const filterAgenciesByName = (searchTerm: string) => {
     const filtered = agenciesList.filter(agency =>
-      agency.name.toLowerCase().includes(agencySearchTerm.toLowerCase())
+      agency.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredAgencies(filtered);
-  }, [agencySearchTerm]);
+  };
 
-  // Filter agencies based on search term for Cooperating Agencies
   useEffect(() => {
     const filtered = agenciesList.filter(agency =>
       agency.name.toLowerCase().includes(cooperatingSearchTerm.toLowerCase())
@@ -103,7 +125,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     setFilteredCooperatingAgencies(filtered);
   }, [cooperatingSearchTerm]);
 
-  // Filter tags based on search term
   useEffect(() => {
     const filtered = tagsOptions.filter(tag =>
       tag.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())
@@ -111,7 +132,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     setFilteredTags(filtered);
   }, [tagsSearchTerm]);
 
-  // Filter duration based on input
   useEffect(() => {
     const filtered = durationOptions.filter(d => 
       d.toLowerCase().includes((formData.duration || '').toLowerCase())
@@ -119,157 +139,136 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     setFilteredDurationOptions(filtered);
   }, [formData.duration]);
 
-  // Handle agency selection for Cooperating Agencies
+  // --- Handlers for Dynamic Agency ---
+
+  const handleModeChange = (mode: 'single' | 'multi') => {
+    const newMode = {
+      singleAgency: mode === 'single',
+      multiAgency: mode === 'multi'
+    };
+    // Update parent state
+    const fakeEvent = { 
+        target: { name: 'implementationMode', value: newMode } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(fakeEvent);
+  };
+
+  const updateParentAgencies = (list: { name: string; address: string }[]) => {
+    const joinedAgencies = list.map(a => a.name).join(' || ');
+    const joinedAddresses = list.map(a => a.address).join(' || ');
+
+    // Sync with parent state
+    onInputChange({ target: { name: 'agency', value: joinedAgencies } } as React.ChangeEvent<HTMLInputElement>);
+    onInputChange({ target: { name: 'address', value: joinedAddresses } } as React.ChangeEvent<HTMLInputElement>);
+  };
+
+  const handleDynamicChange = (index: number, field: 'name' | 'address', value: string) => {
+    const newList = [...agencyList];
+    newList[index] = { ...newList[index], [field]: value };
+    setAgencyList(newList);
+    updateParentAgencies(newList);
+
+    if (field === 'name') {
+        filterAgenciesByName(value);
+    }
+  };
+
+  const handleAgencyNameSelect = (index: number, agencyName: string) => {
+    handleDynamicChange(index, 'name', agencyName);
+    setIsAgencyDropdownOpen({ index: -1, isOpen: false });
+  };
+
+  const addAgencyRow = () => {
+    const newList = [...agencyList, { name: '', address: '' }];
+    setAgencyList(newList);
+    updateParentAgencies(newList);
+  };
+
+  const removeAgencyRow = (index: number) => {
+    if (agencyList.length <= 2) return;
+    const newList = agencyList.filter((_, i) => i !== index);
+    setAgencyList(newList);
+    updateParentAgencies(newList);
+  };
+
+  // --- Handlers for Other Fields ---
+
   const handleAgencySelect = (agency: { id: number; name: string }) => {
     const isSelected = selectedAgencies.some(a => a.id === agency.id);
-    
     let newSelectedAgencies;
     if (isSelected) {
       newSelectedAgencies = selectedAgencies.filter(a => a.id !== agency.id);
     } else {
       newSelectedAgencies = [...selectedAgencies, agency];
     }
-    
     setSelectedAgencies(newSelectedAgencies);
     
-    // Update form data with comma-separated agency names
     const agencyNames = newSelectedAgencies.map(a => a.name).join(', ');
     const fakeEvent = {
-      target: {
-        name: 'cooperatingAgencies',
-        value: agencyNames
-      }
+      target: { name: 'cooperatingAgencies', value: agencyNames }
     } as React.ChangeEvent<HTMLTextAreaElement>;
-    
     onInputChange(fakeEvent);
   };
 
-  // Handle agency removal from Cooperating Agencies
   const handleAgencyRemove = (agencyId: number) => {
     const newSelectedAgencies = selectedAgencies.filter(a => a.id !== agencyId);
     setSelectedAgencies(newSelectedAgencies);
-    
-    // Update form data
     const agencyNames = newSelectedAgencies.map(a => a.name).join(', ');
     const fakeEvent = {
-      target: {
-        name: 'cooperatingAgencies',
-        value: agencyNames
-      }
+      target: { name: 'cooperatingAgencies', value: agencyNames }
     } as React.ChangeEvent<HTMLTextAreaElement>;
-    
     onInputChange(fakeEvent);
   };
 
-  // Handle Agency Name selection
-  const handleAgencyNameSelect = (agency: { id: number; name: string }) => {
-    const fakeEvent = {
-      target: {
-        name: 'agencyName',
-        value: agency.name
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-    setAgencySearchTerm(agency.name);
-    setIsAgencyDropdownOpen(false);
-  };
-
-  // Handle Agency Name input change (for custom typing)
-  const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAgencySearchTerm(e.target.value);
-    
-    const fakeEvent = {
-      target: {
-        name: 'agencyName',
-        value: e.target.value
-      }
-    } as React.ChangeEvent<HTMLInputElement>;
-    
-    onInputChange(fakeEvent);
-  };
-
-  // Handle tag selection
   const handleTagSelect = (tag: { id: number; name: string }) => {
     const isSelected = selectedTags.includes(tag.name);
-    
     let newSelectedTags;
     if (isSelected) {
       newSelectedTags = selectedTags.filter(t => t !== tag.name);
     } else {
       newSelectedTags = [...selectedTags, tag.name];
     }
-    
     setSelectedTags(newSelectedTags);
-    
-    // Update form data with comma-separated tag names
     const tagNames = newSelectedTags.join(', ');
     const fakeEvent = {
-      target: {
-        name: 'discipline', // or whatever field name you want to use
-        value: tagNames
-      }
+      target: { name: 'discipline', value: tagNames }
     } as React.ChangeEvent<HTMLTextAreaElement>;
-    
     onInputChange(fakeEvent);
     setTagsSearchTerm('');
     setIsTagsDropdownOpen(false);
   };
 
-  // Handle tag removal
   const handleTagRemove = (tagName: string) => {
     const newSelectedTags = selectedTags.filter(t => t !== tagName);
     setSelectedTags(newSelectedTags);
-    
-    // Update form data
     const tagNames = newSelectedTags.join(', ');
     const fakeEvent = {
-      target: {
-        name: 'discipline', // or whatever field name you want to use
-        value: tagNames
-      }
+      target: { name: 'discipline', value: tagNames }
     } as React.ChangeEvent<HTMLTextAreaElement>;
-    
     onInputChange(fakeEvent);
   };
 
-  // Handle Duration Selection
   const handleDurationSelect = (value: string) => {
     const fakeEvent = {
-      target: {
-        name: 'duration',
-        value: value
-      }
+      target: { name: 'duration', value: value }
     } as React.ChangeEvent<HTMLInputElement>;
     onInputChange(fakeEvent);
     setIsDurationDropdownOpen(false);
   };
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      
-      if (!target.closest('.agency-name-dropdown-container')) {
-        setIsAgencyDropdownOpen(false);
-      }
-      
-      if (!target.closest('.cooperating-agency-dropdown-container')) {
-        setIsCooperatingDropdownOpen(false);
-      }
-      
-      if (!target.closest('.tags-dropdown-container')) {
-        setIsTagsDropdownOpen(false);
-      }
-
-      if (!target.closest('.duration-dropdown-container')) {
-        setIsDurationDropdownOpen(false);
-      }
+      if (!target.closest('.agency-name-dropdown-container')) setIsAgencyDropdownOpen({ index: -1, isOpen: false });
+      if (!target.closest('.cooperating-agency-dropdown-container')) setIsCooperatingDropdownOpen(false);
+      if (!target.closest('.tags-dropdown-container')) setIsTagsDropdownOpen(false);
+      if (!target.closest('.duration-dropdown-container')) setIsDurationDropdownOpen(false);
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const isMulti = formData.implementationMode?.multiAgency;
 
   return (
     <div className="space-y-8">
@@ -310,7 +309,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
 
-        {/* Replaced Sex with School Year */}
+        {/* School Year */}
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700">School Year *</label>
           <input
@@ -342,11 +341,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
               placeholder="e.g., 6 months, 1 year"
             />
-            
-            {/* Duration Dropdown */}
             {isDurationDropdownOpen && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {/* Standard Options */}
                 {filteredDurationOptions.map((opt) => (
                   <div
                     key={opt}
@@ -356,8 +352,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                     <span className="text-sm text-gray-700">{opt}</span>
                   </div>
                 ))}
-                
-                {/* Add Custom Option if it doesn't match strict option */}
                 {formData.duration && !durationOptions.some(opt => opt.toLowerCase() === formData.duration.toLowerCase()) && (
                   <button
                     type="button"
@@ -373,89 +367,148 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             )}
           </div>
         </div>
-        
-        {/* Updated Agency Name Field with Dropdown */}
-        <div className="md:col-span-2 space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Building2 className="text-gray-400 w-4 h-4" />
-            Agency/Address *
-          </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 agency-name-dropdown-container">
-              <div className="relative">
-                <input
-                  type="text"
-                  name="agencyName"
-                  value={formData.agencyName}
-                  onChange={handleAgencyNameChange}
-                  onFocus={() => setIsAgencyDropdownOpen(true)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-                  placeholder="Search or type agency name"
-                />
-                
-                {/* Agency Name Dropdown */}
-                {isAgencyDropdownOpen && (
-                  <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                    {filteredAgencies.length > 0 ? (
-                      filteredAgencies.map((agency) => (
-                        <div
-                          key={agency.id}
-                          className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleAgencyNameSelect(agency)}
-                        >
-                          <span className="text-sm text-gray-700">{agency.name}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                        No agencies found. You can type a custom agency name.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex-1">
-              <input
-                type="text"
-                name="agencyAddress"
-                value={formData.agencyAddress}
-                onChange={onInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-                placeholder="Agency address"
-              />
-            </div>
+      </div>
+
+      {/* --- MODE OF IMPLEMENTATION --- */}
+      <div className="space-y-4">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+          <Settings className="text-gray-400 w-4 h-4" />
+          Mode of Implementation *
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${!isMulti ? 'border-black bg-slate-50' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleModeChange('single')}
+          >
+            <input type="radio" checked={!isMulti} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Single Agency</span>
+          </div>
+          
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${isMulti ? 'border-black bg-slate-50' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleModeChange('multi')}
+          >
+            <input type="radio" checked={!!isMulti} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Multiple Agency</span>
           </div>
         </div>
-        
+      </div>
+
+      {/* --- DYNAMIC AGENCY & ADDRESS SECTION --- */}
+      <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+            <Building2 className="text-gray-400 w-4 h-4" />
+            {isMulti ? 'Agencies & Addresses' : 'Agency & Address'} *
+         </div>
+
+         <div className="space-y-4">
+            {agencyList.map((item, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-6 agency-name-dropdown-container">
+                 {/* Agency Name Input */}
+                 <div className="space-y-2">
+                    <div className="relative">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => handleDynamicChange(index, 'name', e.target.value)}
+                          onFocus={() => {
+                            filterAgenciesByName(item.name);
+                            setIsAgencyDropdownOpen({ index: index, isOpen: true });
+                          }}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+                          placeholder={isMulti ? `Agency Name ${index + 1}` : "Search or type agency name"}
+                        />
+                        <Briefcase className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                        
+                        {/* Dropdown for this specific index */}
+                        {isAgencyDropdownOpen.isOpen && isAgencyDropdownOpen.index === index && filteredAgencies.length > 0 && (
+                          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                            {filteredAgencies.map((agency) => (
+                              <div
+                                key={agency.id}
+                                className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
+                                onClick={() => handleAgencyNameSelect(index, agency.name)}
+                              >
+                                <span className="text-sm text-gray-700">{agency.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+                 </div>
+
+                 {/* Address Input */}
+                 <div className="space-y-2">
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={item.address}
+                              onChange={(e) => handleDynamicChange(index, 'address', e.target.value)}
+                              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+                              placeholder={isMulti ? `Address ${index + 1}` : "Enter Address"}
+                            />
+                            <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                        </div>
+                        {/* Remove Button (Only for Multi & index > 1) */}
+                        {isMulti && agencyList.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => removeAgencyRow(index)}
+                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl border border-red-100 hover:border-red-200 transition-colors"
+                            title="Remove"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                    </div>
+                 </div>
+              </div>
+            ))}
+
+            {/* Add Button for Multi Mode */}
+            {isMulti && (
+              <button
+                type="button"
+                onClick={addAgencyRow}
+                className="flex items-center gap-2 text-sm text-[#C8102E] font-medium hover:underline px-1 mt-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add another agency
+              </button>
+            )}
+         </div>
+      </div>
+
+      {/* Telephone & Email */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Phone className="text-gray-400 w-4 h-4" />
-              Telephone *
-            </label>
-            <input
-              type="tel"
-              name="telephone"
-              value={formData.telephone}
-              onChange={onInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-              placeholder="Enter telephone number"
-            />
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Phone className="text-gray-400 w-4 h-4" />
+            Telephone *
+          </label>
+          <input
+            type="tel"
+            name="telephone"
+            value={formData.telephone}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+            placeholder="Enter telephone number"
+          />
         </div>
-          
         <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Mail className="text-gray-400 w-4 h-4" />
-              Email *
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={onInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
-              placeholder="Enter email address"
-            />
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Mail className="text-gray-400 w-4 h-4" />
+            Email *
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+            placeholder="Enter email address"
+          />
         </div>
       </div>
 
@@ -466,7 +519,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           Cooperating Agencies
         </label>
         
-        {/* Selected Agencies Display */}
         {selectedAgencies.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             {selectedAgencies.map((agency) => (
@@ -488,7 +540,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         )}
         
         <div className="relative">
-          {/* Search Input for Cooperating Agencies */}
           <input
             type="text"
             placeholder="Search cooperating agencies or type custom names"
@@ -498,7 +549,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
           />
           
-          {/* Add Custom Agency Button */}
           {cooperatingSearchTerm && !filteredCooperatingAgencies.some(agency => 
             agency.name.toLowerCase() === cooperatingSearchTerm.toLowerCase()
           ) && (
@@ -507,7 +557,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 type="button"
                 onClick={() => {
                   const customAgency = { 
-                    id: Date.now(), // Temporary ID for custom agency
+                    id: Date.now(),
                     name: cooperatingSearchTerm 
                   };
                   handleAgencySelect(customAgency);
@@ -523,7 +573,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             </div>
           )}
           
-          {/* Cooperating Agencies Dropdown Menu */}
           {isCooperatingDropdownOpen && filteredCooperatingAgencies.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {filteredCooperatingAgencies.map((agency) => (
@@ -558,10 +607,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="space-y-2 tags-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Tags className="text-gray-400 w-4 h-4" />
-          Tags
+          Tags / Discipline
         </label>
         
-        {/* Selected Tags Display */}
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             {selectedTags.map((tag, index) => (
@@ -593,7 +641,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
           />
           
-          {/* Tags Dropdown Menu */}
           {isTagsDropdownOpen && filteredTags.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {filteredTags.map((tag) => (
