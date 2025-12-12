@@ -3,646 +3,712 @@ import {
   FaChartLine 
 } from 'react-icons/fa';
 import { 
-  Search, 
-  Target, 
-  Clock, 
-  Wallet, 
-  CheckCircle2, 
-  Play, 
-  Send, 
-  LayoutDashboard, 
-  FileText, 
-  Calendar, 
-  Building2, 
-  Flag,
-  AlertTriangle,
-  PauseCircle,
-  UploadCloud,
-  X,
-  Banknote,
-  Edit3,
-  Save,
-  ArrowRight,
-  ArrowLeft, // Used for Mobile "Back" button
-  Award,
-  Menu
+  Search, Target, Clock, CheckCircle2, Play, Send, 
+  FileText, Calendar, AlertTriangle, UploadCloud, 
+  X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
+  Plus, Trash2, MessageSquare, User, ShieldAlert, Award,
+  Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck, 
+  CornerDownRight
 } from 'lucide-react';
 
 // --- Types ---
-type ProjectStatus = 'planning' | 'active' | 'delayed' | 'on-hold' | 'completed';
+type ProjectStatus = 'active' | 'delayed' | 'completed';
+type ReportStatus = 'locked' | 'due' | 'submitted' | 'approved' | 'overdue';
 
-interface MilestoneData {
+interface ExpenseItem {
+  id: string;
+  description: string;
+  amount: number;
+}
+
+interface Comment {
+  id: string;
+  author: 'Proponent' | 'R&D Officer';
+  text: string;
+  timestamp: string;
+}
+
+interface QuarterlyReport {
   id: number;
-  title: string;
-  duration: string;
-  budget: string;
-  status: 'idle' | 'ongoing' | 'submitted' | 'approved';
-  proofFiles?: string[];
+  quarter: string;
+  dueDate: string;
+  status: ReportStatus;
+  progressPercentage: number;
+  expenseItems: ExpenseItem[];
+  comments: Comment[];
+  proofFiles: string[];
+  submittedBy?: string; 
+  dateSubmitted?: string;
 }
 
 interface Project {
   id: string;
   title: string;
   agency: string;
+  projectLeader: string;
+  coProponent: string;
   status: ProjectStatus;
-  totalBudget: string;
+  totalBudget: number;
   startDate: string;
-  endDate?: string;
-  currentPhase: number;
-  milestones: MilestoneData[];
+  endDate: string;
+  reports: QuarterlyReport[];
 }
 
 const MonitoringPage: React.FC = () => {
   // --- State ---
-  const [activeProjectId, setActiveProjectId] = useState<string>("1");
-  const [showMobileDetail, setShowMobileDetail] = useState(false); // Mobile Navigation State
-  const [editingMilestoneId, setEditingMilestoneId] = useState<number>(1);
+  const [activeProjectId, setActiveProjectId] = useState<string>("2"); 
+  const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProjectStatus | 'all'>('all');
+  
+  const [currentReportIndex, setCurrentReportIndex] = useState(0);
+
   const [isFundModalOpen, setIsFundModalOpen] = useState(false);
-  const [requestAmount, setRequestAmount] = useState("");
+  const [fundItems, setFundItems] = useState<ExpenseItem[]>([]);
+
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [extensionReason, setExtensionReason] = useState("");
+  const [extensionDate, setExtensionDate] = useState("");
+
+  const [replyText, setReplyText] = useState("");
 
   // --- Mock Data ---
   const [projects, setProjects] = useState<Project[]>([
     {
-      id: "1",
-      title: "Smart Hydroponics System",
-      agency: "DOST-PCAARRD",
-      status: 'planning',
-      totalBudget: "₱1,500,000.00",
-      startDate: "TBD",
-      currentPhase: 1,
-      milestones: [
-        { id: 1, title: "", duration: "", budget: "", status: 'idle' },
-        { id: 2, title: "", duration: "", budget: "", status: 'idle' },
-        { id: 3, title: "", duration: "", budget: "", status: 'idle' },
-        { id: 4, title: "", duration: "", budget: "", status: 'idle' },
-      ]
-    },
-    {
       id: "2",
       title: "AI-Based Crop Disease Detection",
       agency: "DOST-PCIEERD",
+      projectLeader: "Dr. Sarah Mendez",
+      coProponent: "Engr. John Doe",
       status: 'active',
-      totalBudget: "₱1,200,000.00",
+      totalBudget: 1200000, 
       startDate: "Jan 15, 2025",
-      currentPhase: 2,
-      milestones: [
-        { id: 1, title: "Requirement Gathering", duration: "1 Month", budget: "₱100,000", status: 'approved', proofFiles: ['report.pdf'] },
-        { id: 2, title: "Model Training", duration: "3 Months", budget: "₱200,000", status: 'ongoing', proofFiles: [] },
-        { id: 3, title: "Field Testing", duration: "2 Months", budget: "₱150,000", status: 'idle' },
-        { id: 4, title: "Deployment", duration: "1 Month", budget: "₱50,000", status: 'idle' },
+      endDate: "Jan 15, 2026",
+      reports: [
+        { 
+          id: 1, quarter: "Q1", dueDate: "Apr 15, 2025", status: 'approved', 
+          progressPercentage: 25, 
+          expenseItems: [
+            { id: '1', description: 'Nvidia Jetson Nano Units (x5)', amount: 150000 },
+            { id: '2', description: 'Field Travel (Laguna)', amount: 20000 },
+            { id: '3', description: 'Research Assistant Stipend', amount: 80000 } 
+          ],
+          comments: [], proofFiles: ['receipts_q1.pdf', 'site_visit_photos.jpg'],
+          submittedBy: "Dr. Sarah Mendez", 
+          dateSubmitted: "Apr 10, 2025"
+        },
+        { 
+          id: 2, quarter: "Q2", dueDate: "Jul 15, 2025", status: 'submitted', 
+          progressPercentage: 50, 
+          expenseItems: [
+            { id: '1', description: 'Cloud Server Hosting (AWS)', amount: 45000 },
+            { id: '2', description: 'Dataset Labeling Service', amount: 30000 }
+          ],
+          comments: [
+            { id: 'c1', author: 'R&D Officer', text: "We received your submission. However, the AWS cost seems a bit higher than the line item in the LIB. Can you clarify?", timestamp: "Jul 16, 2025 09:30 AM" },
+            { id: 'c2', author: 'Proponent', text: "Hi, we had to upgrade the instance type to support the training model size.", timestamp: "Jul 16, 2025 10:15 AM" },
+            { id: 'c3', author: 'R&D Officer', text: "Understood. Please upload the technical specs of the instance used so we can verify and approve.", timestamp: "Jul 16, 2025 01:00 PM" }
+          ], 
+          proofFiles: ['AWS_Invoice_July.pdf', 'Model_Training_Logs.csv'],
+          submittedBy: "Dr. Sarah Mendez",
+          dateSubmitted: "Jul 15, 2025" 
+        },
+        { 
+          id: 3, quarter: "Q3", dueDate: "Oct 15, 2025", status: 'locked', 
+          progressPercentage: 0, expenseItems: [], comments: [], proofFiles: [] 
+        },
+        { 
+          id: 4, quarter: "Q4", dueDate: "Jan 15, 2026", status: 'locked', 
+          progressPercentage: 0, expenseItems: [], comments: [], proofFiles: [] 
+        },
       ]
     },
     {
       id: "3",
       title: "Community Waste Management",
       agency: "DENR",
-      status: 'delayed',
-      totalBudget: "₱850,000.00",
+      projectLeader: "Prof. Maria Santos",
+      coProponent: "LGU San Jose",
+      status: 'delayed', 
+      totalBudget: 850000,
       startDate: "Nov 01, 2024",
-      currentPhase: 2,
-      milestones: [
-        { id: 1, title: "Initial Survey", duration: "1 Month", budget: "₱100,000", status: 'approved' },
-        { id: 2, title: "Implementation", duration: "2 Months", budget: "₱300,000", status: 'ongoing' },
-        { id: 3, title: "Evaluation", duration: "1 Month", budget: "₱50,000", status: 'idle' },
-        { id: 4, title: "Final Report", duration: "1 Month", budget: "₱50,000", status: 'idle' },
-      ]
-    },
-    {
-      id: "4",
-      title: "Solar Irrigation Research",
-      agency: "DA",
-      status: 'on-hold',
-      totalBudget: "₱2,500,000.00",
-      startDate: "Dec 10, 2024",
-      currentPhase: 2,
-      milestones: [
-        { id: 1, title: "Site Inspection", duration: "1 Month", budget: "₱100,000", status: 'approved' },
-        { id: 2, title: "Procurement", duration: "2 Months", budget: "₱1,000,000", status: 'ongoing' },
-        { id: 3, title: "Installation", duration: "3 Months", budget: "₱500,000", status: 'idle' },
-        { id: 4, title: "Testing", duration: "1 Month", budget: "₱100,000", status: 'idle' },
+      endDate: "Nov 01, 2025",
+      reports: [
+        { 
+          id: 1, quarter: "Q1", dueDate: "Feb 01, 2025", status: 'approved', 
+          progressPercentage: 20, 
+          expenseItems: [{ id: '1', description: 'Survey Forms Printing', amount: 50000 }],
+          comments: [], proofFiles: ['survey.pdf'],
+          submittedBy: "LGU San Jose",
+          dateSubmitted: "Jan 28, 2025"
+        },
+        { 
+          id: 2, quarter: "Q2", dueDate: "May 01, 2025", status: 'overdue', 
+          progressPercentage: 20, 
+          expenseItems: [],
+          comments: [
+            { id: 'c1', author: 'R&D Officer', text: "This report is 15 days late. Please submit update immediately or request extension.", timestamp: "May 16, 2025 10:00 AM" }
+          ], 
+          proofFiles: [] 
+        }
       ]
     },
     {
       id: "5",
       title: "Marine Biology Database",
       agency: "CHED",
+      projectLeader: "Dr. Albert Einstein",
+      coProponent: "Marine Lab Inc.",
       status: 'completed',
-      totalBudget: "₱500,000.00",
+      totalBudget: 500000,
       startDate: "Jan 01, 2024",
       endDate: "Dec 31, 2024",
-      currentPhase: 4,
-      milestones: [
-        { id: 1, title: "Design", duration: "1 Month", budget: "₱100,000", status: 'approved' },
-        { id: 2, title: "Development", duration: "2 Months", budget: "₱200,000", status: 'approved' },
-        { id: 3, title: "Testing", duration: "1 Month", budget: "₱100,000", status: 'approved' },
-        { id: 4, title: "Deployment", duration: "1 Month", budget: "₱100,000", status: 'approved' },
+      reports: [
+        { 
+          id: 1, quarter: "Q1", dueDate: "Mar 31, 2024", status: 'approved', 
+          progressPercentage: 25, 
+          expenseItems: [{id:'1', description:'Phase 1', amount: 125000}], comments: [], proofFiles: ['proof.pdf'],
+          submittedBy: "Dr. Albert Einstein", dateSubmitted: "Mar 30, 2024"
+        },
+        { 
+          id: 2, quarter: "Q2", dueDate: "Jun 30, 2024", status: 'approved', 
+          progressPercentage: 50, 
+          expenseItems: [{id:'1', description:'Phase 2', amount: 125000}], comments: [], proofFiles: ['proof.pdf'],
+          submittedBy: "Marine Lab Inc.", dateSubmitted: "Jun 28, 2024"
+        },
+        { 
+          id: 3, quarter: "Q3", dueDate: "Sep 30, 2024", status: 'approved', 
+          progressPercentage: 75, 
+          expenseItems: [{id:'1', description:'Phase 3', amount: 125000}], comments: [], proofFiles: ['proof.pdf'],
+          submittedBy: "Dr. Albert Einstein", dateSubmitted: "Sep 29, 2024"
+        },
+        { 
+          id: 4, quarter: "Q4", dueDate: "Dec 31, 2024", status: 'approved', 
+          progressPercentage: 100, 
+          expenseItems: [{id:'1', description:'Phase 4', amount: 125000}], comments: [], proofFiles: ['proof.pdf'],
+          submittedBy: "Dr. Albert Einstein", dateSubmitted: "Dec 30, 2024"
+        }
       ]
     }
   ]);
 
-  useEffect(() => {
-    setEditingMilestoneId(1);
-  }, [activeProjectId]);
-
   const activeProject = projects.find(p => p.id === activeProjectId);
-  const viewMilestoneId = activeProject?.status === 'planning' ? editingMilestoneId : activeProject?.currentPhase || 1;
-  const currentMilestone = activeProject?.milestones.find(m => m.id === viewMilestoneId);
 
-  const isCurrentStepComplete = currentMilestone 
-    ? currentMilestone.title.trim() !== '' && currentMilestone.duration.trim() !== '' && currentMilestone.budget.trim() !== ''
-    : false;
-
-  // --- Theme Helpers ---
-  const getThemeColors = (status: ProjectStatus) => {
-    switch(status) {
-      case 'active':
-        return {
-          bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700',
-          gradient: 'from-emerald-600 to-emerald-800', bar: 'bg-emerald-500'
-        };
-      case 'planning':
-        return {
-          bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700',
-          gradient: 'from-purple-600 to-purple-800', bar: 'bg-purple-500'
-        };
-      case 'on-hold':
-        return {
-          bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700',
-          gradient: 'from-slate-600 to-slate-800', bar: 'bg-slate-500'
-        };
-      case 'delayed':
-        return {
-          bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700',
-          gradient: 'from-amber-500 to-amber-700', bar: 'bg-amber-500'
-        };
-      case 'completed':
-        return {
-          bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700',
-          gradient: 'from-blue-600 to-blue-800', bar: 'bg-blue-500'
-        };
-      default: return {
-          bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700',
-          gradient: 'from-gray-600 to-gray-800', bar: 'bg-gray-500'
-      };
+  useEffect(() => {
+    if (activeProject?.id === "2") {
+        setCurrentReportIndex(1); // Q2
+    } else if (activeProject?.id === "3") {
+        setCurrentReportIndex(1); // Q2
+    } else {
+        setCurrentReportIndex(0);
     }
+  }, [activeProjectId, activeProject?.id]);
+
+  // --- Helpers ---
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
   };
 
-  const getStatusIcon = (status: ProjectStatus) => {
-    switch(status) {
-      case 'active': return <Play className="w-5 h-5 text-emerald-600"/>;
-      case 'planning': return <Edit3 className="w-5 h-5 text-purple-600"/>;
-      case 'delayed': return <AlertTriangle className="w-5 h-5 text-amber-600"/>;
-      case 'on-hold': return <PauseCircle className="w-5 h-5 text-slate-600"/>;
-      case 'completed': return <CheckCircle2 className="w-5 h-5 text-blue-600"/>;
-      default: return null;
-    }
+  const calculateTotalExpenses = (items: ExpenseItem[]) => {
+    return items.reduce((sum, item) => sum + item.amount, 0);
   };
+
+  const totalSpent = activeProject?.reports.reduce((acc, report) => {
+    if (report.status === 'submitted' || report.status === 'approved') {
+      return acc + calculateTotalExpenses(report.expenseItems);
+    }
+    return acc;
+  }, 0) || 0;
+
+  const remainingBudget = (activeProject?.totalBudget || 0) - totalSpent;
+  const budgetProgress = activeProject ? (totalSpent / activeProject.totalBudget) * 100 : 0;
 
   // --- Handlers ---
-  const handleProjectSelect = (projectId: string) => {
-    setActiveProjectId(projectId);
-    setShowMobileDetail(true); // Switch to detail view on mobile
+  const handlePrevReport = () => {
+    if (currentReportIndex > 0) setCurrentReportIndex(prev => prev - 1);
   };
 
-  const updateProjectStatus = (newStatus: ProjectStatus) => {
-    setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, status: newStatus } : p));
+  const handleNextReport = () => {
+    if (activeProject && currentReportIndex < activeProject.reports.length - 1) {
+      setCurrentReportIndex(prev => prev + 1);
+    }
   };
 
-  const updateMilestone = (field: keyof MilestoneData, value: any) => {
-    if (!activeProject) return;
+  const addExpenseItem = (reportId: number) => {
+    const newItem: ExpenseItem = { id: Date.now().toString(), description: '', amount: 0 };
     setProjects(prev => prev.map(p => {
-      if (p.id !== activeProjectId) return p;
-      const updatedMilestones = p.milestones.map(m => 
-        m.id === viewMilestoneId ? { ...m, [field]: value } : m
-      );
-      return { ...p, milestones: updatedMilestones };
+      if(p.id !== activeProjectId) return p;
+      return {
+        ...p,
+        reports: p.reports.map(r => r.id === reportId ? { ...r, expenseItems: [...r.expenseItems, newItem] } : r)
+      };
     }));
   };
 
-  const handleNextStep = () => { if (editingMilestoneId < 4) setEditingMilestoneId(prev => prev + 1); };
-  const handlePrevStep = () => { if (editingMilestoneId > 1) setEditingMilestoneId(prev => prev - 1); };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && currentMilestone) {
-      const fileName = e.target.files[0].name;
-      const currentFiles = currentMilestone.proofFiles || [];
-      updateMilestone('proofFiles', [...currentFiles, fileName]);
-    }
+  const updateExpenseItem = (reportId: number, itemId: string, field: keyof ExpenseItem, value: any) => {
+    setProjects(prev => prev.map(p => {
+      if(p.id !== activeProjectId) return p;
+      return {
+        ...p,
+        reports: p.reports.map(r => {
+          if (r.id !== reportId) return r;
+          return {
+            ...r,
+            expenseItems: r.expenseItems.map(item => item.id === itemId ? { ...item, [field]: value } : item)
+          };
+        })
+      };
+    }));
   };
 
-  const handleRequestFund = () => {
-    if (activeProject?.status === 'planning' || activeProject?.status === 'completed') return;
-    setIsFundModalOpen(true);
+  const removeExpenseItem = (reportId: number, itemId: string) => {
+    setProjects(prev => prev.map(p => {
+      if(p.id !== activeProjectId) return p;
+      return {
+        ...p,
+        reports: p.reports.map(r => r.id === reportId ? { ...r, expenseItems: r.expenseItems.filter(i => i.id !== itemId) } : r)
+      };
+    }));
   };
 
+  const addFundItem = () => setFundItems([...fundItems, { id: Date.now().toString(), description: '', amount: 0 }]);
+  const updateFundItem = (itemId: string, field: keyof ExpenseItem, value: any) => setFundItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+  const removeFundItem = (itemId: string) => setFundItems(prev => prev.filter(item => item.id !== itemId));
   const submitFundRequest = () => {
-    alert(`Request for ₱${requestAmount} submitted to agency.`);
     setIsFundModalOpen(false);
-    setRequestAmount("");
+    setFundItems([]);
+    alert("Request Submitted");
   };
 
-  const handleSubmitPlan = () => {
-    if (!activeProject) return;
-    updateProjectStatus('active');
-    setProjects(prev => prev.map(p => p.id === activeProjectId ? { ...p, startDate: new Date().toLocaleDateString() } : p));
-    alert("Project Plan Finalized and Submitted to R&D!");
+  const postReply = (reportId: number) => {
+    if(!replyText.trim()) return;
+    const now = new Date();
+    const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    
+    const newComment: Comment = { 
+        id: Date.now().toString(), 
+        author: 'Proponent', 
+        text: replyText, 
+        timestamp: timestamp 
+    };
+
+    setProjects(prev => prev.map(p => {
+      if(p.id !== activeProjectId) return p;
+      return { ...p, reports: p.reports.map(r => r.id === reportId ? { ...r, comments: [...r.comments, newComment] } : r) };
+    }));
+    setReplyText("");
   };
 
-  const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const submitReport = (reportId: number) => {
+    const report = activeProject?.reports.find(r => r.id === reportId);
+    if (!report || report.expenseItems.length === 0) return alert("Please add expense items.");
+    
+    const submitterName = activeProject?.projectLeader; 
 
-  const theme = activeProject ? getThemeColors(activeProject.status) : getThemeColors('active');
-  const deadlineOptions = ["1 Month", "2 Months", "3 Months", "6 Months", "1 Year", "1.5 Years", "2 Years"];
+    setProjects(prev => prev.map(p => {
+      if (p.id !== activeProjectId) return p;
+      return { 
+        ...p, 
+        reports: p.reports.map(r => r.id === reportId ? { 
+          ...r, 
+          status: 'submitted' as ReportStatus,
+          submittedBy: submitterName,
+          dateSubmitted: new Date().toLocaleDateString()
+        } : r) 
+      };
+    }));
+    alert("Submitted for Verification!");
+  };
+
+  const updateReportField = (reportId: number, field: keyof QuarterlyReport, value: any) => {
+    setProjects(prev => prev.map(p => {
+      if(p.id !== activeProjectId) return p;
+      return { ...p, reports: p.reports.map(r => r.id === reportId ? { ...r, [field]: value } : r) };
+    }));
+  };
+
+  const filteredProjects = projects.filter(p => (filterStatus === 'all' || p.status === filterStatus) && p.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const currentReport = activeProject ? activeProject.reports[currentReportIndex] : null;
+  const isLocked = currentReport?.status === 'locked';
+  const isEditable = currentReport?.status === 'due' || currentReport?.status === 'overdue';
+  const isOverdue = currentReport?.status === 'overdue';
+  const prevReportProgress = activeProject && currentReportIndex > 0 ? activeProject.reports[currentReportIndex - 1].progressPercentage : 0;
+  const reportTotal = currentReport ? calculateTotalExpenses(currentReport.expenseItems) : 0;
+
+  const renderChatSection = () => {
+    if (!currentReport) return null;
+    return (
+        <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-inner mt-6">
+            <div className="bg-slate-100 px-4 py-3 flex items-center gap-2 border-b border-slate-200">
+            <MessageSquare className="w-4 h-4 text-slate-500"/>
+            <h5 className="text-xs font-bold text-slate-700 uppercase">Feedback & Communication</h5>
+            </div>
+            
+            <div className="p-4 bg-slate-50/50 max-h-64 overflow-y-auto space-y-4">
+            {currentReport.comments.length === 0 && (
+                <p className="text-center text-xs text-slate-400 italic py-2">No messages yet. Use the box below to update R&D on status.</p>
+            )}
+            {currentReport.comments.map(comment => {
+                const isRD = comment.author === 'R&D Officer';
+                return (
+                    <div key={comment.id} className={`flex gap-3 ${isRD ? 'justify-start' : 'justify-end'}`}>
+                        {isRD && (
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 border border-amber-200 shadow-sm">
+                            <User className="w-4 h-4 text-amber-700"/>
+                        </div>
+                        )}
+                        
+                        <div className={`max-w-[85%]`}>
+                        <div className={`flex items-center gap-2 mb-1 ${isRD ? 'justify-start' : 'justify-end'}`}>
+                            <span className={`text-[10px] font-bold ${isRD ? 'text-amber-700' : 'text-blue-700'}`}>
+                                {isRD ? 'R&D Officer' : 'You (Proponent)'}
+                            </span>
+                            <span className="text-[10px] text-gray-400">{comment.timestamp}</span>
+                        </div>
+                        <div className={`p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
+                            isRD 
+                            ? 'bg-white border border-amber-200 text-slate-700 rounded-tl-none' 
+                            : 'bg-blue-600 text-white rounded-tr-none'
+                        }`}>
+                            <p>{comment.text}</p>
+                        </div>
+                        </div>
+                        
+                        {!isRD && (
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border border-blue-200 shadow-sm">
+                            <UserCheck className="w-4 h-4 text-blue-700"/>
+                        </div>
+                        )}
+                    </div>
+                );
+            })}
+            </div>
+
+            <div className="p-3 bg-white border-t border-slate-200 flex gap-2 items-center">
+            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-400 flex-shrink-0">
+                <CornerDownRight className="w-4 h-4"/>
+            </div>
+            <input 
+                type="text" 
+                value={replyText} 
+                onChange={(e) => setReplyText(e.target.value)} 
+                placeholder="Type your reply to R&D..." 
+                className="flex-1 text-xs p-2.5 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all"
+                onKeyDown={(e) => e.key === 'Enter' && postReply(currentReport.id)}
+            />
+            <button 
+                onClick={() => postReply(currentReport.id)} 
+                disabled={!replyText.trim()}
+                className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+            >
+                <Send className="w-4 h-4"/>
+            </button>
+            </div>
+        </div>
+    );
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen">
       
       {/* --- HEADER --- */}
       <header className="mb-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg">
-              <FaChartLine className="text-white text-xl lg:text-2xl" />
-            </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Project Monitoring</h1>
-              <p className="text-gray-600 mt-1 text-sm lg:text-base">Track milestones, plan budgets, and submit proof.</p>
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg">
+            <FaChartLine className="text-white text-xl lg:text-2xl" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Project Monitoring</h1>
+            <p className="text-gray-600 text-sm">Detailed financial breakdowns and progress tracking.</p>
           </div>
         </div>
 
-        {/* --- STATS CARDS (Responsive Grid) --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-between hover:scale-105 items-center hover:shadow-md transition-all duration-300">
-             <div><p className="text-xs font-semibold text-slate-600">Total Projects</p><p className="text-2xl font-bold text-slate-700">{projects.length}</p></div>
-             <FileText className="w-6 h-6 text-slate-500" />
+       {/* --- STATS CARDS --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
+             <div><p className="text-xs font-bold text-gray-500">Active Projects</p><p className="text-3xl font-bold text-emerald-600">{projects.filter(p=>p.status==='active').length}</p></div>
+             <Play className="w-8 h-8 text-emerald-500" />
           </div>
-          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex justify-between hover:scale-105 items-center shadow-sm hover:shadow-md transition-all duration-300">
-             <div><p className="text-xs font-semibold text-purple-600">Planning</p><p className="text-2xl font-bold text-purple-700">{projects.filter(p=>p.status==='planning').length}</p></div>
-             <Edit3 className="w-6 h-6 text-purple-500" />
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+             <div><p className="text-xs font-bold text-gray-500">Delayed</p><p className="text-3xl font-bold text-amber-600">{projects.filter(p=>p.status==='delayed').length}</p></div>
+             <AlertTriangle className="w-8 h-8 text-amber-500" />
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between hover:scale-105 items-center shadow-sm hover:shadow-md transition-all duration-300">
-             <div><p className="text-xs font-semibold text-emerald-600">Active</p><p className="text-2xl font-bold text-emerald-700">{projects.filter(p=>p.status==='active').length}</p></div>
-             <Play className="w-6 h-6 text-emerald-500" />
-          </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex justify-between hover:scale-105 items-center shadow-sm hover:shadow-md transition-all duration-300">
-             <div><p className="text-xs font-semibold text-amber-600">Delayed</p><p className="text-2xl font-bold text-amber-700">{projects.filter(p=>p.status==='delayed').length}</p></div>
-             <AlertTriangle className="w-6 h-6 text-amber-500" />
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex justify-between hover:scale-105 items-center shadow-sm hover:shadow-md transition-all duration-300">
-             <div><p className="text-xs font-semibold text-blue-600">Completed</p><p className="text-2xl font-bold text-blue-700">{projects.filter(p=>p.status==='completed').length}</p></div>
-             <CheckCircle2 className="w-6 h-6 text-blue-500" />
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
+             <div><p className="text-xs font-bold text-gray-500">Completed</p><p className="text-3xl font-bold text-blue-600">{projects.filter(p=>p.status==='completed').length}</p></div>
+             <CheckCircle2 className="w-8 h-8 text-blue-500" />
           </div>
         </div>
       </header>
 
       {/* --- MAIN CONTENT --- */}
-      <section>
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col lg:flex-row min-h-[700px]">
+      <section className="flex flex-col lg:flex-row gap-6">
           
-          {/* --- SIDEBAR (Hidden on mobile when Detail is active) --- */}
-          <div className={`w-full lg:w-1/3 border-r border-gray-200 bg-gray-50 flex-col ${showMobileDetail ? 'hidden lg:flex' : 'flex'}`}>
-            <div className="p-4 bg-white border-b border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-[#C8102E]"/> Projects List
-              </h3>
-              
-              {/* Status Filter Tabs - Scrollable on mobile */}
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-2">
-                 {['all', 'planning', 'active', 'delayed', 'on-hold', 'completed'].map((status) => (
-                   <button
-                     key={status}
-                     onClick={() => setFilterStatus(status as any)}
-                     className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors capitalize ${
-                       filterStatus === status ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                     }`}
-                   >
-                     {status.replace('-', ' ')}
-                   </button>
+          {/* --- LEFT SIDEBAR (Projects List) --- */}
+          <div className={`w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)] ${showMobileDetail ? 'hidden lg:flex' : 'flex'}`}>
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-[#C8102E]"/> Select Project</h3>
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input type="text" placeholder="Find project..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20"/>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                 {['all', 'active', 'delayed', 'completed'].map((status) => (
+                   <button key={status} onClick={() => setFilterStatus(status as any)} className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-colors ${filterStatus === status ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{status}</button>
                  ))}
               </div>
-
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#C8102E]"
-                />
-              </div>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {filteredProjects.map((project) => {
-                const colors = getThemeColors(project.status);
-                return (
-                <button
-                  key={project.id}
-                  onClick={() => handleProjectSelect(project.id)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 relative group shadow-sm hover:shadow-md flex items-center justify-between ${
-                    activeProjectId === project.id 
-                    ? `${colors.bg} ${colors.border} ring-1 ring-opacity-50`
-                    : 'bg-white border-gray-200 hover:border-gray-300'
-                  }`}
-                  style={activeProjectId === project.id ? { borderColor: 'currentColor', color: 'inherit' } : {}}
-                >
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {filteredProjects.map((project) => (
+                <button key={project.id} onClick={() => { setActiveProjectId(project.id); setShowMobileDetail(true); }} className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}`}>
                   <div className="min-w-0">
-                    <h4 className={`text-sm font-bold line-clamp-1 mb-1 ${activeProjectId === project.id ? colors.text : 'text-gray-900'}`}>{project.title}</h4>
-                    <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
-                      <span className="flex items-center gap-1"><Building2 className="w-3 h-3"/> {project.agency}</span>
-                    </div>
+                    <h4 className={`text-sm font-bold line-clamp-1 ${activeProjectId === project.id ? 'text-blue-800' : 'text-gray-700'}`}>{project.title}</h4>
+                    <p className="text-xs text-gray-400 mt-1">{project.agency}</p>
                   </div>
-                  <div className="ml-2 flex-shrink-0">{getStatusIcon(project.status)}</div>
+                  {project.status === 'delayed' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                  {project.status === 'active' && <Play className="w-4 h-4 text-emerald-500" />}
+                  {project.status === 'completed' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
                 </button>
-              )})}
+              ))}
             </div>
           </div>
 
-          {/* --- RIGHT PANEL (Hidden on mobile unless selected) --- */}
-          <div className={`w-full lg:w-2/3 bg-white p-4 sm:p-6 lg:p-8 flex-col relative ${showMobileDetail ? 'flex' : 'hidden lg:flex'}`}>
-            
-            {/* Mobile Back Button */}
+          {/* --- RIGHT PANEL (Detail View) --- */}
+          <div className={`w-full lg:w-2/3 flex flex-col ${showMobileDetail ? 'flex' : 'hidden lg:flex'}`}>
             <div className="lg:hidden mb-4">
-              <button 
-                onClick={() => setShowMobileDetail(false)}
-                className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E] transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" /> Back to Projects
-              </button>
+              <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
             </div>
 
             {activeProject ? (
-              <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                {/* Header Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-5 mb-6 gap-4">
-                   <div>
-                      <h2 className="text-xl font-bold text-gray-900 leading-tight">{activeProject.title}</h2>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-500">
-                        <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> Start: {activeProject.startDate}</span>
-                        <span className="flex items-center gap-1"><Wallet className="w-4 h-4"/> Grant: {activeProject.totalBudget}</span>
-                      </div>
-                   </div>
-                   
-                   {/* Request Funds Button - Hidden in Planning/Completed */}
-                   {activeProject.status !== 'planning' && activeProject.status !== 'completed' && (
-                     <button 
-                       onClick={handleRequestFund}
-                       className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow hover:-translate-y-0.5 transition-all"
-                     >
-                       <Banknote className="w-4 h-4" /> Request Funds
-                     </button>
-                   )}
-                </div>
-
-                {/* --- COMPLETED STATE BANNER --- */}
-                {activeProject.status === 'completed' && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-2xl p-6 lg:p-8 mb-8 text-center relative overflow-hidden shadow-sm transition-all duration-300">
-                    <Award className="absolute top-0 right-0 w-32 h-32 lg:w-40 lg:h-40 text-blue-200 opacity-20 transform translate-x-10 -translate-y-10 rotate-12" />
-                    <div className="relative z-10">
-                       <div className="w-16 h-16 lg:w-20 lg:h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border-4 border-white">
-                          <CheckCircle2 className="w-8 h-8 lg:w-10 lg:h-10 text-blue-600" />
-                       </div>
-                       <h2 className="text-2xl lg:text-3xl font-bold text-blue-900 mb-2">Project Successfully Completed!</h2>
-                       <p className="text-blue-700 max-w-md mx-auto mb-6 text-sm lg:text-base">
-                          All milestones have been delivered, reviewed, and approved by R&D.
-                       </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* --- PLANNING WIZARD ALERT --- */}
-                {activeProject.status === 'planning' && (
-                   <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-300">
-                     <div className="flex items-start gap-3">
-                       <Edit3 className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
-                       <div>
-                         <h4 className="font-bold text-purple-800">Planning Wizard</h4>
-                         <p className="text-sm text-purple-700 leading-relaxed">
-                           Step {editingMilestoneId} of 4: Please fill out the details for this milestone to proceed.
-                         </p>
-                       </div>
-                     </div>
-                   </div>
-                )}
-
-                {/* --- MILESTONE TRACKER --- */}
-                {currentMilestone && (
-                  <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 flex flex-col ${theme.border} transition-all duration-300`}>
-                    
-                    {/* Banner */}
-                    <div className={`p-6 text-white relative overflow-hidden bg-gradient-to-r ${theme.gradient}`}>
-                       <Flag className="absolute right-0 top-0 w-32 h-32 text-white opacity-10 transform translate-x-6 -translate-y-6" />
-                       <div className="relative z-10">
-                          <h3 className="font-bold flex items-center gap-2 text-lg">
-                             <LayoutDashboard className="w-5 h-5"/> 
-                             {activeProject.status === 'planning' ? 'Milestone Planning' : 
-                              activeProject.status === 'completed' ? 'Project Summary' :
-                              `Phase ${activeProject.currentPhase} Implementation`}
-                          </h3>
-                       </div>
-                    </div>
-
-                    <div className="p-4 sm:p-6">
-                      {/* Stepper (Shows Current View) */}
-                      <div className="flex items-center justify-between relative mb-10 px-2 sm:px-4 mt-4">
-                         <div className={`absolute left-0 top-3 sm:top-4 w-full h-1 rounded-full -z-0 bg-gray-100`}></div>
-                         <div 
-                           className={`absolute left-0 top-3 sm:top-4 h-1 rounded-full -z-0 transition-all duration-700 ease-out ${theme.bar}`}
-                           style={{ width: activeProject.status === 'completed' ? '100%' : `${((viewMilestoneId - 1) / 3) * 100}%` }}
-                         ></div>
-
-                         {[1, 2, 3, 4].map((step) => {
-                           const isActive = step === viewMilestoneId && activeProject.status !== 'completed';
-                           const isCompleted = step < viewMilestoneId || activeProject.status === 'completed';
-                           
-                           let circleClass = 'bg-white text-gray-300 border-gray-100';
-                           if (isCompleted) circleClass = `bg-emerald-100 text-emerald-700 border-white`;
-                           else if (isActive) circleClass = `${theme.bar} text-white ${theme.border} scale-110 shadow-md`;
-
-                           return (
-                             <div key={step} className="flex flex-col items-center gap-2 z-10 relative transition-all duration-300">
-                               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold border-4 transition-all ${circleClass}`}>
-                                 {isCompleted ? <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> : step}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
+                
+                {/* --- COMPLETED PROJECT SUCCESS CARD --- */}
+                {activeProject.status === 'completed' ? (
+                   <div className="mb-8 relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-800 text-white p-6 sm:p-8 text-center shadow-xl">
+                      <Award className="absolute top-0 right-0 w-64 h-64 text-white opacity-5 transform translate-x-10 -translate-y-10 rotate-12" />
+                      <CheckCircle2 className="absolute bottom-0 left-0 w-48 h-48 text-white opacity-5 transform -translate-x-10 translate-y-10 -rotate-12" />
+                      <div className="relative z-10 animate-in zoom-in duration-500">
+                         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-yellow-500/20">
+                            <Award className="w-8 h-8 sm:w-10 sm:h-10" />
+                         </div>
+                         <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Congratulations!</h1>
+                         <p className="text-blue-100 text-base sm:text-lg mb-8">Project Successfully Completed & Verified</p>
+                         <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 border-b border-blue-700 pb-4 inline-block px-8">{activeProject.title}</h2>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-left max-w-2xl mx-auto mb-8">
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                               <div className="flex items-center gap-2 mb-2 text-blue-200 text-xs font-bold uppercase"><Users className="w-4 h-4"/> Project Proponents</div>
+                               <div className="space-y-1">
+                                  <p className="font-semibold text-white">Leader: {activeProject.projectLeader}</p>
+                                  <p className="text-sm text-blue-100">Co-Proponent: {activeProject.coProponent}</p>
                                </div>
-                               <span className={`text-[10px] sm:text-xs font-semibold ${isActive ? theme.text : 'text-gray-400'}`}>Milestone {step}</span>
-                             </div>
-                           )
-                         })}
+                            </div>
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                               <div className="flex items-center gap-2 mb-2 text-blue-200 text-xs font-bold uppercase"><Banknote className="w-4 h-4"/> Financials</div>
+                               <p className="font-semibold text-white text-xl">{formatCurrency(totalSpent)}</p>
+                               <p className="text-sm text-blue-100">Total Budget Utilized</p>
+                            </div>
+                         </div>
+                         <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-blue-950/50 rounded-xl sm:rounded-full px-6 py-3 sm:py-2 border border-blue-500/30">
+                            <CalendarCheck className="w-5 h-5 text-yellow-400" />
+                            <span className="font-medium text-blue-100 text-sm">Duration: <span className="text-white font-bold">{activeProject.startDate}</span> to <span className="text-white font-bold">{activeProject.endDate}</span></span>
+                         </div>
                       </div>
-
-                      {/* Details & Inputs */}
-                      {activeProject.status !== 'completed' && (
-                        <div className="bg-gray-50 rounded-xl p-4 sm:p-6 border border-gray-200 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
-                           
-                           <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
-                              <h4 className="font-bold text-gray-700 flex items-center gap-2 text-sm sm:text-base">
-                                <Target className="w-4 h-4" /> 
-                                {activeProject.status === 'planning' ? `Setup Milestone ${editingMilestoneId}` : currentMilestone.title}
-                              </h4>
-                              <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                                currentMilestone.status === 'idle' ? 'bg-gray-200 text-gray-600' :
-                                currentMilestone.status === 'ongoing' ? 'bg-blue-100 text-blue-700' :
-                                currentMilestone.status === 'submitted' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-green-100 text-green-700'
-                              }`}>
-                                {currentMilestone.status}
+                   </div>
+                ) : (
+                  // --- ACTIVE/DELAYED HEADER ---
+                  <div className="mb-8">
+                      <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-4">
+                         <div>
+                           <div className="flex items-center gap-2 mb-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${activeProject.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                {activeProject.status}
                               </span>
                            </div>
-
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                              <div className="md:col-span-2">
-                                 <label className="text-xs font-semibold text-gray-500 block mb-1">Milestone Title <span className="text-red-500">*</span></label>
-                                 <input 
-                                   type="text" 
-                                   value={currentMilestone.title}
-                                   onChange={(e) => updateMilestone('title', e.target.value)}
-                                   disabled={activeProject.status !== 'planning'}
-                                   className={`w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all ${activeProject.status !== 'planning' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                   placeholder="e.g. Data Analysis Phase"
-                                 />
-                              </div>
-                              <div>
-                                 <label className="text-xs font-semibold text-gray-500 block mb-1">Budget Allocation <span className="text-red-500">*</span></label>
-                                 <div className="relative">
-                                    <Wallet className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <input 
-                                      type="text" 
-                                      value={currentMilestone.budget}
-                                      onChange={(e) => updateMilestone('budget', e.target.value)}
-                                      disabled={activeProject.status !== 'planning'}
-                                      className={`w-full pl-10 p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 outline-none transition-all ${activeProject.status !== 'planning' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                      placeholder="₱0.00"
-                                    />
-                                 </div>
-                              </div>
-                              <div>
-                                 <label className="text-xs font-semibold text-gray-500 block mb-1">Duration / Deadline <span className="text-red-500">*</span></label>
-                                 <div className="relative">
-                                    <Clock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                                    <select 
-                                      value={currentMilestone.duration}
-                                      onChange={(e) => updateMilestone('duration', e.target.value)}
-                                      disabled={activeProject.status !== 'planning'}
-                                      className={`w-full pl-10 p-2.5 border border-gray-300 rounded-lg bg-white appearance-none focus:ring-2 focus:ring-purple-500 outline-none transition-all ${activeProject.status !== 'planning' ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                    >
-                                      <option value="" disabled>Select Duration</option>
-                                      {deadlineOptions.map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                      ))}
-                                    </select>
-                                 </div>
-                              </div>
+                           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{activeProject.title}</h2>
+                           <div className="flex gap-4 mt-2 text-sm text-gray-500">
+                              <span className="flex items-center gap-1"><Calendar className="w-4 h-4"/> Ends: {activeProject.endDate}</span>
                            </div>
-                           
-                           {/* --- SEQUENTIAL PLANNING NAVIGATION --- */}
-                           {activeProject.status === 'planning' && (
-                             <div className="flex flex-col-reverse sm:flex-row justify-between items-center pt-4 border-t border-gray-200 gap-3">
-                                <button 
-                                  onClick={handlePrevStep}
-                                  disabled={editingMilestoneId === 1}
-                                  className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                                    editingMilestoneId === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'
-                                  }`}
-                                >
-                                  <ArrowLeft className="w-4 h-4" /> Previous
-                                </button>
+                         </div>
+                         <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={() => setIsExtensionModalOpen(true)} className="flex-1 sm:flex-none justify-center flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors" title="Request Extension"><CalendarClock className="w-5 h-5"/></button>
+                            <button onClick={() => setIsFundModalOpen(true)} className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold shadow-sm text-sm"><Banknote className="w-4 h-4"/> Request Funds</button>
+                         </div>
+                      </div>
 
-                                {editingMilestoneId < 4 ? (
-                                  <button 
-                                    onClick={handleNextStep}
-                                    disabled={!isCurrentStepComplete}
-                                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white transition-all shadow-md ${
-                                      isCurrentStepComplete ? 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg' : 'bg-purple-300 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    Next Milestone <ArrowRight className="w-4 h-4" />
-                                  </button>
-                                ) : (
-                                  <button 
-                                    onClick={handleSubmitPlan}
-                                    disabled={!isCurrentStepComplete}
-                                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold text-white transition-all shadow-md ${
-                                      isCurrentStepComplete ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg' : 'bg-emerald-300 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    <Save className="w-4 h-4" /> Submit Plan to R&D
-                                  </button>
-                                )}
-                             </div>
-                           )}
-
-                           {/* --- ACTIVE PROJECT ACTIONS --- */}
-                           {activeProject.status !== 'planning' && (
-                             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                                   {/* Upload Proof (Ongoing/Approved) */}
-                                   {(currentMilestone.status === 'ongoing' || currentMilestone.status === 'approved') && activeProject.status !== 'on-hold' && (
-                                       <label className="w-full sm:w-auto cursor-pointer px-4 py-2.5 bg-white border border-purple-200 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 flex items-center justify-center gap-2 transition-all shadow-sm">
-                                          <UploadCloud className="w-4 h-4" /> Upload Proof
-                                          <input type="file" className="hidden" onChange={handleFileUpload} />
-                                       </label>
-                                   )}
-                                   
-                                   {/* Submit Proof (Ongoing) */}
-                                   {currentMilestone.status === 'ongoing' && activeProject.status !== 'on-hold' && (
-                                      <button 
-                                        className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-all shadow-md"
-                                      >
-                                        Submit <Send className="w-3 h-3"/>
-                                      </button>
-                                   )}
-                             </div>
-                           )}
+                      {activeProject.status === 'delayed' && (
+                        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 animate-in slide-in-from-top-2">
+                           <ShieldAlert className="w-6 h-6 text-red-600 flex-shrink-0" />
+                           <div>
+                              <h4 className="font-bold text-red-800 text-sm">Action Required: Project Delayed</h4>
+                              <p className="text-xs text-red-600 mt-1">You have an overdue report. Please submit your progress report immediately or reply to R&D comments below.</p>
+                           </div>
                         </div>
                       )}
-                    </div>
+
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden">
+                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-2 relative z-10 gap-2 sm:gap-0">
+                            <div><p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Grant</p><p className="text-xl font-bold text-slate-800">{formatCurrency(activeProject.totalBudget)}</p></div>
+                            <div className="text-left sm:text-right"><p className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Remaining</p><p className="text-2xl font-black text-emerald-700">{formatCurrency(remainingBudget)}</p></div>
+                         </div>
+                         <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden mb-1"><div className={`h-full transition-all duration-1000 ${budgetProgress > 90 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${budgetProgress}%` }}></div></div>
+                         <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase"><span>0%</span><span>{budgetProgress.toFixed(1)}% Utilized</span></div>
+                         <PieChart className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-200 opacity-50 z-0" />
+                      </div>
                   </div>
                 )}
+
+                {/* --- CAROUSEL REPORTS VIEW --- */}
+                {currentReport && (
+                  <div className="flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                         <h3 className="font-bold text-gray-800 flex items-center gap-2"><History className="w-5 h-5 text-gray-500"/> Quarterly Reports</h3>
+                         
+                         <div className="flex items-center bg-gray-100 rounded-lg p-1 gap-1">
+                            <button onClick={handlePrevReport} disabled={currentReportIndex === 0} className="p-1 rounded-md hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"><ChevronLeft className="w-5 h-5 text-gray-600" /></button>
+                            <span className="text-xs font-bold text-gray-600 px-2 min-w-[60px] text-center">{currentReport.quarter}</span>
+                            <button onClick={handleNextReport} disabled={currentReportIndex === activeProject.reports.length - 1} className="p-1 rounded-md hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent transition-all"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
+                         </div>
+                      </div>
+
+                      <div className={`relative rounded-2xl border transition-all animate-in fade-in slide-in-from-right-4 duration-300 ${isEditable ? 'bg-white shadow-lg border-blue-200 ring-1 ring-blue-100 p-4 sm:p-6' : 'bg-white border-gray-200 p-4 sm:p-6'}`}>
+                         {/* Status Badges */}
+                         <div className="absolute top-4 right-4 flex gap-2">
+                            {isOverdue && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Overdue</span>}
+                            {currentReport.status === 'approved' && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Verified</span>}
+                            {currentReport.status === 'submitted' && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><FileText className="w-3 h-3"/> Submitted</span>}
+                            {isLocked && <span className="bg-gray-100 text-gray-400 text-[10px] font-bold px-2 py-1 rounded uppercase">Locked</span>}
+                         </div>
+
+                         <div className="mb-6 pr-20">
+                            <h4 className="font-bold text-gray-800 text-xl mb-1">{currentReport.quarter} Report</h4>
+                            <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3"/> Due: {currentReport.dueDate}</p>
+                         </div>
+
+                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100 gap-4 sm:gap-0">
+                            <div><p className="text-xs text-gray-500 uppercase font-bold mb-1">Completion</p><p className="text-2xl font-bold text-gray-800">{currentReport.progressPercentage}%</p></div>
+                            <div className="text-left sm:text-right"><p className="text-xs text-gray-500 uppercase font-bold mb-1">Expenses</p><p className="text-2xl font-bold text-blue-600">{formatCurrency(reportTotal)}</p></div>
+                         </div>
+
+                         {/* EDITABLE CONTENT */}
+                         {isEditable ? (
+                            <div className="space-y-6">
+                               <div className="bg-white p-4 rounded-xl border border-gray-200">
+                                  <label className="text-xs font-bold text-gray-600 uppercase mb-3 flex justify-between"><span>Update Progress (Starts at {prevReportProgress}%)</span></label>
+                                  <input type="range" min={prevReportProgress} max="100" value={currentReport.progressPercentage} onChange={(e) => updateReportField(currentReport.id, 'progressPercentage', parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"/>
+                               </div>
+
+                               <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                  <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200"><span className="text-xs font-bold text-gray-600 uppercase">Expense Breakdown</span></div>
+                                  <div className="p-4 space-y-3 bg-white">
+                                     {currentReport.expenseItems.map((item, idx) => (
+                                        <div key={item.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                                           <span className="hidden sm:inline text-xs text-gray-400 font-mono w-4">{idx+1}.</span>
+                                           <input type="text" placeholder="Description" value={item.description} onChange={(e) => updateExpenseItem(currentReport.id, item.id, 'description', e.target.value)} className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"/>
+                                           <div className="flex w-full sm:w-auto gap-2">
+                                            <input type="number" placeholder="Amount" value={item.amount || ''} onChange={(e) => updateExpenseItem(currentReport.id, item.id, 'amount', parseFloat(e.target.value))} className="flex-1 sm:w-24 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right"/>
+                                            <button onClick={() => removeExpenseItem(currentReport.id, item.id)} className="text-gray-400 hover:text-red-500 p-2 sm:p-0"><Trash2 className="w-4 h-4"/></button>
+                                           </div>
+                                        </div>
+                                     ))}
+                                     <button onClick={() => addExpenseItem(currentReport.id)} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-2"><Plus className="w-3 h-3"/> Add Expense Item</button>
+                                  </div>
+                               </div>
+
+                               <div className="bg-white p-4 rounded-xl border border-gray-200">
+                                  <div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-600 uppercase">Proof of Accomplishment</label><label className="cursor-pointer text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><UploadCloud className="w-3 h-3"/> Upload Files<input type="file" multiple className="hidden" onChange={(e) => { if(e.target.files) updateReportField(currentReport.id, 'proofFiles', [...currentReport.proofFiles, ...Array.from(e.target.files).map(f => f.name)]); }}/></label></div>
+                                  {currentReport.proofFiles.length > 0 ? <div className="flex flex-wrap gap-2">{currentReport.proofFiles.map((file, i) => <span key={i} className="bg-gray-50 border border-gray-200 px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1"><FileText className="w-3 h-3 text-blue-500"/> {file}</span>)}</div> : <p className="text-xs text-gray-400 italic">No files uploaded yet.</p>}
+                               </div>
+
+                               {/* --- FEEDBACK & COMMUNICATION SECTION (Editable Mode) --- */}
+                               {(currentReport.comments.length > 0 || isOverdue) && renderChatSection()}
+
+                               <button onClick={() => submitReport(currentReport.id)} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all">Submit Report</button>
+                            </div>
+                         ) : (
+                            /* READ ONLY VIEW */
+                            <div className="border-t border-gray-100 pt-4">
+                               {currentReport.expenseItems.length > 0 ? (
+                                  <div className="mb-4">
+                                     <p className="text-xs font-bold text-gray-500 uppercase mb-2">Expense Breakdown</p>
+                                     <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+                                        {currentReport.expenseItems.map(item => (
+                                           <div key={item.id} className="flex justify-between text-xs text-gray-600 border-b border-gray-200 last:border-0 pb-1 last:pb-0"><span>{item.description}</span><span className="font-mono">{formatCurrency(item.amount)}</span></div>
+                                        ))}
+                                     </div>
+                                  </div>
+                               ) : <p className="text-xs text-gray-400 italic mb-4">No expenses recorded for this quarter.</p>}
+                               
+                               <p className="text-xs font-bold text-gray-500 uppercase mb-2">Proof of Accomplishment</p>
+                               {currentReport.proofFiles.length > 0 ? <div className="flex flex-wrap gap-2">{currentReport.proofFiles.map((file, i) => <div key={i} className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded cursor-pointer hover:bg-blue-100"><FileText className="w-3 h-3"/> {file}</div>)}</div> : <p className="text-xs text-gray-400 italic">No files available.</p>}
+                               
+                               {/* --- NEW SECTION: SUBMITTED BY --- */}
+                               {currentReport.submittedBy && (
+                                 <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-end text-xs text-gray-500">
+                                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                                       <UserCheck className="w-3 h-3 text-emerald-600" />
+                                       <span>Submitted by: <span className="font-bold text-gray-700">{currentReport.submittedBy}</span></span>
+                                       <span className="text-gray-400">•</span>
+                                       <span>{currentReport.dateSubmitted}</span>
+                                    </div>
+                                 </div>
+                               )}
+
+                               {/* --- RENDER CHAT IN READ-ONLY MODE (If Comments Exist) --- */}
+                               {currentReport.comments.length > 0 && renderChatSection()}
+                            </div>
+                         )}
+                      </div>
+
+                      {/* Pagination Dots */}
+                      <div className="flex justify-center gap-2 mt-4 pb-6 lg:pb-0">
+                         {activeProject.reports.map((_, idx) => (
+                            <div key={idx} className={`w-2 h-2 rounded-full transition-all ${idx === currentReportIndex ? 'bg-blue-600 w-4' : 'bg-gray-300'}`}></div>
+                         ))}
+                      </div>
+                  </div>
+                )}
+
               </div>
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-400">Select a project</div>
-            )}
+            ) : <div className="h-full flex items-center justify-center text-gray-400">Select a project</div>}
           </div>
-        </div>
       </section>
 
-      {/* --- FUND REQUEST MODAL --- */}
+      {/* --- MODALS (Fund & Extension) --- */}
       {isFundModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative animate-in zoom-in-95 duration-200">
-              <button onClick={() => setIsFundModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600">
-                 <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
+           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setIsFundModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               <div className="text-center mb-6">
-                 <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Banknote className="w-6 h-6" />
-                 </div>
+                 <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3"><Banknote className="w-6 h-6" /></div>
                  <h3 className="text-xl font-bold text-gray-800">Request Fund Release</h3>
-                 <p className="text-sm text-gray-500">Project: {activeProject?.title}</p>
+                 <p className="text-sm text-gray-500">Break down exactly where this money will be utilized.</p>
               </div>
-              <div className="space-y-4">
-                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Amount to Request (₱)</label>
-                    <input 
-                      type="number" 
-                      value={requestAmount}
-                      onChange={(e) => setRequestAmount(e.target.value)}
-                      placeholder="Enter amount"
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-lg font-semibold"
-                    />
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                 <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <p className="text-center text-sm font-bold text-emerald-800 uppercase">Total Request Amount</p>
+                    <p className="text-center text-3xl font-black text-emerald-600">{formatCurrency(calculateTotalExpenses(fundItems))}</p>
                  </div>
-                 <button 
-                   onClick={submitFundRequest}
-                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-200 transition-all"
-                 >
-                    Submit Request
-                 </button>
+                 <div>
+                    <div className="flex justify-between items-center mb-2"><label className="text-xs font-bold text-gray-500 uppercase">Utilization Breakdown</label><button onClick={addFundItem} className="text-xs flex items-center gap-1 text-emerald-600 font-bold hover:underline"><Plus className="w-3 h-3"/> Add Item</button></div>
+                    <div className="space-y-2">
+                       {fundItems.length === 0 && <p className="text-sm text-gray-400 text-center py-4 italic border-2 border-dashed border-gray-200 rounded-lg">No items added yet.</p>}
+                       {fundItems.map((item) => (<div key={item.id} className="flex gap-2 items-center"><input type="text" placeholder="Description" value={item.description} onChange={(e) => updateFundItem(item.id, 'description', e.target.value)} className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none"/><input type="number" placeholder="Cost" value={item.amount || ''} onChange={(e) => updateFundItem(item.id, 'amount', parseFloat(e.target.value))} className="w-24 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none text-right"/><button onClick={() => removeFundItem(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></div>))}
+                    </div>
+                 </div>
+              </div>
+              <div className="mt-6"><button onClick={submitFundRequest} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-all">Submit Request</button></div>
+           </div>
+        </div>
+      )}
+      {isExtensionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setIsExtensionModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <div className="text-center mb-6"><div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3"><CalendarClock className="w-6 h-6" /></div><h3 className="text-xl font-bold text-gray-800">Request Extension</h3></div>
+              <div className="space-y-4">
+                 <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">New End Date</label><input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm"/></div>
+                 <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Reason</label><textarea value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)} placeholder="Reason for delay..." className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm h-24 resize-none"/></div>
+                 <button onClick={() => { alert("Extension Requested"); setIsExtensionModalOpen(false); }} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg">Submit Request</button>
               </div>
            </div>
         </div>

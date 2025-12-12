@@ -318,21 +318,16 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                           </span>
 
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                            {/* Proponent */}
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
                               <span>{proposal.submittedBy}</span>
                             </div>
-
-                            {/* Date */}
-                            <div className={`flex items-center gap-1.5 ${proposal.status === 'Pending' ? 'text-[#C8102E] font-medium' : ''}`}>
-                              <Calendar className={`w-3.5 h-3.5 ${proposal.status === 'Pending' ? 'text-[#C8102E]' : 'text-slate-400'}`} />
+                            <div className={'flex items-center gap-1.5'}>
+                              <Calendar className={'w-3.5 h-3.5 text-slate-400'} />
                               <span>
-                                {proposal.status === 'Pending' ? 'Deadline: ' : ''} 
-                                {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
-
                             {/* Project Type Badge */}
                             <span
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(

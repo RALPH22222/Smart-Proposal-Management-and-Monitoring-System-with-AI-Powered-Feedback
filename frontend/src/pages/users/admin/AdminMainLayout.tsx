@@ -26,7 +26,7 @@ const AdminLayout: React.FC = () => {
       case "accounts":
         return <Accounts />;
       case "proposals":
-        return <Proposals />;   
+        return <Proposals />; 
       case "evaluators":
         return <Evaluators />;    
       case "contents":

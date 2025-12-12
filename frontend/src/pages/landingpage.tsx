@@ -123,7 +123,7 @@ const LandingPage: React.FC = () => {
               Research Development & Evaluation Center
            </h2>
            <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-             The central hub REOC for research excellence at Western Mindanao State University. 
+             The central hub RDEC for research excellence at Western Mindanao State University. 
              We facilitate innovative research projects, provide administrative support, 
              and ensure compliance with academic standards and funding requirements.
            </p>

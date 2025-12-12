@@ -81,7 +81,7 @@ const getDummyProposals = (): Proposal[] => [
     projectFile: "development_ai.pdf",
     submittedBy: 'Dr. Maria Santos',
     submittedDate: '2025-01-10T08:30:00Z',
-    lastModified: '2025-01-10T08:30:00Z',
+    lastModified: '2025-01-10T08:30:00Z',                     
     // Enhanced fields for detailed modal
     proponent: 'Dr. Maria Santos',
     gender: 'Female',

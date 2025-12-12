@@ -12,6 +12,7 @@ type SignUpResponse = {
 export default function Register() {
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
+    const [middleInitial, setMiddleInitial] = useState('');
     const [lastName, setLastName] = useState(''); 
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -20,7 +21,6 @@ export default function Register() {
     const handleRegister = async (e?: React.FormEvent) => {
         e?.preventDefault();
 
-        // Validate fields
         if (!name || !lastName || !password) {
             return Swal.fire({
                 icon: 'warning',
@@ -31,18 +31,13 @@ export default function Register() {
 
         try {
             setLoading(true);
-            
-            // Sending data to backend
             await api.post<SignUpResponse>('/auth/sign-up',
-              { name, lastName, email, password, role: 'proponent' },
+              { name, middleInitial, lastName, email, password, role: 'proponent' },
                 {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: { "Content-Type": "application/json" },
                 }
             );
 
-            // Success Modal
             await Swal.fire({
                 icon: 'success',
                 title: 'Registration Successful!',
@@ -52,13 +47,11 @@ export default function Register() {
                 allowOutsideClick: false
             });
             
-            // Clear fields
             setName('');
+            setMiddleInitial('');
             setLastName(''); 
             setEmail('');
             setPassword('');
-            
-            // Navigate
             navigate('/login');
 
         } catch (err) {
@@ -87,10 +80,7 @@ export default function Register() {
                     backgroundPosition: "center",
                 }}
             >
-                {/* Red Overlay */}
                 <div className="absolute inset-0 bg-[#C8102E]/85"></div>
-                
-                {/* Content */}
                 <div className="relative max-w-md text-center space-y-4 md:space-y-6">
                     <img
                         src="../src/assets/IMAGES/LOGO.png"
@@ -108,33 +98,53 @@ export default function Register() {
             <div className='order-2 md:order-2 w-full md:w-1/2 flex items-center justify-center bg-white p-6 md:p-8'>
                 <form
                     onSubmit={handleRegister}
-                    className='w-full max-w-md bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-4 md:space-y-6'
+                    className='w-full max-w-[550px] bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-4 md:space-y-6'
                 >
                     <h2 className='text-xl md:text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer text-center md:text-left'>Sign up</h2>
                     <p className='text-sm text-gray-600 text-center md:text-left'>
                         Input all the field to create an account and get started.
                     </p>
 
-                    <label className='block'>
-                        <span className='text-sm font-medium text-gray-700'>First Name</span>
-                        <input
-                            type='text'
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder='Enter your first name'
-                            className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
-                        />
-                    </label>
-                    <label className='block'>
-                        <span className='text-sm font-medium text-gray-700'>Last Name</span>
-                        <input
-                            type='text'
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder='Enter your last name'
-                            className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
-                        />
-                    </label>
+                    {/* Name Fields Container - Flex Row on Desktop */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                        {/* First Name */}
+                        <label className='flex-1'>
+                            <span className='text-sm font-medium text-gray-700'>First Name</span>
+                            <input
+                                type='text'
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder='First Name'
+                                className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
+                            />
+                        </label>
+
+                        {/* Middle Initial - Small Width */}
+                        <label className='w-full md:w-20'>
+                            <span className='text-sm font-medium text-gray-700'>M.I.</span>
+                            <input
+                                type='text'
+                                value={middleInitial}
+                                onChange={(e) => setMiddleInitial(e.target.value.toUpperCase().slice(0, 1))}
+                                placeholder='-'
+                                maxLength={2}
+                                className='mt-1 block w-full text-center rounded-lg border border-gray-200 px-2 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
+                            />
+                        </label>
+
+                        {/* Last Name */}
+                        <label className='flex-1'>
+                            <span className='text-sm font-medium text-gray-700'>Last Name</span>
+                            <input
+                                type='text'
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder='Last Name'
+                                className='mt-1 block w-full rounded-lg border border-gray-200 px-4 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200'
+                            />
+                        </label>
+                    </div>
+
                     <label className='block'>
                         <span className='text-sm font-medium text-gray-700'>Email</span>
                         <input
@@ -157,7 +167,7 @@ export default function Register() {
                         />
                     </label>
 
-                    <div className='flex flex-col sm:flex-row gap-3'>
+                    <div className='flex flex-col sm:flex-row gap-3 pt-2'>
                         <button
                             type='submit'
                             disabled={loading}
@@ -170,6 +180,7 @@ export default function Register() {
                             type='button'
                             onClick={() => {
                                 setName('');
+                                setMiddleInitial('');
                                 setLastName('');
                                 setEmail('');
                                 setPassword('');
