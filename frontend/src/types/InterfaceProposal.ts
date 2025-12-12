@@ -1,48 +1,52 @@
 // Enhanced TypeScript interfaces for the Advanced Proposal Management System
 export interface BudgetSource {
-       source: string;
-       ps: string;
-       mooe: string;
-       co: string;
-       total: string;
-     }
+	source: string;
+	ps: string;
+	mooe: string;
+	co: string;
+	total: string;
+}
+
+interface Agency {
+  name: string;
+  address: string;
+}
 
 export interface Proposal {
-      id: string;
-      title: string;
-      documentUrl: string;
-      status: ProposalStatus;
-      submittedBy: string;
-      submittedDate: string;
-      lastModified: string;
-      proponent: string;
-      gender: string;
-      address: string;
-      telephone: string;
-      fax: string;
-      email: string;
-      projectType: string;
-      agency: string;
-      cooperatingAgencies: string;
-      rdStation: string;
-      classification: string;
-      classificationDetails: string;
-      modeOfImplementation: string;
-      priorityAreas: string;
-      sector: string;
-      discipline: string;
-      duration: string;
-      startDate: string;
-      endDate: string;
-      budgetSources: BudgetSource[];
-      budgetTotal: string;
-      projectFile?: string;          
-      rdStaffReviewer?: string;
-      evaluationDeadline?: string;
-      assignedRdStaff?: string;
-      rdCommentsToEvaluator?: string;
-      assignedEvaluators?: string[];
-    }
+	id: string;
+	title: string;
+	documentUrl: string;
+	status: ProposalStatus;
+	submittedBy: string;
+	submittedDate: string;
+	lastModified: string;
+	proponent: string;
+	gender: string;
+	telephone: string;
+	fax: string;
+	email: string;
+	projectType: string;
+	agency: Agency[];
+	cooperatingAgencies: string;
+	rdStation: string;
+	classification: string;
+	classificationDetails: string;
+	modeOfImplementation: string;
+	priorityAreas: string;
+	sector: string;
+	discipline: string;
+	duration: string;
+	startDate: string;
+	endDate: string;
+	budgetSources: BudgetSource[];
+	budgetTotal: string;
+	projectFile?: string;          
+	rdStaffReviewer?: string;
+	evaluationDeadline?: string;
+	assignedRdStaff?: string;
+	rdCommentsToEvaluator?: string;
+	assignedEvaluators?: string[];
+}
 
 export type ProposalStatus =
 	| 'Pending'

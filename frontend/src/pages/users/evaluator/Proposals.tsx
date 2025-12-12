@@ -36,7 +36,6 @@ interface Proposal {
   title: string;
   proponent: string;
   gender: string;
-  address: string;
   telephone: string;
   email: string;
   modeOfImplementation: string;
@@ -82,7 +81,6 @@ export default function Proposals() {
       title: "AI Research on Education",
       proponent: "John Doe",
       gender: "Male",
-      address: "Normal Road, Baliwasan, Zamboanga City",
       telephone: "(062) 991-1771",
       email: "j.doe@wmsu.edu.ph",
       modeOfImplementation: "Multi Agency",
@@ -123,7 +121,6 @@ export default function Proposals() {
       title: "Smart Grid Energy Management System",
       proponent: "Jane Smith",
       gender: "Female",
-      address: "Fort Pilar, Rio Hondo, Zamboanga City",
       telephone: "(062) 991-2002",
       email: "j.smith@zscmst.edu.ph",
       modeOfImplementation: "Multi Agency",
@@ -172,7 +169,6 @@ export default function Proposals() {
       title: "IoT-Based Energy Monitoring",
       proponent: "Michael Lee",
       gender: "Male",
-      address: "Dr. Evangelista St., Sta. Catalina, Zamboanga City",
       telephone: "(062) 991-3333",
       email: "m.lee@zcmc.doh.gov.ph",
       modeOfImplementation: "Single Agency",
@@ -213,7 +209,6 @@ export default function Proposals() {
       title: "Quantum Computing Research",
       proponent: "Dr. Sarah Chen",
       gender: "Female",
-      address: "Gov. Camins Ave, Zamboanga City",
       telephone: "(062) 991-4444",
       email: "s.chen@msu.edu.ph",
       modeOfImplementation: "Single Agency",
@@ -260,7 +255,6 @@ export default function Proposals() {
       title: "Renewable Energy Storage Optimization",
       proponent: "David Wilson",
       gender: "Male",
-      address: "Gov. Camins Ave, Zamboanga City",
       telephone: "(062) 991-5555",
       email: "d.wilson@msu.edu.ph",
       modeOfImplementation: "Multi Agency",
@@ -309,7 +303,6 @@ export default function Proposals() {
       title: "Neural Network Optimization",
       proponent: "Lisa Park",
       gender: "Female",
-      address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-6666",
       email: "l.park@adzu.edu.ph",
       modeOfImplementation: "Single Agency",
@@ -349,7 +342,6 @@ export default function Proposals() {
       title: "Smart Energy Distribution Network",
       proponent: "Alex Johnson",
       gender: "Male",
-      address: "La Purisima St, Zamboanga City",
       telephone: "(062) 991-7777",
       email: "a.johnson@adzu.edu.ph",
       modeOfImplementation: "Single Agency",
@@ -396,7 +388,6 @@ export default function Proposals() {
       title: "Machine Learning for Power Systems",
       proponent: "Dr. Emma White",
       gender: "Female",
-      address: "Pasonanca, Zamboanga City",
       telephone: "(062) 991-8888",
       email: "e.white@zpmc.gov.ph",
       modeOfImplementation: "Multi Agency",

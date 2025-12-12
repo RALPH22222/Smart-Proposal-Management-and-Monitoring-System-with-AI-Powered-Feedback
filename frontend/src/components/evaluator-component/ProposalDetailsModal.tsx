@@ -72,6 +72,11 @@ interface BudgetSource {
   total: string;
 }
 
+interface Agency {
+  name: string;
+  address: string;
+}
+
 interface Proposal {
   id: number;
   title: string;
@@ -81,7 +86,7 @@ interface Proposal {
   address: string;
   telephone: string;
   email: string;
-  agency: string;
+  agency: Agency[];
   rdStation: string;
   classification: string;
   classificationDetails: string;
@@ -218,24 +223,55 @@ export default function ProposalDetailsModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                {/* Agency Column */}
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 block">
                     Agency
                   </span>
-                  <div className="flex items-start gap-1.5 mt-0.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                    <p className="font-medium text-slate-900 text-sm">
-                      {proposal.agency}
-                    </p>
+                  <div className="space-y-3">
+                    {Array.isArray(proposal.agency) ? (
+                      proposal.agency.map((ag, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Building2 className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <p className="font-medium text-slate-900 text-sm leading-tight">
+                            {ag.name}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <Building2 className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <p className="font-medium text-slate-900 text-sm leading-tight">
+                          {proposal.agency}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Address Column */}
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 block">
                     Address
                   </span>
-                  <div className="flex items-start gap-1.5 mt-0.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                    <p className="text-slate-900 text-sm">{proposal.address}</p>
+                  <div className="space-y-3">
+                    {Array.isArray(proposal.agency) ? (
+                      proposal.agency.map((ag, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-slate-700 text-sm leading-tight">
+                            {ag.address || "N/A"}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-slate-700 text-sm leading-tight">
+                          {proposal.address}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
