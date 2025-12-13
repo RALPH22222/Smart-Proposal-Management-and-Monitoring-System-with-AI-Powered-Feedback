@@ -3,6 +3,8 @@ import {
   FaMoneyBillWave,
   FaPlus,
   FaTrash,
+  FaCalculator,
+  FaCoins
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -30,17 +32,27 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     }).format(amount);
   };
 
+  // Safe calculation that handles both numbers and strings (while typing)
   const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
-    return formData.budgetItems.reduce((sum, item) => sum + (item[field] || 0), 0);
+    return formData.budgetItems.reduce((sum, item) => {
+      const val = Number(item[field]); // Convert string inputs to number for calc
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
   };
 
+  // CHANGED: Pass the raw string value to the parent.
+  // This allows you to type "1." or delete the content completely without it snapping back to "1" or "0".
   const handleNumberChange = (id: number, field: string, value: string) => {
-    const numericValue = value === '' ? 0 : parseFloat(value) || 0;
-    onBudgetItemUpdate(id, field, numericValue);
+    onBudgetItemUpdate(id, field, value);
   };
+
+  const totalPS = calculateTotal('ps');
+  const totalMOOE = calculateTotal('mooe');
+  const totalCO = calculateTotal('co');
+  const grandTotal = calculateTotal('total');
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
@@ -55,11 +67,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       </div>
 
-      {/* Add Button Section */}
+      {/* Instructions & Add Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-blue-50 rounded-xl border border-blue-200 gap-4">
-        <p className="text-sm font-semibold text-blue-800">
-          Add budget items for each funding source
-        </p>
+        <div className="text-sm text-blue-800">
+          <span className="font-bold block mb-1">Instructions:</span>
+          Enter the funding source and amounts for Personnel Services (PS), MOOE, and Capital Outlay (CO).
+        </div>
         <button
           type="button"
           onClick={onBudgetItemAdd}
@@ -67,126 +80,156 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           style={{ backgroundColor: '#C8102E' }}
         >
           <FaPlus className="w-4 h-4" />
-          Add Budget Item
+          Add Funding Source
         </button>
       </div>
 
-      {/* Budget Items */}
+      {/* Budget Items Inputs */}
       <div className="space-y-4">
-        {formData.budgetItems.map((item) => (
-          <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 space-y-4 shadow-sm">
+        {formData.budgetItems.map((item, index) => (
+          <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm relative group hover:border-gray-300 transition-colors">
             
-            {/* Source and PS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            {/* Row Number Badge */}
+            <div className="absolute -left-3 top-6 w-6 h-6 bg-gray-100 text-gray-500 rounded-full flex items-center justify-center text-xs font-bold border border-gray-200">
+              {index + 1}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              
+              {/* Source Field */}
+              <div className="lg:col-span-4 space-y-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
                   Source of Funds
                 </label>
                 <input
                   type="text"
                   value={item.source}
                   onChange={(e) => onBudgetItemUpdate(item.id, 'source', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-base sm:text-sm"
-                  placeholder="Funding source"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm font-medium"
+                  placeholder="e.g., GAA, LGUs, Industry"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  PS (Personnel Services)
+              {/* PS Field */}
+              <div className="lg:col-span-2 space-y-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  PS
                 </label>
                 <input
                   type="number"
-                  value={item.ps === 0 ? '' : item.ps}
+                  value={item.ps}
                   onChange={(e) => handleNumberChange(item.id, 'ps', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-base sm:text-sm"
-                  placeholder="₱0.00"
-                  min="0"
-                  step="0.01"
+                  onFocus={(e) => e.target.select()}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
+                  placeholder="0.00"
+                  step="any"
                 />
               </div>
-            </div>
 
-            {/* MOOE and CO */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              {/* MOOE Field */}
+              <div className="lg:col-span-2 space-y-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
                   MOOE
                 </label>
                 <input
                   type="number"
-                  value={item.mooe === 0 ? '' : item.mooe}
+                  value={item.mooe}
                   onChange={(e) => handleNumberChange(item.id, 'mooe', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-base sm:text-sm"
-                  placeholder="₱0.00"
-                  min="0"
-                  step="0.01"
+                  onFocus={(e) => e.target.select()}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
+                  placeholder="0.00"
+                  step="any"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  CO (Capital Outlay)
+              {/* CO Field */}
+              <div className="lg:col-span-2 space-y-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  CO
                 </label>
                 <input
                   type="number"
-                  value={item.co === 0 ? '' : item.co}
+                  value={item.co}
                   onChange={(e) => handleNumberChange(item.id, 'co', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-base sm:text-sm"
-                  placeholder="₱0.00"
-                  min="0"
-                  step="0.01"
+                  onFocus={(e) => e.target.select()}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
+                  placeholder="0.00"
+                  step="any"
                 />
               </div>
-            </div>
 
-
-            {/* Item Footer: Total & Actions */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-gray-200 gap-4">
-              <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
-                <div className="text-sm">
-                  <span className="text-gray-600 mr-2">Item Total:</span>
-                  <span className="font-bold text-[#C8102E] text-lg">
-                    {formatCurrency(item.total)}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
+              {/* Remove Action */}
+              <div className="lg:col-span-2 flex items-center justify-end lg:pt-6">
+                 <button
                   type="button"
                   onClick={() => onBudgetItemRemove(item.id)}
-                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50"
                   disabled={formData.budgetItems.length <= 1}
-                  title="Remove Item"
                 >
-                  <FaTrash className="w-4 h-4" />
+                  <FaTrash className="w-3.5 h-3.5" />
+                  <span className="lg:hidden">Remove</span>
                 </button>
               </div>
+
             </div>
           </div>
         ))}
       </div>
 
-      {/* Grand Total - Responsive Grid */}
-      <div className="bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300 rounded-xl p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-4 text-center">
-          <div className="pb-4 sm:pb-0 border-b sm:border-b-0 border-gray-300 sm:border-r">
-            <div className="text-xs sm:text-sm text-gray-600 uppercase mb-1 sm:mb-2">PS Total</div>
-            <div className="text-lg sm:text-xl font-bold text-gray-800">{formatCurrency(calculateTotal('ps'))}</div>
-          </div>
-          <div className="pb-4 sm:pb-0 border-b sm:border-b-0 border-gray-300 lg:border-r">
-            <div className="text-xs sm:text-sm text-gray-600 uppercase mb-1 sm:mb-2">MOOE Total</div>
-            <div className="text-lg sm:text-xl font-bold text-gray-800">{formatCurrency(calculateTotal('mooe'))}</div>
-          </div>
-          <div className="pb-4 sm:pb-0 border-b sm:border-b-0 border-gray-300 sm:border-r">
-            <div className="text-xs sm:text-sm text-gray-600 uppercase mb-1 sm:mb-2">CO Total</div>
-            <div className="text-lg sm:text-xl font-bold text-gray-800">{formatCurrency(calculateTotal('co'))}</div>
-          </div>
-          <div>
-            <div className="text-xs sm:text-sm text-gray-600 uppercase mb-1 sm:mb-2">Grand Total</div>
-            <div className="text-xl sm:text-2xl font-bold text-[#C8102E]">{formatCurrency(calculateTotal('total'))}</div>
-          </div>
+      {/* Detailed Budget Breakdown Section */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-8">
+        <div className="bg-slate-100 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
+            <FaCalculator className="text-slate-500" />
+            <h3 className="font-bold text-slate-700">Detailed Budget Breakdown</h3>
+        </div>
+        
+        <div className="p-6">
+            <div className="flex flex-col gap-4">
+                {/* Breakdown Rows */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Personnel Services</p>
+                            <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
+                        </div>
+                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalPS)}</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">MOOE</p>
+                            <p className="text-sm text-slate-600">Maintenance & Operations</p>
+                        </div>
+                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalMOOE)}</p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                        <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capital Outlay</p>
+                            <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
+                        </div>
+                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalCO)}</p>
+                    </div>
+
+                </div>
+
+                {/* Grand Total Row */}
+                <div className="mt-2 bg-[#C8102E] text-white p-6 rounded-xl flex flex-col sm:flex-row justify-between items-center shadow-md">
+                    <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                        <div className="p-2 bg-white/20 rounded-full">
+                            <FaCoins className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="text-center sm:text-left">
+                            <p className="text-sm font-medium text-white/80 uppercase tracking-widest">Total Project Cost</p>
+                            <p className="text-xs text-white/60">Grand Total of all funding sources</p>
+                        </div>
+                    </div>
+                    <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight">
+                        {formatCurrency(grandTotal)}
+                    </p>
+                </div>
+            </div>
         </div>
       </div>
     </div>

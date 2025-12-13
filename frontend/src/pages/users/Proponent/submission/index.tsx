@@ -27,9 +27,6 @@ const Submission: React.FC = () => {
     budgetItems: [{ id: 1, source: '', ps: 0, mooe: 0, co: 0, total: 0, isExpanded: false, year: '' }],
   });
 
-  // [Keep your existing isFormComplete, handleAIFormCheck, handleSubmit logic here]
-  // For brevity I am not repeating the huge validation logic block, but ensure it's present as you had it.
-  
   const handleButtonClick = useCallback(() => fileInputRef.current?.click(), []);
   const handleSubmit = useCallback(() => { if (selectedFile) alert('Success!'); }, [selectedFile]);
 
@@ -50,8 +47,31 @@ const Submission: React.FC = () => {
   };
 
   const addBudgetItem = () => setFormData(prev => ({ ...prev, budgetItems: [...prev.budgetItems, { id: Date.now(), source: '', ps: 0, mooe: 0, co: 0, total: 0, isExpanded: false, year: years[0] || '' }] }));
+  
   const removeBudgetItem = (id: number) => setFormData(prev => ({ ...prev, budgetItems: prev.budgetItems.filter(item => item.id !== id) }));
-  const updateBudgetItem = (id: number, field: string, value: string | number) => { /* update logic */ };
+
+  // --- FIXED FUNCTION ---
+  const updateBudgetItem = (id: number, field: string, value: string | number) => {
+    setFormData((prev) => ({
+      ...prev,
+      budgetItems: prev.budgetItems.map((item) => {
+        if (item.id === id) {
+          // Update the specific field
+          const updatedItem = { ...item, [field]: value };
+          
+          // Recalculate row total (ensure we treat inputs as numbers for calculation)
+          const ps = Number(updatedItem.ps) || 0;
+          const mooe = Number(updatedItem.mooe) || 0;
+          const co = Number(updatedItem.co) || 0;
+          updatedItem.total = ps + mooe + co;
+
+          return updatedItem;
+        }
+        return item;
+      }),
+    }));
+  };
+
   const toggleExpand = (id: number) => setFormData(prev => ({ ...prev, budgetItems: prev.budgetItems.map(item => item.id === id ? { ...item, isExpanded: !item.isExpanded } : item) }));
 
   useEffect(() => {
