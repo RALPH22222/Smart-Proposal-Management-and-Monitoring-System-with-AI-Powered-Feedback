@@ -47,24 +47,24 @@ function App() {
             </Route>
 
             {/* Admin */}
-            {/* <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
               <Route path="/users/admin/adminMainLayout" element={<AdminMainLayout />} />
-            {/* </Route> */}
+            </Route>
 
             {/* Evaluator */}
-            {/* <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
               <Route path="/users/evaluator/evaluatorMainLayout" element={<EvaluatorMainLayout />} />
-            {/* </Route> */}
+            </Route>
 
             {/* R&D */}
-            {/* <Route element={<ProtectedRoute roles={[Role.RND]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.RND]} />}>
               <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
-            {/* </Route> */}
+            </Route>
 
             {/* Lead Proponent & Co-Lead Proponent */}
-            {/* <Route element={<ProtectedRoute roles={[Role.LEAD_PROPONENT, Role.PROPONENT]} />}> */}
+            <Route element={<ProtectedRoute roles={[Role.LEAD_PROPONENT, Role.PROPONENT]} />}>
               <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
-            {/* </Route> */}
+            </Route>
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>
