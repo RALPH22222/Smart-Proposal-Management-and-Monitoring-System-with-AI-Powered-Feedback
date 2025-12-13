@@ -26,9 +26,9 @@ interface BudgetSource {
   total: string;
 }
 
-interface Agency {
-  name: string;
-  address: string;
+interface Sites {
+  site: string;
+  city: string;
 }
 
 interface Proposal {
@@ -39,11 +39,13 @@ interface Proposal {
   telephone: string;
   email: string;
   modeOfImplementation: string;
+  implementationSites: Sites[];
   priorityAreas: string;
   status: string;
   deadline: string;
   projectType: string;
-  agency: Agency[]; 
+  agency: string; 
+  address: string;
   cooperatingAgencies: string;
   rdStation: string;
   classification: string;
@@ -84,14 +86,16 @@ export default function Proposals() {
       telephone: "(062) 991-1771",
       email: "j.doe@wmsu.edu.ph",
       modeOfImplementation: "Multi Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
+      ],
       priorityAreas: "Artificial Intelligence in Education",
       status: "accepted",
       deadline: "Oct 15, 2025",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
       rdStation: "College of Computing Studies",
       classification: "Research",
@@ -124,15 +128,16 @@ export default function Proposals() {
       telephone: "(062) 991-2002",
       email: "j.smith@zscmst.edu.ph",
       modeOfImplementation: "Multi Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
+      ],
       priorityAreas: "Renewable Energy & Smart Grids",
       status: "extension_requested",
       deadline: "Oct 20, 2025",
       projectType: "Energy",
-      // CHANGED: Agency is now an array of objects
-      agency: [
-         { name: "Zamboanga State College of Marine Sciences", address: "Fort Pilar, Z.C." },
-         { name: "ZamboEcoZone", address: "San Ramon, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
       rdStation: "Agricultural Research Center",
       classification: "Development",
@@ -172,14 +177,15 @@ export default function Proposals() {
       telephone: "(062) 991-3333",
       email: "m.lee@zcmc.doh.gov.ph",
       modeOfImplementation: "Single Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
+      ],
       priorityAreas: "Internet of Things (IoT)",
       status: "rejected",
       deadline: "Oct 10, 2025",
       projectType: "Energy",
-      // CHANGED: Single Agency still uses Array format
-      agency: [
-        { name: "Zamboanga City Medical Center", address: "Sta. Catalina, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
       rdStation: "Medical Informatics Department",
       classification: "Research",
@@ -212,13 +218,15 @@ export default function Proposals() {
       telephone: "(062) 991-4444",
       email: "s.chen@msu.edu.ph",
       modeOfImplementation: "Single Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
+      ],
       priorityAreas: "Quantum Computing",
       status: "pending",
       deadline: "Oct 25, 2025",
       projectType: "ICT",
-      agency: [
-         { name: "Mindanao State University", address: "Marawi City / Zamboanga" }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DOST RO9, DICT RO9, Private Sector",
       rdStation: "Computer Science Research Lab",
       classification: "Research",
@@ -258,15 +266,16 @@ export default function Proposals() {
       telephone: "(062) 991-5555",
       email: "d.wilson@msu.edu.ph",
       modeOfImplementation: "Multi Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
+      ],
       priorityAreas: "Energy Storage Systems",
       status: "accepted",
       deadline: "Oct 18, 2025",
       projectType: "Energy",
-      // CHANGED: Multi Agency
-      agency: [
-         { name: "Mindanao State University", address: "Marawi City" },
-         { name: "Palawan State University", address: "Puerto Princesa" }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
       rdStation: "Renewable Energy Research Lab",
       classification: "Development",
@@ -306,13 +315,15 @@ export default function Proposals() {
       telephone: "(062) 991-6666",
       email: "l.park@adzu.edu.ph",
       modeOfImplementation: "Single Agency",
+        implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
+      ],
       priorityAreas: "Artificial Intelligence",
       status: "pending",
       deadline: "Oct 22, 2025",
       projectType: "ICT",
-      agency: [
-         { name: "Ateneo de Zamboanga University", address: "La Purisima St, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DOST RO9, DICT RO9",
       rdStation: "AI Research Center",
       classification: "Research",
@@ -345,13 +356,15 @@ export default function Proposals() {
       telephone: "(062) 991-7777",
       email: "a.johnson@adzu.edu.ph",
       modeOfImplementation: "Single Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
+      ],
       priorityAreas: "Smart Cities",
       status: "pending",
       deadline: "Oct 28, 2025",
       projectType: "Energy",
-      agency: [
-         { name: "Ateneo de Zamboanga University", address: "La Purisima St, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
       rdStation: "Urban Planning Research Institute",
       classification: "Development",
@@ -391,15 +404,16 @@ export default function Proposals() {
       telephone: "(062) 991-8888",
       email: "e.white@zpmc.gov.ph",
       modeOfImplementation: "Multi Agency",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
+      ],
       priorityAreas: "Power Systems",
       status: "rejected",
       deadline: "Oct 12, 2025",
       projectType: "ICT",
-      // CHANGED: Multi Agency
-      agency: [
-         { name: "Zamboanga Peninsula Medical Center", address: "Pasonanca, Z.C." },
-         { name: "Western Mindanao State University", address: "Baliwasan, Z.C." }
-      ],
+      agency: "Western Mindanao State University",
+      address: "Baliwasan, Z.C.",
       cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
       rdStation: "Medical AI Research Unit",
       classification: "Research",

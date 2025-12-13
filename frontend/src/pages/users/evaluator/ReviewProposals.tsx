@@ -28,9 +28,11 @@ export default function EndorsedProposals() {
       proponent: "Jasmine Anderson",
       gender: "Female",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(062) 991-1771",
       email: "jasmine.anderson@wmsu.edu.ph",
@@ -64,8 +66,10 @@ export default function EndorsedProposals() {
       proponent: "Michael Chen",
       gender: "Male",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
       ],
       telephone: "(062) 991-2345",
       email: "m.chen@zscms.edu.ph",
@@ -73,7 +77,7 @@ export default function EndorsedProposals() {
       rdStation: "Agricultural Research Center",
       classification: "Development",
       classificationDetails: "Pilot Testing",
-      modeOfImplementation: "Single Year",
+      modeOfImplementation: "Single Agency",
       priorityAreas: "Renewable Energy, Smart Agriculture",
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
@@ -106,11 +110,12 @@ export default function EndorsedProposals() {
       proponent: "Emily Rodriguez",
       gender: "Female",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
-      address: "Dr. D. Evangelista St., Sta. Catalina, Zamboanga City",
       telephone: "(062) 991-2934",
       email: "e.rodriguez@zcmc.doh.gov.ph",
       cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
@@ -143,8 +148,11 @@ export default function EndorsedProposals() {
       proponent: "James Wilson",
       gender: "Male",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(063) 221-4050",
       email: "j.wilson@msumain.edu.ph",
@@ -185,9 +193,11 @@ export default function EndorsedProposals() {
       proponent: "Maria Santos",
       gender: "Female",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(062) 991-1771",
       email: "maria.santos@wmsu.edu.ph",
@@ -228,8 +238,10 @@ export default function EndorsedProposals() {
       proponent: "Robert Kim",
       gender: "Male",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
       ],
       telephone: "(062) 991-0871",
       email: "r.kim@adzu.edu.ph",
@@ -237,7 +249,7 @@ export default function EndorsedProposals() {
       rdStation: "Urban Planning Research Institute",
       classification: "Development",
       classificationDetails: "Technology Promotion/Commercialization",
-      modeOfImplementation: "Single Year",
+      modeOfImplementation: "Single Agency",
       priorityAreas: "Smart Cities, Public Safety",
       sector: "Public Safety and Security",
       discipline: "Civil Engineering and ICT",
@@ -270,9 +282,11 @@ export default function EndorsedProposals() {
       proponent: "Dr. Lisa Martinez",
       gender: "Female",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(062) 955-0104",
       email: "l.martinez@zpmc.doh.gov.ph",
@@ -313,9 +327,11 @@ export default function EndorsedProposals() {
       proponent: "Prof. Daniel Lee",
       gender: "Male",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(063) 221-4052",
       email: "d.lee@msumain.edu.ph",

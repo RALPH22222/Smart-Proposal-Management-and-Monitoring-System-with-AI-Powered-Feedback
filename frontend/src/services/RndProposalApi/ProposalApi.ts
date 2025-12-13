@@ -82,17 +82,18 @@ const getDummyProposals = (): Proposal[] => [
     submittedBy: 'Dr. Maria Santos',
     submittedDate: '2025-01-10T08:30:00Z',
     lastModified: '2025-01-10T08:30:00Z',                     
-    // Enhanced fields for detailed modal
     proponent: 'Dr. Maria Santos',
     gender: 'Female',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-1771',
     fax: 'N/A',
     email: 'm.santos@wmsu.edu.ph',
     modeOfImplementation: 'Multi Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' },
+      { site: 'Satellite Campus', city: 'Pagadian City' }
+    ],
     priorityAreas: 'Artificial Intelligence in Education',
     projectType: 'ICT',
     cooperatingAgencies: 'DepEd RO9, CHED RO9, DICT RO9',
@@ -126,14 +127,16 @@ const getDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-12T10:20:00Z',
     proponent: 'Prof. Juan dela Cruz',
     gender: 'Male',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-2002',
     fax: 'N/A',
     email: 'j.delacruz@zscmst.edu.ph',
     modeOfImplementation: 'Multi Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' },
+      { site: 'Satellite Campus', city: 'Pagadian City' }
+    ],
     priorityAreas: 'Renewable Energy & Smart Grids',
     projectType: 'Energy',
     cooperatingAgencies: 'DA RO9, DTI RO9, LGU Zamboanga',
@@ -174,14 +177,15 @@ const getDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-11T16:30:00Z',
     proponent: 'Dr. Angela Rivera',
     gender: 'Female',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-3333',
     fax: '(062) 991-3334',
     email: 'a.rivera@zcmc.doh.gov.ph',
     modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Internet of Things (IoT)',
     projectType: 'ICT',
     cooperatingAgencies: 'DOH RO9, PhilHealth RO9, DICT RO9',
@@ -215,14 +219,15 @@ const getDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-12T09:00:00Z',
     proponent: 'Dr. Carlos Mendoza',
     gender: 'Male',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-4444',
     fax: 'N/A',
     email: 'c.mendoza@msu.edu.ph',
-    modeOfImplementation: 'Applied Research',
+    modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Quantum Computing',
     projectType: 'Healthcare',
     cooperatingAgencies: 'DOST RO9, DICT RO9, Private Sector',
@@ -263,14 +268,16 @@ const getDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-09T14:45:00Z',
     proponent: 'Prof. Lisa Garcia',
     gender: 'Female',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-5555',
     fax: 'N/A',
     email: 'l.garcia@msu.edu.ph',
     modeOfImplementation: 'Multi Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' },
+      { site: 'Satellite Campus', city: 'Pagadian City' }
+    ],
     priorityAreas: 'Energy Storage Systems',
     projectType: 'Public Safety',
     cooperatingAgencies: 'DOE RO9, NEDA RO9, Private Sector Partners',
@@ -311,14 +318,15 @@ const getDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-13T10:30:00Z',
     proponent: 'Dr. Roberto Fernandez',
     gender: 'Male',
-    agency: [
-      { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-      { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-    ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-6666',
     fax: 'N/A',
     email: 'r.fernandez@adzu.edu.ph',
-    modeOfImplementation: 'Applied Research',
+    modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Artificial Intelligence',
     projectType: 'ICT',
     cooperatingAgencies: 'DOST RO9, DICT RO9',

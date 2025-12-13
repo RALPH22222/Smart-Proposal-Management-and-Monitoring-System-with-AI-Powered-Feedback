@@ -20,6 +20,7 @@ import {
   Tags,
   Briefcase,
   BookOpen,
+  Globe,
 } from "lucide-react";
 
 const RATING_CRITERIA = {
@@ -73,9 +74,9 @@ interface BudgetSource {
   total: string;
 }
 
-interface Agency {
-  name: string;
-  address: string;
+interface Sites {
+  site: string;
+  city: string;
 }
 
 interface Proposal {
@@ -86,12 +87,14 @@ interface Proposal {
   gender: string;
   telephone: string;
   email: string;
-  agency: Agency[];
+  agency: string;
+  address: string;
   cooperatingAgencies: string;
   rdStation: string;
   classification: string;
   classificationDetails: string;
   modeOfImplementation: string;
+  implementationSites: Sites[];
   priorityAreas: string;
   sector: string;
   discipline: string;
@@ -272,37 +275,26 @@ export default function ReviewModal({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                {/* Agency List */}
+                {/* Agency*/}
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 block">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
                     Agency
                   </span>
-                  <div className="space-y-3">
-                    {proposal.agency.map((ag, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <Building2 className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <p className="font-medium text-slate-900 text-sm leading-tight">
-                          {ag.name}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="flex items-start gap-1.5 mt-0.5">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                    <p className="font-medium text-slate-900 text-sm">
+                      {proposal.agency}
+                    </p>
                   </div>
                 </div>
-
-                {/* Address List (Mapped from Agency Array) */}
+                {/* Address*/}
                 <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2 block">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
                     Address
                   </span>
-                  <div className="space-y-3">
-                    {proposal.agency.map((ag, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-slate-700 text-sm leading-tight">
-                          {ag.address || "N/A"}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="flex items-start gap-1.5 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                    <p className="text-slate-900 text-sm">{proposal.address}</p>
                   </div>
                 </div>
               </div>
@@ -326,6 +318,37 @@ export default function ReviewModal({
                 </div>
               </div>
             </div>
+
+            {/* 3. Implementation Sites */}
+            {proposal.implementationSites && proposal.implementationSites.length > 0 && (
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#C8102E]" />
+                  Implementation Sites ({proposal.implementationSites.length})
+                </h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {proposal.implementationSites.map((site: Sites, index: number) => (
+                    <div 
+                      key={index} 
+                      className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg shadow-sm"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
+                         <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                          <p className="text-sm font-bold text-slate-900 leading-tight">
+                             {site.site}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                             {site.city}
+                          </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Cooperating Agencies */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
