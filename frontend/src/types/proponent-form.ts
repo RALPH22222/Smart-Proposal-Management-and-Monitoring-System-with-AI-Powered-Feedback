@@ -13,9 +13,9 @@ export interface FormData {
   programTitle: string;
   projectTitle: string;
   leaderGender: string;
-  agencyName: string;
+  agency: string;
+  address: string;
   tags: string;
-  agencyAddress: string;
   email: string;
   telephone: string;
   cooperatingAgencies: string;

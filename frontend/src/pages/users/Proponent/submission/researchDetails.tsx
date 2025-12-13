@@ -9,7 +9,11 @@ import {
   Rocket,
   FolderOpen,
   Plus,
-  X
+  X,
+  Settings,
+  MapPin,
+  Building2,
+  Trash2
 } from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -17,8 +21,6 @@ interface ResearchDetailsProps {
   formData: FormData;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
-
-// --- CONSTANTS ---
 
 const researchStations = [
   'College of Computing Studies',
@@ -53,15 +55,11 @@ const disciplines = [
   'Medical Technology and ICT'
 ];
 
-// Combined Built-in Priorities
 const builtInPriorities = [
-  // Stand & Industries
-  'STAND',
-  'Public Safety',
+  'Stand',
   'Coconut Industry',
   'Export Winners',
   'Support Industries',
-  // SDGs
   'SDG 1: No Poverty',
   'SDG 2: Zero Hunger',
   'SDG 3: Good Health and Well-being',
@@ -91,20 +89,22 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
   const [researchStationSearch, setResearchStationSearch] = useState('');
   const [sectorSearch, setSectorSearch] = useState('');
   const [disciplineSearch, setDisciplineSearch] = useState('');
+  
+  const [priorityInput, setPriorityInput] = useState('');
 
   const [filteredResearchStations, setFilteredResearchStations] = useState(researchStations);
   const [filteredSectors, setFilteredSectors] = useState(sectors);
   const [filteredDisciplines, setFilteredDisciplines] = useState(disciplines);
   const [filteredPriorities, setFilteredPriorities] = useState(builtInPriorities);
 
-  // Custom Input States
   const [customResearchType, setCustomResearchType] = useState('');
   const [customDevelopmentType, setCustomDevelopmentType] = useState('');
-  
-  // Priority Area State
-  const [priorityInput, setPriorityInput] = useState('');
 
-  // Refs for click outside
+  // Implementation Sites State
+  const [implementationSites, setImplementationSites] = useState<{ site: string; city: string }[]>(
+    (formData as any).implementationSites || [{ site: '', city: '' }]
+  );
+
   const researchStationRef = useRef<HTMLDivElement>(null);
   const sectorRef = useRef<HTMLDivElement>(null);
   const disciplineRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
 
   // --- Effects ---
 
-  // Filtering effects
   useEffect(() => {
     setFilteredResearchStations(researchStations.filter(s => s.toLowerCase().includes(researchStationSearch.toLowerCase())));
   }, [researchStationSearch]);
@@ -125,12 +124,39 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     setFilteredDisciplines(disciplines.filter(d => d.toLowerCase().includes(disciplineSearch.toLowerCase())));
   }, [disciplineSearch]);
 
-  // Priority filtering effect
   useEffect(() => {
     setFilteredPriorities(builtInPriorities.filter(p => p.toLowerCase().includes(priorityInput.toLowerCase())));
   }, [priorityInput]);
 
-  // Click outside handler
+  // Handle Implementation Sites Logic based on Mode
+  useEffect(() => {
+    const isMulti = formData.implementationMode?.multiAgency;
+    if (isMulti) {
+        // If switching to Multi, ensure at least 2 rows
+        setImplementationSites(prev => {
+            if (prev.length < 2) {
+                const newSites = [...prev];
+                while(newSites.length < 2) {
+                    newSites.push({ site: '', city: '' });
+                }
+                return newSites;
+            }
+            return prev;
+        });
+    } else {
+        // If switching to Single, keep only the first row
+        setImplementationSites(prev => [prev[0] || { site: '', city: '' }]);
+    }
+  }, [formData.implementationMode]);
+
+  // Sync Implementation Sites to Parent
+  useEffect(() => {
+    const fakeEvent = { 
+        target: { name: 'implementationSites', value: implementationSites } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(fakeEvent);
+  }, [implementationSites]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (researchStationRef.current && !researchStationRef.current.contains(event.target as Node)) setIsResearchStationOpen(false);
@@ -156,7 +182,34 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     onInputChange(e);
   };
 
-  // Classification Handlers
+  const handleModeChange = (mode: 'single' | 'multi') => {
+    const newMode = {
+      singleAgency: mode === 'single',
+      multiAgency: mode === 'multi'
+    };
+    const fakeEvent = { 
+        target: { name: 'implementationMode', value: newMode } 
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    onInputChange(fakeEvent);
+  };
+
+  // Implementation Site Handlers
+  const handleSiteChange = (index: number, field: 'site' | 'city', value: string) => {
+    const newSites = [...implementationSites];
+    newSites[index] = { ...newSites[index], [field]: value };
+    setImplementationSites(newSites);
+  };
+
+  const addSiteRow = () => {
+    setImplementationSites([...implementationSites, { site: '', city: '' }]);
+  };
+
+  const removeSiteRow = (index: number) => {
+    if (formData.implementationMode?.multiAgency && implementationSites.length <= 2) return;
+    const newSites = implementationSites.filter((_, i) => i !== index);
+    setImplementationSites(newSites);
+  };
+
   const handleResearchTypeChange = (type: 'basic' | 'applied' | 'other', customValue?: string) => {
     const newResearchType = {
       basic: type === 'basic',
@@ -169,12 +222,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     }
     
     const fakeEvent = { 
-      target: { 
-        name: 'researchType', 
-        value: newResearchType 
-      } 
+      target: { name: 'researchType', value: newResearchType } 
     } as unknown as React.ChangeEvent<HTMLInputElement>;
-    
     onInputChange(fakeEvent);
   };
 
@@ -186,22 +235,17 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     }
 
     const fakeEvent = { 
-      target: { 
-        name: 'developmentType', 
-        value: valueToSend 
-      } 
+      target: { name: 'developmentType', value: valueToSend } 
     } as unknown as React.ChangeEvent<HTMLInputElement>;
-    
     onInputChange(fakeEvent);
   };
-
-  // --- Priority Areas Handlers ---
 
   const handlePrioritySelect = (value: string) => {
     setPriorityInput(value);
     setIsPriorityOpen(false);
   };
 
+  // --- EXACT FUNCTION REQUESTED BY USER ---
   const handleAddPriority = () => {
     if (!priorityInput.trim()) return;
     
@@ -218,19 +262,18 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
     onInputChange(fakeEvent);
     setPriorityInput(''); 
   };
+  // -----------------------------------------
 
   const handleDeletePriority = (key: string) => {
     const newPriorityAreas = { ...(formData.priorityAreas || {}) } as Record<string, boolean>;
     delete newPriorityAreas[key];
-    
-    const fakeEvent = { 
-      target: { name: 'priorityAreas', value: newPriorityAreas } 
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
-    
+    const fakeEvent = { target: { name: 'priorityAreas', value: newPriorityAreas } } as unknown as React.ChangeEvent<HTMLInputElement>;
     onInputChange(fakeEvent);
   };
 
   if (!formData) return <div className="p-4 text-gray-500">Loading...</div>;
+
+  const isMulti = formData.implementationMode?.multiAgency;
 
   return (
     <div className="space-y-8">
@@ -344,6 +387,94 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mode of Implementation */}
+      <div className="space-y-4">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+          <Settings className="text-gray-400 w-4 h-4" />
+          Mode of Implementation *
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${!isMulti ? 'border-black bg-slate-50' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleModeChange('single')}
+          >
+            <input type="radio" checked={!isMulti} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Single Agency</span>
+          </div>
+          
+          <div 
+            className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${isMulti ? 'border-black bg-slate-50' : 'border-gray-200 hover:border-gray-300'}`}
+            onClick={() => handleModeChange('multi')}
+          >
+            <input type="radio" checked={!!isMulti} readOnly className="h-5 w-5 text-[#C8102E] pointer-events-none" />
+            <span className="ml-3 text-sm font-medium text-gray-700">Multiple Agency</span>
+          </div>
+        </div>
+      </div>
+
+      {/* --- IMPLEMENTATION SITES --- */}
+      <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
+            <MapPin className="text-gray-400 w-4 h-4" />
+            {isMulti ? 'Implementation Sites' : 'Implementation Site'} *
+         </label>
+
+         <div className="space-y-4">
+            {implementationSites.map((item, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {/* Site Name Input */}
+                 <div className="relative">
+                    <input
+                      type="text"
+                      value={item.site}
+                      onChange={(e) => handleSiteChange(index, 'site', e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+                      placeholder={isMulti ? `Site Name ${index + 1}` : "Enter Site Name"}
+                    />
+                    <Building2 className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                 </div>
+
+                 {/* City Input */}
+                 <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={item.city}
+                          onChange={(e) => handleSiteChange(index, 'city', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all duration-200"
+                          placeholder={isMulti ? `City/Municipality ${index + 1}` : "Enter City/Municipality"}
+                        />
+                        <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                    </div>
+                    {/* Remove Button */}
+                    {isMulti && implementationSites.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSiteRow(index)}
+                        className="p-3 text-red-500 hover:bg-red-50 rounded-xl border border-red-100 hover:border-red-200 transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                 </div>
+              </div>
+            ))}
+
+            {/* Add Button for Multi Mode */}
+            {isMulti && (
+              <button
+                type="button"
+                onClick={addSiteRow}
+                className="flex items-center gap-2 text-sm text-[#C8102E] font-medium hover:underline px-1 mt-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add another site
+              </button>
+            )}
+         </div>
       </div>
 
       {/* Classification Type Selection */}
@@ -526,7 +657,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChan
                 }
               }}
             />
-            {/* Custom Dropdown */}
+            {/* Custom Dropdown for Priorities */}
             {isPriorityOpen && filteredPriorities.length > 0 && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                 {filteredPriorities.map((item, index) => (
