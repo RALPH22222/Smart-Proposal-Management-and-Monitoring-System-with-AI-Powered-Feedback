@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
+// import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { api } from "@utils/axios";
 import { useNavigate } from "react-router-dom";
-// 1. Import the shared Supabase client
-import { supabase } from "../config/supabaseClient";
+
+type LoginResponse = {
+  message: string;
+};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,33 +25,30 @@ export default function Login() {
 
     try {
       setLoading(true);
-
-      // 2. CHANGE: Use Supabase Login instead of api.post
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) throw error;
+      const res = await api.post<LoginResponse>(
+        "/auth/login",
+        { email, password },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        },
+      );
 
       Swal.fire({
         icon: "success",
         title: "Logged in",
-        text: "Successfully signed in.",
+        text: res.data.message || "Successfully signed in.",
       });
-
       setEmail("");
       setPassword("");
-      
-      // 3. Navigate to your next page
-      navigate("/profile-setup"); 
-      
-    } catch (err: any) {
-      console.error("Login Error:", err);
+      navigate("/profile-setup");
+    } catch (err: unknown) {
       Swal.fire({
         icon: "error",
-        title: "Login Failed",
-        text: err.message || "Invalid email or password",
+        title: "Error",
+        text: err instanceof Error ? err.message : "Login failed",
       });
     } finally {
       setLoading(false);
@@ -121,7 +122,7 @@ export default function Login() {
         </form>
       </div>
 
-      {/* Image/Banner Section */}
+      {/* Image/Banner Section - Below form on mobile, right for desktop/tablet */}
       <div
         className="order-1 md:order-2 w-full md:w-1/2 flex items-center justify-center relative p-8 text-white min-h-[40vh] md:min-h-screen"
         style={{
@@ -130,13 +131,17 @@ export default function Login() {
           backgroundPosition: "center",
         }}
       >
+        {/* Red Overlay */}
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
+
+        {/* Content */}
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
           <img
             src="../src/assets/IMAGES/LOGO.png"
             alt="Logo"
             className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2 hover:scale-105 transition-transform duration-300 cursor-pointer"
           />
+
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal
           </h1>

@@ -1,4 +1,3 @@
-// --- ENUMS ---
 export enum Status {
   REVIEW_RND = "review_rnd",
   REVISION_RND = "revision_rnd",
