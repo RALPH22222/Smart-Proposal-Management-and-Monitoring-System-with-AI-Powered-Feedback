@@ -14,7 +14,7 @@ interface BudgetSectionProps {
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
   onBudgetItemUpdate: (id: number, field: string, value: string | number) => void;
-  onBudgetItemToggle: (id: number) => void;
+  onBudgetItemToggle: (id: number) => void; // This prop is not used in this simplified component
 }
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
@@ -22,24 +22,28 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
-  onBudgetItemToggle
+  // years is not used in the render function
+  // onBudgetItemToggle is not used in the render function
 }) => {
   const formatCurrency = (amount: number) => {
+    const num = Number(amount) || 0; // Ensure it handles NaN/null by defaulting to 0
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
       minimumFractionDigits: 2,
-    }).format(amount);
+    }).format(num);
   };
 
   const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
     return formData.budgetItems.reduce((sum, item) => {
+      // Use Number() for fields that might be stored as strings in form data
       const val = Number(item[field]); 
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
   };
 
   const handleNumberChange = (id: number, field: string, value: string) => {
+    // Pass the value directly to the parent handler
     onBudgetItemUpdate(id, field, value);
   };
 
@@ -81,7 +85,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </button>
       </div>
 
-      {/* Budget Items Inputs */}
+      {/* Budget Items Inputs (Multiple Rows) */}
       <div className="space-y-4">
         {formData.budgetItems.map((item, index) => (
           <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm relative group hover:border-gray-300 transition-colors">
@@ -157,7 +161,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
               {/* Remove Action */}
               <div className="lg:col-span-2 flex items-center justify-end lg:pt-6">
-                 <button
+                <button
                   type="button"
                   onClick={() => onBudgetItemRemove(item.id)}
                   className="px-3 py-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50"
@@ -173,7 +177,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         ))}
       </div>
 
-      {/* Detailed Budget Breakdown Section */}
+      {/* Detailed Budget Breakdown Section (Summary Totals) */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-8">
         <div className="bg-slate-100 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
             <FaCalculator className="text-slate-500" />
