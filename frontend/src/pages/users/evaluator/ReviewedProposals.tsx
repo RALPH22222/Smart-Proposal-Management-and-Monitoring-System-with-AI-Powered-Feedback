@@ -28,9 +28,11 @@ export default function ReviewedProposals() {
       proponent: "Jasmine Anderson",
       gender: "Female",
       projectType: "ICT",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(062) 991-1771",
       email: "jasmine.anderson@wmsu.edu.ph",
@@ -73,8 +75,10 @@ export default function ReviewedProposals() {
       proponent: "Michael Chen",
       gender: "Male",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' }
       ],
       telephone: "(062) 991-2345",
       email: "m.chen@zscms.edu.ph",
@@ -124,9 +128,11 @@ export default function ReviewedProposals() {
       proponent: "Emily Rodriguez",
       gender: "Female",
       projectType: "Energy",
-      agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
+      agency: "Western Mindanao State University",
+      address: "Normal Road, Baliwasan",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
       ],
       telephone: "(062) 991-2934",
       email: "e.rodriguez@zcmc.doh.gov.ph",

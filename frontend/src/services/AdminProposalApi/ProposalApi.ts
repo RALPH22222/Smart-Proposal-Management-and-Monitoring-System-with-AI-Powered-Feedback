@@ -59,14 +59,15 @@ const getAdminDummyProposals = (): Proposal[] => [
     lastModified: '2025-02-11T09:00:00Z',
     proponent: 'Engr. Victor Magtanggol',
     gender: 'Male',
-    agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-0001',
     fax: 'N/A',
     email: 'v.magtanggol@wmsu.edu.ph',
     modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Public Safety',
     projectType: 'Public Safety',
     cooperatingAgencies: 'PNP, LGU',
@@ -96,14 +97,15 @@ const getAdminDummyProposals = (): Proposal[] => [
     lastModified: '2025-02-12T14:15:00Z',
     proponent: 'Prof. Maria Clara',
     gender: 'Female',
-    agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-0002',
     fax: 'N/A',
     email: 'm.clara@wmsu.edu.ph',
     modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Cultural Heritage',
     projectType: 'ICT',
     cooperatingAgencies: 'National Museum',
@@ -133,14 +135,16 @@ const getAdminDummyProposals = (): Proposal[] => [
     lastModified: '2025-02-06T09:30:00Z',
     proponent: 'Dr. Juan Dela Cruz',
     gender: 'Male',
-    agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-0003',
     fax: 'N/A',
     email: 'j.delacruz@wmsu.edu.ph',
     modeOfImplementation: 'Multi Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' },
+      { site: 'Satellite Campus', city: 'Pagadian City' }
+    ],
     priorityAreas: 'Food Security',
     projectType: 'Agriculture',
     cooperatingAgencies: 'DA',
@@ -170,14 +174,16 @@ const getAdminDummyProposals = (): Proposal[] => [
     lastModified: '2025-02-14T09:00:00Z',
     proponent: 'Engr. Sarah Al-Fayed',
     gender: 'Female',
-    agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-0004',
     fax: 'N/A',
     email: 's.alfayed@wmsu.edu.ph',
     modeOfImplementation: 'Multi Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' },
+      { site: 'Satellite Campus', city: 'Pagadian City' }
+    ],
     priorityAreas: 'Water & Energy',
     projectType: 'Energy',
     cooperatingAgencies: 'DOST',
@@ -207,14 +213,15 @@ const getAdminDummyProposals = (): Proposal[] => [
     lastModified: '2025-01-25T15:00:00Z',
     proponent: 'Dr. psychology Lead',
     gender: 'Male',
-    agency: [
-        { name: "Western Mindanao State University", address: "Normal Road, Baliwasan" },
-        { name: "DOST Region IX", address: "Pettit Barracks, Z.C." }
-      ],
+    agency: "Western Mindanao State University",
+    address: "Normal Road, Baliwasan",
     telephone: '(062) 991-0005',
     fax: 'N/A',
     email: 'psy.lead@wmsu.edu.ph',
     modeOfImplementation: 'Single Agency',
+    implementationSites: [
+      { site: 'Main Campus', city: 'Zamboanga City' }
+    ],
     priorityAreas: 'Health',
     projectType: 'Healthcare',
     cooperatingAgencies: 'DOH',

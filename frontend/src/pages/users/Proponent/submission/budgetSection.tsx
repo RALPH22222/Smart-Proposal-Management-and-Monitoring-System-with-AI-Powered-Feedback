@@ -32,16 +32,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     }).format(amount);
   };
 
-  // Safe calculation that handles both numbers and strings (while typing)
   const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
     return formData.budgetItems.reduce((sum, item) => {
-      const val = Number(item[field]); // Convert string inputs to number for calc
+      const val = Number(item[field]); 
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
   };
 
-  // CHANGED: Pass the raw string value to the parent.
-  // This allows you to type "1." or delete the content completely without it snapping back to "1" or "0".
   const handleNumberChange = (id: number, field: string, value: string) => {
     onBudgetItemUpdate(id, field, value);
   };

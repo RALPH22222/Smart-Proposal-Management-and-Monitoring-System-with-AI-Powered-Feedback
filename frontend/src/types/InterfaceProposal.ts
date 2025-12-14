@@ -7,9 +7,9 @@ export interface BudgetSource {
 	total: string;
 }
 
-interface Agency {
-  name: string;
-  address: string;
+interface Site{
+  site: string;
+  city: string;
 }
 
 export interface Proposal {
@@ -26,12 +26,14 @@ export interface Proposal {
 	fax: string;
 	email: string;
 	projectType: string;
-	agency: Agency[];
+	agency: string;
+	address: string;
 	cooperatingAgencies: string;
 	rdStation: string;
 	classification: string;
 	classificationDetails: string;
 	modeOfImplementation: string;
+	implementationSites: Site[];
 	priorityAreas: string;
 	sector: string;
 	discipline: string;

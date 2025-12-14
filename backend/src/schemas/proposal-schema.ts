@@ -8,69 +8,105 @@ import {
   Status,
 } from "../types/proposal";
 
+// Relaxed file schema to avoid browser mimetype issues
 const fileSchema = z.object({
-  fieldname: z.string(),
-  contentType: z.enum([
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ]),
+  fieldname: z.string().optional(),
+  contentType: z.string().optional(),
   filename: z.string(),
+  content: z.any().optional(),
 });
 
 export const proposalSchema = z.object({
-  proponent_id: z.string(),
-  department_id: z.coerce.number(),
-  sector_id: z.coerce.number(),
-  discipline_id: z.coerce.number(),
-  agency_id: z.coerce.number(),
-  program_title: z.string(),
-  project_title: z.string(),
-  email: z.string().optional(),
-  phone: z.string().optional(),
-  research_class: z.enum(ResearchClass),
-  development_class: z.enum(DevelopmentClass),
-  implementation_mode: z.enum(ImplementationMode),
-  priority_areas: z.preprocess(
-    (val) => {
+  // --- CHANGED: Matches Frontend camelCase ---
+  proponentId: z.string().uuid().optional(), 
+  department_id: z.coerce.number().optional(), // Optional if not always sent
+  sector_id: z.coerce.number().optional(),
+  discipline_id: z.coerce.number().optional(),
+  agency_id: z.coerce.number().optional(),
+  
+  programTitle: z.string().optional(), // Changed from program_title
+  projectTitle: z.string().min(1, "Project title is required"), // Changed from project_title
+  
+  email: z.string().optional().or(z.literal('')),
+  telephone: z.string().optional(),
+
+  // --- CHANGED: Use nativeEnum for TS Enums ---
+  // FIX: Added 'val: unknown' to fix the TS error
+  researchType: z.preprocess(
+    (val: unknown) => (val === 'null' ? null : val), 
+    z.nativeEnum(ResearchClass).optional()
+  ),
+  developmentType: z.preprocess(
+    (val: unknown) => (val === 'null' ? null : val), 
+    z.nativeEnum(DevelopmentClass).optional()
+  ),
+  implementationMode: z.preprocess(
+    (val: unknown) => (val === 'null' ? null : val), 
+    z.nativeEnum(ImplementationMode).optional()
+  ),
+
+  // --- CHANGED: Matches Frontend names ---
+  plannedStartDate: z.string().optional(), // Changed from plan_start_date
+  plannedEndDate: z.string().optional(),   // Changed from plan_end_date
+
+  // --- CHANGED: Priority Areas (JSON Parse) ---
+  priorityAreas: z.preprocess(
+    (val: unknown) => {
       if (typeof val === "string") {
-        try {
-          return JSON.parse(val); // becomes real array
-        } catch {
-          return val;
-        }
+        try { return JSON.parse(val); } catch { return val; }
       }
       return val;
     },
-    z.array(z.enum(PriorityArea)),
+    z.array(z.nativeEnum(PriorityArea))
   ),
-  plan_start_date: z.coerce.date(),
-  plan_end_date: z.coerce.date(),
+
+  // --- NEW: Implementation Site (Missing in your old schema) ---
+  implementationSite: z.preprocess(
+    (val: unknown) => {
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return val; }
+      }
+      return val;
+    },
+    z.array(z.object({
+      site: z.string(),
+      province: z.string().optional()
+    })).optional()
+  ),
+
+  // --- CHANGED: Renamed 'budget' to 'budgetItems' ---
+  budgetItems: z.preprocess(
+    (val: unknown) => {
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return val; }
+      }
+      return val;
+    },
+    z.array(
+      z.object({
+        source: z.string(),
+        ps: z.coerce.number(),
+        mooe: z.coerce.number(),
+        co: z.coerce.number(),
+      })
+    ).min(1, "At least one budget item is required")
+  ),
+
+  // --- NEW: Cooperating Agencies (Missing in your old schema) ---
+  cooperatingAgencies: z.preprocess(
+    (val: unknown) => {
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return val; }
+      }
+      return val;
+    },
+    z.array(z.coerce.number()).optional()
+  ),
+
   proposal_file: fileSchema,
-  budget: z.preprocess(
-    (val) => {
-      if (typeof val === "string") {
-        try {
-          return JSON.parse(val); // becomes real array
-        } catch {
-          return val;
-        }
-      }
-      return val;
-    },
-    z
-      .array(
-        z.object({
-          source: z.string(),
-          ps: z.float64(),
-          mooe: z.float64(),
-          co: z.float64(),
-        }),
-      )
-      .min(1),
-  ),
 });
 
+// --- Keep the rest the same ---
 export const forwardToEvaluatorsSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
   evaluator_id: z.array(z.string().min(1)).nonempty("At least one evaluator is required"),
@@ -88,8 +124,8 @@ export const proposalVersionSchema = z.object({
   file_url: z.string().url(),
 });
 
-export const proposalStatusSchema = z.enum(Status);
-export const proposalEvaluatorStatusSchema = z.enum(EvaluatorStatus);
+export const proposalStatusSchema = z.nativeEnum(Status);
+export const proposalEvaluatorStatusSchema = z.nativeEnum(EvaluatorStatus);
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;

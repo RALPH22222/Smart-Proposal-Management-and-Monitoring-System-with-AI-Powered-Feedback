@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react'; // 1. Import useRef
 import {
   FaUpload,
   FaCheck,
@@ -8,7 +8,8 @@ import {
   FaSpinner,
   FaFileAlt,
   FaPaperPlane,
-  FaExclamationCircle // Added for the modal icon
+  FaExclamationCircle,
+  FaLock
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -16,14 +17,12 @@ interface UploadSidebarProps {
   formData: FormData;
   selectedFile: File | null;
   isCheckingTemplate: boolean;
-  
   isCheckingForm: boolean; 
   onAIFormCheck: () => void;
-
   onFileSelect: (file: File | null) => void;
   onAITemplateCheck: () => void;
   onSubmit: () => void;
-  onFileButtonClick: () => void;
+  // onFileButtonClick removed because we handle it internally now
   isUploadDisabled: boolean;
 }
 
@@ -36,18 +35,68 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   onFileSelect,
   onAITemplateCheck,
   onSubmit,
-  onFileButtonClick,
   isUploadDisabled
 }) => {
+  // 2. Create a Local Ref for the file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // State to control the confirmation modal
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Triggered when user clicks the initial Submit button
-  const handleInitialSubmit = () => {
-    setShowConfirmation(true);
+  // Helper to trigger the file input click
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
-  // Triggered when user confirms in the modal
+  // --- VALIDATION LOGIC ---
+  const checkFormValidity = () => {
+    // 1. Check File
+    if (!selectedFile) return false;
+
+    // 2. Check Basic Info (Required Fields)
+    if (!formData.programTitle?.trim()) return false;
+    if (!formData.projectTitle?.trim()) return false;
+    if (!formData.schoolYear?.trim()) return false;
+    if (!formData.duration?.trim()) return false;
+    if (!formData.agencyName?.trim()) return false;
+    if (!formData.agencyAddress?.trim()) return false;
+    if (!formData.telephone?.trim()) return false;
+    if (!formData.email?.trim()) return false;
+
+    // 3. Check Research Details
+    if (!formData.researchStation?.trim()) return false;
+    
+    // Check Classification Type
+    if (!formData.classificationType) return false;
+    if (formData.classificationType === 'research') {
+        const { basic, applied, other } = formData.researchType || {};
+        if (!basic && !applied && !other) return false;
+    } else if (formData.classificationType === 'development') {
+        if (!formData.developmentType) return false;
+    }
+
+    // Check Implementation Mode
+    if (!formData.implementationMode?.singleAgency && !formData.implementationMode?.multiAgency) return false;
+
+    // Check Implementation Sites
+    if (!formData.implementationSite || formData.implementationSite.length === 0) return false;
+    if (formData.implementationSite.some(s => !s.site.trim() || !s.city.trim())) return false;
+
+    // Check Priority Areas
+    const hasPriority = formData.priorityAreas && Object.values(formData.priorityAreas).some(v => v === true);
+    if (!hasPriority) return false;
+
+    return true;
+  };
+
+  const isFormValid = checkFormValidity();
+
+  const handleInitialSubmit = () => {
+    if (isFormValid) {
+      setShowConfirmation(true);
+    }
+  };
+
   const handleFinalSubmit = () => {
     setShowConfirmation(false);
     onSubmit();
@@ -63,6 +112,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         
         {/* --- File Upload Area --- */}
         <input
+          ref={fileInputRef} // 3. Attach the Ref here
           id="file-upload"
           type="file"
           className="hidden"
@@ -81,7 +131,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               ? 'border-green-400 bg-green-50'
               : 'border-gray-300 bg-gray-50 hover:border-[#C8102E] hover:bg-red-50'
           }`}
-          onClick={isUploadDisabled ? undefined : onFileButtonClick}
+          onClick={isUploadDisabled ? undefined : handleUploadClick} // 4. Use local handler
           onDrop={(e) => {
             e.preventDefault();
             if (!isUploadDisabled) {
@@ -133,7 +183,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               </button>
               
               <button
-                onClick={onFileButtonClick}
+                onClick={handleUploadClick} // 4. Use local handler
                 disabled={isUploadDisabled}
                 className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
               >
@@ -143,7 +193,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </>
           ) : (
             <button
-              onClick={onFileButtonClick}
+              onClick={handleUploadClick} // 4. Use local handler
               disabled={isUploadDisabled}
               className={`w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
                 isUploadDisabled
@@ -161,24 +211,37 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         <div className="p-5 bg-blue-50 rounded-xl border border-blue-100 mb-6">
           <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2">
             <FaCheck className="w-3 h-3" />
-            Data Checklist (Optional)
+            Submission Status
           </h4>
           <div className="space-y-2.5 text-sm">
-            <div className={`flex items-center ${formData.programTitle ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {formData.programTitle ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
-              <span>Program Title</span>
+            {/* File Status */}
+            <div className={`flex items-center ${selectedFile ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
+              {selectedFile ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              <span>Proposal Document</span>
             </div>
-            <div className={`flex items-center ${formData.projectTitle ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {formData.projectTitle ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
-              <span>Project Title</span>
+
+            {/* Basic Info Status */}
+            <div className={`flex items-center ${
+                (formData.projectTitle && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
+            }`}>
+              {(formData.projectTitle && formData.email) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              <span>Basic Information</span>
             </div>
-            <div className={`flex items-center ${Object.values(formData.researchType).some(v => v) ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {Object.values(formData.researchType).some(v => v) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
-              <span>Research Type</span>
+
+            {/* Research Details Status */}
+            <div className={`flex items-center ${
+                 (formData.researchStation && formData.classificationType) ? 'text-green-700 font-medium' : 'text-gray-500'
+            }`}>
+              {(formData.researchStation && formData.classificationType) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              <span>Research Details</span>
             </div>
-            <div className={`flex items-center ${formData.budgetItems.every(item => item.source) ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {formData.budgetItems.every(item => item.source) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
-              <span>Budget Items</span>
+
+             {/* Priorities Status */}
+             <div className={`flex items-center ${
+                 (formData.priorityAreas && Object.values(formData.priorityAreas).some(Boolean)) ? 'text-green-700 font-medium' : 'text-gray-500'
+            }`}>
+              {(formData.priorityAreas && Object.values(formData.priorityAreas).some(Boolean)) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              <span>Priority Areas</span>
             </div>
           </div>
         </div>
@@ -215,14 +278,29 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </button>
           </div>
 
-          {/* Submit Button (Triggers Confirmation) */}
-          <button
-            onClick={handleInitialSubmit}
-            className="w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-[#C8102E] text-white hover:bg-[#9d0d24] shadow-lg hover:shadow-xl transform hover:scale-[1.02] cursor-pointer"
-          >
-            <FaPaperPlane className="w-4 h-4" />
-            Submit Proposal
-          </button>
+          {/* Submit Button (Triggers Confirmation) - MODIFIED: Disabled if form invalid */}
+          <div className="relative group">
+            <button
+                onClick={handleInitialSubmit}
+                disabled={!isFormValid}
+                className={`w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg transform ${
+                !isFormValid
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                    : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] hover:shadow-xl hover:scale-[1.02] cursor-pointer'
+                }`}
+            >
+                {!isFormValid ? <FaLock className="w-4 h-4" /> : <FaPaperPlane className="w-4 h-4" />}
+                Submit Proposal
+            </button>
+            
+            {/* Tooltip for Disabled State */}
+            {!isFormValid && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    Please fill all required fields and upload a file.
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-800"></div>
+                </div>
+            )}
+          </div>
         </div>
       </div>
 

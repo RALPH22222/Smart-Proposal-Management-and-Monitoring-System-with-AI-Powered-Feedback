@@ -1,4 +1,3 @@
-// --- ENUMS ---
 export enum Status {
   REVIEW_RND = "review_rnd",
   REVISION_RND = "revision_rnd",
@@ -40,19 +39,21 @@ export enum EvaluatorStatus {
   DECLINE = "decline",
 }
 
-// For the 'implementation_site' JSONB column
 export interface ImplementationSite {
   site_name: string;
   city: string;
 }
 
-// Matches 'public.proposals' table
 export interface Proposal {
   id?: number;
   created_at?: string;
+  
+  // Basic Info
   project_title: string;
   program_title?: string;
   school_year?: string;
+  
+  // Relationships
   proponent_id: string; // UUID
   
   // Classification
@@ -66,11 +67,12 @@ export interface Proposal {
   plan_start_date?: string;
   plan_end_date?: string;
   implementation_site?: ImplementationSite[];
+  
+  // Contact
   email?: string;
   phone?: string;
 }
 
-// Matches 'public.estimated_budget' table
 export interface EstimatedBudget {
   id?: number;
   proposal_id?: number;
@@ -81,11 +83,10 @@ export interface EstimatedBudget {
   created_at?: string;
 }
 
-// Matches 'public.cooperating_agencies' table
 export interface CooperatingAgency {
   id?: number;
   proposal_id?: number;
   agency_id: number;
 }
 
-export type ProposalRow = Proposal; // Alias for compatibility
+export type ProposalRow = Proposal;
