@@ -1,30 +1,30 @@
 import { createElement } from 'react';
-import { FaFileAlt, FaUsers, FaMoneyBillWave, FaClipboardCheck, FaCheckCircle, FaClock, FaEdit, FaTimesCircle } from 'react-icons/fa';
+import { FaUsers, FaClipboardCheck, FaCheckCircle, FaClock, FaEdit, FaTimesCircle } from 'react-icons/fa';
 
 // Updated status color mapping based on status string instead of index
 export const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    'pending': "bg-yellow-100 text-yellow-800 border border-yellow-300",
+    'endorsed': "bg-green-200 text-green-700 border border-green-400",
     'r&d evaluation': "bg-blue-100 text-blue-800 border border-blue-300", 
     'evaluators assessment': "bg-purple-100 text-purple-800 border border-purple-300",
     'revise': "bg-orange-100 text-orange-800 border border-orange-300",
     'funded': "bg-green-100 text-green-800 border border-green-300",
     'reject': "bg-red-100 text-red-800 border border-red-300"
   };
-  return colors[status] || colors.pending;
+  return colors[status];
 };
 
 // Get status color by index (for backward compatibility)
 export const getStatusColorByIndex = (index: number): string => {
   const statusMap: Record<number, string> = {
-    0: 'pending',
+    0: 'endorsed',
     1: 'r&d evaluation',
     2: 'evaluators assessment',
     3: 'revise', 
     4: 'funded',
     5: 'reject'
   };
-  return getStatusColor(statusMap[index] || 'pending');
+  return getStatusColor(statusMap[index]);
 };
 
 export const getPriorityColor = (priority: string): string => {
@@ -38,7 +38,7 @@ export const getPriorityColor = (priority: string): string => {
 
 export const getStageIcon = (index: number): any => {
   const icons = [
-    createElement(FaClock, { className: "text-gray-600" }), // Pending
+    createElement(FaClock, { className: "text-gray-600" }), // Endorsed
     createElement(FaUsers, { className: "text-blue-600" }), // R&D Evaluation
     createElement(FaClipboardCheck, { className: "text-purple-600" }), // Evaluators Assessment
     createElement(FaEdit, { className: "text-orange-600" }), // Revision
@@ -51,7 +51,7 @@ export const getStageIcon = (index: number): any => {
 // Get progress percentage based on status
 export const getProgressPercentage = (status: string): number => {
   const progressMap: Record<string, number> = {
-    'pending': 0,
+    'endorsed': 75,
     'r&d evaluation': 25,
     'evaluators assessment': 50,
     'revise': 10,
@@ -64,20 +64,20 @@ export const getProgressPercentage = (status: string): number => {
 // Get progress percentage by index
 export const getProgressPercentageByIndex = (index: number): number => {
   const statusMap: Record<number, string> = {
-    0: 'pending',
+    0: 'endorsed',
     1: 'r&d evaluation',
     2: 'evaluators assessment',
     3: 'revise',
     4: 'funded',
     5: 'reject'
   };
-  return getProgressPercentage(statusMap[index] || 'pending');
+  return getProgressPercentage(statusMap[index] || 'endorsed');
 };
 
 // Get status label from status string
 export const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    'pending': 'Pending',
+    'endorsed': 'Endorsed for funding',
     'r&d evaluation': 'R&D Evaluation',
     'evaluators assessment': 'Evaluators Assessment', 
     'revise': 'Revision Required',
@@ -90,33 +90,33 @@ export const getStatusLabel = (status: string): string => {
 // Get status label from index
 export const getStatusLabelByIndex = (index: number): string => {
   const statusMap: Record<number, string> = {
-    0: 'pending',
+    0: 'endorsed',
     1: 'r&d evaluation',
     2: 'evaluators assessment',
     3: 'revise',
     4: 'funded',
     5: 'reject'
   };
-  return getStatusLabel(statusMap[index] || 'pending');
+  return getStatusLabel(statusMap[index]);
 };
 
 // Convert currentIndex to status
-export const getStatusFromIndex = (currentIndex: number): 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
-  const statusMap: Record<number, 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
-    0: 'pending',
+export const getStatusFromIndex = (currentIndex: number): 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
+  const statusMap: Record<number, 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
+    0: 'endorsed',
     1: 'r&d evaluation',
     2: 'evaluators assessment',
     3: 'revise',
     4: 'funded',
     5: 'reject'
   };
-  return statusMap[currentIndex] || 'pending';
+  return statusMap[currentIndex];
 };
 
 // Updated project filtering by status
 export const filterProjectsByStatus = (projects: any[]) => {
   return {
-    pending: projects.filter(p => getStatusFromIndex(p.currentIndex) === 'pending'),
+    pendendorsed: projects.filter(p => getStatusFromIndex(p.currentIndex) === 'endorsed'),
     rdEvaluation: projects.filter(p => getStatusFromIndex(p.currentIndex) === 'r&d evaluation'),
     evaluatorsAssessment: projects.filter(p => getStatusFromIndex(p.currentIndex) === 'evaluators assessment'),
     revision: projects.filter(p => getStatusFromIndex(p.currentIndex) === 'revise'),

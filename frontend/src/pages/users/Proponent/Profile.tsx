@@ -73,8 +73,7 @@ const Profile: React.FC = () => {
   const current = mockProjects[activeIndex];
 
   // Filter projects by status using helper function
-  const { 
-    pending, 
+  const {
     rdEvaluation, 
     evaluatorsAssessment, 
     revision, 
@@ -140,6 +139,7 @@ const Profile: React.FC = () => {
       proponent: "Dr. Maria Santos",
       gender: "Female",
       agency: "University of the Philippines",
+      schoolYear: "2024-2025",
       address: "Quezon City, Philippines",
       telephone: "+63 2 1234 5678",
       email: "maria.santos@up.edu.ph",
@@ -148,6 +148,10 @@ const Profile: React.FC = () => {
       classification: "Applied Research",
       classificationDetails: "Technology Development",
       modeOfImplementation: "In-house",
+      implementationSites: [
+        { site: 'Main Campus', city: 'Zamboanga City' },
+        { site: 'Satellite Campus', city: 'Pagadian City' }
+      ],
       priorityAreas: "Education, Technology",
       sector: "Education",
       discipline: "Computer Science",

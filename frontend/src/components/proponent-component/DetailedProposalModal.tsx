@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Building2,
@@ -14,7 +14,7 @@ import {
   User,
   Microscope,
   Tags,
-  Briefcase,
+  CheckCheckIcon,
   BookOpen,
   Upload,
   Download,
@@ -29,9 +29,15 @@ import {
   Trash2,
   Play,
   Users,
-  ShieldCheck // Added for the Co-Lead icon
+  ShieldCheck,
+  Globe,
 } from "lucide-react";
-import type { Proposal, BudgetSource } from '../../types/proponentTypes';
+import type { Proposal, BudgetSource } from "../../types/proponentTypes";
+
+interface Site {
+  site: string;
+  city: string;
+}
 
 interface DetailedProposalModalProps {
   isOpen: boolean;
@@ -46,14 +52,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onClose,
   proposal,
   onUpdateProposal,
-  onManageMilestones,
 }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
-  
+
   useEffect(() => {
     if (proposal) {
       setEditedProposal(proposal);
@@ -80,7 +85,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   };
 
   const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(value);
   };
 
   const calculateDuration = (start: string, end: string): string => {
@@ -91,7 +99,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     months -= startDate.getMonth();
     months += endDate.getMonth();
     if (endDate.getDate() < startDate.getDate()) months--;
-    const finalMonths = Math.max(0, months + (endDate.getDate() >= startDate.getDate() ? 1 : 0));
+    const finalMonths = Math.max(
+      0,
+      months + (endDate.getDate() >= startDate.getDate() ? 1 : 0)
+    );
     return `${finalMonths} months`;
   };
 
@@ -100,42 +111,104 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, [field]: value });
   };
 
-  const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+  const handleDateChange = (field: "startDate" | "endDate", value: string) => {
     if (!editedProposal) return;
     const updatedProposal = { ...editedProposal, [field]: value };
     if (updatedProposal.startDate && updatedProposal.endDate) {
-      updatedProposal.duration = calculateDuration(updatedProposal.startDate, updatedProposal.endDate);
+      updatedProposal.duration = calculateDuration(
+        updatedProposal.startDate,
+        updatedProposal.endDate
+      );
     }
     setEditedProposal(updatedProposal);
   };
 
-  const handleBudgetChange = (index: number, field: keyof BudgetSource, value: string) => {
+  const handleSiteChange = (
+    index: number,
+    field: "site" | "city",
+    value: string
+  ) => {
+    if (!editedProposal) return;
+    const currentSites = (editedProposal.implementationSites as Site[]) || [];
+    const updatedSites = [...currentSites];
+    updatedSites[index] = { ...updatedSites[index], [field]: value };
+    setEditedProposal({ ...editedProposal, implementationSites: updatedSites });
+  };
+
+  const handleAddSite = () => {
+    if (!editedProposal) return;
+    const currentSites = (editedProposal.implementationSites as Site[]) || [];
+    setEditedProposal({
+      ...editedProposal,
+      implementationSites: [...currentSites, { site: "", city: "" }],
+    });
+  };
+
+  const handleRemoveSite = (index: number) => {
+    if (!editedProposal) return;
+    const currentSites = (editedProposal.implementationSites as Site[]) || [];
+    if (currentSites.length <= 1) return;
+    const updatedSites = currentSites.filter((_, i) => i !== index);
+    setEditedProposal({ ...editedProposal, implementationSites: updatedSites });
+  };
+
+  const handleBudgetChange = (
+    index: number,
+    field: keyof BudgetSource,
+    value: string
+  ) => {
     if (!editedProposal) return;
     const updatedBudgetSources = [...editedProposal.budgetSources];
-    updatedBudgetSources[index] = { ...updatedBudgetSources[index], [field]: value };
-    if (field === 'ps' || field === 'mooe' || field === 'co') {
+    updatedBudgetSources[index] = {
+      ...updatedBudgetSources[index],
+      [field]: value,
+    };
+    if (field === "ps" || field === "mooe" || field === "co") {
       const ps = parseCurrency(updatedBudgetSources[index].ps);
       const mooe = parseCurrency(updatedBudgetSources[index].mooe);
       const co = parseCurrency(updatedBudgetSources[index].co);
       updatedBudgetSources[index].total = formatCurrency(ps + mooe + co);
     }
-    const grandTotal = updatedBudgetSources.reduce((sum, item) => sum + parseCurrency(item.total), 0);
-    setEditedProposal({ ...editedProposal, budgetSources: updatedBudgetSources, budgetTotal: formatCurrency(grandTotal) });
+    const grandTotal = updatedBudgetSources.reduce(
+      (sum, item) => sum + parseCurrency(item.total),
+      0
+    );
+    setEditedProposal({
+      ...editedProposal,
+      budgetSources: updatedBudgetSources,
+      budgetTotal: formatCurrency(grandTotal),
+    });
   };
 
   const handleAddBudgetItem = () => {
     if (!editedProposal) return;
     const newSource: BudgetSource = {
-      source: "New Funding Source", ps: "₱0.00", mooe: "₱0.00", co: "₱0.00", total: "₱0.00"
+      source: "New Funding Source",
+      ps: "₱0.00",
+      mooe: "₱0.00",
+      co: "₱0.00",
+      total: "₱0.00",
     };
-    setEditedProposal({ ...editedProposal, budgetSources: [...editedProposal.budgetSources, newSource] });
+    setEditedProposal({
+      ...editedProposal,
+      budgetSources: [...editedProposal.budgetSources, newSource],
+    });
   };
 
   const handleRemoveBudgetItem = (index: number) => {
     if (!editedProposal) return;
-    const updatedBudgetSources = editedProposal.budgetSources.filter((_, i) => i !== index);
-    const grandTotal = updatedBudgetSources.reduce((sum, item) => sum + parseCurrency(item.total), 0);
-    setEditedProposal({ ...editedProposal, budgetSources: updatedBudgetSources, budgetTotal: formatCurrency(grandTotal) });
+    const updatedBudgetSources = editedProposal.budgetSources.filter(
+      (_, i) => i !== index
+    );
+    const grandTotal = updatedBudgetSources.reduce(
+      (sum, item) => sum + parseCurrency(item.total),
+      0
+    );
+    setEditedProposal({
+      ...editedProposal,
+      budgetSources: updatedBudgetSources,
+      budgetTotal: formatCurrency(grandTotal),
+    });
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,15 +218,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const handleSave = () => {
     if (onUpdateProposal) {
-      const newFileUrl = newFile ? URL.createObjectURL(newFile) : editedProposal.uploadedFile;
+      const newFileUrl = newFile
+        ? URL.createObjectURL(newFile)
+        : editedProposal.uploadedFile;
       if (newFileUrl && !submittedFiles.includes(newFileUrl)) {
-        setSubmittedFiles(prev => [...prev, newFileUrl]);
+        setSubmittedFiles((prev) => [...prev, newFileUrl]);
       }
       const updatedProposal: Proposal = {
         ...(editedProposal as Proposal),
         uploadedFile: newFileUrl,
-        status: 'r&d evaluation',
-        lastUpdated: new Date().toISOString().split('T')[0]
+        status: "r&d evaluation",
+        lastUpdated: new Date().toISOString().split("T")[0],
       };
       onUpdateProposal(updatedProposal);
       setIsEditing(false);
@@ -167,47 +242,94 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setIsEditing(false);
   };
 
-  // --- START PROJECT HANDLER ---
   const handleStartImplementation = () => {
     if (onUpdateProposal && proposal) {
-      // Just confirm and proceed, no need to add new data
-      const updatedProposal: Proposal = { 
-        ...proposal, 
-        status: 'active' 
+      const updatedProposal: Proposal = {
+        ...proposal,
+        status: "r&d evaluation",
       };
       onUpdateProposal(updatedProposal);
-
       onClose();
-      navigate('/users/proponent/ProponentMainLayout?tab=monitoring');
+      navigate("/users/proponent/ProponentMainLayout?tab=monitoring");
     }
   };
 
-  // --- Helper Variables ---
   const currentData = isEditing ? editedProposal : proposal;
-  const canEdit = proposal.status === 'revise' && isEditing;
-  const isFunded = proposal.status === 'funded';
-
-  // Parse Co-Proponents for Display
-  const coProponentsList = proposal.coProponent 
-    ? proposal.coProponent.split(',').map(s => s.trim()).filter(Boolean) 
+  const canEdit = proposal.status === "revise" && isEditing;
+  const isFunded = proposal.status === "funded";
+  const sites = (currentData.implementationSites as Site[]) || [];
+  const coProponentsList = proposal.coProponent
+    ? proposal.coProponent
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
 
-  // --- Design Helpers ---
   const getStatusTheme = (status: string) => {
     const s = status.toLowerCase();
-    if (['pending'].includes(s)) return { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: <Clock className="w-5 h-5 text-yellow-600" />, label: 'Pending' };
-    if (['funded', 'accepted', 'approved'].includes(s)) return { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: <CheckCircle className="w-5 h-5 text-emerald-600" />, label: 'Project Funded' };
-    if (['rejected', 'disapproved', 'reject'].includes(s)) return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: <XCircle className="w-5 h-5 text-red-600" />, label: 'Proposal Rejected' };
-    if (['revise', 'revision'].includes(s)) return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: <RefreshCw className="w-5 h-5 text-orange-600" />, label: 'Revision Required' };
-    if (['r&d evaluation'].includes(s)) return { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: <Microscope className="w-5 h-5 text-blue-600" />, label: 'Under R&D Evaluation' };
-    if (['evaluators assessment'].includes(s)) return { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: <FileCheck className="w-5 h-5 text-purple-600" />, label: 'Under Evaluators Assessment' };
-    return { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-700', icon: <Clock className="w-5 h-5 text-slate-500" />, label: 'Under Evaluation' };
+    if (["endorsed"].includes(s))
+      return {
+        bg: "bg-green-200",
+        border: "border-green-200",
+        text: "text-green-800",
+        icon: <CheckCheckIcon className="w-5 h-5 text-green-600" />,
+        label: "Endorsed for funding",
+      };
+    if (["funded", "accepted", "approved"].includes(s))
+      return {
+        bg: "bg-emerald-50",
+        border: "border-emerald-200",
+        text: "text-emerald-800",
+        icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
+        label: "Project Funded",
+      };
+    if (["rejected", "disapproved", "reject"].includes(s))
+      return {
+        bg: "bg-red-50",
+        border: "border-red-200",
+        text: "text-red-800",
+        icon: <XCircle className="w-5 h-5 text-red-600" />,
+        label: "Proposal Rejected",
+      };
+    if (["revise", "revision"].includes(s))
+      return {
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        text: "text-orange-800",
+        icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
+        label: "Revision Required",
+      };
+    if (["r&d evaluation"].includes(s))
+      return {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: <Microscope className="w-5 h-5 text-blue-600" />,
+        label: "Under R&D Evaluation",
+      };
+    if (["evaluators assessment"].includes(s))
+      return {
+        bg: "bg-purple-50",
+        border: "border-purple-200",
+        text: "text-purple-800",
+        icon: <FileCheck className="w-5 h-5 text-purple-600" />,
+        label: "Under Evaluators Assessment",
+      };
+    return {
+      bg: "bg-slate-50",
+      border: "border-slate-200",
+      text: "text-slate-700",
+      icon: <Clock className="w-5 h-5 text-slate-500" />,
+      label: "Under Evaluation",
+    };
   };
 
   const theme = getStatusTheme(proposal.status);
-  
+
   const getInputClass = (editable: boolean) => {
-    return editable ? 'bg-white border-slate-300 text-slate-900 focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E] shadow-sm' : 'bg-transparent border-transparent text-slate-900 font-medium px-0';
+    return editable
+      ? "bg-white border-slate-300 text-slate-900 focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E]"
+      : "bg-transparent border-transparent text-slate-900 font-medium px-0";
   };
 
   const renderFundedField = (content: React.ReactNode) => {
@@ -224,152 +346,196 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return content;
   };
 
-  // --- Comments Data ---
   const reviseComments = [
-    { section: "Objectives Assessment", comment: "The specific objectives are generally clear but need more measurable indicators (SMART criteria). Objective 2 is currently too broad and needs to be narrowed down." },
-    { section: "Methodology Assessment", comment: "Some line items require better justification and cost-benefit analysis." },
-    { section: "Budget Assessment", comment: "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown." },
-    { section: "Timeline Assessment", comment: "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month." },
-    { section: "Overall Comments", comment: "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation." }
+    {
+      section: "Objectives Assessment",
+      comment:
+        "The specific objectives are generally clear but need more measurable indicators (SMART criteria). Objective 2 is currently too broad and needs to be narrowed down.",
+    },
+    {
+      section: "Methodology Assessment",
+      comment:
+        "Some line items require better justification and cost-benefit analysis.",
+    },
+    {
+      section: "Budget Assessment",
+      comment:
+        "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown.",
+    },
+    {
+      section: "Timeline Assessment",
+      comment:
+        "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
+    },
+    {
+      section: "Overall Comments",
+      comment:
+        "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation.",
+    },
   ];
   const rejectComments = [
-    { section: "Reason for Rejection", comment: "Project objectives do not align with current organizational priorities." }
+    {
+      section: "Reason for Rejection",
+      comment:
+        "Project objectives do not align with current organizational priorities.",
+    },
   ];
-  const activeComments = proposal.status === 'revise' ? reviseComments : proposal.status === 'reject' ? rejectComments : [];
+  const activeComments =
+    proposal.status === "revise"
+      ? reviseComments
+      : proposal.status === "reject"
+      ? rejectComments
+      : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
-        
         {/* --- HEADER --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 bg-white gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${theme.bg} ${theme.border} ${theme.text}`}>
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${theme.bg} ${theme.border} ${theme.text}`}
+              >
                 {theme.icon}
                 {theme.label}
               </span>
-              <span className="text-xs text-slate-500 font-normal">DOST Form No. 1B</span>
+              <span className="text-xs text-slate-500 font-normal">
+                DOST Form No. 1B
+              </span>
             </div>
             <h2 className="text-xl font-bold text-gray-900 leading-tight truncate pr-4">
               {currentData.title}
             </h2>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Edit Toggle Button */}
-            {proposal.status === 'revise' && (
+            {proposal.status === "revise" && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                  isEditing 
-                    ? 'bg-slate-100 text-slate-700 border border-slate-300' 
-                    : 'bg-[#C8102E] text-white shadow-sm hover:bg-[#a00c24]'
+                  isEditing
+                    ? "bg-slate-100 text-slate-700 border border-slate-300"
+                    : "bg-[#C8102E] text-white hover:bg-[#a00c24]"
                 }`}
               >
-                {isEditing ? <Eye className="w-3 h-3" /> : <Edit className="w-3 h-3" />}
-                {isEditing ? 'Preview Mode' : 'Edit Proposal'}
+                {isEditing ? (
+                  <Eye className="w-3 h-3" />
+                ) : (
+                  <Edit className="w-3 h-3" />
+                )}
+                {isEditing ? "Preview Mode" : "Edit Proposal"}
               </button>
             )}
-            <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            >
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
-        
-        {/* Revision Deadline Banner */}
-        {proposal.status === 'revise' && (
+
+        {proposal.status === "revise" && (
           <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
             <RefreshCw className="w-4 h-4" />
-            Deadline for Revision: {proposal.deadline || '2024-12-31 23:59'}
+            Deadline for Revision: {proposal.deadline || "2024-12-31 23:59"}
           </div>
         )}
 
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
-          
-          {/* 1. Funded Card - Display Assigned Team & Start */}
           {isFunded && (
-             <div className="bg-green-50 rounded-xl border border-green-200 p-6 relative overflow-hidden group shadow-sm">
-                
-                {/* Content */}
-                <div className="relative z-10">
-                   <div className="flex flex-col md:flex-row gap-6">
-                      <div className="flex-1">
-                         <h3 className="text-lg font-bold text-green-900 mb-2 flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-600" /> Project Funding Approved
-                         </h3>
-                         <p className="text-sm text-green-800 leading-relaxed mb-4">
-                            Congratulations! Your project has been fully funded. Below is the confirmed Project Leadership Team as indicated in your proposal. Click start to proceed to the monitoring phase.
-                         </p>
+            <div className="bg-green-50 rounded-xl border border-green-200 p-6 relative overflow-hidden group">
+              <div className="relative z-10">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-green-900 mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />{" "}
+                      Project Funding Approved
+                    </h3>
+                    <p className="text-sm text-green-800 leading-relaxed mb-4">
+                      Congratulations! Your project has been fully funded. Below
+                      is the confirmed Project Leadership Team as indicated in
+                      your proposal. Click start to proceed to the monitoring
+                      phase.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-96 bg-white p-5 rounded-lg border border-green-200 flex flex-col justify-between">
+                    <div>
+                      <div className="mb-4">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
+                          <User className="w-3.5 h-3.5" /> Project Leader
+                        </label>
+                        <div className="bg-slate-50 border border-slate-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
+                          {proposal.proponent}
+                        </div>
                       </div>
-
-                      {/* Display Box */}
-                      <div className="w-full md:w-96 bg-white p-5 rounded-lg border border-green-200 shadow-sm flex flex-col justify-between">
-                         <div>
-                            <div className="mb-4">
-                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
-                                   <User className="w-3.5 h-3.5" /> Project Leader
-                                </label>
-                                <div className="bg-slate-50 border border-slate-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
-                                   {proposal.proponent}
-                                </div>
-                            </div>
-
-                            <div className="mb-4">
-                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
-                                   <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader Proponent(s)
-                                </label>
-                                
-                                {coProponentsList.length > 0 ? (
-                                   <div className="flex flex-wrap gap-2">
-                                      {coProponentsList.map((name, index) => (
-                                         <span key={index} className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200">
-                                            {name}
-                                         </span>
-                                      ))}
-                                   </div>
-                                ) : (
-                                   <div className="text-xs text-slate-400 italic bg-slate-50 p-2 rounded border border-slate-100">
-                                      No co-lead proponent indicated.
-                                   </div>
-                                )}
-                            </div>
-                         </div>
-                         
-                         <button
-                            onClick={handleStartImplementation}
-                            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm mt-2"
-                         >
-                            <Play className="w-4 h-4" /> Start Project Implementation
-                         </button>
+                      <div className="mb-4">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
+                          <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader
+                          Proponent(s)
+                        </label>
+                        {coProponentsList.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {coProponentsList.map((name, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 italic bg-slate-50 p-2 rounded border border-slate-100">
+                            No co-lead proponent indicated.
+                          </div>
+                        )}
                       </div>
-                   </div>
+                    </div>
+                    <button
+                      onClick={handleStartImplementation}
+                      className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm mt-2"
+                    >
+                      <Play className="w-4 h-4" /> Start Project Implementation
+                    </button>
+                  </div>
                 </div>
-                
-                {/* Decorative Background Icon */}
-                <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-40 pointer-events-none" />
-             </div>
+              </div>
+              <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-40 pointer-events-none" />
+            </div>
           )}
 
-          {/* 2. Status Banner & Comments */}
-          {(proposal.status === 'revise' || proposal.status === 'reject') && (
-            <div className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}>
-              <h3 className={`text-sm font-bold ${theme.text} mb-3 flex items-center gap-2`}>
+          {(proposal.status === "revise" || proposal.status === "reject") && (
+            <div
+              className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}
+            >
+              <h3
+                className={`text-sm font-bold ${theme.text} mb-3 flex items-center gap-2`}
+              >
                 {theme.icon} R&D Staff Feedback
               </h3>
               <div className="grid gap-3">
                 {activeComments.map((c, i) => {
-                  const isRevision = proposal.status === 'revise';
-                  const isOverall = c.section === 'Overall Comments';
-                  const cardBg = (isRevision && !isOverall) ? 'bg-white border-white/50 shadow-sm' : 'bg-white/60 border-white/50';
-                  const textStyle = (isRevision && isOverall) ? 'italic' : '';
-
+                  const isRevision = proposal.status === "revise";
+                  const isOverall = c.section === "Overall Comments";
+                  const cardBg =
+                    isRevision && !isOverall
+                      ? "bg-white border-white/50"
+                      : "bg-white/60 border-white/50";
+                  const textStyle = isRevision && isOverall ? "italic" : "";
                   return (
                     <div key={i} className={`rounded-lg p-3 border ${cardBg}`}>
-                      <span className={`text-xs font-bold tracking-wider block mb-1 opacity-75 ${theme.text}`}>
+                      <span
+                        className={`text-xs font-bold tracking-wider block mb-1 opacity-75 ${theme.text}`}
+                      >
                         {c.section}
                       </span>
-                      <p className={`text-sm leading-relaxed ${theme.text} ${textStyle}`}>{c.comment}</p>
+                      <p
+                        className={`text-sm leading-relaxed ${theme.text} ${textStyle}`}
+                      >
+                        {c.comment}
+                      </p>
                     </div>
                   );
                 })}
@@ -377,11 +543,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           )}
 
-          {/* 3. File Management Section */}
+          {/* 3. File Management */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
+                <FileText className="w-4 h-4 text-[#C8102E]" /> Project
+                Documents
               </h3>
               {submittedFiles.length > 1 && (
                 <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
@@ -389,10 +556,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </span>
               )}
             </div>
-
-            {/* File Actions */}
             <div className="flex flex-col gap-3">
-              {/* Current File Display */}
               <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
@@ -400,16 +564,25 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-900">
-                      {submittedFiles.length > 0 ? 'Current Proposal PDF' : 'No file uploaded'}
+                      {submittedFiles.length > 0
+                        ? "Current Proposal PDF"
+                        : "No file uploaded"}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {submittedFiles.length > 0 ? 'Latest version' : 'Pending upload'}
+                      {submittedFiles.length > 0
+                        ? "Latest version"
+                        : "Pending upload"}
                     </p>
                   </div>
                 </div>
                 {submittedFiles.length > 0 && (
-                  <button 
-                    onClick={() => window.open(submittedFiles[submittedFiles.length - 1], '_blank')}
+                  <button
+                    onClick={() =>
+                      window.open(
+                        submittedFiles[submittedFiles.length - 1],
+                        "_blank"
+                      )
+                    }
                     className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
                     title="Download"
                   >
@@ -417,26 +590,46 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </button>
                 )}
               </div>
-
-              {/* Upload New File (Only in Edit Mode) */}
               {canEdit && (
-                <div className={`border-2 border-dashed rounded-lg p-4 transition-colors ${newFile ? 'border-green-300 bg-green-50' : 'border-slate-300 hover:border-[#C8102E] hover:bg-white'}`}>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                    newFile
+                      ? "border-green-300 bg-green-50"
+                      : "border-slate-300 hover:border-[#C8102E] hover:bg-white"
+                  }`}
+                >
                   {!newFile ? (
                     <label className="flex flex-col items-center justify-center gap-2 cursor-pointer">
                       <Upload className="w-5 h-5 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-600">Click to upload revised PDF</span>
-                      <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
+                      <span className="text-sm font-medium text-slate-600">
+                        Click to upload revised PDF
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
                     </label>
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
                         <div>
-                          <p className="text-sm font-medium text-green-800">Ready to submit</p>
-                          <p className="text-xs text-green-600 max-w-[200px] truncate">{newFile.name}</p>
+                          <p className="text-sm font-medium text-green-800">
+                            Ready to submit
+                          </p>
+                          <p className="text-xs text-green-600 max-w-[200px] truncate">
+                            {newFile.name}
+                          </p>
                         </div>
                       </div>
-                      <button onClick={() => setNewFile(null)} className="text-xs text-red-600 hover:underline font-medium">Remove</button>
+                      <button
+                        onClick={() => setNewFile(null)}
+                        className="text-xs text-red-600 hover:underline font-medium"
+                      >
+                        Remove
+                      </button>
                     </div>
                   )}
                 </div>
@@ -444,225 +637,503 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
 
-          {/* 4. Proponent & Agency Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#C8102E]" /> Proponent Details
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider">Name</label>
-                  <div className="mt-1">
-                    {canEdit ? (
-                      <input 
-                        type="text" 
-                        value={currentData.proponent} 
-                        onChange={(e) => handleInputChange('proponent', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                      />
-                    ) : (
-                      renderFundedField(<p className="text-sm font-medium text-slate-900">{currentData.proponent}</p>)
-                    )}
-                  </div>
-                </div>
-                {/* ... existing gender/phone inputs ... */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider">Gender</label>
-                    <div className="mt-1">
-                      {canEdit ? (
-                        <select 
-                          value={currentData.gender} 
-                          onChange={(e) => handleInputChange('gender', e.target.value)}
-                          className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                        >
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
-                      ) : (
-                        renderFundedField(<p className="text-sm text-slate-900">{currentData.gender}</p>)
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider">Phone</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      {!canEdit && <Phone className="w-3.5 h-3.5 text-slate-400" />}
-                      {canEdit ? (
-                        <input 
-                          type="text" 
-                          value={currentData.telephone} 
-                          onChange={(e) => handleInputChange('telephone', e.target.value)}
-                          className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                        />
-                      ) : (
-                        renderFundedField(<p className="text-sm text-slate-900">{currentData.telephone}</p>)
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider">Email</label>
-                  <div className="mt-1 flex items-center gap-2">
-                    {!canEdit && <Mail className="w-3.5 h-3.5 text-slate-400" />}
-                    {canEdit ? (
-                      <input 
-                        type="email" 
-                        value={currentData.email} 
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                      />
-                    ) : (
-                      renderFundedField(<p className="text-sm text-slate-900">{currentData.email}</p>)
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* 4. LEADER & AGENCY (Updated Layout & Gray Background) */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+              <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency
+              Information
+            </h3>
 
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-[#C8102E]" /> Agency Information
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider">Agency</label>
-                  <div className="mt-1">
-                    {canEdit ? (
-                      <input 
-                        type="text" 
-                        value={currentData.agency} 
-                        onChange={(e) => handleInputChange('agency', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                      />
-                    ) : (
-                      renderFundedField(<p className="text-sm font-medium text-slate-900">{currentData.agency}</p>)
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider">Address</label>
-                  <div className="mt-1">
-                    {canEdit ? (
-                      <textarea 
-                        value={currentData.address} 
-                        onChange={(e) => handleInputChange('address', e.target.value)}
-                        rows={2}
-                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                      />
-                    ) : (
-                      renderFundedField(
-                        <div className="flex items-start gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-slate-900">{currentData.address}</p>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider">Cooperating Agencies</label>
-                  <div className="mt-1">
-                    {canEdit ? (
-                      <input 
-                        type="text" 
-                        value={currentData.cooperatingAgencies} 
-                        onChange={(e) => handleInputChange('cooperatingAgencies', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                      />
-                    ) : (
-                      renderFundedField(<p className="text-sm text-slate-900">{currentData.cooperatingAgencies}</p>)
-                    )}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Row 1: Leader & Gender */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Leader / Proponent
+                </label>
+                {canEdit ? (
+                  <input
+                    type="text"
+                    value={currentData.proponent}
+                    onChange={(e) =>
+                      handleInputChange("proponent", e.target.value)
+                    }
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                ) : (
+                  renderFundedField(
+                    <p className="text-sm font-bold text-slate-900">
+                      {currentData.proponent}
+                    </p>
+                  )
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Gender
+                </label>
+                {canEdit ? (
+                  <select
+                    value={currentData.gender}
+                    onChange={(e) =>
+                      handleInputChange("gender", e.target.value)
+                    }
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                ) : (
+                  renderFundedField(
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.gender}
+                    </p>
+                  )
+                )}
+              </div>
+
+              {/* Row 2: Agency & Address */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Agency
+                </label>
+                {canEdit ? (
+                  <input
+                    type="text"
+                    value={currentData.agency}
+                    onChange={(e) =>
+                      handleInputChange("agency", e.target.value)
+                    }
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                ) : (
+                  renderFundedField(
+                    <div className="flex items-start gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm font-medium text-slate-900">
+                        {currentData.agency}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Address
+                </label>
+                {canEdit ? (
+                  <textarea
+                    value={currentData.address}
+                    onChange={(e) =>
+                      handleInputChange("address", e.target.value)
+                    }
+                    rows={2}
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                ) : (
+                  renderFundedField(
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-slate-900">
+                        {currentData.address}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* Row 3: Telephone & Email (SIDE BY SIDE NOW) */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Telephone
+                </label>
+                {canEdit ? (
+                  <input
+                    type="text"
+                    value={currentData.telephone}
+                    onChange={(e) =>
+                      handleInputChange("telephone", e.target.value)
+                    }
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                ) : (
+                  renderFundedField(
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <p className="text-sm text-slate-900">
+                        {currentData.telephone}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Email
+                </label>
+                {canEdit ? (
+                  <input
+                    type="email"
+                    value={currentData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                ) : (
+                  renderFundedField(
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <p className="text-sm text-slate-900">
+                        {currentData.email}
+                      </p>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>
 
-          {/* 5. Project Details Grid */}
-          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              {[
-                { label: 'Sector', icon: Briefcase, field: 'sector' },
-                { label: 'Discipline', icon: BookOpen, field: 'discipline' },
-                { label: 'Priority Area', icon: Target, field: 'priorityAreas' },
-                { label: 'Research & Development Station', icon: Microscope, field: 'rdStation' },
-                { label: 'Mode of Implementation', icon: FileText, field: 'modeOfImplementation' },
-                { label: 'Classification', icon: Tags, field: 'classification' },
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <item.icon className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-xs font-bold text-slate-500 tracking-wider">{item.label}</span>
+          {/* 5. IMPLEMENTATION SITES (Gray Background) */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation
+                Sites ({sites.length})
+              </h3>
+              {canEdit && (
+                <button
+                  onClick={handleAddSite}
+                  className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
+                >
+                  <Plus className="w-3 h-3" /> Add Site
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {sites.map((site, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                    <MapPin className="w-4 h-4" />
                   </div>
-                  {canEdit ? (
-                    <input 
-                      type="text" 
-                      value={(currentData as any)[item.field]} 
-                      onChange={(e) => handleInputChange(item.field as keyof Proposal, e.target.value)}
-                      className={`w-full px-3 py-1.5 rounded-md border text-sm ${getInputClass(true)}`}
-                    />
-                  ) : (
-                    renderFundedField(<p className="text-sm font-medium text-slate-900 pl-5">{(currentData as any)[item.field]}</p>)
+                  <div className="flex-1 space-y-2">
+                    {canEdit ? (
+                      <>
+                        <input
+                          type="text"
+                          value={site.site}
+                          onChange={(e) =>
+                            handleSiteChange(index, "site", e.target.value)
+                          }
+                          placeholder="Site Name"
+                          className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
+                            true
+                          )}`}
+                        />
+                        <input
+                          type="text"
+                          value={site.city}
+                          onChange={(e) =>
+                            handleSiteChange(index, "city", e.target.value)
+                          }
+                          placeholder="City/Municipality"
+                          className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
+                            true
+                          )}`}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-slate-900 leading-tight">
+                          {site.site}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {site.city}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <button
+                      onClick={() => handleRemoveSite(index)}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 6. Schedule & Budget */}
+          {/* 6. INDIVIDUAL DETAIL CARDS GRID (Gray Backgrounds) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Cooperating Agencies */}
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Users className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Cooperating Agencies
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.cooperatingAgencies}
+                  onChange={(e) =>
+                    handleInputChange("cooperatingAgencies", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.cooperatingAgencies}
+                </p>
+              )}
+            </div>
+
+            {/* Mode of Implementation */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <FileText className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Mode of Implementation
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.modeOfImplementation}
+                  onChange={(e) =>
+                    handleInputChange("modeOfImplementation", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.modeOfImplementation}
+                </p>
+              )}
+            </div>
+
+            {/* Classification */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Tags className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Classification
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.classification}
+                  onChange={(e) =>
+                    handleInputChange("classification", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.classification}:{" "}
+                  {currentData.classificationDetails}
+                </p>
+              )}
+            </div>
+
+            {/* R&D Station */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Microscope className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  R&D Station
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.rdStation}
+                  onChange={(e) =>
+                    handleInputChange("rdStation", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.rdStation}
+                </p>
+              )}
+            </div>
+
+            {/* Priority Areas */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Priority Areas
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.priorityAreas}
+                  onChange={(e) =>
+                    handleInputChange("priorityAreas", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.priorityAreas}
+                </p>
+              )}
+            </div>
+
+            {/* Discipline */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <BookOpen className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Discipline
+                </h4>
+              </div>
+              {canEdit ? (
+                <input
+                  type="text"
+                  value={currentData.discipline}
+                  onChange={(e) =>
+                    handleInputChange("discipline", e.target.value)
+                  }
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                    true
+                  )}`}
+                />
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.discipline}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* 7. Schedule & Budget (Gray Background) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {/* Implementing Schedule */}
+            <div className="lg:col-span-3 bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#C8102E]" /> Schedule
+                <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing
+                Schedule
               </h3>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">School Year</p>
+                  {canEdit ? (
+                    <input
+                      type="text"
+                      value={currentData.schoolYear}
+                      className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600"
+                    />
+                  ) : (
+                    renderFundedField(
+                      <p className="text-sm font-semibold text-slate-900">
+                        {currentData.schoolYear}
+                      </p>
+                    )
+                  )}
+                </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Duration</p>
                   {canEdit ? (
-                    <input 
-                      type="text" 
-                      value={currentData.duration} 
-                      readOnly 
-                      className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600 cursor-not-allowed" 
+                    <input
+                      type="text"
+                      value={currentData.duration}
+                      readOnly
+                      className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600"
                     />
-                  ) : renderFundedField(<p className="text-sm font-semibold text-slate-900">{currentData.duration}</p>)}
+                  ) : (
+                    renderFundedField(
+                      <p className="text-sm font-semibold text-slate-900">
+                        {currentData.duration}
+                      </p>
+                    )
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Start</p>
-                    {canEdit ? (
-                      <input 
-                        type="date" 
-                        value={currentData.startDate} 
-                        onChange={(e)=>handleDateChange('startDate', e.target.value)} 
-                        className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} 
-                      />
-                    ) : renderFundedField(<p className="text-sm font-medium text-slate-700">{currentData.startDate}</p>)}
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">End</p>
-                    {canEdit ? (
-                      <input 
-                        type="date" 
-                        value={currentData.endDate} 
-                        onChange={(e)=>handleDateChange('endDate', e.target.value)} 
-                        className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(true)}`} 
-                      />
-                    ) : renderFundedField(<p className="text-sm font-medium text-slate-700">{currentData.endDate}</p>)}
-                  </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                  {canEdit ? (
+                    <input
+                      type="date"
+                      value={currentData.startDate}
+                      onChange={(e) =>
+                        handleDateChange("startDate", e.target.value)
+                      }
+                      className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(
+                        true
+                      )}`}
+                    />
+                  ) : (
+                    renderFundedField(
+                      <p className="text-sm font-medium text-slate-900">
+                        {currentData.startDate}
+                      </p>
+                    )
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">End Date</p>
+                  {canEdit ? (
+                    <input
+                      type="date"
+                      value={currentData.endDate}
+                      onChange={(e) =>
+                        handleDateChange("endDate", e.target.value)
+                      }
+                      className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(
+                        true
+                      )}`}
+                    />
+                  ) : (
+                    renderFundedField(
+                      <p className="text-sm font-medium text-slate-900">
+                        {currentData.endDate}
+                      </p>
+                    )
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            {/* Estimated Budget (Fixed Overflow) */}
+            <div className="lg:col-span-3 bg-slate-50 rounded-xl border border-slate-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Estimated Budget by Source
+                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Estimated
+                  Budget by Source
                 </h3>
                 {canEdit && (
-                  <button 
+                  <button
                     onClick={handleAddBudgetItem}
                     className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
                   >
@@ -670,37 +1141,65 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </button>
                 )}
               </div>
-              <div className="overflow-x-auto">
+              <div className="">
+                {" "}
+                {/* Removed overflow-x-auto to prevent horizontal scrolling */}
                 <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-slate-500 bg-slate-50 border-b border-slate-200">
+                  <thead className="text-xs text-slate-500 bg-slate-100 border-b border-slate-200">
                     <tr>
                       <th className="px-3 py-2 font-semibold">Source</th>
                       <th className="px-3 py-2 text-right">PS</th>
                       <th className="px-3 py-2 text-right">MOOE</th>
                       <th className="px-3 py-2 text-right">CO</th>
-                      <th className="px-3 py-2 text-right font-bold text-slate-900">Total</th>
+                      <th className="px-3 py-2 text-right font-bold text-slate-900">
+                        Total
+                      </th>
                       {canEdit && <th className="px-3 py-2 w-8"></th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-200 bg-white">
                     {currentData.budgetSources.map((budget, index) => (
-                      <tr key={index} className="hover:bg-slate-50 transition-colors group">
-                        {['source', 'ps', 'mooe', 'co', 'total'].map((key) => (
-                          <td key={key} className={`px-3 py-2 ${key !== 'source' ? 'text-right' : ''}`}>
+                      <tr
+                        key={index}
+                        className="hover:bg-slate-50 transition-colors group"
+                      >
+                        {["source", "ps", "mooe", "co", "total"].map((key) => (
+                          <td
+                            key={key}
+                            className={`px-3 py-2 ${
+                              key !== "source" ? "text-right" : ""
+                            }`}
+                          >
                             {canEdit ? (
-                              key === 'total' ? (
-                                <span className="text-xs font-bold text-slate-900">{budget.total}</span>
+                              key === "total" ? (
+                                <span className="text-xs font-bold text-slate-900">
+                                  {budget.total}
+                                </span>
                               ) : (
-                                <input 
-                                  type="text" 
-                                  value={(budget as any)[key]} 
-                                  onChange={(e) => handleBudgetChange(index, key as keyof BudgetSource, e.target.value)}
-                                  className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(true)} ${key !== 'source' ? 'text-right' : ''}`}
+                                <input
+                                  type="text"
+                                  value={(budget as any)[key]}
+                                  onChange={(e) =>
+                                    handleBudgetChange(
+                                      index,
+                                      key as keyof BudgetSource,
+                                      e.target.value
+                                    )
+                                  }
+                                  className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
+                                    true
+                                  )} ${key !== "source" ? "text-right" : ""}`}
                                 />
                               )
                             ) : (
                               renderFundedField(
-                                <span className={`text-xs font-medium ${key === 'total' ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
+                                <span
+                                  className={`text-xs font-medium ${
+                                    key === "total"
+                                      ? "text-slate-900 font-bold"
+                                      : "text-slate-600"
+                                  }`}
+                                >
                                   {(budget as any)[key]}
                                 </span>
                               )
@@ -709,7 +1208,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         ))}
                         {canEdit && (
                           <td className="px-3 py-2 text-center">
-                            <button 
+                            <button
                               onClick={() => handleRemoveBudgetItem(index)}
                               className="text-slate-400 hover:text-red-500 transition-colors"
                               title="Remove item"
@@ -720,9 +1219,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         )}
                       </tr>
                     ))}
-                    <tr className="bg-slate-50 border-t border-slate-200">
-                      <td className="px-3 py-2 font-bold text-slate-900 text-xs">GRAND TOTAL</td>
-                      <td colSpan={4 + (canEdit ? 1 : 0)} className="px-3 py-2 text-right font-bold text-[#C8102E] text-sm">
+                    <tr className="bg-slate-100 border-t border-slate-200">
+                      <td className="px-3 py-2 font-bold text-slate-900 text-xs">
+                        GRAND TOTAL
+                      </td>
+                      <td
+                        colSpan={4 + (canEdit ? 1 : 0)}
+                        className="px-3 py-2 text-right font-bold text-[#C8102E] text-sm"
+                      >
                         {renderFundedField(currentData.budgetTotal)}
                       </td>
                     </tr>
@@ -741,21 +1245,29 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           <div className="flex gap-3">
             {isEditing ? (
               <>
-                <button onClick={handleCancel} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
                   Cancel
                 </button>
-                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] border border-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors shadow-sm flex items-center gap-2">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] border border-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
+                >
                   <Upload className="w-4 h-4" /> Submit Revision
                 </button>
               </>
             ) : (
-              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
                 Close
               </button>
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -25,13 +25,19 @@ export interface BudgetSource {
   total: string;
 }
 
+interface Sites {
+  site: string;
+  city: string;
+}
+
 export interface Proposal {
   id: string;
   title: string;
-  status: 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject';
+  status: 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject';
   proponent: string;
   gender: string;
   agency: string;
+  schoolYear: string;
   address: string;
   telephone: string;
   email: string;
@@ -40,8 +46,10 @@ export interface Proposal {
   classification: string;
   classificationDetails: string;
   modeOfImplementation: string;
+  implementationSites: Sites[];
   priorityAreas: string;
   sector: string;
+  coProponent?: string;
   discipline: string;
   duration: string;
   startDate: string;

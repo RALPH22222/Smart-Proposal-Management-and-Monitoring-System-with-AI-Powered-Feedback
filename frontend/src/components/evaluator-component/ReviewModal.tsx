@@ -98,6 +98,7 @@ interface Proposal {
   priorityAreas: string;
   sector: string;
   discipline: string;
+  schoolYear: string;
   duration: string;
   startDate: string;
   endDate: string;
@@ -215,37 +216,44 @@ export default function ReviewModal({
             {/* File Download */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
+                <FileText className="w-4 h-4 text-[#C8102E]" /> Project
+                Documents
               </h3>
-              
+
               <div
-                  className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
-                  onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
-                      <FileText className="w-5 h-5 text-[#C8102E]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
-                        {proposal.projectFile || "Full Project Proposal.pdf"}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        PDF Document • 2.4 MB
-                      </p>
-                    </div>
+                className="border border-slate-200 rounded-lg p-3 bg-white flex items-center justify-between group hover:border-[#C8102E] transition-colors cursor-pointer"
+                onClick={() =>
+                  handleDownload(
+                    proposal.projectFile || "Full Project Proposal.pdf"
+                  )
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-12 bg-red-50 rounded flex items-center justify-center border border-red-100">
+                    <FileText className="w-5 h-5 text-[#C8102E]" />
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(proposal.projectFile || "Full Project Proposal.pdf");
-                    }}
-                    className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
-                  >
-                    <Download className="w-3 h-3" />
-                    Download
-                  </button>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
+                      {proposal.projectFile || "Full Project Proposal.pdf"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      PDF Document • 2.4 MB
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(
+                      proposal.projectFile || "Full Project Proposal.pdf"
+                    );
+                  }}
+                  className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                >
+                  <Download className="w-3 h-3" />
+                  Download
+                </button>
+              </div>
             </div>
 
             {/* Leader & Agency Information */}
@@ -320,35 +328,38 @@ export default function ReviewModal({
             </div>
 
             {/* 3. Implementation Sites */}
-            {proposal.implementationSites && proposal.implementationSites.length > 0 && (
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-[#C8102E]" />
-                  Implementation Sites ({proposal.implementationSites.length})
-                </h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {proposal.implementationSites.map((site: Sites, index: number) => (
-                    <div 
-                      key={index} 
-                      className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg shadow-sm"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                         <MapPin className="w-4 h-4" />
-                      </div>
-                      <div>
-                          <p className="text-sm font-bold text-slate-900 leading-tight">
-                             {site.site}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                             {site.city}
-                          </p>
-                      </div>
-                    </div>
-                  ))}
+            {proposal.implementationSites &&
+              proposal.implementationSites.length > 0 && (
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#C8102E]" />
+                    Implementation Sites ({proposal.implementationSites.length})
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {proposal.implementationSites.map(
+                      (site: Sites, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg shadow-sm"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
+                            <MapPin className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">
+                              {site.site}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {site.city}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Cooperating Agencies */}
             <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
@@ -436,7 +447,13 @@ export default function ReviewModal({
                 <Calendar className="w-5 h-5 text-[#C8102E]" />
                 Implementing Schedule
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-600">School Year:</span>
+                  <p className="font-semibold text-slate-900">
+                    {proposal.schoolYear}
+                  </p>
+                </div>
                 <div>
                   <span className="text-slate-600">Duration:</span>
                   <p className="font-semibold text-slate-900">

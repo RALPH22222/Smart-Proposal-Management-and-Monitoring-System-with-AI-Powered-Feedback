@@ -53,6 +53,7 @@ interface Proposal {
   sector: string;
   discipline: string;
   duration: string;
+  schoolYear: string;
   startDate: string;
   endDate: string;
   budgetSources: BudgetSource[];
@@ -103,6 +104,7 @@ export default function Proposals() {
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "January 2025",
       endDate: "December 2026",
       budgetSources: [
@@ -145,6 +147,7 @@ export default function Proposals() {
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
       duration: "36 months",
+      schoolYear: "2024-2025",
       startDate: "March 2025",
       endDate: "February 2028",
       budgetSources: [
@@ -193,6 +196,7 @@ export default function Proposals() {
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
       duration: "30 months",
+      schoolYear: "2024-2025",
       startDate: "February 2025",
       endDate: "July 2027",
       budgetSources: [
@@ -234,6 +238,7 @@ export default function Proposals() {
       sector: "Information Technology",
       discipline: "Computer Science",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "April 2025",
       endDate: "March 2027",
       budgetSources: [
@@ -283,6 +288,7 @@ export default function Proposals() {
       sector: "Energy and Power",
       discipline: "Electrical Engineering",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "April 2025",
       endDate: "March 2027",
       budgetSources: [
@@ -331,6 +337,7 @@ export default function Proposals() {
       sector: "Artificial Intelligence",
       discipline: "Computer Science and Mathematics",
       duration: "18 months",
+      schoolYear: "2024-2025",
       startDate: "May 2025",
       endDate: "October 2026",
       budgetSources: [
@@ -372,6 +379,7 @@ export default function Proposals() {
       sector: "Public Safety and Security",
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "May 2025",
       endDate: "April 2027",
       budgetSources: [
@@ -421,6 +429,7 @@ export default function Proposals() {
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
       duration: "30 months",
+      schoolYear: "2024-2025",
       startDate: "March 2025",
       endDate: "August 2027",
       budgetSources: [

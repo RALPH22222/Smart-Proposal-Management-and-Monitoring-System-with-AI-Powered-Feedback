@@ -312,7 +312,13 @@ export default function ProposalModal({
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
+                <div>
+                  <span className="text-slate-600">School Year:</span>
+                  <p className="font-semibold text-slate-900">
+                    {proposal.schoolYear}
+                  </p>
+                </div>
                 <div>
                   <span className="text-slate-500 text-xs tracking-wide">Duration</span>
                   <p className="font-semibold text-slate-900 mt-1">{p.duration}</p>

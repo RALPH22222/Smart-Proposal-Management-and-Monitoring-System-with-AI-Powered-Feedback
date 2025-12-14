@@ -97,6 +97,7 @@ interface Proposal {
   sector: string;
   discipline: string;
   duration: string;
+  schoolYear: string;
   startDate: string;
   endDate: string;
   budgetSources: BudgetSource[];
@@ -375,7 +376,13 @@ export default function ProposalDetailsModal({
                 <Calendar className="w-5 h-5 text-[#C8102E]" />
                 Implementing Schedule
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-600">School Year:</span>
+                  <p className="font-semibold text-slate-900">
+                    {proposal.schoolYear}
+                  </p>
+                </div>
                 <div>
                   <span className="text-slate-600">Duration:</span>
                   <p className="font-semibold text-slate-900">

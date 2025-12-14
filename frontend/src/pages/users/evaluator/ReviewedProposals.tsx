@@ -45,6 +45,7 @@ export default function ReviewedProposals() {
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "January 2025",
       endDate: "December 2026",
       budgetSources: [
@@ -91,6 +92,7 @@ export default function ReviewedProposals() {
       sector: "Energy and Utilities",
       discipline: "Electrical Engineering",
       duration: "36 months",
+      schoolYear: "2024-2025",
       startDate: "March 2025",
       endDate: "February 2028",
       budgetSources: [
@@ -145,6 +147,7 @@ export default function ReviewedProposals() {
       sector: "Energy and Utilities",
       discipline: "Energy Systems Engineering",
       duration: "30 months",
+      schoolYear: "2024-2025",
       startDate: "February 2025",
       endDate: "July 2027",
       budgetSources: [

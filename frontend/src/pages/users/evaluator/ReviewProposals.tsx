@@ -45,6 +45,7 @@ export default function EndorsedProposals() {
       sector: "Education Technology",
       discipline: "Information and Communication Technology",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "January 2025",
       endDate: "December 2026",
       budgetSources: [
@@ -82,6 +83,7 @@ export default function EndorsedProposals() {
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
       duration: "36 months",
+      schoolYear: "2024-2025",
       startDate: "March 2025",
       endDate: "February 2028",
       budgetSources: [
@@ -127,6 +129,7 @@ export default function EndorsedProposals() {
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
       duration: "30 months",
+      schoolYear: "2024-2025",
       startDate: "February 2025",
       endDate: "July 2027",
       budgetSources: [
@@ -165,6 +168,7 @@ export default function EndorsedProposals() {
       sector: "Energy and Power",
       discipline: "Electrical Engineering",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "April 2025",
       endDate: "March 2027",
       budgetSources: [
@@ -210,6 +214,7 @@ export default function EndorsedProposals() {
       sector: "Environment and Natural Resources",
       discipline: "Marine Science",
       duration: "36 months",
+      schoolYear: "2024-2025",
       startDate: "January 2025",
       endDate: "December 2027",
       budgetSources: [
@@ -254,6 +259,7 @@ export default function EndorsedProposals() {
       sector: "Public Safety and Security",
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
+      schoolYear: "2024-2025",
       startDate: "May 2025",
       endDate: "April 2027",
       budgetSources: [
@@ -299,6 +305,7 @@ export default function EndorsedProposals() {
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
       duration: "30 months",
+      schoolYear: "2024-2025",
       startDate: "March 2025",
       endDate: "August 2027",
       budgetSources: [
@@ -344,6 +351,7 @@ export default function EndorsedProposals() {
       sector: "Environment and Climate",
       discipline: "Atmospheric Science and Data Science",
       duration: "36 months",
+      schoolYear: "2024-2025",
       startDate: "February 2025",
       endDate: "January 2028",
       budgetSources: [

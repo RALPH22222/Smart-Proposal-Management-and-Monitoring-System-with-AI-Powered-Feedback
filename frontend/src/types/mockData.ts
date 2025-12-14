@@ -167,35 +167,35 @@ export const commentsMap: Record<string, {
 };
 
 // NEW: Helper function to get status from currentIndex for cards and modals
-export const getStatusFromIndex = (currentIndex: number): 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
-  const statusMap: Record<number, 'pending' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
-    0: 'pending',
+export const getStatusFromIndex = (currentIndex: number): 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject' => {
+  const statusMap: Record<number, 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject'> = {
+    0: 'endorsed',
     1: 'r&d evaluation',
     2: 'evaluators assessment', 
     3: 'revise',
     4: 'funded',
     5: 'reject'
   };
-  return statusMap[currentIndex] || 'pending';
+  return statusMap[currentIndex];
 };
 
 // NEW: Helper function to get progress percentage from status for cards
 export const getProgressPercentage = (status: string): number => {
   const progressMap: Record<string, number> = {
-    'pending': 0,
+    'endorsed': 75,
     'r&d evaluation': 25,
     'evaluators assessment': 50,
     'revise': 10,
     'funded': 100,
     'reject': 0
   };
-  return progressMap[status] || 0;
+  return progressMap[status];
 };
 
 // NEW: Helper function to get status label for cards
 export const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    'pending': 'Pending',
+    'endorsed': 'Endorsed for funding',
     'r&d evaluation': 'R&D Evaluation',
     'evaluators assessment': 'Evaluators Assessment', 
     'revise': 'Revision Required',
