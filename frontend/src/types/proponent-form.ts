@@ -13,20 +13,20 @@ export interface FormData {
   programTitle: string;
   projectTitle: string;
   leaderGender: string;
-  agency: string;
-  address: string;
+  agencyName: string;
+  agencyAddress: string;
+  schoolYear: string;
   tags: string;
   email: string;
   telephone: string;
-  cooperatingAgencies: string;
+  cooperatingAgencies: { id: number; name: string }[];
+  implementationSite: { site: string; city: string }[];
   researchStation: string;
-  
-  // Updated classification fields
   classificationType: 'research' | 'development' | '';
   researchType: {
     basic: boolean;
     applied: boolean;
-    // Remove these if they're no longer used in the new structure
+    other?: string;
     development?: boolean;
     pilotTesting?: boolean;
     techPromotion?: boolean;
