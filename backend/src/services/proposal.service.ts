@@ -1,5 +1,5 @@
 import { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { ProposalRow, Status } from "../types/proposal";
+import { IdOrName, ProposalRow, Status, Table } from "../types/proposal";
 import {
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
@@ -7,25 +7,111 @@ import {
   ProposalVersionInput,
 } from "../schemas/proposal-schema";
 
+function isId(v: IdOrName): v is number {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
+function cleanName(v: IdOrName): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim();
+  return s.length ? s : null;
+}
+
 export class ProposalService {
   constructor(private db: SupabaseClient) {}
 
-  async create(payload: Omit<ProposalInput, "proposal_file">): Promise<{
-    data: ProposalRow | null;
-    error: PostgrestError | null;
-  }> {
-    const { budget, ...proposal } = payload;
+  private async resolveLookupId(args: {
+    table: Table;
+    nameColumn?: string; // defaults to "name"
+    value: IdOrName;
+  }): Promise<number | null> {
+    const { table, value } = args;
+    const nameColumn = args.nameColumn ?? "name";
 
-    const { data, error } = await this.db
-      .from("proposals")
-      .insert({ ...proposal, status: Status.REVIEW_RND })
-      .select()
+    // already an id -> use directly
+    if (isId(value)) return value;
+
+    // string -> treat as new/existing name
+    const name = cleanName(value);
+    if (!name) return null;
+
+    // 1) try to find existing
+    const existing = await this.db.from(table).select("id").eq(nameColumn, name).maybeSingle();
+
+    if (existing.data?.id) return existing.data.id;
+
+    // 2) insert new and return id
+    const inserted = await this.db
+      .from(table)
+      .insert({ [nameColumn]: name })
+      .select("id")
       .single();
 
-    return {
-      data: data as ProposalRow | null,
-      error,
+    if (inserted.error) throw inserted.error;
+    return inserted.data.id as number;
+  }
+
+  private async resolveManyLookupIds(args: {
+    table: Table.AGENCIES;
+    value: Array<IdOrName> | null | undefined;
+  }): Promise<number[]> {
+    const list = Array.isArray(args.value) ? args.value : [];
+    const ids: number[] = [];
+
+    for (const v of list) {
+      const id = await this.resolveLookupId({
+        table: args.table,
+        value: v,
+      });
+      if (id) ids.push(id);
+    }
+
+    // optional: dedupe
+    return Array.from(new Set(ids));
+  }
+
+  async create(payload: Omit<ProposalInput, "proposal_file">) {
+    const { budgetItems, cooperatingAgencies, tags, ...proposal } = payload;
+
+    // Resolve the “id-or-string” fields into ids
+    const department_id = await this.resolveLookupId({
+      table: Table.DEPARTMENTS,
+      value: proposal.department,
+    });
+
+    const sector_id = await this.resolveLookupId({
+      table: Table.SECTORS,
+      value: proposal.sector,
+    });
+
+    const discipline_id = await this.resolveLookupId({
+      table: Table.DISCIPLINES,
+      value: proposal.discipline,
+    });
+
+    const agency_id = await this.resolveLookupId({
+      table: Table.AGENCIES,
+      value: proposal.agency,
+    });
+
+    const cooperating_agency_ids = await this.resolveManyLookupIds({
+      table: Table.AGENCIES,
+      value: cooperatingAgencies,
+    });
+
+    // Build final DB payload
+    const dbPayload = {
+      ...proposal,
+      department_id,
+      sector_id,
+      discipline_id,
+      agency_id,
+      status: Status.REVIEW_RND,
     };
+
+    const { data, error } = await this.db.from("proposals").insert(dbPayload).select().single();
+
+    return { data: data as ProposalRow | null, error };
   }
 
   async createVersion(payload: ProposalVersionInput) {

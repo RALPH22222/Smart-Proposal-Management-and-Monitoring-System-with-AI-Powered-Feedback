@@ -6,7 +6,7 @@ export interface Project {
   lastUpdated: string;
   budget: string;
   duration: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   evaluators: number;
 }
 
@@ -33,7 +33,7 @@ interface Sites {
 export interface Proposal {
   id: string;
   title: string;
-  status: 'endorsed' | 'r&d evaluation' | 'evaluators assessment' | 'revise' | 'funded' | 'reject';
+  status: "endorsed" | "r&d evaluation" | "evaluators assessment" | "revise" | "funded" | "reject";
   proponent: string;
   gender: string;
   agency: string;

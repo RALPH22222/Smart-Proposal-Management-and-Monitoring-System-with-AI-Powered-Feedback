@@ -39,6 +39,15 @@ export enum EvaluatorStatus {
   DECLINE = "decline",
 }
 
+export enum Table {
+  DEPARTMENTS = "departmens",
+  SECTORS = "sectors",
+  DISCIPLINES = "disciplines",
+  AGENCIES = "agencies",
+}
+
+export type IdOrName = number | string | null | undefined;
+
 // For the 'implementation_site' JSONB column
 export interface ImplementationSite {
   site_name: string;
@@ -53,14 +62,14 @@ export interface Proposal {
   program_title?: string;
   school_year?: string;
   proponent_id: string; // UUID
-  
+
   // Classification
   status?: Status;
   research_class?: ResearchClass;
   development_class?: DevelopmentClass;
   implementation_mode?: ImplementationMode;
   priority_areas?: PriorityArea[];
-  
+
   // Details
   plan_start_date?: string;
   plan_end_date?: string;

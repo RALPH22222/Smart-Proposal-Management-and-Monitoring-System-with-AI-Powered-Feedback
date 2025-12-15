@@ -11,19 +11,27 @@ import {
 // Relaxed file schema to avoid browser mimetype issues
 const fileSchema = z.object({
   fieldname: z.string().optional(),
-  contentType: z.string().optional(),
+  contentType: z.enum([
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]),
   filename: z.string(),
-  content: z.any().optional(),
 });
 
 export const proposalSchema = z.object({
   // --- CHANGED: Matches Frontend camelCase ---
-  proponentId: z.string().uuid().optional(),
-  department_id: z.coerce.number().optional(), // Optional if not always sent
-  sector_id: z.coerce.number().optional(),
-  discipline_id: z.coerce.number().optional(),
-  agency_id: z.coerce.number().optional(),
-
+  proponentId: z.string().uuid(),
+  department: z.union([z.coerce.number(), z.string()]).optional(), // Optional if not always sent
+  sector: z.union([z.coerce.number(), z.string()]).optional(),
+  discipline: z.union([z.coerce.number(), z.string()]).optional(),
+  agency: z.union([z.coerce.number(), z.string()]).optional(),
+  agencyAddress: z.object({
+    street: z.string().min(1, "Street is required"),
+    barangay: z.string().min(1, "Barangay is required"),
+    city: z.string().min(1, "City is required"),
+  }),
+  school_year: z.string().optional(),
   programTitle: z.string().optional(), // Changed from program_title
   projectTitle: z.string().min(1, "Project title is required"), // Changed from project_title
 
@@ -43,8 +51,9 @@ export const proposalSchema = z.object({
   ),
 
   // --- CHANGED: Matches Frontend names ---
-  plannedStartDate: z.string().optional(), // Changed from plan_start_date
-  plannedEndDate: z.string().optional(), // Changed from plan_end_date
+  plannedStartDate: z.date().optional(), // Changed from plan_start_date
+  plannedEndDate: z.date().optional(), // Changed from plan_end_date
+  duration: z.number(),
 
   // --- CHANGED: Priority Areas (JSON Parse) ---
   priorityAreas: z.preprocess(
@@ -108,7 +117,21 @@ export const proposalSchema = z.object({
   ),
 
   // --- NEW: Cooperating Agencies (Missing in your old schema) ---
-  cooperatingAgencies: z.preprocess((val: unknown) => {
+  cooperatingAgencies: z.preprocess(
+    (val: unknown) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    z.array(z.union([z.coerce.number(), z.string()]).optional()),
+  ),
+
+  tags: z.preprocess((val: unknown) => {
     if (typeof val === "string") {
       try {
         return JSON.parse(val);
