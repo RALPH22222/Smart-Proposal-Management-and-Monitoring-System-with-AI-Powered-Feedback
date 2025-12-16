@@ -3,16 +3,13 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { useNavigate } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
-
-// 1. Updated Type Definition
-// We now expect 'roles' (array) or 'role' (string) to handle single or multiple roles
 type LoginResponse = {
   message: string;
   user: {
     id: string;
     email: string;
-    role?: string;   // Legacy/Single role support
-    roles?: string[]; // Multiple role support
+    role?: string;  
+    roles?: string[]; 
     [key: string]: any;
   };
 };
@@ -22,29 +19,24 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   
-  // State for Multiple Role Selection Modal
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   
   const navigate = useNavigate();
 
-  // 2. Helper function to handle routing based on role
   const navigateBasedOnRole = (role: string) => {
     switch (role.toLowerCase()) {
       case "proponent":
         navigate("/profile-setup");
         break;
       case "rnd":
-        // Make sure your Route definition matches this path
-        navigate("/rnd"); 
+        navigate("/users/rnd/rndMainLayout"); 
         break;
       case "admin":
-        // Make sure your Route definition matches this path
-        navigate("/admin");
+        navigate("/users/admin/adminMainLayout");
         break;
       case "evaluator":
-        // Make sure your Route definition matches this path
-        navigate("/evaluator");
+        navigate("/users/evaluator/evaluatorMainLayout");
         break;
       default:
         Swal.fire({
@@ -75,7 +67,6 @@ export default function Login() {
         },
       );
 
-      // Extract roles from response (handle both array and single string format)
       let userRoles: string[] = [];
       if (res.data.user.roles && Array.isArray(res.data.user.roles)) {
         userRoles = res.data.user.roles;
