@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { SignUpInput } from "../schemas/sign-up-schema";
 import jwt from "jsonwebtoken";
+import { DecodedToken } from "../types/auth";
 
 export class AuthService {
   constructor(private db?: SupabaseClient) {}
@@ -42,7 +43,7 @@ export class AuthService {
 
     try {
       console.log("Verifying token: ", token);
-      const data = jwt.verify(token, supabase_secret_jwt);
+      const data = jwt.verify(token, supabase_secret_jwt) as DecodedToken;
       return { data };
     } catch (error) {
       return { error };

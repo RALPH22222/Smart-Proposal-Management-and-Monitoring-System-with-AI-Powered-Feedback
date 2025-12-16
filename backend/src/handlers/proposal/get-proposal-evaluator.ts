@@ -12,6 +12,7 @@ type FilterParams = {
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { search, status }: FilterParams = event.queryStringParameters || {};
+  const { user_sub } = event.requestContext.authorizer as Record<string, string>;
 
   // Validate status if provided
   if (status) {
@@ -28,7 +29,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getEvaluatorProposals(search, status);
+  const { data, error } = await proposalService.getEvaluatorProposals(user_sub, search, status);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

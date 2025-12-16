@@ -29,9 +29,10 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
-
+  const result = JSON.stringify(data);
+  console.log("Decoded Token: ", JSON.stringify(data, null, 2));
   return {
     statusCode: 200,
-    body: JSON.stringify(data),
+    body: result,
   };
 });

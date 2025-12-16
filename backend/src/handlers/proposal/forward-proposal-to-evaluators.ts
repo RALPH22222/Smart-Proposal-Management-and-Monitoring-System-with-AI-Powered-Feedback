@@ -21,7 +21,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { user_sub } = event.requestContext.authorizer as any;
+  const { user_sub } = event.requestContext.authorizer as Record<string, string>;
   const { error } = await proposalService.forwardToEvaluators(result.data, user_sub);
 
   if (error) {

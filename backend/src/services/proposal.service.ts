@@ -337,7 +337,7 @@ export class ProposalService {
     const filters = [];
     let query = this.db.from("proposals").select(`
       *,
-      proponent:users(name),
+      proponent:users(first_name,last_name),
       department:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
@@ -490,19 +490,25 @@ export class ProposalService {
     }
   }
 
-  async getEvaluatorProposals(search?: string, status?: Status) {
-    let query = this.db.from("proposal_evaluators").select(`
+  async getEvaluatorProposals(evaluator_id: string, search?: string, status?: Status) {
+    let query = this.db
+      .from("proposal_evaluators")
+      .select(
+        `
         *,
-        evaluator:users(name),
+        evaluator:users(first_name,last_name),
+        forwarded_by_rnd:users(first_name,last_name),
         proposal:proposals!inner(
           *,
-          proponent:users(name),
+          proponent:users(first_name,last_name),
           department:departments(name),
           sector:sectors(name),
           discipline:disciplines(name),
           agency:agencies(name)
         )
-      `);
+      `,
+      )
+      .eq("evaluator_id", evaluator_id);
 
     if (search) {
       // filter on related table column
