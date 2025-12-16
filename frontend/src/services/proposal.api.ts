@@ -49,6 +49,24 @@ export const fetchTags = async (): Promise<LookupItem[]> => {
   return data;
 };
 
+/* --- NEWLY ADDED EXPORTS TO FIX ERRORS --- */
+
+export const fetchPriorities = async (): Promise<LookupItem[]> => {
+  // Check your backend: might be 'view-priority' or 'view-priority-area'
+  const { data } = await api.get<LookupItem[]>("/proposal/view-priority");
+  return data;
+};
+
+export const fetchStations = async (): Promise<LookupItem[]> => {
+  const { data } = await api.get<LookupItem[]>("/proposal/view-station");
+  return data;
+};
+
+export const fetchCommodities = async (): Promise<LookupItem[]> => {
+  const { data } = await api.get<LookupItem[]>("/proposal/view-commodity");
+  return data;
+};
+
 /* ===========================
  * SUBMIT PROPOSAL
  * =========================== */

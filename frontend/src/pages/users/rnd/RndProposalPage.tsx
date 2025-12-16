@@ -6,7 +6,7 @@ import {
   type ProposalStatus,
   type Reviewer
 } from '../../../types/InterfaceProposal';
-import { proposalApi } from '../../../services/user/ProposalApi';
+import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal from '../../../components/rnd-component/RndViewModal';
 

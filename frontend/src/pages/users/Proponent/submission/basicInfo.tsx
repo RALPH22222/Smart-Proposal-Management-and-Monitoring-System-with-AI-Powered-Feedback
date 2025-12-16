@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 import { fetchAgencies, fetchTags } from '../../../../services/proposal.api';
-import { differenceInMonths, parseISO, isValid } from 'date-fns';
+// import { differenceInMonths, parseISO, isValid } from 'date-fns';
 
 interface BasicInformationProps {
   formData: FormData;
@@ -18,9 +18,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [tagsList, setTagsList] = useState<{ id: number; name: string }[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Dropdown UI States
+ // Dropdown UI States
   const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
-  const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
+ const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
 
   // Search Terms
@@ -79,7 +79,7 @@ useEffect(() => {
             const start = parseISO(startDate as string);
             const end = parseISO(endDate as string);
 
-            if (isValid(start) && isValid(end) && end >= start) {
+           if (isValid(start) && isValid(end) && end >= start) {
                 const months = differenceInMonths(end, start);
                 let durationString = `${months} month${months !== 1 ? 's' : ''}`;
                 

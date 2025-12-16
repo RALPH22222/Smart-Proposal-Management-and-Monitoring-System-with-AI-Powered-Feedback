@@ -8,7 +8,7 @@ import {
 	type Statistics,
 	type Activity
 } from '../../../types/InterfaceProposal';
-import { proposalApi } from '../../../services/user/ProposalApi';
+import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import EndorsePage from './RnDEndorsePage';
 import EvaluatorPage from './RnDEvaluatorPage';
 
