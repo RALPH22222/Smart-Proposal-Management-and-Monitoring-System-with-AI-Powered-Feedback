@@ -93,7 +93,7 @@ export class BackendStack extends Stack {
       functionName: "pms-create-propposal",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(15),
       entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
       environment: {
         SUPABASE_KEY,
@@ -133,7 +133,18 @@ export class BackendStack extends Stack {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "revision-proposal-to-proponent-lambda.ts"),
+      entry: path.resolve("src", "handlers", "proposal", "revision-proposal-to-proponent.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const reject_proposal_to_proponent_lambda = new NodejsFunction(this, "reject-proposal-to-proponent-lambda", {
+      functionName: "reject-proposal-to-proponent-lambda",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "reject-proposal-to-proponent.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -333,11 +344,22 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
-    // /proposal/revision_proposal_to_proponent (protected)
+    // /proposal/revision-proposal-to-proponent (protected)
     const revision_proposal_to_proponent = proposal.addResource("revision-proposal-to-proponent");
     revision_proposal_to_proponent.addMethod(
       HttpMethod.POST,
       new LambdaIntegration(revision_proposal_to_proponent_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
+
+    // /proposal/reject_proposal_to_proponent (protected)
+    const reject_proposal_to_proponent = proposal.addResource("reject-proposal-to-proponent");
+    reject_proposal_to_proponent.addMethod(
+      HttpMethod.POST,
+      new LambdaIntegration(reject_proposal_to_proponent_lambda),
       {
         authorizer: requestAuthorizer,
         authorizationType: AuthorizationType.CUSTOM,

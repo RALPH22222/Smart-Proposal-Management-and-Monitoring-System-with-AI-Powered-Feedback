@@ -2,13 +2,13 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
-import { revisionProposalToProponentSchema } from "../../schemas/proposal-schema";
+import { rejectProposalToProponentSchema } from "../../schemas/proposal-schema";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
 
   // Payload Validation
-  const result = revisionProposalToProponentSchema.safeParse(payload);
+  const result = rejectProposalToProponentSchema.safeParse(payload);
 
   if (result.error) {
     return {
@@ -21,7 +21,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { error } = await proposalService.revisionProposalToProponent(result.data);
+  const { error } = await proposalService.rejectProposalToProponent(result.data);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
@@ -36,7 +36,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: "Proposal successfully sent to R&D.",
+      message: "Reject successfully sent to Proponent.",
     }),
   };
 });

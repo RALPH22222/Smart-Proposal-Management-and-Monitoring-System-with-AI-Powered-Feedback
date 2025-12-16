@@ -46,11 +46,10 @@ export enum Table {
   AGENCIES = "agencies",
 }
 
-export enum ProposalIds {
-  DEPARTMENT_ID = "department_id",
-  SECTOR_ID = "sector_id",
-  DISCIPLINE_ID = "discipline_id",
-  AGENCY_ID = "agency_id",
+export enum Budget {
+  PS = "ps",
+  MOOE = "mooe",
+  CO = "co",
 }
 
 export type IdOrName = number | string | null | undefined;

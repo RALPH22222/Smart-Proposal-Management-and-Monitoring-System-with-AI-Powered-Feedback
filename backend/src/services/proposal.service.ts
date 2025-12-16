@@ -1,10 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { AgencyAddress, IdOrName, Status, Table } from "../types/proposal";
+import { AgencyAddress, Budget, IdOrName, Status, Table } from "../types/proposal";
 import {
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
   ProposalInput,
   ProposalVersionInput,
+  rejectProposalToProponentInput,
   revisionProposalToProponentInput,
 } from "../schemas/proposal-schema";
 
@@ -195,19 +196,27 @@ export class ProposalService {
         throw new Error(`implementation_site insert failed: ${implementation_join.error.message}`);
     }
 
-    // BUDGET JOIN
-    if (budget.length > 0) {
-      const budget_rows = budget.map((budget) => ({
-        proposal_id,
-        source: budget.source,
-        ps: budget.ps,
-        mooe: budget.mooe,
-        co: budget.co,
-      }));
+    // BUDGET JOIN (new payload: [{ source, budget: { ps/mooe/co: [{item,value}] } }])
+    if (Array.isArray(budget) && budget.length > 0) {
+      const budget_rows = budget.flatMap((entry) => {
+        const source = entry.source;
 
-      const budget_join = await this.db.from("estimated_budget").insert(budget_rows);
+        const toRows = (category: Budget) =>
+          entry.budget[category].map((x) => ({
+            proposal_id,
+            source,
+            budget: category,
+            item: x.item,
+            amount: x.value,
+          }));
 
-      if (budget_join.error) throw new Error(`estimated_budget insert failed: ${budget_join.error.message}`);
+        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
+      });
+
+      if (budget_rows.length > 0) {
+        const budget_join = await this.db.from("estimated_budget").insert(budget_rows);
+        if (budget_join.error) throw new Error(`estimated_budget insert failed: ${budget_join.error.message}`);
+      }
     }
 
     return { data: insertRes.data, error: insertRes.error };
@@ -289,12 +298,39 @@ export class ProposalService {
   }
 
   async revisionProposalToProponent(input: revisionProposalToProponentInput) {
-    const { data, error } = await this.db.from("proposal_revision_summary").insert(input);
+    const { data, error: insertError } = await this.db.from("proposal_revision_summary").insert(input);
 
-    return {
-      data,
-      error,
-    };
+    if (insertError) return { error: insertError };
+
+    const { error: updateError } = await this.db
+      .from("proposals")
+      .update({
+        status: Status.REVISION_RND,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.proposal_id);
+
+    if (updateError) return { error: updateError };
+
+    return { data };
+  }
+
+  async rejectProposalToProponent(input: rejectProposalToProponentInput) {
+    const { data, error: insertError } = await this.db.from("proposal_reject_summary").insert(input);
+
+    if (insertError) return { error: insertError };
+
+    const { error: updateError } = await this.db
+      .from("proposals")
+      .update({
+        status: Status.REJECTED_RND,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.proposal_id);
+
+    if (updateError) return { error: insertError };
+
+    return { data };
   }
 
   async getAll(search?: string, status?: Status) {
