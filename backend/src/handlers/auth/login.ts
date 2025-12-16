@@ -22,10 +22,17 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   console.log("Data response: ", JSON.stringify(data, null, 2));
   console.log("Successfully logged in.");
 
+  const userRole = data.user?.user_metadata?.role || data.user?.role;
+
   return {
     statusCode: 200,
     body: JSON.stringify({
       message: "Successfully logged in.",
+      user: {
+        id: data.user?.id,
+        email: data.user?.email,
+        role: userRole,
+      },
     }),
     headers: {
       "Set-Cookie": setCookieString("tk", data.session!.access_token),
