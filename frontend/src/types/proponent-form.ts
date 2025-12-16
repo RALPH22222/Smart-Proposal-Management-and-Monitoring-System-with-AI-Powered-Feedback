@@ -1,8 +1,17 @@
+export interface ExpenseItem {
+  item: string;
+  value: number;
+}
+
+export interface BudgetBreakdown {
+  ps: ExpenseItem[];   
+  mooe: ExpenseItem[]; 
+  co: ExpenseItem[];   
+}
+
 export interface BudgetItem {
   source: string;
-  mooe: number;
-  ps: number;
-  co: number;
+  budget: BudgetBreakdown;
 }
 
 export interface AgencyAddress {
@@ -10,21 +19,21 @@ export interface AgencyAddress {
   barangay: string;
   city: string;
 }
-
+export type LookupItem = { id: number; name: string };
 export interface FormData {
   programTitle: string;
-  projectTitle: string;
-  // leaderGender: string;
+  projectTitle: string; 
+  department?: string;
   agency: number | string;
   agencyAddress: AgencyAddress;
   schoolYear: string;
-  tags: string;
+  tags: string[];
   email: string;
   telephone: string;
   cooperatingAgencies: { id: number; name: string }[];
   implementationSite: { site: string; city: string }[];
   researchStation: string;
-  classificationType: "research" | "development" | "";
+  classificationType: "research" | "development" | ""; 
   researchType: {
     basic: boolean;
     applied: boolean;
@@ -32,9 +41,9 @@ export interface FormData {
     development?: boolean;
     pilotTesting?: boolean;
     techPromotion?: boolean;
+    [key: string]: boolean | string | undefined; 
   };
   developmentType: "pilotTesting" | "techPromotion" | "";
-
   implementationMode: {
     singleAgency: boolean;
     multiAgency: boolean;
@@ -45,15 +54,15 @@ export interface FormData {
     exportWinners: boolean;
     otherPriorityAreas: boolean;
     supportIndustries: boolean;
+    [key: string]: boolean;
   };
   sectorCommodity: string;
   discipline: string;
   duration: string;
-  plannedStartDate: Date;
-  plannedEndDate: Date;
+  plannedStartDate: Date | string | null;
+  plannedEndDate: Date | string | null;
   budgetItems: BudgetItem[];
 }
-
 export interface AICheckResult {
   isValid: boolean;
   issues: string[];
@@ -79,8 +88,6 @@ export interface DashboardProps {
   onAIModalClose: () => void;
   years: string[];
 }
-
-export type LookupItem = { id: number; name: string };
 
 export type ProposalOptionsResponse = {
   agencies: LookupItem[];

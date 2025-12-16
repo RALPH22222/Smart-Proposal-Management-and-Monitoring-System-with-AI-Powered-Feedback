@@ -1,10 +1,6 @@
 import { api } from "../utils/axios";
 import type { FormData } from "../types/proponent-form";
 
-/* ===========================
- * Shared Types
- * =========================== */
-
 export type LookupItem = {
   id: number;
   name: string;
@@ -14,10 +10,6 @@ export type CreateProposalResponse = {
   message: string;
   proposalId?: string;
 };
-
-/* ===========================
- * LOOKUP ENDPOINTS (Axios only)
- * =========================== */
 
 export const fetchAgencies = async (): Promise<LookupItem[]> => {
   const { data } = await api.get<LookupItem[]>("/proposal/view-agency");
@@ -49,10 +41,7 @@ export const fetchTags = async (): Promise<LookupItem[]> => {
   return data;
 };
 
-/* --- NEWLY ADDED EXPORTS TO FIX ERRORS --- */
-
 export const fetchPriorities = async (): Promise<LookupItem[]> => {
-  // Check your backend: might be 'view-priority' or 'view-priority-area'
   const { data } = await api.get<LookupItem[]>("/proposal/view-priority");
   return data;
 };
@@ -67,84 +56,70 @@ export const fetchCommodities = async (): Promise<LookupItem[]> => {
   return data;
 };
 
-/* ===========================
- * SUBMIT PROPOSAL
- * =========================== */
-
 export const submitProposal = async (
   formData: FormData,
   file: File,
   proponentId: string,
 ): Promise<CreateProposalResponse> => {
   const fd = new FormData();
-
-  /* ---- Core fields ---- */
+  const startDate = formData.plannedStartDate 
+    ? new Date(formData.plannedStartDate).toISOString().split('T')[0] 
+    : "";
+  const endDate = formData.plannedEndDate 
+    ? new Date(formData.plannedEndDate).toISOString().split('T')[0] 
+    : "";
+  let researchClass = "";
+  if (formData.classificationType === "research") {
+    researchClass = Object.keys(formData.researchType).find(
+      (key) => formData.researchType[key] === true
+    ) || "";
+  }
   fd.append("proponent_id", proponentId);
+  if (formData.department) {
+    fd.append("department", formData.department);
+  }
+  fd.append("sector", formData.sectorCommodity);
+  fd.append("discipline", formData.discipline);
+  fd.append("agency", String(formData.agency));
   fd.append("program_title", formData.programTitle ?? "");
   fd.append("project_title", formData.projectTitle);
   fd.append("email", formData.email ?? "");
   fd.append("phone", formData.telephone ?? "");
-  fd.append("school_year", formData.schoolYear ?? "");
-
-  /* ---- Dates ---- */
-  fd.append("planned_start_date", formData.plannedStartDate ?? "");
-  fd.append("planned_end_date", formData.plannedEndDate ?? "");
-  fd.append("duration", formData.duration ?? "");
-
-  /* ---- Agency ---- */
-  fd.append("agency", formData.agency);
-
-  fd.append(
-    "agencyAddress",
-    JSON.stringify({
-      street: formData.agencyAddress.street,
-      barangay: formData.agencyAddress.barangay,
-      city: formData.agencyAddress.city,
-    }),
-  );
-
-  /* ---- Research / Development ---- */
-  fd.append("classificationType", formData.classificationType);
-
   if (formData.classificationType === "research") {
-    fd.append("researchType", JSON.stringify(formData.researchType));
+    fd.append("research_class", researchClass);
   } else {
-    fd.append("developmentType", formData.developmentType);
+    fd.append("development_class", formData.developmentType);
   }
-
-  /* ---- Implementation ---- */
-  fd.append("implementationMode", formData.implementationMode.singleAgency ? "single" : "multi");
-
-  fd.append("implementationSite", JSON.stringify(formData.implementationSite));
-
-  /* ---- Lookups ---- */
-  fd.append("researchStation", formData.researchStation);
-  fd.append("sectorCommodity", formData.sectorCommodity);
-  fd.append("discipline", formData.discipline);
-
-  /* ---- Cooperating agencies
-   * Existing: { id, name }
-   * New: { name }
-   * Backend infers behavior
-   */
-  fd.append("cooperatingAgencies", JSON.stringify(formData.cooperatingAgencies));
-
-  /* ---- Priority areas ---- */
   fd.append(
-    "priorityAreas",
+    "implementation_mode",
+    formData.implementationMode.singleAgency ? "single_agency" : "multi_agency"
+  );
+  fd.append(
+    "priority_areas",
     JSON.stringify(
       Object.entries(formData.priorityAreas || {})
         .filter(([_, v]) => v === true)
         .map(([k]) => k),
     ),
   );
+  fd.append("plan_start_date", startDate);
+  fd.append("plan_end_date", endDate);
+  fd.append("budget", JSON.stringify(formData.budgetItems));
+  fd.append("file_url", file);
+  fd.append("school_year", formData.schoolYear ?? "");
+  fd.append(
+    "agency_address",
+    JSON.stringify({
+      street: formData.agencyAddress.street,
+      barangay: formData.agencyAddress.barangay,
+      city: formData.agencyAddress.city,
+    }),
+  );
+  fd.append("duration", formData.duration ?? "");
 
-  /* ---- Budget ---- */
-  fd.append("budgetItems", JSON.stringify(formData.budgetItems));
-
-  /* ---- File ---- */
-  fd.append("file", file);
-
+  fd.append("cooperating_agencies", JSON.stringify(formData.cooperatingAgencies));
+  fd.append("implementation_site", JSON.stringify(formData.implementationSite));
+  fd.append("tags", JSON.stringify(formData.tags || []));
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", fd, {
     headers: { "Content-Type": "multipart/form-data" },
     withCredentials: true,
