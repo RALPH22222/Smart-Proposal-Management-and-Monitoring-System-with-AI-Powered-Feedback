@@ -150,6 +150,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const decision_evaluator_to_proposal_lambda = new NodejsFunction(this, "decision-evaluator-to-proposal-lambda", {
+      functionName: "decision-evaluator-to-proposal-lambda",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "decision-evaluator-to-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_proposal_lambda = new NodejsFunction(this, "pms-get-propposal", {
       functionName: "pms-get-propposal",
       memorySize: 128,

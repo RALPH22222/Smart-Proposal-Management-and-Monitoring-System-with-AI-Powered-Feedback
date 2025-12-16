@@ -6,6 +6,7 @@ import {
   ImplementationMode,
   PriorityArea,
   Status,
+  AssignmentTracker,
 } from "../types/proposal";
 
 const parseJsonIfString = (val: unknown) => {
@@ -106,6 +107,14 @@ export const proposalSchema = z.object({
   file_url: fileSchema,
 });
 
+export const decisionEvaluatorToProposalSchema = z.object({
+  proposal_id: z.number(),
+  evaluator_id: z.string().uuid(),
+  status: z.preprocess(parseJsonIfString, z.nativeEnum(AssignmentTracker)),
+  remarks: z.string(),
+  deadline_at: z.string().date(),
+});
+
 // --- Keep the rest the same ---
 export const forwardToEvaluatorsSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
@@ -150,3 +159,4 @@ export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;
 export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;
 export type revisionProposalToProponentInput = z.infer<typeof revisionProposalToProponentSchema>;
 export type rejectProposalToProponentInput = z.infer<typeof rejectProposalToProponentSchema>;
+export type decisionEvaluatorToProposalInput = z.infer<typeof decisionEvaluatorToProposalSchema>;

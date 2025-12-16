@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { AgencyAddress, Budget, IdOrName, Status, Table } from "../types/proposal";
+import { AgencyAddress, AssignmentTracker, Budget, EvaluatorStatus, IdOrName, Status, Table } from "../types/proposal";
 import {
+  decisionEvaluatorToProposalInput,
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
   ProposalInput,
@@ -247,7 +248,7 @@ export class ProposalService {
       forwarded_by_rnd_id: rnd_id,
       deadline_at: deadline_number_weeks.toISOString(),
       comments_for_evaluators: commentsForEvaluators ?? null,
-      status: "pending",
+      status: EvaluatorStatus.PENDING,
     }));
 
     const { error: insertError, data: assignments } = await this.db
@@ -261,7 +262,7 @@ export class ProposalService {
     const { error: updateError } = await this.db
       .from("proposals")
       .update({
-        status: "under_evaluation",
+        status: Status.UNDER_EVALUATION,
         updated_at: new Date().toISOString(),
         evaluation_deadline_at: deadline_number_weeks.toISOString(),
       })
@@ -271,10 +272,72 @@ export class ProposalService {
       return { error: updateError, assignments: null };
     }
 
+    const assignmentsTrackerPayload = evaluator_id.map((evaluator) => ({
+      proposal_id: proposal_id,
+      evaluator_id: evaluator,
+      deadline_at: deadline_number_weeks.toISOString(),
+      status: AssignmentTracker.PENDING,
+    }));
+
+    const { error: insertv2Error } = await this.db
+      .from("proposal_assignemnt_tracker")
+      .insert(assignmentsTrackerPayload);
+
+    if (insertv2Error) {
+      return { error: insertv2Error, assignments: null };
+    }
+
     return {
       error: null,
       assignments,
     };
+  }
+
+  async decisionEvaluatorToProposal(input: Omit<decisionEvaluatorToProposalInput, "deadline_at">, deadline_at: string) {
+    const { data: insertedData, error: insertError } = await this.db
+      .from("proposal_assignemnt_tracker")
+      .update(input)
+      .eq("evaluator_id", input.evaluator_id)
+      .eq("proposal_id", input.proposal_id);
+
+    if (insertError) {
+      return { error: insertError };
+    }
+
+    if (AssignmentTracker.EXTEND == input.status) {
+      const { error: insertError } = await this.db
+        .from("proposal_assignemnt_tracker")
+        .update(deadline_at)
+        .eq("evaluator_id", input.evaluator_id)
+        .eq("proposal_id", input.proposal_id);
+
+      if (insertError) {
+        return { error: insertError };
+      }
+    }
+
+    if (AssignmentTracker.ACCEPT) {
+      const { error: updateError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: EvaluatorStatus.FOR_REVIEW })
+        .eq("evaluator_id", input.evaluator_id)
+        .eq("proposal_id", input.proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+    } else if (AssignmentTracker.DECLINE) {
+      const { error: updateError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: EvaluatorStatus.DECLINE })
+        .eq("evaluator_id", input.evaluator_id)
+        .eq("proposal_id", input.proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+    }
+    return { insertedData };
   }
 
   async forwardToRnd(input: ForwardToRndInput) {

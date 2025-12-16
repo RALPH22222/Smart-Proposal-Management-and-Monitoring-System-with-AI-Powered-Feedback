@@ -52,6 +52,13 @@ export enum Budget {
   CO = "co",
 }
 
+export enum AssignmentTracker {
+  PENDING = "pending",
+  ACCEPT = "accept",
+  DECLINE = "decline",
+  EXTEND = "extend",
+}
+
 export type IdOrName = number | string | null | undefined;
 
 // For the 'implementation_site' JSONB column
