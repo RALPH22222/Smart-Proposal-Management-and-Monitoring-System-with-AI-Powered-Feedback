@@ -5,6 +5,7 @@ import {
   ForwardToRndInput,
   ProposalInput,
   ProposalVersionInput,
+  revisionProposalToProponentInput,
 } from "../schemas/proposal-schema";
 
 function isId(v: IdOrName): v is number {
@@ -284,6 +285,15 @@ export class ProposalService {
     return {
       error: null,
       assignments,
+    };
+  }
+
+  async revisionProposalToProponent(input: revisionProposalToProponentInput) {
+    const { data, error } = await this.db.from("proposal_revision_summary").insert(input);
+
+    return {
+      data,
+      error,
     };
   }
 

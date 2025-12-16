@@ -151,9 +151,20 @@ export const proposalSchema = z.object({
 // --- Keep the rest the same ---
 export const forwardToEvaluatorsSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
-  evaluator_id: z.array(z.string().min(1)).nonempty("At least one evaluator is required"),
+  evaluator_id: z.string().uuid(),
   deadline_at: z.number().int().positive().max(90, "Deadline cannot be more than 90 days"),
   commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
+});
+
+export const revisionProposalToProponentSchema = z.object({
+  proposal_id: z.coerce.number(),
+  rnd_id: z.string().uuid(),
+  objective_comment: z.string().max(2000, "Comments are too long").optional(),
+  methodology_comment: z.string().max(2000, "Comments are too long").optional(),
+  budget_comment: z.string().max(2000, "Comments are too long").optional(),
+  timeline_comment: z.string().max(2000, "Comments are too long").optional(),
+  overall_comment: z.string().max(2000, "Comments are too long").optional(),
+  deadline: z.coerce.number(),
 });
 
 export const forwardToRndSchema = z.object({
@@ -173,3 +184,4 @@ export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
 export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;
 export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;
+export type revisionProposalToProponentInput = z.infer<typeof revisionProposalToProponentSchema>;

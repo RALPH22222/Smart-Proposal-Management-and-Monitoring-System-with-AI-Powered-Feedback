@@ -128,6 +128,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const revision_proposal_to_proponent_lambda = new NodejsFunction(this, "revision-proposal-to-proponent-lambda", {
+      functionName: "revision-proposal-to-proponent-lambda",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "revision-proposal-to-proponent-lambda.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_proposal_lambda = new NodejsFunction(this, "pms-get-propposal", {
       functionName: "pms-get-propposal",
       memorySize: 128,
@@ -321,6 +332,17 @@ export class BackendStack extends Stack {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
+
+    // /proposal/revision_proposal_to_proponent (protected)
+    const revision_proposal_to_proponent = proposal.addResource("revision-proposal-to-proponent");
+    revision_proposal_to_proponent.addMethod(
+      HttpMethod.POST,
+      new LambdaIntegration(revision_proposal_to_proponent_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
 
     // /proposal/view (protected)
     const get_proposal = proposal.addResource("view");
