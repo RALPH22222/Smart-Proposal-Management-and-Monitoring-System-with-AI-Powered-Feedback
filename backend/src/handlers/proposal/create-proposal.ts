@@ -22,7 +22,7 @@ export const handler = buildCorsHeaders(async (event) => {
   // Validate form fields
   const validation = proposalSchema.safeParse({
     ...body,
-    proposal_file: files[0],
+    file_url: files[0],
   });
   if (!validation.success) {
     return {
@@ -34,13 +34,11 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const { proposal_file, ...data } = validation.data;
+  const { file_url, ...data } = validation.data;
 
   // Create Proposal + Proposal Version
   const proposalService = new ProposalService(supabase);
-  const { data: proposal, error: createError } = await proposalService.create({
-    ...data,
-  });
+  const { data: proposal, error: createError } = await proposalService.create(data);
 
   if (createError || !proposal) {
     console.error("Error creating proposal", createError);
@@ -54,7 +52,7 @@ export const handler = buildCorsHeaders(async (event) => {
   }
 
   // Upload file to S3 bucket
-  const Key = `proposals/${proposal.id}/${proposal_file.filename}`;
+  const Key = `proposals/${proposal.id}/${file_url.filename}`;
   const command = new PutObjectCommand({
     Bucket,
     Key,
@@ -64,8 +62,8 @@ export const handler = buildCorsHeaders(async (event) => {
 
   // Validate form fields
   const validation_version = proposalVersionSchema.safeParse({
-    proposal: proposal.id,
-    proposal_file: `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`,
+    proposal_id: proposal.id,
+    file_url: `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`,
   });
   if (!validation_version.success) {
     return {

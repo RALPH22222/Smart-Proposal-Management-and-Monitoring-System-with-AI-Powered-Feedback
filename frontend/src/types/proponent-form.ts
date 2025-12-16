@@ -5,16 +5,18 @@ export interface BudgetItem {
   co: number;
 }
 
+export interface AgencyAddress {
+  street: string;
+  barangay: string;
+  city: string;
+}
+
 export interface FormData {
   programTitle: string;
   projectTitle: string;
   // leaderGender: string;
   agency: number | string;
-  agencyAddress: {
-    street: string;
-    barangay: string;
-    city: string;
-  };
+  agencyAddress: AgencyAddress;
   schoolYear: string;
   tags: string;
   email: string;

@@ -61,27 +61,27 @@ export const submitProposal = async (
   const fd = new FormData();
 
   /* ---- Core fields ---- */
-  fd.append("proponentId", proponentId);
-  fd.append("programTitle", formData.programTitle ?? "");
-  fd.append("projectTitle", formData.projectTitle);
+  fd.append("proponent_id", proponentId);
+  fd.append("program_title", formData.programTitle ?? "");
+  fd.append("project_title", formData.projectTitle);
   fd.append("email", formData.email ?? "");
-  fd.append("telephone", formData.telephone ?? "");
-  fd.append("schoolYear", formData.schoolYear ?? "");
+  fd.append("phone", formData.telephone ?? "");
+  fd.append("school_year", formData.schoolYear ?? "");
 
   /* ---- Dates ---- */
-  fd.append("plannedStartDate", formData.plannedStartDate ?? "");
-  fd.append("plannedEndDate", formData.plannedEndDate ?? "");
+  fd.append("planned_start_date", formData.plannedStartDate ?? "");
+  fd.append("planned_end_date", formData.plannedEndDate ?? "");
   fd.append("duration", formData.duration ?? "");
 
   /* ---- Agency ---- */
-  fd.append("agencyName", formData.agencyName);
+  fd.append("agency", formData.agency);
 
   fd.append(
     "agencyAddress",
     JSON.stringify({
-      street: formData.agencyStreet,
-      barangay: formData.agencyBarangay,
-      city: formData.agencyCity,
+      street: formData.agencyAddress.street,
+      barangay: formData.agencyAddress.barangay,
+      city: formData.agencyAddress.city,
     }),
   );
 

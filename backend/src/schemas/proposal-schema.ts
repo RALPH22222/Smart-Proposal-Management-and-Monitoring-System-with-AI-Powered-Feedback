@@ -8,7 +8,6 @@ import {
   Status,
 } from "../types/proposal";
 
-// Relaxed file schema to avoid browser mimetype issues
 const fileSchema = z.object({
   fieldname: z.string().optional(),
   contentType: z.enum([
@@ -21,42 +20,48 @@ const fileSchema = z.object({
 
 export const proposalSchema = z.object({
   // --- CHANGED: Matches Frontend camelCase ---
-  proponentId: z.string().uuid(),
-  department: z.union([z.coerce.number(), z.string()]).optional(), // Optional if not always sent
-  sector: z.union([z.coerce.number(), z.string()]).optional(),
-  discipline: z.union([z.coerce.number(), z.string()]).optional(),
-  agency: z.union([z.coerce.number(), z.string()]).optional(),
-  agencyAddress: z.object({
-    street: z.string().min(1, "Street is required"),
-    barangay: z.string().min(1, "Barangay is required"),
-    city: z.string().min(1, "City is required"),
-  }),
-  school_year: z.string().optional(),
-  programTitle: z.string().optional(), // Changed from program_title
-  projectTitle: z.string().min(1, "Project title is required"), // Changed from project_title
+  proponent_id: z.string().uuid(),
+  department: z.union([z.coerce.number(), z.string()]), // Optional if not always sent
+  sector: z.union([z.coerce.number(), z.string()]),
+  discipline: z.union([z.coerce.number(), z.string()]),
+  agency: z.union([z.coerce.number(), z.string()]),
+  agency_address: z.preprocess(
+    (val: unknown) => {
+      if (typeof val === "string") {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    z.object({
+      street: z.string().min(1, "Street is required"),
+      barangay: z.string().min(1, "Barangay is required"),
+      city: z.string().min(1, "City is required"),
+    }),
+  ),
+  school_year: z.string(),
+  program_title: z.string(), // Changed from program_title
+  project_title: z.string().min(1, "Project title is required"), // Changed from project_title
 
-  email: z.string().optional().or(z.literal("")),
-  telephone: z.string().optional(),
+  email: z.string().or(z.literal("")),
+  phone: z.coerce.number(),
 
   // --- CHANGED: Use nativeEnum for TS Enums ---
   // FIX: Added 'val: unknown' to fix the TS error
-  researchType: z.preprocess((val: unknown) => (val === "null" ? null : val), z.nativeEnum(ResearchClass).optional()),
-  developmentType: z.preprocess(
-    (val: unknown) => (val === "null" ? null : val),
-    z.nativeEnum(DevelopmentClass).optional(),
-  ),
-  implementationMode: z.preprocess(
-    (val: unknown) => (val === "null" ? null : val),
-    z.nativeEnum(ImplementationMode).optional(),
-  ),
+  research_class: z.preprocess((val: unknown) => (val === "null" ? null : val), z.nativeEnum(ResearchClass)),
+  development_class: z.preprocess((val: unknown) => (val === "null" ? null : val), z.nativeEnum(DevelopmentClass)),
+  implementation_mode: z.preprocess((val: unknown) => (val === "null" ? null : val), z.nativeEnum(ImplementationMode)),
 
   // --- CHANGED: Matches Frontend names ---
-  plannedStartDate: z.date().optional(), // Changed from plan_start_date
-  plannedEndDate: z.date().optional(), // Changed from plan_end_date
-  duration: z.number(),
+  plan_start_date: z.string().date(), // Changed from plan_start_date
+  plan_end_date: z.string().date(), // Changed from plan_end_date
+  duration: z.coerce.number(),
 
   // --- CHANGED: Priority Areas (JSON Parse) ---
-  priorityAreas: z.preprocess(
+  priority_areas: z.preprocess(
     (val: unknown) => {
       if (typeof val === "string") {
         try {
@@ -71,7 +76,7 @@ export const proposalSchema = z.object({
   ),
 
   // --- NEW: Implementation Site (Missing in your old schema) ---
-  implementationSite: z.preprocess(
+  implementation_site: z.preprocess(
     (val: unknown) => {
       if (typeof val === "string") {
         try {
@@ -82,18 +87,16 @@ export const proposalSchema = z.object({
       }
       return val;
     },
-    z
-      .array(
-        z.object({
-          site: z.string(),
-          province: z.string().optional(),
-        }),
-      )
-      .optional(),
+    z.array(
+      z.object({
+        site_name: z.string(),
+        city: z.string(),
+      }),
+    ),
   ),
 
   // --- CHANGED: Renamed 'budget' to 'budgetItems' ---
-  budgetItems: z.preprocess(
+  budget: z.preprocess(
     (val: unknown) => {
       if (typeof val === "string") {
         try {
@@ -117,7 +120,7 @@ export const proposalSchema = z.object({
   ),
 
   // --- NEW: Cooperating Agencies (Missing in your old schema) ---
-  cooperatingAgencies: z.preprocess(
+  cooperating_agencies: z.preprocess(
     (val: unknown) => {
       if (typeof val === "string") {
         try {
@@ -128,7 +131,7 @@ export const proposalSchema = z.object({
       }
       return val;
     },
-    z.array(z.union([z.coerce.number(), z.string()]).optional()),
+    z.array(z.union([z.coerce.number(), z.string()])),
   ),
 
   tags: z.preprocess((val: unknown) => {
@@ -140,9 +143,9 @@ export const proposalSchema = z.object({
       }
     }
     return val;
-  }, z.array(z.coerce.number()).optional()),
+  }, z.array(z.coerce.number())),
 
-  proposal_file: fileSchema,
+  file_url: fileSchema,
 });
 
 // --- Keep the rest the same ---

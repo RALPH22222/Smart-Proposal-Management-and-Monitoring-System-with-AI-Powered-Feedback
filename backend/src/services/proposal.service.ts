@@ -1,5 +1,5 @@
-import { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { IdOrName, ProposalRow, Status, Table } from "../types/proposal";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { AgencyAddress, IdOrName, Status, Table } from "../types/proposal";
 import {
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
@@ -22,8 +22,8 @@ export class ProposalService {
 
   private async resolveLookupId(args: {
     table: Table;
-    nameColumn?: string; // defaults to "name"
     value: IdOrName;
+    nameColumn?: string; // defaults to "name"
   }): Promise<number | null> {
     const { table, value } = args;
     const nameColumn = args.nameColumn ?? "name";
@@ -51,56 +51,79 @@ export class ProposalService {
     return inserted.data.id as number;
   }
 
-  private async resolveManyLookupIds(args: {
-    table: Table.AGENCIES;
-    value: Array<IdOrName> | null | undefined;
-  }): Promise<number[]> {
-    const list = Array.isArray(args.value) ? args.value : [];
-    const ids: number[] = [];
+  private async ensureAgencyAddressColumns(agency_id: number | null, agency_address?: AgencyAddress): Promise<void> {
+    if (!agency_id || !agency_address) return;
 
-    for (const v of list) {
-      const id = await this.resolveLookupId({
-        table: args.table,
-        value: v,
-      });
-      if (id) ids.push(id);
+    const existing_address = await this.db
+      .from("agencies")
+      .select("street, barangay, city")
+      .eq("id", agency_id)
+      .maybeSingle();
+
+    if (existing_address.error) {
+      throw new Error(`Fetch agency address failed: ${existing_address.error.message}`);
     }
 
-    // optional: dedupe
-    return Array.from(new Set(ids));
+    if (!existing_address.data) {
+      throw new Error(`Agency not found for id=${agency_id}`);
+    }
+
+    const hasAddress =
+      !!existing_address.data?.street && !!existing_address.data?.barangay && !!existing_address.data?.city;
+
+    if (hasAddress) return;
+
+    const upd = await this.db
+      .from("agencies")
+      .update({
+        street: agency_address.street,
+        barangay: agency_address.barangay,
+        city: agency_address.city,
+      })
+      .eq("id", agency_id);
+
+    if (upd.error) {
+      throw new Error(`Update agency address failed: ${upd.error.message}`);
+    }
   }
 
-  async create(payload: Omit<ProposalInput, "proposal_file">) {
-    const { budgetItems, cooperatingAgencies, tags, ...proposal } = payload;
+  async create(payload: Omit<ProposalInput, "file_url">) {
+    const {
+      agency,
+      sector,
+      discipline,
+      department,
+      budget,
+      implementation_site,
+      agency_address,
+      cooperating_agencies,
+      tags,
+      ...proposal
+    } = payload;
 
-    // Resolve the “id-or-string” fields into ids
     const department_id = await this.resolveLookupId({
       table: Table.DEPARTMENTS,
-      value: proposal.department,
+      value: department,
     });
 
     const sector_id = await this.resolveLookupId({
       table: Table.SECTORS,
-      value: proposal.sector,
+      value: sector,
     });
 
     const discipline_id = await this.resolveLookupId({
       table: Table.DISCIPLINES,
-      value: proposal.discipline,
+      value: discipline,
     });
 
     const agency_id = await this.resolveLookupId({
       table: Table.AGENCIES,
-      value: proposal.agency,
+      value: agency,
     });
 
-    const cooperating_agency_ids = await this.resolveManyLookupIds({
-      table: Table.AGENCIES,
-      value: cooperatingAgencies,
-    });
+    await this.ensureAgencyAddressColumns(agency_id, agency_address);
 
-    // Build final DB payload
-    const dbPayload = {
+    const insertDbPayload = {
       ...proposal,
       department_id,
       sector_id,
@@ -109,9 +132,84 @@ export class ProposalService {
       status: Status.REVIEW_RND,
     };
 
-    const { data, error } = await this.db.from("proposals").insert(dbPayload).select().single();
+    const insertRes = await this.db.from("proposals").insert(insertDbPayload).select().single();
 
-    return { data: data as ProposalRow | null, error };
+    if (insertRes.error) {
+      throw new Error(`Insert proposals failed: ${insertRes.error.message}`);
+    }
+    if (!insertRes.data) {
+      throw new Error("Insert proposals returned no data");
+    }
+
+    const proposal_id = insertRes.data.id as number;
+
+    // JOIN TABLES
+    // TAGS JOIN
+    if (Array.isArray(tags) && tags.length > 0) {
+      const tagIds = Array.from(new Set(tags));
+      const tagRows = tagIds.map((tagId) => ({ proposal_id, tag_id: tagId }));
+
+      const tagJoin = await this.db.from("proposal_tags").insert(tagRows);
+
+      if (tagJoin.error) throw new Error(`proposal_tags upsert failed: ${tagJoin.error.message}`);
+    }
+
+    // 1) resolve all cooperating agencies (string|number) into ids
+    const coopResolved = await Promise.all(
+      (cooperating_agencies ?? []).map((v) => this.resolveLookupId({ table: Table.AGENCIES, value: v })),
+    );
+
+    // 2) remove nulls, remove duplicates, exclude the main agency_id
+    const cooperating_agencies_id = Array.from(
+      new Set(
+        coopResolved
+          .filter((id): id is number => typeof id === "number" && Number.isFinite(id))
+          .filter((id) => (agency_id ? id !== agency_id : true)),
+      ),
+    );
+
+    // 3) insert join rows
+    if (cooperating_agencies_id.length > 0) {
+      const coopRows = cooperating_agencies_id.map((agencyId) => ({
+        proposal_id,
+        agency_id: agencyId,
+      }));
+
+      const coopJoin = await this.db.from("cooperating_agencies").insert(coopRows);
+
+      if (coopJoin.error) throw new Error(`cooperating_agencies upsert failed: ${coopJoin.error.message}`);
+    }
+
+    // IMPLEMENTATION SITE JOIN
+    if (implementation_site.length > 0) {
+      const implement_rows = implementation_site.map((implementation_site) => ({
+        proposal_id,
+        site_name: implementation_site.site_name,
+        city: implementation_site.city,
+      }));
+
+      const implementation_join = await this.db.from("implementation_site").insert(implement_rows);
+
+      if (implementation_join.error)
+        throw new Error(`implementation_site insert failed: ${implementation_join.error.message}`);
+    }
+
+    // BUDGET JOIN
+    if (budget.length > 0) {
+      const budget_rows = budget.map((budget) => ({
+        proposal_id,
+        source: budget.source,
+        ps: budget.ps,
+        mooe: budget.mooe,
+        co: budget.co,
+      }));
+
+      const budget_join = await this.db.from("estimated_budget").insert(budget_rows);
+
+      if (budget_join.error) throw new Error(`estimated_budget insert failed: ${budget_join.error.message}`);
+    }
+
+    return { data: insertRes.data, error: insertRes.error };
   }
 
   async createVersion(payload: ProposalVersionInput) {

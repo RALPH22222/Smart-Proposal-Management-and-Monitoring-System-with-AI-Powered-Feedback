@@ -40,10 +40,17 @@ export enum EvaluatorStatus {
 }
 
 export enum Table {
-  DEPARTMENTS = "departmens",
+  DEPARTMENTS = "departments",
   SECTORS = "sectors",
   DISCIPLINES = "disciplines",
   AGENCIES = "agencies",
+}
+
+export enum ProposalIds {
+  DEPARTMENT_ID = "department_id",
+  SECTOR_ID = "sector_id",
+  DISCIPLINE_ID = "discipline_id",
+  AGENCY_ID = "agency_id",
 }
 
 export type IdOrName = number | string | null | undefined;
@@ -51,6 +58,12 @@ export type IdOrName = number | string | null | undefined;
 // For the 'implementation_site' JSONB column
 export interface ImplementationSite {
   site_name: string;
+  city: string;
+}
+
+export interface AgencyAddress {
+  street: string;
+  barangay: string;
   city: string;
 }
 
