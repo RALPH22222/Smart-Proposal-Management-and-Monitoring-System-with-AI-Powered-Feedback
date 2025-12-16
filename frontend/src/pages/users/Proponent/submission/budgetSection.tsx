@@ -1,20 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FaMoneyBillWave,
   FaPlus,
   FaTrash,
   FaCalculator,
-  FaCoins
+  FaCoins,
+  FaListUl,
+  FaTimes
 } from 'react-icons/fa';
 import type { FormData } from '../../../../types/proponent-form';
+
+// Extend the types locally if needed, or update your global types later
+// For now, we will handle the breakdown locally in the component's logic 
+// and update the main formData with the totals.
 
 interface BudgetSectionProps {
   formData: FormData;
   years: string[];
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
-  onBudgetItemUpdate: (id: number, field: string, value: string | number) => void;
-  onBudgetItemToggle: (id: number) => void; // This prop is not used in this simplified component
+  onBudgetItemUpdate: (id: number, field: string, value: string | number | any) => void;
+  onBudgetItemToggle: (id: number) => void;
+}
+
+// Interface for breakdown items
+interface BreakdownItem {
+  id: string;
+  description: string;
+  amount: number;
 }
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
@@ -22,11 +35,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
-  // years is not used in the render function
-  // onBudgetItemToggle is not used in the render function
 }) => {
+  // State for the breakdown modal
+  const [activeModal, setActiveModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
+  
+  // Helper to format currency
   const formatCurrency = (amount: number) => {
-    const num = Number(amount) || 0; // Ensure it handles NaN/null by defaulting to 0
+    const num = Number(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
       currency: 'PHP',
@@ -34,17 +49,80 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     }).format(num);
   };
 
+  // Helper to parse breakdown if it exists, or create empty array
+  const getBreakdown = (item: any, category: string): BreakdownItem[] => {
+    return item[`${category}Breakdown`] || [];
+  };
+
+  // Handler to add a line item to a category
+  const handleAddBreakdownItem = () => {
+    if (!activeModal) return;
+    const { itemId, category } = activeModal;
+    
+    // Find current item
+    const itemIndex = formData.budgetItems.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+    const item = formData.budgetItems[itemIndex];
+
+    const currentBreakdown = getBreakdown(item, category);
+    const newBreakdown = [
+      ...currentBreakdown, 
+      { id: Date.now().toString(), description: '', amount: 0 }
+    ];
+
+    // Update the breakdown in form data
+    onBudgetItemUpdate(itemId, `${category}Breakdown`, newBreakdown);
+    
+    // Recalculate total for this category
+    const newTotal = newBreakdown.reduce((sum, i) => sum + Number(i.amount), 0);
+    onBudgetItemUpdate(itemId, category, newTotal);
+  };
+
+  // Handler to update a specific line item
+  const handleUpdateBreakdownItem = (breakdownId: string, field: 'description' | 'amount', value: string) => {
+    if (!activeModal) return;
+    const { itemId, category } = activeModal;
+
+    const itemIndex = formData.budgetItems.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+    const item = formData.budgetItems[itemIndex];
+
+    const currentBreakdown = getBreakdown(item, category);
+    const updatedBreakdown = currentBreakdown.map(b => 
+      b.id === breakdownId ? { ...b, [field]: field === 'amount' ? Number(value) : value } : b
+    );
+
+    onBudgetItemUpdate(itemId, `${category}Breakdown`, updatedBreakdown);
+
+    // Recalculate total
+    const newTotal = updatedBreakdown.reduce((sum, i) => sum + Number(i.amount), 0);
+    onBudgetItemUpdate(itemId, category, newTotal);
+  };
+
+  // Handler to remove a line item
+  const handleRemoveBreakdownItem = (breakdownId: string) => {
+    if (!activeModal) return;
+    const { itemId, category } = activeModal;
+
+    const itemIndex = formData.budgetItems.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+    const item = formData.budgetItems[itemIndex];
+
+    const currentBreakdown = getBreakdown(item, category);
+    const updatedBreakdown = currentBreakdown.filter(b => b.id !== breakdownId);
+
+    onBudgetItemUpdate(itemId, `${category}Breakdown`, updatedBreakdown);
+
+    // Recalculate total
+    const newTotal = updatedBreakdown.reduce((sum, i) => sum + Number(i.amount), 0);
+    onBudgetItemUpdate(itemId, category, newTotal);
+  };
+
   const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
     return formData.budgetItems.reduce((sum, item) => {
-      // Use Number() for fields that might be stored as strings in form data
       const val = Number(item[field]); 
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
-  };
-
-  const handleNumberChange = (id: number, field: string, value: string) => {
-    // Pass the value directly to the parent handler
-    onBudgetItemUpdate(id, field, value);
   };
 
   const totalPS = calculateTotal('ps');
@@ -53,7 +131,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   const grandTotal = calculateTotal('total');
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
@@ -72,7 +150,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-blue-50 rounded-xl border border-blue-200 gap-4">
         <div className="text-sm text-blue-800">
           <span className="font-bold block mb-1">Instructions:</span>
-          Enter the funding source and amounts for Personnel Services (PS), MOOE, and Capital Outlay (CO).
+          Add funding sources. For each category (PS, MOOE, CO), click the list icon to add detailed line items.
         </div>
         <button
           type="button"
@@ -113,50 +191,44 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
               {/* PS Field */}
               <div className="lg:col-span-2 space-y-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  PS
-                </label>
-                <input
-                  type="number"
-                  value={item.ps}
-                  onChange={(e) => handleNumberChange(item.id, 'ps', e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
-                  placeholder="0.00"
-                  step="any"
-                />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">PS</label>
+                <div className="relative">
+                  <div 
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
+                    onClick={() => setActiveModal({ itemId: item.id, category: 'ps' })}
+                  >
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
+                    <span>{formatCurrency(item.ps || 0)}</span>
+                  </div>
+                </div>
               </div>
 
               {/* MOOE Field */}
               <div className="lg:col-span-2 space-y-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  MOOE
-                </label>
-                <input
-                  type="number"
-                  value={item.mooe}
-                  onChange={(e) => handleNumberChange(item.id, 'mooe', e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
-                  placeholder="0.00"
-                  step="any"
-                />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">MOOE</label>
+                <div className="relative">
+                  <div 
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
+                    onClick={() => setActiveModal({ itemId: item.id, category: 'mooe' })}
+                  >
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
+                    <span>{formatCurrency(item.mooe || 0)}</span>
+                  </div>
+                </div>
               </div>
 
               {/* CO Field */}
               <div className="lg:col-span-2 space-y-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  CO
-                </label>
-                <input
-                  type="number"
-                  value={item.co}
-                  onChange={(e) => handleNumberChange(item.id, 'co', e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm text-right font-mono"
-                  placeholder="0.00"
-                  step="any"
-                />
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">CO</label>
+                <div className="relative">
+                  <div 
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
+                    onClick={() => setActiveModal({ itemId: item.id, category: 'co' })}
+                  >
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
+                    <span>{formatCurrency(item.co || 0)}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Remove Action */}
@@ -233,6 +305,80 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
             </div>
         </div>
       </div>
+
+      {/* --- BREAKDOWN MODAL --- */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <FaListUl className="text-[#C8102E]" />
+                {activeModal.category.toUpperCase()} Breakdown
+              </h3>
+              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <FaTimes className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Body (List of Items) */}
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  No line items added yet. Click "Add Item" to start.
+                </div>
+              ) : (
+                getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => (
+                  <div key={item.id} className="flex gap-2 items-start animate-in slide-in-from-bottom-2">
+                    <span className="mt-3 text-xs text-gray-400 w-4">{idx + 1}.</span>
+                    <input 
+                      type="text" 
+                      placeholder="Description (e.g. Travel, Supplies)" 
+                      value={item.description}
+                      onChange={(e) => handleUpdateBreakdownItem(item.id, 'description', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
+                      autoFocus={idx === getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length - 1}
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="Amount" 
+                      value={item.amount || ''}
+                      onChange={(e) => handleUpdateBreakdownItem(item.id, 'amount', e.target.value)}
+                      className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
+                    />
+                    <button 
+                      onClick={() => handleRemoveBreakdownItem(item.id)}
+                      className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <FaTrash className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+              <div className="text-sm font-semibold text-gray-700">
+                Total: <span className="text-[#C8102E] font-mono ml-2">
+                  {formatCurrency(
+                    (formData.budgetItems.find(i => i.id === activeModal.itemId) as any)?.[activeModal.category] || 0
+                  )}
+                </span>
+              </div>
+              <button 
+                onClick={handleAddBreakdownItem}
+                className="px-4 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] transition-colors flex items-center gap-2"
+              >
+                <FaPlus className="w-3 h-3" /> Add Item
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
