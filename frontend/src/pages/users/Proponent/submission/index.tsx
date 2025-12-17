@@ -8,34 +8,31 @@ import UploadSidebar from './uploadSidebar';
 import AIModal from '../../../../components/proponent-component/aiModal';
 
 // Type Imports
-import type { FormData, AICheckResult, BudgetItem as ApiBudgetItem } from '../../../../types/proponent-form';
+import type { FormData, AICheckResult, BudgetItem } from '../../../../types/proponent-form'; // Ensure BudgetItem is imported
 
 // API Service
 import { submitProposal } from '../../../../services/proposal.api'; 
 
 const Submission: React.FC = () => {
-  // --- STATE MANAGEMENT ---
-  
-  // UI State
+  // ... (UI State remains the same)
   const [activeSection, setActiveSection] = useState<string>('basic-info');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   
-  // AI Analysis State
+  // ... (AI State remains the same)
   const [isCheckingTemplate, setIsCheckingTemplate] = useState(false);
   const [isCheckingForm, setIsCheckingForm] = useState(false);
   const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
 
-  // Data State
+  // ... (Data State remains the same)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [years, setYears] = useState<string[]>([]);
   
-  // Form Data
-  const [localFormData, setLocalFormData] = useState<any>({
+  // --- FIX 1: UPDATE INITIAL STATE STRUCTURE ---
+  const [localFormData, setLocalFormData] = useState<FormData>({ // Use FormData type explicitly
     programTitle: '', 
     projectTitle: '', 
-    agency: '', 
-    agencyName: '',
+    agencyName: '', // Changed from 'agency' to match your interface
     agencyAddress: { street: '', barangay: '', city: '' },
     telephone: '', 
     email: '', 
@@ -60,15 +57,16 @@ const Submission: React.FC = () => {
     duration: '', 
     plannedStartDate: null, 
     plannedEndDate: null, 
-    // Initial Budget Item
+    // --- THIS WAS CAUSING THE WHITESCREEN ---
     budgetItems: [{ 
-      id: 1, source: '', ps: 0, mooe: 0, co: 0, total: 0, isExpanded: false, year: '' 
+      id: 1, 
+      source: '', 
+      // Initialize with the nested object structure
+      budget: { ps: [], mooe: [], co: [] } 
     }],
   });
 
-  // --- EFFECTS ---
-
-  // Calculate Years array based on start/end dates
+  // ... (Effects remain the same)
   useEffect(() => {
     if (localFormData.plannedStartDate && localFormData.plannedEndDate) {
       const start = new Date(localFormData.plannedStartDate).getFullYear();
@@ -79,26 +77,24 @@ const Submission: React.FC = () => {
     }
   }, [localFormData.plannedStartDate, localFormData.plannedEndDate]);
 
-  // --- VALIDATION ---
-
+  // ... (Validation remains the same)
   const isBudgetValid = useMemo(() => {
     if (localFormData.budgetItems.length === 0) return false;
     return localFormData.budgetItems.every((item: any) => {
       const sourceValid = item.source?.trim() !== '';
-      const costsValid = (Number(item.ps) || 0) > 0 || (Number(item.mooe) || 0) > 0 || (Number(item.co) || 0) > 0;
-      return sourceValid && costsValid;
+      // Simple check: does it have at least one item in any category?
+      const hasBudget = item.budget.ps.length > 0 || item.budget.mooe.length > 0 || item.budget.co.length > 0;
+      return sourceValid && hasBudget; // Adjusted validation logic
     });
   }, [localFormData.budgetItems]);
 
-  // --- HANDLERS: FORM UPDATES ---
-
+  // ... (Form Update Handlers remain the same)
   const handleDirectUpdate = (field: keyof FormData | string, value: any) => {
     setLocalFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
     if (name.startsWith('agencyAddress.')) {
         const addressField = name.split('.')[1];
         setLocalFormData((prev: any) => ({
@@ -110,7 +106,7 @@ const Submission: React.FC = () => {
     }
   };
 
-  // --- HANDLERS: BUDGET ---
+  // --- FIX 2: UPDATE BUDGET HANDLERS ---
 
   const addBudgetItem = () => {
     setLocalFormData((prev: any) => ({ 
@@ -120,9 +116,8 @@ const Submission: React.FC = () => {
         { 
           id: Date.now(), 
           source: '', 
-          ps: 0, mooe: 0, co: 0, total: 0, 
-          isExpanded: false, 
-          year: years[0] || '' 
+          // Initialize new items with the correct structure
+          budget: { ps: [], mooe: [], co: [] } 
         }
       ] 
     }));
@@ -135,15 +130,23 @@ const Submission: React.FC = () => {
     }));
   };
 
-  const updateBudgetItem = (id: number, field: string, value: string | number) => {
+  // Generic updater. Logic is now handled inside BudgetSection, 
+  // this just saves the value to the specific path.
+  const updateBudgetItem = (id: number, field: string, value: any) => {
     setLocalFormData((prev: any) => ({
       ...prev,
       budgetItems: prev.budgetItems.map((item: any) => {
         if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
-          // Recalculate row total
-          updatedItem.total = (Number(updatedItem.ps)||0) + (Number(updatedItem.mooe)||0) + (Number(updatedItem.co)||0);
-          return updatedItem;
+            // Check if we are updating the 'budget' object (arrays) or the 'source' string
+            if (field === 'budget') {
+                return { ...item, budget: value };
+            }
+            // If updating 'source'
+            if (field === 'source') {
+                return { ...item, source: value };
+            }
+            // Fallback for direct updates
+            return { ...item, [field]: value };
         }
         return item;
       }),
@@ -151,15 +154,11 @@ const Submission: React.FC = () => {
   };
 
   const toggleExpand = (id: number) => {
-    setLocalFormData((prev: any) => ({ 
-      ...prev, 
-      budgetItems: prev.budgetItems.map((item: any) => 
-        item.id === id ? { ...item, isExpanded: !item.isExpanded } : item
-      ) 
-    }));
+    // Optional: Only needed if you have UI expansion state not in the type
+    // If not in type, ignore or manage strictly in UI component
   };
 
-  // --- HANDLERS: SUBMISSION ---
+  // --- SUBMISSION LOGIC ---
 
   const handleSubmit = useCallback(async () => {
     if (!selectedFile) {
@@ -174,29 +173,19 @@ const Submission: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      // 1. Transform Frontend Budget to Backend Structure
-      const transformedBudget: ApiBudgetItem[] = localFormData.budgetItems.map((item: any) => ({
-        source: item.source,
-        budget: {
-          ps: item.ps > 0 ? [{ item: "Estimated Cost", value: Number(item.ps) }] : [],
-          mooe: item.mooe > 0 ? [{ item: "Estimated Cost", value: Number(item.mooe) }] : [],
-          co: item.co > 0 ? [{ item: "Estimated Cost", value: Number(item.co) }] : []
-        }
-      }));
-
-      // 2. Prepare Payload
+      // Since we are now using the correct structure in State, 
+      // we might not need heavy transformation, but let's ensure it matches API.
+      // If the API expects the exact same structure as Types, we pass localFormData directly.
+      
       const payload: FormData = {
         ...localFormData,
-        budgetItems: transformedBudget,
-        agency: String(localFormData.agency || localFormData.agencyName || ""), 
+        // Ensure agency is string
+        agencyName: String(localFormData.agencyName || ""), 
       };
 
-      // 3. Auth Context (Replace with actual User Context)
       const currentUserId = "cb05d6ff-59d4-470d-b407-de4b155adfdb";
 
-      // 4. Submit
       const result = await submitProposal(payload, selectedFile, currentUserId);
-
       alert("Proposal submitted successfully!");
       console.log("Server Response:", result);
 
@@ -208,13 +197,11 @@ const Submission: React.FC = () => {
     }
   }, [localFormData, selectedFile]);
 
-  // --- HANDLERS: AI ---
-
+  // ... (AI Handlers remain the same)
   const handleAITemplateCheck = useCallback(async () => {
     if (!selectedFile) return;
     setIsCheckingTemplate(true); 
     setShowAIModal(true);
-    // Mock Delay
     setTimeout(() => { 
       setIsCheckingTemplate(false); 
       setAiCheckResult({ isValid: true, issues: [], suggestions: [], score: 90, type: 'template', title: 'Check' }); 
@@ -224,15 +211,13 @@ const Submission: React.FC = () => {
   const handleAIFormCheck = useCallback(async () => {
     setIsCheckingForm(true); 
     setShowAIModal(true);
-    // Mock Delay
     setTimeout(() => { 
       setIsCheckingForm(false); 
       setAiCheckResult({ isValid: true, issues: [], suggestions: [], score: 90, type: 'form', title: 'Check' }); 
     }, 1500);
   }, []);
 
-  // --- RENDER HELPERS ---
-
+  // ... (Render Helpers remain the same)
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'basic-info': 
@@ -252,7 +237,6 @@ const Submission: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* AI Modal - FIXED: Removed checkType prop */}
       <AIModal 
         show={showAIModal} 
         onClose={() => { setShowAIModal(false); setAiCheckResult(null); }} 
@@ -261,30 +245,18 @@ const Submission: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        
-        {/* Main Content Area (Left 3 Columns) */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          
-          {/* Navigation Tabs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-            <button onClick={() => setActiveSection('basic-info')} className={getTabClass('basic-info')}>
-              Basic Information
-            </button>
-            <button onClick={() => setActiveSection('research-details')} className={getTabClass('research-details')}>
-              Research Details
-            </button>
-            <button onClick={() => setActiveSection('budget')} className={getTabClass('budget')}>
-              Budget Section
-            </button>
+            <button onClick={() => setActiveSection('basic-info')} className={getTabClass('basic-info')}>Basic Information</button>
+            <button onClick={() => setActiveSection('research-details')} className={getTabClass('research-details')}>Research Details</button>
+            <button onClick={() => setActiveSection('budget')} className={getTabClass('budget')}>Budget Section</button>
           </div>
 
-          {/* Form Content Container */}
           <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
             {renderActiveSection()}
           </div>
         </div>
 
-        {/* Sidebar (Right 1 Column) */}
         <div className="lg:col-span-1">
           <UploadSidebar 
             formData={localFormData} 
@@ -299,7 +271,6 @@ const Submission: React.FC = () => {
             onSubmit={handleSubmit} 
           />
         </div>
-
       </div>
     </div>
   );
