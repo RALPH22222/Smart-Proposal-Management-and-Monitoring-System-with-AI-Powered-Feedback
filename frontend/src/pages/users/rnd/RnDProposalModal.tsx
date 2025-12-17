@@ -18,8 +18,8 @@ import {
   type CommentSection,
   type CollaborationSession,
   type Reviewer
-} from '../../types/InterfaceProposal';
-import { type Evaluator } from '../../types/evaluator';
+} from '../../../types/InterfaceProposal';
+import { type Evaluator } from '../../../types/evaluator';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {

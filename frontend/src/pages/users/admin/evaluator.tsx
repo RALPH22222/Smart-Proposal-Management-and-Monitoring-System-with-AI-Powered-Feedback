@@ -11,8 +11,8 @@ import {
   ClipboardCheck
 } from 'lucide-react';
 
-import EvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
-import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
+import EvaluatorPageModal from '../rnd/RnDEvaluatorPageModal';
+import type { EvaluatorOption } from '../rnd/RnDEvaluatorPageModal';
 
 // --- INTERFACES ---
 

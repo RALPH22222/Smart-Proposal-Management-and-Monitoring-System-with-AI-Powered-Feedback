@@ -15,8 +15,8 @@ import {
   type EvaluatorDecision,
   type BudgetRow  // Add this import
 } from '../../../types/evaluator';
-import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
-import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
+import EvaluatorDecisionModal from './RnDEvaluatorDecision';
+import DecisionModal from './EndorsementDecisionModal';
 
 const EndorsePage: React.FC = () => {
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
