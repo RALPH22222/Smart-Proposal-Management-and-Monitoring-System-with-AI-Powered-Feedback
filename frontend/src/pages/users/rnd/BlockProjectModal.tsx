@@ -10,7 +10,7 @@ import {
   UserX,
   PowerOff
 } from 'lucide-react';
-import { type Project } from '../../../types/InterfaceProject';
+import { type Project } from '../admin/InterfaceProject';
 
 interface BlockProjectModalProps {
   isOpen: boolean;

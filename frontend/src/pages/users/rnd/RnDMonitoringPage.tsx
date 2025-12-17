@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   Ban 
 } from 'lucide-react';
-import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
+import { type Project, type ProjectStatus } from '../admin/InterfaceProject';
 import RnDProjectDetailModal from './RnDProjectDetailModal';
 import BlockProjectModal from './BlockProjectModal'; 
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { X, Power } from "lucide-react";
-import type { User } from "../../../types/admin";
+import type { User } from "./admin";
 
 interface DisableAccountModalProps {
   isOpen: boolean;

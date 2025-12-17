@@ -1,5 +1,5 @@
 // services/RndProjectApi/ProjectApi.ts
-import type { Project, Milestone } from '../../types/InterfaceProject';
+import type { Project, Milestone } from '../../pages/users/admin/InterfaceProject';
 
 // Mock data for demonstration
 const mockProjects: Project[] = [

@@ -3,7 +3,7 @@ import { useLoading } from "../../../contexts/LoadingContext";
 import { UserPlus, Edit2, Power, Search } from "lucide-react";
 
 // Import Shared Type and Modals
-import type { User } from "../../../types/admin";
+import type { User } from "./admin";
 import AddAccountModal from "./addAccountModal";
 import EditAccountModal from "./editAccountModal";
 import DisableAccountModal from "./disableAccountModal";
