@@ -10,7 +10,7 @@ import {
   Tag,
   Filter,
 } from "lucide-react";
-import ProposalDetailsModal from "../../../components/evaluator-component/ProposalDetailsModal";
+import ProposalDetailsModal from "./ProposalDetailsModal";
 
 export default function ReviewedProposals() {
   const [search, setSearch] = useState("");

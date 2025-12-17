@@ -10,7 +10,7 @@ import {
   LogOut,
   Bell,
 } from "lucide-react";
-import { useAuthContext } from "../../context/AuthContext";
+import { useAuthContext } from "../../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;
