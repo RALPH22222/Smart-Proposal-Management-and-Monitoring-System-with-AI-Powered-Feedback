@@ -4,9 +4,9 @@ import { UserPlus, Edit2, Power, Search } from "lucide-react";
 
 // Import Shared Type and Modals
 import type { User } from "../../../types/admin";
-import AddAccountModal from "../../../components/admin-component/addAccountModal";
-import EditAccountModal from "../../../components/admin-component/editAccountModal";
-import DisableAccountModal from "../../../components/admin-component/disableAccountModal";
+import AddAccountModal from "./addAccountModal";
+import EditAccountModal from "./editAccountModal";
+import DisableAccountModal from "./disableAccountModal";
 
 const mockUsers: User[] = [
   { id: 1, firstName: "Hudhaifah", lastName: "Labang", email: "dap@example.com", role: "Admin", status: "Active", agency: "R&D Office" },

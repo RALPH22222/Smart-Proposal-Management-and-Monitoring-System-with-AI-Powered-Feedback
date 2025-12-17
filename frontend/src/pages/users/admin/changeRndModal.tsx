@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter } from 'lucide-react';
-import { type Proposal } from '../../types/InterfaceProposal';
-import { type Evaluator } from '../../types/evaluator';
+import { type Proposal } from '../../../types/InterfaceProposal';
+import { type Evaluator } from '../../../types/evaluator';
 
 interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
