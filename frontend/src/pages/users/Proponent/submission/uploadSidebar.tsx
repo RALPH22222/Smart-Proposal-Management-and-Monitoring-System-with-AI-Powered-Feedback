@@ -253,7 +253,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         {/* --- Action Buttons (AI Assistant & Submit) --- */}
         <div className="mt-auto space-y-3">
           {/* AI Form Assistant */}
-          <div className="relative group w-full rounded-xl overflow-hidden p-[2px]">
+{/*           <div className="relative group w-full rounded-xl overflow-hidden p-[2px]">
             {!isCheckingForm && (
               <div className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2E8F0_0%,#393BB2_50%,#E2E8F0_100%)]" 
                    style={{ backgroundImage: 'conic-gradient(from 90deg at 50% 50%, #313deaff 40%, #efefefff 60%, #f51111 100%)' }} 
@@ -280,7 +280,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
                 </>
               )}
             </button>
-          </div>
+          </div> */}
 
           {/* Submit Button (Triggers Confirmation) - MODIFIED: Disabled if form invalid */}
           <div className="relative group">

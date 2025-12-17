@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 import { fetchAgencies, fetchTags } from '../../../../services/proposal.api';
-// import { differenceInMonths, parseISO, isValid } from 'date-fns';
+import { differenceInMonths, parseISO, isValid } from 'date-fns';
 
 interface BasicInformationProps {
   formData: FormData;
@@ -329,7 +329,7 @@ useEffect(() => {
                     value={formData.agencyStreet || ''} 
                     onChange={onInputChange} 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" 
-                    placeholder="Street/Purok/Subdivision" 
+                    placeholder="Street name" 
                 />
             </div>
 

@@ -211,20 +211,43 @@ const Submission: React.FC = () => {
         <div className="lg:col-span-3 flex flex-col gap-6">
           <div className="grid grid-cols-3 gap-2 sm:gap-4">
              {/* Navigation Buttons (kept same as original) */}
-             <button onClick={() => setActiveSection('basic-info')} className={`p-4 rounded-xl border ${activeSection === 'basic-info' ? 'bg-[#C8102E] text-white' : 'bg-white'}`}>Basic Info</button>
-             <button onClick={() => setActiveSection('research-details')} className={`p-4 rounded-xl border ${activeSection === 'research-details' ? 'bg-[#C8102E] text-white' : 'bg-white'}`}>Research</button>
-             <button onClick={() => setActiveSection('budget')} className={`p-4 rounded-xl border ${activeSection === 'budget' ? 'bg-[#C8102E] text-white' : 'bg-white'}`}>Budget</button>
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
-            {renderActiveSection()}
-          </div>
-        </div>
-        <div className="lg:col-span-1">
-          <UploadSidebar formData={localFormData} selectedFile={selectedFile} isCheckingTemplate={isCheckingTemplate} isCheckingForm={isCheckingForm} onAIFormCheck={handleAIFormCheck} onFileSelect={setSelectedFile} onAITemplateCheck={handleAITemplateCheck} onSubmit={handleSubmit} isUploadDisabled={isSubmitting} isBudgetValid={isBudgetValid} />
-        </div>
-      </div>
-    </div>
-  );
+            <button 
+              onClick={() => setActiveSection('basic-info')} 
+              className={`p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] ${
+                activeSection === 'basic-info' ? 'bg-[#C8102E] text-white' : 'bg-white'
+              }`}
+            >
+              Basic Information
+            </button>
+
+            <button 
+              onClick={() => setActiveSection('research-details')} 
+              className={`p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] ${
+                activeSection === 'research-details' ? 'bg-[#C8102E] text-white' : 'bg-white'
+              }`}
+            >
+              Research Details
+            </button>
+
+            <button 
+              onClick={() => setActiveSection('budget')} 
+              className={`p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] ${
+                activeSection === 'budget' ? 'bg-[#C8102E] text-white' : 'bg-white'
+              }`}
+            >
+              Budget Section
+            </button>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
+                      {renderActiveSection()}
+                    </div>
+                  </div>
+                  <div className="lg:col-span-1">
+                    <UploadSidebar formData={localFormData} selectedFile={selectedFile} isCheckingTemplate={isCheckingTemplate} isCheckingForm={isCheckingForm} onAIFormCheck={handleAIFormCheck} onFileSelect={setSelectedFile} onAITemplateCheck={handleAITemplateCheck} onSubmit={handleSubmit} isUploadDisabled={isSubmitting} isBudgetValid={isBudgetValid} />
+                  </div>
+                </div>
+              </div>
+            );
 };
 
 export default Submission;
