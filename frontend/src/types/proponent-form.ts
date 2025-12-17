@@ -3,15 +3,15 @@ export interface ExpenseItem {
   value: number;
 }
 
-export interface BudgetBreakdown {
-  ps: ExpenseItem[];   
-  mooe: ExpenseItem[]; 
-  co: ExpenseItem[];   
-}
 
 export interface BudgetItem {
+  id: number;
   source: string;
-  budget: BudgetBreakdown;
+  budget: {          
+    ps: ExpenseItem[];
+    mooe: ExpenseItem[];
+    co: ExpenseItem[];
+  };
 }
 
 export interface AgencyAddress {
@@ -24,7 +24,7 @@ export interface FormData {
   programTitle: string;
   projectTitle: string; 
   department?: string;
-  agency: number | string;
+  agencyName: number | string;
   agencyAddress: AgencyAddress;
   schoolYear: string;
   tags: string[];
@@ -59,8 +59,8 @@ export interface FormData {
   sectorCommodity: string;
   discipline: string;
   duration: string;
-  plannedStartDate: Date | string | null;
-  plannedEndDate: Date | string | null;
+  plannedStartDate: string | null;
+  plannedEndDate: string | null;
   budgetItems: BudgetItem[];
 }
 export interface AICheckResult {

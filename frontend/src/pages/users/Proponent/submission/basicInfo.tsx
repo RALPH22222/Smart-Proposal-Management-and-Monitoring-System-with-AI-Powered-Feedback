@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FileText, Building2, Phone, Mail, Users, Tags, X, Clock, MapPin, Briefcase, Plus, Calendar
+  FileText, Building2, Phone, Mail, Users, Tags, X, Clock, Briefcase, Plus, Calendar
 } from 'lucide-react';
 import type { FormData } from '../../../../types/proponent-form';
 import { fetchAgencies, fetchTags } from '../../../../services/proposal.api';
@@ -8,7 +8,7 @@ import { differenceInMonths, parseISO, isValid } from 'date-fns';
 
 interface BasicInformationProps {
   formData: FormData;
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement | React.ChangeEvent<HTMLTextAreaElement> | HTMLSelectElement>) => void;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: keyof FormData, value: any) => void;
 }
 
@@ -326,7 +326,7 @@ useEffect(() => {
                 <input 
                     type="text" 
                     name="agencyStreet" 
-                    value={formData.agencyStreet || ''} 
+                    value={formData.agencyAddress.street || ''} 
                     onChange={onInputChange} 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" 
                     placeholder="Street name" 
@@ -339,7 +339,7 @@ useEffect(() => {
                 <input 
                     type="text" 
                     name="agencyBarangay" 
-                    value={formData.agencyBarangay || ''} 
+                    value={formData.agencyAddress.barangay || ''} 
                     onChange={onInputChange} 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" 
                     placeholder="Barangay Name" 
@@ -352,7 +352,7 @@ useEffect(() => {
                 <input 
                     type="text" 
                     name="agencyCity" 
-                    value={formData.agencyCity || ''} 
+                    value={formData.agencyAddress.city || ''} 
                     onChange={onInputChange} 
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" 
                     placeholder="City / Municipality" 
