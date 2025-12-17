@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, User, Eye, Gavel, Filter, Search, ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, RefreshCw, GitBranch } from 'lucide-react';
+import { 
+  FileText, Calendar, User, Eye, Gavel, Filter, Search, 
+  ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, 
+  RefreshCw, GitBranch, Users, X, MessageSquare 
+} from 'lucide-react';
 import {
   type Proposal,
   type Decision,
@@ -9,6 +13,82 @@ import {
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal from '../../../components/rnd-component/RndViewModal';
+
+// --- HELPER COMPONENT: Evaluator List Modal ---
+interface EvaluatorListModalProps {
+  evaluators: string[];
+  message?: string; // Added message prop
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
+  evaluators,
+  message,
+  isOpen,
+  onClose
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#C8102E]" />
+            <h2 className="font-bold text-slate-800">Assigned Evaluators</h2>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 max-h-[500px] overflow-y-auto">
+          {/* List */}
+          <div className="space-y-3">
+            {(!evaluators || evaluators.length === 0) ? (
+                <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
+                </div>
+            ) : (
+                evaluators.map((name, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
+                    {name.charAt(0)}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{name}</span>
+                </div>
+                ))
+            )}
+          </div>
+
+          {/* Message Section */}
+          {message && (
+            <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instruction / Message</h3>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-700 italic">
+                    "{message}"
+                </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 border-t bg-slate-50 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                Close
+            </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN PAGE COMPONENT ---
 
 interface RndProposalPageProps {
   filter?: ProposalStatus;
@@ -22,14 +102,27 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal States
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedProposalForView, setSelectedProposalForView] = useState<Proposal | null >(null);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  
+  // Evaluator List Modal State
+  const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
+  const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
+  const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>(''); // NEW STATE
+
+  // Filters
   const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  
   const currentUser: Reviewer = { name: 'Dr. John Smith' } as Reviewer;
 
   // Load proposals on component mount
@@ -68,15 +161,21 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       const data = await proposalApi.fetchProposals();
       
       // --- MOCK DATA TRANSFORMATION FOR DEMO PURPOSES ---
-      // This forces specific statuses to visualize the UI requirements
       const mockTransformedData = data.map((prop, index) => {
-        if (index === 0) return { ...prop, status: 'Revised Proposal' as ProposalStatus }; // Mock Revised
-        if (index === 1) return { ...prop, status: 'Revision Required' as ProposalStatus }; // Mock Revision Required
-        if (index === 2) return { ...prop, status: 'Sent to Evaluators' as ProposalStatus }; // Mock Sent
-        if (index === 3) return { ...prop, status: 'Pending' as ProposalStatus }; // Changed from Rejected to Pending
-        return prop; // Others remain pending or original status
+        if (index === 0) return { ...prop, status: 'Revised Proposal' as ProposalStatus };
+        if (index === 1) return { ...prop, status: 'Revision Required' as ProposalStatus };
+        
+        // Mock Sent to Evaluators with Message
+        if (index === 2) return { 
+            ...prop, 
+            status: 'Sent to Evaluators' as ProposalStatus,
+            assignedEvaluators: ['Dr. Alice Santos', 'Engr. Carla Lim'],
+            evaluatorInstruction: "Please prioritize technical feasibility."
+        };
+        
+        if (index === 3) return { ...prop, status: 'Pending' as ProposalStatus };
+        return prop;
       });
-      // --------------------------------------------------
 
       setProposals(mockTransformedData);
     } catch (error) {
@@ -101,6 +200,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     setSelectedProposal(null);
   };
 
+  // --- SUBMIT DECISION (UPDATES LOCAL STATE) ---
   const handleSubmitDecision = async (decision: Decision) => {
     try {
       await proposalApi.submitDecision(decision);
@@ -112,14 +212,25 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           ? 'Rejected Proposal'
           : 'Revision Required';
 
+      // Capture evaluators if present in decision object
+      const newAssignedEvaluators = decision.decision === 'Sent to Evaluators' 
+        ? decision.assignedEvaluators 
+        : undefined;
+      
+      // Capture instruction message
+      // Note: In RnDProposalModal, "Comments for Evaluators" maps to structuredComments.objectives.content
+      const instructionMessage = decision.structuredComments?.objectives?.content || "";
+
       setProposals((prev) =>
         prev.map((proposal) =>
           proposal.id === decision.proposalId
             ? {
                 ...proposal,
                 status: newStatus,
+                assignedEvaluators: newAssignedEvaluators,
+                evaluatorInstruction: instructionMessage, // Store message
                 lastModified: new Date().toISOString()
-              }
+              } as Proposal
             : proposal
         )
       );
@@ -134,49 +245,67 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     }
   };
 
-  const getStatusBadge = (status: ExtendedProposalStatus) => {
-    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+  // --- Helper: Status Badge Logic (Updated with Clickable Evaluators) ---
+  const getStatusBadge = (status: ExtendedProposalStatus, proposal: Proposal) => {
+    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 max-w-[200px] truncate cursor-pointer hover:opacity-80 transition-opacity';
   
     switch (status) {
       case 'Pending':
         return (
-          <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>
-            <Clock className="w-3 h-3" />
+          <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200 cursor-default`}>
+            <Clock className="w-3 h-3 flex-shrink-0" />
             {status}
           </span>
         );
       case 'Revised Proposal':
         return (
-          <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}>
-            <GitBranch className="w-3 h-3" />
+          <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}>
+            <GitBranch className="w-3 h-3 flex-shrink-0" />
             Revised Proposal
           </span>
         );
       case 'Sent to Evaluators':
+        const evaluators = (proposal as any).assignedEvaluators || [];
+        const message = (proposal as any).evaluatorInstruction || "";
+
+        const evaluatorText = evaluators.length > 0 ? `Evaluators (${evaluators.length})` : 'Sent to Evaluators';
+
         return (
-          <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>
-            <Send className="w-3 h-3" />
-            {status}
-          </span>
+            <button 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (evaluators.length > 0) {
+                        setCurrentEvaluatorsList(evaluators);
+                        setCurrentEvaluatorMessage(message); // Set message
+                        setIsEvaluatorModalOpen(true);
+                    }
+                }}
+                className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`} 
+                title={evaluators.join(', ')}
+            >
+                <Users className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{evaluatorText}</span>
+            </button>
         );
+
       case 'Rejected Proposal':
         return (
-          <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}>
-            <XCircle className="w-3 h-3" />
+          <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200 cursor-default`}>
+            <XCircle className="w-3 h-3 flex-shrink-0" />
             {status}
           </span>
         );
       case 'Revision Required':
         return (
-          <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200`}>
-            <RefreshCw className="w-3 h-3" />
+          <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}>
+            <RefreshCw className="w-3 h-3 flex-shrink-0" />
             {status}
           </span>
         );
       default:
         return (
-          <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}>
-            <FileText className="w-3 h-3" />
+          <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200 cursor-default`}>
+            <FileText className="w-3 h-3 flex-shrink-0" />
             {status}
           </span>
         );
@@ -228,7 +357,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                {filter ? `${filter} Proposals` : 'Research Proposal Review'}
+                {filter ? `${filter} Proposals` : 'R&D Proposal Review'}
               </h1>
               <p className="text-slate-600 mt-2 text-sm leading-relaxed">
                 Review and evaluate research proposals submitted to WMSU
@@ -261,7 +390,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as ExtendedProposalStatus | 'All')}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
+                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors cursor-pointer"
                 >
                   <option value="All">All Statuses ({getStatusCount('All')})</option>
                   <option value="Pending">Pending ({getStatusCount('Pending')})</option>
@@ -275,8 +404,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           </div>
         </section>
 
-        {/* Proposals List - UPDATED STRUCTURE */}
-        {/* Removed flex-1 and overflow-hidden here to fix whitespace */}
+        {/* Proposals List */}
         <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -300,19 +428,16 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               </div>
             ) : (
-              // NEW TABLE LAYOUT WITHOUT HEADER
               <table className="min-w-full text-left align-middle">
-                {/* REMOVED THEAD FOR CLEANER LOOK */}
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {paginatedProposals.map((proposal) => (
                     <tr
                       key={proposal.id}
                       className="hover:bg-slate-50 transition-colors duration-200 group"
                     >
-                      {/* --- COL 1: DETAILS (Title, Meta Info, Type) --- */}
+                      {/* --- COL 1: DETAILS --- */}
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-1.5">
-                          {/* UPDATED: font-medium instead of font-bold */}
                           <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
                             {proposal.title}
                           </span>
@@ -341,12 +466,12 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                         </div>
                       </td>
 
-                      {/* --- COL 2: STATUS & ACTIONS (Right Aligned) --- */}
+                      {/* --- COL 2: STATUS & ACTIONS --- */}
                       <td className="px-6 py-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-3">
                           
-                          {/* Status Badge */}
-                          {getStatusBadge(proposal.status as ExtendedProposalStatus)}
+                          {/* Status Badge (Clickable for Evaluators) */}
+                          {getStatusBadge(proposal.status as ExtendedProposalStatus, proposal)}
 
                           {/* Eye Button */}
                           <button
@@ -427,6 +552,19 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             setSelectedProposalForView(null);
           }}
         />
+
+        {/* Evaluator List Modal */}
+        <EvaluatorListModal
+          evaluators={currentEvaluatorsList}
+          message={currentEvaluatorMessage}
+          isOpen={isEvaluatorModalOpen}
+          onClose={() => {
+            setIsEvaluatorModalOpen(false);
+            setCurrentEvaluatorsList([]);
+            setCurrentEvaluatorMessage('');
+          }}
+        />
+
       </div>
     </div>
   );

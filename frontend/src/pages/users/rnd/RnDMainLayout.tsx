@@ -53,7 +53,7 @@ const MainLayout: React.FC = () => {
 					<Dashboard statistics={statistics} recentActivity={recentActivity} />
 				);
 			case 'proposals':
-				return <ReviewPage onStatsUpdate={loadData} />;
+				return <ReviewPage />;
 			case 'revisions':
 				return (
 					<ReviewPage filter='Revision Required' onStatsUpdate={loadData} />

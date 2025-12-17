@@ -60,3 +60,4 @@ export const GROUPED_SPECIALTIES = {
     "Urban Planning"
   ]
 };
+

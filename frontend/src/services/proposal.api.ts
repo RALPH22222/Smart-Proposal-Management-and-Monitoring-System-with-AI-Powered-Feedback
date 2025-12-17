@@ -80,7 +80,7 @@ export const submitProposal = async (
   }
   fd.append("sector", formData.sectorCommodity);
   fd.append("discipline", formData.discipline);
-  fd.append("agency", String(formData.agency));
+  fd.append("agency", String(formData.agencyName));
   fd.append("program_title", formData.programTitle ?? "");
   fd.append("project_title", formData.projectTitle);
   fd.append("email", formData.email ?? "");

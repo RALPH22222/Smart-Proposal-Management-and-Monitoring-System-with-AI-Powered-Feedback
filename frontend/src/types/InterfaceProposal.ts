@@ -48,6 +48,7 @@ export interface Proposal {
 	assignedRdStaff?: string;
 	rdCommentsToEvaluator?: string;
 	assignedEvaluators?: string[];
+	evaluatorInstruction?: string;
 }
 
 export type ProposalStatus =

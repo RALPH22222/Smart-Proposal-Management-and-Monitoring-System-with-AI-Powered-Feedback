@@ -115,6 +115,9 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱1,250,000.00',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
+    
   },
   {
     id: 'PROP-2025-002',
@@ -165,6 +168,9 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱2,100,000.00',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
+    
   },
   {
     id: 'PROP-2025-003',
@@ -207,6 +213,11 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱1,800,000.00',
+    assignedEvaluators: [
+      'Dr. John Joseph',
+      'Engr. Amelia Reyes'
+    ],
+    evaluatorInstruction: 'Please focus strictly on the methodology and the budget feasibility. We need this reviewed by Friday.'
   },
   {
     id: 'PROP-2025-004',
@@ -256,6 +267,8 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱2,500,000.00',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   },
   {
     id: 'PROP-2025-005',
@@ -306,6 +319,8 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱2,500,000.00',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   },
   {
     id: 'PROP-2025-006',
@@ -348,6 +363,8 @@ const getDummyProposals = (): Proposal[] => [
       },
     ],
     budgetTotal: '₱1,500,000.00',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   }
 ];
 

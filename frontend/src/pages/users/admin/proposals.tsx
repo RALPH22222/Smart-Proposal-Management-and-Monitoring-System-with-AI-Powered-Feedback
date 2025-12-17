@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Calendar, User, Eye, Filter, Search, 
-  ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, 
-  RefreshCw, GitBranch, Bot, UserCog, Pen
+  ChevronLeft, ChevronRight, Tag, Clock, XCircle, 
+  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare
 } from 'lucide-react';
 import {
   type Proposal,
@@ -14,6 +14,82 @@ import { adminProposalApi as proposalApi } from '../../../services/AdminProposal
 import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
+
+// --- HELPER COMPONENT: Evaluator List Modal ---
+interface EvaluatorListModalProps {
+  evaluators: string[];
+  message?: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
+  evaluators,
+  message,
+  isOpen,
+  onClose
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#C8102E]" />
+            <h2 className="font-bold text-slate-800">Assigned Evaluators</h2>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 max-h-[500px] overflow-y-auto">
+          {/* List */}
+          <div className="space-y-3">
+            {(!evaluators || evaluators.length === 0) ? (
+                <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
+                </div>
+            ) : (
+                evaluators.map((name, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
+                    {name.charAt(0)}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{name}</span>
+                </div>
+                ))
+            )}
+          </div>
+
+          {/* Message Section */}
+          {message && (
+            <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instruction / Message</h3>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-700 italic">
+                    "{message}"
+                </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 border-t bg-slate-50 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                Close
+            </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN PAGE COMPONENT ---
 
 interface AdminProposalPageProps {
   filter?: ProposalStatus;
@@ -37,6 +113,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isChangeRdModalOpen, setIsChangeRdModalOpen] = useState(false);
   
+  // Evaluator List Modal State
+  const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
+  const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
+  const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>(''); // NEW STATE
+
   // Filter State
   const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,7 +141,6 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     // Apply status filter
     if (statusFilter !== 'All') {
       if (statusFilter === 'Unassigned') {
-         // Filter for proposals specifically waiting for R&D assignment (Pending + No Staff)
          filtered = filtered.filter(p => !p.assignedRdStaff && (p.status === 'Pending' || p.status === 'Revised Proposal'));
       } else {
          filtered = filtered.filter(proposal => proposal.status === statusFilter);
@@ -105,17 +185,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     setIsViewModalOpen(true);
   };
 
-  // Handler for opening the Change R&D Modal
   const handleChangeRdStaff = (proposal: Proposal) => {
     setSelectedProposalForChange(proposal);
     setIsChangeRdModalOpen(true);
   }
 
-  // Handler for Confirming Change from ChangeRndModal
   const confirmRdChange = async (proposalId: string, newStaffName: string) => {
-    // In a real app, API call here
-    
-    // Update local state and set status to 'Assigned to RnD'
     setProposals(prev => prev.map(p => 
       p.id === proposalId 
       ? { 
@@ -141,15 +216,19 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
 
       // Determine new status based on decision
       let newStatus: ProposalStatus;
+      let newAssignedEvaluators: string[] | undefined = undefined;
+      // Capture the instruction message
+      // Note: In AdminProposalModal, "Comments for Evaluators" maps to structuredComments.objectives.content
+      let instructionMessage = decision.structuredComments?.objectives?.content || "";
 
       if (decision.decision === 'Sent to Evaluators') {
         newStatus = 'Sent to Evaluators';
+        newAssignedEvaluators = decision.assignedEvaluators || []; 
       } else if (decision.decision === 'Rejected Proposal') {
         newStatus = 'Rejected Proposal';
       } else if (decision.decision === 'Revision Required') {
         newStatus = 'Revision Required';
       } else {
-        // This handles the "Assign to RnD" decision from the main modal
         newStatus = 'Assigned to RnD';
       }
 
@@ -159,10 +238,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             ? {
                 ...proposal,
                 status: newStatus,
-                // Use existing staff or the selected one if passed (defaulting here for safety)
                 assignedRdStaff: proposal.assignedRdStaff || 'Dr. R&D Lead',
+                assignedEvaluators: newAssignedEvaluators, 
+                // Store the instruction message in the proposal object (casting for now)
+                evaluatorInstruction: instructionMessage,
                 lastModified: new Date().toISOString()
-              }
+              } as Proposal // Casting might be needed if Proposal type doesn't have evaluatorInstruction yet
             : proposal
         )
       );
@@ -179,32 +260,56 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
 
   // --- Helper: Status Badge Logic ---
   const getStatusBadge = (proposal: Proposal) => {
-    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 max-w-[200px] truncate cursor-pointer hover:opacity-80 transition-opacity';
     
-    // Check specific status string
     switch (proposal.status) {
       case 'Assigned to RnD': 
-      // Also catch cases where it might still be pending but has staff assigned
       case 'Pending': 
         if (proposal.assignedRdStaff) {
-             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}><Bot className="w-3 h-3" />Assigned to RnD</span>;
+             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`} title={`Assigned to: ${proposal.assignedRdStaff}`}>
+                <Bot className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">RnD: {proposal.assignedRdStaff}</span>
+             </span>;
         }
-        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}><Clock className="w-3 h-3" />Pending</span>;
+        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200 cursor-default`}><Clock className="w-3 h-3 flex-shrink-0" />Pending</span>;
       
       case 'Revised Proposal':
         if (proposal.assignedRdStaff) {
-             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}><Bot className="w-3 h-3" />Assigned to RnD</span>;
+             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`} title={`Assigned to: ${proposal.assignedRdStaff}`}>
+                <Bot className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">RnD: {proposal.assignedRdStaff}</span>
+             </span>;
         }
-        return <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}><GitBranch className="w-3 h-3" />Revised Proposal</span>;
+        return <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}><GitBranch className="w-3 h-3 flex-shrink-0" />Revised Proposal</span>;
       
       case 'Sent to Evaluators':
-        return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}><Send className="w-3 h-3" />Sent to Evaluators</span>;
+        const evaluators = (proposal as any).assignedEvaluators || [];
+        const message = (proposal as any).evaluatorInstruction || ""; // Retrieve the message
+        
+        const evaluatorText = evaluators.length > 0 ? `Evaluators (${evaluators.length})` : 'Sent to Evaluators';
+
+        return <button 
+            onClick={(e) => {
+                e.stopPropagation();
+                if (evaluators.length > 0) {
+                    setCurrentEvaluatorsList(evaluators);
+                    setCurrentEvaluatorMessage(message); // Set the message state
+                    setIsEvaluatorModalOpen(true);
+                }
+            }}
+            className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`} 
+            title={evaluators.join(', ')}
+        >
+            <Users className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{evaluatorText}</span>
+        </button>;
+
       case 'Rejected Proposal':
-        return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}><XCircle className="w-3 h-3" />Rejected Proposal</span>;
+        return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200 cursor-default`}><XCircle className="w-3 h-3 flex-shrink-0" />Rejected Proposal</span>;
       case 'Revision Required':
-        return <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200`}><RefreshCw className="w-3 h-3" />Revision Required</span>;
+        return <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}><RefreshCw className="w-3 h-3 flex-shrink-0" />Revision Required</span>;
       default:
-        return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}><FileText className="w-3 h-3" />{proposal.status}</span>;
+        return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200 cursor-default`}><FileText className="w-3 h-3 flex-shrink-0" />{proposal.status}</span>;
     }
   };
 
@@ -381,12 +486,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                             <Eye className="w-3 h-3" />
                           </button>
 
-                          {/* LOGIC FOR BUTTONS:
-                             1. Unassigned + (Pending or Revised) -> Show "Action" (to Assign)
-                             2. Assigned -> Show "Change R&D"
-                          */}
-                          
-                          {/* Case 1: Needs Assignment */}
+                          {/* Action Button */}
                           {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
                             <button
                               onClick={() => handleViewProposal(proposal)}
@@ -397,7 +497,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                             </button>
                           )}
 
-                          {/* Case 2: Already Assigned (Status is Assigned to RnD, OR it has a staff member but hasn't moved to next stage yet) */}
+                          {/* Change R&D */}
                           {(proposal.status === 'Assigned to RnD' || (proposal.assignedRdStaff && (proposal.status === 'Pending' || proposal.status === 'Revised Proposal'))) && (
                              <button
                                onClick={() => handleChangeRdStaff(proposal)}
@@ -478,6 +578,19 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           }}
           onConfirm={confirmRdChange}
         />
+
+        {/* Evaluator List Modal */}
+        <EvaluatorListModal
+          evaluators={currentEvaluatorsList}
+          message={currentEvaluatorMessage}
+          isOpen={isEvaluatorModalOpen}
+          onClose={() => {
+            setIsEvaluatorModalOpen(false);
+            setCurrentEvaluatorsList([]);
+            setCurrentEvaluatorMessage('');
+          }}
+        />
+
       </div>
     </div>
   );

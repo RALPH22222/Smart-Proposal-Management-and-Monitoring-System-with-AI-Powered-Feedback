@@ -52,7 +52,7 @@ const getAdminDummyProposals = (): Proposal[] => [
     id: 'PROP-2025-ADMIN-01',
     title: 'Automated Drone Surveillance for Campus Security',
     documentUrl: '#',
-    status: 'Revised Proposal', // Status is Revised
+    status: 'Revised Proposal',
     projectFile: "drone_security.pdf",
     submittedBy: 'Engr. Victor Magtanggol',
     submittedDate: '2025-02-10T08:30:00Z',
@@ -83,8 +83,9 @@ const getAdminDummyProposals = (): Proposal[] => [
       { source: 'WMSU', ps: '₱200,000', mooe: '₱100,000', co: '₱500,000', total: '₱800,000' }
     ],
     budgetTotal: '₱800,000',
-    // CHANGED: Removed assignedRdStaff so it is "Just" a revised proposal (Unassigned)
     assignedRdStaff: undefined, 
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   },
   {
     id: 'PROP-2025-ADMIN-02',
@@ -121,8 +122,8 @@ const getAdminDummyProposals = (): Proposal[] => [
       { source: 'NCCA', ps: '₱300,000', mooe: '₱150,000', co: '₱50,000', total: '₱500,000' }
     ],
     budgetTotal: '₱500,000',
-    // UNASSIGNED SCENARIO
     assignedRdStaff: undefined, 
+    assignedEvaluators: []
   },
   {
     id: 'PROP-2025-ADMIN-03',
@@ -160,8 +161,12 @@ const getAdminDummyProposals = (): Proposal[] => [
       { source: 'DA', ps: '₱500,000', mooe: '₱200,000', co: '₱300,000', total: '₱1,000,000' }
     ],
     budgetTotal: '₱1,000,000',
-    // MANUALLY ASSIGNED SCENARIO
-    assignedRdStaff: 'Prof. Ben Reyes',
+    assignedRdStaff: undefined,
+    assignedEvaluators: [
+      'Dr. Alice Santos',
+      'Engr. Mark Villanueva'
+    ],
+    evaluatorInstruction: 'Please focus strictly on the methodology and the budget feasibility. We need this reviewed by Friday.'
   },
   {
     id: 'PROP-2025-ADMIN-04',
@@ -199,8 +204,9 @@ const getAdminDummyProposals = (): Proposal[] => [
       { source: 'DOST', ps: '₱400,000', mooe: '₱300,000', co: '₱800,000', total: '₱1,500,000' }
     ],
     budgetTotal: '₱1,500,000',
-    // ASSIGNED SCENARIO - This will show the "Change R&D" button
     assignedRdStaff: 'Engr. Carla Lim',
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   },
   {
     id: 'PROP-2025-ADMIN-05',
@@ -237,7 +243,9 @@ const getAdminDummyProposals = (): Proposal[] => [
       { source: 'WMSU', ps: '₱100,000', mooe: '₱50,000', co: '₱0', total: '₱150,000' }
     ],
     budgetTotal: '₱150,000',
-    assignedRdStaff: 'Dr. Alice Santos',
+    assignedRdStaff: undefined,
+    assignedEvaluators: [],
+    evaluatorInstruction: ''
   }
 ];
 
