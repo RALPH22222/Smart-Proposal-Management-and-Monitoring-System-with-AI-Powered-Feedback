@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, UserPlus, ChevronDown, ChevronUp } from "lucide-react";
-import { AGENCIES, ROLES, GROUPED_SPECIALTIES } from "../../../types/constants";
+import { AGENCIES, ROLES, GROUPED_SPECIALTIES } from "../../types/constants";
 
 interface AddAccountModalProps {
   isOpen: boolean;

@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import Sidebar from './EvaluatorSide';
+import Sidebar from '../../../components/evaluator-component/EvaluatorSide';
 import Dashboard from './DashboardEvaluator';
 import ReviewPage from './ReviewProposals';  
 import ReviewedPage from './ReviewedProposals';

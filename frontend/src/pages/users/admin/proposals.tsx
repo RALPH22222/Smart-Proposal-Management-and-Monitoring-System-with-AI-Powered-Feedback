@@ -11,9 +11,9 @@ import {
   type Reviewer
 } from '../../../types/InterfaceProposal';
 import { adminProposalApi as proposalApi } from '../../../services/AdminProposalApi/ProposalApi';
-import ProposalModal from './AdminProposalModal';
-import DetailedProposalModal from './AdminViewModal';
-import ChangeRndModal from './changeRndModal';
+import ProposalModal from '../../../components/admin-component/AdminProposalModal';
+import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
+import ChangeRndModal from '../../../components/admin-component/changeRndModal';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {

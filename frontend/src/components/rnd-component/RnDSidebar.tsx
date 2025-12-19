@@ -10,8 +10,8 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { type Statistics } from '../../../types/InterfaceProposal';
-import { useAuthContext } from "../../../context/AuthContext";
+import { type Statistics } from '../../types/InterfaceProposal';
+import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;

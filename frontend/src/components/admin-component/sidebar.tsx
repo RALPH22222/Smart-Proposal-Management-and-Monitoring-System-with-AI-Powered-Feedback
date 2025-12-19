@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X, File, UserPen, BarChart3} from "lucide-react";
-import { useAuthContext } from "../../../context/AuthContext";
+import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;

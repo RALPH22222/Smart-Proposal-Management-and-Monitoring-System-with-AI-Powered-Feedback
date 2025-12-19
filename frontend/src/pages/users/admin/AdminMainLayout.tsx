@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import AdminSidebar from "./sidebar";
+import AdminSidebar from "../../../components/admin-component/sidebar";
 
 import Dashboard from "./dashboard";
 import Accounts from "./accounts";

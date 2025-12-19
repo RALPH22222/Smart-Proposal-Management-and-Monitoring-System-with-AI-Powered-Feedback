@@ -15,8 +15,8 @@ import {
   Gavel,
   CalendarClock
 } from "lucide-react";
-import ProposalModal from "./ProposalViewModal";
-import DecisionModal from "./DecisionModal";
+import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
+import DecisionModal from "../../../components/evaluator-component/DecisionModal";
 
 interface BudgetSource {
   source: string;

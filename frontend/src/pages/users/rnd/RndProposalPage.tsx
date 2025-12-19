@@ -11,8 +11,8 @@ import {
   type Reviewer
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
-import ProposalModal from './RnDProposalModal';
-import DetailedProposalModal from './RndViewModal';
+import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
+import DetailedProposalModal from '../../../components/rnd-component/RndViewModal';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {

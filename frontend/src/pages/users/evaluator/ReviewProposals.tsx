@@ -11,7 +11,7 @@ import {
   Tag,
   Filter,
 } from "lucide-react";
-import ReviewModal from "./ReviewModal";
+import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 
 export default function EndorsedProposals() {
   const [search, setSearch] = useState("");

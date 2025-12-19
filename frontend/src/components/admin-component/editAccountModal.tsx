@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit2 } from "lucide-react";
-import { AGENCIES, ROLES } from "../../../types/constants";
-import type { User } from "./admin";
+import { AGENCIES, ROLES } from "../../types/constants";
+import type { User } from "../../types/admin";
 
 interface EditAccountModalProps {
   isOpen: boolean;

@@ -5,7 +5,7 @@ import {
   FileText, Send, ShieldAlert, Paperclip, Download, Eye,
   Banknote, CalendarClock, Users, MessageSquare, CheckSquare, XCircle, Lock, Loader2, Award
 } from 'lucide-react';
-import { type Project } from '../admin/InterfaceProject';
+import { type Project } from '../../types/InterfaceProject';
 
 // --- Extended Types ---
 interface ExpenseBreakdown {

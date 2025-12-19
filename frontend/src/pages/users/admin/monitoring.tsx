@@ -19,9 +19,9 @@ import {
   AlertTriangle,
   Ban 
 } from 'lucide-react';
-import { type Project, type ProjectStatus } from './InterfaceProject';
-import RnDProjectDetailModal from '../rnd/RnDProjectDetailModal';
-import BlockProjectModal from '../rnd/BlockProjectModal'; 
+import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
+import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
+import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal'; 
 
 // --- UPDATED MOCK DATA ---
 const MOCK_PROJECTS: Project[] = [

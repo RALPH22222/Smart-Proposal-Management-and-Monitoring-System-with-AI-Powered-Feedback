@@ -17,8 +17,8 @@ import {
   type StructuredComments,
   type CommentSection,
   type Reviewer
-} from '../../../types/InterfaceProposal';
-import { type Evaluator } from '../../../types/evaluator';
+} from '../../types/InterfaceProposal';
+import { type Evaluator } from '../../types/evaluator';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
