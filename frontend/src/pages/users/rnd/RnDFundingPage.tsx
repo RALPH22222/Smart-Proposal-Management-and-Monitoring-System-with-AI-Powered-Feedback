@@ -4,6 +4,9 @@ import {
   FileText,
   Clock,
   DollarSign,
+  User,
+  Calendar,
+  Tag,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -42,6 +45,28 @@ const FundingPage: React.FC = () => {
       loadFundingProposals();
     } catch (error) {
       console.error(`Error updating status to ${newStatus}:`, error);
+    }
+  };
+
+  const getSectorColor = (sector: string) => {
+    switch (sector.toLowerCase()) {
+      case 'ict':
+      case 'information technology':
+        return 'bg-blue-50 text-blue-700 border-blue-100';
+      case 'public safety':
+        return 'bg-purple-50 text-purple-700 border-purple-100';
+      case 'energy':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'healthcare':
+      case 'health':
+        return 'bg-pink-50 text-pink-700 border-pink-100';
+      case 'agriculture':
+      case 'environment':
+        return 'bg-green-50 text-green-700 border-green-100';
+      case 'education':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-100';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-100';
     }
   };
 
@@ -155,8 +180,34 @@ const FundingPage: React.FC = () => {
                                <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
                                {getStatusBadge(proposal.status)}
                             </div>
-                            <div className="text-sm text-slate-500 mb-2">
-                               <p>Submitted by: {proposal.submittedBy} | Total Budget: {proposal.budgetTotal}</p>
+                            
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-2">
+                              {/* Submitted By */}
+                              <div className="flex items-center gap-1.5 text-slate-500">
+                                <User className="w-3.5 h-3.5 text-slate-400" />
+                                <span>{proposal.submittedBy}</span>
+                              </div>
+
+                              {/* Date Submitted */}
+                              <div className="flex items-center gap-1.5 text-slate-500">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
+                              </div>
+
+                              {/* Endorsed By */}
+                              <div className="flex items-center gap-1.5 text-slate-500">
+                                <span className="text-slate-400">Endorsed By:</span>
+                                <span className="font-medium text-slate-700">{proposal.rdStaffReviewer || 'Unassigned'}</span>
+                              </div>
+
+
+                              {/* Tags */}
+                              {proposal.sector && (
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${getSectorColor(proposal.sector)}`}>
+                                  <Tag className="w-3 h-3" />
+                                  <span className="font-medium">{proposal.sector}</span>
+                                </div>
+                              )}
                             </div>
                          </div>
                          

@@ -392,7 +392,7 @@ const getDummyProposals = (): Proposal[] => [
     rdStation: 'Smart City Lab',
     classification: 'Development',
     classificationDetails: 'Pilot Testing',
-    sector: 'Information Technology',
+    sector: 'ICT',
     discipline: 'Computer Engineering',
     duration: '12 months',
     startDate: 'June 2025',
@@ -404,7 +404,7 @@ const getDummyProposals = (): Proposal[] => [
   },
   {
     id: 'PROP-2025-008',
-    title: 'Community-Based Mangrove Restoration Project',
+    title: 'Solar Powered Irrigation System for Small Scale Farmers',
     documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     status: 'Waiting for Funding',
     projectFile: "mangrove_restoration.pdf",
@@ -426,7 +426,7 @@ const getDummyProposals = (): Proposal[] => [
     rdStation: 'Coastal Resource Center',
     classification: 'Extension',
     classificationDetails: 'Community Service',
-    sector: 'Environment',
+    sector: 'Agriculture',
     discipline: 'Environmental Science',
     duration: '24 months',
     startDate: 'February 2025',
@@ -434,11 +434,12 @@ const getDummyProposals = (): Proposal[] => [
     budgetSources: [ { source: 'DENR', ps: '₱1,000,000', mooe: '₱500,000', co: '₱100,000', total: '₱1,600,000' } ],
     budgetTotal: '₱1,600,000',
     assignedEvaluators: [],
-    evaluatorInstruction: ''
+    evaluatorInstruction: '',
+    rdStaffReviewer: 'Dr. Michael Chen'
   },
   {
     id: 'PROP-2025-009',
-    title: 'Solar Powered Irrigation System for Small Scale Farmers',
+    title: 'Development of Hybrid Solar-Wind Energy System',
     documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     status: 'Funded',
     projectFile: "solar_irrigation.pdf",
@@ -460,7 +461,7 @@ const getDummyProposals = (): Proposal[] => [
     rdStation: 'Agricultural Engineering Lab',
     classification: 'Development',
     classificationDetails: 'Technology Rollout',
-    sector: 'Agriculture',
+    sector: 'Energy',
     discipline: 'Agricultural Engineering',
     duration: '18 months',
     startDate: 'January 2025',
@@ -468,7 +469,8 @@ const getDummyProposals = (): Proposal[] => [
     budgetSources: [ { source: 'DA', ps: '₱2,000,000', mooe: '₱1,000,000', co: '₱500,000', total: '₱3,500,000' } ],
     budgetTotal: '₱3,500,000',
     assignedEvaluators: [],
-    evaluatorInstruction: ''
+    evaluatorInstruction: '',
+    rdStaffReviewer: 'Engr. Sarah Connor'
   }
 ];
 
