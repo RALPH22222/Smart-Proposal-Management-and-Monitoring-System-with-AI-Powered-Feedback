@@ -59,6 +59,9 @@ export type ProposalStatus =
   | 'Rejected Proposal'
   | 'Revised Proposal'
 	| 'Assigned to RnD'
+  | 'Endorsed'
+  | 'Waiting for Funding'
+  | 'Funded'
   | 'Unassigned';
 
 export type DecisionType =

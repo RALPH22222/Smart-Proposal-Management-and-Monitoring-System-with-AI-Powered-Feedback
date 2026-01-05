@@ -1,0 +1,227 @@
+import React, { useState, useEffect } from 'react';
+import {
+  CheckCircle,
+  FileText,
+  Clock,
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
+import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
+
+const FundingPage: React.FC = () => {
+  const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    loadFundingProposals();
+  }, []);
+
+  const loadFundingProposals = async () => {
+    try {
+      setLoading(true);
+      const allProposals = await proposalApi.fetchProposals();
+      // Filter proposals that are relevant to funding
+      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Waiting for Funding', 'Funded'];
+      const filtered = allProposals.filter(p => relevantStatuses.includes(p.status));
+      setFundingProposals(filtered);
+    } catch (error) {
+      console.error('Error loading funding proposals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (proposalId: string, newStatus: ProposalStatus) => {
+    try {
+      await proposalApi.updateProposalStatus(proposalId, newStatus);
+      // Refresh list
+      loadFundingProposals();
+    } catch (error) {
+      console.error(`Error updating status to ${newStatus}:`, error);
+    }
+  };
+
+  const getStatusBadge = (status: ProposalStatus) => {
+    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
+    switch (status) {
+      case 'Endorsed':
+        return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}>Endorsed</span>;
+      case 'Waiting for Funding':
+        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>Waiting for Funding</span>;
+      case 'Funded':
+        return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
+      default:
+        return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}>{status}</span>;
+    }
+  };
+
+
+
+   // Pagination
+   const totalPages = Math.ceil(fundingProposals.length / itemsPerPage);
+   const startIndex = (currentPage - 1) * itemsPerPage;
+   const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading funding data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col">
+      <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
+        {/* Header */}
+        <header className="flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+                Project Funding Status
+              </h1>
+              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+                Track council approval and funding status of endorsed proposals
+              </p>
+            </div>
+          </div>
+        </header>
+
+        {/* Stats Cards */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+           <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Endorsed (New)</p>
+                  <p className="text-xl font-bold text-blue-600 tabular-nums">
+                    {fundingProposals.filter((p) => p.status === 'Endorsed').length}
+                  </p>
+                </div>
+                <FileText className="w-6 h-6 text-blue-500" />
+              </div>
+           </div>
+           <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4">
+             <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Waiting for Funding</p>
+                  <p className="text-xl font-bold text-amber-600 tabular-nums">
+                    {fundingProposals.filter((p) => p.status === 'Waiting for Funding').length}
+                  </p>
+                </div>
+                <Clock className="w-6 h-6 text-amber-500" />
+              </div>
+           </div>
+           <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
+             <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
+                  <p className="text-xl font-bold text-emerald-600 tabular-nums">
+                    {fundingProposals.filter((p) => p.status === 'Funded').length}
+                  </p>
+                </div>
+                <CheckCircle className="w-6 h-6 text-emerald-500" />
+              </div>
+           </div>
+        </section>
+
+        {/* Proposals List */}
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          <div className="p-4 border-b border-slate-200 bg-slate-50">
+             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-[#C8102E]" />
+                Funding Proposals
+             </h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+             {fundingProposals.length === 0 ? (
+               <div className="text-center py-12 px-4">
+                 <p className="text-slate-500">No proposals found in funding stages.</p>
+               </div>
+             ) : (
+                <div className="divide-y divide-slate-100">
+                  {paginatedProposals.map((proposal) => (
+                    <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                         <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                               <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
+                               {getStatusBadge(proposal.status)}
+                            </div>
+                            <div className="text-sm text-slate-500 mb-2">
+                               <p>Submitted by: {proposal.submittedBy} | Total Budget: {proposal.budgetTotal}</p>
+                            </div>
+                         </div>
+                         
+                         {/* Actions */}
+                         <div className="flex items-center gap-2">
+                            {proposal.status === 'Endorsed' && (
+                               <button
+                                 onClick={() => handleStatusChange(proposal.id, 'Waiting for Funding')}
+                                 className="px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#A00C24] transition-colors"
+                               >
+                                 Approve (Council)
+                               </button>
+                            )}
+                            {proposal.status === 'Waiting for Funding' && (
+                                <button
+                                  onClick={() => handleStatusChange(proposal.id, 'Funded')}
+                                  className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                                >
+                                  Mark as Funded
+                                </button>
+                            )}
+                         </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+             )}
+          </div>
+
+           {/* Pagination */}
+           {fundingProposals.length > 0 && (
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, fundingProposals.length)} of {fundingProposals.length} proposals
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                    Previous
+                  </button>
+                  <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default FundingPage;

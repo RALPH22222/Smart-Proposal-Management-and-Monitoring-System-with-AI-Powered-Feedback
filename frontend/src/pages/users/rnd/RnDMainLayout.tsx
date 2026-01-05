@@ -11,6 +11,7 @@ import {
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import EndorsePage from './RnDEndorsePage';
 import EvaluatorPage from './RnDEvaluatorPage';
+import FundingPage from './RnDFundingPage';
 
 const MainLayout: React.FC = () => {
 	const [currentPage, setCurrentPage] = useState('dashboard');
@@ -62,6 +63,8 @@ const MainLayout: React.FC = () => {
 				return <EvaluatorPage />;
 			case 'endorsements':
 				return <EndorsePage />;
+      case 'funding':
+        return <FundingPage />;
 			case 'monitoring':
 				return <Monitoring onStatsUpdate={loadData} />;
 			case 'settings':

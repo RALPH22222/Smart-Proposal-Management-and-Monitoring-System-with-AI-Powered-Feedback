@@ -36,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'proposals', label: 'Proposals', icon: FileText },
     { id: 'evaluators', label: 'Evaluators', icon: Users },
     { id: 'endorsements', label: 'Endorsements', icon: CheckCircle },
+    { id: 'funding', label: 'Project Funding', icon: FileText }, // Using FileText as placeholder, ideally Wallet or Coins if available
     { id: 'monitoring', label: 'Project Monitoring', icon: BarChart3 },
   ];
 
