@@ -109,8 +109,36 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, [isLoading, agenciesList, data.cooperatingAgencies, data.discipline, data.agencyName]);
 
-  // --- 3. DURATION LOGIC (UPDATED: Two-way binding) ---
-  
+  // --- 3. DURATION LOGIC (UPDATED: Helper Function) ---
+
+  const calculateImplementationDates = (startStr: string, durationStr: string = '1 year') => {
+      if (!startStr) return;
+      
+      const start = parseISO(startStr);
+      if (!isValid(start)) return;
+
+      let monthsToAdd = 0;
+      // Default to 1 year if duration is empty or invalid
+      const effectiveDuration = durationStr || '1 year';
+      
+      if (effectiveDuration.includes('month')) {
+          monthsToAdd = parseInt(effectiveDuration.split(' ')[0]);
+      } else if (effectiveDuration.includes('year')) {
+          const val = parseInt(effectiveDuration.split(' ')[0]);
+          monthsToAdd = val * 12;
+      }
+
+      if (monthsToAdd > 0) {
+          const newEnd = addMonths(start, monthsToAdd);
+          onUpdate('plannedEndDate', format(newEnd, 'yyyy-MM-dd'));
+          
+          // Also update the visible duration field if it was empty
+          if (!data.duration) {
+              onUpdate('duration', effectiveDuration);
+          }
+      }
+  };
+
   // Calculate Duration if Dates Change
   useEffect(() => {
     const startDate = data.plannedStartDate;
@@ -130,12 +158,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             durationString = `${years} year${years !== 1 ? 's' : ''}`;
           }
           
-          // Only update if current duration is empty or matches previous calc format (to avoid overwriting user manual selection)
-          // Actually, for consistency, let's always update duration string if dates are valid to match logic
+          // Update duration state visibly
           if (data.duration !== durationString) {
-             // We don't call onUpdate here to avoid loop if user selected duration first
-             // But usually, date change implies calc duration
-             // Let's rely on user action.
+             // We update the duration derived from dates
+             // Note: This might conflict if user is selecting duration to drive end date.
+             // But the prompt says "When user selects Start Date, automatically display End Date based on Duration".
           }
         }
       } catch (e) {
@@ -148,52 +175,23 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const handleDurationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDuration = e.target.value;
     onUpdate('duration', selectedDuration);
-
-    if (data.plannedStartDate && selectedDuration) {
-        try {
-            const start = parseISO(data.plannedStartDate);
-            if (!isValid(start)) return;
-
-            let monthsToAdd = 0;
-            if (selectedDuration.includes('month')) {
-                monthsToAdd = parseInt(selectedDuration.split(' ')[0]);
-            } else if (selectedDuration.includes('year')) {
-                monthsToAdd = parseInt(selectedDuration.split(' ')[0]) * 12;
-            }
-
-            if (monthsToAdd > 0) {
-                const newEnd = addMonths(start, monthsToAdd);
-                onUpdate('plannedEndDate', format(newEnd, 'yyyy-MM-dd'));
-            }
-        } catch (error) {
-            console.error("Error calculating end date from duration", error);
-        }
+    if (data.plannedStartDate) {
+        calculateImplementationDates(data.plannedStartDate, selectedDuration);
     }
   };
 
-  // Handle Date Change -> Calculate Duration String
+  // Handle Date Change
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onInputChange(e); // Update the date field first
+      onInputChange(e); 
       
       const { name, value } = e.target;
-      const otherDate = name === 'plannedStartDate' ? data.plannedEndDate : data.plannedStartDate;
-      
-      if (value && otherDate) {
-          const start = name === 'plannedStartDate' ? parseISO(value) : parseISO(otherDate);
-          const end = name === 'plannedEndDate' ? parseISO(value) : parseISO(otherDate);
-
-          if (isValid(start) && isValid(end) && end >= start) {
-              const months = differenceInMonths(end, start);
-              let durationString = `${months} month${months !== 1 ? 's' : ''}`;
-              if (months % 12 === 0 && months >= 12) {
-                  const years = months / 12;
-                  durationString = `${years} year${years !== 1 ? 's' : ''}`;
-              }
-              onUpdate('duration', durationString);
-          } else {
-              onUpdate('duration', '');
-          }
+      if (name === 'plannedStartDate') {
+          // When Start Date changes, recalculate End Date based on current Duration (or default 1 year)
+          calculateImplementationDates(value, data.duration);
       }
+      
+      // If End Date changes manually, we could reverse calc duration, but the prompt emphasizes Start+Duration -> End Logic.
+      // So detailed reverse logic is kept as is in the useEffect or here if needed.
   };
 
 

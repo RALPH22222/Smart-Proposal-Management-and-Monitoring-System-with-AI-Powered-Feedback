@@ -13,7 +13,7 @@ import {
 
 // --- Types ---
 type ProjectStatus = 'active' | 'delayed' | 'completed';
-type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked';
+type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked' | 'revision_required' | 'pending';
 
 interface ExpenseItem {
   id: string;
@@ -70,10 +70,6 @@ const MonitoringPage: React.FC = () => {
   
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
 
-  // State for fund request form (for Q3 fund_request state)
-  const [fundRequestAmount, setFundRequestAmount] = useState<number>(0);
-  const [fundRequestDescription, setFundRequestDescription] = useState("");
-
   const [isAdditionalFundModalOpen, setIsAdditionalFundModalOpen] = useState(false);
   const [additionalFundAmount, setAdditionalFundAmount] = useState<number>(0);
   const [additionalFundJustification, setAdditionalFundJustification] = useState("");
@@ -81,6 +77,10 @@ const MonitoringPage: React.FC = () => {
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
   const [extensionReason, setExtensionReason] = useState("");
   const [extensionDate, setExtensionDate] = useState("");
+  
+  // Extension Logic
+  const [extensionCount, setExtensionCount] = useState(0); // Initialize to 0 or 1 for testing
+  const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
 
   const [replyText, setReplyText] = useState("");
 
@@ -352,13 +352,6 @@ const MonitoringPage: React.FC = () => {
   const remainingBudget = totalAvailableFunds - totalSpent;
   const budgetProgress = activeProject ? (totalSpent / totalAvailableFunds) * 100 : 0;
 
-  const approvedFundRequests = activeProject?.reports.reduce((acc, report) => {
-    if (report.fundRequest?.status === 'approved') {
-      return acc + report.fundRequest.amount;
-    }
-    return acc;
-  }, 0) || 0;
-
   // --- Handlers ---
   const handlePrevReport = () => {
     if (currentReportIndex > 0) setCurrentReportIndex(prev => prev - 1);
@@ -382,43 +375,7 @@ const removeBreakdownItem = (itemId: string) => {
   setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
 };
 
-  // Expense log CRUD (used in Quarterly Report for LIQUIDATION)
-  const addExpenseItem = (reportId: number) => {
-    const newItem: ExpenseItem = { id: Date.now().toString(), description: '', amount: 0 };
-    setProjects(prev => prev.map(p => {
-      if(p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        reports: p.reports.map(r => r.id === reportId ? { ...r, expenseItems: [...r.expenseItems, newItem] } : r)
-      };
-    }));
-  };
 
-  const updateExpenseItem = (reportId: number, itemId: string, field: keyof ExpenseItem, value: any) => {
-    setProjects(prev => prev.map(p => {
-      if(p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        reports: p.reports.map(r => {
-          if (r.id !== reportId) return r;
-          return {
-            ...r,
-            expenseItems: r.expenseItems.map(item => item.id === itemId ? { ...item, [field]: value } : item)
-          };
-        })
-      };
-    }));
-  };
-
-  const removeExpenseItem = (reportId: number, itemId: string) => {
-    setProjects(prev => prev.map(p => {
-      if(p.id !== activeProjectId) return p;
-      return {
-        ...p,
-        reports: p.reports.map(r => r.id === reportId ? { ...r, expenseItems: r.expenseItems.filter(i => i.id !== itemId) } : r)
-      };
-    }));
-  };
 
   // Fund Request creation (for quarterly fund requests)
 const submitFundRequest = (reportId: number, items: ExpenseItem[]) => {
@@ -755,7 +712,6 @@ const submitReport = (reportId: number) => {
                               onClick={() => setIsExtensionModalOpen(true)} 
                               className="flex-1 sm:flex-none justify-center flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors" 
                               title="Request Extension"
-                              disabled={activeProject.status === 'completed'}
                             >
                               <CalendarClock className="w-5 h-5"/>
                             </button>
@@ -830,6 +786,8 @@ const submitReport = (reportId: number) => {
                            {isLocked && <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><Lock className="w-3 h-3"/> Locked</span>}
                            {isFundRequestNeeded && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><DollarSign className="w-3 h-3"/> Fund Request</span>}
                            {isOverdue && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Overdue</span>}
+                           {currentReport.status === 'revision_required' && <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Revision Required</span>}
+                           {currentReport.status === 'pending' && <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><Clock className="w-3 h-3"/> Waiting for Review</span>}
                            {currentReport.status === 'approved' && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Verified</span>}
                            {currentReport.status === 'submitted' && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><FileText className="w-3 h-3"/> Submitted</span>}
                          </div>
@@ -1070,16 +1028,58 @@ const submitReport = (reportId: number) => {
 </div>
 
                              {/* Proof of Accomplishment (Editable) */}
-                             <div className="bg-white p-4 rounded-xl border border-gray-200">
-                               <div className="flex justify-between items-center mb-2">
-                                 <label className="text-xs font-bold text-gray-600 uppercase">Proof of Accomplishment / Receipts</label>
-                                 <label className="cursor-pointer text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                             <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-4">
+                               {currentReport.status === 'revision_required' && (
+                                   <div className="bg-red-50 border border-red-200 p-3 rounded-lg flex items-center gap-2 text-red-700 text-xs font-bold">
+                                       <AlertTriangle className="w-4 h-4"/>
+                                       <span>Revision Required: Please update the report files below.</span>
+                                   </div>
+                               )}
+
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-600 uppercase">Quarterly Accomplishment Report</label>
+                                        <input 
+                                            type="file" 
+                                            disabled={currentReport.status === 'pending'}
+                                            className="block w-full text-xs text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-full file:border-0
+                                            file:text-xs file:font-semibold
+                                            file:bg-blue-50 file:text-blue-700
+                                            hover:file:bg-blue-100"
+                                            onChange={(e) => { 
+                                                // Handle file Logic
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-gray-600 uppercase">Project Terminal Report (Expected Outputs)</label>
+                                        <input 
+                                            type="file"
+                                            disabled={currentReport.status === 'pending'}
+                                            className="block w-full text-xs text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-full file:border-0
+                                            file:text-xs file:font-semibold
+                                            file:bg-blue-50 file:text-blue-700
+                                            hover:file:bg-blue-100"
+                                            onChange={(e) => { 
+                                                // Handle file Logic
+                                            }}
+                                        />
+                                    </div>
+                               </div>
+
+                               <div className="flex justify-between items-center mb-2 pt-4 border-t border-gray-100">
+                                 <label className="text-xs font-bold text-gray-600 uppercase">Additional Proofs / Receipts</label>
+                                 <label className={`cursor-pointer text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 ${currentReport.status === 'pending' ? 'opacity-50 pointer-events-none' : ''}`}>
                                    <UploadCloud className="w-3 h-3"/> Upload Files
-                                   <input type="file" multiple className="hidden" onChange={(e) => { 
+                                   <input type="file" multiple disabled={currentReport.status === 'pending'} className="hidden" onChange={(e) => { 
                                      if(e.target.files) updateReportField(currentReport.id, 'proofFiles', [...currentReport.proofFiles, ...Array.from(e.target.files).map(f => f.name)]); 
                                    }}/></label>
                                </div>
-                               {currentReport.proofFiles.length > 0 ? <div className="flex flex-wrap gap-2">{currentReport.proofFiles.map((file, i) => <span key={i} className="bg-gray-50 border border-gray-200 px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1"><FileText className="w-3 h-3 text-blue-500"/> {file}</span>)}</div> : <p className="text-xs text-gray-400 italic">No files uploaded yet. Please attach receipts/proofs corresponding to your liquidation log.</p>}
+                               {currentReport.proofFiles.length > 0 ? <div className="flex flex-wrap gap-2">{currentReport.proofFiles.map((file, i) => <span key={i} className="bg-gray-50 border border-gray-200 px-2 py-1 rounded text-xs text-gray-600 flex items-center gap-1"><FileText className="w-3 h-3 text-blue-500"/> {file}</span>)}</div> : <p className="text-xs text-gray-400 italic">No additional files uploaded.</p>}
                              </div>
 
                              {/* --- FEEDBACK & COMMUNICATION SECTION (Editable Mode) --- */}
@@ -1218,10 +1218,57 @@ const submitReport = (reportId: number) => {
            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
               <button onClick={() => setIsExtensionModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
               <div className="text-center mb-6"><div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3"><CalendarClock className="w-6 h-6" /></div><h3 className="text-xl font-bold text-gray-800">Request Extension</h3></div>
+              
               <div className="space-y-4">
-                 <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">New End Date</label><input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm"/></div>
+                 {/* Extension Type Radio */}
+                 <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
+                    <button 
+                        onClick={() => setExtensionType('time_only')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'time_only' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}
+                    >
+                        Time Extension Only
+                    </button>
+                    <button 
+                        onClick={() => setExtensionType('with_funding')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'with_funding' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}
+                    >
+                        Extension with Funding
+                    </button>
+                 </div>
+
+                 {/* Warning for Funding */}
+                 {extensionType === 'with_funding' && (
+                     <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0"/>
+                        <p>Note: You must upload a new proposal justification for additional funding.</p>
+                     </div>
+                 )}
+
+                 {/* Max Extension Warning */}
+                 {extensionCount >= 2 && (
+                     <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4"/>
+                        <p>Maximum of 2 extensions allowed.</p>
+                     </div>
+                 )}
+
+                 <div>
+                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">New End Date (Default: +6 Months)</label>
+                    <input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm"/>
+                 </div>
                  <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Reason</label><textarea value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)} placeholder="Reason for delay..." className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm h-24 resize-none"/></div>
-                 <button onClick={() => { alert("Extension Requested"); setIsExtensionModalOpen(false); }} disabled={!extensionDate || !extensionReason.trim()} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">Submit Request</button>
+                 
+                 <button 
+                    onClick={() => { 
+                        setExtensionCount(prev => prev + 1);
+                        alert("Extension Requested"); 
+                        setIsExtensionModalOpen(false); 
+                    }} 
+                    disabled={!extensionDate || !extensionReason.trim() || extensionCount >= 2} 
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    Submit Request
+                </button>
               </div>
            </div>
         </div>

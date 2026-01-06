@@ -5,7 +5,7 @@ export type User = {
   lastName: string;
   email: string;
   role: string;
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Blocked";
   agency?: string;
   specialties?: string[];
 };
