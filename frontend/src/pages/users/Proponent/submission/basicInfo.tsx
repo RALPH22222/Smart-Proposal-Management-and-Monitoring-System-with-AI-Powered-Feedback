@@ -109,17 +109,24 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, [isLoading, agenciesList, data.cooperatingAgencies, data.discipline, data.agencyName]);
 
+  // Set default duration to 6 months if empty
+  useEffect(() => {
+    if (!data.duration) {
+      onUpdate('duration', '6 months');
+    }
+  }, []);
+
   // --- 3. DURATION LOGIC (UPDATED: Helper Function) ---
 
-  const calculateImplementationDates = (startStr: string, durationStr: string = '1 year') => {
+  const calculateImplementationDates = (startStr: string, durationStr: string = '6 months') => {
       if (!startStr) return;
       
       const start = parseISO(startStr);
       if (!isValid(start)) return;
 
       let monthsToAdd = 0;
-      // Default to 1 year if duration is empty or invalid
-      const effectiveDuration = durationStr || '1 year';
+      // Default to 6 months if duration is empty or invalid
+      const effectiveDuration = durationStr || '6 months';
       
       if (effectiveDuration.includes('month')) {
           monthsToAdd = parseInt(effectiveDuration.split(' ')[0]);
@@ -366,11 +373,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           <div className="relative">
             <select
                 name="duration"
-                value={data.duration || ''}
+                value={data.duration || '6 months'}
                 onChange={handleDurationChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
             >
-                <option value="">Select Duration or Calculate</option>
+                <option value="" disabled>Select Duration or Calculate</option>
                 <option value="6 months">6 Months</option>
                 <option value="12 months">12 Months</option>
                 <option value="1 year">1 Year</option>

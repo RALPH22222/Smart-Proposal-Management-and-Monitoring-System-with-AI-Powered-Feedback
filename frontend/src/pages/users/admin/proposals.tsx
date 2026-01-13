@@ -219,7 +219,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
       let newAssignedEvaluators: string[] | undefined = undefined;
       // Capture the instruction message
       // Note: In AdminProposalModal, "Comments for Evaluators" maps to structuredComments.objectives.content
-      let instructionMessage = decision.structuredComments?.objectives?.content || "";
+      const instructionMessage = decision.structuredComments?.objectives?.content || "";
 
       if (decision.decision === 'Sent to Evaluators') {
         newStatus = 'Sent to Evaluators';
@@ -477,15 +477,6 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                           {/* Status Badge */}
                           {getStatusBadge(proposal)}
 
-                          {/* Eye Button */}
-                          <button
-                            onClick={() => handleViewDetails(proposal)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
-                            title="View details"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
-
                           {/* Action Button */}
                           {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
                             <button
@@ -507,6 +498,15 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                                Change R&D
                              </button>
                           )}
+
+                          {/* Eye Button */}
+                          <button
+                            onClick={() => handleViewDetails(proposal)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                            title="View details"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </button>
 
                         </div>
                       </td>

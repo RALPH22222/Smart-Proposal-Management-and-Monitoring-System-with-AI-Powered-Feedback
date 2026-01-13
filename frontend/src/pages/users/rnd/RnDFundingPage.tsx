@@ -9,6 +9,8 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  X,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
@@ -91,6 +93,33 @@ const FundingPage: React.FC = () => {
    const startIndex = (currentPage - 1) * itemsPerPage;
    const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
 
+  const [justificationModal, setJustificationModal] = useState<{ isOpen: boolean; title: string; content: string }>({
+    isOpen: false,
+    title: '',
+    content: ''
+  });
+
+  const getRandomEndorser = (id: string) => {
+    const names = ["Dr. Michael Chen", "Dr. Sarah Connor", "Dr. James Reid", "Dr. Emily White", "Dr. Robert Kim", "Dr. Angela Rivera", "Dr. Amanda Foster"];
+    let sum = 0;
+    for (let i = 0; i < id.length; i++) {
+      sum += id.charCodeAt(i);
+    }
+    return names[sum % names.length];
+  };
+
+  const handleViewJustification = (proposal: Proposal) => {
+    setJustificationModal({
+      isOpen: true,
+      title: `Endorsement Justification - ${proposal.title}`,
+      content: proposal.endorsementJustification || "No justification provided."
+    });
+  };
+
+  const closeJustificationModal = () => {
+    setJustificationModal(prev => ({ ...prev, isOpen: false }));
+  };
+
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
@@ -103,7 +132,7 @@ const FundingPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -197,7 +226,7 @@ const FundingPage: React.FC = () => {
                               {/* Endorsed By */}
                               <div className="flex items-center gap-1.5 text-slate-500">
                                 <span className="text-slate-400">Endorsed By:</span>
-                                <span className="font-medium text-slate-700">{proposal.rdStaffReviewer || 'Unassigned'}</span>
+                                <span className="font-medium text-slate-700">{proposal.rdStaffReviewer || getRandomEndorser(proposal.id)}</span>
                               </div>
 
 
@@ -216,7 +245,7 @@ const FundingPage: React.FC = () => {
                             {proposal.status === 'Endorsed' && (
                                <button
                                  onClick={() => handleStatusChange(proposal.id, 'Waiting for Funding')}
-                                 className="px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#A00C24] transition-colors"
+                                 className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                                >
                                  Approve (Council)
                                </button>
@@ -229,6 +258,14 @@ const FundingPage: React.FC = () => {
                                   Mark as Funded
                                 </button>
                             )}
+                            {/* Justification View Button */}
+                             <button 
+                                onClick={() => handleViewJustification(proposal)}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                                title="View Endorsement Justification"
+                             >
+                                <MessageSquare className="w-3 h-3" />
+                             </button>
                          </div>
                       </div>
                     </article>
@@ -271,6 +308,38 @@ const FundingPage: React.FC = () => {
 
         </main>
       </div>
+
+      {/* Justification Modal */}
+      {justificationModal.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={closeJustificationModal}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-blue-500" />
+                Endorsement Justification
+              </h3>
+              <button onClick={closeJustificationModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                  {justificationModal.content}
+                </p>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={closeJustificationModal}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

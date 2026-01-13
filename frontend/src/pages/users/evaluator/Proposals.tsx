@@ -719,15 +719,6 @@ export default function Proposals() {
                       </span>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewClick(proposal.id)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
-                          aria-label={`View details for ${proposal.title}`}
-                          title="View details"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
-
                         {proposal.status === "pending" && (
                           <button
                             onClick={() => handleEvaluateClick(proposal.id)}
@@ -739,6 +730,15 @@ export default function Proposals() {
                             Action
                           </button>
                         )}
+
+                        <button
+                          onClick={() => handleViewClick(proposal.id)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
+                          aria-label={`View details for ${proposal.title}`}
+                          title="View details"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   </div>

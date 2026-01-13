@@ -157,7 +157,7 @@ export default function RnDViewModal({
     const months = parseInt(newDuration);
     
     // Update State (Keep pure number in state)
-    let newState = { ...scheduleData, duration: newDuration };
+    const newState = { ...scheduleData, duration: newDuration };
 
     // If we have a start date and valid duration, calc end date
     if (scheduleData.startDate && !isNaN(months)) {
@@ -174,7 +174,7 @@ export default function RnDViewModal({
 
   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newStart = e.target.value;
-    let newState = { ...scheduleData, startDate: newStart };
+    const newState = { ...scheduleData, startDate: newStart };
 
     // If duration exists, calc end date
     if (newStart && scheduleData.duration) {
@@ -206,7 +206,7 @@ export default function RnDViewModal({
 
   const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEnd = e.target.value;
-    let newState = { ...scheduleData, endDate: newEnd };
+    const newState = { ...scheduleData, endDate: newEnd };
 
     // If start date exists, calc duration
     if (scheduleData.startDate && newEnd) {

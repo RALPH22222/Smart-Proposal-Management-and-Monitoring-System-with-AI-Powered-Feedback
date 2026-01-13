@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Calendar, User, Eye, Gavel, Filter, Search, 
-  ChevronLeft, ChevronRight, Tag, Clock, Send, XCircle, 
+  ChevronLeft, ChevronRight, Tag, Clock, XCircle, 
   RefreshCw, GitBranch, Users, X, MessageSquare 
 } from 'lucide-react';
 import {
@@ -473,15 +473,6 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                           {/* Status Badge (Clickable for Evaluators) */}
                           {getStatusBadge(proposal.status as ExtendedProposalStatus, proposal)}
 
-                          {/* Eye Button */}
-                          <button
-                            onClick={() => handleViewDetails(proposal)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
-                            title="View details"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
-
                           {/* Action Button */}
                           {(proposal.status === "Pending" || proposal.status === ("Revised Proposal" as ProposalStatus)) && (
                             <button
@@ -492,6 +483,15 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                               Action
                             </button>
                           )}
+
+                          {/* Eye Button */}
+                          <button
+                            onClick={() => handleViewDetails(proposal)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                            title="View details"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </button>
                         </div>
                       </td>
                     </tr>

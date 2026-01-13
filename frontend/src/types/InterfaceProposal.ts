@@ -43,6 +43,7 @@ export interface Proposal {
 	budgetSources: BudgetSource[];
 	budgetTotal: string;
 	projectFile?: string;          
+	endorsementJustification?: string;
 	rdStaffReviewer?: string;
 	evaluationDeadline?: string;
 	assignedRdStaff?: string;
