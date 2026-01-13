@@ -46,8 +46,8 @@ export default function EndorsedProposals() {
       discipline: "Information and Communication Technology",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "January 2025",
-      endDate: "December 2026",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -84,8 +84,8 @@ export default function EndorsedProposals() {
       discipline: "Agricultural Engineering",
       duration: "36 months",
       schoolYear: "2024-2025",
-      startDate: "March 2025",
-      endDate: "February 2028",
+      startDate: "01/05/2025",
+      endDate: "01/05/2028",
       budgetSources: [
         {
           source: "DOST",
@@ -128,10 +128,10 @@ export default function EndorsedProposals() {
       priorityAreas: "Health Information Systems, Data Security",
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
-      duration: "30 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "February 2025",
-      endDate: "July 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -169,8 +169,8 @@ export default function EndorsedProposals() {
       discipline: "Electrical Engineering",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "April 2025",
-      endDate: "March 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -213,10 +213,10 @@ export default function EndorsedProposals() {
       priorityAreas: "Environmental Conservation, IoT",
       sector: "Environment and Natural Resources",
       discipline: "Marine Science",
-      duration: "36 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "January 2025",
-      endDate: "December 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -260,8 +260,8 @@ export default function EndorsedProposals() {
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "May 2025",
-      endDate: "April 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -304,10 +304,10 @@ export default function EndorsedProposals() {
       priorityAreas: "Digital Health, Rural Medicine",
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
-      duration: "30 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "March 2025",
-      endDate: "August 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -350,10 +350,10 @@ export default function EndorsedProposals() {
       priorityAreas: "Climate Change Adaptation, Data Science",
       sector: "Environment and Climate",
       discipline: "Atmospheric Science and Data Science",
-      duration: "36 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "February 2025",
-      endDate: "January 2028",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",

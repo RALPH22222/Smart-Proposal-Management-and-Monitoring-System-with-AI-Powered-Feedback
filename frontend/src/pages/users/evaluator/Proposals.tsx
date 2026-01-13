@@ -105,8 +105,8 @@ export default function Proposals() {
       discipline: "Information and Communication Technology",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "January 2025",
-      endDate: "December 2026",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -146,10 +146,10 @@ export default function Proposals() {
       classificationDetails: "Technology Promotion/Commercialization",
       sector: "Agriculture and Fisheries",
       discipline: "Agricultural Engineering",
-      duration: "36 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "March 2025",
-      endDate: "February 2028",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -195,10 +195,10 @@ export default function Proposals() {
       classificationDetails: "Basic",
       sector: "Health and Wellness",
       discipline: "Health Information Technology",
-      duration: "30 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "February 2025",
-      endDate: "July 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -239,8 +239,8 @@ export default function Proposals() {
       discipline: "Computer Science",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "April 2025",
-      endDate: "March 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -289,8 +289,8 @@ export default function Proposals() {
       discipline: "Electrical Engineering",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "April 2025",
-      endDate: "March 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -336,10 +336,10 @@ export default function Proposals() {
       classificationDetails: "Applied",
       sector: "Artificial Intelligence",
       discipline: "Computer Science and Mathematics",
-      duration: "18 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "May 2025",
-      endDate: "October 2026",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -380,8 +380,8 @@ export default function Proposals() {
       discipline: "Civil Engineering and ICT",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "May 2025",
-      endDate: "April 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -428,10 +428,10 @@ export default function Proposals() {
       classificationDetails: "Applied",
       sector: "Health and Wellness",
       discipline: "Medical Technology and ICT",
-      duration: "30 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "March 2025",
-      endDate: "August 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",

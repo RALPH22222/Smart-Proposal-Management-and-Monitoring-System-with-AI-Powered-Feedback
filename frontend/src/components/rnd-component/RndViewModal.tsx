@@ -21,10 +21,12 @@ import {
   AlertTriangle,
   Send,
   Globe, 
+  Edit2, 
+  Save, 
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 // --- INTERFACES ---
-// Defined locally to match your exact dummy data structure
 interface Site {
   site: string;
   city: string;
@@ -38,7 +40,6 @@ interface BudgetSource {
   total: string;
 }
 
-// Renamed to avoid conflict with global Proposal type
 export interface ViewModalProposal {
   id: string;
   title: string;
@@ -50,13 +51,13 @@ export interface ViewModalProposal {
   lastModified: string;
   proponent: string;
   gender: string;
-  agency: string; // Fixed: String
-  address: string; // Fixed: String
+  agency: string;
+  address: string;
   telephone: string;
   fax: string;
   email: string;
   modeOfImplementation: string;
-  implementationSites: Site[]; // Fixed: Array of sites
+  implementationSites: Site[];
   priorityAreas: string;
   projectType: string;
   cooperatingAgencies: string;
@@ -75,8 +76,6 @@ export interface ViewModalProposal {
 interface RnDViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Accepts 'any' temporarily to fix the strict type mismatch from parent
-  // or use ViewModalProposal if you cast it in the parent.
   proposal: ViewModalProposal | any | null; 
 }
 
@@ -85,12 +84,174 @@ const handleDownload = (fileName: string) => {
   alert(`Downloading ${fileName}...`);
 };
 
+// --- HELPER FUNCTIONS ---
+
+// Format YYYY-MM-DD to MM/DD/YYYY for display
+const formatDateForDisplay = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr; 
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+// Format any date string to YYYY-MM-DD for input value
+const formatDateForInput = (dateStr: string) => {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    return "";
+  }
+};
+
+// Extract number from duration string (e.g., "12 Months" -> "12")
+const cleanDuration = (d: string | number) => {
+  if (!d) return "";
+  // If it's already a number, return as string
+  if (typeof d === 'number') return d.toString();
+  // If string, replace non-digits
+  return d.toString().replace(/\D/g, '');
+};
+
 export default function RnDViewModal({
   isOpen,
   onClose,
   proposal,
 }: RnDViewModalProps) {
+  // --- STATE FOR EDITING SCHEDULE ---
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [scheduleData, setScheduleData] = useState({
+    duration: "",  // Will store JUST the number string
+    startDate: "",
+    endDate: "",
+  });
+
+  // Sync state with proposal when opened
+  useEffect(() => {
+    if (proposal) {
+      setScheduleData({
+        duration: cleanDuration(proposal.duration),
+        startDate: formatDateForInput(proposal.startDate),
+        endDate: formatDateForInput(proposal.endDate),
+      });
+      setIsEditingSchedule(false);
+    }
+  }, [proposal, isOpen]);
+
   if (!isOpen || !proposal) return null;
+
+  // --- CALCULATION HANDLERS ---
+  
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDuration = e.target.value;
+    const months = parseInt(newDuration);
+    
+    // Update State (Keep pure number in state)
+    let newState = { ...scheduleData, duration: newDuration };
+
+    // If we have a start date and valid duration, calc end date
+    if (scheduleData.startDate && !isNaN(months)) {
+      const start = new Date(scheduleData.startDate);
+      const end = new Date(start);
+      end.setMonth(end.getMonth() + months);
+      // Optional: Subtract 1 day to make it exact duration coverage? Usually X months includes the full Xth month.
+      // Standard practice varies. keeping simple date + months for now.
+      newState.endDate = formatDateForInput(end.toISOString());
+    }
+
+    setScheduleData(newState);
+  };
+
+  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = e.target.value;
+    let newState = { ...scheduleData, startDate: newStart };
+
+    // If duration exists, calc end date
+    if (newStart && scheduleData.duration) {
+      const months = parseInt(scheduleData.duration);
+      if (!isNaN(months)) {
+        const start = new Date(newStart);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + months);
+        newState.endDate = formatDateForInput(end.toISOString());
+      }
+    } 
+    // Else if end date exists, calc duration
+    else if (newStart && scheduleData.endDate) {
+      const start = new Date(newStart);
+      const end = new Date(scheduleData.endDate);
+      
+      // Difference in months
+      let months = (end.getFullYear() - start.getFullYear()) * 12;
+      months -= start.getMonth();
+      months += end.getMonth();
+      
+      if (months > 0) {
+        newState.duration = months.toString();
+      }
+    }
+
+    setScheduleData(newState);
+  };
+
+  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEnd = e.target.value;
+    let newState = { ...scheduleData, endDate: newEnd };
+
+    // If start date exists, calc duration
+    if (scheduleData.startDate && newEnd) {
+       const start = new Date(scheduleData.startDate);
+       const end = new Date(newEnd);
+       
+       let months = (end.getFullYear() - start.getFullYear()) * 12;
+       months -= start.getMonth();
+       months += end.getMonth();
+       
+       if (months >= 0) {
+         newState.duration = months.toString();
+       }
+    }
+
+    setScheduleData(newState);
+  };
+
+
+  // --- HANDLERS ---
+  const handleSaveSchedule = () => {
+    // Here you would typically call an API to save the changes
+    // For now, we'll just toggle edit mode off and show an alert
+    alert("Schedule updated successfully!");
+    setIsEditingSchedule(false);
+    
+    // MOCK UPDATE DISPLAY
+    // Ensure " Months" is appended if there's a value
+    const durationNum = scheduleData.duration;
+    const durationWithSuffix = durationNum ? `${durationNum} Months` : "";
+
+    proposal.duration = durationWithSuffix;
+    proposal.startDate = scheduleData.startDate;
+    proposal.endDate = scheduleData.endDate;
+  };
+
+  const cancelEditSchedule = () => {
+    // Revert changes
+    setScheduleData({
+      duration: cleanDuration(proposal.duration),
+      startDate: formatDateForInput(proposal.startDate),
+      endDate: formatDateForInput(proposal.endDate),
+    });
+    setIsEditingSchedule(false);
+  };
 
   // --- 1. DETERMINE DISPLAY STATUS ---
   const getStatusColor = (status: string) => {
@@ -194,7 +355,7 @@ export default function RnDViewModal({
                       {proposal.projectFile || "Project_Proposal.pdf"}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Submitted: {proposal.submittedDate ? new Date(proposal.submittedDate).toLocaleDateString() : "N/A"}
+                      Submitted: {formatDateForDisplay(proposal.submittedDate)}
                     </p>
                   </div>
                 </div>
@@ -368,36 +529,101 @@ export default function RnDViewModal({
                 </div>
             </div>
 
-            {/* 7. Schedule */}
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#C8102E]" />
-                Implementing Schedule
-              </h3>
+            {/* 7. Schedule (EDITABLE SECTION) */}
+            <div className={`rounded-lg p-4 border transition-colors ${isEditingSchedule ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-sm font-bold flex items-center gap-2 ${isEditingSchedule ? 'text-blue-700' : 'text-slate-900'}`}>
+                  <Calendar className={`w-4 h-4 ${isEditingSchedule ? 'text-blue-600' : 'text-[#C8102E]'}`} />
+                  Implementing Schedule
+                </h3>
+                
+                {!isEditingSchedule ? (
+                  <button 
+                    onClick={() => setIsEditingSchedule(true)}
+                    className="p-1.5 rounded-md hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                    title="Edit Schedule"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button 
+                       onClick={cancelEditSchedule}
+                       className="p-1.5 rounded-md hover:bg-red-100 text-red-600 transition-colors"
+                       title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <button 
+                       onClick={handleSaveSchedule}
+                       className="p-1.5 rounded-md hover:bg-emerald-100 text-emerald-600 transition-colors"
+                       title="Save"
+                    >
+                      <Save className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">
-                    Duration
+                  <span className={`${isEditingSchedule ? 'text-blue-600' : 'text-slate-500'} text-xs tracking-wide`}>
+                    Duration (Months)
                   </span>
-                  <p className="font-semibold text-slate-900 mt-1">
-                    {proposal.duration}
-                  </p>
+                  {/* DISPLAY DURATION AS RAW NUMBER + SUFFIX IN VIEW MODE */}
+                  {/* EDIT MODE: JUST NUMBER INPUT */}
+                  {isEditingSchedule ? (
+                     <div className="relative">
+                      <input 
+                        type="number"
+                        min="1"
+                        value={scheduleData.duration}
+                        onChange={handleDurationChange}
+                        className="w-full mt-1 px-2 py-1.5 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 pr-12"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 pt-1 text-slate-400 text-xs pointer-events-none">
+                        Months
+                      </span>
+                     </div>
+                  ) : (
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {proposal.duration}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">
+                  <span className={`${isEditingSchedule ? 'text-blue-600' : 'text-slate-500'} text-xs tracking-wide`}>
                     Start Date
                   </span>
-                  <p className="font-semibold text-slate-900 mt-1">
-                    {proposal.startDate}
-                  </p>
+                   {isEditingSchedule ? (
+                     <input 
+                      type="date"
+                      value={scheduleData.startDate}
+                      onChange={handleStartDateChange}
+                      className="w-full mt-1 px-2 py-1.5 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                    />
+                  ) : (
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {formatDateForDisplay(proposal.startDate)}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">
+                  <span className={`${isEditingSchedule ? 'text-blue-600' : 'text-slate-500'} text-xs tracking-wide`}>
                     End Date
                   </span>
-                  <p className="font-semibold text-slate-900 mt-1">
-                    {proposal.endDate}
-                  </p>
+                   {isEditingSchedule ? (
+                     <input 
+                      type="date"
+                      value={scheduleData.endDate}
+                      onChange={handleEndDateChange}
+                      className="w-full mt-1 px-2 py-1.5 bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900"
+                    />
+                  ) : (
+                    <p className="font-semibold text-slate-900 mt-1">
+                      {formatDateForDisplay(proposal.endDate)}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

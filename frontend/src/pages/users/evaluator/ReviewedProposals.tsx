@@ -46,8 +46,8 @@ export default function ReviewedProposals() {
       discipline: "Information and Communication Technology",
       duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "January 2025",
-      endDate: "December 2026",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -91,10 +91,10 @@ export default function ReviewedProposals() {
       priorityAreas: "Renewable Energy, Smart Agriculture",
       sector: "Energy and Utilities",
       discipline: "Electrical Engineering",
-      duration: "36 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "March 2025",
-      endDate: "February 2028",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
@@ -146,10 +146,10 @@ export default function ReviewedProposals() {
       priorityAreas: "Health Information Systems, Data Security",
       sector: "Energy and Utilities",
       discipline: "Energy Systems Engineering",
-      duration: "30 months",
+      duration: "24 months",
       schoolYear: "2024-2025",
-      startDate: "February 2025",
-      endDate: "July 2027",
+      startDate: "01/05/2025",
+      endDate: "01/05/2027",
       budgetSources: [
         {
           source: "DOST",
