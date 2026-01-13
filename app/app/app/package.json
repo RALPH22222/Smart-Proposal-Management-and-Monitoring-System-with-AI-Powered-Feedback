@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@react-navigation/native": "^7.1.21",
-    "lucide-react-native": "^0.554.0"
-  }
-}
