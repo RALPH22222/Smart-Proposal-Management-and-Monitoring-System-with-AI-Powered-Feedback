@@ -8,6 +8,7 @@ import {
   ProposalVersionInput,
   rejectProposalToProponentInput,
   revisionProposalToProponentInput,
+  createEvaluationScoresToProposaltInput,
 } from "../schemas/proposal-schema";
 
 function isId(v: IdOrName): v is number {
@@ -394,6 +395,21 @@ export class ProposalService {
     if (updateError) return { error: insertError };
 
     return { data };
+  }
+
+  async createEvaluationScoresToProposal(input: createEvaluationScoresToProposaltInput) {
+    const { data, error } = await this.db.from("evaluation_scores").insert(input);
+
+    return { data, error };
+  }
+
+  async getEvaluationScoresFromProposal(evaluator_id: number) {
+    const { data, error } = await this.db
+      .from("evaluation_scores")
+      .select(`*,users(first_name,last_name)`)
+      .eq("evaluator_id", evaluator_id);
+
+    return { data, error };
   }
 
   async getAll(search?: string, status?: Status) {

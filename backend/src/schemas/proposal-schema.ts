@@ -140,6 +140,13 @@ export const rejectProposalToProponentSchema = z.object({
   comment: z.string().max(2000, "Comments are too long").optional(),
 });
 
+export const createEvaluationScoresToProposaltSchema = z.object({
+  proposal_id: z.number(),
+  evaluator_id: z.string().uuid(),
+  assessment: z.string(),
+  score: z.number(),
+});
+
 export const forwardToRndSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
   rnd_id: z.array(z.string().min(1)).nonempty("At least one R&D is required"),
@@ -160,3 +167,4 @@ export type ProposalVersionInput = z.infer<typeof proposalVersionSchema>;
 export type revisionProposalToProponentInput = z.infer<typeof revisionProposalToProponentSchema>;
 export type rejectProposalToProponentInput = z.infer<typeof rejectProposalToProponentSchema>;
 export type decisionEvaluatorToProposalInput = z.infer<typeof decisionEvaluatorToProposalSchema>;
+export type createEvaluationScoresToProposaltInput = z.infer<typeof createEvaluationScoresToProposaltSchema>;

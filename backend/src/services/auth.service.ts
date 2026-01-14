@@ -7,11 +7,22 @@ export class AuthService {
   constructor(private db?: SupabaseClient) {}
 
   async login(email: string, password: string) {
-    const { data, error } = await this.db!.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
-    return { data, error };
+    const { data, error } = await this.db!.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return { data, error };
+
+    const userId = data.user.id;
+
+    const { data: row, error: rolesError } = await this.db.from("users").select("roles").eq("id", userId).maybeSingle();
+
+    console.log("auth userId:", userId);
+    console.log("rolesRow:", row);
+    console.log("rolesError:", rolesError);
+
+    if (rolesError) return { data: null, error: rolesError };
+
+    const roles = row?.roles ?? []; // ✅ array
+
+    return { data: { ...data, roles }, error: null };
   }
 
   async signup({ email, password, roles, first_name, last_name }: SignUpInput) {

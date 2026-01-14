@@ -93,7 +93,7 @@ export class BackendStack extends Stack {
       functionName: "pms-create-propposal",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(15),
+      timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
       environment: {
         SUPABASE_KEY,
@@ -160,6 +160,36 @@ export class BackendStack extends Stack {
         SUPABASE_KEY,
       },
     });
+
+    const create_evaluation_scores_to_proposal_lambda = new NodejsFunction(
+      this,
+      "create-evaluation-scores-to-proposal_lambda",
+      {
+        functionName: "create-evaluation-scores-to-proposal_lambda",
+        memorySize: 128,
+        runtime: Runtime.NODEJS_22_X,
+        timeout: Duration.seconds(10),
+        entry: path.resolve("src", "handlers", "proposal", "create-evaluation-scores-to-proposal.ts"),
+        environment: {
+          SUPABASE_KEY,
+        },
+      },
+    );
+
+    const get_evaluation_scores_from_proposal_lambda = new NodejsFunction(
+      this,
+      "get-evaluation-scores-from-proposal-lambda",
+      {
+        functionName: "get-evaluation-scores-from-proposal-lambda",
+        memorySize: 128,
+        runtime: Runtime.NODEJS_22_X,
+        timeout: Duration.seconds(10),
+        entry: path.resolve("src", "handlers", "proposal", "get-evaluation-scores-from-proposal.ts"),
+        environment: {
+          SUPABASE_KEY,
+        },
+      },
+    );
 
     const get_proposal_lambda = new NodejsFunction(this, "pms-get-propposal", {
       functionName: "pms-get-propposal",
@@ -366,11 +396,44 @@ export class BackendStack extends Stack {
       },
     );
 
-    // /proposal/reject_proposal_to_proponent (protected)
+    // /proposal/reject-proposal-to-proponent (protected)
     const reject_proposal_to_proponent = proposal.addResource("reject-proposal-to-proponent");
     reject_proposal_to_proponent.addMethod(
       HttpMethod.POST,
       new LambdaIntegration(reject_proposal_to_proponent_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
+
+    // /proposal/decision-evaluator-to-proposal (protected)
+    const decision_evaluator_to_proposal = proposal.addResource("decision-evaluator-to-proposal");
+    decision_evaluator_to_proposal.addMethod(
+      HttpMethod.POST,
+      new LambdaIntegration(decision_evaluator_to_proposal_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
+
+    // /proposal/create-evaluation-scores-to-proposal (protected)
+    const create_evaluation_scores_to_proposal = proposal.addResource("create-evaluation-scores-to-proposal");
+    create_evaluation_scores_to_proposal.addMethod(
+      HttpMethod.POST,
+      new LambdaIntegration(create_evaluation_scores_to_proposal_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
+
+    // /proposal/get-evaluation-scores-from-proposal (protected)
+    const get_evaluation_scores_from_proposal = proposal.addResource("get-evaluation-scores-from-proposal");
+    get_evaluation_scores_from_proposal.addMethod(
+      HttpMethod.GET,
+      new LambdaIntegration(get_evaluation_scores_from_proposal_lambda),
       {
         authorizer: requestAuthorizer,
         authorizationType: AuthorizationType.CUSTOM,
