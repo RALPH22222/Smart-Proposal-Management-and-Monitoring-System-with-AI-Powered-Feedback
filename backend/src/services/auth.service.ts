@@ -12,7 +12,10 @@ export class AuthService {
 
     const userId = data.user.id;
 
-    const { data: row, error: rolesError } = await this.db.from("users").select("roles").eq("id", userId).maybeSingle();
+    const { data: row, error: rolesError } = await this.db!.from("users")
+      .select("roles")
+      .eq("id", userId)
+      .maybeSingle();
 
     console.log("auth userId:", userId);
     console.log("rolesRow:", row);
@@ -25,7 +28,7 @@ export class AuthService {
     return { data: { ...data, roles }, error: null };
   }
 
-  async signup({ email, password, roles, first_name, last_name }: SignUpInput) {
+  async signup({ email, password, roles, first_name, last_name, middle_ini }: SignUpInput) {
     const { data, error } = await this.db!.auth.signUp({
       email: email,
       password: password,
@@ -33,6 +36,7 @@ export class AuthService {
         data: {
           roles,
           first_name,
+          middle_ini,
           last_name,
         },
       },
