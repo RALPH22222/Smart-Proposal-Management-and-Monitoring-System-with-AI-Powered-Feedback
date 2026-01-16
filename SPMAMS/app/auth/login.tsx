@@ -14,9 +14,7 @@ import {
   ScrollView,
   ImageBackground
 } from "react-native";
-// 1. ROUTER IMPORTS
 import { useRouter, Stack } from "expo-router"; 
-// 2. ICON IMPORTS
 import { Feather } from "@expo/vector-icons"; 
 import { api } from "../../utils/axios"; 
 import axios from "axios"; 
@@ -30,21 +28,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showWebWarning, setShowWebWarning] = useState(false);
 
-  // --- LOGIC: CHECK ROLE PERMISSION ---
-  const navigateBasedOnRole = (role: string) => {
-    // strict check: lowercase comparison
-    const r = role.toLowerCase();
-    
-    if (r === "proponent" || r === "lead_proponent") {
-      // ✅ ALLOWED: Go to Dashboard
-      // 'as any' fixes typescript error if route isn't auto-generated yet
-      router.push("/pages/dashboard" as any); 
-    } else {
-      // ❌ BLOCKED: Show Warning Modal
-      setShowWebWarning(true);
-    }
-  };
-
   // --- LOGIN HANDLER ---
   const handleLogin = async () => {
     if (!email || !password) {
@@ -53,49 +36,58 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      console.log("🔹 User attempting login...");
 
-      // SEND REQUEST
+      // 1. Send Request
       const response = await api.post('/auth/login', { 
         email, 
         password 
       });
 
-      console.log("🔹 Login successful, checking role...");
       const data = response.data;
-      const userRole = data.user?.role;
+      
+      // 2. Extract Role (Handle singular 'role', plural 'roles', or inside user_metadata)
+      const rawRole = data.user?.role || data.user?.roles || data.user?.user_metadata?.role || data.user?.user_metadata?.roles;
 
-      if (!userRole) {
+      if (!rawRole) {
         throw new Error("No role assigned to this user.");
       }
 
-      navigateBasedOnRole(userRole);
+      // 3. Normalize to Array (so we can check length safely)
+      const userRoles = Array.isArray(rawRole) ? rawRole : [rawRole];
+
+      // 4. CHECK: Multiple Roles?
+      if (userRoles.length > 1) {
+        setLoading(false);
+        setShowWebWarning(true); // Block multiple roles
+        return;
+      }
+
+      // 5. CHECK: Valid Single Role?
+      const primaryRole = userRoles[0].toLowerCase();
+      const allowedRoles = ["proponent", "lead_proponent"];
+
+      if (allowedRoles.includes(primaryRole)) {
+        // ✅ Success: Navigate to Dashboard
+        router.push("/pages/dashboard" as any); 
+      } else {
+        // ❌ Block: Wrong role (Admin, Evaluator, etc.)
+        setLoading(false);
+        setShowWebWarning(true);
+      }
 
     } catch (err: any) {
-      setLoading(false); // Stop loading immediately
+      setLoading(false);
       
-      let title = "Login Failed";
       let message = "An unexpected error occurred.";
 
       if (axios.isAxiosError(err)) {
-        if (err.response) {
-          // Case 1: Server rejected us (Wrong password, 404, 500)
-          title = `Server Error (${err.response.status})`;
-          message = err.response.data?.message || JSON.stringify(err.response.data);
-        } else if (err.request) {
-          // Case 2: Network Error (Server unreachable)
-          title = "Connection Error";
-          message = "Could not reach the server.\n\nCheck:\n1. Your internet connection\n2. The AWS URL in Config.ts";
-        } else {
-          // Case 3: Config Error
-          message = err.message;
-        }
+        // Server responded with error (e.g., 401 Unauthorized) or Network Error
+        message = err.response?.data?.message || "Connection failed. Please check your internet.";
       } else {
         message = err.message;
       }
 
-      console.log(`⚠️ Alerting user: ${title} - ${message}`);
-      Alert.alert(title, message);
+      Alert.alert("Login Failed", message);
     } 
   };
 
@@ -104,14 +96,12 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"} 
       style={{ flex: 1 }}
     >
-      {/* HIDES THE DEFAULT NAVIGATION HEADER */}
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: "#fff" }}>
         
         {/* --- TOP BANNER --- */}
         <ImageBackground
-          // Ensure this image exists in your assets folder!
           source={require('../../assets/images/image.png')}
           style={styles.banner}
         >
@@ -168,7 +158,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
 
-      {/* --- MODAL: WEB ACCESS WARNING (If wrong role) --- */}
+      {/* --- MODAL: WEB ACCESS WARNING --- */}
       <Modal
         visible={showWebWarning}
         transparent={true}
@@ -182,7 +172,10 @@ export default function LoginScreen() {
             </View>
             <Text style={styles.warningTitle}>Desktop Access Required</Text>
             <Text style={styles.warningText}>
-              The <Text style={{fontWeight: 'bold'}}>Administrator, R&D, and Evaluator</Text> dashboards are not available on mobile.
+              Your account has roles (Admin, Evaluator, or Multiple Roles) that require the desktop version.
+            </Text>
+            <Text style={[styles.warningText, { fontSize: 13, marginTop: 5 }]}>
+              Please log in via the website to continue.
             </Text>
             <TouchableOpacity 
               style={styles.warningButton} 
@@ -207,7 +200,6 @@ const styles = StyleSheet.create({
   },
   overlay: { 
     ...StyleSheet.absoluteFillObject, 
-    // 0.4 opacity lets the image show through (instead of solid red)
     backgroundColor: "rgba(200, 16, 46, 0.4)" 
   },
   bannerContent: { 
