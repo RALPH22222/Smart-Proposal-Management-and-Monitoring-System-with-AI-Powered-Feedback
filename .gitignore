@@ -2,3 +2,7 @@ test
 package-lock.json
 node_modules/
 package.json
+CLAUDE.md
+docs/*
+tmpclaude-*
+nul

@@ -32,6 +32,7 @@ export enum PriorityArea {
 
 export enum EvaluatorStatus {
   PENDING = "pending",
+  ACCEPT = "accept",
   FOR_REVIEW = "for_review",
   APPROVE = "approve",
   REVISE = "revise",
@@ -57,6 +58,19 @@ export enum AssignmentTracker {
   ACCEPT = "accept",
   DECLINE = "decline",
   EXTEND = "extend",
+}
+
+export enum ProjectsStatus {
+  ON_GOING = "on_going",
+  COMPLETED = "completed",
+  ON_HOLD = "on_hold",
+  BLOCKED = "blocked",
+}
+
+export enum EndorsementDecision {
+  ENDORSED = "endorsed",
+  REVISED = "revised",
+  REJECTED = "rejected",
 }
 
 export type IdOrName = number | string | null | undefined;

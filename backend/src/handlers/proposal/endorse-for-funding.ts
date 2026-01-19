@@ -2,13 +2,13 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
-import { createEvaluationScoresToProposaltSchema } from "../../schemas/proposal-schema";
+import { endorseForFundingSchema } from "../../schemas/proposal-schema";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
 
   // Payload Validation
-  const result = createEvaluationScoresToProposaltSchema.safeParse(payload);
+  const result = endorseForFundingSchema.safeParse(payload);
 
   if (result.error) {
     return {
@@ -20,17 +20,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  const { status, ...data } = result.data;
-
   const proposalService = new ProposalService(supabase);
-  const { error } = await proposalService.createEvaluationScoresToProposal(data, status);
+  const { data, error } = await proposalService.endorseForFunding(result.data);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: "Internal server error.",
+        message: error.message || "Internal server error.",
       }),
     };
   }
@@ -38,7 +36,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: "Proposal successfully sent to evaluators.",
+      message: "Endorsement decision processed successfully.",
+      data,
     }),
   };
 });

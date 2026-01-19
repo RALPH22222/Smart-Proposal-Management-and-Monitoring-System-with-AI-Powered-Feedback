@@ -7,6 +7,7 @@ import {
   PriorityArea,
   Status,
   AssignmentTracker,
+  EndorsementDecision,
 } from "../types/proposal";
 
 const parseJsonIfString = (val: unknown) => {
@@ -143,6 +144,7 @@ export const rejectProposalToProponentSchema = z.object({
 export const createEvaluationScoresToProposaltSchema = z.object({
   proposal_id: z.number(),
   evaluator_id: z.string().uuid(),
+  status: z.preprocess(parseJsonIfString, z.nativeEnum(EvaluatorStatus)),
   assessment: z.string(),
   score: z.number(),
 });
@@ -160,6 +162,13 @@ export const proposalVersionSchema = z.object({
 export const proposalStatusSchema = z.nativeEnum(Status);
 export const proposalEvaluatorStatusSchema = z.nativeEnum(EvaluatorStatus);
 
+export const endorseForFundingSchema = z.object({
+  proposal_id: z.coerce.number().min(1, "Proposal ID is required"),
+  rnd_id: z.string().uuid("Invalid RND user ID"),
+  decision: z.nativeEnum(EndorsementDecision),
+  remarks: z.string().max(2000, "Remarks are too long").optional(),
+});
+
 export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
 export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;
@@ -168,3 +177,4 @@ export type revisionProposalToProponentInput = z.infer<typeof revisionProposalTo
 export type rejectProposalToProponentInput = z.infer<typeof rejectProposalToProponentSchema>;
 export type decisionEvaluatorToProposalInput = z.infer<typeof decisionEvaluatorToProposalSchema>;
 export type createEvaluationScoresToProposaltInput = z.infer<typeof createEvaluationScoresToProposaltSchema>;
+export type EndorseForFundingInput = z.infer<typeof endorseForFundingSchema>;

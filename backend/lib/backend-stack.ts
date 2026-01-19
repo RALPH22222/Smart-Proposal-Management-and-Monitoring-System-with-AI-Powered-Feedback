@@ -312,6 +312,28 @@ export class BackendStack extends Stack {
       },
     });
 
+    const endorse_for_funding_lambda = new NodejsFunction(this, "pms-endorse-for-funding", {
+      functionName: "pms-endorse-for-funding",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "endorse-for-funding.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_proposals_for_endorsement_lambda = new NodejsFunction(this, "pms-get-proposals-for-endorsement", {
+      functionName: "pms-get-proposals-for-endorsement",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proposals-for-endorsement.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const verify_token_lambda = new NodejsFunction(this, "pms-verify-token", {
       functionName: "pms-verify-token",
       memorySize: 128,
@@ -513,6 +535,20 @@ export class BackendStack extends Stack {
     // /proposal/view-tag
     const get_tag = proposal.addResource("view-tag");
     get_tag.addMethod(HttpMethod.GET, new LambdaIntegration(get_tag_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/endorse-for-funding (protected)
+    const endorse_for_funding = proposal.addResource("endorse-for-funding");
+    endorse_for_funding.addMethod(HttpMethod.POST, new LambdaIntegration(endorse_for_funding_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-for-endorsement (protected)
+    const get_proposals_for_endorsement = proposal.addResource("view-for-endorsement");
+    get_proposals_for_endorsement.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposals_for_endorsement_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

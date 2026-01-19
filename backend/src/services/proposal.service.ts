@@ -1,7 +1,18 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { AgencyAddress, AssignmentTracker, Budget, EvaluatorStatus, IdOrName, Status, Table } from "../types/proposal";
+import {
+  AgencyAddress,
+  AssignmentTracker,
+  Budget,
+  EndorsementDecision,
+  EvaluatorStatus,
+  IdOrName,
+  ProjectsStatus,
+  Status,
+  Table,
+} from "../types/proposal";
 import {
   decisionEvaluatorToProposalInput,
+  EndorseForFundingInput,
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
   ProposalInput,
@@ -281,7 +292,7 @@ export class ProposalService {
     }));
 
     const { error: insertv2Error } = await this.db
-      .from("proposal_assignemnt_tracker")
+      .from("proposal_assignment_tracker")
       .insert(assignmentsTrackerPayload);
 
     if (insertv2Error) {
@@ -296,7 +307,7 @@ export class ProposalService {
 
   async decisionEvaluatorToProposal(input: Omit<decisionEvaluatorToProposalInput, "deadline_at">, deadline_at: string) {
     const { data: insertedData, error: insertError } = await this.db
-      .from("proposal_assignemnt_tracker")
+      .from("proposal_assignment_tracker")
       .update(input)
       .eq("evaluator_id", input.evaluator_id)
       .eq("proposal_id", input.proposal_id);
@@ -307,7 +318,7 @@ export class ProposalService {
 
     if (AssignmentTracker.EXTEND == input.status) {
       const { error: insertError } = await this.db
-        .from("proposal_assignemnt_tracker")
+        .from("proposal_assignment_tracker")
         .update(deadline_at)
         .eq("evaluator_id", input.evaluator_id)
         .eq("proposal_id", input.proposal_id);
@@ -397,10 +408,36 @@ export class ProposalService {
     return { data };
   }
 
-  async createEvaluationScoresToProposal(input: createEvaluationScoresToProposaltInput) {
+  async createEvaluationScoresToProposal(
+    input: Omit<createEvaluationScoresToProposaltInput, "status">,
+    status: EvaluatorStatus,
+  ) {
+    // Insert evaluation score
     const { data, error } = await this.db.from("evaluation_scores").insert(input);
 
-    return { data, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Update proposal_evaluators status to approve/revise/reject
+    // Only update if status is one of the final decisions
+    if (
+      status === EvaluatorStatus.APPROVE ||
+      status === EvaluatorStatus.REVISE ||
+      status === EvaluatorStatus.REJECT
+    ) {
+      const { error: updateError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: status })
+        .eq("proposal_id", input.proposal_id)
+        .eq("evaluator_id", input.evaluator_id);
+
+      if (updateError) {
+        return { data: null, error: updateError };
+      }
+    }
+
+    return { data, error: null };
   }
 
   async getEvaluationScoresFromProposal(evaluator_id: number) {
@@ -638,5 +675,262 @@ export class ProposalService {
     const { data, error } = await this.db.from("tags").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
+  }
+
+  async getProposalsForEndorsement(search?: string) {
+    // 1. Get proposals in under_evaluation status with their evaluator assignments
+    let query = this.db
+      .from("proposals")
+      .select(
+        `
+        id,
+        project_title,
+        proponent:users!proposals_proponent_id_fkey(id, first_name, last_name),
+        department:departments(name),
+        status,
+        created_at,
+        proposal_evaluators(
+          evaluator_id,
+          status,
+          deadline_at,
+          evaluator:users!proposal_evaluators_evaluator_id_fkey(id, first_name, last_name)
+        )
+      `,
+      )
+      .eq("status", Status.UNDER_EVALUATION);
+
+    if (search) {
+      query = query.ilike("project_title", `%${search}%`);
+    }
+
+    const { data: proposals, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!proposals || proposals.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // 2. Get evaluation scores for all proposals
+    const proposalIds = proposals.map((p) => p.id);
+    const { data: allScores, error: scoresError } = await this.db
+      .from("evaluation_scores")
+      .select("proposal_id, evaluator_id, assessment, score")
+      .in("proposal_id", proposalIds);
+
+    if (scoresError) {
+      return { data: null, error: scoresError };
+    }
+
+    // 3. Get budget data for all proposals
+    const { data: allBudgets, error: budgetError } = await this.db
+      .from("estimated_budget")
+      .select("proposal_id, source, budget, amount")
+      .in("proposal_id", proposalIds);
+
+    if (budgetError) {
+      return { data: null, error: budgetError };
+    }
+
+    // 4. Transform data for frontend
+    const endorsementProposals = proposals.map((proposal) => {
+      const evaluators = proposal.proposal_evaluators || [];
+
+      // Get scores for this proposal grouped by evaluator
+      const proposalScores = (allScores || []).filter((s) => s.proposal_id === proposal.id);
+
+      // Build evaluator decisions
+      const evaluatorDecisions = evaluators.map((ev: any) => {
+        const evaluatorScores = proposalScores.filter((s) => s.evaluator_id === ev.evaluator_id);
+
+        // Convert scores to ratings object
+        const ratings: Record<string, number> = {};
+        evaluatorScores.forEach((s) => {
+          // Map assessment types: objective_assessment -> objectives, etc.
+          const key = s.assessment?.replace("_assessment", "") || s.assessment;
+          ratings[key] = s.score;
+        });
+
+        // Map evaluator status to decision
+        let decision: "Approve" | "Revise" | "Reject" | "Pending" = "Pending";
+        if (ev.status === EvaluatorStatus.APPROVE) decision = "Approve";
+        else if (ev.status === EvaluatorStatus.REVISE) decision = "Revise";
+        else if (ev.status === EvaluatorStatus.REJECT) decision = "Reject";
+
+        return {
+          evaluatorId: ev.evaluator_id,
+          evaluatorName: ev.evaluator
+            ? `${ev.evaluator.first_name || ""} ${ev.evaluator.last_name || ""}`.trim()
+            : "Unknown",
+          decision,
+          status: ev.status,
+          submittedDate: ev.deadline_at,
+          ratings:
+            Object.keys(ratings).length > 0
+              ? ratings
+              : { objectives: 0, methodology: 0, budget: 0, timeline: 0 },
+        };
+      });
+
+      // Compute readyForEndorsement: all evaluators must have completed (approve/revise/reject)
+      const completedStatuses = [EvaluatorStatus.APPROVE, EvaluatorStatus.REVISE, EvaluatorStatus.REJECT];
+      const readyForEndorsement =
+        evaluators.length > 0 && evaluators.every((ev: any) => completedStatuses.includes(ev.status));
+
+      // Compute overall recommendation based on majority
+      const decisions = evaluatorDecisions.filter((d) => d.decision !== "Pending");
+      let overallRecommendation: "Approve" | "Revise" | "Reject" = "Revise";
+      if (decisions.length > 0) {
+        const approveCount = decisions.filter((d) => d.decision === "Approve").length;
+        const rejectCount = decisions.filter((d) => d.decision === "Reject").length;
+        if (approveCount > decisions.length / 2) overallRecommendation = "Approve";
+        else if (rejectCount > decisions.length / 2) overallRecommendation = "Reject";
+      }
+
+      // Get budget for this proposal
+      const proposalBudgets = (allBudgets || []).filter((b) => b.proposal_id === proposal.id);
+      const budgetBySource: Record<string, { ps: number; mooe: number; co: number; total: number }> = {};
+      proposalBudgets.forEach((b) => {
+        if (!budgetBySource[b.source]) {
+          budgetBySource[b.source] = { ps: 0, mooe: 0, co: 0, total: 0 };
+        }
+        const cat = b.budget as "ps" | "mooe" | "co";
+        if (cat && budgetBySource[b.source][cat] !== undefined) {
+          budgetBySource[b.source][cat] += b.amount || 0;
+          budgetBySource[b.source].total += b.amount || 0;
+        }
+      });
+      const budget = Object.entries(budgetBySource).map(([source, values]) => ({
+        source,
+        ...values,
+      }));
+
+      return {
+        id: String(proposal.id),
+        title: proposal.project_title,
+        submittedBy: proposal.proponent
+          ? `${(proposal.proponent as any).first_name || ""} ${(proposal.proponent as any).last_name || ""}`.trim()
+          : "Unknown",
+        department: (proposal.department as any)?.name || "Unknown",
+        evaluatorDecisions,
+        overallRecommendation,
+        readyForEndorsement,
+        budget,
+      };
+    });
+
+    return { data: endorsementProposals, error: null };
+  }
+
+  async endorseForFunding(input: EndorseForFundingInput) {
+    const { proposal_id, rnd_id, decision, remarks } = input;
+
+    // 1. Get proposal to verify it exists and get proponent_id
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id, status")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found") };
+    }
+
+    // 2. Verify proposal is in under_evaluation status
+    if (proposal.status !== Status.UNDER_EVALUATION) {
+      return { error: new Error(`Proposal must be in 'under_evaluation' status. Current status: ${proposal.status}`) };
+    }
+
+    // 3. Handle based on decision type
+    if (decision === EndorsementDecision.ENDORSED) {
+      // Update proposal status to endorsed_for_funding
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.ENDORSED_FOR_FUNDING,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      // Create funded_projects record
+      const { data: fundedProject, error: insertError } = await this.db
+        .from("funded_projects")
+        .insert({
+          proposal_id: proposal_id,
+          project_lead_id: proposal.proponent_id,
+          status: ProjectsStatus.ON_GOING,
+          funded_date: new Date().toISOString().split("T")[0], // Date only
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { error: insertError };
+      }
+
+      // Log the endorsement action
+      await this.db.from("proposal_logs").insert({
+        proposal_id: proposal_id,
+        action: "endorsed_for_funding",
+        performed_by: rnd_id,
+        remarks: remarks || "Proposal endorsed for funding",
+      });
+
+      return { data: { proposal_id, funded_project: fundedProject }, error: null };
+    } else if (decision === EndorsementDecision.REVISED) {
+      // Use existing revision logic - update status to revision_rnd
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.REVISION_RND,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      // Log the revision request
+      await this.db.from("proposal_logs").insert({
+        proposal_id: proposal_id,
+        action: "revision_requested_after_evaluation",
+        performed_by: rnd_id,
+        remarks: remarks || "Revision requested after evaluation review",
+      });
+
+      return { data: { proposal_id, status: Status.REVISION_RND }, error: null };
+    } else if (decision === EndorsementDecision.REJECTED) {
+      // Use existing rejection logic - update status to rejected_rnd
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.REJECTED_RND,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      // Log the rejection
+      await this.db.from("proposal_logs").insert({
+        proposal_id: proposal_id,
+        action: "rejected_after_evaluation",
+        performed_by: rnd_id,
+        remarks: remarks || "Proposal rejected after evaluation review",
+      });
+
+      return { data: { proposal_id, status: Status.REJECTED_RND }, error: null };
+    }
+
+    return { error: new Error("Invalid decision type") };
   }
 }
