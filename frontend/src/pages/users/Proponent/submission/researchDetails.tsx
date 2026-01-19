@@ -51,7 +51,8 @@ interface ResearchDetailsProps {
   onUpdate: (field: keyof FormData, value: any) => void;
 }
 
-const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onInputChange, onUpdate }) => {
+// Fixed: Removed unused 'onInputChange' from destructuring
+const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate }) => {
   // --- Data Source State ---
   const [stationsList, setStationsList] = useState<{ id: number, name: string }[]>([]);
   const [sectorsList, setSectorsList] = useState<{ id: number, name: string }[]>([]);
