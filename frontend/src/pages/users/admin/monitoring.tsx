@@ -131,7 +131,8 @@ interface AdminMonitoringPageProps {
   onStatsUpdate?: () => void;
 }
 
-const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = ({ onStatsUpdate }) => {
+// Fixed: Removed unused 'onStatsUpdate' from props destructuring
+const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
   const [projects, setProjects] = useState<Project[]>([]);   
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
