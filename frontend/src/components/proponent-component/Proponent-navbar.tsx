@@ -46,7 +46,7 @@ const SettingsIcon = ({ isActive }: { isActive: boolean }) => (
   </svg>
 );
 
-const LogoutIcon = ({ isActive }: { isActive: boolean }) => (
+const LogoutIcon = () => (
   <svg className={`w-6 h-6 transition-colors duration-300 text-white`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
   </svg>
@@ -217,7 +217,8 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
             onClick={handleLogout}
             className="flex items-center gap-4 px-4 py-3 text-white/90 font-medium hover:bg-red-700 rounded-xl transition-colors w-full text-left"
           >
-            <LogoutIcon isActive={true} />
+            {/* Fixed: Removed 'isActive={true}' prop usage */}
+            <LogoutIcon />
             <span className="text-lg">Logout</span>
           </button>
         </div>
