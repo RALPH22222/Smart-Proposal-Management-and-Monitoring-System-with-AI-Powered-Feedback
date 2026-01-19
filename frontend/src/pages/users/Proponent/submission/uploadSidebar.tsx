@@ -30,8 +30,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   formData,
   selectedFile,
   isCheckingTemplate,
-  isCheckingForm,
-  onAIFormCheck,
+  // Fixed: Removed unused 'isCheckingForm'
+  // Fixed: Removed unused 'onAIFormCheck'
   onFileSelect,
   onAITemplateCheck,
   onSubmit,
