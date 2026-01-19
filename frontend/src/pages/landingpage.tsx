@@ -1,9 +1,61 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from '../components/navbar';
 import Footer from '../components/footer'; 
 import CardSwap, { Card } from '../components/CardSwap';
 import templatePDF from '../assets/template/DOST-Template.pdf';
 
+const mobileCards = [
+  {
+    step: 1,
+    title: "Proposal Submission",
+    color: "red-400",
+    desc: "Submit your project proposal using the standardized DOST Form 1B template. Ensure all required documents are attached for faster processing.",
+  },
+  {
+    step: 2,
+    title: "Review & Approval",
+    color: "red-500",
+    desc: "Our research committee will review your proposal, provide feedback, and approve compliant submissions. Track progress in real-time through your dashboard.",
+  },
+  {
+    step: 3,
+    title: "Implementation",
+    color: "red-600",
+    desc: "Once approved, proceed with project implementation. Use our portal to submit progress reports, request support, and manage project milestones.",
+  },
+];
+
+function MobileCardSwap() {
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % mobileCards.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <div className="block sm:hidden relative h-[340px] flex items-center justify-center">
+      {mobileCards.map((card, idx) => (
+        <div
+          key={card.step}
+          className={`absolute left-0 right-0 mx-auto w-[98%] bg-white rounded-2xl shadow-2xl border border-red-200 transition-all duration-500 ease-in-out
+            ${idx === current ? 'z-20 opacity-100 scale-100 translate-y-0' : 'z-10 opacity-0 scale-95 translate-y-6 pointer-events-none'}`}
+          style={{ top: 32 }}
+        >
+          <div className="flex gap-4 items-start p-6">
+            <div className={`w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
+              <span className={`text-${card.color} font-bold text-lg`}>{card.step}</span>
+            </div>
+            <div className="flex-1">
+              <h3 className={`text-xl font-bold mb-2 text-${card.color}`}>{card.title}</h3>
+              <p className="text-gray-700 text-base">{card.desc}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 {/* Gais kung may di kayo nagustuhan sabi lang sakin then kung meron kayo di alam sa code ko sabi lang if may time ako turuan ko lang how ga work*/}
 const LandingPage: React.FC = () => {
@@ -279,9 +331,13 @@ const LandingPage: React.FC = () => {
         <p className="text-lg text-gray-600 mb-8 leading-relaxed">
           Follow these simple steps to submit and manage your research proposal through our platform.
         </p>
-        
-        <div className="mt-31 mx-20 flex lg:block items-center justify-center">
-          <div className="relative h-[320px] lg:h-[220px] overflow-visible left-0">           
+
+        {/* Mobile: Animated swapping cards */}
+        <MobileCardSwap />
+
+        {/* Tablet and Desktop: CardSwap */}
+        <div className="hidden sm:flex mt-8 items-center justify-center">
+          <div className="relative h-[320px] w-full max-w-md overflow-visible">
             <CardSwap
               cardDistance={30}
               verticalDistance={40}
@@ -290,7 +346,7 @@ const LandingPage: React.FC = () => {
               skewAmount={5}
             >
               <Card
-                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[480px]"
+                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
                 style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
               >
                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -301,9 +357,9 @@ const LandingPage: React.FC = () => {
                   <p className="text-gray-600 leading-relaxed">Submit your project proposal using the standardized DOST Form 1B template. Ensure all required documents are attached for faster processing.</p>
                 </div>
               </Card>
-      
+
               <Card
-                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[480px]"
+                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
                 style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
               >
                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -314,9 +370,9 @@ const LandingPage: React.FC = () => {
                   <p className="text-gray-600 leading-relaxed">Our research committee will review your proposal, provide feedback, and approve compliant submissions. Track progress in real-time through your dashboard.</p>
                 </div>
               </Card>
-      
+
               <Card
-                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full md:w-[480px]"
+                customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
                 style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
               >
                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
