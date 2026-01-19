@@ -121,7 +121,19 @@ const Settings: React.FC = () => {
         'Profile updated'
     );
 
-    if (updated) setProfile({ ...profile, ...formData, name: fullName });
+    if (updated) {
+        setProfile((prev) => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                ...formData,
+                // Fix: Cast generic string to specific Union Type
+                sex: formData.sex as ExtendedUserProfile['sex'],
+                role: formData.role as ExtendedUserProfile['role'],
+                name: fullName
+            };
+        });
+    }
   };
 
   const onChangeAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
