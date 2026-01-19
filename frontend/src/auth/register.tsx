@@ -1,6 +1,6 @@
 import { api } from "@utils/axios";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// Removed unused import: import { useNavigate } from "react-router-dom"; 
 import Swal from "sweetalert2";
 
 const BACKGROUND_IMAGE_URL =
@@ -17,16 +17,15 @@ export default function Register() {
   const [last_name, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleRegister = async (e?: React.FormEvent) => {
     e?.preventDefault();
-
-    if (!first_name || !last_name || !middle_ini || !password) {
+    if (!first_name || !last_name || !password || !email) {
       return Swal.fire({
         icon: "warning",
         title: "Missing fields",
-        text: "Please provide name, last name, and password.",
+        text: "Please provide your first name, last name, email, and password.",
+        confirmButtonColor: "#C8102E",
       });
     }
 
@@ -40,27 +39,41 @@ export default function Register() {
         },
       );
 
+      // --- SUCCESS MODAL ---
       await Swal.fire({
         icon: "success",
-        title: "Registration Successful!",
-        text: "Your account has been created. Please log in to complete your personal information setup.",
-        confirmButtonText: "Login to Complete Profile",
+        title: "Verify Your Email",
+        html: `
+          <div style="text-align: center; color: #545454;">
+            <p>Your account has been successfully created.</p>
+            <br/>
+            <p>We have sent a verification link to <strong>${email}</strong>.</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">
+              Please check your inbox (and spam folder) to activate your account.
+              You will not be able to log in until your email is verified.
+            </p>
+          </div>
+        `,
+        confirmButtonText: "OK, I understand",
         confirmButtonColor: "#C8102E",
         allowOutsideClick: false,
+        iconColor: "#C8102E",
       });
 
+      // Clear the form fields
       setFirstName("");
       setMiddleInitial("");
       setLastName("");
       setEmail("");
       setPassword("");
-      navigate("/login");
+
     } catch (err) {
       if (err instanceof Error) {
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: err.message || "Registration failed",
+          title: "Registration Failed",
+          text: err.message || "An error occurred during registration.",
+          confirmButtonColor: "#C8102E",
         });
       } else {
         console.error(err);
@@ -110,9 +123,8 @@ export default function Register() {
             Input all the field to create an account and get started.
           </p>
 
-          {/* Name Fields Container - Flex Row on Desktop */}
+          {/* Name Fields Container */}
           <div className="flex flex-col md:flex-row gap-3">
-            {/* First Name */}
             <label className="flex-1">
               <span className="text-sm font-medium text-gray-700">First Name</span>
               <input
@@ -124,11 +136,10 @@ export default function Register() {
               />
             </label>
 
-            {/* Middle Initial - Small Width */}
             <label className="w-full md:w-20">
               <span className="text-sm font-medium text-gray-700">M.I.</span>
-              <input
-                type="text"
+                <input
+                  type="text"
                 value={middle_ini}
                 onChange={(e) => setMiddleInitial(e.target.value.toUpperCase().slice(0, 1))}
                 placeholder="-"
@@ -137,7 +148,6 @@ export default function Register() {
               />
             </label>
 
-            {/* Last Name */}
             <label className="flex-1">
               <span className="text-sm font-medium text-gray-700">Last Name</span>
               <input
