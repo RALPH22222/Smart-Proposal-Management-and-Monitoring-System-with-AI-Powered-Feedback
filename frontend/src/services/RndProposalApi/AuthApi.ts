@@ -1,4 +1,4 @@
-import { type User, type LoginCredentials } from '../../types/auth';
+import { type User, type LoginCredentials, Role } from '../../types/auth';
 
 // Dummy users for demonstration
 const DUMMY_USERS: User[] = [
@@ -6,19 +6,19 @@ const DUMMY_USERS: User[] = [
 		id: '1',
 		name: 'Dr. John Smith',
 		email: 'j.smith@wmsu.edu.ph',
-		role: 'rd_staff'
+		roles: [Role.RND]
 	},
 	{
 		id: '2',
 		name: 'Dr. Maria Santos',
 		email: 'm.santos@wmsu.edu.ph',
-		role: 'rd_staff'
+		roles: [Role.RND] 
 	},
 	{
 		id: '3',
 		name: 'Admin User',
 		email: 'admin@wmsu.edu.ph',
-		role: 'admin'
+		roles: [Role.ADMIN]
 	}
 ];
 

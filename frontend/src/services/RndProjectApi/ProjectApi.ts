@@ -1,7 +1,5 @@
-// services/RndProjectApi/ProjectApi.ts
 import type { Project} from '../../types/InterfaceProject';
 
-// Mock data for demonstration
 const mockProjects: Project[] = [
   {
     id: '1',
