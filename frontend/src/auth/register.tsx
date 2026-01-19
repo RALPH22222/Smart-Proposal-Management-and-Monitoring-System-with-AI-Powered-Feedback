@@ -97,7 +97,7 @@ export default function Register() {
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
           <img
-            src="../src/assets/IMAGES/LOGO.png"
+            src="/LOGO.png"
             alt="Logo"
             className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2 hover:scale-105 transition-transform duration-300 cursor-pointer"
           />
