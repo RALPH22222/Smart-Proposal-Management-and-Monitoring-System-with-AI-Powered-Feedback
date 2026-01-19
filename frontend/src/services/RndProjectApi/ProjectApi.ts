@@ -1,5 +1,5 @@
 // services/RndProjectApi/ProjectApi.ts
-import type { Project, Milestone } from '../../types/InterfaceProject';
+import type { Project} from '../../types/InterfaceProject';
 
 // Mock data for demonstration
 const mockProjects: Project[] = [
@@ -15,14 +15,13 @@ const mockProjects: Project[] = [
     endDate: '2024-12-15',
     budget: 500000,
     status: 'Active',
-    currentPhase: 'Execution',
     completionPercentage: 65,
     collaborators: ['DOST', 'DPWH'],
     milestones: [
-      { name: 'Requirements Analysis', dueDate: '2024-02-15', completed: true },
-      { name: 'System Design', dueDate: '2024-04-30', completed: true },
-      { name: 'Development Phase 1', dueDate: '2024-08-31', completed: false },
-      { name: 'Testing & Deployment', dueDate: '2024-11-30', completed: false }
+      { id: 'm1-1', status: 'Completed', name: 'Requirements Analysis', dueDate: '2024-02-15', completed: true },
+      { id: 'm1-2', status: 'Completed', name: 'System Design', dueDate: '2024-04-30', completed: true },
+      { id: 'm1-3', status: 'Pending', name: 'Development Phase 1', dueDate: '2024-08-31', completed: false },
+      { id: 'm1-4', status: 'Pending', name: 'Testing & Deployment', dueDate: '2024-11-30', completed: false }
     ],
     lastModified: '2024-06-15'
   },
@@ -38,7 +37,6 @@ const mockProjects: Project[] = [
     endDate: '2025-02-28',
     budget: 750000,
     status: 'Active',
-    currentPhase: 'Monitoring',
     completionPercentage: 40,
     collaborators: ['Dr. Anna Torres'],
     lastModified: '2024-06-10'
@@ -55,14 +53,13 @@ const mockProjects: Project[] = [
     endDate: '2024-10-31',
     budget: 300000,
     status: 'Completed',
-    currentPhase: 'Closing',
     completionPercentage: 100,
     collaborators: ['Dr. Michael Chen', 'Dr. Emily Wong'],
     milestones: [
-      { name: 'Literature Review', dueDate: '2024-03-15', completed: true },
-      { name: 'Field Research', dueDate: '2024-06-30', completed: true },
-      { name: 'Data Analysis', dueDate: '2024-08-31', completed: true },
-      { name: 'Final Report', dueDate: '2024-10-15', completed: true }
+      { id: 'm3-1', status: 'Completed', name: 'Literature Review', dueDate: '2024-03-15', completed: true },
+      { id: 'm3-2', status: 'Completed', name: 'Field Research', dueDate: '2024-06-30', completed: true },
+      { id: 'm3-3', status: 'Completed', name: 'Data Analysis', dueDate: '2024-08-31', completed: true },
+      { id: 'm3-4', status: 'Completed', name: 'Final Report', dueDate: '2024-10-15', completed: true }
     ],
     lastModified: '2024-10-20'
   },
@@ -78,14 +75,13 @@ const mockProjects: Project[] = [
     endDate: '2024-11-30',
     budget: 450000,
     status: 'At Risk',
-    currentPhase: 'Execution',
     completionPercentage: 35,
     collaborators: ['Dr. Maria Lopez'],
     milestones: [
-      { name: 'Plant Collection', dueDate: '2024-06-30', completed: true },
-      { name: 'Laboratory Analysis', dueDate: '2024-08-31', completed: false },
-      { name: 'Database Development', dueDate: '2024-10-31', completed: false },
-      { name: 'Documentation', dueDate: '2024-11-20', completed: false }
+      { id: 'm4-1', status: 'Completed', name: 'Plant Collection', dueDate: '2024-06-30', completed: true },
+      { id: 'm4-2', status: 'Pending', name: 'Laboratory Analysis', dueDate: '2024-08-31', completed: false },
+      { id: 'm4-3', status: 'Pending', name: 'Database Development', dueDate: '2024-10-31', completed: false },
+      { id: 'm4-4', status: 'Pending', name: 'Documentation', dueDate: '2024-11-20', completed: false }
     ],
     lastModified: '2024-07-15'
   },
@@ -101,7 +97,6 @@ const mockProjects: Project[] = [
     endDate: '2025-01-31',
     budget: 600000,
     status: 'On Hold',
-    currentPhase: 'Planning',
     completionPercentage: 20,
     collaborators: ['Dr. Patricia Garcia'],
     lastModified: '2024-06-01'
