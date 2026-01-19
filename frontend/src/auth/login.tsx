@@ -199,7 +199,7 @@ export default function Login() {
           <img
             src="/LOGO.png"
             alt="Logo"
-            className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg shadow-lg bg-white/10 p-2 hover:scale-105 transition-transform duration-300 cursor-pointer"
+            className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg"
           />
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal
