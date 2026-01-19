@@ -8,7 +8,7 @@ import UploadSidebar from './uploadSidebar';
 import AIModal from '../../../../components/proponent-component/aiModal';
 
 // Type Imports
-import type { FormData, AICheckResult, BudgetItem } from '../../../../types/proponent-form'; // Ensure BudgetItem is imported
+import type { FormData, AICheckResult } from '../../../../types/proponent-form'; // Fixed: Removed unused 'BudgetItem'
 
 // API Service
 import { submitProposal } from '../../../../services/proposal.api'; 
@@ -153,7 +153,7 @@ const Submission: React.FC = () => {
     }));
   };
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (_id: number) => { // Fixed: Renamed 'id' to '_id' to ignore unused variable
     // Optional: Only needed if you have UI expansion state not in the type
     // If not in type, ignore or manage strictly in UI component
   };
