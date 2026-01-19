@@ -70,6 +70,7 @@ const MonitoringPage: React.FC = () => {
   
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
 
+
   const [isAdditionalFundModalOpen, setIsAdditionalFundModalOpen] = useState(false);
   const [additionalFundAmount, setAdditionalFundAmount] = useState<number>(0);
   const [additionalFundJustification, setAdditionalFundJustification] = useState("");
@@ -79,7 +80,9 @@ const MonitoringPage: React.FC = () => {
   const [extensionDate, setExtensionDate] = useState("");
   
   // Extension Logic
-  const [extensionCount, setExtensionCount] = useState(0); // Initialize to 0 or 1 for testing
+
+  // Extension Logic
+  const [extensionCount, setExtensionCount] = useState(0); 
   const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
 
   const [replyText, setReplyText] = useState("");
@@ -364,46 +367,48 @@ const MonitoringPage: React.FC = () => {
   };
   const [breakdownItems, setBreakdownItems] = useState<ExpenseItem[]>([]);
 
-// Add these functions with your other handlers
-const updateBreakdownItem = (itemId: string, field: keyof ExpenseItem, value: any) => {
-  setBreakdownItems(prev => prev.map(item => 
-    item.id === itemId ? { ...item, [field]: value } : item
-  ));
-};
+  // Add these functions with your other handlers
+  const updateBreakdownItem = (itemId: string, field: keyof ExpenseItem, value: any) => {
+    setBreakdownItems(prev => prev.map(item => 
+      item.id === itemId ? { ...item, [field]: value } : item
+    ));
+  };
 
-const removeBreakdownItem = (itemId: string) => {
-  setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
-};
+  const removeBreakdownItem = (itemId: string) => {
+    setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
 
 
 
   // Fund Request creation (for quarterly fund requests)
-const submitFundRequest = (reportId: number, items: ExpenseItem[]) => {
-  if (!currentReport) return;
-
+  const submitFundRequest = (reportId: number, items: ExpenseItem[]) => {
+    if (!currentReport) return;
+  
+      
+        const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
     
-      const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-  
-  const description = items.length > 0 
-    ? `Fund Request Breakdown:\n${items.map(item => `• ${item.description}: ${formatCurrency(item.amount)}`).join('\n')}`
-    : "No breakdown provided";
-  
-  setProjects(prev => prev.map(p => {
-    if(p.id !== activeProjectId) return p;
-    return {
-      ...p,
-      reports: p.reports.map(r => r.id === reportId ? { 
-        ...r, 
-        fundRequest: { amount: totalAmount, description, status: 'pending' },
-        status: 'due' // Move to due status after fund request
-      } : r)
-    };
-  }));
-  
-  // Reset form
-  setBreakdownItems([]);
-  alert("Fund request submitted for R&D review!");
-};
+    const description = items.length > 0 
+      ? `Fund Request Breakdown:\n${items.map(item => `• ${item.description}: ${formatCurrency(item.amount)}`).join('\n')}`
+      : "No breakdown provided";
+    
+    setProjects(prev => prev.map(p => {
+      if(p.id !== activeProjectId) return p;
+      return {
+        ...p,
+        reports: p.reports.map(r => r.id === reportId ? { 
+          ...r, 
+          fundRequest: { amount: totalAmount, description, status: 'pending' },
+          status: 'due' // Move to due status after fund request
+        } : r)
+      };
+    }));
+    
+    // Reset form
+    setBreakdownItems([]);
+    alert("Fund request submitted for R&D review!");
+  };
+
 
   // Additional Fund Request (beyond original grant)
   const submitAdditionalFundRequest = () => {
@@ -426,6 +431,7 @@ const submitFundRequest = (reportId: number, items: ExpenseItem[]) => {
     alert(`Additional fund request of ${formatCurrency(additionalFundAmount)} submitted for R&D review.`);
   };
 
+
   const postReply = (reportId: number) => {
     if(!replyText.trim()) return;
     const now = new Date();
@@ -445,47 +451,49 @@ const submitFundRequest = (reportId: number, items: ExpenseItem[]) => {
     setReplyText("");
   };
 
-const submitReport = (reportId: number) => {
-  const report = activeProject?.reports.find(r => r.id === reportId);
-  if (!report) return;
+
+
+  const submitReport = (reportId: number) => {
+    const report = activeProject?.reports.find(r => r.id === reportId);
+    if (!report) return;
+    
+    // Validation - only check for proof files
+    if (report.proofFiles.length === 0) {
+      return alert("Please upload proof of accomplishment/receipts.");
+    }
+    
+    if (report.progressPercentage === prevReportProgress && report.progressPercentage !== 100) {
+      return alert("Please update the progress percentage or mark as 100% complete.");
+    }
   
-  // Validation - only check for proof files
-  if (report.proofFiles.length === 0) {
-    return alert("Please upload proof of accomplishment/receipts.");
-  }
+    const submitterName = activeProject?.projectLeader; 
   
-  if (report.progressPercentage === prevReportProgress && report.progressPercentage !== 100) {
-    return alert("Please update the progress percentage or mark as 100% complete.");
-  }
-
-  const submitterName = activeProject?.projectLeader; 
-
-  setProjects(prev => prev.map(p => {
-    if (p.id !== activeProjectId) return p;
-    return { 
-      ...p, 
-      reports: p.reports.map(r => r.id === reportId ? { 
-        ...r, 
-        status: 'submitted' as ReportStatus,
-        submittedBy: submitterName,
-        dateSubmitted: new Date().toLocaleDateString()
-      } : r) 
-    };
-  }));
-  alert("Report Submitted for Verification!");
-};
-
+    setProjects(prev => prev.map(p => {
+      if (p.id !== activeProjectId) return p;
+      return { 
+        ...p, 
+        reports: p.reports.map(r => r.id === reportId ? { 
+          ...r, 
+          status: 'submitted' as ReportStatus,
+          submittedBy: submitterName,
+          dateSubmitted: new Date().toLocaleDateString()
+        } : r) 
+      };
+    }));
+    alert("Report Submitted for Verification!");
+  };
+  
   const updateReportField = (reportId: number, field: keyof QuarterlyReport, value: any) => {
     setProjects(prev => prev.map(p => {
       if(p.id !== activeProjectId) return p;
       return { ...p, reports: p.reports.map(r => r.id === reportId ? { ...r, [field]: value } : r) };
     }));
   };
-
+  
   // --- PROGRESS STEPPER HANDLER (Enforces Min Progress) ---
   const handleProgressStep = (reportId: number, direction: 'up' | 'down') => {
     if (!currentReport) return;
-
+  
     let newValue = currentReport.progressPercentage;
     
     if (direction === 'up') {
@@ -494,10 +502,9 @@ const submitReport = (reportId: number) => {
       // Cannot go below previous report's progress (prevReportProgress)
       newValue = Math.max(prevReportProgress, currentReport.progressPercentage - 5); 
     }
-
+  
     updateReportField(reportId, 'progressPercentage', newValue);
   };
-
   const filteredProjects = projects.filter(p => (filterStatus === 'all' || p.status === filterStatus) && p.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const currentReport = activeProject ? activeProject.reports[currentReportIndex] : null;
@@ -1048,7 +1055,7 @@ const submitReport = (reportId: number) => {
                                             file:text-xs file:font-semibold
                                             file:bg-blue-50 file:text-blue-700
                                             hover:file:bg-blue-100"
-                                            onChange={(e) => { 
+                                            onChange={() => { 
                                                 // Handle file Logic
                                             }}
                                         />
@@ -1064,7 +1071,7 @@ const submitReport = (reportId: number) => {
                                             file:text-xs file:font-semibold
                                             file:bg-blue-50 file:text-blue-700
                                             hover:file:bg-blue-100"
-                                            onChange={(e) => { 
+                                            onChange={() => { 
                                                 // Handle file Logic
                                             }}
                                         />

@@ -10,6 +10,8 @@ import System from "./system";
 import Proposals from "./proposals"
 import Evaluators from "./evaluator"
 import Monitoring from "./monitoring"
+import Endorsements from "./endorsement"
+import Funding from "./funding"
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -29,7 +31,11 @@ const AdminLayout: React.FC = () => {
       case "proposals":
         return <Proposals />; 
       case "evaluators":
-        return <Evaluators />;    
+        return <Evaluators />;
+      case "endorsements":
+        return <Endorsements />;
+      case "project-funding":
+        return <Funding />;      
       case "monitoring":
         return <Monitoring />; 
       case "contents":

@@ -325,10 +325,6 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     setShowAnonymitySelection(true);
   };
 
-  const handleAnonymitySelection = (option: 'name' | 'agency' | 'both') => {
-    setShowProponentInfo(option);
-  };
-
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
@@ -359,14 +355,6 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       case 'Rejected Proposal': return 'Reject Proposal with Explanation';
       default: return decisionType;
     }
-  };
-
-  const shouldShowStructuredComments = () => {
-    return decision === 'Revision Required';
-  };
-
-  const shouldShowSimpleComments = () => {
-    return (decision === 'Sent to Evaluators' || decision === 'Rejected Proposal');
   };
 
   if (!isOpen || !proposal) return null;

@@ -18,7 +18,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
     email: "",
     role: "Proponent",
     agency: "",
-    status: "Active" as "Active" | "Inactive"
+    status: "Active" as "Active" | "Inactive" | "Blocked"
   });
 
   useEffect(() => {

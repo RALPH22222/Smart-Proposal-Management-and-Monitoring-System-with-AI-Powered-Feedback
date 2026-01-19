@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard,
   FileText,
-  CheckCircle,
   Users,
   Settings,
   LogOut,
   BarChart3,
   Menu,
-  X
+  X,
+  Gavel,
+  DollarSign
 } from 'lucide-react';
 import { type Statistics } from '../../types/InterfaceProposal';
 import { useAuthContext } from "../../context/AuthContext";
@@ -35,8 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'proposals', label: 'Proposals', icon: FileText },
     { id: 'evaluators', label: 'Evaluators', icon: Users },
-    { id: 'endorsements', label: 'Endorsements', icon: CheckCircle },
-    { id: 'funding', label: 'Project Funding', icon: FileText }, // Using FileText as placeholder, ideally Wallet or Coins if available
+    { id: 'endorsements', label: 'Endorsements', icon: Gavel },
+    { id: 'funding', label: 'Project Funding', icon: DollarSign }, 
     { id: 'monitoring', label: 'Project Monitoring', icon: BarChart3 },
   ];
 
