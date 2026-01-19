@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Calendar, User, DollarSign, X, CheckCircle, TrendingUp,
   AlertTriangle, Clock, ChevronDown, ChevronUp, 
-  FileText, Send, ShieldAlert, Paperclip, Download, Eye,
+  FileText, Send, ShieldAlert, Paperclip, Download,
   Banknote, CalendarClock, Users, MessageSquare, CheckSquare, XCircle, Lock, Loader2, Award
 } from 'lucide-react';
 import { type Project } from '../../types/InterfaceProject';
@@ -62,6 +62,13 @@ interface RnDProjectDetailModalProps {
   project: Project | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+// --- Helper Interface for Request Details ---
+interface RequestItemDetails {
+   subText: string;
+   reason: string;
+   breakdown?: ExpenseBreakdown[];
 }
 
 // --- MOCK DATA GENERATOR ---
@@ -364,7 +371,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
           </div>
        </div>
     </div>
-  );
+    );
 
   // 2. CHAT SECTION
   const renderChatSection = (report: ExtendedReport) => {
@@ -559,7 +566,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const renderRequestItem = (
       title: string, 
       type: 'Fund' | 'Extension', 
-      details: any, 
+      details: RequestItemDetails, // Fixed: Replaced 'any' with RequestItemDetails
       reqId: string, 
       status: string
   ) => {
@@ -594,7 +601,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   <div className="mt-3 pt-3 border-t border-slate-200">
                      <span className="font-bold text-slate-500 text-xs uppercase block mb-2">Utilization Breakdown:</span>
                      <ul className="space-y-1">
-                        {details.breakdown.map((item: any) => (
+                        {details.breakdown.map((item: ExpenseBreakdown) => ( // Fixed: Explicitly typed 'item'
                            <li key={item.id} className="text-xs flex justify-between items-center bg-white p-2 rounded border border-slate-100">
                               <span>{item.description}</span>
                               <span className="font-mono font-medium">₱{item.amount.toLocaleString()}</span>

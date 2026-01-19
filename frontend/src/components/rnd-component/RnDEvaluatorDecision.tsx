@@ -5,7 +5,6 @@ import {
 	RotateCcw,
 	FileText,
 	MessageSquare,
-	TrendingUp,
 	Clock,
 	Calendar,
 	X,
@@ -225,7 +224,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.objectives)}`}>
-										{(RATING_CRITERIA.objectives.descriptions as any)[decision.ratings.objectives]}
+										{(RATING_CRITERIA.objectives.descriptions as Record<number, string>)[decision.ratings.objectives]}
 									</div>
 								</div>
 
@@ -246,7 +245,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.methodology)}`}>
-										{(RATING_CRITERIA.methodology.descriptions as any)[decision.ratings.methodology]}
+										{(RATING_CRITERIA.methodology.descriptions as Record<number, string>)[decision.ratings.methodology]}
 									</div>
 								</div>
 
@@ -266,7 +265,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
-										{(RATING_CRITERIA.budget.descriptions as any)[decision.ratings.budget]}
+										{(RATING_CRITERIA.budget.descriptions as Record<number, string>)[decision.ratings.budget]}
 									</div>
 								</div>
 
@@ -287,7 +286,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.timeline)}`}>
-										{(RATING_CRITERIA.timeline.descriptions as any)[decision.ratings.timeline]}
+										{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[decision.ratings.timeline]}
 									</div>
 								</div>
 							</div>
