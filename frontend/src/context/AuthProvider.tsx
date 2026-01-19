@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext, { type AuthUser } from "./AuthContext";
 import { api } from "@utils/axios";
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   const logout = useCallback(async () => {
     try {
