@@ -61,6 +61,7 @@ export interface EndorsementProposal {
 	overallRecommendation: 'Approve' | 'Revise' | 'Reject';
 	readyForEndorsement: boolean;
 	budget?: BudgetRow[];
+	projectType?: string;
 }
 
 export interface EvaluatorDecision {

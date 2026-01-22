@@ -8,7 +8,8 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  Gavel
+  Gavel,
+  Tag
 } from 'lucide-react';
 import { 
   type EndorsementProposal, 
@@ -68,7 +69,8 @@ const EndorsePage: React.FC = () => {
         }
       ],
       overallRecommendation: 'Approve',
-      readyForEndorsement: true
+      readyForEndorsement: true,
+      projectType: 'ICT'
     },
     {
       id: 'PROP-2025-003',
@@ -97,7 +99,8 @@ const EndorsePage: React.FC = () => {
         }
       ],
       overallRecommendation: 'Revise',
-      readyForEndorsement: true
+      readyForEndorsement: true,
+      projectType: 'Public Safety'
     },
     {
       id: 'PROP-2025-006',
@@ -114,7 +117,8 @@ const EndorsePage: React.FC = () => {
         }
       ],
       overallRecommendation: 'Approve',
-      readyForEndorsement: false // Missing second evaluator
+      readyForEndorsement: false, // Missing second evaluator
+      projectType: 'Education'
     }
   ];
 
@@ -268,6 +272,18 @@ const EndorsePage: React.FC = () => {
   const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
+
+  const getProjectTypeColor = (type: string) => {
+    switch (type) {
+      case 'ICT': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Healthcare': return 'bg-pink-100 text-pink-700 border-pink-200';
+      case 'Agriculture': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Energy': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'Public Safety': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Education': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
 
   if (loading) {
     return (
@@ -430,6 +446,13 @@ const EndorsePage: React.FC = () => {
                             <FileText className="w-3 h-3" aria-hidden="true" />
                             <span>ID: {proposal.id}</span>
                           </div>
+                          {/* Project Type Badge */}
+                          {proposal.projectType && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(proposal.projectType)}`}>
+                              <Tag className="w-3 h-3" />
+                              {proposal.projectType}
+                            </span>
+                          )}
                         </div>
 
                         {/* Evaluator Decisions */}
