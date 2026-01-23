@@ -8,10 +8,11 @@ import { proposalStatusSchema } from "../../schemas/proposal-schema";
 type FilterParams = {
   search?: string;
   status?: Status;
+  proponent_id?: string;
 };
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  const { search, status }: FilterParams = event.queryStringParameters || {};
+  const { search, status, proponent_id }: FilterParams = event.queryStringParameters || {};
 
   // Validate status if provided
   if (status) {
@@ -28,7 +29,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getAll(search, status);
+  const { data, error } = await proposalService.getAll(search, status, proponent_id);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

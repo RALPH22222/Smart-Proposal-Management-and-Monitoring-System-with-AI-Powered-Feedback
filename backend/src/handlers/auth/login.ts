@@ -12,9 +12,9 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   if (error) {
     console.error("Error during login: ", JSON.stringify(error, null, 2));
     return {
-      statusCode: error.status || 400,
+      statusCode: (error as { status?: number }).status || 400,
       body: JSON.stringify({
-        message: error.message || error.code,
+        message: error.message || (error as { code?: string }).code,
       }),
     };
   }

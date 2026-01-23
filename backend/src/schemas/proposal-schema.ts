@@ -51,10 +51,69 @@ const budgetsSchema = z
   )
   .min(1, "At least one budget source is required");
 
+// Helper to convert camelCase priority keys to snake_case enum values
+const normalizePriorityAreas = (val: unknown): string[] => {
+  const parsed = parseJsonIfString(val);
+  if (!Array.isArray(parsed)) return [];
+
+  const keyMap: Record<string, string> = {
+    stand: "stand",
+    coconutIndustry: "coconut_industry",
+    coconut_industry: "coconut_industry",
+    exportWinners: "export_winners",
+    export_winners: "export_winners",
+    supportIndustries: "support_industries",
+    support_industries: "support_industries",
+    otherPriorityAreas: "other_priority_areas",
+    other_priority_areas: "other_priority_areas",
+  };
+
+  return parsed.map((k: string) => keyMap[k] || k);
+};
+
+// Helper to normalize development_class (camelCase to snake_case)
+const normalizeDevelopmentClass = (val: unknown): string | undefined => {
+  const parsed = parseJsonIfString(val);
+  if (!parsed || parsed === "") return undefined;
+
+  const keyMap: Record<string, string> = {
+    pilotTesting: "pilot_testing",
+    pilot_testing: "pilot_testing",
+    techPromotion: "tech_promotion",
+    tech_promotion: "tech_promotion",
+  };
+
+  return keyMap[String(parsed)] || String(parsed);
+};
+
+// Helper to normalize implementation_site (site -> site_name)
+const normalizeImplementationSite = (val: unknown) => {
+  const parsed = parseJsonIfString(val);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.map((item: any) => ({
+    site_name: item.site_name || item.site || "",
+    city: item.city || "",
+  }));
+};
+
+// Helper to extract IDs from cooperating agencies (handles {id, name} objects)
+const normalizeCooperatingAgencies = (val: unknown) => {
+  const parsed = parseJsonIfString(val);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.map((item: any) => {
+    if (typeof item === "object" && item !== null && "id" in item) {
+      return item.id;
+    }
+    return item;
+  });
+};
+
 export const proposalSchema = z.object({
   // --- CHANGED: Matches Frontend camelCase ---
   proponent_id: z.string().uuid(),
-  department: z.union([z.coerce.number(), z.string()]), // Optional if not always sent
+  department: z.union([z.coerce.number(), z.string()]).optional(), // Made optional - not always sent
   sector: z.union([z.coerce.number(), z.string()]),
   discipline: z.union([z.coerce.number(), z.string()]),
   agency: z.union([z.coerce.number(), z.string()]),
@@ -71,12 +130,12 @@ export const proposalSchema = z.object({
   project_title: z.string().min(1, "Project title is required"), // Changed from project_title
 
   email: z.string().or(z.literal("")),
-  phone: z.coerce.number(),
+  phone: z.coerce.number().optional().default(0), // Made optional with default for empty string
 
   // --- CHANGED: Use nativeEnum for TS Enums ---
-  // FIX: Added 'val: unknown' to fix the TS error
-  research_class: z.preprocess(parseJsonIfString, z.nativeEnum(ResearchClass)),
-  development_class: z.preprocess(parseJsonIfString, z.nativeEnum(DevelopmentClass)),
+  // research_class and development_class are mutually exclusive - only one is sent
+  research_class: z.preprocess(parseJsonIfString, z.nativeEnum(ResearchClass).optional().nullable()),
+  development_class: z.preprocess(normalizeDevelopmentClass, z.nativeEnum(DevelopmentClass).optional().nullable()),
   implementation_mode: z.preprocess(parseJsonIfString, z.nativeEnum(ImplementationMode)),
 
   // --- CHANGED: Matches Frontend names ---
@@ -84,12 +143,12 @@ export const proposalSchema = z.object({
   plan_end_date: z.string().date(), // Changed from plan_end_date
   duration: z.coerce.number(),
 
-  // --- CHANGED: Priority Areas (JSON Parse) ---
-  priority_areas: z.preprocess(parseJsonIfString, z.array(z.nativeEnum(PriorityArea))),
+  // --- CHANGED: Priority Areas with camelCase to snake_case conversion ---
+  priority_areas: z.preprocess(normalizePriorityAreas, z.array(z.nativeEnum(PriorityArea))),
 
-  // --- NEW: Implementation Site (Missing in your old schema) ---
+  // --- NEW: Implementation Site with flexible field names (site or site_name) ---
   implementation_site: z.preprocess(
-    parseJsonIfString,
+    normalizeImplementationSite,
     z.array(
       z.object({
         site_name: z.string(),
@@ -100,8 +159,8 @@ export const proposalSchema = z.object({
 
   budget: z.preprocess(parseJsonIfString, budgetsSchema),
 
-  // --- NEW: Cooperating Agencies (Missing in your old schema) ---
-  cooperating_agencies: z.preprocess(parseJsonIfString, z.array(z.union([z.coerce.number(), z.string()]))),
+  // --- NEW: Cooperating Agencies - handles both {id, name} objects and primitives ---
+  cooperating_agencies: z.preprocess(normalizeCooperatingAgencies, z.array(z.union([z.coerce.number(), z.string()]))),
 
   tags: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),
 
@@ -169,6 +228,15 @@ export const endorseForFundingSchema = z.object({
   remarks: z.string().max(2000, "Remarks are too long").optional(),
 });
 
+export const submitRevisedProposalSchema = z.object({
+  proposal_id: z.coerce.number().min(1, "Proposal ID is required"),
+  proponent_id: z.string().uuid("Invalid proponent ID"),
+  file_url: fileSchema,
+  // Optional metadata updates
+  project_title: z.string().min(1).optional(),
+  revision_response: z.string().max(2000, "Response is too long").optional(),
+});
+
 export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
 export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;
@@ -178,3 +246,4 @@ export type rejectProposalToProponentInput = z.infer<typeof rejectProposalToProp
 export type decisionEvaluatorToProposalInput = z.infer<typeof decisionEvaluatorToProposalSchema>;
 export type createEvaluationScoresToProposaltInput = z.infer<typeof createEvaluationScoresToProposaltSchema>;
 export type EndorseForFundingInput = z.infer<typeof endorseForFundingSchema>;
+export type SubmitRevisedProposalInput = z.infer<typeof submitRevisedProposalSchema>;

@@ -127,3 +127,98 @@ export const submitProposal = async (
 
   return data;
 };
+
+export type SubmitRevisedProposalResponse = {
+  message: string;
+  data?: {
+    proposal_id: number;
+    version_number: number;
+    version_id: number;
+    file_url: string;
+    status: string;
+  };
+};
+
+export const submitRevisedProposal = async (
+  proposalId: number,
+  proponentId: string,
+  file: File,
+  projectTitle?: string,
+  revisionResponse?: string,
+): Promise<SubmitRevisedProposalResponse> => {
+  const fd = new FormData();
+
+  fd.append("proposal_id", String(proposalId));
+  fd.append("proponent_id", proponentId);
+  fd.append("file_url", file);
+
+  if (projectTitle) {
+    fd.append("project_title", projectTitle);
+  }
+
+  if (revisionResponse) {
+    fd.append("revision_response", revisionResponse);
+  }
+
+  const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    withCredentials: true,
+  });
+
+  return data;
+};
+
+// ========== PROPONENT FEEDBACK APIs ==========
+
+export type RevisionSummary = {
+  proposal_id: number;
+  rnd_id: string;
+  rnd_name: string;
+  objective_comment: string | null;
+  methodology_comment: string | null;
+  budget_comment: string | null;
+  timeline_comment: string | null;
+  overall_comment: string | null;
+  deadline: number | null;
+  created_at: string;
+};
+
+export type RejectionSummary = {
+  proposal_id: number;
+  rnd_id: string;
+  rnd_name: string;
+  comment: string | null;
+  created_at: string;
+};
+
+export type ProposalVersion = {
+  id: number;
+  file_url: string;
+  created_at: string;
+};
+
+export type ProposalVersionsResponse = {
+  proposal_id: number;
+  versions: ProposalVersion[];
+};
+
+export const fetchRevisionSummary = async (proposalId: number): Promise<RevisionSummary> => {
+  const { data } = await api.get<RevisionSummary>(`/proposal/revision-summary?proposal_id=${proposalId}`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export const fetchRejectionSummary = async (proposalId: number): Promise<RejectionSummary> => {
+  const { data } = await api.get<RejectionSummary>(`/proposal/rejection-summary?proposal_id=${proposalId}`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export const fetchProposalVersions = async (proposalId: number): Promise<ProposalVersionsResponse> => {
+  const { data } = await api.get<ProposalVersionsResponse>(`/proposal/versions?proposal_id=${proposalId}`, {
+    withCredentials: true,
+  });
+  return data;
+};

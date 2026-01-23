@@ -312,6 +312,28 @@ export class BackendStack extends Stack {
       },
     });
 
+    const get_priority_lambda = new NodejsFunction(this, "pms-get-priority", {
+      functionName: "pms-get-priority",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-priority.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_station_lambda = new NodejsFunction(this, "pms-get-station", {
+      functionName: "pms-get-station",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-station.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const endorse_for_funding_lambda = new NodejsFunction(this, "pms-endorse-for-funding", {
       functionName: "pms-endorse-for-funding",
       memorySize: 128,
@@ -329,6 +351,175 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposals-for-endorsement.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const submit_revised_proposal_lambda = new NodejsFunction(this, "pms-submit-revised-proposal", {
+      functionName: "pms-submit-revised-proposal",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "submit-revised-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+        PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
+      },
+    });
+    proposal_attachments_bucket.grantPut(submit_revised_proposal_lambda);
+
+    const get_revision_summary_lambda = new NodejsFunction(this, "pms-get-revision-summary", {
+      functionName: "pms-get-revision-summary",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-revision-summary.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_rejection_summary_lambda = new NodejsFunction(this, "pms-get-rejection-summary", {
+      functionName: "pms-get-rejection-summary",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-rejection-summary.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_proposal_versions_lambda = new NodejsFunction(this, "pms-get-proposal-versions", {
+      functionName: "pms-get-proposal-versions",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proposal-versions.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    // ========== PROJECT MONITORING LAMBDAS ==========
+
+    const get_funded_projects_lambda = new NodejsFunction(this, "pms-get-funded-projects", {
+      functionName: "pms-get-funded-projects",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-funded-projects.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_project_lambda = new NodejsFunction(this, "pms-get-project", {
+      functionName: "pms-get-project",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-project.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const submit_quarterly_report_lambda = new NodejsFunction(this, "pms-submit-quarterly-report", {
+      functionName: "pms-submit-quarterly-report",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "submit-quarterly-report.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_project_reports_lambda = new NodejsFunction(this, "pms-get-project-reports", {
+      functionName: "pms-get-project-reports",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-project-reports.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const verify_project_report_lambda = new NodejsFunction(this, "pms-verify-project-report", {
+      functionName: "pms-verify-project-report",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "verify-project-report.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const add_report_comment_lambda = new NodejsFunction(this, "pms-add-report-comment", {
+      functionName: "pms-add-report-comment",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "add-report-comment.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_report_comments_lambda = new NodejsFunction(this, "pms-get-report-comments", {
+      functionName: "pms-get-report-comments",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-report-comments.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const add_project_expense_lambda = new NodejsFunction(this, "pms-add-project-expense", {
+      functionName: "pms-add-project-expense",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "add-project-expense.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_project_expenses_lambda = new NodejsFunction(this, "pms-get-project-expenses", {
+      functionName: "pms-get-project-expenses",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-project-expenses.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const update_project_status_lambda = new NodejsFunction(this, "pms-update-project-status", {
+      functionName: "pms-update-project-status",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "update-project-status.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_overdue_reports_lambda = new NodejsFunction(this, "pms-get-overdue-reports", {
+      functionName: "pms-get-overdue-reports",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-overdue-reports.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -539,6 +730,20 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
+    // /proposal/view-priority
+    const get_priority = proposal.addResource("view-priority");
+    get_priority.addMethod(HttpMethod.GET, new LambdaIntegration(get_priority_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-station
+    const get_station = proposal.addResource("view-station");
+    get_station.addMethod(HttpMethod.GET, new LambdaIntegration(get_station_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
     // /proposal/endorse-for-funding (protected)
     const endorse_for_funding = proposal.addResource("endorse-for-funding");
     endorse_for_funding.addMethod(HttpMethod.POST, new LambdaIntegration(endorse_for_funding_lambda), {
@@ -549,6 +754,116 @@ export class BackendStack extends Stack {
     // /proposal/view-for-endorsement (protected)
     const get_proposals_for_endorsement = proposal.addResource("view-for-endorsement");
     get_proposals_for_endorsement.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposals_for_endorsement_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/submit-revised (protected) - Proponent submits revised proposal
+    const submit_revised_proposal = proposal.addResource("submit-revised");
+    submit_revised_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(submit_revised_proposal_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/revision-summary (protected) - Get revision feedback for a proposal
+    const get_revision_summary = proposal.addResource("revision-summary");
+    get_revision_summary.addMethod(HttpMethod.GET, new LambdaIntegration(get_revision_summary_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/rejection-summary (protected) - Get rejection details for a proposal
+    const get_rejection_summary = proposal.addResource("rejection-summary");
+    get_rejection_summary.addMethod(HttpMethod.GET, new LambdaIntegration(get_rejection_summary_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/versions (protected) - Get all versions of a proposal
+    const get_proposal_versions = proposal.addResource("versions");
+    get_proposal_versions.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_versions_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // ========== PROJECT MONITORING ROUTES ==========
+
+    // /project
+    const project = api.root.addResource("project");
+
+    // /project/funded (protected) - GET funded projects
+    const funded_projects = project.addResource("funded");
+    funded_projects.addMethod(HttpMethod.GET, new LambdaIntegration(get_funded_projects_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/view (protected) - GET single project
+    const view_project = project.addResource("view");
+    view_project.addMethod(HttpMethod.GET, new LambdaIntegration(get_project_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/submit-report (protected) - POST quarterly report
+    const submit_report = project.addResource("submit-report");
+    submit_report.addMethod(HttpMethod.POST, new LambdaIntegration(submit_quarterly_report_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/reports (protected) - GET project reports
+    const project_reports = project.addResource("reports");
+    project_reports.addMethod(HttpMethod.GET, new LambdaIntegration(get_project_reports_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/verify-report (protected) - POST verify report
+    const verify_report = project.addResource("verify-report");
+    verify_report.addMethod(HttpMethod.POST, new LambdaIntegration(verify_project_report_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/add-comment (protected) - POST add comment
+    const add_comment = project.addResource("add-comment");
+    add_comment.addMethod(HttpMethod.POST, new LambdaIntegration(add_report_comment_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/comments (protected) - GET report comments
+    const get_comments = project.addResource("comments");
+    get_comments.addMethod(HttpMethod.GET, new LambdaIntegration(get_report_comments_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/add-expense (protected) - POST add expense
+    const add_expense = project.addResource("add-expense");
+    add_expense.addMethod(HttpMethod.POST, new LambdaIntegration(add_project_expense_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/expenses (protected) - GET project expenses
+    const get_expenses = project.addResource("expenses");
+    get_expenses.addMethod(HttpMethod.GET, new LambdaIntegration(get_project_expenses_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/update-status (protected) - POST update project status
+    const update_status = project.addResource("update-status");
+    update_status.addMethod(HttpMethod.POST, new LambdaIntegration(update_project_status_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/overdue-reports (protected) - GET overdue reports
+    const overdue_reports = project.addResource("overdue-reports");
+    overdue_reports.addMethod(HttpMethod.GET, new LambdaIntegration(get_overdue_reports_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

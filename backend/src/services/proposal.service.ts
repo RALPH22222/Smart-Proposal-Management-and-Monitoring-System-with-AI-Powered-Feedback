@@ -20,6 +20,7 @@ import {
   rejectProposalToProponentInput,
   revisionProposalToProponentInput,
   createEvaluationScoresToProposaltInput,
+  SubmitRevisedProposalInput,
 } from "../schemas/proposal-schema";
 
 function isId(v: IdOrName): v is number {
@@ -449,8 +450,7 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getAll(search?: string, status?: Status) {
-    const filters = [];
+  async getAll(search?: string, status?: Status, proponent_id?: string) {
     let query = this.db.from("proposals").select(`
       *,
       proponent:users(first_name,last_name),
@@ -460,16 +460,17 @@ export class ProposalService {
       agency:agencies(name)
     `);
 
+    // Filter by proponent_id if provided (security filter for proponent users)
+    if (proponent_id) {
+      query = query.eq("proponent_id", proponent_id);
+    }
+
     if (search) {
-      filters.push(`project_title.ilike.%${search}%`);
+      query = query.ilike("project_title", `%${search}%`);
     }
 
     if (status) {
-      filters.push(`status.eq.${status}`);
-    }
-
-    if (filters.length > 0) {
-      query.or(filters.join(","));
+      query = query.eq("status", status);
     }
 
     const { data, error } = await query;
@@ -932,5 +933,185 @@ export class ProposalService {
     }
 
     return { error: new Error("Invalid decision type") };
+  }
+
+  async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
+    const { proposal_id, proponent_id, project_title, revision_response } = input;
+
+    // 1. Verify proposal exists and belongs to proponent
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id, status, project_title")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found") };
+    }
+
+    // 2. Verify ownership
+    if (proposal.proponent_id !== proponent_id) {
+      return { error: new Error("You do not have permission to revise this proposal") };
+    }
+
+    // 3. Verify status is revision_rnd
+    if (proposal.status !== Status.REVISION_RND) {
+      return {
+        error: new Error(`Proposal must be in 'revision_rnd' status to submit revision. Current status: ${proposal.status}`),
+      };
+    }
+
+    // 4. Get current version count for numbering
+    const { count: versionCount, error: countError } = await this.db
+      .from("proposal_version")
+      .select("*", { count: "exact", head: true })
+      .eq("proposal_id", proposal_id);
+
+    if (countError) {
+      return { error: countError };
+    }
+
+    const newVersionNumber = (versionCount || 0) + 1;
+
+    // 5. Create new proposal_version record
+    const { data: versionData, error: versionError } = await this.db
+      .from("proposal_version")
+      .insert({
+        proposal_id: proposal_id,
+        file_url: fileUrl,
+      })
+      .select()
+      .single();
+
+    if (versionError) {
+      return { error: versionError };
+    }
+
+    // 6. Update proposal status to review_rnd and optionally update project_title
+    const updatePayload: Record<string, any> = {
+      status: Status.REVIEW_RND,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (project_title) {
+      updatePayload.project_title = project_title;
+    }
+
+    const { error: updateError } = await this.db
+      .from("proposals")
+      .update(updatePayload)
+      .eq("id", proposal_id);
+
+    if (updateError) {
+      return { error: updateError };
+    }
+
+    // 7. Log the action to proposal_logs
+    await this.db.from("proposal_logs").insert({
+      proposal_id: proposal_id,
+      action: "revision_submitted",
+      performed_by: proponent_id,
+      remarks: revision_response || `Submitted revision (version ${newVersionNumber})`,
+    });
+
+    return {
+      data: {
+        proposal_id,
+        version_number: newVersionNumber,
+        version_id: versionData.id,
+        file_url: fileUrl,
+        status: Status.REVIEW_RND,
+      },
+      error: null,
+    };
+  }
+
+  async getRevisionSummary(proposal_id: number) {
+    const { data, error } = await this.db
+      .from("proposal_revision_summary")
+      .select(`
+        *,
+        rnd:users!proposal_revision_summary_rnd_id_fkey(id, first_name, last_name)
+      `)
+      .eq("proposal_id", proposal_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return { data: null, error: null };
+    }
+
+    return {
+      data: {
+        proposal_id: data.proposal_id,
+        rnd_id: data.rnd_id,
+        rnd_name: data.rnd ? `${data.rnd.first_name || ""} ${data.rnd.last_name || ""}`.trim() : "Unknown",
+        objective_comment: data.objective_comment,
+        methodology_comment: data.methodology_comment,
+        budget_comment: data.budget_comment,
+        timeline_comment: data.timeline_comment,
+        overall_comment: data.overall_comment,
+        deadline: data.deadline,
+        created_at: data.created_at,
+      },
+      error: null,
+    };
+  }
+
+  async getRejectionSummary(proposal_id: number) {
+    const { data, error } = await this.db
+      .from("proposal_reject_summary")
+      .select(`
+        *,
+        rnd:users!proposal_reject_summary_rnd_id_fkey(id, first_name, last_name)
+      `)
+      .eq("proposal_id", proposal_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return { data: null, error: null };
+    }
+
+    return {
+      data: {
+        proposal_id: data.proposal_id,
+        rnd_id: data.rnd_id,
+        rnd_name: data.rnd ? `${data.rnd.first_name || ""} ${data.rnd.last_name || ""}`.trim() : "Unknown",
+        comment: data.comment,
+        created_at: data.created_at,
+      },
+      error: null,
+    };
+  }
+
+  async getProposalVersions(proposal_id: number) {
+    const { data, error } = await this.db
+      .from("proposal_version")
+      .select("id, file_url, created_at")
+      .eq("proposal_id", proposal_id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return {
+      data: {
+        proposal_id,
+        versions: data || [],
+      },
+      error: null,
+    };
   }
 }
