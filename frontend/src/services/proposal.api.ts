@@ -22,7 +22,7 @@ export const fetchCooperatingAgencies = async (): Promise<LookupItem[]> => {
 };
 
 export const fetchDepartments = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/department");
+  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
   return data;
 };
 
@@ -47,7 +47,7 @@ export const fetchPriorities = async (): Promise<LookupItem[]> => {
 };
 
 export const fetchStations = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-station");
+  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
   return data;
 };
 
@@ -62,17 +62,11 @@ export const submitProposal = async (
   proponentId: string,
 ): Promise<CreateProposalResponse> => {
   const fd = new FormData();
-  const startDate = formData.plannedStartDate 
-    ? new Date(formData.plannedStartDate).toISOString().split('T')[0] 
-    : "";
-  const endDate = formData.plannedEndDate 
-    ? new Date(formData.plannedEndDate).toISOString().split('T')[0] 
-    : "";
+  const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
+  const endDate = formData.plannedEndDate ? new Date(formData.plannedEndDate).toISOString().split("T")[0] : "";
   let researchClass = "";
   if (formData.classificationType === "research") {
-    researchClass = Object.keys(formData.researchType).find(
-      (key) => formData.researchType[key] === true
-    ) || "";
+    researchClass = Object.keys(formData.researchType).find((key) => formData.researchType[key] === true) || "";
   }
   fd.append("proponent_id", proponentId);
   if (formData.department) {
@@ -90,10 +84,7 @@ export const submitProposal = async (
   } else {
     fd.append("development_class", formData.developmentType);
   }
-  fd.append(
-    "implementation_mode",
-    formData.implementationMode.singleAgency ? "single_agency" : "multi_agency"
-  );
+  fd.append("implementation_mode", formData.implementationMode.singleAgency ? "single_agency" : "multi_agency");
   fd.append(
     "priority_areas",
     JSON.stringify(

@@ -5,7 +5,16 @@ import { buildCorsHeaders } from "../../utils/cors";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const proposal_id = event.queryStringParameters?.proposal_id;
+  const user_sub = event.requestContext.authorizer?.user_sub as string;
 
+  if (!user_sub) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({
+        message: "Unauthorized: User ID not found in token",
+      }),
+    };
+  }
   if (!proposal_id) {
     return {
       statusCode: 400,
@@ -26,7 +35,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getRejectionSummary(proposalIdNum);
+  const { data, error } = await proposalService.getRejectionSummary(proposalIdNum, user_sub);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

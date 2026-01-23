@@ -40,6 +40,12 @@ export enum EvaluatorStatus {
   DECLINE = "decline",
 }
 
+export enum EvaluatorFinalDecision {
+  APPROVE = "approve",
+  REVISE = "revise",
+  REJECT = "reject",
+}
+
 export enum Table {
   DEPARTMENTS = "departments",
   SECTORS = "sectors",

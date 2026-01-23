@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  EvaluatorFinalDecision,
   EvaluatorStatus,
   ResearchClass,
   DevelopmentClass,
@@ -169,9 +170,8 @@ export const proposalSchema = z.object({
 
 export const decisionEvaluatorToProposalSchema = z.object({
   proposal_id: z.number(),
-  evaluator_id: z.string().uuid(),
   status: z.preprocess(parseJsonIfString, z.nativeEnum(AssignmentTracker)),
-  remarks: z.string(),
+  remarks: z.string().optional(),
   deadline_at: z.string().date(),
 });
 
@@ -185,7 +185,6 @@ export const forwardToEvaluatorsSchema = z.object({
 
 export const revisionProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  rnd_id: z.string().uuid(),
   objective_comment: z.string().max(2000, "Comments are too long").optional(),
   methodology_comment: z.string().max(2000, "Comments are too long").optional(),
   budget_comment: z.string().max(2000, "Comments are too long").optional(),
@@ -196,16 +195,17 @@ export const revisionProposalToProponentSchema = z.object({
 
 export const rejectProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  rnd_id: z.string().uuid(),
   comment: z.string().max(2000, "Comments are too long").optional(),
 });
 
 export const createEvaluationScoresToProposaltSchema = z.object({
   proposal_id: z.number(),
-  evaluator_id: z.string().uuid(),
-  status: z.preprocess(parseJsonIfString, z.nativeEnum(EvaluatorStatus)),
-  assessment: z.string(),
-  score: z.number(),
+  status: z.preprocess(parseJsonIfString, z.nativeEnum(EvaluatorFinalDecision)),
+  objective: z.number(),
+  methodology: z.number(),
+  budget: z.number(),
+  timeline: z.number(),
+  comment: z.string().optional(),
 });
 
 export const forwardToRndSchema = z.object({

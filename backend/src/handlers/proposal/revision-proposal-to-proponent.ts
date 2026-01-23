@@ -21,7 +21,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { error } = await proposalService.revisionProposalToProponent(result.data);
+  const { user_sub } = event.requestContext.authorizer as Record<string, string>;
+  const { error } = await proposalService.revisionProposalToProponent(result.data, user_sub);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

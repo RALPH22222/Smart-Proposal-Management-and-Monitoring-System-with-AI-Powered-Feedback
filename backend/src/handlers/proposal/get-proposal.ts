@@ -8,11 +8,22 @@ import { proposalStatusSchema } from "../../schemas/proposal-schema";
 type FilterParams = {
   search?: string;
   status?: Status;
-  proponent_id?: string;
 };
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  const { search, status, proponent_id }: FilterParams = event.queryStringParameters || {};
+  const { search, status }: FilterParams = event.queryStringParameters || {};
+
+  // Get authenticated user's ID from the authorizer context
+  const user_sub = event.requestContext.authorizer?.user_sub as string;
+
+  if (!user_sub) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({
+        message: "Unauthorized: User ID not found in token",
+      }),
+    };
+  }
 
   // Validate status if provided
   if (status) {
@@ -29,7 +40,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getAll(search, status, proponent_id);
+  const { data, error } = await proposalService.getAll(search, status, user_sub);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

@@ -570,6 +570,7 @@ export class BackendStack extends Stack {
     const cors = api.root.addResource("{proxy+}");
     cors.addMethod(HttpMethod.OPTIONS, new LambdaIntegration(cors_lambda));
 
+    // ========== PROPOSAL ROUTES ==========
     // /proposal
     const proposal = api.root.addResource("proposal");
 
@@ -667,21 +668,21 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
-    // /proposal/view-proponent-proponent-stats
+    // /proposal/view-proponent-proposal-stats
     const get_proponent_proposal_stats = proposal.addResource("view-proponent-proposal-stats");
     get_proponent_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_proponent_proposal_stats_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
 
-    // /proposal/view-proponent-proponent-stats
+    // /proposal/view-rnd-proposal-stats
     const get_rnd_proposal_stats = proposal.addResource("view-rnd-proposal-stats");
     get_rnd_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_rnd_proposal_stats_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
 
-    // /proposal/view-proponent-proponent-stats
+    // /proposal/view-evaluator-proposal-stats
     const get_evaluator_proposal_stats = proposal.addResource("view-evaluator-proposal-stats");
     get_evaluator_proposal_stats.addMethod(HttpMethod.GET, new LambdaIntegration(get_evaluator_proposal_stats_lambda), {
       authorizer: requestAuthorizer,
@@ -696,7 +697,7 @@ export class BackendStack extends Stack {
     });
 
     // /proposal/view-cooperating-agency
-    const get_cooperating_agency = proposal.addResource("view-cooperating-sector");
+    const get_cooperating_agency = proposal.addResource("view-cooperating-agency");
     get_cooperating_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_cooperating_agency_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
@@ -737,6 +738,7 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
+    // This is suppose to be separation between department and station, for now it doesn't do anything
     // /proposal/view-station
     const get_station = proposal.addResource("view-station");
     get_station.addMethod(HttpMethod.GET, new LambdaIntegration(get_station_lambda), {
@@ -753,10 +755,14 @@ export class BackendStack extends Stack {
 
     // /proposal/view-for-endorsement (protected)
     const get_proposals_for_endorsement = proposal.addResource("view-for-endorsement");
-    get_proposals_for_endorsement.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposals_for_endorsement_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
+    get_proposals_for_endorsement.addMethod(
+      HttpMethod.GET,
+      new LambdaIntegration(get_proposals_for_endorsement_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
 
     // /proposal/submit-revised (protected) - Proponent submits revised proposal
     const submit_revised_proposal = proposal.addResource("submit-revised");

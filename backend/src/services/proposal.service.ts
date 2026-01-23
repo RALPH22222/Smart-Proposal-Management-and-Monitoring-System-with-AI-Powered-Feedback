@@ -4,6 +4,7 @@ import {
   AssignmentTracker,
   Budget,
   EndorsementDecision,
+  EvaluatorFinalDecision,
   EvaluatorStatus,
   IdOrName,
   ProjectsStatus,
@@ -258,7 +259,7 @@ export class ProposalService {
     const assignmentsPayload = evaluator_id.map((evaluator) => ({
       proposal_id: proposal_id,
       evaluator_id: evaluator,
-      forwarded_by_rnd_id: rnd_id,
+      forwarded_by_rnd: rnd_id,
       deadline_at: deadline_number_weeks.toISOString(),
       comments_for_evaluators: commentsForEvaluators ?? null,
       status: EvaluatorStatus.PENDING,
@@ -306,11 +307,15 @@ export class ProposalService {
     };
   }
 
-  async decisionEvaluatorToProposal(input: Omit<decisionEvaluatorToProposalInput, "deadline_at">, deadline_at: string) {
+  async decisionEvaluatorToProposal(
+    input: Omit<decisionEvaluatorToProposalInput, "deadline_at">,
+    deadline_at: string,
+    evaluator_id: string,
+  ) {
     const { data: insertedData, error: insertError } = await this.db
       .from("proposal_assignment_tracker")
-      .update(input)
-      .eq("evaluator_id", input.evaluator_id)
+      .update({ ...input, evaluator_id })
+      .eq("evaluator_id", evaluator_id)
       .eq("proposal_id", input.proposal_id);
 
     if (insertError) {
@@ -321,7 +326,7 @@ export class ProposalService {
       const { error: insertError } = await this.db
         .from("proposal_assignment_tracker")
         .update(deadline_at)
-        .eq("evaluator_id", input.evaluator_id)
+        .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id);
 
       if (insertError) {
@@ -333,7 +338,7 @@ export class ProposalService {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.FOR_REVIEW })
-        .eq("evaluator_id", input.evaluator_id)
+        .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id);
 
       if (updateError) {
@@ -343,7 +348,7 @@ export class ProposalService {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.DECLINE })
-        .eq("evaluator_id", input.evaluator_id)
+        .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id);
 
       if (updateError) {
@@ -373,8 +378,9 @@ export class ProposalService {
     };
   }
 
-  async revisionProposalToProponent(input: revisionProposalToProponentInput) {
-    const { data, error: insertError } = await this.db.from("proposal_revision_summary").insert(input);
+  async revisionProposalToProponent(input: revisionProposalToProponentInput, rnd_id: string) {
+    // Include rnd_id in the insert payload so we know which RND submitted this revision
+    const { data, error: insertError } = await this.db.from("proposal_revision_summary").insert({ ...input, rnd_id });
 
     if (insertError) return { error: insertError };
 
@@ -391,8 +397,9 @@ export class ProposalService {
     return { data };
   }
 
-  async rejectProposalToProponent(input: rejectProposalToProponentInput) {
-    const { data, error: insertError } = await this.db.from("proposal_reject_summary").insert(input);
+  async rejectProposalToProponent(input: rejectProposalToProponentInput, rnd_id: string) {
+    // Include rnd_id in the insert payload so we know which RND submitted this rejection
+    const { data, error: insertError } = await this.db.from("proposal_reject_summary").insert({ ...input, rnd_id });
 
     if (insertError) return { error: insertError };
 
@@ -404,17 +411,18 @@ export class ProposalService {
       })
       .eq("id", input.proposal_id);
 
-    if (updateError) return { error: insertError };
+    if (updateError) return { error: updateError };
 
     return { data };
   }
 
   async createEvaluationScoresToProposal(
     input: Omit<createEvaluationScoresToProposaltInput, "status">,
-    status: EvaluatorStatus,
+    status: EvaluatorFinalDecision,
+    evaluator_id: string,
   ) {
     // Insert evaluation score
-    const { data, error } = await this.db.from("evaluation_scores").insert(input);
+    const { data, error } = await this.db.from("evaluation_scores").insert({ ...input, evaluator_id });
 
     if (error) {
       return { data: null, error };
@@ -423,15 +431,15 @@ export class ProposalService {
     // Update proposal_evaluators status to approve/revise/reject
     // Only update if status is one of the final decisions
     if (
-      status === EvaluatorStatus.APPROVE ||
-      status === EvaluatorStatus.REVISE ||
-      status === EvaluatorStatus.REJECT
+      status === EvaluatorFinalDecision.APPROVE ||
+      status === EvaluatorFinalDecision.REVISE ||
+      status === EvaluatorFinalDecision.REJECT
     ) {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: status })
         .eq("proposal_id", input.proposal_id)
-        .eq("evaluator_id", input.evaluator_id);
+        .eq("evaluator_id", evaluator_id);
 
       if (updateError) {
         return { data: null, error: updateError };
@@ -478,24 +486,34 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getProponentProposalStats() {
+  async getProponentProposalStats(proponent_id: string) {
     try {
       const queries = {
-        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+        total: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("proponent_id", proponent_id),
 
-        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+        review_rnd: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "review_rnd")
+          .eq("proponent_id", proponent_id),
 
         under_evaluation: this.db
           .from("proposals")
           .select("*", { count: "exact", head: true })
-          .eq("status", "under_evaluation"),
+          .eq("status", "under_evaluation")
+          .eq("proponent_id", proponent_id),
 
         revision_rnd: this.db
           .from("proposals")
           .select("*", { count: "exact", head: true })
-          .eq("status", "revision_rnd"),
+          .eq("status", "revision_rnd")
+          .eq("proponent_id", proponent_id),
 
-        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+        funded: this.db
+          .from("proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "funded")
+          .eq("proponent_id", proponent_id),
       };
 
       const results = await Promise.all(Object.values(queries));
@@ -514,34 +532,51 @@ export class ProposalService {
     }
   }
 
-  async getRndProposalStats() {
+  async getRndProposalStats(rnd_id: string) {
     try {
+      // Query from proposal_rnd and join with proposals using !inner to get the status
+      // proposal_rnd links RND users to proposals, proposals has the status
       const queries = {
-        total: this.db.from("proposals").select("*", { count: "exact", head: true }),
+        total: this.db
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id),
 
-        review_rnd: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+        review_rnd: this.db
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "review_rnd"),
 
         revision_rnd: this.db
-          .from("proposals")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "revision_rnd"),
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "revision_rnd"),
 
         rejected_rnd: this.db
-          .from("proposals")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "rejected_rnd"),
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "rejected_rnd"),
 
         under_evaluation: this.db
-          .from("proposals")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "under_evaluation"),
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "under_evaluation"),
 
         endorsed_for_funding: this.db
-          .from("proposals")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "endorsed_for_funding"),
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "endorsed_for_funding"),
 
-        funded: this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+        funded: this.db
+          .from("proposal_rnd")
+          .select("proposal:proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd_id)
+          .eq("proposal.status", "funded"),
       };
 
       const results = await Promise.all(Object.values(queries));
@@ -562,31 +597,44 @@ export class ProposalService {
     }
   }
 
-  async getEvaluatorProposalStats() {
+  async getEvaluatorProposalStats(evaluator_id: string) {
     try {
+      // Filter all queries by evaluator_id to get stats for this specific evaluator
       const queries = {
         pending: this.db
           .from("proposal_evaluators")
           .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
           .eq("status", "pending"),
 
         for_review: this.db
           .from("proposal_evaluators")
           .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
           .eq("status", "for_review"),
 
         approve: this.db
           .from("proposal_evaluators")
           .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
           .eq("status", "approve"),
 
-        revise: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "revise"),
+        revise: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
+          .eq("status", "revise"),
 
-        reject: this.db.from("proposal_evaluators").select("*", { count: "exact", head: true }).eq("status", "reject"),
+        reject: this.db
+          .from("proposal_evaluators")
+          .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
+          .eq("status", "reject"),
 
         decline: this.db
           .from("proposal_evaluators")
           .select("*", { count: "exact", head: true })
+          .eq("evaluator_id", evaluator_id)
           .eq("status", "decline"),
       };
 
@@ -613,8 +661,8 @@ export class ProposalService {
       .select(
         `
         *,
-        evaluator:users(first_name,last_name),
-        forwarded_by_rnd:users(first_name,last_name),
+        evaluator:users!proposal_evaluators_evaluator_id_fkey(first_name,last_name),
+        forwarded_by_rnd:users!proposal_evaluators_forwarded_by_rnd_fkey(first_name,last_name),
         proposal:proposals!inner(
           *,
           proponent:users(first_name,last_name),
@@ -649,7 +697,7 @@ export class ProposalService {
   }
 
   async getCooperatingAgency(search: string) {
-    const { data, error } = await this.db.from("cooperating_agencies").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
 
     return { data, error };
   }
@@ -678,27 +726,33 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getProposalsForEndorsement(search?: string) {
-    // 1. Get proposals in under_evaluation status with their evaluator assignments
+  async getProposalsForEndorsement(search?: string, rnd_id?: string) {
+    // 1. Get proposals in under_evaluation status assigned to this RND user
+    // Use !inner join with proposal_rnd to filter by rnd_id
     let query = this.db
       .from("proposals")
       .select(
         `
         id,
         project_title,
-        proponent:users!proposals_proponent_id_fkey(id, first_name, last_name),
-        department:departments(name),
+        proponent_id,
+        department_id,
         status,
         created_at,
+        proposal_rnd!inner(rnd_id),
         proposal_evaluators(
           evaluator_id,
           status,
-          deadline_at,
-          evaluator:users!proposal_evaluators_evaluator_id_fkey(id, first_name, last_name)
+          deadline_at
         )
       `,
       )
       .eq("status", Status.UNDER_EVALUATION);
+
+    // Filter by RND user - only show proposals assigned to this RND
+    if (rnd_id) {
+      query = query.eq("proposal_rnd.rnd_id", rnd_id);
+    }
 
     if (search) {
       query = query.ilike("project_title", `%${search}%`);
@@ -714,45 +768,64 @@ export class ProposalService {
       return { data: [], error: null };
     }
 
-    // 2. Get evaluation scores for all proposals
     const proposalIds = proposals.map((p) => p.id);
-    const { data: allScores, error: scoresError } = await this.db
-      .from("evaluation_scores")
-      .select("proposal_id, evaluator_id, assessment, score")
-      .in("proposal_id", proposalIds);
 
-    if (scoresError) {
-      return { data: null, error: scoresError };
-    }
+    // 2. Get all unique user IDs (proponents + evaluators) to fetch names
+    const proponentIds = proposals.map((p) => p.proponent_id).filter(Boolean);
+    const evaluatorIds = proposals
+      .flatMap((p) => (p.proposal_evaluators || []).map((ev: any) => ev.evaluator_id))
+      .filter(Boolean);
+    const allUserIds = [...new Set([...proponentIds, ...evaluatorIds])];
 
-    // 3. Get budget data for all proposals
-    const { data: allBudgets, error: budgetError } = await this.db
-      .from("estimated_budget")
-      .select("proposal_id, source, budget, amount")
-      .in("proposal_id", proposalIds);
+    // 3. Get all unique department IDs
+    const departmentIds = [...new Set(proposals.map((p) => p.department_id).filter(Boolean))];
 
-    if (budgetError) {
-      return { data: null, error: budgetError };
-    }
+    // 4. Fetch users and departments in parallel
+    const [usersResult, departmentsResult, scoresResult, budgetsResult] = await Promise.all([
+      allUserIds.length > 0
+        ? this.db.from("users").select("id, first_name, last_name").in("id", allUserIds)
+        : { data: [], error: null },
+      departmentIds.length > 0
+        ? this.db.from("departments").select("id, name").in("id", departmentIds)
+        : { data: [], error: null },
+      // Updated to use new column structure: objective, methodology, budget, timeline, comment
+      this.db
+        .from("evaluation_scores")
+        .select("proposal_id, evaluator_id, objective, methodology, budget, timeline, comment")
+        .in("proposal_id", proposalIds),
+      this.db.from("estimated_budget").select("proposal_id, source, budget, amount").in("proposal_id", proposalIds),
+    ]);
 
-    // 4. Transform data for frontend
+    if (usersResult.error) return { data: null, error: usersResult.error };
+    if (departmentsResult.error) return { data: null, error: departmentsResult.error };
+    if (scoresResult.error) return { data: null, error: scoresResult.error };
+    if (budgetsResult.error) return { data: null, error: budgetsResult.error };
+
+    // Create lookup maps for quick access
+    const usersMap = new Map((usersResult.data || []).map((u) => [u.id, u]));
+    const departmentsMap = new Map((departmentsResult.data || []).map((d) => [d.id, d]));
+    const allScores = scoresResult.data || [];
+    const allBudgets = budgetsResult.data || [];
+
+    // 5. Transform data for frontend
     const endorsementProposals = proposals.map((proposal) => {
       const evaluators = proposal.proposal_evaluators || [];
 
       // Get scores for this proposal grouped by evaluator
-      const proposalScores = (allScores || []).filter((s) => s.proposal_id === proposal.id);
+      const proposalScores = allScores.filter((s) => s.proposal_id === proposal.id);
 
       // Build evaluator decisions
       const evaluatorDecisions = evaluators.map((ev: any) => {
-        const evaluatorScores = proposalScores.filter((s) => s.evaluator_id === ev.evaluator_id);
+        // Find the score record for this evaluator (now one row per evaluator with all scores)
+        const evaluatorScore = proposalScores.find((s) => s.evaluator_id === ev.evaluator_id);
 
-        // Convert scores to ratings object
-        const ratings: Record<string, number> = {};
-        evaluatorScores.forEach((s) => {
-          // Map assessment types: objective_assessment -> objectives, etc.
-          const key = s.assessment?.replace("_assessment", "") || s.assessment;
-          ratings[key] = s.score;
-        });
+        // Build ratings from the new column structure
+        const ratings = {
+          objective: evaluatorScore?.objective ?? 0,
+          methodology: evaluatorScore?.methodology ?? 0,
+          budget: evaluatorScore?.budget ?? 0,
+          timeline: evaluatorScore?.timeline ?? 0,
+        };
 
         // Map evaluator status to decision
         let decision: "Approve" | "Revise" | "Reject" | "Pending" = "Pending";
@@ -760,18 +833,19 @@ export class ProposalService {
         else if (ev.status === EvaluatorStatus.REVISE) decision = "Revise";
         else if (ev.status === EvaluatorStatus.REJECT) decision = "Reject";
 
+        // Get evaluator name from lookup map
+        const evaluator = usersMap.get(ev.evaluator_id);
+
         return {
           evaluatorId: ev.evaluator_id,
-          evaluatorName: ev.evaluator
-            ? `${ev.evaluator.first_name || ""} ${ev.evaluator.last_name || ""}`.trim()
+          evaluatorName: evaluator
+            ? `${evaluator.first_name || ""} ${evaluator.last_name || ""}`.trim() || "Unknown"
             : "Unknown",
           decision,
           status: ev.status,
           submittedDate: ev.deadline_at,
-          ratings:
-            Object.keys(ratings).length > 0
-              ? ratings
-              : { objectives: 0, methodology: 0, budget: 0, timeline: 0 },
+          ratings,
+          comment: evaluatorScore?.comment || null,
         };
       });
 
@@ -808,13 +882,17 @@ export class ProposalService {
         ...values,
       }));
 
+      // Get proponent and department from lookup maps
+      const proponent = usersMap.get(proposal.proponent_id);
+      const department = departmentsMap.get(proposal.department_id);
+
       return {
         id: String(proposal.id),
         title: proposal.project_title,
-        submittedBy: proposal.proponent
-          ? `${(proposal.proponent as any).first_name || ""} ${(proposal.proponent as any).last_name || ""}`.trim()
+        submittedBy: proponent
+          ? `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown"
           : "Unknown",
-        department: (proposal.department as any)?.name || "Unknown",
+        department: department?.name || "Unknown",
         evaluatorDecisions,
         overallRecommendation,
         readyForEndorsement,
@@ -957,7 +1035,9 @@ export class ProposalService {
     // 3. Verify status is revision_rnd
     if (proposal.status !== Status.REVISION_RND) {
       return {
-        error: new Error(`Proposal must be in 'revision_rnd' status to submit revision. Current status: ${proposal.status}`),
+        error: new Error(
+          `Proposal must be in 'revision_rnd' status to submit revision. Current status: ${proposal.status}`,
+        ),
       };
     }
 
@@ -997,10 +1077,7 @@ export class ProposalService {
       updatePayload.project_title = project_title;
     }
 
-    const { error: updateError } = await this.db
-      .from("proposals")
-      .update(updatePayload)
-      .eq("id", proposal_id);
+    const { error: updateError } = await this.db.from("proposals").update(updatePayload).eq("id", proposal_id);
 
     if (updateError) {
       return { error: updateError };
@@ -1026,13 +1103,27 @@ export class ProposalService {
     };
   }
 
-  async getRevisionSummary(proposal_id: number) {
+  async getRevisionSummary(proposal_id: number, proponent_id: string) {
+    // 1. First verify the proposal belongs to this proponent
+    const { data: proposal, error: proposalError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id")
+      .eq("id", proposal_id)
+      .eq("proponent_id", proponent_id)
+      .maybeSingle();
+
+    if (proposalError) {
+      return { data: null, error: proposalError };
+    }
+
+    if (!proposal) {
+      return { data: null, error: new Error("Proposal not found or you don't have access") };
+    }
+
+    // 2. Now fetch the revision summary
     const { data, error } = await this.db
       .from("proposal_revision_summary")
-      .select(`
-        *,
-        rnd:users!proposal_revision_summary_rnd_id_fkey(id, first_name, last_name)
-      `)
+      .select("*")
       .eq("proposal_id", proposal_id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -1046,11 +1137,25 @@ export class ProposalService {
       return { data: null, error: null };
     }
 
+    // 3. Fetch RND user name separately
+    let rnd_name = "Unknown";
+    if (data.rnd_id) {
+      const { data: rndUser } = await this.db
+        .from("users")
+        .select("first_name, last_name")
+        .eq("id", data.rnd_id)
+        .maybeSingle();
+
+      if (rndUser) {
+        rnd_name = `${rndUser.first_name || ""} ${rndUser.last_name || ""}`.trim() || "Unknown";
+      }
+    }
+
     return {
       data: {
         proposal_id: data.proposal_id,
         rnd_id: data.rnd_id,
-        rnd_name: data.rnd ? `${data.rnd.first_name || ""} ${data.rnd.last_name || ""}`.trim() : "Unknown",
+        rnd_name,
         objective_comment: data.objective_comment,
         methodology_comment: data.methodology_comment,
         budget_comment: data.budget_comment,
@@ -1063,13 +1168,27 @@ export class ProposalService {
     };
   }
 
-  async getRejectionSummary(proposal_id: number) {
+  async getRejectionSummary(proposal_id: number, proponent_id: string) {
+    // 1. First verify the proposal belongs to this proponent
+    const { data: proposal, error: proposalError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id")
+      .eq("id", proposal_id)
+      .eq("proponent_id", proponent_id)
+      .maybeSingle();
+
+    if (proposalError) {
+      return { data: null, error: proposalError };
+    }
+
+    if (!proposal) {
+      return { data: null, error: new Error("Proposal not found or you don't have access") };
+    }
+
+    // 2. Now fetch the rejection summary
     const { data, error } = await this.db
       .from("proposal_reject_summary")
-      .select(`
-        *,
-        rnd:users!proposal_reject_summary_rnd_id_fkey(id, first_name, last_name)
-      `)
+      .select("*")
       .eq("proposal_id", proposal_id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -1083,11 +1202,25 @@ export class ProposalService {
       return { data: null, error: null };
     }
 
+    // 3. Fetch RND user name separately
+    let rnd_name = "Unknown";
+    if (data.rnd_id) {
+      const { data: rndUser } = await this.db
+        .from("users")
+        .select("first_name, last_name")
+        .eq("id", data.rnd_id)
+        .maybeSingle();
+
+      if (rndUser) {
+        rnd_name = `${rndUser.first_name || ""} ${rndUser.last_name || ""}`.trim() || "Unknown";
+      }
+    }
+
     return {
       data: {
         proposal_id: data.proposal_id,
         rnd_id: data.rnd_id,
-        rnd_name: data.rnd ? `${data.rnd.first_name || ""} ${data.rnd.last_name || ""}`.trim() : "Unknown",
+        rnd_name,
         comment: data.comment,
         created_at: data.created_at,
       },
