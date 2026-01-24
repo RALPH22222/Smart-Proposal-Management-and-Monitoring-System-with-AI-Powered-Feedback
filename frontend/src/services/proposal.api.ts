@@ -47,7 +47,7 @@ export const fetchPriorities = async (): Promise<LookupItem[]> => {
 };
 
 export const fetchStations = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
+  const { data } = await api.get<LookupItem[]>("/proposal/view-station");
   return data;
 };
 
@@ -211,5 +211,13 @@ export const fetchProposalVersions = async (proposalId: number): Promise<Proposa
   const { data } = await api.get<ProposalVersionsResponse>(`/proposal/versions?proposal_id=${proposalId}`, {
     withCredentials: true,
   });
+  return data;
+};
+
+export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (status) params.append('status', status);
+  const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`);
   return data;
 };

@@ -33,6 +33,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
+import type { LookupItem } from "../../services/proposal.api";
 
 interface Site {
   site: string;
@@ -45,6 +46,13 @@ interface DetailedProposalModalProps {
   proposal: Proposal | null;
   onUpdateProposal?: (proposal: Proposal) => void;
   onManageMilestones?: () => void;
+  agencies?: LookupItem[];
+  sectors?: LookupItem[];
+  disciplines?: LookupItem[];
+  priorities?: LookupItem[];
+  stations?: LookupItem[];
+  tags?: LookupItem[];
+  departments?: LookupItem[];
 }
 
 const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
@@ -52,6 +60,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   onClose,
   proposal,
   onUpdateProposal,
+  agencies = [],
+  sectors = [],
+  disciplines = [],
+  priorities = [],
+  stations = [],
+  tags = [],
+  departments = [],
 }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -260,9 +275,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const sites = (currentData.implementationSites as Site[]) || [];
   const coProponentsList = proposal.coProponent
     ? proposal.coProponent
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
     : [];
 
   const getStatusTheme = (status: string) => {
@@ -384,8 +399,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     proposal.status === "revise"
       ? reviseComments
       : proposal.status === "reject"
-      ? rejectComments
-      : [];
+        ? rejectComments
+        : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
@@ -412,11 +427,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             {proposal.status === "revise" && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                  isEditing
-                    ? "bg-slate-100 text-slate-700 border border-slate-300"
-                    : "bg-[#C8102E] text-white hover:bg-[#a00c24]"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${isEditing
+                  ? "bg-slate-100 text-slate-700 border border-slate-300"
+                  : "bg-[#C8102E] text-white hover:bg-[#a00c24]"
+                  }`}
               >
                 {isEditing ? (
                   <Eye className="w-3 h-3" />
@@ -592,11 +606,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
               {canEdit && (
                 <div
-                  className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
-                    newFile
-                      ? "border-green-300 bg-green-50"
-                      : "border-slate-300 hover:border-[#C8102E] hover:bg-white"
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-4 transition-colors ${newFile
+                    ? "border-green-300 bg-green-50"
+                    : "border-slate-300 hover:border-[#C8102E] hover:bg-white"
+                    }`}
                 >
                   {!newFile ? (
                     <label className="flex flex-col items-center justify-center gap-2 cursor-pointer">
@@ -669,31 +682,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   )
                 )}
               </div>
-              <div>
-                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                  Gender
-                </label>
-                {canEdit ? (
-                  <select
-                    value={currentData.gender}
-                    onChange={(e) =>
-                      handleInputChange("gender", e.target.value)
-                    }
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                      true
-                    )}`}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                ) : (
-                  renderFundedField(
-                    <p className="text-sm font-medium text-slate-900">
-                      {currentData.gender}
-                    </p>
-                  )
-                )}
-              </div>
+              {/* Gender Key Removed */}
 
               {/* Row 2: Agency & Address */}
               <div>
@@ -701,16 +690,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Agency
                 </label>
                 {canEdit ? (
-                  <input
-                    type="text"
+                  <select
                     value={currentData.agency}
-                    onChange={(e) =>
-                      handleInputChange("agency", e.target.value)
-                    }
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                      true
-                    )}`}
-                  />
+                    onChange={(e) => handleInputChange("agency", e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                  >
+                    <option value="">Select Agency</option>
+                    {agencies.map((agency) => (
+                      <option key={agency.id} value={agency.name}>{agency.name}</option>
+                    ))}
+                  </select>
                 ) : (
                   renderFundedField(
                     <div className="flex items-start gap-2">
@@ -722,6 +711,32 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   )
                 )}
               </div>
+
+              {/* Department (Added) */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                  Department
+                </label>
+                {canEdit ? (
+                  <select
+                    value={currentData.department || ""}
+                    onChange={(e) => handleInputChange("department" as any, e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map((dep) => (
+                      <option key={dep.id} value={dep.name}>{dep.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  renderFundedField(
+                    <p className="text-sm font-medium text-slate-900">
+                      {(currentData as any).department || "N/A"}
+                    </p>
+                  )
+                )}
+              </div>
+
               <div>
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Address
@@ -968,16 +983,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </h4>
               </div>
               {canEdit ? (
-                <input
-                  type="text"
+                <select
                   value={currentData.rdStation}
-                  onChange={(e) =>
-                    handleInputChange("rdStation", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                    true
-                  )}`}
-                />
+                  onChange={(e) => handleInputChange("rdStation", e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                >
+                  <option value="">Select Station</option>
+                  {stations.map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
               ) : (
                 <p className="text-sm font-medium text-slate-900">
                   {currentData.rdStation}
@@ -994,16 +1009,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </h4>
               </div>
               {canEdit ? (
-                <input
-                  type="text"
+                <select
                   value={currentData.priorityAreas}
-                  onChange={(e) =>
-                    handleInputChange("priorityAreas", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                    true
-                  )}`}
-                />
+                  onChange={(e) => handleInputChange("priorityAreas", e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                >
+                  <option value="">Select Priority</option>
+                  {priorities.map((p) => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
               ) : (
                 <p className="text-sm font-medium text-slate-900">
                   {currentData.priorityAreas}
@@ -1020,19 +1035,44 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </h4>
               </div>
               {canEdit ? (
-                <input
-                  type="text"
+                <select
                   value={currentData.discipline}
-                  onChange={(e) =>
-                    handleInputChange("discipline", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                    true
-                  )}`}
-                />
+                  onChange={(e) => handleInputChange("discipline", e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                >
+                  <option value="">Select Discipline</option>
+                  {disciplines.map((d) => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                </select>
               ) : (
                 <p className="text-sm font-medium text-slate-900">
                   {currentData.discipline}
+                </p>
+              )}
+            </div>
+            {/* Sector (Added) */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Target className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Sector
+                </h4>
+              </div>
+              {canEdit ? (
+                <select
+                  value={currentData.sector}
+                  onChange={(e) => handleInputChange("sector", e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                >
+                  <option value="">Select Sector</option>
+                  {sectors.map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm font-medium text-slate-900">
+                  {currentData.sector}
                 </p>
               )}
             </div>
@@ -1166,9 +1206,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         {["source", "ps", "mooe", "co", "total"].map((key) => (
                           <td
                             key={key}
-                            className={`px-3 py-2 ${
-                              key !== "source" ? "text-right" : ""
-                            }`}
+                            className={`px-3 py-2 ${key !== "source" ? "text-right" : ""
+                              }`}
                           >
                             {canEdit ? (
                               key === "total" ? (
@@ -1194,11 +1233,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             ) : (
                               renderFundedField(
                                 <span
-                                  className={`text-xs font-medium ${
-                                    key === "total"
-                                      ? "text-slate-900 font-bold"
-                                      : "text-slate-600"
-                                  }`}
+                                  className={`text-xs font-medium ${key === "total"
+                                    ? "text-slate-900 font-bold"
+                                    : "text-slate-600"
+                                    }`}
                                 >
                                   {(budget as any)[key]}
                                 </span>

@@ -10,7 +10,8 @@ import {
   Clock,
   Briefcase,
   Plus,
-  Calendar
+  Calendar,
+  MapPin
 } from 'lucide-react';
 import { fetchAgencies, fetchTags } from '../../../../services/proposal.api';
 import { differenceInMonths, parseISO, isValid, addMonths, format } from 'date-fns';
@@ -20,7 +21,7 @@ interface LocalFormData {
   programTitle: string;
   projectTitle: string;
   agencyName: string; // Changed back to agencyName to match your previous code
-  agencyAddress: { 
+  agencyAddress: {
     street: string;
     barangay: string;
     city: string;
@@ -30,7 +31,7 @@ interface LocalFormData {
   email: string;
   telephone: string;
   cooperatingAgencies: { id: number; name: string }[];
-  plannedStartDate: string; 
+  plannedStartDate: string;
   plannedEndDate: string;
   duration: string;
   discipline: string;
@@ -75,8 +76,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     const loadData = async () => {
       try {
         const [agenciesData, tagsData] = await Promise.all([
-            fetchAgencies().catch(() => []), 
-            fetchTags().catch(() => [])
+          fetchAgencies().catch(() => []),
+          fetchTags().catch(() => [])
         ]);
         setAgenciesList(agenciesData || []);
         setFilteredAgencies(agenciesData || []);
@@ -105,7 +106,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
     // Restore Agency Search Term if exists
     if (data.agencyName && typeof data.agencyName === 'string' && !agencySearchTerm) {
-        setAgencySearchTerm(data.agencyName);
+      setAgencySearchTerm(data.agencyName);
     }
   }, [isLoading, agenciesList, data.cooperatingAgencies, data.discipline, data.agencyName]);
 
@@ -119,31 +120,31 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   // --- 3. DURATION LOGIC (UPDATED: Helper Function) ---
 
   const calculateImplementationDates = (startStr: string, durationStr: string = '6 months') => {
-      if (!startStr) return;
-      
-      const start = parseISO(startStr);
-      if (!isValid(start)) return;
+    if (!startStr) return;
 
-      let monthsToAdd = 0;
-      // Default to 6 months if duration is empty or invalid
-      const effectiveDuration = durationStr || '6 months';
-      
-      if (effectiveDuration.includes('month')) {
-          monthsToAdd = parseInt(effectiveDuration.split(' ')[0]);
-      } else if (effectiveDuration.includes('year')) {
-          const val = parseInt(effectiveDuration.split(' ')[0]);
-          monthsToAdd = val * 12;
-      }
+    const start = parseISO(startStr);
+    if (!isValid(start)) return;
 
-      if (monthsToAdd > 0) {
-          const newEnd = addMonths(start, monthsToAdd);
-          onUpdate('plannedEndDate', format(newEnd, 'yyyy-MM-dd'));
-          
-          // Also update the visible duration field if it was empty
-          if (!data.duration) {
-              onUpdate('duration', effectiveDuration);
-          }
+    let monthsToAdd = 0;
+    // Default to 6 months if duration is empty or invalid
+    const effectiveDuration = durationStr || '6 months';
+
+    if (effectiveDuration.includes('month')) {
+      monthsToAdd = parseInt(effectiveDuration.split(' ')[0]);
+    } else if (effectiveDuration.includes('year')) {
+      const val = parseInt(effectiveDuration.split(' ')[0]);
+      monthsToAdd = val * 12;
+    }
+
+    if (monthsToAdd > 0) {
+      const newEnd = addMonths(start, monthsToAdd);
+      onUpdate('plannedEndDate', format(newEnd, 'yyyy-MM-dd'));
+
+      // Also update the visible duration field if it was empty
+      if (!data.duration) {
+        onUpdate('duration', effectiveDuration);
       }
+    }
   };
 
   // Calculate Duration if Dates Change
@@ -164,12 +165,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             const years = months / 12;
             durationString = `${years} year${years !== 1 ? 's' : ''}`;
           }
-          
+
           // Update duration state visibly
           if (data.duration !== durationString) {
-             // We update the duration derived from dates
-             // Note: This might conflict if user is selecting duration to drive end date.
-             // But the prompt says "When user selects Start Date, automatically display End Date based on Duration".
+            // We update the duration derived from dates
+            // Note: This might conflict if user is selecting duration to drive end date.
+            // But the prompt says "When user selects Start Date, automatically display End Date based on Duration".
           }
         }
       } catch (e) {
@@ -183,22 +184,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     const selectedDuration = e.target.value;
     onUpdate('duration', selectedDuration);
     if (data.plannedStartDate) {
-        calculateImplementationDates(data.plannedStartDate, selectedDuration);
+      calculateImplementationDates(data.plannedStartDate, selectedDuration);
     }
   };
 
   // Handle Date Change
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onInputChange(e); 
-      
-      const { name, value } = e.target;
-      if (name === 'plannedStartDate') {
-          // When Start Date changes, recalculate End Date based on current Duration (or default 1 year)
-          calculateImplementationDates(value, data.duration);
-      }
-      
-      // If End Date changes manually, we could reverse calc duration, but the prompt emphasizes Start+Duration -> End Logic.
-      // So detailed reverse logic is kept as is in the useEffect or here if needed.
+    onInputChange(e);
+
+    const { name, value } = e.target;
+    if (name === 'plannedStartDate') {
+      // When Start Date changes, recalculate End Date based on current Duration (or default 1 year)
+      calculateImplementationDates(value, data.duration);
+    }
+
+    // If End Date changes manually, we could reverse calc duration, but the prompt emphasizes Start+Duration -> End Logic.
+    // So detailed reverse logic is kept as is in the useEffect or here if needed.
   };
 
 
@@ -219,9 +220,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     // FIX: Show all tags if search is empty, otherwise filter
     if (tagsList.length > 0) {
       if (!tagsSearchTerm) {
-          setFilteredTags(tagsList);
+        setFilteredTags(tagsList);
       } else {
-          setFilteredTags(tagsList.filter(t => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
+        setFilteredTags(tagsList.filter(t => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
       }
     }
   }, [tagsSearchTerm, tagsList]);
@@ -244,9 +245,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
   // --- 2. Address Handlers ---
   const handleAddressChange = (field: 'street' | 'barangay' | 'city', value: string) => {
-    const newAddress = { 
-        ...data.agencyAddress, 
-        [field]: value 
+    const newAddress = {
+      ...data.agencyAddress,
+      [field]: value
     };
     onUpdate('agencyAddress', newAddress);
   };
@@ -372,66 +373,65 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Clock className="text-gray-400 w-4 h-4" /> Duration</label>
           <div className="relative">
             <select
-                name="duration"
-                value={data.duration || '6 months'}
-                onChange={handleDurationChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
+              name="duration"
+              value={data.duration || '6 months'}
+              onChange={handleDurationChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
             >
-                <option value="" disabled>Select Duration or Calculate</option>
-                <option value="6 months">6 Months</option>
-                <option value="12 months">12 Months</option>
-                <option value="1 year">1 Year</option>
-                <option value="18 months">18 Months</option>
-                <option value="2 years">2 Years</option>
-                <option value="3 years">3 Years</option>
-                {/* Fallback option if calculated value doesn't match predefined options */}
-                {data.duration && !['6 months', '12 months', '1 year', '18 months', '2 years', '3 years'].includes(data.duration) && (
-                    <option value={data.duration}>{data.duration}</option>
-                )}
+              <option value="" disabled>Select Duration or Calculate</option>
+              <option value="6 months">6 Months</option>
+              <option value="12 months">12 Months</option>
+              <option value="1 year">1 Year</option>
+              <option value="18 months">18 Months</option>
+              <option value="2 years">2 Years</option>
+              <option value="3 years">3 Years</option>
+              {/* Fallback option if calculated value doesn't match predefined options */}
+              {data.duration && !['6 months', '12 months', '1 year', '18 months', '2 years', '3 years'].includes(data.duration) && (
+                <option value={data.duration}>{data.duration}</option>
+              )}
             </select>
             {/* Custom Arrow because of appearance-none */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AGENCY & ADDRESS */}
-      <div className="space-y-4">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Building2 className="text-gray-400 w-4 h-4" /> Agency & Address *</label>
-
-        {/* Agency Name */}
-        <div className="space-y-2 agency-name-dropdown-container">
-          <div className="relative">
-            <input
-              type="text"
-              name="agencyName" 
-              value={agencySearchTerm || data.agencyName || ''} 
-              onChange={handleAgencyNameChange}
-              onFocus={() => setIsAgencyDropdownOpen(true)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder={isLoading ? "Loading agencies..." : "Search or type your agency name"}
-            />
-            <Briefcase className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-            {isAgencyDropdownOpen && filteredAgencies.length > 0 && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredAgencies.map((agency) => (
-                  <div
-                    key={agency.id}
-                    className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${data.agencyName === agency.name ? 'bg-[#C8102E]/10' : ''}`}
-                    onClick={() => handleAgencyNameSelect(agency)}
-                  >
-                    <span className="text-sm text-gray-700">{agency.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* AGENCY */}
+      <div className="space-y-2 agency-name-dropdown-container">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Building2 className="text-gray-400 w-4 h-4" /> Agency *</label>
+        <div className="relative">
+          <input
+            type="text"
+            name="agencyName"
+            value={agencySearchTerm || data.agencyName || ''}
+            onChange={handleAgencyNameChange}
+            onFocus={() => setIsAgencyDropdownOpen(true)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder={isLoading ? "Loading agencies..." : "Search or type your agency name"}
+          />
+          <Briefcase className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+          {isAgencyDropdownOpen && filteredAgencies.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              {filteredAgencies.map((agency) => (
+                <div
+                  key={agency.id}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${data.agencyName === agency.name ? 'bg-[#C8102E]/10' : ''}`}
+                  onClick={() => handleAgencyNameSelect(agency)}
+                >
+                  <span className="text-sm text-gray-700">{agency.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Address Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+      {/* ADDRESS */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><MapPin className="text-gray-400 w-4 h-4" /> Agency Address *</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Street */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-500">Street</label>

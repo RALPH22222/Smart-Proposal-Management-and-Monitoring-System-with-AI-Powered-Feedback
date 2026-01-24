@@ -35,7 +35,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   private async resolveLookupId(args: {
     table: Table;
@@ -465,7 +465,9 @@ export class ProposalService {
       department:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
-      agency:agencies(name)
+      agency:agencies(name),
+      estimated_budget(amount),
+      proposal_evaluators(id)
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)

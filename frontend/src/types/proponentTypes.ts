@@ -8,6 +8,7 @@ export interface Project {
   duration: string;
   priority: "high" | "medium" | "low";
   evaluators: number;
+  proponent: string;
 }
 
 export interface Notification {
@@ -37,6 +38,7 @@ export interface Proposal {
   proponent: string;
   gender: string;
   agency: string;
+  department?: string;
   schoolYear: string;
   address: string;
   telephone: string;

@@ -4,6 +4,7 @@ import { Construct } from "constructs";
 import { HttpMethod, Runtime } from "aws-cdk-lib/aws-lambda";
 import {
   AuthorizationType,
+  Cors,
   IdentitySource,
   LambdaIntegration,
   RequestAuthorizer,
@@ -542,6 +543,12 @@ export class BackendStack extends Stack {
         stageName: "api",
       },
       binaryMediaTypes: ["multipart/form-data"],
+      defaultCorsPreflightOptions: {
+        allowOrigins: ["http://localhost:5173", "https://wmsu-spmams.vercel.app"],
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowCredentials: true,
+      },
     });
 
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {

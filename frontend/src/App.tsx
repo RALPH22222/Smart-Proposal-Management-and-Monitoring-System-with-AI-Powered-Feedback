@@ -19,7 +19,7 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
 
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
@@ -50,7 +50,7 @@ function App() {
             <Route element={<ProtectedRoute roles={[Role.ADMIN]} />}>
               <Route path="/users/admin/adminMainLayout" element={<AdminMainLayout />} />
             </Route>
-            
+
             {/* Evaluator */}
             <Route element={<ProtectedRoute roles={[Role.EVALUATOR]} />}>
               <Route path="/users/evaluator/evaluatorMainLayout" element={<EvaluatorMainLayout />} />

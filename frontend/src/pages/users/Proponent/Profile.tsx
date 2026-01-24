@@ -1,38 +1,48 @@
 import React, { useState } from "react";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
-import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal'; 
-import { 
-  FaListAlt, 
-  FaUsers, 
-  FaBell, 
-  FaTablet, 
+import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal';
+import {
+  FaListAlt,
+  FaUsers,
+  FaBell,
+  FaTablet,
   FaShareAlt,
 } from 'react-icons/fa';
-import { 
+import {
   Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
 } from 'lucide-react';
 
 import type { Project, Proposal, Notification } from '../../../types/proponentTypes';
 import {
-  mockProjects,
   initialNotifications,
   getStatusFromIndex
 } from '../../../types/mockData';
-import { 
-  getStatusColorByIndex, 
+import {
+  getStatusColorByIndex,
   getStageIcon,
   getProgressPercentageByIndex,
   getStatusLabelByIndex,
   filterProjectsByStatus
 } from '../../../types/helpers'; // Removed getPriorityColor import
+import {
+  getProposals,
+  fetchAgencies,
+  fetchSectors,
+  fetchDisciplines,
+  fetchPriorities,
+  fetchStations,
+  fetchTags,
+  fetchDepartments,
+  type LookupItem
+} from '../../../services/proposal.api';
 
 const Profile: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
-  
+
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
@@ -46,8 +56,105 @@ const Profile: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
 
+  const [proposals, setProposals] = useState<Project[]>([]);
+  const [rawProposals, setRawProposals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Lookup Data States
+  const [agencies, setAgencies] = useState<LookupItem[]>([]);
+  const [sectors, setSectors] = useState<LookupItem[]>([]);
+  const [disciplines, setDisciplines] = useState<LookupItem[]>([]);
+  const [priorities, setPriorities] = useState<LookupItem[]>([]);
+  const [stations, setStations] = useState<LookupItem[]>([]);
+  const [tags, setTags] = useState<LookupItem[]>([]);
+  const [departments, setDepartments] = useState<LookupItem[]>([]);
+
 
   const notifRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Fetch proposals on mount
+  React.useEffect(() => {
+    const fetchProposals = async () => {
+      try {
+        const data = await getProposals();
+        setRawProposals(data);
+
+        // Map backend proposals to frontend Project type
+        const mappedProposals: Project[] = data.map((p: any) => {
+          let index = 1;
+          switch (p.status) {
+            case 'endorsed_for_funding': index = 0; break;
+            case 'review_rnd': index = 1; break;
+            case 'under_evaluation': index = 1; break; // Mapped to R&D Evaluation as requested
+            case 'revision_rnd': index = 3; break;
+            case 'funded': index = 4; break;
+            case 'rejected_rnd': index = 5; break;
+            default: index = 1;
+          }
+
+          // Calculate budget
+          const budgetTotal = p.estimated_budget?.reduce((sum: number, item: any) => sum + (item.amount || 0), 0) || 0;
+          const budgetStr = `₱${budgetTotal.toLocaleString()}`;
+
+          return {
+            id: String(p.id),
+            title: p.project_title,
+            currentIndex: index,
+            submissionDate: new Date(p.created_at).toISOString().split('T')[0],
+            lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split('T')[0],
+            budget: budgetStr,
+            duration: p.duration || "N/A",
+            priority: 'medium',
+            evaluators: p.proposal_evaluators?.length || 0,
+            proponent: p.proponent ? `${p.proponent.first_name} ${p.proponent.last_name}` : "Unknown Proponent"
+          };
+        });
+
+        setProposals(mappedProposals);
+      } catch (error) {
+        console.error('Failed to fetch proposals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProposals();
+  }, []);
+
+  // Fetch Lookups
+  React.useEffect(() => {
+    const loadLookups = async () => {
+      try {
+        const [
+          agenciesData,
+          sectorsData,
+          disciplinesData,
+          prioritiesData,
+          stationsData,
+          tagsData,
+          departmentsData
+        ] = await Promise.all([
+          fetchAgencies(),
+          fetchSectors(),
+          fetchDisciplines(),
+          fetchPriorities(),
+          fetchStations(),
+          fetchTags(),
+          fetchDepartments()
+        ]);
+
+        setAgencies(agenciesData);
+        setSectors(sectorsData);
+        setDisciplines(disciplinesData);
+        setPriorities(prioritiesData);
+        setStations(stationsData);
+        setTags(tagsData);
+        setDepartments(departmentsData);
+      } catch (error) {
+        console.error("Failed to fetch lookup data:", error);
+      }
+    };
+    loadLookups();
+  }, []);
 
   // Close notifications when clicking outside
   React.useEffect(() => {
@@ -57,11 +164,11 @@ const Profile: React.FC = () => {
         setNotificationsOpen(false);
       }
     };
-    
+
     if (notificationsOpen) {
       document.addEventListener('mousedown', onDocClick);
     }
-    
+
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [notificationsOpen]);
 
@@ -69,24 +176,24 @@ const Profile: React.FC = () => {
 
   // Filter projects by status using helper function
   const {
-    rdEvaluation, 
-    evaluatorsAssessment, 
-    revision, 
-    funded, 
-  } = filterProjectsByStatus(mockProjects);
+    rdEvaluation,
+    evaluatorsAssessment,
+    revision,
+    funded,
+  } = filterProjectsByStatus(proposals);
 
   // Helper to generate mock tags based on ID
   const getProjectTags = (id: string | number) => {
     const sectors = ['ICT', 'Agriculture', 'Energy', 'Health', 'Education'];
     const types = ['Research', 'Development', 'Extension'];
-    
+
     // Parse ID to number for consistent tagging (handles "p1", "p2" etc.)
     let numId = 0;
     if (typeof id === 'number') {
-        numId = id;
+      numId = id;
     } else {
-        const match = id.match(/\d+/);
-        numId = match ? parseInt(match[0]) : id.charCodeAt(0);
+      const match = id.match(/\d+/);
+      numId = match ? parseInt(match[0]) : id.charCodeAt(0);
     }
 
     return [
@@ -123,45 +230,46 @@ const Profile: React.FC = () => {
   };
 
   const handleCardClick = (project: Project) => {
+    // Find raw proposal data to get full details
+    const raw = rawProposals.find(p => String(p.id) === project.id);
+    if (!raw) return;
+
+    // Helper to handle null -> "nothing" (empty string)
+    const val = (v: any) => v === null ? "" : v;
+
     const proposal: Proposal = {
-      id: project.id,
-      title: project.title,
+      id: String(raw.id),
+      title: val(raw.project_title),
       status: getStatusFromIndex(project.currentIndex),
-      proponent: "Dr. Maria Santos",
-      gender: "Female",
-      agency: "University of the Philippines",
-      schoolYear: "2024-2025",
-      address: "Quezon City, Philippines",
-      telephone: "+63 2 1234 5678",
-      email: "maria.santos@up.edu.ph",
-      cooperatingAgencies: "DOST, CHED, DepEd",
-      rdStation: "UP Research Station",
-      classification: "Applied Research",
-      classificationDetails: "Technology Development",
-      modeOfImplementation: "In-house",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      priorityAreas: "Education, Technology",
-      sector: "Education",
-      discipline: "Computer Science",
-      duration: project.duration,
-      startDate: "2024-01-01",
-      endDate: "2024-12-31",
-      budgetSources: [{
-        source: "DOST Grant",
-        ps: project.budget.replace('₱', '₱').split('₱')[1] ? `₱${parseInt(project.budget.replace('₱', '').replace(',', '')) * 0.5}` : "₱500,000",
-        mooe: project.budget.replace('₱', '₱').split('₱')[1] ? `₱${parseInt(project.budget.replace('₱', '').replace(',', '')) * 0.3}` : "₱300,000",
-        co: project.budget.replace('₱', '₱').split('₱')[1] ? `₱${parseInt(project.budget.replace('₱', '').replace(',', '')) * 0.2}` : "₱200,000",
-        total: project.budget
-      }],
+      proponent: raw.proponent
+        ? [raw.proponent.first_name, raw.proponent.last_name].filter(Boolean).join(" ")
+        : "Unknown Proponent",
+      gender: val(raw.proponent?.gender) || "", // Gender might not be in JSON, default empty
+      agency: raw.agency ? val(raw.agency.name) : "",
+      department: raw.department ? val(raw.department.name) : "",
+      schoolYear: val(raw.school_year),
+      address: "", // Not explicitly in JSON
+      telephone: val(raw.phone),
+      email: val(raw.email),
+      cooperatingAgencies: "", // Not explicitly in JSON snippet
+      rdStation: "", // Not explicitly in JSON snippet
+      classification: val(raw.research_class) || val(raw.development_class) || "",
+      classificationDetails: "",
+      modeOfImplementation: val(raw.implementation_mode),
+      implementationSites: [],
+      priorityAreas: Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : "",
+      sector: raw.sector ? val(raw.sector.name) : "",
+      discipline: raw.discipline ? val(raw.discipline.name) : "",
+      duration: val(raw.duration),
+      startDate: val(raw.plan_start_date),
+      endDate: val(raw.plan_end_date),
+      budgetSources: raw.estimated_budget || [],
       budgetTotal: project.budget,
-      uploadedFile: "/sample-proposal.pdf",
-      lastUpdated: project.lastUpdated,
-      deadline: getStatusFromIndex(project.currentIndex) === 'revise' ? '2024-12-31 23:59' : undefined
+      uploadedFile: "",
+      lastUpdated: val(raw.updated_at) || val(raw.created_at),
+      deadline: getStatusFromIndex(project.currentIndex) === 'revise' ? val(raw.evaluation_deadline_at) : undefined
     };
-    
+
     setSelectedProject(proposal);
     setDetailedModalOpen(true);
   };
@@ -182,7 +290,7 @@ const Profile: React.FC = () => {
   };
 
   const markRead = (id: string) => {
-    setNotifications((prev) => 
+    setNotifications((prev) =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
   };
@@ -190,7 +298,7 @@ const Profile: React.FC = () => {
   const copyLink = async () => {
     if (!shareProject) return;
     const url = `${window.location.origin}/projects/${shareProject.id}`;
-    
+
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -208,15 +316,15 @@ const Profile: React.FC = () => {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  
+
   // Filtering Logic
-  const baseProjects = projectTab === 'all' ? mockProjects : funded;
-  
+  const baseProjects = projectTab === 'all' ? proposals : funded;
+
   const filteredProjects = baseProjects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
     const tags = getProjectTags(project.id);
     const matchesType = typeFilter === 'All' || tags.includes(typeFilter);
-    
+
     return matchesSearch && matchesType;
   });
 
@@ -225,7 +333,11 @@ const Profile: React.FC = () => {
   // Project Portfolio rendering functions
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
-      {filteredProjects.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 text-gray-500">
+          <p>Loading proposals...</p>
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No projects found matching your criteria.</p>
         </div>
@@ -235,7 +347,7 @@ const Profile: React.FC = () => {
             const progress = getProgressPercentageByIndex(project.currentIndex);
             const statusLabel = getStatusLabelByIndex(project.currentIndex);
             const tags = getProjectTags(project.id);
-            
+
             return (
               <div
                 key={project.id}
@@ -250,12 +362,12 @@ const Profile: React.FC = () => {
                   </div>
                   {/* Removed Priority Badge */}
                 </div>
-                
+
                 {/* --- TAGS SECTION (Above Budget) --- */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   {tags.map((tag, idx) => (
-                    <span 
-                      key={idx} 
+                    <span
+                      key={idx}
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
                     >
                       <Tag className="w-3 h-3" />
@@ -274,7 +386,7 @@ const Profile: React.FC = () => {
                     <span className="font-semibold">{project.duration}</span>
                   </div>
                 </div>
-                
+
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>Progress</span>
@@ -283,13 +395,13 @@ const Profile: React.FC = () => {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}>
@@ -299,9 +411,9 @@ const Profile: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        openShare(project); 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openShare(project);
                       }}
                       className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
                       title="Share project"
@@ -345,7 +457,7 @@ const Profile: React.FC = () => {
               const progress = getProgressPercentageByIndex(project.currentIndex);
               const statusLabel = getStatusLabelByIndex(project.currentIndex);
               const tags = getProjectTags(project.id);
-              
+
               return (
                 <tr
                   key={project.id}
@@ -365,9 +477,9 @@ const Profile: React.FC = () => {
                           {/* Removed Priority Badge from List View */}
                           {/* Tags in List View */}
                           {tags.slice(0, 1).map((tag, i) => (
-                             <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}>
-                               {tag}
-                             </span>
+                            <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}>
+                              {tag}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -441,7 +553,7 @@ const Profile: React.FC = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Notification bell */}
             <div className="relative z-40" ref={notifRef}>
@@ -473,28 +585,26 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === 'grid' 
-                    ? 'bg-[#C8102E] text-white shadow-md' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'grid'
+                  ? 'bg-[#C8102E] text-white shadow-md'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 <FaTablet className="text-sm" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === 'list' 
-                    ? 'bg-[#C8102E] text-white shadow-md' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'list'
+                  ? 'bg-[#C8102E] text-white shadow-md'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
               >
                 <FaListAlt className="text-sm" />
               </button>
             </div>
           </div>
         </div>
-        
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 lg:gap-4">
           {/* Total Projects Card */}
@@ -503,13 +613,13 @@ const Profile: React.FC = () => {
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p>
                 <p className="text-xl font-bold text-slate-800 tabular-nums">
-                  {mockProjects.length}
+                  {proposals.length}
                 </p>
               </div>
               <FileText className="w-6 h-6 text-slate-600 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </div>
-          
+
           {/* R&D Evaluation Card */}
           <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
             <div className="flex items-center justify-between">
@@ -578,7 +688,7 @@ const Profile: React.FC = () => {
                   Complete overview of all your research proposals
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -591,27 +701,25 @@ const Profile: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Tabs & Search Filter Row */}
           <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setProjectTab('all')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === 'all' 
-                    ? 'bg-[#C8102E] text-white' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === 'all'
+                  ? 'bg-[#C8102E] text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 All Projects
               </button>
               <button
                 onClick={() => setProjectTab('budget')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === 'budget' 
-                    ? 'bg-[#C8102E] text-white' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === 'budget'
+                  ? 'bg-[#C8102E] text-white'
+                  : 'text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 Funded Project ({funded.length})
               </button>
@@ -631,7 +739,7 @@ const Profile: React.FC = () => {
                   className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
                 />
               </div>
-              
+
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
                   <Filter className="h-3 w-3 text-slate-400" />
@@ -674,6 +782,14 @@ const Profile: React.FC = () => {
         onClose={() => setDetailedModalOpen(false)}
         proposal={selectedProject}
         onUpdateProposal={handleUpdateProposal}
+        // Pass lookup data
+        agencies={agencies}
+        sectors={sectors}
+        disciplines={disciplines}
+        priorities={priorities}
+        stations={stations}
+        tags={tags}
+        departments={departments}
       />
     </div>
   );
