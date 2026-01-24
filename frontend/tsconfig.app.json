@@ -27,5 +27,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "../app/components/users/proponents/notification.tsx"]
+  "include": ["src"]
 }
