@@ -466,8 +466,13 @@ export class ProposalService {
       sector:sectors(name),
       discipline:disciplines(name),
       agency:agencies(name),
+<<<<<<< HEAD
       estimated_budget(amount),
       proposal_evaluators(id)
+=======
+      estimated_budget(id,budget,item,amount,source),
+      proposal_version(id,file_url,created_at)
+>>>>>>> 6f8fcaa93465d857a0a3bbea9cfba57a4590fd72
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)
