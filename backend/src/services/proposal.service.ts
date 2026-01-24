@@ -465,7 +465,9 @@ export class ProposalService {
       department:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
-      agency:agencies(name)
+      agency:agencies(name),
+      estimated_budget(id,budget,item,amount,source),
+      proposal_version(id,file_url,created_at)
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)
