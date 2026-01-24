@@ -10,7 +10,8 @@ export const mockProjects: Project[] = [
     budget: "₱250,000",
     duration: "12 months",
     priority: 'high',
-    evaluators: 3
+    evaluators: 3,
+    proponent: "Dr. Juan Dela Cruz"
   },
   { 
     id: "p2", 
@@ -21,7 +22,8 @@ export const mockProjects: Project[] = [
     budget: "₱500,000",
     duration: "18 months",
     priority: 'high',
-    evaluators: 2
+    evaluators: 2,
+    proponent: "Dr. Maria Santos"
   },
   { 
     id: "p3", 
@@ -32,7 +34,8 @@ export const mockProjects: Project[] = [
     budget: "₱150,000",
     duration: "6 months",
     priority: 'medium',
-    evaluators: 3
+    evaluators: 3,
+    proponent: "Prof. Clara Benitez"
   },
   { 
     id: "p4", 
@@ -43,7 +46,8 @@ export const mockProjects: Project[] = [
     budget: "₱300,000",
     duration: "9 months",
     priority: 'medium',
-    evaluators: 3
+    evaluators: 3,
+    proponent: "Mr. Ricardo Dalisay"
   },
   { 
     id: "p5", 
@@ -54,7 +58,8 @@ export const mockProjects: Project[] = [
     budget: "₱750,000",
     duration: "24 months",
     priority: 'high',
-    evaluators: 5
+    evaluators: 5,
+    proponent: "Engr. Benigno Aquino"
   },
   // Add more projects to cover all statuses
   { 
@@ -66,7 +71,8 @@ export const mockProjects: Project[] = [
     budget: "₱200,000",
     duration: "8 months",
     priority: 'medium',
-    evaluators: 0
+    evaluators: 0,
+    proponent: "Dr. Jose Rizal"
   },
   { 
     id: "p7", 
@@ -77,7 +83,8 @@ export const mockProjects: Project[] = [
     budget: "₱600,000",
     duration: "15 months",
     priority: 'high',
-    evaluators: 4
+    evaluators: 4,
+    proponent: "Ms. Leona Ocampo"
   },
   { 
     id: "p8", 
@@ -88,7 +95,8 @@ export const mockProjects: Project[] = [
     budget: "₱180,000",
     duration: "10 months",
     priority: 'low',
-    evaluators: 2
+    evaluators: 2,
+    proponent: "Mr. Andres Bonifacio"
   }
 ];
 

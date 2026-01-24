@@ -65,7 +65,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   disciplines = [],
   priorities = [],
   stations = [],
-  tags = [],
   departments = [],
 }) => {
   const navigate = useNavigate();
