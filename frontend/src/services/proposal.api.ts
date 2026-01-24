@@ -220,4 +220,17 @@ export const getProposals = async (search?: string, status?: string): Promise<an
   if (status) params.append('status', status);
   const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`);
   return data;
+}
+
+export type DecisionEvaluatorInput = {
+  proposal_id: number;
+  status: "pending" | "accept" | "decline" | "extend";
+  deadline_at?: string;
+};
+
+export const decisionEvaluatorToProposal = async (
+  input: DecisionEvaluatorInput
+): Promise<any> => {
+  const { data } = await api.post("/proposal/decision-evaluator-to-proposal", input);
+  return data;
 };
