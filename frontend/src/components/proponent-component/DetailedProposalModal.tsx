@@ -166,6 +166,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, implementationSites: updatedSites });
   };
 
+  /*
   const handleBudgetChange = (
     index: number,
     field: keyof BudgetSource,
@@ -193,6 +194,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       budgetTotal: formatCurrency(grandTotal),
     });
   };
+  */
 
   const handleAddBudgetItem = () => {
     if (!editedProposal) return;
@@ -202,6 +204,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       mooe: "₱0.00",
       co: "₱0.00",
       total: "₱0.00",
+      breakdown: {
+        ps: [],
+        mooe: [],
+        co: []
+      }
     };
     setEditedProposal({
       ...editedProposal,
@@ -209,6 +216,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     });
   };
 
+  /*
   const handleRemoveBudgetItem = (index: number) => {
     if (!editedProposal) return;
     const updatedBudgetSources = editedProposal.budgetSources.filter(
@@ -224,6 +232,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       budgetTotal: formatCurrency(grandTotal),
     });
   };
+  */
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -967,8 +976,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 />
               ) : (
                 <p className="text-sm font-medium text-slate-900">
-                  {currentData.classification}:{" "}
-                  {currentData.classificationDetails}
+                  {currentData.classification}
                 </p>
               )}
             </div>
@@ -1183,92 +1191,102 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <div className="">
                 {" "}
                 {/* Removed overflow-x-auto to prevent horizontal scrolling */}
-                <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-slate-500 bg-slate-100 border-b border-slate-200">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">Source</th>
-                      <th className="px-3 py-2 text-right">PS</th>
-                      <th className="px-3 py-2 text-right">MOOE</th>
-                      <th className="px-3 py-2 text-right">CO</th>
-                      <th className="px-3 py-2 text-right font-bold text-slate-900">
-                        Total
-                      </th>
-                      {canEdit && <th className="px-3 py-2 w-8"></th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {currentData.budgetSources.map((budget, index) => (
-                      <tr
-                        key={index}
-                        className="hover:bg-slate-50 transition-colors group"
-                      >
-                        {["source", "ps", "mooe", "co", "total"].map((key) => (
-                          <td
-                            key={key}
-                            className={`px-3 py-2 ${key !== "source" ? "text-right" : ""
-                              }`}
-                          >
-                            {canEdit ? (
-                              key === "total" ? (
-                                <span className="text-xs font-bold text-slate-900">
-                                  {budget.total}
-                                </span>
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={(budget as any)[key]}
-                                  onChange={(e) =>
-                                    handleBudgetChange(
-                                      index,
-                                      key as keyof BudgetSource,
-                                      e.target.value
-                                    )
-                                  }
-                                  className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
-                                    true
-                                  )} ${key !== "source" ? "text-right" : ""}`}
-                                />
-                              )
+                <div className="space-y-6">
+                  {currentData.budgetSources.map((budget, index) => (
+                    <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                      {/* Card Header: Source Name & Total */}
+                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                            <DollarSign className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
+                            <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
+                          <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                        </div>
+                      </div>
+
+                      {/* Card Body: Breakdown Columns */}
+                      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        {/* PS Column */}
+                        <div className="space-y-2 pt-2 md:pt-0">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-xs text-slate-600 uppercase">Personal Services (PS)</h5>
+                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
+                              budget.breakdown.ps.map((item, i) => (
+                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <span>{item.item}</span>
+                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                </div>
+                              ))
                             ) : (
-                              renderFundedField(
-                                <span
-                                  className={`text-xs font-medium ${key === "total"
-                                    ? "text-slate-900 font-bold"
-                                    : "text-slate-600"
-                                    }`}
-                                >
-                                  {(budget as any)[key]}
-                                </span>
-                              )
+                              <p className="text-xs italic text-slate-400">No items</p>
                             )}
-                          </td>
-                        ))}
-                        {canEdit && (
-                          <td className="px-3 py-2 text-center">
-                            <button
-                              onClick={() => handleRemoveBudgetItem(index)}
-                              className="text-slate-400 hover:text-red-500 transition-colors"
-                              title="Remove item"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                    <tr className="bg-slate-100 border-t border-slate-200">
-                      <td className="px-3 py-2 font-bold text-slate-900 text-xs">
-                        GRAND TOTAL
-                      </td>
-                      <td
-                        colSpan={4 + (canEdit ? 1 : 0)}
-                        className="px-3 py-2 text-right font-bold text-[#C8102E] text-sm"
-                      >
-                        {renderFundedField(currentData.budgetTotal)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                          </div>
+                        </div>
+
+                        {/* MOOE Column */}
+                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-xs text-slate-600 uppercase">MOOE</h5>
+                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
+                              budget.breakdown.mooe.map((item, i) => (
+                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <span>{item.item}</span>
+                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs italic text-slate-400">No items</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* CO Column */}
+                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-xs text-slate-600 uppercase">Capital Outlay (CO)</h5>
+                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
+                              budget.breakdown.co.map((item, i) => (
+                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <span>{item.item}</span>
+                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs italic text-slate-400">No items</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Grand Total Footer */}
+                  <div className="bg-slate-100 rounded-xl p-4 flex justify-between items-center border border-slate-200">
+                    <div>
+                      <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
+                      <p className="text-xs text-slate-500">Grand total of all sources</p>
+                    </div>
+                    <div className="text-xl font-black text-[#C8102E] font-mono">
+                      {currentData.budgetTotal}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

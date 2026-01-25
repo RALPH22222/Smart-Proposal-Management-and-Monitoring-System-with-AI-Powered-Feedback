@@ -182,35 +182,56 @@ const Profile: React.FC = () => {
     funded,
   } = filterProjectsByStatus(proposals);
 
-  // Helper to generate mock tags based on ID
+  // Helper to generate tags based on raw data
   const getProjectTags = (id: string | number) => {
-    const sectors = ['ICT', 'Agriculture', 'Energy', 'Health', 'Education'];
-    const types = ['Research', 'Development', 'Extension'];
 
-    // Parse ID to number for consistent tagging (handles "p1", "p2" etc.)
-    let numId = 0;
-    if (typeof id === 'number') {
-      numId = id;
-    } else {
-      const match = id.match(/\d+/);
-      numId = match ? parseInt(match[0]) : id.charCodeAt(0);
+    // Find raw proposal
+    const raw = rawProposals.find(p => String(p.id) === String(id));
+    if (!raw) return [];
+
+    const tags: string[] = [];
+
+    // 1. Classification - REMOVED per user request (only show actual tags)
+    // if (raw.classification_type === 'research_class' && raw.research_class) {
+    //   tags.push(raw.research_class);
+    // } else if (raw.classification_type === 'development_class' && raw.development_class) {
+    //   tags.push(raw.development_class);
+    // }
+
+    // 2. Proposal Tags
+    if (Array.isArray(raw.proposal_tags)) {
+      raw.proposal_tags.forEach((pt: any) => {
+        if (pt.tags && pt.tags.name && pt.tags.name.trim() !== '') {
+          tags.push(pt.tags.name);
+        }
+      });
     }
 
-    return [
-      sectors[numId % sectors.length],
-      types[numId % types.length]
-    ];
+    return tags;
   };
 
-  // Helper for Tag Colors
+  // Helper for Random Tag Colors
   const getTagColor = (tag: string) => {
-    switch (tag) {
-      case 'ICT': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Agriculture': return 'bg-green-50 text-green-700 border-green-200';
-      case 'Energy': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'Health': return 'bg-rose-50 text-rose-700 border-rose-200';
-      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    // Simple hash function to get consistent color for same tag
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
+
+    const colors = [
+      'bg-blue-50 text-blue-700 border-blue-200',
+      'bg-green-50 text-green-700 border-green-200',
+      'bg-yellow-50 text-yellow-700 border-yellow-200',
+      'bg-rose-50 text-rose-700 border-rose-200',
+      'bg-purple-50 text-purple-700 border-purple-200',
+      'bg-indigo-50 text-indigo-700 border-indigo-200',
+      'bg-orange-50 text-orange-700 border-orange-200',
+      'bg-cyan-50 text-cyan-700 border-cyan-200',
+      'bg-teal-50 text-teal-700 border-teal-200'
+    ];
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
 
@@ -237,6 +258,60 @@ const Profile: React.FC = () => {
     // Helper to handle null -> "nothing" (empty string)
     const val = (v: any) => v === null ? "" : v;
 
+    // Helper to format currency
+    const formatCurrency = (amount: number) => `₱${amount.toLocaleString()}`;
+
+    // Map Budget Sources
+    interface DetailedBudgetSource {
+      source: string;
+      ps: number;
+      mooe: number;
+      co: number;
+      total: number;
+      breakdown: {
+        ps: any[];
+        mooe: any[];
+        co: any[];
+      }
+    }
+
+    const budgetMap = new Map<string, DetailedBudgetSource>();
+
+    if (Array.isArray(raw.estimated_budget)) {
+      raw.estimated_budget.forEach((item: any) => {
+        const source = val(item.source) || "Unknown Source";
+        if (!budgetMap.has(source)) {
+          budgetMap.set(source, {
+            source,
+            ps: 0, mooe: 0, co: 0, total: 0,
+            breakdown: { ps: [], mooe: [], co: [] }
+          });
+        }
+        const entry = budgetMap.get(source)!;
+        const amount = Number(item.amount) || 0;
+        const budgetType = (item.budget || "").toLowerCase() as 'ps' | 'mooe' | 'co';
+
+        if (entry.breakdown[budgetType]) {
+          entry.breakdown[budgetType].push({
+            id: item.id,
+            item: val(item.item),
+            amount: amount
+          });
+          entry[budgetType] += amount;
+          entry.total += amount;
+        }
+      });
+    }
+
+    const budgetSources = Array.from(budgetMap.values()).map(b => ({
+      source: b.source,
+      ps: formatCurrency(b.ps),
+      mooe: formatCurrency(b.mooe),
+      co: formatCurrency(b.co),
+      total: formatCurrency(b.total),
+      breakdown: b.breakdown
+    }));
+
     const proposal: Proposal = {
       id: String(raw.id),
       title: val(raw.project_title),
@@ -244,28 +319,38 @@ const Profile: React.FC = () => {
       proponent: raw.proponent
         ? [raw.proponent.first_name, raw.proponent.last_name].filter(Boolean).join(" ")
         : "Unknown Proponent",
-      gender: val(raw.proponent?.gender) || "", // Gender might not be in JSON, default empty
+      gender: val(raw.proponent?.gender) || "",
       agency: raw.agency ? val(raw.agency.name) : "",
       department: raw.department ? val(raw.department.name) : "",
       schoolYear: val(raw.school_year),
-      address: "", // Not explicitly in JSON
+      address: "",
       telephone: val(raw.phone),
       email: val(raw.email),
-      cooperatingAgencies: "", // Not explicitly in JSON snippet
-      rdStation: "", // Not explicitly in JSON snippet
-      classification: val(raw.research_class) || val(raw.development_class) || "",
+      cooperatingAgencies: "",
+      rdStation: Array.isArray(raw.rnd_station) && raw.rnd_station.length > 0 && raw.rnd_station[0].agencies
+        ? val(raw.rnd_station[0].agencies.name)
+        : "",
+      classification: raw.classification_type === "research_class"
+        ? val(raw.research_class)
+        : raw.classification_type === "development_class"
+          ? val(raw.development_class)
+          : "",
       classificationDetails: "",
       modeOfImplementation: val(raw.implementation_mode),
-      implementationSites: [],
+      implementationSites: Array.isArray(raw.implementation_site)
+        ? raw.implementation_site.map((s: any) => ({ site: val(s.site_name), city: val(s.city) }))
+        : [],
       priorityAreas: Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : "",
       sector: raw.sector ? val(raw.sector.name) : "",
       discipline: raw.discipline ? val(raw.discipline.name) : "",
-      duration: val(raw.duration),
+      duration: val(raw.duration) ? `${raw.duration} months` : "", // Appending 'months' as likely usually stored as num
       startDate: val(raw.plan_start_date),
       endDate: val(raw.plan_end_date),
-      budgetSources: raw.estimated_budget || [],
+      budgetSources: budgetSources,
       budgetTotal: project.budget,
-      uploadedFile: "",
+      uploadedFile: Array.isArray(raw.proposal_version) && raw.proposal_version.length > 0
+        ? raw.proposal_version[raw.proposal_version.length - 1].file_url
+        : "",
       lastUpdated: val(raw.updated_at) || val(raw.created_at),
       deadline: getStatusFromIndex(project.currentIndex) === 'revise' ? val(raw.evaluation_deadline_at) : undefined
     };

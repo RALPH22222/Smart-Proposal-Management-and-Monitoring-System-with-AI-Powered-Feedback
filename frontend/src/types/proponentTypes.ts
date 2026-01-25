@@ -18,12 +18,23 @@ export interface Notification {
   read: boolean;
 }
 
+export interface BudgetLineItem {
+  id?: string | number;
+  item: string;
+  amount: number;
+}
+
 export interface BudgetSource {
   source: string;
   ps: string;
   mooe: string;
   co: string;
   total: string;
+  breakdown: {
+    ps: BudgetLineItem[];
+    mooe: BudgetLineItem[];
+    co: BudgetLineItem[];
+  };
 }
 
 interface Sites {
