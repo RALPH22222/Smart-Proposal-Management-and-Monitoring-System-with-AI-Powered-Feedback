@@ -42,6 +42,18 @@ export class BackendStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    const profile_setup_bucket = new Bucket(this, `pms-profile-setup-bucket-${stageName}`, {
+      bucketName: `pms-profile-setup-bucket-${stageName}`,
+      publicReadAccess: true,
+      blockPublicAccess: {
+        blockPublicAcls: false,
+        blockPublicPolicy: false,
+        ignorePublicAcls: false,
+        restrictPublicBuckets: false,
+      },
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
+
     // Lambdas (All Lambda definitions remain the same)
     // ... (authorizer_lambda, cors_lambda, login_lambda, signup_lambda, create_proposal_lambda, etc. all remain unchanged)
 
@@ -88,6 +100,19 @@ export class BackendStack extends Stack {
         SUPABASE_KEY,
       },
     });
+
+    const profile_setup_lambda = new NodejsFunction(this, "pms-profile-setup", {
+      functionName: "pms-profile-setup",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "profile-setup.ts"),
+      environment: {
+        SUPABASE_KEY,
+        PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+      },
+    });
+    profile_setup_bucket.grantPut(profile_setup_lambda);
 
     const create_proposal_lambda = new NodejsFunction(this, "pms-create-propposal", {
       functionName: "pms-create-propposal",
@@ -565,6 +590,13 @@ export class BackendStack extends Stack {
     // /auth/sign-up
     const signup = auth.addResource("sign-up");
     signup.addMethod(HttpMethod.POST, new LambdaIntegration(signup_lambda));
+
+    // /auth/profile-setup
+    const profile_setup = auth.addResource("profile-setup");
+    profile_setup.addMethod(HttpMethod.POST, new LambdaIntegration(profile_setup_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // cors (This is the {proxy+} general handler and remains the same)
     const cors = api.root.addResource("{proxy+}");

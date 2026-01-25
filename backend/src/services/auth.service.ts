@@ -1,7 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { SignUpInput } from "../schemas/sign-up-schema";
+import { ProfileSetup, SignUpInput } from "../schemas/auth-schema";
 import jwt from "jsonwebtoken";
 import { DecodedToken } from "../types/auth";
+
+type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
+  photo_profile_url: string;
+};
 
 export class AuthService {
   constructor(private db?: SupabaseClient) {}
@@ -17,9 +21,9 @@ export class AuthService {
       .eq("id", userId)
       .maybeSingle();
 
-    console.log("auth userId:", userId);
-    console.log("rolesRow:", row);
-    console.log("rolesError:", rolesError);
+    // console.log("auth userId:", userId);
+    // console.log("rolesRow:", row);
+    // console.log("rolesError:", rolesError);
 
     if (rolesError) return { data: null, error: rolesError };
 
@@ -40,6 +44,22 @@ export class AuthService {
         },
       },
     });
+    return { data, error };
+  }
+
+  async profileSetup(userId: string, input: ProfileSetupDbPayload) {
+    const { data, error } = await this.db!.from("users")
+      .update({
+        birth_date: input.birth_date,
+        sex: input.sex,
+        department_id: input.department_id,
+        photo_profile_url: input.photo_profile_url,
+        profile_completed: true,
+      })
+      .eq("id", userId)
+      .select()
+      .maybeSingle();
+
     return { data, error };
   }
 
