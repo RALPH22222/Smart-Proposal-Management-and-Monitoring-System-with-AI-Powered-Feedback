@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ClassificationType,
   EvaluatorFinalDecision,
   EvaluatorStatus,
   ResearchClass,
@@ -135,8 +136,8 @@ export const proposalSchema = z.object({
 
   // --- CHANGED: Use nativeEnum for TS Enums ---
   // research_class and development_class are mutually exclusive - only one is sent
-  research_class: z.preprocess(parseJsonIfString, z.nativeEnum(ResearchClass).optional().nullable()),
-  development_class: z.preprocess(normalizeDevelopmentClass, z.nativeEnum(DevelopmentClass).optional().nullable()),
+  class_input: z.string(),
+  classification_type: z.preprocess(parseJsonIfString, z.nativeEnum(ClassificationType)),
   implementation_mode: z.preprocess(parseJsonIfString, z.nativeEnum(ImplementationMode)),
 
   // --- CHANGED: Matches Frontend names ---

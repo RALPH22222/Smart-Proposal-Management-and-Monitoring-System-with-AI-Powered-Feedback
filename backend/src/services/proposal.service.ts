@@ -35,7 +35,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) { }
+  constructor(private db: SupabaseClient) {}
 
   private async resolveLookupId(args: {
     table: Table;
@@ -237,6 +237,7 @@ export class ProposalService {
     return { data: insertRes.data, error: insertRes.error };
   }
 
+  // Saves link from aws S3 to proposal version
   async createVersion(payload: ProposalVersionInput) {
     const { data, error } = await this.db
       .from("proposal_version")
@@ -461,13 +462,16 @@ export class ProposalService {
   async getAll(search?: string, status?: Status, proponent_id?: string) {
     let query = this.db.from("proposals").select(`
       *,
+      cooperating_agencies(agencies(name)),
+      proposal_tags(tags(name)),
+      implementation_site(site_name,city),
       proponent:users(first_name,last_name),
-      department:departments(name),
+      rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
-      agency:agencies(name),
+      agency:agencies(name,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
-      proposal_version(id,file_url,created_at)
+      proposal_version(id,file_url)
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)

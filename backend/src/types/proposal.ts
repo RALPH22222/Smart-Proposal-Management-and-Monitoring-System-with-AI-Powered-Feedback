@@ -17,6 +17,11 @@ export enum DevelopmentClass {
   TECH_PROMOTION = "tech_promotion",
 }
 
+export enum ClassificationType {
+  RESEARCH_CLASS = "research_class",
+  DEVELOPMENT_CLASS = "development_class",
+}
+
 export enum ImplementationMode {
   SINGLE_AGENCY = "single_agency",
   MULTI_AGENCY = "multi_agency",
