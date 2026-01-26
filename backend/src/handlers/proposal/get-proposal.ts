@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { Status } from "../../types/proposal";
 import { proposalStatusSchema } from "../../schemas/proposal-schema";
+import { getAuthContext } from "../../utils/auth-context";
 
 type FilterParams = {
   search?: string;
@@ -11,16 +12,17 @@ type FilterParams = {
 };
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
+  const auth = getAuthContext(event);
   const { search, status }: FilterParams = event.queryStringParameters || {};
 
-  // Get authenticated user's ID from the authorizer context
-  const user_sub = event.requestContext.authorizer?.user_sub as string;
+  const user_sub = auth.userId;
+  const roles = auth.roles;
 
-  if (!user_sub) {
+  if (!user_sub && !roles) {
     return {
       statusCode: 401,
       body: JSON.stringify({
-        message: "Unauthorized: User ID not found in token",
+        message: "Unauthorized: User ID or Roles not found in token",
       }),
     };
   }
@@ -40,7 +42,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getAll(search, status, user_sub);
+  const { data, error } = await proposalService.getAll(search, status, user_sub, roles);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

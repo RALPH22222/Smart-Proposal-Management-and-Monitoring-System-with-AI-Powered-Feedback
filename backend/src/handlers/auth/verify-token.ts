@@ -18,7 +18,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   const authService = new AuthService(supabase);
 
-  const { data, error } = await authService.verifyTokenWithRoles(cookies.tk);
+  const { data, error } = await authService.verifyToken(cookies.tk);
 
   if (error) {
     console.error("Error verify token:", error);

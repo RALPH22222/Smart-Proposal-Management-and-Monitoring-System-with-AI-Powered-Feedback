@@ -1,6 +1,7 @@
 import { APIGatewayAuthorizerResult, APIGatewayRequestAuthorizerEvent } from "aws-lambda";
 import { AuthService } from "../../services/auth.service";
 import { parseCookie } from "../../utils/cookies";
+import { supabase } from "../../lib/supabase";
 
 const generatePolicy = (
   principalId: string,
@@ -28,8 +29,17 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
   const cookies_str = event.headers?.Cookie || event.headers?.cookie || "";
   const cookies = parseCookie(cookies_str);
 
-  const authService = new AuthService();
-  const { data, error } = await authService.verifyToken(cookies.tk);
+  const authHeader = event.headers?.Authorization || event.headers?.authorization || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  const token = cookies.tk || bearer;
+
+  if (!token) {
+    throw "Unauthorized";
+  }
+
+  const authService = new AuthService(supabase);
+  const { data, error } = await authService.verifyToken(token);
 
   if (error && !data) {
     console.log("Auth service verify token error: ", JSON.stringify(error, null, 2));
@@ -43,9 +53,13 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
   const wildcardResource = `${arn}/${stage}/*/*`;
   // This means: all methods, all paths under this stage for this API
 
-  const user_sub = data!.sub;
+  const user_sub = data!.user.id;
 
   return generatePolicy(user_sub, "Allow", wildcardResource, {
-    user_sub: user_sub,
+    user_sub,
+    email: data?.user.email,
+    first_name: data?.user.first_name,
+    last_name: data?.user.last_name,
+    roles: JSON.stringify(data?.user.roles),
   });
 };

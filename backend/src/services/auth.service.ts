@@ -64,56 +64,43 @@ export class AuthService {
   }
 
   async verifyToken(token: string) {
-    const supabase_secret_jwt = process.env.SUPABASE_SECRET_JWT;
+    if (!token) return { data: null, error: { message: "Missing token" } };
 
+    const supabase_secret_jwt = process.env.SUPABASE_SECRET_JWT;
     if (!supabase_secret_jwt) {
-      return {
-        error: {
-          type: "missing_environment_variable",
-          message: "Missing SUPABASE SECRET JWT",
-        },
-      };
+      return { data: null, error: { message: "Missing SUPABASE_SECRET_JWT" } };
     }
 
     try {
-      console.log("Verifying token: ", token);
-      const data = jwt.verify(token, supabase_secret_jwt) as DecodedToken;
-      return { data };
-    } catch (error) {
-      return { error };
-    }
-  }
+      const decoded = jwt.verify(token, supabase_secret_jwt) as DecodedToken;
+      if (!decoded?.sub) return { data: null, error: { message: "Invalid token" } };
 
-  async verifyTokenWithRoles(token: string) {
-    const { data: decoded, error } = await this.verifyToken(token);
-    if (error || !decoded) return { data: null, error };
+      const userId = decoded.sub;
 
-    // decoded.sub is your Supabase user id (uuid)
-    const userId = decoded.sub;
+      const { data: row, error: rolesError } = await this.db!.from("users")
+        .select("roles,email,first_name,last_name")
+        .eq("id", userId)
+        .maybeSingle();
 
-    const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles,email,first_name,last_name")
-      .eq("id", userId)
-      .maybeSingle();
+      if (rolesError) return { data: null, error: rolesError };
 
-    if (rolesError) return { data: null, error: rolesError };
+      const roles = Array.isArray(row?.roles) ? row.roles : [];
 
-    const roles = Array.isArray(row?.roles) ? row!.roles : [];
-    const first_name = row?.first_name;
-    const last_name = row?.last_name;
-
-    return {
-      data: {
-        session: { exp: decoded.exp, iat: decoded.iat },
-        user: {
-          id: userId,
-          email: decoded.email ?? row?.email,
-          first_name: first_name,
-          last_name: last_name,
-          roles,
+      return {
+        data: {
+          session: { exp: decoded.exp, iat: decoded.iat },
+          user: {
+            id: userId,
+            email: decoded.email ?? (row?.email as string),
+            first_name: (row?.first_name as string) ?? null,
+            last_name: (row?.last_name as string) ?? null,
+            roles,
+          },
         },
-      },
-      error: null,
-    };
+        error: null,
+      };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 }

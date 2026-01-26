@@ -459,13 +459,13 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getAll(search?: string, status?: Status, proponent_id?: string) {
+  async getAll(search?: string, status?: Status, proponent_id?: string, roles?: string[]) {
     let query = this.db.from("proposals").select(`
       *,
       cooperating_agencies(agencies(name)),
       proposal_tags(tags(name)),
       implementation_site(site_name,city),
-      proponent:users(first_name,last_name),
+      proponent_id(id,first_name,last_name,department_id(name)),
       rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
@@ -475,10 +475,11 @@ export class ProposalService {
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)
-    if (proponent_id) {
+    const isAdmin = roles?.includes("admin");
+
+    if (!isAdmin) {
       query = query.eq("proponent_id", proponent_id);
     }
-
     if (search) {
       query = query.ilike("project_title", `%${search}%`);
     }

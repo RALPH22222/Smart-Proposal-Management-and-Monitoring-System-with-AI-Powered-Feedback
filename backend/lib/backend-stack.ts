@@ -11,7 +11,7 @@ import {
 } from "aws-cdk-lib/aws-apigateway";
 import path from "path";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
+import { Bucket } from "aws-cdk-lib/aws-s3";
 
 const ALLOWED_STAGE_NAMES = ["dev", "prod"];
 
@@ -64,6 +64,7 @@ export class BackendStack extends Stack {
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "authorizer.ts"),
       environment: {
+        SUPABASE_KEY,
         SUPABASE_SECRET_JWT,
       },
     });

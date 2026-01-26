@@ -22,3 +22,12 @@ export enum Sex {
   FEMALE = "female",
   PREFER_NOT_TO_SAY = "prefer_not_to_say",
 }
+
+export enum Roles {
+  LEAD_PROPONENT = "lead_proponent",
+  EVALUATOR = "evaluator",
+  RND = "rnd",
+  RDEC = "rdec",
+  PROPONENT = "proponent",
+  ADMIN = "admin",
+}
