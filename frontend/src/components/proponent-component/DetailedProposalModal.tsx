@@ -94,17 +94,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   }
 
   // --- Helper Functions ---
-  const parseCurrency = (value: string): number => {
-    return parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
-  };
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-    }).format(value);
-  };
-
   const calculateDuration = (start: string, end: string): string => {
     if (!start || !end) return "";
     const startDate = new Date(start);
@@ -598,18 +587,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </div>
                 </div>
                 {submittedFiles.length > 0 && (
-                  <button
-                    onClick={() =>
-                      window.open(
-                        submittedFiles[submittedFiles.length - 1],
-                        "_blank"
-                      )
-                    }
-                    className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
-                    title="Download"
+                  <a
+                    href={submittedFiles[submittedFiles.length - 1]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                    title="Open/Download"
                   >
                     <Download className="w-4 h-4" />
-                  </button>
+                  </a>
                 )}
               </div>
               {canEdit && (

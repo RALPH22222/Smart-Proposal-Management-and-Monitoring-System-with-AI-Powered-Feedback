@@ -321,15 +321,24 @@ const Profile: React.FC = () => {
         : "Unknown Proponent",
       gender: val(raw.proponent?.gender) || "",
       agency: raw.agency ? val(raw.agency.name) : "",
-      department: raw.department ? val(raw.department.name) : "",
+      department: raw.department?.name
+        ? raw.department.name
+        : (departments.find(d => Number(d.id) === Number(raw.department_id))?.name || ""),
       schoolYear: val(raw.school_year),
-      address: "",
+      address: raw.agency
+        ? [raw.agency.street, raw.agency.barangay, raw.agency.city]
+          .map(part => val(part)) // Ensure nulls become empty strings
+          .filter(part => part !== "") // Remove empty strings
+          .join(", ")
+        : "",
       telephone: val(raw.phone),
       email: val(raw.email),
-      cooperatingAgencies: "",
-      rdStation: Array.isArray(raw.rnd_station) && raw.rnd_station.length > 0 && raw.rnd_station[0].agencies
-        ? val(raw.rnd_station[0].agencies.name)
+      cooperatingAgencies: Array.isArray(raw.cooperating_agencies)
+        ? raw.cooperating_agencies.map((c: any) => c.agencies?.name).filter(Boolean).join(", ")
         : "",
+      rdStation: raw.rnd_station?.name // Check for direct object first
+        || (Array.isArray(raw.rnd_station) && raw.rnd_station.length > 0 && raw.rnd_station[0].agencies ? val(raw.rnd_station[0].agencies.name) : "")
+        || "",
       classification: raw.classification_type === "research_class"
         ? val(raw.research_class)
         : raw.classification_type === "development_class"
