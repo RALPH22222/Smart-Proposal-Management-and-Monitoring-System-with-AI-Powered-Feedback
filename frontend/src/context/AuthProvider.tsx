@@ -2,12 +2,19 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext, { type AuthUser } from "./AuthContext";
 import { api } from "@utils/axios";
-import type { SupabaseAuthToken } from "src/types/auth";
 import Swal from "sweetalert2";
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+type VerifyTokenResponse = {
+  session?: { exp?: number; iat?: number };
+  user: {
+    id: string;
+    email: string;
+    roles: string[];
+    name?: string;
+  };
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
   const [user, setUser] = useState<AuthUser | null>(() => {
@@ -29,17 +36,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const verifyToken = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<SupabaseAuthToken>("/auth/verify-token");
+      const { data } = await api.get<VerifyTokenResponse>("/auth/verify-token", {
+        withCredentials: true, // IMPORTANT: cookie auth
+      });
 
-      const { email, user_metadata } = data;
-      const flattenedUser: AuthUser = {
-        email,
-        ...user_metadata, // role + anything else from user_metadata
+      const hydratedUser: AuthUser = {
+        id: data.user.id,
+        email: data.user.email,
+        roles: data.user.roles,
+        name: data.user.name,
       };
 
-      setUser(flattenedUser);
-      localStorage.setItem("user", JSON.stringify(flattenedUser));
-      return flattenedUser;
+      setUser(hydratedUser);
+      localStorage.setItem("user", JSON.stringify(hydratedUser));
+      return hydratedUser;
     } catch (error) {
       console.error("verifyToken failed:", error);
       setUser(null);
@@ -75,9 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [navigate]);
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, isAuthenticated, verifyToken, logout, setUser }}
-    >
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, verifyToken, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

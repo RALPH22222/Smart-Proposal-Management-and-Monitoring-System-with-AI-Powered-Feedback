@@ -24,9 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
 
       if (roles && roles.length > 0) {
         // Normalize roles - handle both singular "role" and plural "roles" from JWT
-        const userRoles = Array.isArray(user.roles)
-          ? user.roles
-          : ((user as unknown as { role?: string }).role ? [(user as unknown as { role?: string }).role as Role] : []);
+        const userRoles = user.roles;
 
         // does the user have at least one allowed role?
         const hasRequiredRole = roles.some((r) => userRoles.includes(r));
@@ -37,7 +35,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
           const role = userRoles[0];
 
           switch (role) {
-            case Role.LEAD_PROPONENT || Role.PROPONENT:
+            case Role.LEAD_PROPONENT:
+            case Role.PROPONENT:
               navigate("/users/proponent/proponentMainLayout");
               break;
             case Role.EVALUATOR:

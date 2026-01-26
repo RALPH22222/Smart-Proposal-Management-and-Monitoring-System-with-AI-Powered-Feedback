@@ -1,38 +1,29 @@
+import { supabase } from "../../lib/supabase";
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { buildCorsHeaders } from "../../utils/cors";
 import { AuthService } from "../../services/auth.service";
 import { parseCookie } from "../../utils/cookies";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  const authService = new AuthService();
-  const cookie_str = event.headers.Cookie;
+  const cookie_str = event.headers.cookie ?? event.headers.Cookie;
 
   if (!cookie_str) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: "Unauthorized access",
-      }),
-    };
+    return { statusCode: 401, body: JSON.stringify({ message: "Unauthorized access" }) };
   }
 
   const cookies = parseCookie(cookie_str);
+  if (!cookies.tk) {
+    return { statusCode: 401, body: JSON.stringify({ message: "Unauthorized access" }) };
+  }
 
-  const { data, error } = await authService.verifyToken(cookies.tk);
+  const authService = new AuthService(supabase);
+
+  const { data, error } = await authService.verifyTokenWithRoles(cookies.tk);
 
   if (error) {
-    console.error("Error verify token: ", JSON.stringify(error, null, 2));
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: "Unauthorized access",
-      }),
-    };
+    console.error("Error verify token:", error);
+    return { statusCode: 401, body: JSON.stringify({ message: "Unauthorized access" }) };
   }
-  const result = JSON.stringify(data);
-  console.log("Decoded Token: ", JSON.stringify(data, null, 2));
-  return {
-    statusCode: 200,
-    body: result,
-  };
+
+  return { statusCode: 200, body: JSON.stringify(data) };
 });

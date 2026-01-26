@@ -8,3 +8,5 @@ README.md
 .cdk.staging
 cdk.out
 dist
+
+src/lib

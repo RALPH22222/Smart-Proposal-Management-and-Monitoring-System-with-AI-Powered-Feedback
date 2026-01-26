@@ -1,9 +1,11 @@
 import { createContext, useContext } from "react";
-import type { SupabaseAuthToken } from "../types/auth";
 
 export type AuthUser = {
+  id: string;
   email: string;
-} & SupabaseAuthToken["user_metadata"];
+  roles: string[];
+  name?: string;
+};
 
 type AuthContextValue = {
   user: AuthUser | null;

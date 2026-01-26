@@ -557,6 +557,7 @@ export class BackendStack extends Stack {
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "verify-token.ts"),
       environment: {
+        SUPABASE_KEY,
         SUPABASE_SECRET_JWT,
       },
     });

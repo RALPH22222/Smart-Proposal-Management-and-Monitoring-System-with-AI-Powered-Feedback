@@ -1,11 +1,12 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { Role } from "../types/auth";
+import type { AuthUser } from "../context/AuthContext";
 
 const RedirectAuthenticated: React.FC = () => {
   const _user = localStorage.getItem("user");
 
   if (_user) {
-    const user = JSON.parse(_user) as { roles?: Role[] };
+    const user = JSON.parse(_user) as AuthUser;
     const role = user.roles?.[0];
 
     if (!role) {

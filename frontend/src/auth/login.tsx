@@ -1,3 +1,4 @@
+import { useAuthContext } from "../context/AuthContext";
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { api } from "@utils/axios";
@@ -8,20 +9,21 @@ type LoginResponse = {
   user: {
     id: string;
     email: string;
-    role?: string;  
-    roles?: string[]; 
+    role?: string;
+    roles?: string[];
     [key: string]: any;
   };
 };
 
 export default function Login() {
+  const { setUser } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
-  
+
   const navigate = useNavigate();
 
   const navigateBasedOnRole = (role: string) => {
@@ -30,7 +32,7 @@ export default function Login() {
         navigate("/profile-setup");
         break;
       case "rnd":
-        navigate("/users/rnd/rndMainLayout"); 
+        navigate("/users/rnd/rndMainLayout");
         break;
       case "admin":
         navigate("/users/admin/adminMainLayout");
@@ -74,6 +76,15 @@ export default function Login() {
         userRoles = [res.data.user.role];
       }
 
+      const hydratedUser = {
+        id: res.data.user.id,
+        email: res.data.user.email,
+        roles: userRoles,
+      };
+
+      setUser(hydratedUser);
+      localStorage.setItem("user", JSON.stringify(hydratedUser));
+
       Swal.fire({
         icon: "success",
         title: "Logged in",
@@ -96,7 +107,6 @@ export default function Login() {
       } else {
         throw new Error("No roles assigned to this user.");
       }
-
     } catch (err: unknown) {
       Swal.fire({
         icon: "error",
@@ -110,17 +120,20 @@ export default function Login() {
 
   // Helper to get nice labels/icons for the modal
   const getRoleDisplay = (role: string) => {
-    switch(role.toLowerCase()) {
-      case 'admin': return { label: 'Administrator', icon: <Shield className="w-6 h-6"/>, color: 'bg-slate-800' };
-      case 'rnd': return { label: 'R&D Staff', icon: <FileText className="w-6 h-6"/>, color: 'bg-blue-600' };
-      case 'evaluator': return { label: 'Evaluator', icon: <CheckSquare className="w-6 h-6"/>, color: 'bg-green-600' };
-      default: return { label: 'Proponent', icon: <User className="w-6 h-6"/>, color: 'bg-[#C8102E]' };
+    switch (role.toLowerCase()) {
+      case "admin":
+        return { label: "Administrator", icon: <Shield className="w-6 h-6" />, color: "bg-slate-800" };
+      case "rnd":
+        return { label: "R&D Staff", icon: <FileText className="w-6 h-6" />, color: "bg-blue-600" };
+      case "evaluator":
+        return { label: "Evaluator", icon: <CheckSquare className="w-6 h-6" />, color: "bg-green-600" };
+      default:
+        return { label: "Proponent", icon: <User className="w-6 h-6" />, color: "bg-[#C8102E]" };
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row relative">
-      
       {/* --- FORM SECTION --- */}
       <div className="order-2 md:order-1 w-full md:w-1/2 flex items-center justify-center bg-white p-8">
         <form onSubmit={handleLogin} className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4">
@@ -196,11 +209,7 @@ export default function Login() {
       >
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
-          <img
-            src="/LOGO.png"
-            alt="Logo"
-            className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg"
-          />
+          <img src="/LOGO.png" alt="Logo" className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg" />
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal
           </h1>
@@ -214,11 +223,10 @@ export default function Login() {
       {showRoleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative animate-in zoom-in-95 duration-200">
-            
             {/* Modal Header */}
             <div className="bg-[#C8102E] px-6 py-4 flex justify-between items-center text-white">
               <h3 className="text-lg font-bold">Select Dashboard</h3>
-              <button 
+              <button
                 onClick={() => setShowRoleModal(false)}
                 className="hover:bg-white/20 rounded-full p-1 transition-colors"
               >
@@ -241,27 +249,25 @@ export default function Login() {
                       onClick={() => navigateBasedOnRole(role)}
                       className="flex items-center gap-4 w-full p-4 rounded-xl border border-gray-200 hover:border-[#C8102E] hover:bg-red-50 transition-all duration-200 group text-left"
                     >
-                      <div className={`p-3 rounded-full text-white ${details.color} shadow-sm group-hover:scale-110 transition-transform`}>
+                      <div
+                        className={`p-3 rounded-full text-white ${details.color} shadow-sm group-hover:scale-110 transition-transform`}
+                      >
                         {details.icon}
                       </div>
                       <div>
                         <span className="block font-bold text-gray-800 group-hover:text-[#C8102E] text-lg">
                           {details.label}
                         </span>
-                        <span className="text-xs text-gray-500 uppercase tracking-wider">
-                          Enter as {role}
-                        </span>
+                        <span className="text-xs text-gray-500 uppercase tracking-wider">Enter as {role}</span>
                       </div>
                     </button>
                   );
                 })}
               </div>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

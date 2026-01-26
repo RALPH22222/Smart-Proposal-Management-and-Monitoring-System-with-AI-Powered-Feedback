@@ -83,4 +83,37 @@ export class AuthService {
       return { error };
     }
   }
+
+  async verifyTokenWithRoles(token: string) {
+    const { data: decoded, error } = await this.verifyToken(token);
+    if (error || !decoded) return { data: null, error };
+
+    // decoded.sub is your Supabase user id (uuid)
+    const userId = decoded.sub;
+
+    const { data: row, error: rolesError } = await this.db!.from("users")
+      .select("roles,email,first_name,last_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (rolesError) return { data: null, error: rolesError };
+
+    const roles = Array.isArray(row?.roles) ? row!.roles : [];
+    const first_name = row?.first_name;
+    const last_name = row?.last_name;
+
+    return {
+      data: {
+        session: { exp: decoded.exp, iat: decoded.iat },
+        user: {
+          id: userId,
+          email: decoded.email ?? row?.email,
+          first_name: first_name,
+          last_name: last_name,
+          roles,
+        },
+      },
+      error: null,
+    };
+  }
 }
