@@ -115,6 +115,7 @@ export class ProposalService {
       agency_address,
       cooperating_agencies,
       tags,
+      priorities_id,
       ...proposal
     } = payload;
 
@@ -146,7 +147,6 @@ export class ProposalService {
       sector_id,
       discipline_id,
       agency_id,
-      status: Status.REVIEW_RND,
     };
 
     const insertRes = await this.db.from("proposals").insert(insertDbPayload).select().single();
@@ -232,6 +232,16 @@ export class ProposalService {
         const budget_join = await this.db.from("estimated_budget").insert(budget_rows);
         if (budget_join.error) throw new Error(`estimated_budget insert failed: ${budget_join.error.message}`);
       }
+    }
+
+    // PRIORITIES JOIN
+    if (Array.isArray(priorities_id) && priorities_id.length > 0) {
+      const priorityIds = Array.from(new Set(priorities_id));
+      const priorityRows = priorityIds.map((priority_id) => ({ proposal_id, priority_id }));
+
+      const priorityJoin = await this.db.from("proposal_priorities").insert(priorityRows);
+
+      if (priorityJoin.error) throw new Error(`proposal_priorities insert failed: ${priorityJoin.error.message}`);
     }
 
     return { data: insertRes.data, error: insertRes.error };
@@ -373,6 +383,15 @@ export class ProposalService {
       return { error: insertError, assignments: null };
     }
 
+    const { data: rowStatus, error: rowErrorStatus } = await this.db
+      .from("proposals")
+      .update({ status: Status.REVIEW_RND })
+      .eq("id", proposal_id);
+
+    if (rowErrorStatus) {
+      return { rosStatus: null, rowErrorStatus };
+    }
+
     return {
       error: null,
       assignments,
@@ -464,6 +483,7 @@ export class ProposalService {
       *,
       cooperating_agencies(agencies(name)),
       proposal_tags(tags(name)),
+      proposal_priorities(priorities(id,name)),
       implementation_site(site_name,city),
       proponent_id(id,first_name,last_name,department_id(name)),
       rnd_station:departments(name),

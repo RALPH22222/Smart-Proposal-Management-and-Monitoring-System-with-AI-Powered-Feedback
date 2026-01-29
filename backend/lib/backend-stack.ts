@@ -4,9 +4,12 @@ import { Construct } from "constructs";
 import { HttpMethod, Runtime } from "aws-cdk-lib/aws-lambda";
 import {
   AuthorizationType,
+  Cors,
+  GatewayResponse,
   IdentitySource,
   LambdaIntegration,
   RequestAuthorizer,
+  ResponseType,
   RestApi,
 } from "aws-cdk-lib/aws-apigateway";
 import path from "path";
@@ -117,9 +120,9 @@ export class BackendStack extends Stack {
 
     const create_proposal_lambda = new NodejsFunction(this, "pms-create-propposal", {
       functionName: "pms-create-propposal",
-      memorySize: 128,
+      memorySize: 256,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(60),
       entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
       environment: {
         SUPABASE_KEY,
@@ -569,6 +572,32 @@ export class BackendStack extends Stack {
         stageName: "api",
       },
       binaryMediaTypes: ["multipart/form-data"],
+      defaultCorsPreflightOptions: {
+        allowOrigins: ["http://localhost:5173", "https://wmsu-spmams.vercel.app"],
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization", "Cookie"],
+        allowCredentials: true,
+      },
+    });
+
+    // Gateway Responses for proper CORS headers on error responses
+    const corsResponseHeaders = {
+      "Access-Control-Allow-Origin": "'http://localhost:5173'",
+      "Access-Control-Allow-Headers": "'Content-Type,Authorization,Cookie'",
+      "Access-Control-Allow-Methods": "'GET,POST,DELETE,OPTIONS'",
+      "Access-Control-Allow-Credentials": "'true'",
+    };
+
+    new GatewayResponse(this, "GatewayResponseDefault4XX", {
+      restApi: api,
+      type: ResponseType.DEFAULT_4XX,
+      responseHeaders: corsResponseHeaders,
+    });
+
+    new GatewayResponse(this, "GatewayResponseDefault5XX", {
+      restApi: api,
+      type: ResponseType.DEFAULT_5XX,
+      responseHeaders: corsResponseHeaders,
     });
 
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
@@ -599,10 +628,6 @@ export class BackendStack extends Stack {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
-
-    // cors (This is the {proxy+} general handler and remains the same)
-    const cors = api.root.addResource("{proxy+}");
-    cors.addMethod(HttpMethod.OPTIONS, new LambdaIntegration(cors_lambda));
 
     // ========== PROPOSAL ROUTES ==========
     // /proposal

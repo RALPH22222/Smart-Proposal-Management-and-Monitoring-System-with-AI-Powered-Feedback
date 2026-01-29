@@ -6,7 +6,6 @@ import {
   ResearchClass,
   DevelopmentClass,
   ImplementationMode,
-  PriorityArea,
   Status,
   AssignmentTracker,
   EndorsementDecision,
@@ -52,26 +51,6 @@ const budgetsSchema = z
     }),
   )
   .min(1, "At least one budget source is required");
-
-// Helper to convert camelCase priority keys to snake_case enum values
-const normalizePriorityAreas = (val: unknown): string[] => {
-  const parsed = parseJsonIfString(val);
-  if (!Array.isArray(parsed)) return [];
-
-  const keyMap: Record<string, string> = {
-    stand: "stand",
-    coconutIndustry: "coconut_industry",
-    coconut_industry: "coconut_industry",
-    exportWinners: "export_winners",
-    export_winners: "export_winners",
-    supportIndustries: "support_industries",
-    support_industries: "support_industries",
-    otherPriorityAreas: "other_priority_areas",
-    other_priority_areas: "other_priority_areas",
-  };
-
-  return parsed.map((k: string) => keyMap[k] || k);
-};
 
 // Helper to normalize development_class (camelCase to snake_case)
 const normalizeDevelopmentClass = (val: unknown): string | undefined => {
@@ -145,8 +124,8 @@ export const proposalSchema = z.object({
   plan_end_date: z.string().date(), // Changed from plan_end_date
   duration: z.coerce.number(),
 
-  // --- CHANGED: Priority Areas with camelCase to snake_case conversion ---
-  priority_areas: z.preprocess(normalizePriorityAreas, z.array(z.nativeEnum(PriorityArea))),
+  // Priority area IDs - array of numbers referencing the priorities table
+  priorities_id: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),
 
   // --- NEW: Implementation Site with flexible field names (site or site_name) ---
   implementation_site: z.preprocess(
