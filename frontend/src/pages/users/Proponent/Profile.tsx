@@ -1,30 +1,19 @@
 import React, { useState } from "react";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
-import DetailedProposalModal from '../../../components/proponent-component/DetailedProposalModal';
-import {
-  FaListAlt,
-  FaUsers,
-  FaBell,
-  FaTablet,
-  FaShareAlt,
-} from 'react-icons/fa';
-import {
-  Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag
-} from 'lucide-react';
+import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
+import { FaListAlt, FaUsers, FaBell, FaTablet, FaShareAlt } from "react-icons/fa";
+import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag } from "lucide-react";
 
-import type { Project, Proposal, Notification } from '../../../types/proponentTypes';
-import {
-  initialNotifications,
-  getStatusFromIndex
-} from '../../../types/mockData';
+import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
+import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
 import {
   getStatusColorByIndex,
   getStageIcon,
   getProgressPercentageByIndex,
   getStatusLabelByIndex,
-  filterProjectsByStatus
-} from '../../../types/helpers'; // Removed getPriorityColor import
+  filterProjectsByStatus,
+} from "../../../types/helpers"; // Removed getPriorityColor import
 import {
   getProposals,
   fetchAgencies,
@@ -34,12 +23,12 @@ import {
   fetchStations,
   fetchTags,
   fetchDepartments,
-  type LookupItem
-} from '../../../services/proposal.api';
+  type LookupItem,
+} from "../../../services/proposal.api";
 
 const Profile: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [projectTab, setProjectTab] = useState<'all' | 'budget'>('all');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [projectTab, setProjectTab] = useState<"all" | "budget">("all");
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
 
@@ -69,7 +58,6 @@ const Profile: React.FC = () => {
   const [tags, setTags] = useState<LookupItem[]>([]);
   const [departments, setDepartments] = useState<LookupItem[]>([]);
 
-
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
   // Fetch proposals on mount
@@ -83,13 +71,26 @@ const Profile: React.FC = () => {
         const mappedProposals: Project[] = data.map((p: any) => {
           let index = 1;
           switch (p.status) {
-            case 'endorsed_for_funding': index = 0; break;
-            case 'review_rnd': index = 1; break;
-            case 'under_evaluation': index = 1; break; // Mapped to R&D Evaluation as requested
-            case 'revision_rnd': index = 3; break;
-            case 'funded': index = 4; break;
-            case 'rejected_rnd': index = 5; break;
-            default: index = 1;
+            case "endorsed_for_funding":
+              index = 0;
+              break;
+            case "review_rnd":
+              index = 1;
+              break;
+            case "under_evaluation":
+              index = 1;
+              break; // Mapped to R&D Evaluation as requested
+            case "revision_rnd":
+              index = 3;
+              break;
+            case "funded":
+              index = 4;
+              break;
+            case "rejected_rnd":
+              index = 5;
+              break;
+            default:
+              index = 1;
           }
 
           // Calculate budget
@@ -100,19 +101,19 @@ const Profile: React.FC = () => {
             id: String(p.id),
             title: p.project_title,
             currentIndex: index,
-            submissionDate: new Date(p.created_at).toISOString().split('T')[0],
-            lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split('T')[0],
+            submissionDate: new Date(p.created_at).toISOString().split("T")[0],
+            lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split("T")[0],
             budget: budgetStr,
             duration: p.duration || "N/A",
-            priority: 'medium',
+            priority: "medium",
             evaluators: p.proposal_evaluators?.length || 0,
-            proponent: p.proponent ? `${p.proponent.first_name} ${p.proponent.last_name}` : "Unknown Proponent"
+            proponent: p.proponent ? `${p.proponent.first_name} ${p.proponent.last_name}` : "Unknown Proponent",
           };
         });
 
         setProposals(mappedProposals);
       } catch (error) {
-        console.error('Failed to fetch proposals:', error);
+        console.error("Failed to fetch proposals:", error);
       } finally {
         setLoading(false);
       }
@@ -124,23 +125,16 @@ const Profile: React.FC = () => {
   React.useEffect(() => {
     const loadLookups = async () => {
       try {
-        const [
-          agenciesData,
-          sectorsData,
-          disciplinesData,
-          prioritiesData,
-          stationsData,
-          tagsData,
-          departmentsData
-        ] = await Promise.all([
-          fetchAgencies(),
-          fetchSectors(),
-          fetchDisciplines(),
-          fetchPriorities(),
-          fetchStations(),
-          fetchTags(),
-          fetchDepartments()
-        ]);
+        const [agenciesData, sectorsData, disciplinesData, prioritiesData, stationsData, tagsData, departmentsData] =
+          await Promise.all([
+            fetchAgencies(),
+            fetchSectors(),
+            fetchDisciplines(),
+            fetchPriorities(),
+            fetchStations(),
+            fetchTags(),
+            fetchDepartments(),
+          ]);
 
         setAgencies(agenciesData);
         setSectors(sectorsData);
@@ -166,27 +160,19 @@ const Profile: React.FC = () => {
     };
 
     if (notificationsOpen) {
-      document.addEventListener('mousedown', onDocClick);
+      document.addEventListener("mousedown", onDocClick);
     }
 
-    return () => document.removeEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
   }, [notificationsOpen]);
 
-
-
   // Filter projects by status using helper function
-  const {
-    rdEvaluation,
-    evaluatorsAssessment,
-    revision,
-    funded,
-  } = filterProjectsByStatus(proposals);
+  const { rdEvaluation, evaluatorsAssessment, revision, funded } = filterProjectsByStatus(proposals);
 
   // Helper to generate tags based on raw data
   const getProjectTags = (id: string | number) => {
-
     // Find raw proposal
-    const raw = rawProposals.find(p => String(p.id) === String(id));
+    const raw = rawProposals.find((p) => String(p.id) === String(id));
     if (!raw) return [];
 
     const tags: string[] = [];
@@ -201,7 +187,7 @@ const Profile: React.FC = () => {
     // 2. Proposal Tags
     if (Array.isArray(raw.proposal_tags)) {
       raw.proposal_tags.forEach((pt: any) => {
-        if (pt.tags && pt.tags.name && pt.tags.name.trim() !== '') {
+        if (pt.tags && pt.tags.name && pt.tags.name.trim() !== "") {
           tags.push(pt.tags.name);
         }
       });
@@ -219,21 +205,20 @@ const Profile: React.FC = () => {
     }
 
     const colors = [
-      'bg-blue-50 text-blue-700 border-blue-200',
-      'bg-green-50 text-green-700 border-green-200',
-      'bg-yellow-50 text-yellow-700 border-yellow-200',
-      'bg-rose-50 text-rose-700 border-rose-200',
-      'bg-purple-50 text-purple-700 border-purple-200',
-      'bg-indigo-50 text-indigo-700 border-indigo-200',
-      'bg-orange-50 text-orange-700 border-orange-200',
-      'bg-cyan-50 text-cyan-700 border-cyan-200',
-      'bg-teal-50 text-teal-700 border-teal-200'
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
     ];
 
     const index = Math.abs(hash) % colors.length;
     return colors[index];
   };
-
 
   // Event handlers
   const openShare = (project: Project) => {
@@ -252,11 +237,11 @@ const Profile: React.FC = () => {
 
   const handleCardClick = (project: Project) => {
     // Find raw proposal data to get full details
-    const raw = rawProposals.find(p => String(p.id) === project.id);
+    const raw = rawProposals.find((p) => String(p.id) === project.id);
     if (!raw) return;
 
     // Helper to handle null -> "nothing" (empty string)
-    const val = (v: any) => v === null ? "" : v;
+    const val = (v: any) => (v === null ? "" : v);
 
     // Helper to format currency
     const formatCurrency = (amount: number) => `₱${amount.toLocaleString()}`;
@@ -272,7 +257,7 @@ const Profile: React.FC = () => {
         ps: any[];
         mooe: any[];
         co: any[];
-      }
+      };
     }
 
     const budgetMap = new Map<string, DetailedBudgetSource>();
@@ -283,19 +268,22 @@ const Profile: React.FC = () => {
         if (!budgetMap.has(source)) {
           budgetMap.set(source, {
             source,
-            ps: 0, mooe: 0, co: 0, total: 0,
-            breakdown: { ps: [], mooe: [], co: [] }
+            ps: 0,
+            mooe: 0,
+            co: 0,
+            total: 0,
+            breakdown: { ps: [], mooe: [], co: [] },
           });
         }
         const entry = budgetMap.get(source)!;
         const amount = Number(item.amount) || 0;
-        const budgetType = (item.budget || "").toLowerCase() as 'ps' | 'mooe' | 'co';
+        const budgetType = (item.budget || "").toLowerCase() as "ps" | "mooe" | "co";
 
         if (entry.breakdown[budgetType]) {
           entry.breakdown[budgetType].push({
             id: item.id,
             item: val(item.item),
-            amount: amount
+            amount: amount,
           });
           entry[budgetType] += amount;
           entry.total += amount;
@@ -303,13 +291,13 @@ const Profile: React.FC = () => {
       });
     }
 
-    const budgetSources = Array.from(budgetMap.values()).map(b => ({
+    const budgetSources = Array.from(budgetMap.values()).map((b) => ({
       source: b.source,
       ps: formatCurrency(b.ps),
       mooe: formatCurrency(b.mooe),
       co: formatCurrency(b.co),
       total: formatCurrency(b.total),
-      breakdown: b.breakdown
+      breakdown: b.breakdown,
     }));
 
     const proposal: Proposal = {
@@ -323,27 +311,34 @@ const Profile: React.FC = () => {
       agency: raw.agency ? val(raw.agency.name) : "",
       department: raw.department?.name
         ? raw.department.name
-        : (departments.find(d => Number(d.id) === Number(raw.department_id))?.name || ""),
+        : departments.find((d) => Number(d.id) === Number(raw.department_id))?.name || "",
       schoolYear: val(raw.school_year),
       address: raw.agency
         ? [raw.agency.street, raw.agency.barangay, raw.agency.city]
-          .map(part => val(part)) // Ensure nulls become empty strings
-          .filter(part => part !== "") // Remove empty strings
-          .join(", ")
+            .map((part) => val(part)) // Ensure nulls become empty strings
+            .filter((part) => part !== "") // Remove empty strings
+            .join(", ")
         : "",
       telephone: val(raw.phone),
       email: val(raw.email),
       cooperatingAgencies: Array.isArray(raw.cooperating_agencies)
-        ? raw.cooperating_agencies.map((c: any) => c.agencies?.name).filter(Boolean).join(", ")
+        ? raw.cooperating_agencies
+            .map((c: any) => c.agencies?.name)
+            .filter(Boolean)
+            .join(", ")
         : "",
-      rdStation: raw.rnd_station?.name // Check for direct object first
-        || (Array.isArray(raw.rnd_station) && raw.rnd_station.length > 0 && raw.rnd_station[0].agencies ? val(raw.rnd_station[0].agencies.name) : "")
-        || "",
-      classification: raw.classification_type === "research_class"
-        ? val(raw.research_class)
-        : raw.classification_type === "development_class"
-          ? val(raw.development_class)
-          : "",
+      rdStation:
+        raw.rnd_station?.name || // Check for direct object first
+        (Array.isArray(raw.rnd_station) && raw.rnd_station.length > 0 && raw.rnd_station[0].agencies
+          ? val(raw.rnd_station[0].agencies.name)
+          : "") ||
+        "",
+      classification:
+        raw.classification_type === "research_class"
+          ? val(raw.research_class)
+          : raw.classification_type === "development_class"
+            ? val(raw.development_class)
+            : "",
       classificationDetails: "",
       modeOfImplementation: val(raw.implementation_mode),
       implementationSites: Array.isArray(raw.implementation_site)
@@ -357,11 +352,12 @@ const Profile: React.FC = () => {
       endDate: val(raw.plan_end_date),
       budgetSources: budgetSources,
       budgetTotal: project.budget,
-      uploadedFile: Array.isArray(raw.proposal_version) && raw.proposal_version.length > 0
-        ? raw.proposal_version[raw.proposal_version.length - 1].file_url
-        : "",
+      uploadedFile:
+        Array.isArray(raw.proposal_version) && raw.proposal_version.length > 0
+          ? raw.proposal_version[raw.proposal_version.length - 1].file_url
+          : "",
       lastUpdated: val(raw.updated_at) || val(raw.created_at),
-      deadline: getStatusFromIndex(project.currentIndex) === 'revise' ? val(raw.evaluation_deadline_at) : undefined
+      deadline: getStatusFromIndex(project.currentIndex) === "revise" ? val(raw.evaluation_deadline_at) : undefined,
     };
 
     setSelectedProject(proposal);
@@ -369,24 +365,21 @@ const Profile: React.FC = () => {
   };
 
   const handleUpdateProposal = (updatedProposal: Proposal) => {
-    console.log('Updated proposal:', updatedProposal);
+    console.log("Updated proposal:", updatedProposal);
     setDetailedModalOpen(false);
   };
 
-
   const toggleNotifications = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setNotificationsOpen(v => !v);
+    setNotificationsOpen((v) => !v);
   };
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map(n => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const markRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const copyLink = async () => {
@@ -409,20 +402,18 @@ const Profile: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Filtering Logic
-  const baseProjects = projectTab === 'all' ? proposals : funded;
+  const baseProjects = projectTab === "all" ? proposals : funded;
 
-  const filteredProjects = baseProjects.filter(project => {
+  const filteredProjects = baseProjects.filter((project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
     const tags = getProjectTags(project.id);
-    const matchesType = typeFilter === 'All' || tags.includes(typeFilter);
+    const matchesType = typeFilter === "All" || tags.includes(typeFilter);
 
     return matchesSearch && matchesType;
   });
-
-
 
   // Project Portfolio rendering functions
   const renderGridView = () => (
@@ -484,9 +475,7 @@ const Profile: React.FC = () => {
                 <div className="mb-3">
                   <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                     <span>Progress</span>
-                    <span className="text-xs text-gray-600 font-medium hidden sm:inline">
-                      {progress}%
-                    </span>
+                    <span className="text-xs text-gray-600 font-medium hidden sm:inline">{progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -498,7 +487,9 @@ const Profile: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}
+                    >
                       {statusLabel}
                     </span>
                   </div>
@@ -531,9 +522,13 @@ const Profile: React.FC = () => {
           <tr>
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Project Title</th>
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Status</th>
-            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">Budget</th>
-            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">Duration</th>
-            {projectTab === 'budget' && (
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden lg:table-cell">
+              Budget
+            </th>
+            <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">
+              Duration
+            </th>
+            {projectTab === "budget" && (
               <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
             )}
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
@@ -571,7 +566,10 @@ const Profile: React.FC = () => {
                           {/* Removed Priority Badge from List View */}
                           {/* Tags in List View */}
                           {tags.slice(0, 1).map((tag, i) => (
-                            <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}>
+                            <span
+                              key={i}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}
+                            >
                               {tag}
                             </span>
                           ))}
@@ -580,20 +578,16 @@ const Profile: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-4 lg:px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}
+                    >
                       {statusLabel}
                     </span>
                   </td>
-                  <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">
-                    {project.budget}
-                  </td>
-                  <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">
-                    {project.duration}
-                  </td>
-                  {projectTab === 'budget' && (
-                    <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">
-                      {project.budget}
-                    </td>
+                  <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">{project.budget}</td>
+                  <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">{project.duration}</td>
+                  {projectTab === "budget" && (
+                    <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">{project.budget}</td>
                   )}
                   <td className="px-4 lg:px-6 py-4">
                     <div className="flex items-center gap-2 justify-between">
@@ -604,14 +598,15 @@ const Profile: React.FC = () => {
                             style={{ width: `${progress}%` }}
                           ></div>
                         </div>
-                        <span className="font-semibold">
-                          {progress}%
-                        </span>
+                        <span className="font-semibold">{progress}%</span>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); openShare(project); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openShare(project);
+                          }}
                           className="flex items-center gap-2 px-2 py-1 rounded-md bg-white border border-gray-200 text-gray-700 hover:bg-[#fff5f6] hover:border-[#C8102E] transition-colors text-xs"
                           title="Share project"
                         >
@@ -639,9 +634,7 @@ const Profile: React.FC = () => {
               <FaUsers className="text-white text-xl lg:text-2xl" />
             </div>
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">
-                Project Portfolio
-              </h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Project Portfolio</h1>
               <p className="text-gray-600 mt-1 text-sm lg:text-base">
                 Monitor your research proposals through the entire lifecycle
               </p>
@@ -678,20 +671,18 @@ const Profile: React.FC = () => {
             {/* View Mode Toggle */}
             <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
               <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'grid'
-                  ? 'bg-[#C8102E] text-white shadow-md'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                }`}
               >
                 <FaTablet className="text-sm" />
               </button>
               <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === 'list'
-                  ? 'bg-[#C8102E] text-white shadow-md'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                }`}
               >
                 <FaListAlt className="text-sm" />
               </button>
@@ -706,9 +697,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p>
-                <p className="text-xl font-bold text-slate-800 tabular-nums">
-                  {proposals.length}
-                </p>
+                <p className="text-xl font-bold text-slate-800 tabular-nums">{proposals.length}</p>
               </div>
               <FileText className="w-6 h-6 text-slate-600 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -719,9 +708,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">R&D Evaluation</p>
-                <p className="text-xl font-bold text-blue-600 tabular-nums">
-                  {rdEvaluation.length}
-                </p>
+                <p className="text-xl font-bold text-blue-600 tabular-nums">{rdEvaluation.length}</p>
               </div>
               <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -732,9 +719,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
-                <p className="text-xl font-bold text-purple-600 tabular-nums">
-                  {evaluatorsAssessment.length}
-                </p>
+                <p className="text-xl font-bold text-purple-600 tabular-nums">{evaluatorsAssessment.length}</p>
               </div>
               <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -745,9 +730,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Revision Required</p>
-                <p className="text-xl font-bold text-orange-600 tabular-nums">
-                  {revision.length}
-                </p>
+                <p className="text-xl font-bold text-orange-600 tabular-nums">{revision.length}</p>
               </div>
               <RefreshCw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -758,9 +741,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
-                <p className="text-xl font-bold text-green-600 tabular-nums">
-                  {funded.length}
-                </p>
+                <p className="text-xl font-bold text-green-600 tabular-nums">{funded.length}</p>
               </div>
               <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -778,9 +759,7 @@ const Profile: React.FC = () => {
                   <FaListAlt className="text-[#C8102E]" />
                   Project Portfolio
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Complete overview of all your research proposals
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Complete overview of all your research proposals</p>
               </div>
 
               <div className="flex items-center gap-2 text-xs">
@@ -800,20 +779,18 @@ const Profile: React.FC = () => {
           <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setProjectTab('all')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === 'all'
-                  ? 'bg-[#C8102E] text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                onClick={() => setProjectTab("all")}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 All Projects
               </button>
               <button
-                onClick={() => setProjectTab('budget')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === 'budget'
-                  ? 'bg-[#C8102E] text-white'
-                  : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                onClick={() => setProjectTab("budget")}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 Funded Project ({funded.length})
               </button>
@@ -855,7 +832,7 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Project Portfolio View */}
-          {viewMode === 'grid' ? renderGridView() : renderListView()}
+          {viewMode === "grid" ? renderGridView() : renderListView()}
         </div>
       </section>
 

@@ -51,39 +51,30 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!selectedFile) return false;
 
     // 2. Check Basic Info (Required Fields)
-    if (!formData.programTitle?.trim()) return false;
-    if (!formData.projectTitle?.trim()) return false;
+    if (!formData.project_title?.trim()) return false;
     if (!formData.duration?.trim()) return false;
-    if (!formData.agencyAddress.street?.trim()) return false;
-    if (!formData.agencyAddress.barangay?.trim()) return false;
-    if (!formData.agencyAddress.city?.trim()) return false;
+    if (!formData.agencyAddress?.street?.trim()) return false;
+    if (!formData.agencyAddress?.barangay?.trim()) return false;
+    if (!formData.agencyAddress?.city?.trim()) return false;
     if (!formData.telephone?.trim()) return false;
     if (!formData.email?.trim()) return false;
 
     // 3. Check Research Details
-    if (!formData.researchStation?.trim()) return false;
-    
-    // Check Classification Type
-    if (!formData.classificationType) return false;
-    if (formData.classificationType === 'research') {
-        const { basic, applied, other } = formData.researchType || {};
-        if (!basic && !applied && !other) return false;
-    } else if (formData.classificationType === 'development') {
-        if (!formData.developmentType) return false;
-    }
+    // Check Classification Type (uses classificiation_type with typo from FormData)
+    if (!formData.classificiation_type) return false;
 
-    // Check Implementation Mode
-    if (!formData.implementationMode?.singleAgency && !formData.implementationMode?.multiAgency) return false;
+    // Check class_input is set (the actual research/development type)
+    if (!formData.class_input?.trim()) return false;
 
     // Check Implementation Sites
-    if (!formData.implementationSite || formData.implementationSite.length === 0) return false;
-    if (formData.implementationSite.some(s => !s.site.trim() || !s.city.trim())) return false;
+    if (!formData.implementation_site || formData.implementation_site.length === 0) return false;
+    const hasValidSite = formData.implementation_site.some(s => s.site?.trim() || s.city?.trim());
+    if (!hasValidSite) return false;
 
-    // Check Priority Areas
-    const hasPriority = formData.priorityAreas && Object.values(formData.priorityAreas).some(v => v === true);
-    if (!hasPriority) return false; 
+    // Check Priority Areas (now stored as array of IDs)
+    if (!formData.priorities_id || formData.priorities_id.length === 0) return false;
 
-    // 4. Check Budget Validity 
+    // 4. Check Budget Validity
     if (!isBudgetValid) return false;
 
     return true;
@@ -222,17 +213,17 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
             {/* Basic Info Status */}
             <div className={`flex items-center ${
-                (formData.projectTitle && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
+                (formData.project_title && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
             }`}>
-              {(formData.projectTitle && formData.email) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.project_title && formData.email) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 
             {/* Research Details Status */}
             <div className={`flex items-center ${
-                 (formData.researchStation && formData.classificationType) ? 'text-green-700 font-medium' : 'text-gray-500'
+                 (formData.classificiation_type && formData.class_input && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
             }`}>
-              {(formData.researchStation && formData.classificationType) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.classificiation_type && formData.class_input && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Research Details</span>
             </div>
 

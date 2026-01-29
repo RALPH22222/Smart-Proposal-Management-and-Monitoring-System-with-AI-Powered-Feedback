@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   FileText,
   Building2,
@@ -11,42 +11,19 @@ import {
   Briefcase,
   Plus,
   Calendar,
-  MapPin
-} from 'lucide-react';
-import { fetchAgencies, fetchTags } from '../../../../services/proposal.api';
-import { differenceInMonths, parseISO, isValid, addMonths, format } from 'date-fns';
-
-// Define a Local Interface that matches the State in Submission.tsx (Dates as strings)
-interface LocalFormData {
-  programTitle: string;
-  projectTitle: string;
-  agencyName: string; // Changed back to agencyName to match your previous code
-  agencyAddress: {
-    street: string;
-    barangay: string;
-    city: string;
-  };
-  schoolYear: string;
-  tags: string;
-  email: string;
-  telephone: string;
-  cooperatingAgencies: { id: number; name: string }[];
-  plannedStartDate: string;
-  plannedEndDate: string;
-  duration: string;
-  discipline: string;
-}
+  MapPin,
+} from "lucide-react";
+import { fetchAgencies, fetchTags } from "../../../../services/proposal.api";
+import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
+import type { FormData } from "src/types/proponent-form";
 
 interface BasicInformationProps {
-  formData: any; // Using any here to allow flexibility between strict FormData and Local State
+  formData: FormData; // Using any here to allow flexibility between strict FormData and Local State
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: string, value: any) => void;
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate }) => {
-  // Cast formData to our local type for easier access code suggestions
-  const data = formData as LocalFormData;
-
   // --- STATE ---
   const [agenciesList, setAgenciesList] = useState<{ id: number; name: string }[]>([]);
   const [tagsList, setTagsList] = useState<{ id: number; name: string }[]>([]);
@@ -58,9 +35,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
 
   // Search Terms
-  const [agencySearchTerm, setAgencySearchTerm] = useState('');
-  const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState('');
-  const [tagsSearchTerm, setTagsSearchTerm] = useState('');
+  const [agencySearchTerm, setAgencySearchTerm] = useState("");
+  const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState("");
+  const [tagsSearchTerm, setTagsSearchTerm] = useState("");
 
   // Selected Items
   const [selectedAgencies, setSelectedAgencies] = useState<{ id: number; name: string }[]>([]);
@@ -77,7 +54,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       try {
         const [agenciesData, tagsData] = await Promise.all([
           fetchAgencies().catch(() => []),
-          fetchTags().catch(() => [])
+          fetchTags().catch(() => []),
         ]);
         setAgenciesList(agenciesData || []);
         setFilteredAgencies(agenciesData || []);
@@ -96,61 +73,68 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   // --- 2. RESTORE SELECTIONS ---
   useEffect(() => {
     if (!isLoading && agenciesList.length > 0) {
-      if (data.cooperatingAgencies && data.cooperatingAgencies.length > 0) {
-        setSelectedAgencies(data.cooperatingAgencies);
+      if (formData.cooperating_agencies && formData.cooperating_agencies.length > 0) {
+        setSelectedAgencies(formData.cooperating_agencies);
       }
     }
-    if (data.discipline) {
-      const savedTags = data.discipline.split(', ').filter(t => t.trim() !== '');
-      if (savedTags.join(',') !== selectedTags.join(',')) setSelectedTags(savedTags);
+    // Restore tags from formData.tags (array of IDs)
+    if (!isLoading && tagsList.length > 0 && formData.tags && formData.tags.length > 0) {
+      const tagNames = formData.tags
+        .map((id: number) => tagsList.find((t) => t.id === id)?.name)
+        .filter((name): name is string => !!name);
+      if (tagNames.join(",") !== selectedTags.join(",")) {
+        setSelectedTags(tagNames);
+      }
     }
     // Restore Agency Search Term if exists
-    if (data.agencyName && typeof data.agencyName === 'string' && !agencySearchTerm) {
-      setAgencySearchTerm(data.agencyName);
+    if (formData.agency && !agencySearchTerm) {
+      // If agency is a number, find the name from agenciesList
+      if (typeof formData.agency === "number") {
+        const found = agenciesList.find((a) => a.id === formData.agency);
+        if (found) setAgencySearchTerm(found.name);
+      } else {
+        setAgencySearchTerm(String(formData.agency));
+      }
     }
-  }, [isLoading, agenciesList, data.cooperatingAgencies, data.discipline, data.agencyName]);
+  }, [isLoading, agenciesList, tagsList, formData.cooperating_agencies, formData.tags, formData.agency]);
 
   // Set default duration to 6 months if empty
   useEffect(() => {
-    if (!data.duration) {
-      onUpdate('duration', '6 months');
+    if (!formData.duration) {
+      onUpdate("duration", "6");
     }
   }, []);
 
   // --- 3. DURATION LOGIC (UPDATED: Helper Function) ---
+  // Duration values are now numbers representing months (e.g., "6", "12", "18", "24", "36")
 
-  const calculateImplementationDates = (startStr: string, durationStr: string = '6 months') => {
+  const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
     if (!startStr) return;
 
     const start = parseISO(startStr);
     if (!isValid(start)) return;
 
-    let monthsToAdd = 0;
     // Default to 6 months if duration is empty or invalid
-    const effectiveDuration = durationStr || '6 months';
+    const effectiveDuration = durationStr || "6";
 
-    if (effectiveDuration.includes('month')) {
-      monthsToAdd = parseInt(effectiveDuration.split(' ')[0]);
-    } else if (effectiveDuration.includes('year')) {
-      const val = parseInt(effectiveDuration.split(' ')[0]);
-      monthsToAdd = val * 12;
-    }
+    // Parse numeric duration (in months)
+    const monthsToAdd = parseInt(effectiveDuration, 10);
 
-    if (monthsToAdd > 0) {
+    if (!isNaN(monthsToAdd) && monthsToAdd > 0) {
       const newEnd = addMonths(start, monthsToAdd);
-      onUpdate('plannedEndDate', format(newEnd, 'yyyy-MM-dd'));
+      onUpdate("plannedEndDate", format(newEnd, "yyyy-MM-dd"));
 
       // Also update the visible duration field if it was empty
-      if (!data.duration) {
-        onUpdate('duration', effectiveDuration);
+      if (!formData.duration) {
+        onUpdate("duration", effectiveDuration);
       }
     }
   };
 
   // Calculate Duration if Dates Change
   useEffect(() => {
-    const startDate = data.plannedStartDate;
-    const endDate = data.plannedEndDate;
+    const startDate = formData.plannedStartDate;
+    const endDate = formData.plannedEndDate;
 
     if (startDate && endDate) {
       try {
@@ -159,15 +143,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         if (isValid(start) && isValid(end) && end >= start) {
           const months = differenceInMonths(end, start);
-          let durationString = `${months} month${months !== 1 ? 's' : ''}`;
+          // Duration is stored as numeric string representing months
+          const durationValue = String(months);
 
-          if (months % 12 === 0 && months >= 12) {
-            const years = months / 12;
-            durationString = `${years} year${years !== 1 ? 's' : ''}`;
-          }
-
-          // Update duration state visibly
-          if (data.duration !== durationString) {
+          // Update duration state if it differs (and only for non-zero months)
+          if (months > 0 && formData.duration !== durationValue) {
             // We update the duration derived from dates
             // Note: This might conflict if user is selecting duration to drive end date.
             // But the prompt says "When user selects Start Date, automatically display End Date based on Duration".
@@ -177,14 +157,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         // ignore
       }
     }
-  }, [data.plannedStartDate, data.plannedEndDate]);
+  }, [formData.plannedStartDate, formData.plannedEndDate]);
 
   // Handle Duration Dropdown Change -> Calculate End Date
   const handleDurationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDuration = e.target.value;
-    onUpdate('duration', selectedDuration);
-    if (data.plannedStartDate) {
-      calculateImplementationDates(data.plannedStartDate, selectedDuration);
+    onUpdate("duration", selectedDuration);
+    if (formData.plannedStartDate) {
+      calculateImplementationDates(formData.plannedStartDate, selectedDuration);
     }
   };
 
@@ -193,26 +173,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onInputChange(e);
 
     const { name, value } = e.target;
-    if (name === 'plannedStartDate') {
+    if (name === "plannedStartDate") {
       // When Start Date changes, recalculate End Date based on current Duration (or default 1 year)
-      calculateImplementationDates(value, data.duration);
+      calculateImplementationDates(value, formData.duration);
     }
 
     // If End Date changes manually, we could reverse calc duration, but the prompt emphasizes Start+Duration -> End Logic.
     // So detailed reverse logic is kept as is in the useEffect or here if needed.
   };
 
-
   // --- FILTERING ---
   useEffect(() => {
     if (agenciesList.length > 0) {
-      setFilteredAgencies(agenciesList.filter(a => a.name.toLowerCase().includes(agencySearchTerm.toLowerCase())));
+      setFilteredAgencies(agenciesList.filter((a) => a.name.toLowerCase().includes(agencySearchTerm.toLowerCase())));
     }
   }, [agencySearchTerm, agenciesList]);
 
   useEffect(() => {
     if (agenciesList.length > 0) {
-      setFilteredCooperatingAgencies(agenciesList.filter(a => a.name.toLowerCase().includes(cooperatingSearchTerm.toLowerCase())));
+      setFilteredCooperatingAgencies(
+        agenciesList.filter((a) => a.name.toLowerCase().includes(cooperatingSearchTerm.toLowerCase())),
+      );
     }
   }, [cooperatingSearchTerm, agenciesList]);
 
@@ -222,17 +203,16 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       if (!tagsSearchTerm) {
         setFilteredTags(tagsList);
       } else {
-        setFilteredTags(tagsList.filter(t => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
+        setFilteredTags(tagsList.filter((t) => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
       }
     }
   }, [tagsSearchTerm, tagsList]);
-
 
   // --- HANDLERS ---
 
   // --- 1. Agency Handlers ---
   const handleAgencyNameSelect = (agency: { id: number; name: string }) => {
-    onUpdate('agencyName', agency.name);
+    onUpdate("agency", agency.id); // Store ID for backend
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
   };
@@ -240,48 +220,48 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setAgencySearchTerm(newName);
-    onUpdate('agencyName', newName);
+    onUpdate("agency", newName); // Store name if typing custom
   };
 
   // --- 2. Address Handlers ---
-  const handleAddressChange = (field: 'street' | 'barangay' | 'city', value: string) => {
+  const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
     const newAddress = {
-      ...data.agencyAddress,
-      [field]: value
+      ...formData.agencyAddress,
+      [field]: value,
     };
-    onUpdate('agencyAddress', newAddress);
+    onUpdate("agencyAddress", newAddress);
   };
 
   // --- 3. Cooperating Agencies Handlers ---
   const handleAgencySelect = (agency: { id: number; name: string }) => {
-    const isSelected = selectedAgencies.some(a => a.id === agency.id);
+    const isSelected = selectedAgencies.some((a) => a.id === agency.id);
     let newSelectedAgencies;
-    if (isSelected) newSelectedAgencies = selectedAgencies.filter(a => a.id !== agency.id);
+    if (isSelected) newSelectedAgencies = selectedAgencies.filter((a) => a.id !== agency.id);
     else newSelectedAgencies = [...selectedAgencies, agency];
 
     setSelectedAgencies(newSelectedAgencies);
-    onUpdate('cooperatingAgencies', newSelectedAgencies);
+    onUpdate("cooperating_agencies", newSelectedAgencies);
   };
 
   const handleCreateAgency = () => {
     if (!cooperatingSearchTerm.trim()) return;
-    if (selectedAgencies.some(a => a.name.toLowerCase() === cooperatingSearchTerm.trim().toLowerCase())) {
-      setCooperatingSearchTerm('');
+    if (selectedAgencies.some((a) => a.name.toLowerCase() === cooperatingSearchTerm.trim().toLowerCase())) {
+      setCooperatingSearchTerm("");
       return;
     }
     const newAgency = { id: Date.now(), name: cooperatingSearchTerm.trim() };
-    setAgenciesList(prev => [...prev, newAgency]);
+    setAgenciesList((prev) => [...prev, newAgency]);
     const newSelectedAgencies = [...selectedAgencies, newAgency];
     setSelectedAgencies(newSelectedAgencies);
-    onUpdate('cooperatingAgencies', newSelectedAgencies);
-    setCooperatingSearchTerm('');
+    onUpdate("cooperating_agencies", newSelectedAgencies);
+    setCooperatingSearchTerm("");
     setIsCooperatingDropdownOpen(false);
   };
 
   const handleAgencyRemove = (agencyId: number) => {
-    const newSelectedAgencies = selectedAgencies.filter(a => a.id !== agencyId);
+    const newSelectedAgencies = selectedAgencies.filter((a) => a.id !== agencyId);
     setSelectedAgencies(newSelectedAgencies);
-    onUpdate('cooperatingAgencies', newSelectedAgencies);
+    onUpdate("cooperating_agencies", newSelectedAgencies);
   };
 
   // --- 4. Tag Handlers ---
@@ -289,28 +269,40 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     if (!selectedTags.includes(tag.name)) {
       const newSelectedTags = [...selectedTags, tag.name];
       setSelectedTags(newSelectedTags);
-      onUpdate('discipline', newSelectedTags.join(', '));
+
+      // Store tag IDs in formData.tags (not discipline!)
+      const currentTagIds = formData.tags || [];
+      const newTagIds = [...currentTagIds, tag.id];
+      onUpdate("tags", newTagIds);
     }
-    setTagsSearchTerm('');
+    setTagsSearchTerm("");
     setIsTagsDropdownOpen(false);
   };
 
   const handleTagRemove = (tagName: string) => {
-    const newSelectedTags = selectedTags.filter(t => t !== tagName);
+    // Find the tag ID to remove
+    const tagToRemove = tagsList.find((t) => t.name === tagName);
+    const newSelectedTags = selectedTags.filter((t) => t !== tagName);
     setSelectedTags(newSelectedTags);
-    onUpdate('discipline', newSelectedTags.join(', '));
+
+    // Remove tag ID from formData.tags
+    if (tagToRemove) {
+      const currentTagIds = formData.tags || [];
+      const newTagIds = currentTagIds.filter((id: number) => id !== tagToRemove.id);
+      onUpdate("tags", newTagIds);
+    }
   };
 
   // Click Outside Listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (!target.closest('.agency-name-dropdown-container')) setIsAgencyDropdownOpen(false);
-      if (!target.closest('.cooperating-agency-dropdown-container')) setIsCooperatingDropdownOpen(false);
-      if (!target.closest('.tags-dropdown-container')) setIsTagsDropdownOpen(false);
+      if (!target.closest(".agency-name-dropdown-container")) setIsAgencyDropdownOpen(false);
+      if (!target.closest(".cooperating-agency-dropdown-container")) setIsCooperatingDropdownOpen(false);
+      if (!target.closest(".tags-dropdown-container")) setIsTagsDropdownOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -332,25 +324,48 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Fields - Project Details & Dates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Program Title *</label>
-          <input type="text" name="programTitle" value={data.programTitle} onChange={onInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" placeholder="Enter program title" />
+          <label className="block text-sm font-semibold text-gray-700">Program Title</label>
+          <input
+            type="text"
+            name="program_title"
+            value={formData.program_title || ""}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder="Enter program title"
+          />
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700">Project Title *</label>
-          <input type="text" name="projectTitle" value={data.projectTitle} onChange={onInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" placeholder="Enter project title" />
+          <input
+            type="text"
+            name="project_title"
+            value={formData.project_title || ""}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder="Enter project title"
+          />
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700">School Year *</label>
-          <input type="text" name="schoolYear" value={data.schoolYear || ''} onChange={onInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" placeholder="e.g. 2023-2024" />
+          <input
+            type="text"
+            name="schoolYear"
+            value={formData.schoolYear || ""}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder="e.g. 2023-2024"
+          />
         </div>
 
         {/* Planned Start Date */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Calendar className="text-gray-400 w-4 h-4" /> Planned Start Date *</label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Calendar className="text-gray-400 w-4 h-4" /> Planned Start Date *
+          </label>
           <input
             type="date"
             name="plannedStartDate"
-            value={data.plannedStartDate || ''}
+            value={formData.plannedStartDate || ""}
             onChange={handleDateChangeWithCalc}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
@@ -358,11 +373,13 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         {/* Planned End Date */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Calendar className="text-gray-400 w-4 h-4" /> Planned End Date *</label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Calendar className="text-gray-400 w-4 h-4" /> Planned End Date *
+          </label>
           <input
             type="date"
             name="plannedEndDate"
-            value={data.plannedEndDate || ''}
+            value={formData.plannedEndDate || ""}
             onChange={handleDateChangeWithCalc}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
@@ -370,29 +387,34 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         {/* Duration (Select Dropdown) */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Clock className="text-gray-400 w-4 h-4" /> Duration</label>
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Clock className="text-gray-400 w-4 h-4" /> Duration
+          </label>
           <div className="relative">
             <select
               name="duration"
-              value={data.duration || '6 months'}
+              value={formData.duration || "6"}
               onChange={handleDurationChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
             >
-              <option value="" disabled>Select Duration or Calculate</option>
-              <option value="6 months">6 Months</option>
-              <option value="12 months">12 Months</option>
-              <option value="1 year">1 Year</option>
-              <option value="18 months">18 Months</option>
-              <option value="2 years">2 Years</option>
-              <option value="3 years">3 Years</option>
+              <option value="" disabled>
+                Select Duration or Calculate
+              </option>
+              <option value="6">6 Months</option>
+              <option value="12">1 Year</option>
+              <option value="18">18 Months</option>
+              <option value="24">2 Years</option>
+              <option value="36">3 Years</option>
               {/* Fallback option if calculated value doesn't match predefined options */}
-              {data.duration && !['6 months', '12 months', '1 year', '18 months', '2 years', '3 years'].includes(data.duration) && (
-                <option value={data.duration}>{data.duration}</option>
+              {formData.duration && !["6", "12", "18", "24", "36"].includes(formData.duration) && (
+                <option value={formData.duration}>{formData.duration} Months</option>
               )}
             </select>
             {/* Custom Arrow because of appearance-none */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-              <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+              <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
             </div>
           </div>
         </div>
@@ -400,12 +422,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* AGENCY */}
       <div className="space-y-2 agency-name-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Building2 className="text-gray-400 w-4 h-4" /> Agency *</label>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Building2 className="text-gray-400 w-4 h-4" /> Agency *
+        </label>
         <div className="relative">
           <input
             type="text"
-            name="agencyName"
-            value={agencySearchTerm || data.agencyName || ''}
+            name="agency"
+            value={agencySearchTerm || ""}
             onChange={handleAgencyNameChange}
             onFocus={() => setIsAgencyDropdownOpen(true)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
@@ -417,7 +441,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               {filteredAgencies.map((agency) => (
                 <div
                   key={agency.id}
-                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${data.agencyName === agency.name ? 'bg-[#C8102E]/10' : ''}`}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${agencySearchTerm === agency.name ? "bg-[#C8102E]/10" : ""}`}
                   onClick={() => handleAgencyNameSelect(agency)}
                 >
                   <span className="text-sm text-gray-700">{agency.name}</span>
@@ -430,7 +454,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* ADDRESS */}
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><MapPin className="text-gray-400 w-4 h-4" /> Agency Address *</label>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <MapPin className="text-gray-400 w-4 h-4" /> Agency Address *
+        </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Street */}
           <div className="space-y-2">
@@ -438,8 +464,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <input
               type="text"
               name="street"
-              value={data.agencyAddress?.street || ''}
-              onChange={(e) => handleAddressChange('street', e.target.value)}
+              value={formData.agencyAddress?.street || ""}
+              onChange={(e) => handleAddressChange("street", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="Street/Purok/Subdivision"
             />
@@ -451,8 +477,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <input
               type="text"
               name="barangay"
-              value={data.agencyAddress?.barangay || ''}
-              onChange={(e) => handleAddressChange('barangay', e.target.value)}
+              value={formData.agencyAddress?.barangay || ""}
+              onChange={(e) => handleAddressChange("barangay", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="Barangay Name"
             />
@@ -464,8 +490,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <input
               type="text"
               name="city"
-              value={data.agencyAddress?.city || ''}
-              onChange={(e) => handleAddressChange('city', e.target.value)}
+              value={formData.agencyAddress?.city || ""}
+              onChange={(e) => handleAddressChange("city", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="City / Municipality"
             />
@@ -476,26 +502,55 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Telephone & Email */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Phone className="text-gray-400 w-4 h-4" /> Telephone *</label>
-          <input type="tel" name="telephone" value={data.telephone} onChange={onInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" placeholder="Enter telephone number" />
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Phone className="text-gray-400 w-4 h-4" /> Telephone *
+          </label>
+          <input
+            type="tel"
+            name="telephone"
+            value={formData.telephone || ""}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder="Enter telephone number"
+          />
         </div>
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Mail className="text-gray-400 w-4 h-4" /> Email *</label>
-          <input type="email" name="email" value={data.email} onChange={onInputChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]" placeholder="Enter email address" />
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Mail className="text-gray-400 w-4 h-4" /> Email *
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email || ""}
+            onChange={onInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            placeholder="Enter email address"
+          />
         </div>
       </div>
 
       {/* COOPERATING AGENCIES */}
       <div className="space-y-2 cooperating-agency-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Users className="text-gray-400 w-4 h-4" /> Cooperating Agencies</label>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Users className="text-gray-400 w-4 h-4" /> Cooperating Agencies
+        </label>
 
         {/* Selected Pills */}
         {selectedAgencies.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             {selectedAgencies.map((agency) => (
-              <div key={agency.id} className="flex items-center gap-2 bg-[#C8102E]/10 text-[#C8102E] px-3 py-2 rounded-lg text-sm">
+              <div
+                key={agency.id}
+                className="flex items-center gap-2 bg-[#C8102E]/10 text-[#C8102E] px-3 py-2 rounded-lg text-sm"
+              >
                 <span>{agency.name}</span>
-                <button type="button" onClick={() => handleAgencyRemove(agency.id)} className="hover:text-[#C8102E]/70 transition-colors duration-200"><X className="w-3 h-3" /></button>
+                <button
+                  type="button"
+                  onClick={() => handleAgencyRemove(agency.id)}
+                  className="hover:text-[#C8102E]/70 transition-colors duration-200"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             ))}
           </div>
@@ -508,29 +563,50 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             value={cooperatingSearchTerm}
             onChange={(e) => setCooperatingSearchTerm(e.target.value)}
             onFocus={() => setIsCooperatingDropdownOpen(true)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateAgency(); } }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleCreateAgency();
+              }
+            }}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
 
           {isCooperatingDropdownOpen && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {filteredCooperatingAgencies.map((agency) => (
-                <div key={agency.id} className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedAgencies.some(a => a.id === agency.id) ? 'bg-[#C8102E]/10' : ''}`} onClick={() => { handleAgencySelect(agency); setCooperatingSearchTerm(''); setIsCooperatingDropdownOpen(false); }}>
+                <div
+                  key={agency.id}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedAgencies.some((a) => a.id === agency.id) ? "bg-[#C8102E]/10" : ""}`}
+                  onClick={() => {
+                    handleAgencySelect(agency);
+                    setCooperatingSearchTerm("");
+                    setIsCooperatingDropdownOpen(false);
+                  }}
+                >
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={selectedAgencies.some(a => a.id === agency.id)} readOnly className="w-4 h-4 text-[#C8102E] rounded" />
+                    <input
+                      type="checkbox"
+                      checked={selectedAgencies.some((a) => a.id === agency.id)}
+                      readOnly
+                      className="w-4 h-4 text-[#C8102E] rounded"
+                    />
                     <span className="text-sm text-gray-700">{agency.name}</span>
                   </div>
                 </div>
               ))}
-              {cooperatingSearchTerm && !filteredCooperatingAgencies.some(a => a.name.toLowerCase() === cooperatingSearchTerm.toLowerCase()) && (
-                <div
-                  className="px-4 py-3 cursor-pointer hover:bg-blue-50 border-t border-gray-100 text-[#C8102E] font-medium flex items-center gap-2"
-                  onClick={handleCreateAgency}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create "{cooperatingSearchTerm}"</span>
-                </div>
-              )}
+              {cooperatingSearchTerm &&
+                !filteredCooperatingAgencies.some(
+                  (a) => a.name.toLowerCase() === cooperatingSearchTerm.toLowerCase(),
+                ) && (
+                  <div
+                    className="px-4 py-3 cursor-pointer hover:bg-blue-50 border-t border-gray-100 text-[#C8102E] font-medium flex items-center gap-2"
+                    onClick={handleCreateAgency}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create "{cooperatingSearchTerm}"</span>
+                  </div>
+                )}
             </div>
           )}
         </div>
@@ -538,11 +614,21 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* Tags Input */}
       <div className="space-y-2 tags-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700"><Tags className="text-gray-400 w-4 h-4" /> Tags</label>
+        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <Tags className="text-gray-400 w-4 h-4" /> Tags
+        </label>
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             {selectedTags.map((tag, index) => (
-              <div key={index} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm"><span>{tag}</span><button type="button" onClick={() => handleTagRemove(tag)} className="hover:text-blue-600"><X className="w-3 h-3" /></button></div>
+              <div
+                key={index}
+                className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm"
+              >
+                <span>{tag}</span>
+                <button type="button" onClick={() => handleTagRemove(tag)} className="hover:text-blue-600">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -559,8 +645,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {filteredTags.length > 0 ? (
                 filteredTags.map((tag) => (
-                  <div key={tag.id} className="px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={() => handleTagSelect(tag)}>
-                    <div className="flex items-center gap-3"><Tags className="w-4 h-4 text-gray-400" /><span className="text-sm text-gray-700">{tag.name}</span></div>
+                  <div
+                    key={tag.id}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-50"
+                    onClick={() => handleTagSelect(tag)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Tags className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-700">{tag.name}</span>
+                    </div>
                   </div>
                 ))
               ) : (

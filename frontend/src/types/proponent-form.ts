@@ -3,15 +3,19 @@ export interface ExpenseItem {
   value: number;
 }
 
-
 export interface BudgetItem {
   id: number;
   source: string;
-  budget: {          
+  budget: {
     ps: ExpenseItem[];
     mooe: ExpenseItem[];
     co: ExpenseItem[];
   };
+}
+
+enum ClassificationType {
+  RESEARCH_CLASS = "research_class",
+  DEVELOPMENT_CLASS = "development_class",
 }
 
 export interface AgencyAddress {
@@ -21,43 +25,25 @@ export interface AgencyAddress {
 }
 export type LookupItem = { id: number; name: string };
 export interface FormData {
-  programTitle: string;
-  projectTitle: string; 
-  department?: string;
-  agencyName: number | string;
+  program_title: string;
+  project_title: string;
+  department: number | string; // ID or name for lookup
+  sector: number | string; // ID or name for lookup
+  agency: number | string;
   agencyAddress: AgencyAddress;
   schoolYear: string;
-  tags: string[];
+  tags: number[]; // Array of tag IDs
   email: string;
   telephone: string;
-  cooperatingAgencies: { id: number; name: string }[];
-  implementationSite: { site: string; city: string }[];
-  researchStation: string;
-  classificationType: "research" | "development" | ""; 
-  researchType: {
-    basic: boolean;
-    applied: boolean;
-    other?: string;
-    development?: boolean;
-    pilotTesting?: boolean;
-    techPromotion?: boolean;
-    [key: string]: boolean | string | undefined; 
-  };
-  developmentType: "pilotTesting" | "techPromotion" | "";
-  implementationMode: {
-    singleAgency: boolean;
-    multiAgency: boolean;
-  };
-  priorityAreas: {
-    stand: boolean;
-    coconutIndustry: boolean;
-    exportWinners: boolean;
-    otherPriorityAreas: boolean;
-    supportIndustries: boolean;
-    [key: string]: boolean;
-  };
-  sectorCommodity: string;
-  discipline: string;
+  cooperating_agencies: { id: number; name: string }[];
+  implementation_site: { site: string; city: string }[];
+  researchStation: string; // Display name for UI
+  sectorCommodity: string; // Display name for UI
+  classificiation_type: ClassificationType;
+  class_input: string;
+  priorities_id: (number | string)[];
+  discipline: number | string; // ID or name for lookup
+  disciplineName: string; // Display name for UI
   duration: string;
   plannedStartDate: string | null;
   plannedEndDate: string | null;

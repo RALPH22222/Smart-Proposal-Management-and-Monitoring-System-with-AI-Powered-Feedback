@@ -17,7 +17,7 @@ export const fetchAgencies = async (): Promise<LookupItem[]> => {
 };
 
 export const fetchCooperatingAgencies = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-cooperating-agency");
+  const { data } = await api.get<LookupItem[]>("/proposal/view-agency");
   return data;
 };
 
@@ -47,7 +47,7 @@ export const fetchPriorities = async (): Promise<LookupItem[]> => {
 };
 
 export const fetchStations = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-station");
+  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
   return data;
 };
 
@@ -64,35 +64,30 @@ export const submitProposal = async (
   const fd = new FormData();
   const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
   const endDate = formData.plannedEndDate ? new Date(formData.plannedEndDate).toISOString().split("T")[0] : "";
-  let researchClass = "";
-  if (formData.classificationType === "research") {
-    researchClass = Object.keys(formData.researchType).find((key) => formData.researchType[key] === true) || "";
-  }
+
+  // Map classification_type: "research" -> "research_class", "development" -> "development_class"
+  const classificationTypeMap: Record<string, string> = {
+    research: "research_class",
+    development: "development_class",
+  };
+  const classType = formData.classificiation_type ?? "";
+  const mappedClassificationType = classificationTypeMap[classType] || classType;
+
+  // Duration is stored as numeric string (months), e.g., "6", "12", "18"
+  const durationNumber = parseInt(formData.duration || "0", 10) || 0;
+
   fd.append("proponent_id", proponentId);
-  if (formData.department) {
-    fd.append("department", formData.department);
-  }
-  fd.append("sector", formData.sectorCommodity);
-  fd.append("discipline", formData.discipline);
-  fd.append("agency", String(formData.agencyName));
-  fd.append("program_title", formData.programTitle ?? "");
-  fd.append("project_title", formData.projectTitle);
+  fd.append("department", String(formData.department ?? ""));
+  fd.append("sector", String(formData.sector ?? ""));
+  fd.append("discipline", String(formData.discipline ?? ""));
+  fd.append("agency", String(formData.agency ?? ""));
+  fd.append("program_title", formData.program_title ?? "");
+  fd.append("project_title", formData.project_title);
   fd.append("email", formData.email ?? "");
   fd.append("phone", formData.telephone ?? "");
-  if (formData.classificationType === "research") {
-    fd.append("research_class", researchClass);
-  } else {
-    fd.append("development_class", formData.developmentType);
-  }
-  fd.append("implementation_mode", formData.implementationMode.singleAgency ? "single_agency" : "multi_agency");
-  fd.append(
-    "priority_areas",
-    JSON.stringify(
-      Object.entries(formData.priorityAreas || {})
-        .filter(([_, v]) => v === true)
-        .map(([k]) => k),
-    ),
-  );
+  fd.append("class_input", formData.class_input ?? "");
+  fd.append("classification_type", mappedClassificationType);
+  fd.append("priorities_id", JSON.stringify(formData.priorities_id ?? []));
   fd.append("plan_start_date", startDate);
   fd.append("plan_end_date", endDate);
   fd.append("budget", JSON.stringify(formData.budgetItems));
@@ -106,10 +101,11 @@ export const submitProposal = async (
       city: formData.agencyAddress.city,
     }),
   );
-  fd.append("duration", formData.duration ?? "");
-
-  fd.append("cooperating_agencies", JSON.stringify(formData.cooperatingAgencies));
-  fd.append("implementation_site", JSON.stringify(formData.implementationSite));
+  fd.append("duration", String(durationNumber));
+  fd.append("cooperating_agencies", JSON.stringify(formData.cooperating_agencies));
+  fd.append("implementation_site", JSON.stringify(formData.implementation_site));
+  const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
+  fd.append("implementation_mode", implementationMode);
   fd.append("tags", JSON.stringify(formData.tags || []));
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", fd, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -216,11 +212,11 @@ export const fetchProposalVersions = async (proposalId: number): Promise<Proposa
 
 export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
   const params = new URLSearchParams();
-  if (search) params.append('search', search);
-  if (status) params.append('status', status);
+  if (search) params.append("search", search);
+  if (status) params.append("status", status);
   const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`);
   return data;
-}
+};
 
 export type DecisionEvaluatorInput = {
   proposal_id: number;
@@ -228,9 +224,7 @@ export type DecisionEvaluatorInput = {
   deadline_at?: string;
 };
 
-export const decisionEvaluatorToProposal = async (
-  input: DecisionEvaluatorInput
-): Promise<any> => {
+export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput): Promise<any> => {
   const { data } = await api.post("/proposal/decision-evaluator-to-proposal", input);
   return data;
 };
