@@ -9,14 +9,13 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import type { ExpenseItem, FormData, BudgetItem } from '../../../../types/proponent-form';
+import Tooltip from '../../../../components/Tooltip';
 
 interface BudgetSectionProps {
   formData: FormData;
-  years: string[];
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
   onBudgetItemUpdate: (id: number, field: string, value: any) => void;
-  onBudgetItemToggle: (id: number) => void;
 }
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
@@ -26,7 +25,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemUpdate,
 }) => {
   const [activeModal, setActiveModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
-  
+
   const formatCurrency = (amount: number) => {
     const num = Number(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
@@ -46,31 +45,31 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   // --- FIX 2: UPDATE LOGIC FOR NESTED OBJECT ---
   // When adding/editing a breakdown, we must update the entire 'budget' object
   // and send it back to the parent.
-  
+
   const updateBudgetStructure = (itemId: number, category: 'ps' | 'mooe' | 'co', newCategoryArray: ExpenseItem[]) => {
-     const item = formData.budgetItems.find(i => i.id === itemId);
-     if (!item) return;
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    if (!item) return;
 
-     // Create copy of current budget object
-     const updatedBudget = {
-        ...item.budget,
-        [category]: newCategoryArray
-     };
+    // Create copy of current budget object
+    const updatedBudget = {
+      ...item.budget,
+      [category]: newCategoryArray
+    };
 
-     // Send the WHOLE budget object up to index.tsx
-     onBudgetItemUpdate(itemId, 'budget', updatedBudget);
+    // Send the WHOLE budget object up to index.tsx
+    onBudgetItemUpdate(itemId, 'budget', updatedBudget);
   };
 
   const handleAddBreakdownItem = () => {
     if (!activeModal) return;
     const { itemId, category } = activeModal;
-    
+
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
-    
+
     // Note: 'item' field maps to description in your previous code
     const newBreakdown = [
-      ...currentBreakdown, 
+      ...currentBreakdown,
       { item: '', value: 0 } // Using ExpenseItem interface keys
     ];
 
@@ -86,8 +85,8 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
     const updatedBreakdown = [...currentBreakdown];
     updatedBreakdown[index] = {
-        ...updatedBreakdown[index],
-        [field]: field === 'value' ? Number(value) : value
+      ...updatedBreakdown[index],
+      [field]: field === 'value' ? Number(value) : value
     };
 
     updateBudgetStructure(itemId, category, updatedBreakdown);
@@ -178,7 +177,10 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                 {/* Source Field */}
                 <div className="lg:col-span-4 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Source of Funds</label>
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
+                    Source of Funds
+                    <Tooltip content="The origin of the funding (e.g., General Appropriations Act, Local Government Units, Private Industry, etc.)" />
+                  </label>
                   <input
                     type="text"
                     value={item.source}
@@ -190,8 +192,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 {/* PS Field */}
                 <div className="lg:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">PS</label>
-                  <div 
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
+                    PS
+                    <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
+                  </label>
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'ps' })}
                   >
@@ -202,8 +207,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 {/* MOOE Field */}
                 <div className="lg:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">MOOE</label>
-                  <div 
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
+                    MOOE
+                    <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
+                  </label>
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'mooe' })}
                   >
@@ -214,8 +222,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 {/* CO Field */}
                 <div className="lg:col-span-2 space-y-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">CO</label>
-                  <div 
+                  <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
+                    CO
+                    <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
+                  </label>
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'co' })}
                   >
@@ -245,51 +256,51 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       {/* Summary Totals Area (Same as yours, but using calculated totals) */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-8">
         <div className="bg-slate-100 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
-            <FaCalculator className="text-slate-500" />
-            <h3 className="font-bold text-slate-700">Detailed Budget Breakdown</h3>
+          <FaCalculator className="text-slate-500" />
+          <h3 className="font-bold text-slate-700">Detailed Budget Breakdown</h3>
         </div>
-        
-        <div className="p-6">
-            <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
-                        <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Personnel Services</p>
-                            <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
-                        </div>
-                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalPS)}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
-                        <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">MOOE</p>
-                            <p className="text-sm text-slate-600">Maintenance & Operations</p>
-                        </div>
-                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalMOOE)}</p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
-                        <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capital Outlay</p>
-                            <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
-                        </div>
-                        <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalCO)}</p>
-                    </div>
-                </div>
 
-                <div className="mt-2 bg-[#C8102E] text-white p-6 rounded-xl flex flex-col sm:flex-row justify-between items-center shadow-md">
-                    <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                        <div className="p-2 bg-white/20 rounded-full">
-                            <FaCoins className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="text-center sm:text-left">
-                            <p className="text-sm font-medium text-white/80 uppercase tracking-widest">Total Project Cost</p>
-                            <p className="text-xs text-white/60">Grand Total of all funding sources</p>
-                        </div>
-                    </div>
-                    <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight">
-                        {formatCurrency(grandTotal)}
-                    </p>
+        <div className="p-6">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Personnel Services</p>
+                  <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
                 </div>
+                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalPS)}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">MOOE</p>
+                  <p className="text-sm text-slate-600">Maintenance & Operations</p>
+                </div>
+                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalMOOE)}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capital Outlay</p>
+                  <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
+                </div>
+                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalCO)}</p>
+              </div>
             </div>
+
+            <div className="mt-2 bg-[#C8102E] text-white p-6 rounded-xl flex flex-col sm:flex-row justify-between items-center shadow-md">
+              <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                <div className="p-2 bg-white/20 rounded-full">
+                  <FaCoins className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <p className="text-sm font-medium text-white/80 uppercase tracking-widest">Total Project Cost</p>
+                  <p className="text-xs text-white/60">Grand Total of all funding sources</p>
+                </div>
+              </div>
+              <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight">
+                {formatCurrency(grandTotal)}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -297,7 +308,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       {activeModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            
+
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
               <h3 className="font-bold text-gray-800 flex items-center gap-2">
                 <FaListUl className="text-[#C8102E]" />
@@ -317,21 +328,21 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => (
                   <div key={idx} className="flex gap-2 items-start animate-in slide-in-from-bottom-2">
                     <span className="mt-3 text-xs text-gray-400 w-4">{idx + 1}.</span>
-                    <input 
-                      type="text" 
-                      placeholder="Description (e.g. Travel, Supplies)" 
+                    <input
+                      type="text"
+                      placeholder="Description (e.g. Travel, Supplies)"
                       value={item.item} // Changed from description to item based on type
                       onChange={(e) => handleUpdateBreakdownItem(idx, 'item', e.target.value)}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
                     />
-                    <input 
-                      type="number" 
-                      placeholder="Amount" 
+                    <input
+                      type="number"
+                      placeholder="Amount"
                       value={item.value || ''} // Changed from amount to value based on type
                       onChange={(e) => handleUpdateBreakdownItem(idx, 'value', e.target.value)}
                       className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
                     />
-                    <button 
+                    <button
                       onClick={() => handleRemoveBreakdownItem(idx)}
                       className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -346,12 +357,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
               <div className="text-sm font-semibold text-gray-700">
                 Total: <span className="text-[#C8102E] font-mono ml-2">
                   {formatCurrency(
-                     getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
-                     .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)
+                    getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
+                      .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)
                   )}
                 </span>
               </div>
-              <button 
+              <button
                 onClick={handleAddBreakdownItem}
                 className="px-4 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] transition-colors flex items-center gap-2"
               >

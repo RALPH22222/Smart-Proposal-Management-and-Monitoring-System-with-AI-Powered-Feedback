@@ -12,37 +12,17 @@ import {
   X,
   MapPin,
   Building2,
-  Trash2,
-} from "lucide-react";
-import type { FormData } from "../../../../types/proponent-form";
+  Trash2
+} from 'lucide-react';
+import type { FormData } from '../../../../types/proponent-form';
+import Tooltip from '../../../../components/Tooltip';
 
 // --- IMPORT API SERVICES ---
 import { fetchStations, fetchSectors, fetchDisciplines, fetchPriorities } from "../../../../services/proposal.api";
 
-// // --- SDG CONSTANT LIST ---
-// const SDG_GOALS = [
-//   "SDG 1: No Poverty",
-//   "SDG 2: Zero Hunger",
-//   "SDG 3: Good Health and Well-being",
-//   "SDG 4: Quality Education",
-//   "SDG 5: Gender Equality",
-//   "SDG 6: Clean Water and Sanitation",
-//   "SDG 7: Affordable and Clean Energy",
-//   "SDG 8: Decent Work and Economic Growth",
-//   "SDG 9: Industry, Innovation and Infrastructure",
-//   "SDG 10: Reduced Inequalities",
-//   "SDG 11: Sustainable Cities and Communities",
-//   "SDG 12: Responsible Consumption and Production",
-//   "SDG 13: Climate Action",
-//   "SDG 14: Life Below Water",
-//   "SDG 15: Life on Land",
-//   "SDG 16: Peace, Justice and Strong Institutions",
-//   "SDG 17: Partnerships for the Goals",
-// ];
 
 interface ResearchDetailsProps {
   formData: FormData;
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: keyof FormData, value: any) => void;
 }
 
@@ -160,7 +140,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
     // B. Restore "Other" Research Type (if class_input is not basic/applied and classificiation_type is research)
     if (
-      formData.classificiation_type === "research" &&
+      formData.classification_type === "research" &&
       formData.class_input &&
       formData.class_input !== "basic" &&
       formData.class_input !== "applied"
@@ -170,7 +150,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
     // C. Restore "Other" Development Type (if class_input is not pilot_testing/tech_promotion and classificiation_type is development)
     if (
-      formData.classificiation_type === "development" &&
+      formData.classification_type === "development" &&
       formData.class_input &&
       formData.class_input !== "pilot_testing" &&
       formData.class_input !== "tech_promotion"
@@ -192,12 +172,12 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
   }, [researchStationSearch, stationsList]);
 
   useEffect(() => {
-    setFilteredSectors(sectorsList.filter((s) => s.name.toLowerCase().includes(sectorSearch.toLowerCase())));
+    setFilteredSectors(sectorsList.filter((s) => s.name.toLowerCase().includes(String(sectorSearch).toLowerCase())));
   }, [sectorSearch, sectorsList]);
 
   useEffect(() => {
     setFilteredDisciplines(
-      disciplinesList.filter((d) => d.name.toLowerCase().includes(disciplineSearch.toLowerCase())),
+      disciplinesList.filter((d) => d.name.toLowerCase().includes(String(disciplineSearch).toLowerCase())),
     );
   }, [disciplineSearch, disciplinesList]);
 
@@ -282,11 +262,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
     onUpdate("discipline", value);
   };
 
-  // Generic handlers for blur
-  const handleTextBlur = (name: keyof FormData, value: string, setOpen: (b: boolean) => void) => {
-    onUpdate(name, value.trim());
-    setTimeout(() => setOpen(false), 200);
-  };
+
 
   const handleResearchTypeChange = (type: "basic" | "applied" | "other", customValue?: string) => {
     let classInput = type;
@@ -391,6 +367,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <University className="text-gray-400 w-4 h-4" />
           Research & Development Station
+          <Tooltip content="The research institution or facility that will conduct the research or development activities" />
         </label>
         <div className="relative">
           <input
@@ -426,6 +403,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <Tag className="text-gray-400 w-4 h-4" />
             Sector/Commodity
+            <Tooltip content="The agricultural or economic sector that the project will address (e.g., Crops, Livestock, Fisheries, Agribusiness)" />
           </label>
           <div className="relative">
             <input
@@ -460,6 +438,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <GraduationCap className="text-gray-400 w-4 h-4" />
             Discipline
+            <Tooltip content="The scientific or technical field or specialization relevant to the project (e.g., Agricultural Engineering, Biotechnology, Horticulture)" />
           </label>
           <div className="relative">
             <input
@@ -496,70 +475,77 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <MapPin className="text-gray-400 w-4 h-4" />
             Implementation Sites *
+            <Tooltip content="The specific locations or cities where the project will be implemented. Add multiple sites if the project spans different areas." />
           </label>
 
           {/* Display Current Mode Badge */}
-          <span
-            className={`text-xs px-2 py-1 rounded-full ${implementationSites.length > 1 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
-          >
-            <span className="font-bold">Mode of Implementation:</span>{" "}
-            {implementationSites.length > 1 ? "Multiple Agency" : "Single Agency"}
+          <span className={`text-xs px-2 py-1 rounded-full ${implementationSites.length > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+            <span className='font-bold'>Mode of Implementation:</span> {implementationSites.length > 1 ? 'Multiple Agency' : 'Single Agency'}
           </span>
         </div>
 
-        <div className="space-y-4">
-          {implementationSites.map((item, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Site Name Input */}
-              <div className="relative">
+        {/* Display Current Mode Badge */}
+        <span
+          className={`text-xs px-2 py-1 rounded-full ${implementationSites.length > 1 ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
+        >
+          <span className="font-bold">Mode of Implementation:</span>{" "}
+          {implementationSites.length > 1 ? "Multiple Agency" : "Single Agency"}
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        {implementationSites.map((item, index) => (
+          <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Site Name Input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={item.site}
+                onChange={(e) => handleSiteChange(index, "site", e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
+                placeholder={`Site Name ${index + 1}`}
+              />
+              <Building2 className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+            </div>
+
+            {/* City Input */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <input
                   type="text"
-                  value={item.site}
-                  onChange={(e) => handleSiteChange(index, "site", e.target.value)}
+                  value={item.city}
+                  onChange={(e) => handleSiteChange(index, "city", e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
-                  placeholder={`Site Name ${index + 1}`}
+                  placeholder={`City/Municipality ${index + 1}`}
                 />
-                <Building2 className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
               </div>
-
-              {/* City Input */}
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={item.city}
-                    onChange={(e) => handleSiteChange(index, "city", e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
-                    placeholder={`City/Municipality ${index + 1}`}
-                  />
-                  <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                </div>
-                {/* Remove Button (Only if > 1 site) */}
-                {implementationSites.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSiteRow(index)}
-                    className="p-3 text-red-500 hover:bg-red-50 rounded-xl border border-red-100 hover:border-red-200 transition-colors"
-                    title="Remove Site"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
+              {/* Remove Button (Only if > 1 site) */}
+              {implementationSites.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeSiteRow(index)}
+                  className="p-3 text-red-500 hover:bg-red-50 rounded-xl border border-red-100 hover:border-red-200 transition-colors"
+                  title="Remove Site"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
             </div>
-          ))}
+          </div>
+        ))}
 
-          {/* Always visible Add Button */}
-          <button
-            type="button"
-            onClick={addSiteRow}
-            className="flex items-center gap-2 text-sm text-[#C8102E] font-medium hover:underline px-1 mt-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add another site
-          </button>
-        </div>
+        {/* Always visible Add Button */}
+        <button
+          type="button"
+          onClick={addSiteRow}
+          className="flex items-center gap-2 text-sm text-[#C8102E] font-medium hover:underline px-1 mt-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add another site
+        </button>
       </div>
+
 
       {/* Classification Type Selection */}
       <div className="space-y-6">
@@ -567,23 +553,23 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <FolderOpen className="text-gray-400 w-4 h-4" />
             Classification Type *
+            <Tooltip content="Choose whether the project is primarily focused on Research (generating new knowledge) or Development (implementing/commercializing technologies)" />
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {["research", "development"].map((type) => (
               <div
                 key={type}
-                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${
-                  formData.classificiation_type === type ? "border-black" : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none ${formData.classification_type === type ? "border-black" : "border-gray-200 hover:border-gray-300"
+                  }`}
                 onClick={() => {
-                  onUpdate("classificiation_type", type);
+                  onUpdate("classification_type", type);
                   onUpdate("class_input", ""); // Reset class_input when switching classification type
                 }}
               >
                 <input
                   type="radio"
-                  name="classificiation_type"
-                  checked={formData.classificiation_type === type}
+                  name="classification_type"
+                  checked={formData.classification_type === type}
                   readOnly
                   className="h-5 w-5 text-[#C8102E] pointer-events-none"
                 />
@@ -594,7 +580,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         </div>
 
         {/* Research Classification */}
-        {formData.classificiation_type === "research" && (
+        {formData.classification_type === "research" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
               <Search className="text-gray-400 w-4 h-4" />
@@ -659,7 +645,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         )}
 
         {/* Development Classification */}
-        {formData.classificiation_type === "development" && (
+        {formData.classification_type === "development" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
               <Rocket className="text-gray-400 w-4 h-4" />
@@ -692,11 +678,10 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
               </div>
               {/* Custom Development Type */}
               <div
-                className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none sm:col-span-2 ${
-                  formData.class_input && formData.class_input !== "pilot_testing" && formData.class_input !== "tech_promotion"
-                    ? "border-black"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
+                className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none sm:col-span-2 ${formData.class_input && formData.class_input !== "pilot_testing" && formData.class_input !== "tech_promotion"
+                  ? "border-black"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
                 onClick={(e) => {
                   if ((e.target as HTMLElement).tagName !== "INPUT") {
                     handleDevelopmentTypeChange("other", customDevelopmentType || "Custom Type");
@@ -733,6 +718,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <Star className="text-gray-400 w-4 h-4" />
           Priority Areas *
+          <Tooltip content="The Sustainable Development Goals (SDGs) or strategic priority areas that the project contributes to or addresses" />
         </label>
 
         {/* Selected Priority Chips */}
@@ -800,7 +786,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         </div>
         <p className="text-xs text-gray-500">Select from the list or type your own custom priority area.</p>
       </div>
-    </div>
+    </div >
   );
 };
 

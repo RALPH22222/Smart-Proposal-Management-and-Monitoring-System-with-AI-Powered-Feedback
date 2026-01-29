@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 
 // Component Imports
 import BasicInformation from "./basicInfo";
@@ -27,12 +27,11 @@ const Submission: React.FC = () => {
 
   // ... (AI State remains the same)
   const [isCheckingTemplate, setIsCheckingTemplate] = useState(false);
-  const [isCheckingForm, setIsCheckingForm] = useState(false);
   const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
 
   // ... (Data State remains the same)
+  // ... (Data State remains the same)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [years, setYears] = useState<string[]>([]);
 
   // --- FIX 1: UPDATE INITIAL STATE STRUCTURE ---
   const [localFormData, setLocalFormData] = useState<FormData>({
@@ -49,7 +48,7 @@ const Submission: React.FC = () => {
     researchStation: "", // Display name for UI
     sectorCommodity: "", // Display name for UI
     schoolYear: "",
-    classificiation_type: "",
+    classification_type: "",
     class_input: "",
     implementation_site: [{ site: "", city: "" }],
     priorities_id: [],
@@ -69,15 +68,7 @@ const Submission: React.FC = () => {
   });
 
   // ... (Effects remain the same)
-  useEffect(() => {
-    if (localFormData.plannedStartDate && localFormData.plannedEndDate) {
-      const start = new Date(localFormData.plannedStartDate).getFullYear();
-      const end = new Date(localFormData.plannedEndDate).getFullYear();
-      const y = [];
-      for (let i = start; i <= end; i++) y.push(i.toString());
-      setYears(y);
-    }
-  }, [localFormData.plannedStartDate, localFormData.plannedEndDate]);
+
 
   // ... (Validation remains the same)
   const isBudgetValid = useMemo(() => {
@@ -155,11 +146,7 @@ const Submission: React.FC = () => {
     }));
   };
 
-  const toggleExpand = (_id: number) => {
-    // Fixed: Renamed 'id' to '_id' to ignore unused variable
-    // Optional: Only needed if you have UI expansion state not in the type
-    // If not in type, ignore or manage strictly in UI component
-  };
+
 
   // --- SUBMISSION LOGIC ---
 
@@ -212,41 +199,10 @@ const Submission: React.FC = () => {
     }, 1500);
   }, [selectedFile]);
 
-  const handleAIFormCheck = useCallback(async () => {
-    setIsCheckingForm(true);
-    setShowAIModal(true);
-    setTimeout(() => {
-      setIsCheckingForm(false);
-      setAiCheckResult({ isValid: true, issues: [], suggestions: [], score: 90, type: "form", title: "Check" });
-    }, 1500);
-  }, []);
+
 
   // ... (Render Helpers remain the same)
-  const renderActiveSection = () => {
-    switch (activeSection) {
-      case "basic-info":
-        return (
-          <BasicInformation formData={localFormData} onInputChange={handleInputChange} onUpdate={handleDirectUpdate} />
-        );
-      case "research-details":
-        return (
-          <ResearchDetails formData={localFormData} onInputChange={handleInputChange} onUpdate={handleDirectUpdate} />
-        );
-      case "budget":
-        return (
-          <BudgetSection
-            formData={localFormData}
-            years={years}
-            onBudgetItemAdd={addBudgetItem}
-            onBudgetItemRemove={removeBudgetItem}
-            onBudgetItemUpdate={updateBudgetItem}
-            onBudgetItemToggle={toggleExpand}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+
 
   const getTabClass = (sectionName: string) => `
     p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] font-medium
@@ -262,7 +218,7 @@ const Submission: React.FC = () => {
           setAiCheckResult(null);
         }}
         aiCheckResult={aiCheckResult}
-        isChecking={isCheckingTemplate || isCheckingForm}
+        isChecking={isCheckingTemplate}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -280,7 +236,20 @@ const Submission: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
-            {renderActiveSection()}
+            {activeSection === "basic-info" && (
+              <BasicInformation formData={localFormData} onInputChange={handleInputChange} onUpdate={handleDirectUpdate} />
+            )}
+            {activeSection === "research-details" && (
+              <ResearchDetails formData={localFormData} onUpdate={handleDirectUpdate} />
+            )}
+            {activeSection === "budget" && (
+              <BudgetSection
+                formData={localFormData}
+                onBudgetItemAdd={addBudgetItem}
+                onBudgetItemRemove={removeBudgetItem}
+                onBudgetItemUpdate={updateBudgetItem}
+              />
+            )}
           </div>
         </div>
 
@@ -289,10 +258,8 @@ const Submission: React.FC = () => {
             formData={localFormData}
             selectedFile={selectedFile}
             isCheckingTemplate={isCheckingTemplate}
-            isCheckingForm={isCheckingForm}
             isUploadDisabled={isSubmitting}
             isBudgetValid={isBudgetValid}
-            onAIFormCheck={handleAIFormCheck}
             onFileSelect={setSelectedFile}
             onAITemplateCheck={handleAITemplateCheck}
             onSubmit={handleSubmit}

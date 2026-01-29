@@ -35,7 +35,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   private async resolveLookupId(args: {
     table: Table;
@@ -485,7 +485,7 @@ export class ProposalService {
       proposal_tags(tags(name)),
       proposal_priorities(priorities(id,name)),
       implementation_site(site_name,city),
-      proponent_id(id,first_name,last_name,department_id(name)),
+      proponent:users(id,first_name,last_name,department:departments(name)),
       rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),

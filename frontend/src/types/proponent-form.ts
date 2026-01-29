@@ -13,10 +13,7 @@ export interface BudgetItem {
   };
 }
 
-enum ClassificationType {
-  RESEARCH_CLASS = "research_class",
-  DEVELOPMENT_CLASS = "development_class",
-}
+
 
 export interface AgencyAddress {
   street: string;
@@ -39,7 +36,7 @@ export interface FormData {
   implementation_site: { site: string; city: string }[];
   researchStation: string; // Display name for UI
   sectorCommodity: string; // Display name for UI
-  classificiation_type: ClassificationType;
+  classification_type: string;
   class_input: string;
   priorities_id: (number | string)[];
   discipline: number | string; // ID or name for lookup

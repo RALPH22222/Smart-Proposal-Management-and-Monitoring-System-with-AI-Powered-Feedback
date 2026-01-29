@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import { fetchAgencies, fetchTags } from "../../../../services/proposal.api";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
+import Tooltip from "../../../../components/Tooltip";
 import type { FormData } from "src/types/proponent-form";
 
 interface BasicInformationProps {
-  formData: FormData; // Using any here to allow flexibility between strict FormData and Local State
+  formData: FormData;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: string, value: any) => void;
 }
@@ -77,7 +78,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         setSelectedAgencies(formData.cooperating_agencies);
       }
     }
-    // Restore tags from formData.tags (array of IDs)
+    // Restore tags
     if (!isLoading && tagsList.length > 0 && formData.tags && formData.tags.length > 0) {
       const tagNames = formData.tags
         .map((id: number) => tagsList.find((t) => t.id === id)?.name)
@@ -86,9 +87,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         setSelectedTags(tagNames);
       }
     }
-    // Restore Agency Search Term if exists
+    // Restore Agency Search Term
     if (formData.agency && !agencySearchTerm) {
-      // If agency is a number, find the name from agenciesList
       if (typeof formData.agency === "number") {
         const found = agenciesList.find((a) => a.id === formData.agency);
         if (found) setAgencySearchTerm(found.name);
@@ -105,33 +105,26 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, []);
 
-  // --- 3. DURATION LOGIC (UPDATED: Helper Function) ---
-  // Duration values are now numbers representing months (e.g., "6", "12", "18", "24", "36")
-
+  // --- 3. DURATION LOGIC ---
   const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
     if (!startStr) return;
 
     const start = parseISO(startStr);
     if (!isValid(start)) return;
 
-    // Default to 6 months if duration is empty or invalid
     const effectiveDuration = durationStr || "6";
-
-    // Parse numeric duration (in months)
     const monthsToAdd = parseInt(effectiveDuration, 10);
 
     if (!isNaN(monthsToAdd) && monthsToAdd > 0) {
       const newEnd = addMonths(start, monthsToAdd);
       onUpdate("plannedEndDate", format(newEnd, "yyyy-MM-dd"));
 
-      // Also update the visible duration field if it was empty
       if (!formData.duration) {
         onUpdate("duration", effectiveDuration);
       }
     }
   };
 
-  // Calculate Duration if Dates Change
   useEffect(() => {
     const startDate = formData.plannedStartDate;
     const endDate = formData.plannedEndDate;
@@ -143,14 +136,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         if (isValid(start) && isValid(end) && end >= start) {
           const months = differenceInMonths(end, start);
-          // Duration is stored as numeric string representing months
           const durationValue = String(months);
-
-          // Update duration state if it differs (and only for non-zero months)
           if (months > 0 && formData.duration !== durationValue) {
-            // We update the duration derived from dates
-            // Note: This might conflict if user is selecting duration to drive end date.
-            // But the prompt says "When user selects Start Date, automatically display End Date based on Duration".
+            // Logic to update duration if needed based on dates
           }
         }
       } catch (e) {
@@ -159,7 +147,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, [formData.plannedStartDate, formData.plannedEndDate]);
 
-  // Handle Duration Dropdown Change -> Calculate End Date
   const handleDurationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDuration = e.target.value;
     onUpdate("duration", selectedDuration);
@@ -168,18 +155,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   };
 
-  // Handle Date Change
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInputChange(e);
-
     const { name, value } = e.target;
     if (name === "plannedStartDate") {
-      // When Start Date changes, recalculate End Date based on current Duration (or default 1 year)
       calculateImplementationDates(value, formData.duration);
     }
-
-    // If End Date changes manually, we could reverse calc duration, but the prompt emphasizes Start+Duration -> End Logic.
-    // So detailed reverse logic is kept as is in the useEffect or here if needed.
   };
 
   // --- FILTERING ---
@@ -198,7 +179,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   }, [cooperatingSearchTerm, agenciesList]);
 
   useEffect(() => {
-    // FIX: Show all tags if search is empty, otherwise filter
     if (tagsList.length > 0) {
       if (!tagsSearchTerm) {
         setFilteredTags(tagsList);
@@ -209,21 +189,18 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   }, [tagsSearchTerm, tagsList]);
 
   // --- HANDLERS ---
+  const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setAgencySearchTerm(value);
+    onUpdate("agency", value);
+  };
 
-  // --- 1. Agency Handlers ---
   const handleAgencyNameSelect = (agency: { id: number; name: string }) => {
-    onUpdate("agency", agency.id); // Store ID for backend
+    onUpdate("agency", agency.id);
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
   };
 
-  const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setAgencySearchTerm(newName);
-    onUpdate("agency", newName); // Store name if typing custom
-  };
-
-  // --- 2. Address Handlers ---
   const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
     const newAddress = {
       ...formData.agencyAddress,
@@ -232,7 +209,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("agencyAddress", newAddress);
   };
 
-  // --- 3. Cooperating Agencies Handlers ---
   const handleAgencySelect = (agency: { id: number; name: string }) => {
     const isSelected = selectedAgencies.some((a) => a.id === agency.id);
     let newSelectedAgencies;
@@ -264,13 +240,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("cooperating_agencies", newSelectedAgencies);
   };
 
-  // --- 4. Tag Handlers ---
   const handleTagSelect = (tag: { id: number; name: string }) => {
     if (!selectedTags.includes(tag.name)) {
       const newSelectedTags = [...selectedTags, tag.name];
       setSelectedTags(newSelectedTags);
 
-      // Store tag IDs in formData.tags (not discipline!)
       const currentTagIds = formData.tags || [];
       const newTagIds = [...currentTagIds, tag.id];
       onUpdate("tags", newTagIds);
@@ -280,12 +254,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   };
 
   const handleTagRemove = (tagName: string) => {
-    // Find the tag ID to remove
     const tagToRemove = tagsList.find((t) => t.name === tagName);
     const newSelectedTags = selectedTags.filter((t) => t !== tagName);
     setSelectedTags(newSelectedTags);
 
-    // Remove tag ID from formData.tags
     if (tagToRemove) {
       const currentTagIds = formData.tags || [];
       const newTagIds = currentTagIds.filter((id: number) => id !== tagToRemove.id);
@@ -324,7 +296,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Fields - Project Details & Dates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Program Title</label>
+          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            Program Title *
+            <Tooltip content="The name of the program or strategic initiative that this project falls under" />
+          </label>
           <input
             type="text"
             name="program_title"
@@ -335,7 +310,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">Project Title *</label>
+          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            Project Title *
+            <Tooltip content="A specific and concise title for your research or development project" />
+          </label>
           <input
             type="text"
             name="project_title"
@@ -346,7 +324,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700">School Year *</label>
+          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            School Year *
+            <Tooltip content="The academic year in which the project will be executed (e.g., 2024-2025)" />
+          </label>
           <input
             type="text"
             name="schoolYear"
@@ -360,7 +341,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         {/* Planned Start Date */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="text-gray-400 w-4 h-4" /> Planned Start Date *
+            <Calendar className="text-gray-400 w-4 h-4" />
+            Planned Start Date *
+            <Tooltip content="The expected date when the project implementation will begin" />
           </label>
           <input
             type="date"
@@ -374,7 +357,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         {/* Planned End Date */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="text-gray-400 w-4 h-4" /> Planned End Date *
+            <Calendar className="text-gray-400 w-4 h-4" />
+            Planned End Date *
+            <Tooltip content="The expected date when the project implementation will be completed" />
           </label>
           <input
             type="date"
@@ -388,12 +373,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         {/* Duration (Select Dropdown) */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Clock className="text-gray-400 w-4 h-4" /> Duration
+            <Clock className="text-gray-400 w-4 h-4" />
+            Duration
+            <Tooltip content="The total length of the project implementation period in months or years" />
           </label>
           <div className="relative">
             <select
               name="duration"
-              value={formData.duration || "6"}
+              value={formData.duration || ""}
               onChange={handleDurationChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
             >
@@ -423,13 +410,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* AGENCY */}
       <div className="space-y-2 agency-name-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Building2 className="text-gray-400 w-4 h-4" /> Agency *
+          <Building2 className="text-gray-400 w-4 h-4" />
+          Agency *
+          <Tooltip content="The government agency, institution, or organization implementing the project" />
         </label>
         <div className="relative">
           <input
             type="text"
-            name="agency"
-            value={agencySearchTerm || ""}
+            value={agencySearchTerm}
             onChange={handleAgencyNameChange}
             onFocus={() => setIsAgencyDropdownOpen(true)}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
@@ -455,7 +443,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* ADDRESS */}
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <MapPin className="text-gray-400 w-4 h-4" /> Agency Address *
+          <MapPin className="text-gray-400 w-4 h-4" />
+          Agency Address *
+          <Tooltip content="The complete office address where the project will be managed, including street, barangay, and city" />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Street */}
@@ -467,7 +457,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               value={formData.agencyAddress?.street || ""}
               onChange={(e) => handleAddressChange("street", e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="Street/Purok/Subdivision"
+              placeholder="Street Name / # "
             />
           </div>
 
@@ -503,7 +493,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Phone className="text-gray-400 w-4 h-4" /> Telephone *
+            <Phone className="text-gray-400 w-4 h-4" />
+            Telephone *
+            <Tooltip content="The contact phone number of the project implementing agency or principal proposer" />
           </label>
           <input
             type="tel"
@@ -516,7 +508,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Mail className="text-gray-400 w-4 h-4" /> Email *
+            <Mail className="text-gray-400 w-4 h-4" />
+            Email *
+            <Tooltip content="The email address for official project correspondence and communication" />
           </label>
           <input
             type="email"
@@ -532,46 +526,35 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* COOPERATING AGENCIES */}
       <div className="space-y-2 cooperating-agency-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Users className="text-gray-400 w-4 h-4" /> Cooperating Agencies
+          <Users className="text-gray-400 w-4 h-4" />
+          Cooperating Agencies
+          <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
         </label>
-
-        {/* Selected Pills */}
         {selectedAgencies.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="flex flex-wrap gap-2 mb-2">
             {selectedAgencies.map((agency) => (
-              <div
-                key={agency.id}
-                className="flex items-center gap-2 bg-[#C8102E]/10 text-[#C8102E] px-3 py-2 rounded-lg text-sm"
-              >
-                <span>{agency.name}</span>
+              <span key={agency.id} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                {agency.name}
                 <button
                   type="button"
                   onClick={() => handleAgencyRemove(agency.id)}
-                  className="hover:text-[#C8102E]/70 transition-colors duration-200"
+                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-200 focus:outline-none"
                 >
                   <X className="w-3 h-3" />
                 </button>
-              </div>
+              </span>
             ))}
           </div>
         )}
-
         <div className="relative">
           <input
             type="text"
-            placeholder={isLoading ? "Loading..." : "Search or type new cooperating agency..."}
+            placeholder={isLoading ? "Loading agencies..." : "Search cooperating agencies"}
             value={cooperatingSearchTerm}
             onChange={(e) => setCooperatingSearchTerm(e.target.value)}
             onFocus={() => setIsCooperatingDropdownOpen(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleCreateAgency();
-              }
-            }}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
-
           {isCooperatingDropdownOpen && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
               {filteredCooperatingAgencies.map((agency) => (
@@ -615,7 +598,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Tags Input */}
       <div className="space-y-2 tags-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Tags className="text-gray-400 w-4 h-4" /> Tags
+          <Tags className="text-gray-400 w-4 h-4" />
+          Tags
+          <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
         </label>
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
@@ -650,16 +635,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                     className="px-4 py-3 cursor-pointer hover:bg-gray-50"
                     onClick={() => handleTagSelect(tag)}
                   >
-                    <div className="flex items-center gap-3">
-                      <Tags className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-700">{tag.name}</span>
-                    </div>
+                    <span className="text-sm text-gray-700">{tag.name}</span>
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-3 text-gray-500 text-sm">
-                  No matching tags found. Tags cannot be created manually.
-                </div>
+                <div className="px-4 py-3 text-sm text-gray-500">No tags found</div>
               )}
             </div>
           )}

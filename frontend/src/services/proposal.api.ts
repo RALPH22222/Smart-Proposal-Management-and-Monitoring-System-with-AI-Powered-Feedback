@@ -70,7 +70,7 @@ export const submitProposal = async (
     research: "research_class",
     development: "development_class",
   };
-  const classType = formData.classificiation_type ?? "";
+  const classType = formData.classification_type ?? "";
   const mappedClassificationType = classificationTypeMap[classType] || classType;
 
   // Duration is stored as numeric string (months), e.g., "6", "12", "18"

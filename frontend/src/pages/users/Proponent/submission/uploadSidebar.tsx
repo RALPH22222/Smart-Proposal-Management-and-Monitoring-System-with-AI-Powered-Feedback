@@ -17,8 +17,6 @@ interface UploadSidebarProps {
   formData: FormData;
   selectedFile: File | null;
   isCheckingTemplate: boolean;
-  isCheckingForm: boolean; 
-  onAIFormCheck: () => void;
   onFileSelect: (file: File | null) => void;
   onAITemplateCheck: () => void;
   onSubmit: () => void;
@@ -60,8 +58,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!formData.email?.trim()) return false;
 
     // 3. Check Research Details
-    // Check Classification Type (uses classificiation_type with typo from FormData)
-    if (!formData.classificiation_type) return false;
+    // Check Classification Type (uses classification_type from FormData)
+    if (!formData.classification_type) return false;
 
     // Check class_input is set (the actual research/development type)
     if (!formData.class_input?.trim()) return false;
@@ -100,7 +98,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           <h2 className="text-2xl font-bold text-gray-800">Upload Section</h2>
           <p className="text-gray-600 mt-2">Upload your proposal document</p>
         </div>
-        
+
         {/* --- File Upload Area --- */}
         <input
           ref={fileInputRef}
@@ -115,13 +113,12 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         />
 
         <div
-          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 mb-6 cursor-pointer ${
-            isUploadDisabled
-              ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
-              : selectedFile
+          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 mb-6 cursor-pointer ${isUploadDisabled
+            ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
+            : selectedFile
               ? 'border-green-400 bg-green-50'
               : 'border-gray-300 bg-gray-50 hover:border-[#C8102E] hover:bg-red-50'
-          }`}
+            }`}
           onClick={isUploadDisabled ? undefined : handleUploadClick}
           onDrop={(e) => {
             e.preventDefault();
@@ -154,11 +151,10 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               <button
                 onClick={onAITemplateCheck}
                 disabled={isCheckingTemplate}
-                className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
-                  isCheckingTemplate
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
-                }`}
+                className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+                  }`}
               >
                 {isCheckingTemplate ? (
                   <>
@@ -172,7 +168,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={handleUploadClick}
                 disabled={isUploadDisabled}
@@ -186,11 +182,10 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             <button
               onClick={handleUploadClick}
               disabled={isUploadDisabled}
-              className={`w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${
-                isUploadDisabled
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-              }`}
+              className={`w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isUploadDisabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] shadow-md hover:shadow-lg transform hover:scale-[1.02]'
+                }`}
             >
               <FaUpload className="w-4 h-4" />
               Upload Research
@@ -212,18 +207,16 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </div>
 
             {/* Basic Info Status */}
-            <div className={`flex items-center ${
-                (formData.project_title && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
-            }`}>
+            <div className={`flex items-center ${(formData.project_title && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
+              }`}>
               {(formData.project_title && formData.email) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 
             {/* Research Details Status */}
-            <div className={`flex items-center ${
-                 (formData.classificiation_type && formData.class_input && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
-            }`}>
-              {(formData.classificiation_type && formData.class_input && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+            <div className={`flex items-center ${(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
+              }`}>
+              {(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Research Details</span>
             </div>
 
@@ -239,24 +232,23 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         <div className="mt-auto space-y-3">
           <div className="relative group">
             <button
-                onClick={handleInitialSubmit}
-                disabled={!isFormValid}
-                className={`w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg transform ${
-                !isFormValid
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
-                    : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] hover:shadow-xl hover:scale-[1.02] cursor-pointer'
+              onClick={handleInitialSubmit}
+              disabled={!isFormValid}
+              className={`w-full py-3.5 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg transform ${!isFormValid
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] hover:shadow-xl hover:scale-[1.02] cursor-pointer'
                 }`}
             >
-                {!isFormValid ? <FaLock className="w-4 h-4" /> : <FaPaperPlane className="w-4 h-4" />}
-                Submit Proposal
+              {!isFormValid ? <FaLock className="w-4 h-4" /> : <FaPaperPlane className="w-4 h-4" />}
+              Submit Proposal
             </button>
-            
+
             {/* Tooltip for Disabled State */}
             {!isFormValid && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    Please fill all required fields and upload a file.
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-800"></div>
-                </div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                Please fill all required fields and upload a file.
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-800"></div>
+              </div>
             )}
           </div>
         </div>
@@ -270,11 +262,11 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaExclamationCircle className="w-8 h-8 text-[#C8102E]" />
               </div>
-              
+
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Confirm Submission
               </h3>
-              
+
               <p className="text-gray-600 mb-6 leading-relaxed">
                 Are you sure you are ready to submit this proposal? Please verify that all provided information is accurate and the required documents are attached.
               </p>
