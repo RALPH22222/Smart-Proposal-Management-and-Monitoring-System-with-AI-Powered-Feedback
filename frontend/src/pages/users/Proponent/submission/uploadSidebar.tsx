@@ -104,6 +104,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           ref={fileInputRef}
           id="file-upload"
           type="file"
+          accept=".pdf,.doc,.docx"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;

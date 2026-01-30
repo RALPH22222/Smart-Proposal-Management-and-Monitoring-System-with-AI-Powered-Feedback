@@ -109,6 +109,25 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return `${finalMonths} months`;
   };
 
+  const formatMode = (mode: string) => {
+    if (mode === "multi_agency") return "Multiple Agency";
+    if (mode === "single_agency") return "Single Agency";
+    return mode;
+  };
+
+  const getFilename = (url?: string) => {
+    if (!url) return "Current Proposal PDF";
+    try {
+      const parts = url.split('/');
+      // Remove query parameters if any (e.g. signed URLs ?)
+      const lastPart = parts[parts.length - 1];
+      if (lastPart.includes('?')) return lastPart.split('?')[0];
+      return decodeURIComponent(lastPart);
+    } catch {
+      return "Current Proposal PDF";
+    }
+  };
+
   // --- Logic Handlers ---
   const handleInputChange = (field: keyof Proposal, value: string) => {
     setEditedProposal({ ...editedProposal, [field]: value });
@@ -311,13 +330,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
         label: "Revision Required",
       };
-    if (["r&d evaluation"].includes(s))
+    if (["r&d evaluation", "under_evaluation"].includes(s))
+      if (["r&d evaluation", "under_evaluation", "under r&d evaluation"].includes(s))
+        return {
+          bg: "bg-blue-50",
+          border: "border-blue-200",
+          text: "text-blue-800",
+          icon: <Microscope className="w-5 h-5 text-blue-600" />,
+          label: "Under R&D Evaluation",
+        };
+    if (["pending"].includes(s))
       return {
-        bg: "bg-blue-50",
-        border: "border-blue-200",
-        text: "text-blue-800",
-        icon: <Microscope className="w-5 h-5 text-blue-600" />,
-        label: "Under R&D Evaluation",
+        bg: "bg-orange-100",
+        border: "border-orange-200",
+        text: "text-orange-800",
+        icon: <Clock className="w-5 h-5 text-orange-600" />,
+        label: "Pending",
       };
     if (["evaluators assessment"].includes(s))
       return {
@@ -576,7 +604,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <div>
                     <p className="text-sm font-medium text-slate-900">
                       {submittedFiles.length > 0
-                        ? "Current Proposal PDF"
+                        ? getFilename(submittedFiles[submittedFiles.length - 1])
                         : "No file uploaded"}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -606,18 +634,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     }`}
                 >
                   {!newFile ? (
-                    <label className="flex flex-col items-center justify-center gap-2 cursor-pointer">
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer">
                       <Upload className="w-5 h-5 text-slate-400" />
                       <span className="text-sm font-medium text-slate-600">
-                        Click to upload revised PDF
+                        Click to upload revised Document (PDF/Word)
                       </span>
                       <input
                         type="file"
-                        accept=".pdf"
+                        accept=".pdf,.doc,.docx"
                         onChange={handleFileChange}
                         className="hidden"
                       />
-                    </label>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -936,7 +964,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 />
               ) : (
                 <p className="text-sm font-medium text-slate-900">
-                  {currentData.modeOfImplementation}
+                  {formatMode(currentData.modeOfImplementation)}
                 </p>
               )}
             </div>

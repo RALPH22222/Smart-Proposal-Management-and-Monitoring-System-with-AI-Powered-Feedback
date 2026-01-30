@@ -93,6 +93,10 @@ const Profile: React.FC = () => {
               index = 1;
           }
 
+          if (p.status === "pending") {
+            index = 1; // Map pending to same stage as R&D review for progress bar purposes
+          }
+
           // Calculate budget
           const budgetTotal = p.estimated_budget?.reduce((sum: number, item: any) => sum + (item.amount || 0), 0) || 0;
           const budgetStr = `₱${budgetTotal.toLocaleString()}`;
@@ -111,7 +115,8 @@ const Profile: React.FC = () => {
               const u = p.proponent || (typeof p.proponent_id === 'object' ? p.proponent_id : null);
               if (!u) return "Unknown Proponent";
               return [u.first_name, u.last_name].filter(Boolean).join(" ");
-            })()
+            })(),
+            rawStatus: p.status // Store raw status for display logic
           };
         });
 
@@ -181,11 +186,9 @@ const Profile: React.FC = () => {
 
     const tags: string[] = [];
 
-    // 1. Classification - REMOVED per user request (only show actual tags)
-    // if (raw.classification_type === 'research_class' && raw.research_class) {
-    //   tags.push(raw.research_class);
-    // } else if (raw.classification_type === 'development_class' && raw.development_class) {
-    //   tags.push(raw.development_class);
+    // 1. Classification (Restored for tagging purposes if needed, otherwise skip)
+    // if (raw.class_input) {
+    //   tags.push(raw.class_input);
     // }
 
     // 2. Proposal Tags
@@ -198,6 +201,15 @@ const Profile: React.FC = () => {
     }
 
     return tags;
+  };
+
+  // Helper to format classification strings
+  const formatClassification = (str: string | null | undefined) => {
+    if (!str) return "";
+    return str
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   // Helper for Random Tag Colors
@@ -222,6 +234,20 @@ const Profile: React.FC = () => {
 
     const index = Math.abs(hash) % colors.length;
     return colors[index];
+  };
+
+  // Local Helpers for Status Display
+  const getLocalStatusLabel = (project: any) => {
+    if (project.rawStatus === "pending") return "Pending";
+    if (project.rawStatus === "under_evaluation") return "Under R&D Evaluation";
+    if (project.rawStatus === "r&d evaluation") return "Under R&D Evaluation"; // Handle both cases if needed
+    return getStatusLabelByIndex(project.currentIndex);
+  };
+
+  const getLocalStatusColor = (project: any) => {
+    if (project.rawStatus === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
+    if (project.rawStatus === "under_evaluation") return "bg-blue-100 text-blue-800 border border-blue-300";
+    return getStatusColorByIndex(project.currentIndex);
   };
 
   // Event handlers
@@ -307,7 +333,7 @@ const Profile: React.FC = () => {
     const proposal: Proposal = {
       id: String(raw.id),
       title: val(raw.project_title),
-      status: getStatusFromIndex(project.currentIndex),
+      status: raw.status || "pending",
       proponent: (function () {
         const u = raw.proponent || (typeof raw.proponent_id === 'object' ? raw.proponent_id : null);
         if (!u) return "Unknown Proponent";
@@ -340,17 +366,20 @@ const Profile: React.FC = () => {
           : "") ||
         "",
       classification:
-        raw.classification_type === "research_class"
-          ? val(raw.research_class)
+        formatClassification(val(raw.class_input)) ||
+        (raw.classification_type === "research_class"
+          ? formatClassification(val(raw.research_class))
           : raw.classification_type === "development_class"
-            ? val(raw.development_class)
-            : "",
+            ? formatClassification(val(raw.development_class))
+            : ""),
       classificationDetails: "",
       modeOfImplementation: val(raw.implementation_mode),
       implementationSites: Array.isArray(raw.implementation_site)
         ? raw.implementation_site.map((s: any) => ({ site: val(s.site_name), city: val(s.city) }))
         : [],
-      priorityAreas: Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : "",
+      priorityAreas: Array.isArray(raw.proposal_priorities)
+        ? raw.proposal_priorities.map((pp: any) => pp.priorities?.name).filter(Boolean).join(", ")
+        : "",
       sector: raw.sector ? val(raw.sector.name) : "",
       discipline: raw.discipline ? val(raw.discipline.name) : "",
       duration: val(raw.duration) ? `${raw.duration} months` : "", // Appending 'months' as likely usually stored as num
@@ -494,9 +523,9 @@ const Profile: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getLocalStatusColor(project)}`}
                     >
-                      {statusLabel}
+                      {getLocalStatusLabel(project)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -548,9 +577,9 @@ const Profile: React.FC = () => {
               </td>
             </tr>
           ) : (
-            filteredProjects.map((project) => {
+            filteredProjects.map((project: any) => {
               const progress = getProgressPercentageByIndex(project.currentIndex);
-              const statusLabel = getStatusLabelByIndex(project.currentIndex);
+              const statusLabel = getLocalStatusLabel(project);
               const tags = getProjectTags(project.id);
 
               return (
@@ -585,7 +614,7 @@ const Profile: React.FC = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${getLocalStatusColor(project)}`}
                     >
                       {statusLabel}
                     </span>

@@ -12,6 +12,8 @@ import type { FormData, AICheckResult } from "../../../../types/proponent-form";
 
 // API Service
 import { submitProposal } from "../../../../services/proposal.api";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 // Auth Context
 import { useAuthContext } from "../../../../context/AuthContext";
@@ -19,6 +21,7 @@ import { useAuthContext } from "../../../../context/AuthContext";
 const Submission: React.FC = () => {
   // Auth Context
   const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   // ... (UI State remains the same)
   const [activeSection, setActiveSection] = useState<string>("basic-info");
@@ -152,20 +155,42 @@ const Submission: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!selectedFile) {
-      alert("Please upload a proposal file (PDF/Word).");
+      Swal.fire({
+        icon: "warning",
+        title: "Missing File",
+        text: "Please upload a proposal file (PDF/Word).",
+      });
       return;
     }
     if (!localFormData.project_title) {
-      alert("Project Title is required.");
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Title",
+        text: "Project Title is required.",
+      });
       return;
     }
     if (!user?.id) {
-      alert("User not authenticated. Please log in again.");
+      Swal.fire({
+        icon: "error",
+        title: "Auth Error",
+        text: "User not authenticated. Please log in again.",
+      });
       return;
     }
 
     try {
       setIsSubmitting(true);
+
+      // Show loading alert
+      Swal.fire({
+        title: 'Submitting Proposal...',
+        text: 'Please wait while we process your submission.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       // Since we are now using the correct structure in State,
       // we might not need heavy transformation, but let's ensure it matches API.
@@ -178,15 +203,32 @@ const Submission: React.FC = () => {
       };
 
       const result = await submitProposal(payload, selectedFile, user.id);
-      alert("Proposal submitted successfully!");
+
+      await Swal.fire({
+        icon: "success",
+        title: "Submitted!",
+        text: "Proposal submitted successfully!",
+        timer: 2000,
+        showConfirmButton: false
+      });
+
       console.log("Server Response:", result);
-    } catch (error: any) {
+
+      // Redirect to profile
+      navigate("/users/proponent/proponentMainLayout?tab=profile");
+
+    } catch (error) {
       console.error("Submission Error:", error);
-      alert(`Submission Failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during submission.";
+      Swal.fire({
+        icon: "error",
+        title: "Submission Failed",
+        text: errorMessage,
+      });
     } finally {
       setIsSubmitting(false);
     }
-  }, [localFormData, selectedFile, user]);
+  }, [localFormData, selectedFile, user, navigate]);
 
   // ... (AI Handlers remain the same)
   const handleAITemplateCheck = useCallback(async () => {
