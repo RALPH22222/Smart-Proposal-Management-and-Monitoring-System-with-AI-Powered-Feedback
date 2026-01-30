@@ -9,6 +9,7 @@ export interface Project {
   priority: "high" | "medium" | "low";
   evaluators: number;
   proponent: string;
+  rawStatus?: string;
 }
 
 export interface Notification {
@@ -45,7 +46,7 @@ interface Sites {
 export interface Proposal {
   id: string;
   title: string;
-  status: "endorsed" | "r&d evaluation" | "evaluators assessment" | "revise" | "funded" | "reject";
+  status: "endorsed" | "r&d evaluation" | "evaluators assessment" | "revise" | "funded" | "reject" | "pending" | "review_rnd" | "under_evaluation" | string;
   proponent: string;
   gender: string;
   agency: string;

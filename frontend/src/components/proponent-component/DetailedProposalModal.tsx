@@ -109,25 +109,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return `${finalMonths} months`;
   };
 
-  const formatMode = (mode: string) => {
-    if (mode === "multi_agency") return "Multiple Agency";
-    if (mode === "single_agency") return "Single Agency";
-    return mode;
-  };
-
-  const getFilename = (url?: string) => {
-    if (!url) return "Current Proposal PDF";
-    try {
-      const parts = url.split('/');
-      // Remove query parameters if any (e.g. signed URLs ?)
-      const lastPart = parts[parts.length - 1];
-      if (lastPart.includes('?')) return lastPart.split('?')[0];
-      return decodeURIComponent(lastPart);
-    } catch {
-      return "Current Proposal PDF";
-    }
-  };
-
   // --- Logic Handlers ---
   const handleInputChange = (field: keyof Proposal, value: string) => {
     setEditedProposal({ ...editedProposal, [field]: value });
@@ -330,15 +311,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
         label: "Revision Required",
       };
-    if (["r&d evaluation", "under_evaluation"].includes(s))
-      if (["r&d evaluation", "under_evaluation", "under r&d evaluation"].includes(s))
-        return {
-          bg: "bg-blue-50",
-          border: "border-blue-200",
-          text: "text-blue-800",
-          icon: <Microscope className="w-5 h-5 text-blue-600" />,
-          label: "Under R&D Evaluation",
-        };
+    if (["r&d evaluation", "review_rnd"].includes(s))
+      return {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: <Microscope className="w-5 h-5 text-blue-600" />,
+        label: "Under R&D Evaluation",
+      };
+    if (["evaluators assessment", "under_evaluation"].includes(s))
+      return {
+        bg: "bg-purple-50",
+        border: "border-purple-200",
+        text: "text-purple-800",
+        icon: <FileCheck className="w-5 h-5 text-purple-600" />,
+        label: "Under Evaluators Assessment",
+      };
     if (["pending"].includes(s))
       return {
         bg: "bg-orange-100",
@@ -346,14 +334,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         text: "text-orange-800",
         icon: <Clock className="w-5 h-5 text-orange-600" />,
         label: "Pending",
-      };
-    if (["evaluators assessment"].includes(s))
-      return {
-        bg: "bg-purple-50",
-        border: "border-purple-200",
-        text: "text-purple-800",
-        icon: <FileCheck className="w-5 h-5 text-purple-600" />,
-        label: "Under Evaluators Assessment",
       };
     return {
       bg: "bg-slate-50",
@@ -604,7 +584,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <div>
                     <p className="text-sm font-medium text-slate-900">
                       {submittedFiles.length > 0
-                        ? getFilename(submittedFiles[submittedFiles.length - 1])
+                        ? "Current Proposal PDF"
                         : "No file uploaded"}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -634,18 +614,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     }`}
                 >
                   {!newFile ? (
-                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer">
+                    <label className="flex flex-col items-center justify-center gap-2 cursor-pointer">
                       <Upload className="w-5 h-5 text-slate-400" />
                       <span className="text-sm font-medium text-slate-600">
-                        Click to upload revised Document (PDF/Word)
+                        Click to upload revised PDF
                       </span>
                       <input
                         type="file"
-                        accept=".pdf,.doc,.docx"
+                        accept=".pdf"
                         onChange={handleFileChange}
                         className="hidden"
                       />
-                    </div>
+                    </label>
                   ) : (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -964,7 +944,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 />
               ) : (
                 <p className="text-sm font-medium text-slate-900">
-                  {formatMode(currentData.modeOfImplementation)}
+                  {currentData.modeOfImplementation}
                 </p>
               )}
             </div>
