@@ -57,7 +57,7 @@ const MainLayout: React.FC = () => {
 				return <ReviewPage />;
 			case 'revisions':
 				return (
-					<ReviewPage filter='Revision Required' onStatsUpdate={loadData} />
+					<ReviewPage filter='revision_rnd' onStatsUpdate={loadData} />
 				);
 			case 'evaluators':
 				return <EvaluatorPage />;

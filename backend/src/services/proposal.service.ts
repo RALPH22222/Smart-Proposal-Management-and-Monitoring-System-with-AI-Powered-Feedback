@@ -35,7 +35,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) { }
+  constructor(private db: SupabaseClient) {}
 
   private async resolveLookupId(args: {
     table: Table;
@@ -478,6 +478,46 @@ export class ProposalService {
     return { data, error };
   }
 
+  async getUsersByRole(role: string, departmentId?: number) {
+    // Use users.department_id as the primary department association.
+    // This works for all roles (rnd, evaluator, etc.) without needing
+    // a separate junction table. The department name is joined via FK.
+    let query = this.db
+      .from("users")
+      .select("id, first_name, last_name, email, department_id, department:departments(id, name)");
+
+    // Filter by role using the roles array column (contains operator)
+    query = query.contains("roles", [role]);
+
+    // Filter by department if provided
+    if (departmentId) {
+      query = query.eq("department_id", departmentId);
+    }
+
+    const { data: users, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!users || users.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Transform: wrap the single department into a departments[] array
+    // so the frontend shape stays consistent
+    return {
+      data: users.map((u: any) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        departments: u.department ? [u.department] : [],
+      })),
+      error: null,
+    };
+  }
+
   async getAll(search?: string, status?: Status, proponent_id?: string, roles?: string[]) {
     let query = this.db.from("proposals").select(`
       *,
@@ -485,7 +525,7 @@ export class ProposalService {
       proposal_tags(tags(name)),
       proposal_priorities(priorities(id,name)),
       implementation_site(site_name,city),
-      proponent:users(id,first_name,last_name,department:departments(name)),
+      proponent_id(id,first_name,last_name,department:department_id(name)),
       rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),

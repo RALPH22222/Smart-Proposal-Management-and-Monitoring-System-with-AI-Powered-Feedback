@@ -220,6 +220,17 @@ export class BackendStack extends Stack {
       },
     );
 
+    const get_users_by_role_lambda = new NodejsFunction(this, "pms-get-users-by-role", {
+      functionName: "pms-get-users-by-role",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-users-by-role.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_proposal_lambda = new NodejsFunction(this, "pms-get-propposal", {
       functionName: "pms-get-propposal",
       memorySize: 128,
@@ -801,6 +812,13 @@ export class BackendStack extends Stack {
     // /proposal/view-station
     const get_station = proposal.addResource("view-station");
     get_station.addMethod(HttpMethod.GET, new LambdaIntegration(get_station_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-users-by-role (protected)
+    const get_users_by_role = proposal.addResource("view-users-by-role");
+    get_users_by_role.addMethod(HttpMethod.GET, new LambdaIntegration(get_users_by_role_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { ProposalService } from "../../services/proposal.service";
 import { submitRevisedProposalSchema } from "../../schemas/proposal-schema";
 import { buildCorsHeaders } from "../../utils/cors";
+import { getAuthContext } from "../../utils/auth-context";
 import multipart from "lambda-multipart-parser";
 
 // Initialize S3
@@ -14,13 +15,23 @@ export const handler = buildCorsHeaders(async (event) => {
   }
   const Bucket = process.env.PROPOSAL_BUCKET_NAME;
 
+  // Extract proponent identity from JWT
+  const auth = getAuthContext(event);
+  if (!auth.userId) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "Unauthorized: User ID not found in token" }),
+    };
+  }
+
   // Parse Multipart Data
   const payload = await multipart.parse(event);
   const { files, ...body } = payload;
 
-  // Validate form fields
+  // Validate form fields — inject proponent_id from JWT, not from body
   const validation = submitRevisedProposalSchema.safeParse({
     ...body,
+    proponent_id: auth.userId,
     file_url: files[0],
   });
 

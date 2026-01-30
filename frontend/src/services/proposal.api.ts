@@ -59,7 +59,6 @@ export const fetchCommodities = async (): Promise<LookupItem[]> => {
 export const submitProposal = async (
   formData: FormData,
   file: File,
-  proponentId: string,
 ): Promise<CreateProposalResponse> => {
   const fd = new FormData();
   const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
@@ -76,7 +75,7 @@ export const submitProposal = async (
   // Duration is stored as numeric string (months), e.g., "6", "12", "18"
   const durationNumber = parseInt(formData.duration || "0", 10) || 0;
 
-  fd.append("proponent_id", proponentId);
+  // proponent_id is no longer sent — backend extracts it from the JWT
   fd.append("department", String(formData.department ?? ""));
   fd.append("sector", String(formData.sector ?? ""));
   fd.append("discipline", String(formData.discipline ?? ""));
@@ -128,15 +127,14 @@ export type SubmitRevisedProposalResponse = {
 
 export const submitRevisedProposal = async (
   proposalId: number,
-  proponentId: string,
   file: File,
   projectTitle?: string,
   revisionResponse?: string,
 ): Promise<SubmitRevisedProposalResponse> => {
   const fd = new FormData();
 
+  // proponent_id is no longer sent — backend extracts it from the JWT
   fd.append("proposal_id", String(proposalId));
-  fd.append("proponent_id", proponentId);
   fd.append("file_url", file);
 
   if (projectTitle) {
@@ -210,11 +208,16 @@ export const fetchProposalVersions = async (proposalId: number): Promise<Proposa
   return data;
 };
 
-export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
+export const getProposals = async (
+  search?: string,
+  status?: string,
+): Promise<any[]> => {
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (status) params.append("status", status);
-  const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`);
+  const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`, {
+    withCredentials: true,
+  });
   return data;
 };
 
@@ -226,5 +229,76 @@ export type DecisionEvaluatorInput = {
 
 export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput): Promise<any> => {
   const { data } = await api.post("/proposal/decision-evaluator-to-proposal", input);
+  return data;
+};
+
+// ========== ADMIN & RND ACTION APIs ==========
+
+export type UserItem = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  departments: { id: number; name: string }[];
+};
+
+export const fetchUsersByRole = async (role: string, departmentId?: number): Promise<UserItem[]> => {
+  const params = new URLSearchParams({ role });
+  if (departmentId) params.append("department_id", String(departmentId));
+  const { data } = await api.get<UserItem[]>(`/proposal/view-users-by-role?${params.toString()}`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export const forwardProposalToRnd = async (proposalId: number, rndIds: string[]): Promise<any> => {
+  const { data } = await api.post(
+    "/proposal/forward-proposal-to-rnd",
+    { proposal_id: proposalId, rnd_id: rndIds },
+    { withCredentials: true },
+  );
+  return data;
+};
+
+export type ForwardToEvaluatorsPayload = {
+  proposal_id: number;
+  evaluator_id: string[];
+  deadline_at: number;
+  commentsForEvaluators?: string;
+};
+
+export const forwardProposalToEvaluators = async (input: ForwardToEvaluatorsPayload): Promise<any> => {
+  const { data } = await api.post("/proposal/forward-proposal-to-evaluators", input, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export type RequestRevisionPayload = {
+  proposal_id: number;
+  objective_comment?: string;
+  methodology_comment?: string;
+  budget_comment?: string;
+  timeline_comment?: string;
+  overall_comment?: string;
+  deadline: number;
+};
+
+export const requestRevision = async (input: RequestRevisionPayload): Promise<any> => {
+  const { data } = await api.post("/proposal/revision-proposal-to-proponent", input, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export type RejectProposalPayload = {
+  proposal_id: number;
+  comment?: string;
+};
+
+export const rejectProposal = async (input: RejectProposalPayload): Promise<any> => {
+  const { data } = await api.post("/proposal/reject-proposal-to-proponent", input, {
+    withCredentials: true,
+  });
   return data;
 };

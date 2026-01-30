@@ -4,7 +4,8 @@ export type AuthUser = {
   id: string;
   email: string;
   roles: string[];
-  name?: string;
+  first_name?: string;
+  last_name?: string;
 };
 
 type AuthContextValue = {

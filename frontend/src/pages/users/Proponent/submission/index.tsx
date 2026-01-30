@@ -72,7 +72,6 @@ const Submission: React.FC = () => {
 
   // ... (Effects remain the same)
 
-
   // ... (Validation remains the same)
   const isBudgetValid = useMemo(() => {
     if (localFormData.budgetItems.length === 0) return false;
@@ -149,8 +148,6 @@ const Submission: React.FC = () => {
     }));
   };
 
-
-
   // --- SUBMISSION LOGIC ---
 
   const handleSubmit = useCallback(async () => {
@@ -184,12 +181,12 @@ const Submission: React.FC = () => {
 
       // Show loading alert
       Swal.fire({
-        title: 'Submitting Proposal...',
-        text: 'Please wait while we process your submission.',
+        title: "Submitting Proposal...",
+        text: "Please wait while we process your submission.",
         allowOutsideClick: false,
         didOpen: () => {
           Swal.showLoading();
-        }
+        },
       });
 
       // Since we are now using the correct structure in State,
@@ -202,21 +199,20 @@ const Submission: React.FC = () => {
         agency: String(localFormData.agency || ""),
       };
 
-      const result = await submitProposal(payload, selectedFile, user.id);
+      const result = await submitProposal(payload, selectedFile);
 
       await Swal.fire({
         icon: "success",
         title: "Submitted!",
         text: "Proposal submitted successfully!",
         timer: 2000,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
 
       console.log("Server Response:", result);
 
       // Redirect to profile
       navigate("/users/proponent/proponentMainLayout?tab=profile");
-
     } catch (error) {
       console.error("Submission Error:", error);
       const errorMessage = error instanceof Error ? error.message : "An error occurred during submission.";
@@ -241,10 +237,7 @@ const Submission: React.FC = () => {
     }, 1500);
   }, [selectedFile]);
 
-
-
   // ... (Render Helpers remain the same)
-
 
   const getTabClass = (sectionName: string) => `
     p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] font-medium
@@ -279,7 +272,11 @@ const Submission: React.FC = () => {
 
           <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
             {activeSection === "basic-info" && (
-              <BasicInformation formData={localFormData} onInputChange={handleInputChange} onUpdate={handleDirectUpdate} />
+              <BasicInformation
+                formData={localFormData}
+                onInputChange={handleInputChange}
+                onUpdate={handleDirectUpdate}
+              />
             )}
             {activeSection === "research-details" && (
               <ResearchDetails formData={localFormData} onUpdate={handleDirectUpdate} />
