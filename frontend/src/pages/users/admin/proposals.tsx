@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getProposals } from '../../../services/proposal.api';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
+import { transformProposalForModal } from '../../../utils/proposal-transform';
 import SendToRndModal from '../../../components/admin-component/SendToRndModal';
 import ForwardToEvaluatorsModal from '../../../components/shared/ForwardToEvaluatorsModal';
 import RevisionModal from '../../../components/shared/RevisionModal';
@@ -330,7 +331,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
 
                           {/* View */}
                           <button
-                            onClick={() => { setViewProposal(proposal.raw); setIsViewOpen(true); }}
+                            onClick={() => { setViewProposal(transformProposalForModal(proposal.raw)); setIsViewOpen(true); }}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
                             title="View details"
                           >

@@ -23,7 +23,7 @@ export function getAuthContext(event: APIGatewayProxyEvent): AuthContext {
   const authorizer = event.requestContext.authorizer ?? {};
 
   return {
-    userId: String(authorizer.userId ?? ""),
+    userId: String(authorizer.user_sub ?? ""),
     email: authorizer.email,
     first_name: authorizer.first_name,
     last_name: authorizer.last_name,

@@ -275,6 +275,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const get_proposal_rnd_lambda = new NodejsFunction(this, "pms-get-propposal-rnd", {
+      functionName: "pms-get-propposal-rnd",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-proposal-rnd.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_proposal_evaluator_lambda = new NodejsFunction(this, "pms-get-propposal-evaluator", {
       functionName: "pms-get-propposal-evaluator",
       memorySize: 128,
@@ -727,6 +738,13 @@ export class BackendStack extends Stack {
     // /proposal/view (protected)
     const get_proposal = proposal.addResource("view");
     get_proposal.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/view-rnd (protected)
+    const get_proposal_rnd = proposal.addResource("view-rnd");
+    get_proposal_rnd.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_rnd_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

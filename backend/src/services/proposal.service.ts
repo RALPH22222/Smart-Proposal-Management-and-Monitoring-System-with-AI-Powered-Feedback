@@ -727,16 +727,25 @@ export class ProposalService {
       .from("proposal_evaluators")
       .select(
         `
-        *,
-        evaluator:users!proposal_evaluators_evaluator_id_fkey(first_name,last_name),
-        forwarded_by_rnd:users!proposal_evaluators_forwarded_by_rnd_fkey(first_name,last_name),
-        proposal:proposals!inner(
+        id,
+        status,
+        deadline_at,
+        comments_for_evaluators,
+        evaluator_id(first_name,last_name),
+        forwarded_by_rnd(first_name,last_name),
+        proposal_id(
           *,
-          proponent:users(first_name,last_name),
-          department:departments(name),
+          cooperating_agencies(agencies(name)),
+          proposal_tags(tags(name)),
+          proposal_priorities(priorities(id,name)),
+          implementation_site(site_name,city),
+          proponent_id(id,first_name,last_name,department:department_id(name)),
+          rnd_station:departments(name),
           sector:sectors(name),
           discipline:disciplines(name),
-          agency:agencies(name)
+          agency:agencies(name,city,street,barangay),
+          estimated_budget(id,budget,item,amount,source),
+          proposal_version(id,file_url)
         )
       `,
       )
@@ -753,6 +762,37 @@ export class ProposalService {
     }
 
     const { data, error } = await query;
+
+    return { data, error };
+  }
+
+  async getRndProposals(rnd_id: string) {
+    const { data, error } = await this.db
+      .from("proposal_rnd")
+      .select(
+        `
+        id,
+        proposal_id(
+          *,
+          cooperating_agencies(agencies(name)),
+          proposal_tags(tags(name)),
+          proposal_priorities(priorities(id,name)),
+          implementation_site(site_name,city),
+          proponent_id(id,first_name,last_name,department:department_id(name)),
+          rnd_station:departments(name),
+          sector:sectors(name),
+          discipline:disciplines(name),
+          agency:agencies(name,city,street,barangay),
+          estimated_budget(id,budget,item,amount,source),
+          proposal_version(id,file_url)
+        )
+      `,
+      )
+      .eq("rnd_id", rnd_id);
+
+    if (error) {
+      return { data, error };
+    }
 
     return { data, error };
   }

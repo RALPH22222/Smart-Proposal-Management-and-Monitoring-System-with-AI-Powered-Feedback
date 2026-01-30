@@ -3,7 +3,6 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { Status } from "../../types/proposal";
-import { proposalEvaluatorStatusSchema } from "../../schemas/proposal-schema";
 import { getAuthContext } from "../../utils/auth-context";
 
 type FilterParams = {
@@ -13,6 +12,7 @@ type FilterParams = {
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { search, status }: FilterParams = event.queryStringParameters || {};
+
   // Extract proponent identity from JWT
   const auth = getAuthContext(event);
   if (!auth.userId) {
@@ -22,22 +22,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Validate status if provided
-  if (status) {
-    const { error: statusError } = proposalEvaluatorStatusSchema.safeParse(status);
-    if (statusError) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          type: "validation_error",
-          data: statusError.issues,
-        }),
-      };
-    }
-  }
-
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getEvaluatorProposals(auth.userId, search, status);
+  const { data, error } = await proposalService.getRndProposals(auth.userId);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
