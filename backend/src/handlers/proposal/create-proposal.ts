@@ -38,9 +38,7 @@ export const handler = buildCorsHeaders(async (event) => {
 
   // Create Proposal + Proposal Version
   const proposalService = new ProposalService(supabase);
-  // Force status to "pending"
-  const createData = { ...data, status: "pending" } as any;
-  const { data: proposal, error: createError } = await proposalService.create(createData);
+  const { data: proposal, error: createError } = await proposalService.create(data);
 
   if (createError || !proposal) {
     console.error("Error creating proposal", createError);

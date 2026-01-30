@@ -108,6 +108,7 @@ export const submitProposal = async (
   fd.append("implementation_mode", implementationMode);
   fd.append("tags", JSON.stringify(formData.tags || []));
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
     withCredentials: true,
   });
 
@@ -147,6 +148,7 @@ export const submitRevisedProposal = async (
   }
 
   const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
     withCredentials: true,
   });
 
