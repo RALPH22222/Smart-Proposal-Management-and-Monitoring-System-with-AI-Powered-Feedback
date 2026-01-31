@@ -125,5 +125,14 @@ export function transformProposalForModal(raw: any) {
     budgetSources,
     budgetTotal: fmt(budgetGrandTotal),
     documentUrl: latestVersion?.file_url || "",
+    evaluators: (raw.proposal_evaluator || []).map((pe: any) => {
+      const depts = pe.evaluator_id?.departments || [];
+      const deptName = depts.length > 0 ? depts[0].name : "N/A";
+      return {
+        name: `${pe.evaluator_id?.first_name || ""} ${pe.evaluator_id?.last_name || ""}`.trim(),
+        department: deptName,
+        status: pe.status,
+      };
+    }),
   };
 }

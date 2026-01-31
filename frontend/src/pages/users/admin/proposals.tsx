@@ -29,7 +29,7 @@ interface MappedProposal {
 const statusLabels: Record<BackendStatus, string> = {
   pending: 'Pending Review',
   review_rnd: 'Under R&D Evaluation',
-  under_evaluation: 'Under Evaluation',
+  under_evaluation: 'Under Evaluators Assessment',
   revision_rnd: 'Revision Required',
   rejected_rnd: 'Rejected',
   endorsed_for_funding: 'Endorsed',
@@ -169,7 +169,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
       case 'review_rnd':
         return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><Microscope className="w-3 h-3" />Under R&D Evaluation</span>;
       case 'under_evaluation':
-        return <span className={`${base} text-emerald-600 bg-emerald-50 border-emerald-200`}><Users className="w-3 h-3" />Under Evaluation</span>;
+        return <span className={`${base} text-purple-600 bg-purple-50 border-purple-200`}><Users className="w-3 h-3" />Under Evaluators Assessment</span>;
       case 'revision_rnd':
         return <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}><RefreshCw className="w-3 h-3" />Revision Required</span>;
       case 'rejected_rnd':
@@ -362,7 +362,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         onAction={(action: any, id: any) => {
           // Close view modal before opening action modal if desired, or keep both?
           // Usually better to act directly. The user might want to act from the view.
-          setIsViewOpen(false);
+          // setIsViewOpen(false); // Kept open as per user request
           openAction(Number(id), action);
         }}
       />

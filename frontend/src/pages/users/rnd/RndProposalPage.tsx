@@ -9,10 +9,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Tag,
-  Clock,
   XCircle,
   RefreshCw,
   Users,
+  Microscope,
 } from "lucide-react";
 import { getRndProposals } from "../../../services/proposal.api";
 import DetailedProposalModal from "../../../components/rnd-component/RndViewModal";
@@ -39,11 +39,12 @@ interface MappedProposal {
   department: string;
   sector: string;
   raw: any;
+  assignedBy?: string;
 }
 
 const statusLabels: Record<BackendStatus, string> = {
-  review_rnd: "Pending Review",
-  under_evaluation: "Under Evaluation",
+  review_rnd: "Under R&D Evaluation",
+  under_evaluation: "Under Evaluators Assessment",
   revision_rnd: "Revision Required",
   rejected_rnd: "Rejected",
   endorsed_for_funding: "Endorsed",
@@ -54,6 +55,35 @@ interface RndProposalPageProps {
   filter?: BackendStatus;
   onStatsUpdate?: () => void;
 }
+
+const getRandomColorClass = (text: string) => {
+  const colors = [
+    "bg-red-100 text-red-800 border-red-200",
+    "bg-orange-100 text-orange-800 border-orange-200",
+    "bg-amber-100 text-amber-800 border-amber-200",
+    "bg-yellow-100 text-yellow-800 border-yellow-200",
+    "bg-lime-100 text-lime-800 border-lime-200",
+    "bg-green-100 text-green-800 border-green-200",
+    "bg-emerald-100 text-emerald-800 border-emerald-200",
+    "bg-teal-100 text-teal-800 border-teal-200",
+    "bg-cyan-100 text-cyan-800 border-cyan-200",
+    "bg-sky-100 text-sky-800 border-sky-200",
+    "bg-blue-100 text-blue-800 border-blue-200",
+    "bg-indigo-100 text-indigo-800 border-indigo-200",
+    "bg-violet-100 text-violet-800 border-violet-200",
+    "bg-purple-100 text-purple-800 border-purple-200",
+    "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
+    "bg-pink-100 text-pink-800 border-pink-200",
+    "bg-rose-100 text-rose-800 border-rose-200",
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return colors[Math.abs(hash) % colors.length];
+};
 
 const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate }) => {
   const [proposals, setProposals] = useState<MappedProposal[]>([]);
@@ -86,6 +116,12 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           p.proposal_id.proponent_id && typeof p.proposal_id.proponent_id === "object"
             ? `${p.proposal_id.proponent_id.first_name || ""} ${p.proposal_id.proponent_id.last_name || ""}`.trim()
             : "Unknown";
+
+        const senderName =
+          p.sender_id && typeof p.sender_id === "object"
+            ? `${p.sender_id.first_name || ""} ${p.sender_id.last_name || ""}`.trim()
+            : undefined;
+
         return {
           id: p.proposal_id.id,
           title: p.proposal_id.project_title || "Untitled",
@@ -95,6 +131,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           department: p.proposal_id.rnd_station?.name || "N/A",
           sector: p.proposal_id.sector?.name || "N/A",
           raw: p.proposal_id,
+          assignedBy: senderName,
         };
       });
       setProposals(mapped);
@@ -147,16 +184,16 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     switch (status) {
       case "review_rnd":
         return (
-          <span className={`${base} text-amber-600 bg-amber-50 border-amber-200`}>
-            <Clock className="w-3 h-3" />
-            Pending Review
+          <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}>
+            <Microscope className="w-3 h-3" />
+            Under R&D Evaluation
           </span>
         );
       case "under_evaluation":
         return (
-          <span className={`${base} text-emerald-600 bg-emerald-50 border-emerald-200`}>
+          <span className={`${base} text-purple-600 bg-purple-50 border-purple-200`}>
             <Users className="w-3 h-3" />
-            Under Evaluation
+            Under Evaluators Assessment
           </span>
         );
       case "revision_rnd":
@@ -310,7 +347,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                               <Calendar className="w-3.5 h-3.5 text-slate-400" />
                               <span>{new Date(proposal.submittedDate).toLocaleDateString()}</span>
                             </div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}>
                               <Tag className="w-3 h-3" />
                               {proposal.department}
                             </span>
@@ -323,46 +360,25 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                         <div className="flex items-center justify-end gap-2 flex-wrap">
                           {getStatusBadge(proposal.status)}
 
-                          {/* Forward to Evaluators - for review_rnd */}
-                          {proposal.status === "review_rnd" && (
+                          {/* Manage Evaluators (Only for under_evaluation) */}
+                          {proposal.status === "under_evaluation" && (
                             <button
                               onClick={() => openAction(proposal.id, "forwardEval")}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
-                              title="Forward to Evaluators"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-all cursor-pointer"
+                              title="Manage Evaluators"
                             >
                               <Users className="w-3 h-3" />
-                              Evaluators
-                            </button>
-                          )}
-
-                          {/* Request Revision */}
-                          {(proposal.status === "review_rnd" || proposal.status === "under_evaluation") && (
-                            <button
-                              onClick={() => openAction(proposal.id, "revision")}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors cursor-pointer"
-                              title="Request Revision"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              Revise
-                            </button>
-                          )}
-
-                          {/* Reject */}
-                          {proposal.status === "review_rnd" && (
-                            <button
-                              onClick={() => openAction(proposal.id, "reject")}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-colors cursor-pointer"
-                              title="Reject Proposal"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              Reject
                             </button>
                           )}
 
                           {/* View */}
                           <button
                             onClick={() => {
-                              setViewProposal(transformProposalForModal(proposal.raw));
+                              const transformed: any = transformProposalForModal(proposal.raw);
+                              if (transformed && proposal.assignedBy) {
+                                transformed.assignedBy = proposal.assignedBy;
+                              }
+                              setViewProposal(transformed);
                               setIsViewOpen(true);
                             }}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
@@ -420,6 +436,9 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           onClose={() => {
             setIsViewOpen(false);
             setViewProposal(null);
+          }}
+          onAction={(action: any, id: any) => {
+            openAction(Number(id), action);
           }}
         />
 

@@ -136,134 +136,17 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   proposal,
   onAction,
 }) => {
-  // --- STATE FOR EDITING SCHEDULE ---
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
-  const [scheduleData, setScheduleData] = useState({
-    duration: "",  // Will store JUST the number string
-    startDate: "",
-    endDate: "",
-  });
-
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
 
-  // Sync state with proposal when opened
-  useEffect(() => {
-    if (p) {
-      setScheduleData({
-        duration: cleanDuration(p.duration),
-        startDate: formatDateForInput(p.startDate),
-        endDate: formatDateForInput(p.endDate),
-      });
-      setIsEditingSchedule(false);
-    }
-  }, [p, isOpen]);
-
   if (!isOpen || !proposal) return null;
-
-  // --- CALCULATION HANDLERS ---
-
-  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDuration = e.target.value;
-    const months = parseInt(newDuration);
-
-    // Update State (Keep pure number in state)
-    const newState = { ...scheduleData, duration: newDuration };
-
-    // If we have a start date and valid duration, calc end date
-    if (scheduleData.startDate && !isNaN(months)) {
-      const start = new Date(scheduleData.startDate);
-      const end = new Date(start);
-      end.setMonth(end.getMonth() + months);
-      newState.endDate = formatDateForInput(end.toISOString());
-    }
-
-    setScheduleData(newState);
-  };
-
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newStart = e.target.value;
-    const newState = { ...scheduleData, startDate: newStart };
-
-    // If duration exists, calc end date
-    if (newStart && scheduleData.duration) {
-      const months = parseInt(scheduleData.duration);
-      if (!isNaN(months)) {
-        const start = new Date(newStart);
-        const end = new Date(start);
-        end.setMonth(end.getMonth() + months);
-        newState.endDate = formatDateForInput(end.toISOString());
-      }
-    }
-    // Else if end date exists, calc duration
-    else if (newStart && scheduleData.endDate) {
-      const start = new Date(newStart);
-      const end = new Date(scheduleData.endDate);
-
-      // Difference in months
-      let months = (end.getFullYear() - start.getFullYear()) * 12;
-      months -= start.getMonth();
-      months += end.getMonth();
-
-      if (months > 0) {
-        newState.duration = months.toString();
-      }
-    }
-
-    setScheduleData(newState);
-  };
-
-  const handleEndDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEnd = e.target.value;
-    const newState = { ...scheduleData, endDate: newEnd };
-
-    // If start date exists, calc duration
-    if (scheduleData.startDate && newEnd) {
-      const start = new Date(scheduleData.startDate);
-      const end = new Date(newEnd);
-
-      let months = (end.getFullYear() - start.getFullYear()) * 12;
-      months -= start.getMonth();
-      months += end.getMonth();
-
-      if (months >= 0) {
-        newState.duration = months.toString();
-      }
-    }
-
-    setScheduleData(newState);
-  };
-
-
-  // --- HANDLERS ---
-  const handleSaveSchedule = () => {
-    alert("Schedule updated successfully!");
-    setIsEditingSchedule(false);
-
-    // MOCK UPDATE DISPLAY
-    const durationNum = scheduleData.duration;
-    const durationWithSuffix = durationNum ? `${durationNum} Months` : "";
-
-    // Mutating prop for mock effect
-    p.duration = durationWithSuffix;
-    p.startDate = scheduleData.startDate;
-    p.endDate = scheduleData.endDate;
-  };
-
-  const cancelEditSchedule = () => {
-    // Revert changes
-    setScheduleData({
-      duration: cleanDuration(p.duration),
-      startDate: formatDateForInput(p.startDate),
-      endDate: formatDateForInput(p.endDate),
-    });
-    setIsEditingSchedule(false);
-  };
 
   // --- DOWNLOAD HANDLER ---
   const handleDownload = (fileName: string) => {
     alert(`Downloading ${fileName}...`);
   };
+
+  // NO_OP
 
   // Mock Assessment Data
   const mockAssessment = {
@@ -537,197 +420,165 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
             </div>
           )}
 
-          {/* Schedule Section (With Edit) */}
-          <div className={`rounded-xl border p-4 transition-colors ${isEditingSchedule ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+          {/* Schedule Section (ReadOnly) */}
+          <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
               </h3>
-              {!isEditingSchedule ? (
-                <button onClick={() => setIsEditingSchedule(true)} className="text-xs font-medium text-slate-500 hover:text-[#C8102E] flex items-center gap-1 transition-colors">
-                  <Edit2 className="w-3 h-3" /> Edit Schedule
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button onClick={cancelEditSchedule} className="text-xs font-medium text-slate-500 hover:text-slate-800">Cancel</button>
-                  <button onClick={handleSaveSchedule} className="text-xs font-bold text-blue-600 hover:text-blue-800">Save</button>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-slate-500 mb-1">Duration</p>
-                {isEditingSchedule ? (
-                  <input
-                    type="number" className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"
-                    value={scheduleData.duration} onChange={handleDurationChange} placeholder="Months"
-                  />
-                ) : (
-                  <p className="text-sm font-semibold text-slate-900">{p.duration}</p>
-                )}
+                <p className="text-sm font-semibold text-slate-900">{p.duration}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                {isEditingSchedule ? (
-                  <input
-                    type="date" className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"
-                    value={scheduleData.startDate} onChange={handleStartDateChange}
-                  />
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.startDate)}</p>
-                )}
+                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.startDate)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">End Date</p>
-                {isEditingSchedule ? (
-                  <input
-                    type="date" className="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"
-                    value={scheduleData.endDate} onChange={handleEndDateChange}
-                  />
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.endDate)}</p>
-                )}
+                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.endDate)}</p>
               </div>
             </div>
           </div>
 
           {/* Budget */}
-            {/* Budget */}
-            {p.budgetSources && (
-               <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                     <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
-                  </h3>
-                   
-                  <div className="space-y-6">
-                    {p.budgetSources.map((budget: any, index: number) => (
-                      <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                        {/* Card Header */}
-                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="bg-blue-100 p-1.5 rounded text-blue-700">
-                                    <DollarSign className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                                    <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                                <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
-                            </div>
+          {/* Budget */}
+          {p.budgetSources && (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
+              </h3>
+
+              <div className="space-y-6">
+                {p.budgetSources.map((budget: any, index: number) => (
+                  <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    {/* Card Header */}
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                          <DollarSign className="w-4 h-4" />
                         </div>
-
-                        {/* Card Body */}
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
-                             {/* PS */}
-                             <div className="space-y-2 pt-2 md:pt-0">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
-                                    <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                                </div>
-                                <div className="space-y-1">
-                                    {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                                        budget.breakdown.ps.map((item: any, i:number) => (
-                                            <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                                <span>{item.item}</span>
-                                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                            </div>
-                                        ))
-                                    ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
-                             </div>
-
-                             {/* MOOE */}
-                             <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
-                                    <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
-                                </div>
-                                <div className="space-y-1">
-                                    {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                                        budget.breakdown.mooe.map((item: any, i:number) => (
-                                            <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                                <span>{item.item}</span>
-                                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                            </div>
-                                        ))
-                                    ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
-                             </div>
-
-                             {/* CO */}
-                             <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                                    <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
-                                </div>
-                                <div className="space-y-1">
-                                    {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                                        budget.breakdown.co.map((item: any, i:number) => (
-                                            <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                                <span>{item.item}</span>
-                                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                            </div>
-                                        ))
-                                    ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
-                             </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
+                          <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
                         </div>
                       </div>
-                    ))}
-                    
-                    {/* Grant Total Footer */}
-                    <div className="flex justify-end items-center gap-4 pt-2">
-                        <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
-                        <span className="text-xl font-bold text-[#C8102E]">{p.budgetTotal}</span>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
+                        <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                      </div>
                     </div>
 
+                    {/* Card Body */}
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
+                      {/* PS */}
+                      <div className="space-y-2 pt-2 md:pt-0">
+                        <div className="flex justify-between items-center mb-2">
+                          <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
+                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
+                            budget.breakdown.ps.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                <span>{item.item}</span>
+                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
+                              </div>
+                            ))
+                          ) : <p className="italic text-slate-400">No items</p>}
+                        </div>
+                      </div>
+
+                      {/* MOOE */}
+                      <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
+                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
+                            budget.breakdown.mooe.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                <span>{item.item}</span>
+                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
+                              </div>
+                            ))
+                          ) : <p className="italic text-slate-400">No items</p>}
+                        </div>
+                      </div>
+
+                      {/* CO */}
+                      <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
+                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
+                            budget.breakdown.co.map((item: any, i: number) => (
+                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                <span>{item.item}</span>
+                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
+                              </div>
+                            ))
+                          ) : <p className="italic text-slate-400">No items</p>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-               </div>
-            )}
+                ))}
+
+                {/* Grant Total Footer */}
+                <div className="flex justify-end items-center gap-4 pt-2">
+                  <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
+                  <span className="text-xl font-bold text-[#C8102E]">{p.budgetTotal}</span>
+                </div>
+
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modal Footer with Actions for Pending Reviews */}
-        {/* Modal Footer with Actions for Pending Reviews */}
-        <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
+        <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
           {onAction && (p.status === 'review_rnd' || p.status === 'pending review' || p.status === 'pending') && (
             <>
-               <button
-                  onClick={() => onAction('sendToRnd', p.id)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
-               >
-                  <Send className="w-4 h-4" />
-                  Send to RND
-               </button>
-               <button
-                  onClick={() => onAction('forwardEval', p.id)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
-               >
-                  <Users className="w-4 h-4" />
-                  Assigned to Evaluator
-               </button>
-               <button
-                  onClick={() => onAction('revision', p.id)}
-                  className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200 transition-colors shadow-sm flex items-center gap-2"
-               >
-                  <RefreshCw className="w-4 h-4" />
-                  Revise
-               </button>
-               <button
-                  onClick={() => onAction('reject', p.id)}
-                  className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-lg hover:bg-red-200 transition-colors shadow-sm flex items-center gap-2"
-               >
-                  <XCircle className="w-4 h-4" />
-                  Reject
-               </button>
+              <button
+                onClick={() => onAction('sendToRnd', p.id)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                Send to RND
+              </button>
+              <button
+                onClick={() => onAction('forwardEval', p.id)}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Assigned to Evaluator
+              </button>
+              <button
+                onClick={() => onAction('revision', p.id)}
+                className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Revise
+              </button>
+              <button
+                onClick={() => onAction('reject', p.id)}
+                className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-lg hover:bg-red-200 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject
+              </button>
             </>
           )}
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center"
           >
             Close
           </button>

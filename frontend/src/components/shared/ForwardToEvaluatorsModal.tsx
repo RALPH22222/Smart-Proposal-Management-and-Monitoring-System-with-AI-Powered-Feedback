@@ -115,7 +115,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-emerald-600" />
+            <Users className="w-5 h-5 text-purple-600" />
             <h2 className="font-bold text-slate-800">Forward to Evaluators</h2>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
@@ -140,13 +140,14 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
                     placeholder="Search evaluators..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value ? Number(e.target.value) : '')}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">All Departments</option>
                   {departments.map((d) => (
@@ -157,7 +158,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
 
               {/* Selected count */}
               {selectedIds.size > 0 && (
-                <div className="text-sm text-emerald-700 font-medium">
+                <div className="text-sm text-purple-700 font-medium">
                   {selectedIds.size} evaluator{selectedIds.size > 1 ? 's' : ''} selected
                 </div>
               )}
@@ -170,15 +171,14 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
                   filtered.map((ev) => (
                     <label
                       key={ev.id}
-                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors ${
-                        selectedIds.has(ev.id) ? 'bg-emerald-50' : ''
-                      }`}
+                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors ${selectedIds.has(ev.id) ? 'bg-purple-50' : ''
+                        }`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedIds.has(ev.id)}
                         onChange={() => toggleEvaluator(ev.id)}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-slate-800 truncate">{getUserName(ev)}</div>
@@ -207,7 +207,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
                 <select
                   value={deadline}
                   onChange={(e) => setDeadline(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value={7}>7 days</option>
                   <option value={14}>14 days</option>
@@ -227,7 +227,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
                   onChange={(e) => setComments(e.target.value)}
                   rows={3}
                   placeholder="Add instructions or notes for evaluators..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                 />
               </div>
             </>
@@ -245,7 +245,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
           <button
             onClick={handleSubmit}
             disabled={submitting || selectedIds.size === 0}
-            className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
             Forward to Evaluators

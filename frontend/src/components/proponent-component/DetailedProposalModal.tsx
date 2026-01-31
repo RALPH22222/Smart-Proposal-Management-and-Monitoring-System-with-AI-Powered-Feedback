@@ -109,6 +109,27 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return `${finalMonths} months`;
   };
 
+  // Format string (e.g. "research_class" -> "Research Class")
+  const formatString = (str: string) => {
+    if (!str) return "N/A";
+    return str
+      .split(/[_\s]+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const getFileName = (url: string) => {
+    if (!url) return "Unknown File";
+    if (url.startsWith("blob:") && newFile) return newFile.name;
+    try {
+      const decoded = decodeURIComponent(url);
+      const parts = decoded.split(/[/\\]/);
+      return parts[parts.length - 1] || "Document.pdf";
+    } catch {
+      return "Document.pdf";
+    }
+  };
+
   // --- Logic Handlers ---
   const handleInputChange = (field: keyof Proposal, value: string) => {
     setEditedProposal({ ...editedProposal, [field]: value });
@@ -582,9 +603,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <FileCheck className="w-5 h-5 text-[#C8102E]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={submittedFiles.length > 0 ? getFileName(submittedFiles[submittedFiles.length - 1]) : "No file uploaded"}>
                       {submittedFiles.length > 0
-                        ? "Current Proposal PDF"
+                        ? getFileName(submittedFiles[submittedFiles.length - 1])
                         : "No file uploaded"}
                     </p>
                     <p className="text-xs text-slate-500">
@@ -958,20 +979,35 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </h4>
               </div>
               {canEdit ? (
-                <input
-                  type="text"
-                  value={currentData.classification}
-                  onChange={(e) =>
-                    handleInputChange("classification", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                    true
-                  )}`}
-                />
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={currentData.classification}
+                    onChange={(e) =>
+                      handleInputChange("classification", e.target.value)
+                    }
+                    placeholder="Type"
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                  <textarea
+                    value={currentData.classificationDetails || ""}
+                    onChange={(e) =>
+                      handleInputChange("classificationDetails", e.target.value)
+                    }
+                    placeholder="Details"
+                    rows={2}
+                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                      true
+                    )}`}
+                  />
+                </div>
               ) : (
-                <p className="text-sm font-medium text-slate-900">
-                  {currentData.classification}
-                </p>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{formatString(currentData.classification)}</p>
+                  {currentData.classificationDetails && <p className="text-xs text-slate-600 mt-1">{currentData.classificationDetails}</p>}
+                </div>
               )}
             </div>
 
