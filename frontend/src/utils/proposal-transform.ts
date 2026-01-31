@@ -43,26 +43,42 @@ export function transformProposalForModal(raw: any) {
       .filter(Boolean)
       .join(", ") || "N/A";
 
-  // Budget transformation: group by source, sum by category
-  const budgetMap: Record<string, { ps: number; mooe: number; co: number }> = {};
+  // Budget transformation: group by source, sum by category, collect items
+  interface CategoryData { items: { item: string; amount: number }[]; total: number }
+  const budgetMap: Record<string, { ps: CategoryData; mooe: CategoryData; co: CategoryData }> = {};
+
   (raw.estimated_budget || []).forEach((b: any) => {
     const src = b.source || "Unknown";
-    if (!budgetMap[src]) budgetMap[src] = { ps: 0, mooe: 0, co: 0 };
+    if (!budgetMap[src]) {
+      budgetMap[src] = {
+        ps: { items: [], total: 0 },
+        mooe: { items: [], total: 0 },
+        co: { items: [], total: 0 }
+      };
+    }
     const cat = b.budget as "ps" | "mooe" | "co";
-    if (cat && budgetMap[src][cat] !== undefined) {
-      budgetMap[src][cat] += b.amount || 0;
+    const itemData = { item: b.item_name || b.item || "Unspecified", amount: b.amount || 0 };
+
+    if (cat && budgetMap[src][cat]) {
+      budgetMap[src][cat].total += b.amount || 0;
+      budgetMap[src][cat].items.push(itemData);
     }
   });
 
   const budgetSources = Object.entries(budgetMap).map(([source, vals]) => ({
     source,
-    ps: fmt(vals.ps),
-    mooe: fmt(vals.mooe),
-    co: fmt(vals.co),
-    total: fmt(vals.ps + vals.mooe + vals.co),
+    ps: fmt(vals.ps.total),
+    mooe: fmt(vals.mooe.total),
+    co: fmt(vals.co.total),
+    total: fmt(vals.ps.total + vals.mooe.total + vals.co.total),
+    breakdown: {
+      ps: vals.ps.items,
+      mooe: vals.mooe.items,
+      co: vals.co.items
+    }
   }));
 
-  const budgetGrandTotal = Object.values(budgetMap).reduce((sum, v) => sum + v.ps + v.mooe + v.co, 0);
+  const budgetGrandTotal = Object.values(budgetMap).reduce((sum, v) => sum + v.ps.total + v.mooe.total + v.co.total, 0);
 
   // Latest file version
   const versions = raw.proposal_version || [];

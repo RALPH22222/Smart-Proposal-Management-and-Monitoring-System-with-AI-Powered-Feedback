@@ -616,7 +616,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                 className={`flex flex-col p-3 border rounded-xl cursor-pointer transition-colors duration-200 select-none sm:col-span-2 ${formData.class_input && formData.class_input !== "basic" && formData.class_input !== "applied" ? "border-black" : "border-gray-200 hover:border-gray-300"}`}
                 onClick={(e) => {
                   if ((e.target as HTMLElement).tagName !== "INPUT") {
-                    handleResearchTypeChange("other", customResearchType || "Custom Type");
+                    handleResearchTypeChange("other", customResearchType || " ");
                   }
                 }}
               >
@@ -632,8 +632,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                 {formData.class_input && formData.class_input !== "basic" && formData.class_input !== "applied" && (
                   <input
                     type="text"
-                    value={customResearchType}
-                    onChange={(e) => handleResearchTypeChange("other", e.target.value)}
+                    value={customResearchType === " " ? "" : customResearchType}
+                    onChange={(e) => handleResearchTypeChange("other", e.target.value || " ")}
                     className="mt-2 ml-8 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1"
                     placeholder="Enter research classification..."
                     autoFocus
@@ -684,7 +684,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                   }`}
                 onClick={(e) => {
                   if ((e.target as HTMLElement).tagName !== "INPUT") {
-                    handleDevelopmentTypeChange("other", customDevelopmentType || "Custom Type");
+                    handleDevelopmentTypeChange("other", customDevelopmentType || " ");
                   }
                 }}
               >
@@ -700,8 +700,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                 {formData.class_input && formData.class_input !== "pilot_testing" && formData.class_input !== "tech_promotion" && (
                   <input
                     type="text"
-                    value={customDevelopmentType}
-                    onChange={(e) => handleDevelopmentTypeChange("other", e.target.value)}
+                    value={customDevelopmentType === " " ? "" : customDevelopmentType}
+                    onChange={(e) => handleDevelopmentTypeChange("other", e.target.value || " ")}
                     className="mt-2 ml-8 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1"
                     placeholder="Enter development classification..."
                     autoFocus

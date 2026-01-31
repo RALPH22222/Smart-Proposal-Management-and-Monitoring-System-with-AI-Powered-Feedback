@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Calendar, User, Eye, Filter, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, Users, Send
+  RefreshCw, Users, Send, Microscope
 } from 'lucide-react';
 import { getProposals } from '../../../services/proposal.api';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
@@ -13,7 +13,7 @@ import RevisionModal from '../../../components/shared/RevisionModal';
 import RejectModal from '../../../components/shared/RejectModal';
 
 // Backend status values
-type BackendStatus = 'review_rnd' | 'under_evaluation' | 'revision_rnd' | 'rejected_rnd' | 'endorsed_for_funding' | 'funded';
+type BackendStatus = 'review_rnd' | 'under_evaluation' | 'revision_rnd' | 'rejected_rnd' | 'endorsed_for_funding' | 'funded' | 'pending';
 
 interface MappedProposal {
   id: number;
@@ -27,7 +27,8 @@ interface MappedProposal {
 }
 
 const statusLabels: Record<BackendStatus, string> = {
-  review_rnd: 'Pending Review',
+  pending: 'Pending Review',
+  review_rnd: 'Under R&D Evaluation',
   under_evaluation: 'Under Evaluation',
   revision_rnd: 'Revision Required',
   rejected_rnd: 'Rejected',
@@ -39,6 +40,35 @@ interface AdminProposalPageProps {
   filter?: BackendStatus;
   onStatsUpdate?: () => void;
 }
+
+const getRandomColorClass = (text: string) => {
+  const colors = [
+    "bg-red-100 text-red-800 border-red-200",
+    "bg-orange-100 text-orange-800 border-orange-200",
+    "bg-amber-100 text-amber-800 border-amber-200",
+    "bg-yellow-100 text-yellow-800 border-yellow-200",
+    "bg-lime-100 text-lime-800 border-lime-200",
+    "bg-green-100 text-green-800 border-green-200",
+    "bg-emerald-100 text-emerald-800 border-emerald-200",
+    "bg-teal-100 text-teal-800 border-teal-200",
+    "bg-cyan-100 text-cyan-800 border-cyan-200",
+    "bg-sky-100 text-sky-800 border-sky-200",
+    "bg-blue-100 text-blue-800 border-blue-200",
+    "bg-indigo-100 text-indigo-800 border-indigo-200",
+    "bg-violet-100 text-violet-800 border-violet-200",
+    "bg-purple-100 text-purple-800 border-purple-200",
+    "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
+    "bg-pink-100 text-pink-800 border-pink-200",
+    "bg-rose-100 text-rose-800 border-rose-200",
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return colors[Math.abs(hash) % colors.length];
+};
 
 const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUpdate }) => {
   const [proposals, setProposals] = useState<MappedProposal[]>([]);
@@ -137,7 +167,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border';
     switch (status) {
       case 'review_rnd':
-        return <span className={`${base} text-amber-600 bg-amber-50 border-amber-200`}><Clock className="w-3 h-3" />Pending Review</span>;
+        return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><Microscope className="w-3 h-3" />Under R&D Evaluation</span>;
       case 'under_evaluation':
         return <span className={`${base} text-emerald-600 bg-emerald-50 border-emerald-200`}><Users className="w-3 h-3" />Under Evaluation</span>;
       case 'revision_rnd':
@@ -148,6 +178,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><FileText className="w-3 h-3" />Endorsed</span>;
       case 'funded':
         return <span className={`${base} text-green-600 bg-green-50 border-green-200`}><FileText className="w-3 h-3" />Funded</span>;
+      case 'pending':
+        return <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}><Clock className="w-3 h-3" />Pending Review</span>;
       default:
         return <span className={`${base} text-slate-600 bg-slate-50 border-slate-200`}><FileText className="w-3 h-3" />{status}</span>;
     }
@@ -224,8 +256,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         </section>
 
         {/* Proposals List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
@@ -238,7 +270,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             </div>
           </div>
 
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -247,174 +279,122 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               </div>
             ) : (
-              <table className="min-w-full text-left align-middle">
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {paginatedProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-slate-50 transition-colors duration-200 group">
-                      {/* Details */}
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
-                            {proposal.title}
+              paginatedProposals.map((proposal) => (
+                <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-base font-semibold text-slate-800 mb-2 block group-hover:text-[#C8102E] transition-colors">
+                        {proposal.title}
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{proposal.submittedBy}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>
+                            {new Date(proposal.submittedDate).toLocaleDateString()}
                           </span>
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                              <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{proposal.submittedBy}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <span>
-                                {new Date(proposal.submittedDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
-                              <Tag className="w-3 h-3" />
-                              {proposal.department}
-                            </span>
-                          </div>
                         </div>
-                      </td>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}>
+                          <Tag className="w-3 h-3" />
+                          {proposal.department}
+                        </span>
+                      </div>
+                    </div>
 
-                      {/* Actions */}
-                      <td className="px-6 py-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          {getStatusBadge(proposal.status)}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      {getStatusBadge(proposal.status)}
 
-                          {/* Send to RND - only for review_rnd status */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'sendToRnd')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                              title="Assign to R&D Staff"
-                            >
-                              <Send className="w-3 h-3" />
-                              Send to RND
-                            </button>
-                          )}
-
-                          {/* Forward to Evaluators - for review_rnd */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'forwardEval')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
-                              title="Forward to Evaluators"
-                            >
-                              <Users className="w-3 h-3" />
-                              Evaluators
-                            </button>
-                          )}
-
-                          {/* Request Revision - for review_rnd or under_evaluation */}
-                          {(proposal.status === 'review_rnd' || proposal.status === 'under_evaluation') && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'revision')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors cursor-pointer"
-                              title="Request Revision"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              Revise
-                            </button>
-                          )}
-
-                          {/* Reject - for review_rnd */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'reject')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-colors cursor-pointer"
-                              title="Reject Proposal"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              Reject
-                            </button>
-                          )}
-
-                          {/* View */}
-                          <button
-                            onClick={() => { setViewProposal(transformProposalForModal(proposal.raw)); setIsViewOpen(true); }}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
-                            title="View details"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* View */}
+                        <button
+                          onClick={() => { setViewProposal(transformProposalForModal(proposal.raw)); setIsViewOpen(true); }}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
+                          title="View details"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))
             )}
           </div>
 
           {/* Pagination */}
-          {filteredProposals.length > 0 && (
-            <div className="p-4 bg-slate-50 border-t border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-                <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+              <span>
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                  Previous
+                </button>
+                <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                  Page {currentPage} of {totalPages || 1}
                 </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3 h-3" />
-                    Previous
-                  </button>
-                  <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                    Page {currentPage} of {totalPages || 1}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Next
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next
+                  <ChevronRight className="w-3 h-3" />
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </main>
+      </div>    {/* View Modal */}
+      <DetailedProposalModal
+        proposal={viewProposal}
+        isOpen={isViewOpen}
+        onClose={() => { setIsViewOpen(false); setViewProposal(null); }}
+        onAction={(action: any, id: any) => {
+          // Close view modal before opening action modal if desired, or keep both?
+          // Usually better to act directly. The user might want to act from the view.
+          setIsViewOpen(false);
+          openAction(Number(id), action);
+        }}
+      />
 
-        {/* View Modal */}
-        <DetailedProposalModal
-          proposal={viewProposal}
-          isOpen={isViewOpen}
-          onClose={() => { setIsViewOpen(false); setViewProposal(null); }}
-        />
+      {/* Action Modals */}
+      <SendToRndModal
+        isOpen={isSendToRndOpen}
+        onClose={() => setIsSendToRndOpen(false)}
+        proposalId={actionProposalId}
+        onSuccess={handleActionSuccess}
+      />
 
-        {/* Action Modals */}
-        <SendToRndModal
-          isOpen={isSendToRndOpen}
-          onClose={() => setIsSendToRndOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
+      <ForwardToEvaluatorsModal
+        isOpen={isForwardEvalOpen}
+        onClose={() => setIsForwardEvalOpen(false)}
+        proposalId={actionProposalId}
+        onSuccess={handleActionSuccess}
+      />
 
-        <ForwardToEvaluatorsModal
-          isOpen={isForwardEvalOpen}
-          onClose={() => setIsForwardEvalOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
+      <RevisionModal
+        isOpen={isRevisionOpen}
+        onClose={() => setIsRevisionOpen(false)}
+        proposalId={actionProposalId}
+        onSuccess={handleActionSuccess}
+      />
 
-        <RevisionModal
-          isOpen={isRevisionOpen}
-          onClose={() => setIsRevisionOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
-
-        <RejectModal
-          isOpen={isRejectOpen}
-          onClose={() => setIsRejectOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
-      </div>
+      <RejectModal
+        isOpen={isRejectOpen}
+        onClose={() => setIsRejectOpen(false)}
+        proposalId={actionProposalId}
+        onSuccess={handleActionSuccess}
+      />
     </div>
   );
 };
