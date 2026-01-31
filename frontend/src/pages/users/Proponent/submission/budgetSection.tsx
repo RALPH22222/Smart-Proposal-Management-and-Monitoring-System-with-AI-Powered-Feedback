@@ -196,7 +196,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     PS
                     <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
                   </label>
-                  <div
+                  <div 
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'ps' })}
                   >
@@ -211,7 +211,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     MOOE
                     <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
                   </label>
-                  <div
+                  <div 
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'mooe' })}
                   >
@@ -226,7 +226,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     CO
                     <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
                   </label>
-                  <div
+                  <div 
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'co' })}
                   >

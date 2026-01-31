@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
-import { FaListAlt, FaUsers, FaBell, FaTablet, FaShareAlt, FaClock } from "react-icons/fa";
+import { FaListAlt, FaUsers, FaBell, FaTablet, FaShareAlt } from "react-icons/fa";
 import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Clock } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
@@ -66,12 +66,24 @@ const Profile: React.FC = () => {
   // Fetch proposals on mount
   React.useEffect(() => {
     const fetchProposals = async () => {
+      if (!user) return;
+
       try {
-        const data = await getProposals();
-        setRawProposals(data);
+        const data: any[] = await getProposals();
+
+        // Filter by current user
+        const myProposals = data.filter((p: any) => {
+          // Handle case where proponent_id is an object (populated user) or just a value
+          const pId = (typeof p.proponent_id === 'object' && p.proponent_id !== null)
+            ? p.proponent_id.id
+            : p.proponent_id;
+          return String(pId) === String(user.id);
+        });
+
+        setRawProposals(myProposals);
 
         // Map backend proposals to frontend Project type
-        const mappedProposals: Project[] = data.map((p: any) => {
+        const mappedProposals: Project[] = myProposals.map((p: any) => {
           let index = 1;
           switch (p.status) {
             case "endorsed_for_funding":
@@ -81,8 +93,8 @@ const Profile: React.FC = () => {
               index = 1;
               break;
             case "under_evaluation":
-              index = 2; // Map to Evaluators Assessment
-              break;
+              index = 1;
+              break; // Mapped to R&D Evaluation as requested
             case "revision_rnd":
               index = 3;
               break;
@@ -104,6 +116,7 @@ const Profile: React.FC = () => {
             id: String(p.id),
             title: p.project_title,
             currentIndex: index,
+            rawStatus: p.status, // IMPORTANT: Store raw status
             submissionDate: new Date(p.created_at).toISOString().split("T")[0],
             lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split("T")[0],
             budget: budgetStr,
@@ -111,10 +124,10 @@ const Profile: React.FC = () => {
             priority: "medium",
             evaluators: p.proposal_evaluators?.length || 0,
             proponent: (function () {
-              const u = p.proponent || (typeof p.proponent_id === "object" ? p.proponent_id : null);
+              const u = p.proponent || (typeof p.proponent_id === 'object' ? p.proponent_id : null);
               if (!u) return "Unknown Proponent";
               return [u.first_name, u.last_name].filter(Boolean).join(" ");
-            })(),
+            })()
           };
         });
 
@@ -126,7 +139,7 @@ const Profile: React.FC = () => {
       }
     };
     fetchProposals();
-  }, []);
+  }, [user]);
 
   // Fetch Lookups
   React.useEffect(() => {
@@ -177,9 +190,9 @@ const Profile: React.FC = () => {
   const { rdEvaluation, evaluatorsAssessment, revision, funded } = filterProjectsByStatus(proposals);
 
   // Compute specific counts based on rawStatus for accuracy
-  const pendingCount = proposals.filter((p) => p.rawStatus === "pending").length;
+  const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
   // R&D Eval should exclude pending
-  const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes(p.rawStatus || "")).length;
+  const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
 
   // Helper to generate tags based on raw data
   const getProjectTags = (id: string | number) => {
@@ -210,17 +223,29 @@ const Profile: React.FC = () => {
 
   // Local Helpers for Status Display
   const getLocalStatusLabel = (project: any) => {
-    if (project.rawStatus === "pending") return "Pending";
-    if (project.rawStatus === "review_rnd") return "Under R&D Evaluation";
-    if (project.rawStatus === "under_evaluation") return "Under Evaluator Assessment";
+    const s = ((project as any).rawStatus || "").toLowerCase();
+    if (s === "pending") return "Pending";
+    if (["revise", "revision"].includes(s)) return "Revision Required";
+    if (["review_rnd", "r&d evaluation"].includes(s)) return "Under R&D Evaluation";
+    if (["under_evaluation", "evaluators assessment"].includes(s)) return "Under Evaluators Assessment";
     return getStatusLabelByIndex(project.currentIndex);
   };
 
   const getLocalStatusColor = (project: any) => {
-    if (project.rawStatus === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
-    if (project.rawStatus === "review_rnd") return "bg-blue-100 text-blue-800 border border-blue-300";
-    if (project.rawStatus === "under_evaluation") return "bg-purple-100 text-purple-800 border border-purple-300";
+    const s = ((project as any).rawStatus || "").toLowerCase();
+    if (s === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
+    if (["revise", "revision"].includes(s)) return "bg-orange-50 text-orange-800 border border-orange-200";
+    if (["review_rnd", "r&d evaluation"].includes(s)) return "bg-blue-100 text-blue-800 border border-blue-300";
+    if (["under_evaluation", "evaluators assessment"].includes(s)) return "bg-purple-100 text-purple-800 border border-purple-300";
     return getStatusColorByIndex(project.currentIndex);
+  };
+
+  const getLocalProgress = (project: any) => {
+    const s = ((project as any).rawStatus || "").toLowerCase();
+    // Match the modal: if pending or revise, progress is 0% (or stalled)
+    if (s === "pending") return 0;
+    if (["revise", "revision"].includes(s)) return 0;
+    return getProgressPercentageByIndex(project.currentIndex);
   };
 
   // Helper for Random Tag Colors
@@ -330,9 +355,9 @@ const Profile: React.FC = () => {
     const proposal: Proposal = {
       id: String(raw.id),
       title: val(raw.project_title),
-      status: raw.status || "pending",
+      status: getLocalStatusLabel(project),
       proponent: (function () {
-        const u = raw.proponent || (typeof raw.proponent_id === "object" ? raw.proponent_id : null);
+        const u = raw.proponent || (typeof raw.proponent_id === 'object' ? raw.proponent_id : null);
         if (!u) return "Unknown Proponent";
         return [u.first_name, u.last_name].filter(Boolean).join(" ");
       })(),
@@ -344,17 +369,17 @@ const Profile: React.FC = () => {
       schoolYear: val(raw.school_year),
       address: raw.agency
         ? [raw.agency.street, raw.agency.barangay, raw.agency.city]
-            .map((part) => val(part)) // Ensure nulls become empty strings
-            .filter((part) => part !== "") // Remove empty strings
-            .join(", ")
+          .map((part) => val(part)) // Ensure nulls become empty strings
+          .filter((part) => part !== "") // Remove empty strings
+          .join(", ")
         : "",
       telephone: val(raw.phone),
       email: val(raw.email),
       cooperatingAgencies: Array.isArray(raw.cooperating_agencies)
         ? raw.cooperating_agencies
-            .map((c: any) => c.agencies?.name)
-            .filter(Boolean)
-            .join(", ")
+          .map((c: any) => c.agencies?.name)
+          .filter(Boolean)
+          .join(", ")
         : "",
       rdStation:
         raw.rnd_station?.name || // Check for direct object first
@@ -362,18 +387,20 @@ const Profile: React.FC = () => {
           ? val(raw.rnd_station[0].agencies.name)
           : "") ||
         "",
-      classification:
-        raw.classification_type === "research_class"
-          ? val(raw.research_class)
-          : raw.classification_type === "development_class"
-            ? val(raw.development_class)
-            : "",
+      classification: raw.class_input
+        ? val(raw.class_input).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+        : "",
       classificationDetails: "",
-      modeOfImplementation: val(raw.implementation_mode),
+      modeOfImplementation: val(raw.implementation_mode)
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (char: string) => char.toUpperCase()),
       implementationSites: Array.isArray(raw.implementation_site)
         ? raw.implementation_site.map((s: any) => ({ site: val(s.site_name), city: val(s.city) }))
         : [],
-      priorityAreas: Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : "",
+      priorityAreas: Array.isArray(raw.proposal_priorities)
+        ? raw.proposal_priorities.map((pp: any) => pp.priorities?.name).filter(Boolean).join(", ")
+        : (Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : ""),
       sector: raw.sector ? val(raw.sector.name) : "",
       discipline: raw.discipline ? val(raw.discipline.name) : "",
       duration: val(raw.duration) ? `${raw.duration} months` : "", // Appending 'months' as likely usually stored as num
@@ -458,7 +485,8 @@ const Profile: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
           {filteredProjects.map((project) => {
-            const progress = getProgressPercentageByIndex(project.currentIndex);
+            const progress = getLocalProgress(project);
+            const statusLabel = getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
 
             return (
@@ -515,8 +543,10 @@ const Profile: React.FC = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLocalStatusColor(project)}`}>
-                      {getLocalStatusLabel(project)}
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getLocalStatusColor(project)}`}
+                    >
+                      {statusLabel}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -570,7 +600,7 @@ const Profile: React.FC = () => {
           ) : (
             filteredProjects.map((project) => {
               const progress = getProgressPercentageByIndex(project.currentIndex);
-              const statusLabel = getLocalStatusLabel(project);
+              const statusLabel = getStatusLabelByIndex(project.currentIndex);
               const tags = getProjectTags(project.id);
 
               return (
@@ -604,7 +634,9 @@ const Profile: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-4 lg:px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLocalStatusColor(project)}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColorByIndex(project.currentIndex)}`}
+                    >
                       {statusLabel}
                     </span>
                   </td>
@@ -696,17 +728,15 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
               >
                 <FaTablet className="text-sm" />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
               >
                 <FaListAlt className="text-sm" />
               </button>
@@ -748,6 +778,9 @@ const Profile: React.FC = () => {
               <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </div>
+
+          {/* R&D Evaluation Card */}
+          {/* Duplicate removed */}
 
           {/* Evaluators Assessment Card */}
           <div className="bg-purple-50 shadow-xl rounded-2xl border border-purple-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
@@ -815,17 +848,15 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setProjectTab("all")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                  }`}
               >
                 All Projects
               </button>
               <button
                 onClick={() => setProjectTab("budget")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                  }`}
               >
                 Funded Project ({funded.length})
               </button>
