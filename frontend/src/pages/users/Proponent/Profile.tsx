@@ -187,7 +187,7 @@ const Profile: React.FC = () => {
   }, [notificationsOpen]);
 
   // Filter projects by status using helper function
-  const { rdEvaluation, evaluatorsAssessment, revision, funded } = filterProjectsByStatus(proposals);
+  const { evaluatorsAssessment, revision, funded } = filterProjectsByStatus(proposals);
 
   // Compute specific counts based on rawStatus for accuracy
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
