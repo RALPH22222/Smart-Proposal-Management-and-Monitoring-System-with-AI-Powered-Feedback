@@ -17,16 +17,13 @@ import {
   Clock,
   Briefcase,
   FileCheck,
-  Target,
   Timer,
-  Bot,
   Building2,
   MapPin,
   Send,
   Globe,
   CheckCircle,
   Edit2, // Added
-  Save   // Added
 } from "lucide-react";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
@@ -281,9 +278,6 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     overall:
       "The proposal is promising but requires adjustments in the methodology and budget allocation.",
   };
-
-  const mockRejection =
-    "The proposal does not align with the current priority agenda of the institution.";
 
   const mockRevisionDeadline = "November 30, 2025 | 5:00 PM";
 

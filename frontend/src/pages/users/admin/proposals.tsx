@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText, Calendar, User, Eye, Filter, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, Users, Send, Microscope
+  RefreshCw, Users, Microscope
 } from 'lucide-react';
 import { getProposals } from '../../../services/proposal.api';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
