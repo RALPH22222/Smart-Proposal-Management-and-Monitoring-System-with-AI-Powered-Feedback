@@ -222,10 +222,18 @@ export const getRndProposals = async (): Promise<any[]> => {
   return data;
 };
 
+export const getEvaluatorProposals = async (): Promise<any[]> => {
+  const { data } = await api.get<any[]>(`/proposal/view-evaluator`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
 export type DecisionEvaluatorInput = {
   proposal_id: number;
-  status: "pending" | "accept" | "decline" | "extend";
+  status: "pending" |"accept" | "decline" | "extend";
   deadline_at?: string;
+  remarks?: string;
 };
 
 export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput): Promise<any> => {

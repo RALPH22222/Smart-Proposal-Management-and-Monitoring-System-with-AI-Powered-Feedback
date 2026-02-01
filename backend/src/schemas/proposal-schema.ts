@@ -152,7 +152,7 @@ export const decisionEvaluatorToProposalSchema = z.object({
   proposal_id: z.number(),
   status: z.preprocess(parseJsonIfString, z.nativeEnum(AssignmentTracker)),
   remarks: z.string().optional(),
-  deadline_at: z.string().date(),
+  deadline_at: z.string().date().optional(),
 });
 
 // --- Keep the rest the same ---

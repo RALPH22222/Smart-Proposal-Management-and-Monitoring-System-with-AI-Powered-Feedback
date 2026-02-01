@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FileText,
   Eye,
@@ -15,53 +15,10 @@ import {
   Gavel,
   CalendarClock
 } from "lucide-react";
+import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
+import Swal from "sweetalert2";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
-
-interface BudgetSource {
-  source: string;
-  ps: string;
-  mooe: string;
-  co: string;
-  total: string;
-}
-
-interface Sites {
-  site: string;
-  city: string;
-}
-
-interface Proposal {
-  id: number;
-  title: string;
-  proponent: string;
-  gender: string;
-  telephone: string;
-  email: string;
-  modeOfImplementation: string;
-  implementationSites: Sites[];
-  priorityAreas: string;
-  status: string;
-  deadline: string;
-  projectType: string;
-  agency: string; 
-  address: string;
-  cooperatingAgencies: string;
-  rdStation: string;
-  classification: string;
-  classificationDetails: string;
-  sector: string;
-  discipline: string;
-  duration: string;
-  schoolYear: string;
-  startDate: string;
-  endDate: string;
-  budgetSources: BudgetSource[];
-  budgetTotal: string;
-  assignedRdStaff?: string;
-  rdCommentsToEvaluator?: string;
-  evaluationDeadline?: string;
-}
 
 export default function Proposals() {
   const [search, setSearch] = useState("");
@@ -77,386 +34,55 @@ export default function Proposals() {
 
   const itemsPerPage = 5;
 
-  // --- MOCK DATA ---
-  const proposals: Proposal[] = [
-    {
-      id: 1,
-      title: "AI Research on Education",
-      proponent: "John Doe",
-      gender: "Male",
-      telephone: "(062) 991-1771",
-      email: "j.doe@wmsu.edu.ph",
-      modeOfImplementation: "Multi Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      priorityAreas: "Artificial Intelligence in Education",
-      status: "accepted",
-      deadline: "Oct 15, 2025",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
-      rdStation: "College of Computing Studies",
-      classification: "Research",
-      classificationDetails: "Basic",
-      sector: "Education Technology",
-      discipline: "Information and Communication Technology",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱600,000.00",
-          mooe: "₱500,000.00",
-          co: "₱150,000.00",
-          total: "₱1,250,000.00",
-        },
-      ],
-      budgetTotal: "₱1,250,000.00",
-      assignedRdStaff: "Dr. Maria Santos",
-      rdCommentsToEvaluator:
-        "Please focus on evaluating the technical feasibility and scalability of the AI algorithms proposed. Pay special attention to the data privacy considerations for student data.",
-      evaluationDeadline: "November 15, 2025",
-    },
-    {
-      id: 2,
-      title: "Smart Grid Energy Management System",
-      proponent: "Jane Smith",
-      gender: "Female",
-      telephone: "(062) 991-2002",
-      email: "j.smith@zscmst.edu.ph",
-      modeOfImplementation: "Multi Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      priorityAreas: "Renewable Energy & Smart Grids",
-      status: "extension_requested",
-      deadline: "Oct 20, 2025",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
-      rdStation: "Agricultural Research Center",
-      classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization",
-      sector: "Agriculture and Fisheries",
-      discipline: "Agricultural Engineering",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱800,000.00",
-          mooe: "₱700,000.00",
-          co: "₱100,000.00",
-          total: "₱1,600,000.00",
-        },
-        {
-          source: "DA RO9",
-          ps: "₱300,000.00",
-          mooe: "₱200,000.00",
-          co: "₱0.00",
-          total: "₱500,000.00",
-        },
-      ],
-      budgetTotal: "₱2,100,000.00",
-      assignedRdStaff: "Dr. Carlos Reyes",
-      rdCommentsToEvaluator:
-        "Evaluate the integration of IoT sensors with existing grid infrastructure. Assess the cost-benefit analysis and potential impact on rural communities.",
-      evaluationDeadline: "November 20, 2025",
-    },
-    {
-      id: 3,
-      title: "IoT-Based Energy Monitoring",
-      proponent: "Michael Lee",
-      gender: "Male",
-      telephone: "(062) 991-3333",
-      email: "m.lee@zcmc.doh.gov.ph",
-      modeOfImplementation: "Single Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      priorityAreas: "Internet of Things (IoT)",
-      status: "rejected",
-      deadline: "Oct 10, 2025",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
-      rdStation: "Medical Informatics Department",
-      classification: "Research",
-      classificationDetails: "Basic",
-      sector: "Health and Wellness",
-      discipline: "Health Information Technology",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱700,000.00",
-          mooe: "₱800,000.00",
-          co: "₱300,000.00",
-          total: "₱1,800,000.00",
-        },
-      ],
-      budgetTotal: "₱1,800,000.00",
-      assignedRdStaff: "Dr. Angela Rivera",
-      rdCommentsToEvaluator:
-        "This proposal was rejected due to insufficient technical details and lack of clear implementation timeline. Focus on providing constructive feedback for resubmission.",
-      evaluationDeadline: "November 10, 2025",
-    },
-    {
-      id: 4,
-      title: "Quantum Computing Research",
-      proponent: "Dr. Sarah Chen",
-      gender: "Female",
-      telephone: "(062) 991-4444",
-      email: "s.chen@msu.edu.ph",
-      modeOfImplementation: "Single Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      priorityAreas: "Quantum Computing",
-      status: "pending",
-      deadline: "Oct 25, 2025",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DOST RO9, DICT RO9, Private Sector",
-      rdStation: "Computer Science Research Lab",
-      classification: "Research",
-      classificationDetails: "Applied",
-      sector: "Information Technology",
-      discipline: "Computer Science",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,000,000.00",
-          mooe: "₱900,000.00",
-          co: "₱400,000.00",
-          total: "₱2,300,000.00",
-        },
-        {
-          source: "MSU",
-          ps: "₱150,000.00",
-          mooe: "₱50,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱2,500,000.00",
-      assignedRdStaff: "Dr. John Smith",
-      rdCommentsToEvaluator:
-        "High-priority proposal. Please evaluate the quantum algorithm efficiency and potential real-world applications. Consider the availability of required quantum computing resources.",
-      evaluationDeadline: "November 25, 2025",
-    },
-    {
-      id: 5,
-      title: "Renewable Energy Storage Optimization",
-      proponent: "David Wilson",
-      gender: "Male",
-      telephone: "(062) 991-5555",
-      email: "d.wilson@msu.edu.ph",
-      modeOfImplementation: "Multi Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      priorityAreas: "Energy Storage Systems",
-      status: "accepted",
-      deadline: "Oct 18, 2025",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
-      rdStation: "Renewable Energy Research Lab",
-      classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization",
-      sector: "Energy and Power",
-      discipline: "Electrical Engineering",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,200,000.00",
-          mooe: "₱800,000.00",
-          co: "₱300,000.00",
-          total: "₱2,300,000.00",
-        },
-        {
-          source: "DOE RO9",
-          ps: "₱100,000.00",
-          mooe: "₱100,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱2,500,000.00",
-      assignedRdStaff: "Dr. Maria Santos",
-      rdCommentsToEvaluator:
-        "Excellent proposal with strong industry partnerships. Focus evaluation on battery lifespan, environmental impact, and commercialization potential.",
-      evaluationDeadline: "November 18, 2025",
-    },
-    {
-      id: 6,
-      title: "Neural Network Optimization",
-      proponent: "Lisa Park",
-      gender: "Female",
-      telephone: "(062) 991-6666",
-      email: "l.park@adzu.edu.ph",
-      modeOfImplementation: "Single Agency",
-        implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      priorityAreas: "Artificial Intelligence",
-      status: "pending",
-      deadline: "Oct 22, 2025",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DOST RO9, DICT RO9",
-      rdStation: "AI Research Center",
-      classification: "Research",
-      classificationDetails: "Applied",
-      sector: "Artificial Intelligence",
-      discipline: "Computer Science and Mathematics",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱700,000.00",
-          mooe: "₱600,000.00",
-          co: "₱200,000.00",
-          total: "₱1,500,000.00",
-        },
-      ],
-      budgetTotal: "₱1,500,000.00",
-      assignedRdStaff: "Dr. Carlos Reyes",
-      rdCommentsToEvaluator:
-        "Please evaluate the novelty of the optimization techniques and their applicability to real-world problems. Consider computational requirements and scalability.",
-      evaluationDeadline: "November 22, 2025",
-    },
-    {
-      id: 7,
-      title: "Smart Energy Distribution Network",
-      proponent: "Alex Johnson",
-      gender: "Male",
-      telephone: "(062) 991-7777",
-      email: "a.johnson@adzu.edu.ph",
-      modeOfImplementation: "Single Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      priorityAreas: "Smart Cities",
-      status: "pending",
-      deadline: "Oct 28, 2025",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
-      rdStation: "Urban Planning Research Institute",
-      classification: "Development",
-      classificationDetails: "Pilot Testing",
-      sector: "Public Safety and Security",
-      discipline: "Civil Engineering and ICT",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,500,000.00",
-          mooe: "₱1,200,000.00",
-          co: "₱300,000.00",
-          total: "₱3,000,000.00",
-        },
-        {
-          source: "DILG RO9",
-          ps: "₱100,000.00",
-          mooe: "₱100,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱3,200,000.00",
-      assignedRdStaff: "Dr. Angela Rivera",
-      rdCommentsToEvaluator:
-        "Multi-agency collaboration proposal. Evaluate integration challenges with existing urban infrastructure and potential regulatory hurdles.",
-      evaluationDeadline: "November 28, 2025",
-    },
-    {
-      id: 8,
-      title: "Machine Learning for Power Systems",
-      proponent: "Dr. Emma White",
-      gender: "Female",
-      telephone: "(062) 991-8888",
-      email: "e.white@zpmc.gov.ph",
-      modeOfImplementation: "Multi Agency",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      priorityAreas: "Power Systems",
-      status: "rejected",
-      deadline: "Oct 12, 2025",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Baliwasan, Z.C.",
-      cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
-      rdStation: "Medical AI Research Unit",
-      classification: "Research",
-      classificationDetails: "Applied",
-      sector: "Health and Wellness",
-      discipline: "Medical Technology and ICT",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,200,000.00",
-          mooe: "₱1,050,000.00",
-          co: "₱300,000.00",
-          total: "₱2,550,000.00",
-        },
-        {
-          source: "DOH RO9",
-          ps: "₱150,000.00",
-          mooe: "₱50,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱2,750,000.00",
-      assignedRdStaff: "Dr. John Smith",
-      rdCommentsToEvaluator:
-        "Proposal lacked clear methodology for ML model validation. Please provide detailed feedback on improving the technical approach and experimental design.",
-      evaluationDeadline: "November 12, 2025",
-    },
-  ];
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // ... (Keep filtering/sorting logic)
+  const fetchProposals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getEvaluatorProposals();
+      console.log("Evaluator Proposals Raw Data:", data);
+      
+      const mapped = (data || []).map((p: any) => {
+        // Handle different potential structures effectively
+        // Sometimes p might be the proposal itself, or p.proposal_id object
+        
+        const proposalObj = p.proposal_id || p;
+        
+        // Robust proponent name extraction
+        let proponentName = 'Unknown';
+        if (proposalObj.proponent_id) {
+            if (typeof proposalObj.proponent_id === 'object') {
+                 proponentName = `${proposalObj.proponent_id.first_name || ''} ${proposalObj.proponent_id.last_name || ''}`;
+            } else if (typeof proposalObj.proponent_id === 'string') {
+                 proponentName = proposalObj.proponent_id;
+            }
+        }
+
+        return {
+          id: proposalObj.id,
+          title: proposalObj.project_title || "Untitled",
+          proponent: proponentName.trim(),
+          status: p.status || proposalObj.status || "pending", 
+          deadline: proposalObj.target_date_of_completion ? new Date(proposalObj.target_date_of_completion).toLocaleDateString() : "N/A",
+          projectType: proposalObj.sector?.name || "N/A", 
+          raw: p 
+        };
+      });
+
+      console.log("Mapped Proposals:", mapped);
+      setProposals(mapped);
+    } catch (error) {
+      console.error("Failed to fetch proposals", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
+
   const filtered = proposals.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -556,17 +182,63 @@ export default function Proposals() {
     setProposalToEvaluate(null);
   };
 
-  const handleSubmitDecision = (
+  const handleSubmitDecision = async (
     status: "accepted" | "rejected" | "extension",
     remarks: string,
     newDeadline?: string
   ) => {
-    console.log(`Proposal ${proposalToEvaluate} Decision: ${status}`);
-    console.log(`Remarks: ${remarks}`);
-    if (status === "extension" && newDeadline) {
-      console.log(`Requested New Deadline: ${newDeadline}`);
+    if (!proposalToEvaluate) return;
+
+    // Map status to API expected values
+    let apiStatus: "accept" | "decline" | "extend";
+    switch (status) {
+      case "accepted":
+        apiStatus = "accept";
+        break;
+      case "rejected":
+        apiStatus = "decline";
+        break;
+      case "extension":
+        apiStatus = "extend";
+        break;
+      default:
+        console.error("Invalid status");
+        return;
     }
-    closeDecisionModal();
+
+    // Format deadline if exists (Use YYYY-MM-DD to match backend expectations)
+    const formattedDeadline = newDeadline 
+        ? new Date(newDeadline).toISOString().split('T')[0] 
+        : undefined;
+
+    const payload = {
+        proposal_id: proposalToEvaluate,
+        status: apiStatus,
+        remarks: remarks || undefined, // Send undefined if empty string
+        deadline_at: formattedDeadline,
+    };
+
+    try {
+      // @ts-ignore - Ignore type check for debugging if types aren't perfectly aligned yet
+      await decisionEvaluatorToProposal(payload);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Evaluation submitted successfully.",
+      });
+
+      closeDecisionModal();
+      fetchProposals(); 
+    } catch (err: any) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          err?.response?.data?.message || "Failed to submit evaluation decision.",
+      });
+    }
   };
 
   const proposal = proposals.find((p) => p.id === selectedProposal);
@@ -668,7 +340,11 @@ export default function Proposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {paginatedProposals.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+            </div>
+          ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article
