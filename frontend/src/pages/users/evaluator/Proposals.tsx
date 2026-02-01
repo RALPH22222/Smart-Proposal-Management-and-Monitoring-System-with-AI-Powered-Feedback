@@ -219,7 +219,6 @@ export default function Proposals() {
     };
 
     try {
-      // @ts-ignore - Ignore type check for debugging if types aren't perfectly aligned yet
       await decisionEvaluatorToProposal(payload);
 
       Swal.fire({
@@ -231,7 +230,12 @@ export default function Proposals() {
       closeDecisionModal();
       fetchProposals(); 
     } catch (err: any) {
-      console.error(err);
+      console.error("Evaluation Submission Error:", err);
+      // Log full validation error if available
+      if (err.response?.data?.data) {
+        console.error("Validation Details:", err.response.data.data);
+      }
+      
       Swal.fire({
         icon: "error",
         title: "Error",

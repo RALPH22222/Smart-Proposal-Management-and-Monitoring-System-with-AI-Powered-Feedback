@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   X,
   Users,
@@ -23,7 +23,7 @@ import {
   Send,
   Globe,
   CheckCircle,
-  Edit2, // Added
+
 } from "lucide-react";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
@@ -129,27 +129,6 @@ const formatString = (str: string) => {
     .split(/[_\s]+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
-};
-
-// Format any date string to YYYY-MM-DD for input value
-const formatDateForInput = (dateStr: string) => {
-  if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return "";
-    return date.toISOString().split('T')[0];
-  } catch (e) {
-    return "";
-  }
-};
-
-// Extract number from duration string (e.g., "12 Months" -> "12")
-const cleanDuration = (d: string | number) => {
-  if (!d) return "";
-  // If it's already a number, return as string
-  if (typeof d === 'number') return d.toString();
-  // If string, replace non-digits
-  return d.toString().replace(/\D/g, '');
 };
 
 const AdminViewModal: React.FC<AdminViewModalProps> = ({

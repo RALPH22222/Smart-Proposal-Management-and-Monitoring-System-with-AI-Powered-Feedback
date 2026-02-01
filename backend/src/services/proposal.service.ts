@@ -333,10 +333,10 @@ export class ProposalService {
       return { error: insertError };
     }
 
-    if (AssignmentTracker.EXTEND == input.status) {
+    if (input.status === AssignmentTracker.EXTEND) {
       const { error: insertError } = await this.db
         .from("proposal_assignment_tracker")
-        .update(deadline_at)
+        .update({ deadline_at })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id);
 
@@ -345,7 +345,7 @@ export class ProposalService {
       }
     }
 
-    if (AssignmentTracker.ACCEPT) {
+    if (input.status === AssignmentTracker.ACCEPT) {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.FOR_REVIEW })
@@ -355,7 +355,7 @@ export class ProposalService {
       if (updateError) {
         return { error: updateError };
       }
-    } else if (AssignmentTracker.DECLINE) {
+    } else if (input.status === AssignmentTracker.DECLINE) {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.DECLINE })

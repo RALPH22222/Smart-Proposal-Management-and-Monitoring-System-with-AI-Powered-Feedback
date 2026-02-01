@@ -140,7 +140,6 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
                     placeholder="Search evaluators..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
