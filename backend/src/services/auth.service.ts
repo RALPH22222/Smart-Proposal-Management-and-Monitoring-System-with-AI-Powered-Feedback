@@ -4,11 +4,11 @@ import jwt from "jsonwebtoken";
 import { DecodedToken } from "../types/auth";
 
 type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
-  photo_profile_url: string;
+  photo_profile_url: string | null; // Photo is optional
 };
 
 export class AuthService {
-  constructor(private db?: SupabaseClient) {}
+  constructor(private db?: SupabaseClient) { }
 
   async login(email: string, password: string) {
     const { data, error } = await this.db!.auth.signInWithPassword({ email, password });

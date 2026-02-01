@@ -39,9 +39,9 @@ export const RoleEnum = z.enum(["proponent", "rnd", "evaluator", "rdec", "admin"
 export const signUpSchema = z.object({
   email: z.string().email("Email is not valid"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  first_name: z.string().min(1, "Name is required"),
-  last_name: z.string().min(1, "Name is required"),
-  middle_ini: z.string().min(1, "Name is required").max(1, "Exceed the character limit").optional(),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  middle_ini: z.string().max(1, "Middle initial must be 1 character").optional(),
   roles: z.array(RoleEnum).min(1, "At least one role is required"),
 });
 
@@ -49,7 +49,7 @@ export const profileSetupSchema = z.object({
   birth_date: z.coerce.date(), // keep as-is if you already store string; otherwise switch to z.coerce.date()
   sex: z.preprocess(parseJsonIfString, z.nativeEnum(Sex)),
   department_id: z.string(),
-  photo_profile_url: photoProfileSchema,
+  photo_profile_url: photoProfileSchema.optional(), // Photo is optional
 });
 
 export type Role = z.infer<typeof RoleEnum>;

@@ -31,9 +31,23 @@ export default function Register() {
 
     try {
       setLoading(true);
+
+      // Only include middle_ini if it has a value (workaround until backend is deployed)
+      const payload: any = {
+        first_name,
+        last_name,
+        email,
+        password,
+        roles: ["proponent"]
+      };
+
+      if (middle_ini && middle_ini.trim()) {
+        payload.middle_ini = middle_ini;
+      }
+
       await api.post<SignUpResponse>(
         "/auth/sign-up",
-        { first_name, middle_ini, last_name, email, password, roles: ["proponent"] },
+        payload,
         {
           headers: { "Content-Type": "application/json" },
         },

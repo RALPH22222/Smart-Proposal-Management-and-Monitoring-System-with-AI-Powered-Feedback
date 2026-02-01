@@ -118,6 +118,17 @@ export class BackendStack extends Stack {
     });
     profile_setup_bucket.grantPut(profile_setup_lambda);
 
+    const profile_status_lambda = new NodejsFunction(this, "pms-profile-status", {
+      functionName: "pms-profile-status",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "profile-status.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const create_proposal_lambda = new NodejsFunction(this, "pms-create-propposal", {
       functionName: "pms-create-propposal",
       memorySize: 256,
@@ -677,6 +688,13 @@ export class BackendStack extends Stack {
     // /auth/profile-setup
     const profile_setup = auth.addResource("profile-setup");
     profile_setup.addMethod(HttpMethod.POST, new LambdaIntegration(profile_setup_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /auth/profile-status
+    const profile_status = auth.addResource("profile-status");
+    profile_status.addMethod(HttpMethod.GET, new LambdaIntegration(profile_status_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

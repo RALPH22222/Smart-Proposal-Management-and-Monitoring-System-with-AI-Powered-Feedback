@@ -9,30 +9,15 @@ const s3Client = new S3Client({});
 
 export const handler = buildCorsHeaders(async (event) => {
   const { user_sub } = event.requestContext.authorizer as Record<string, string>;
-  if (!process.env.PROFILE_SETUP_BUCKET_NAME) {
-    throw new Error("PROFILE_SETUP_BUCKET_NAME is not defined");
-  }
-  const Bucket = process.env.PROFILE_SETUP_BUCKET_NAME;
 
   // Parse Multipart Data
   const payload = await multipart.parse(event);
   const { files, ...body } = payload;
 
-  // 1) Ensure file exists early (optional but clearer error)
-  if (!files || files.length === 0) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        type: "validation_error",
-        data: [{ message: "photo_profile_url is required" }],
-      }),
-    };
-  }
-
-  // 2) Validate form fields + file (type + max size)
+  // Validate required fields (photo is optional)
   const validation = profileSetupSchema.safeParse({
     ...body,
-    photo_profile_url: files[0],
+    photo_profile_url: files && files.length > 0 ? files[0] : undefined,
   });
 
   if (!validation.success) {
@@ -40,35 +25,70 @@ export const handler = buildCorsHeaders(async (event) => {
       statusCode: 400,
       body: JSON.stringify({
         type: "validation_error",
+        message: validation.error.issues.map(issue => issue.message).join(", "),
         data: validation.error.issues,
       }),
     };
   }
 
-  // validation.data.photo_profile_url has: filename, contentType, content (Buffer)
-  const { photo_profile_url, ...data } = validation.data;
+  const { photo_profile_url, department_id: departmentNameOrId, ...data } = validation.data;
+  let photoUrl: string | null = null;
 
-  // 3) Upload to S3
-  const safeFilename = photo_profile_url.filename.replace(/[^\w.\-]+/g, "_");
-  const Key = `profile-photos/${user_sub}-${safeFilename}`;
+  // Look up department ID if a name was provided
+  let departmentId: string | null = null;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket,
-      Key,
-      Body: photo_profile_url.content,
-      ContentType: photo_profile_url.contentType,
-    }),
-  );
+  // Check if it's a numeric ID or a name
+  if (departmentNameOrId && isNaN(Number(departmentNameOrId))) {
+    // It's a name, look it up in the database
+    const { data: dept, error: deptError } = await supabase
+      .from("department")
+      .select("id")
+      .eq("name", departmentNameOrId)
+      .maybeSingle();
 
-  // 4) Build URL (region-aware)
-  const photoUrl = `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`;
+    if (deptError || !dept) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          type: "validation_error",
+          message: `Department "${departmentNameOrId}" not found. Please select a valid R&D Station.`,
+        }),
+      };
+    }
+    departmentId = String(dept.id);
+  } else {
+    // It's already an ID
+    departmentId = departmentNameOrId;
+  }
 
-  // 5) Persist to DB via service
+  // Upload photo to S3 only if provided
+  if (photo_profile_url) {
+    if (!process.env.PROFILE_SETUP_BUCKET_NAME) {
+      throw new Error("PROFILE_SETUP_BUCKET_NAME is not defined");
+    }
+    const Bucket = process.env.PROFILE_SETUP_BUCKET_NAME;
+
+    const safeFilename = photo_profile_url.filename.replace(/[^\w.\-]+/g, "_");
+    const Key = `profile-photos/${user_sub}-${safeFilename}`;
+
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket,
+        Key,
+        Body: photo_profile_url.content,
+        ContentType: photo_profile_url.contentType,
+      }),
+    );
+
+    photoUrl = `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`;
+  }
+
+  // Persist to DB via service
   const authService = new AuthService(supabase);
   const { error } = await authService.profileSetup(user_sub, {
     ...data,
-    photo_profile_url: photoUrl,
+    department_id: departmentId,
+    photo_profile_url: photoUrl, // Will be null if no photo uploaded
   });
 
   if (error) {
@@ -81,6 +101,9 @@ export const handler = buildCorsHeaders(async (event) => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: "Profile setup completed successfully." }),
+    body: JSON.stringify({
+      message: "Profile setup completed successfully.",
+      photoUploaded: !!photoUrl
+    }),
   };
 });

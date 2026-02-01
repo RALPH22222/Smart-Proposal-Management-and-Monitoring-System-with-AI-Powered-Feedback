@@ -354,7 +354,7 @@ const Profile: React.FC = () => {
     const proposal: Proposal = {
       id: String(raw.id),
       title: val(raw.project_title),
-      status: getStatusFromIndex(project.currentIndex),
+      status: (project as any).rawStatus || getStatusFromIndex(project.currentIndex), // Use raw backend status
       proponent: (function () {
         const u = raw.proponent || (typeof raw.proponent_id === 'object' ? raw.proponent_id : null);
         if (!u) return "Unknown Proponent";
@@ -368,17 +368,17 @@ const Profile: React.FC = () => {
       schoolYear: val(raw.school_year),
       address: raw.agency
         ? [raw.agency.street, raw.agency.barangay, raw.agency.city]
-            .map((part) => val(part)) // Ensure nulls become empty strings
-            .filter((part) => part !== "") // Remove empty strings
-            .join(", ")
+          .map((part) => val(part)) // Ensure nulls become empty strings
+          .filter((part) => part !== "") // Remove empty strings
+          .join(", ")
         : "",
       telephone: val(raw.phone),
       email: val(raw.email),
       cooperatingAgencies: Array.isArray(raw.cooperating_agencies)
         ? raw.cooperating_agencies
-            .map((c: any) => c.agencies?.name)
-            .filter(Boolean)
-            .join(", ")
+          .map((c: any) => c.agencies?.name)
+          .filter(Boolean)
+          .join(", ")
         : "",
       rdStation:
         raw.rnd_station?.name || // Check for direct object first
@@ -726,17 +726,15 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
               >
                 <FaTablet className="text-sm" />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                }`}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
               >
                 <FaListAlt className="text-sm" />
               </button>
@@ -848,17 +846,15 @@ const Profile: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setProjectTab("all")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                  }`}
               >
                 All Projects
               </button>
               <button
                 onClick={() => setProjectTab("budget")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+                  }`}
               >
                 Funded Project ({fundedProjects.length})
               </button>
