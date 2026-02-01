@@ -12,8 +12,7 @@ import {
   getStageIcon,
   getProgressPercentageByIndex,
   getStatusLabelByIndex,
-  filterProjectsByStatus,
-} from "../../../types/helpers"; // Removed getPriorityColor import
+} from "../../../types/helpers";
 import {
   getProposals,
   fetchAgencies,
@@ -186,13 +185,13 @@ const Profile: React.FC = () => {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [notificationsOpen]);
 
-  // Filter projects by status using helper function
-  const { evaluatorsAssessment, revision, funded } = filterProjectsByStatus(proposals);
-
-  // Compute specific counts based on rawStatus for accuracy
+  // Compute counts based on rawStatus for accuracy
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
-  // R&D Eval should exclude pending
   const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
+  const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
+  const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision"].includes((p as any).rawStatus || "")).length;
+  const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding").length;
+
 
   // Helper to generate tags based on raw data
   const getProjectTags = (id: string | number) => {
@@ -387,10 +386,8 @@ const Profile: React.FC = () => {
           ? val(raw.rnd_station[0].agencies.name)
           : "") ||
         "",
-      classification: raw.class_input
-        ? val(raw.class_input).replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
-        : "",
-      classificationDetails: "",
+      classification: raw.classification_type || "",
+      classificationDetails: raw.class_input || "",
       modeOfImplementation: val(raw.implementation_mode)
         .replace(/_/g, " ")
         .toLowerCase()
@@ -461,9 +458,10 @@ const Profile: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Filtering Logic
-  const baseProjects = projectTab === "all" ? proposals : funded;
+  const fundedProjects = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding");
+  const baseProjects = projectTab === "all" ? proposals : fundedProjects;
 
-  const filteredProjects = baseProjects.filter((project) => {
+  const filteredProjects = baseProjects.filter((project: Project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
     const tags = getProjectTags(project.id);
     const matchesType = typeFilter === "All" || tags.includes(typeFilter);
@@ -787,7 +785,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
-                <p className="text-xl font-bold text-purple-600 tabular-nums">{evaluatorsAssessment.length}</p>
+                <p className="text-xl font-bold text-purple-600 tabular-nums">{evaluatorsAssessmentCount}</p>
               </div>
               <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -798,7 +796,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Revision Required</p>
-                <p className="text-xl font-bold text-orange-600 tabular-nums">{revision.length}</p>
+                <p className="text-xl font-bold text-orange-600 tabular-nums">{revisionCount}</p>
               </div>
               <RefreshCw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -809,7 +807,7 @@ const Profile: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
-                <p className="text-xl font-bold text-green-600 tabular-nums">{funded.length}</p>
+                <p className="text-xl font-bold text-green-600 tabular-nums">{fundedCount}</p>
               </div>
               <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
@@ -858,7 +856,7 @@ const Profile: React.FC = () => {
                 className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
                   }`}
               >
-                Funded Project ({funded.length})
+                Funded Project ({fundedProjects.length})
               </button>
             </div>
 

@@ -72,6 +72,8 @@ export interface ModalProposalData {
   endDate: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  classification_type?: string;
+  class_input?: string;
 }
 
 interface AdminViewModalProps {
@@ -98,6 +100,26 @@ const formatDateForDisplay = (dateStr: string) => {
   } catch (e) {
     return dateStr;
   }
+};
+
+// Format classification type - remove "_class" suffix first
+const formatClassificationType = (str: string) => {
+  if (!str) return "N/A";
+  // Remove _class suffix if present
+  const cleaned = str.replace(/_class$/i, '');
+  return cleaned
+    .split(/[_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
+// Format class input - make it human readable
+const formatClassInput = (str: string) => {
+  if (!str) return "";
+  return str
+    .split(/[_\s]+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 };
 
 // Format string (e.g. "research_class" -> "Research Class")
@@ -398,8 +420,10 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
               </h4>
-              <p className="text-sm font-semibold text-slate-900">{formatString(p.classification)}</p>
-              {p.classificationDetails && <p className="text-xs text-slate-600 mt-1">{p.classificationDetails}</p>}
+              <p className="text-sm font-semibold text-slate-900">{formatClassificationType(p.classification || p.classification_type || "")}</p>
+              {(p.classificationDetails || p.class_input) && (
+                <p className="text-xs text-slate-600 mt-1">{formatClassInput(p.classificationDetails || p.class_input || "")}</p>
+              )}
             </div>
           </div>
 

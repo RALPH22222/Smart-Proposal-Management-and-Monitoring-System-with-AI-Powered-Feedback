@@ -226,15 +226,52 @@ const Submission: React.FC = () => {
     }
   }, [localFormData, selectedFile, user, navigate]);
 
-  // ... (AI Handlers remain the same)
+  // AI Template Check - Updated to use real AI
   const handleAITemplateCheck = useCallback(async () => {
-    if (!selectedFile) return;
-    setIsCheckingTemplate(true);
-    setShowAIModal(true);
-    setTimeout(() => {
+    if (!selectedFile) {
+      Swal.fire({
+        icon: "warning",
+        title: "No File Selected",
+        text: "Please upload a proposal file first.",
+      });
+      return;
+    }
+
+    try {
+      setIsCheckingTemplate(true);
+
+      // Show loading alert
+      Swal.fire({
+        title: "Analyzing Proposal...",
+        text: "Our AI is reviewing your document. This may take a few moments.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      // Call the AI analysis API
+      const result = await analyzeProposalWithAI(selectedFile);
+
+      // Close loading alert
+      Swal.close();
+
+      // Store the result and show the modal
+      setAiAnalysisResult(result);
+      setShowAIResultsModal(true);
+
+    } catch (error) {
+      console.error("AI Analysis Error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze the proposal. Please try again.";
+
+      Swal.fire({
+        icon: "error",
+        title: "Analysis Failed",
+        text: errorMessage,
+      });
+    } finally {
       setIsCheckingTemplate(false);
-      setAiCheckResult({ isValid: true, issues: [], suggestions: [], score: 90, type: "template", title: "Check" });
-    }, 1500);
+    }
   }, [selectedFile]);
 
   // ... (Render Helpers remain the same)
@@ -246,6 +283,7 @@ const Submission: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
       <AIModal
         show={showAIModal}
         onClose={() => {

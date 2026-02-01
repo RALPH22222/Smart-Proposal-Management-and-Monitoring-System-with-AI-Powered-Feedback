@@ -109,14 +109,26 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return `${finalMonths} months`;
   };
 
-  // Format string (e.g. "research_class" -> "Research Class")
-  const formatString = (str: string) => {
+  // Format classification type - remove "_class" suffix first
+  const formatClassificationType = (str: string) => {
     if (!str) return "N/A";
+    // Remove _class suffix if present
+    const cleaned = str.replace(/_class$/i, '');
+    return cleaned
+      .split(/[_\s]+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Format class input - make it human readable
+  const formatClassInput = (str: string) => {
+    if (!str) return "";
     return str
       .split(/[_\s]+/)
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
+
 
   const getFileName = (url: string) => {
     if (!url) return "Unknown File";
@@ -357,11 +369,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         label: "Pending",
       };
     return {
-      bg: "bg-slate-50",
-      border: "border-slate-200",
-      text: "text-slate-700",
-      icon: <Clock className="w-5 h-5 text-slate-500" />,
-      label: "Under Evaluation",
+      bg: "bg-purple-50",
+      border: "border-purple-200",
+      text: "text-purple-800",
+      icon: <FileCheck className="w-5 h-5 text-purple-600" />,
+      label: "Under Evaluators Assessment",
     };
   };
 
@@ -972,12 +984,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
             {/* Classification */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Tags className="w-4 h-4 text-[#C8102E]" />
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Classification
-                </h4>
-              </div>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
+              </h4>
               {canEdit ? (
                 <div className="space-y-2">
                   <input
@@ -1005,8 +1014,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">{formatString(currentData.classification)}</p>
-                  {currentData.classificationDetails && <p className="text-xs text-slate-600 mt-1">{currentData.classificationDetails}</p>}
+                  <p className="text-sm font-semibold text-slate-900">
+                    {formatClassificationType(currentData.classification || (currentData as any).classification_type || "")}
+                  </p>
+                  {(currentData.classificationDetails || (currentData as any).class_input) && (
+                    <p className="text-xs text-slate-600 mt-1">
+                      {formatClassInput(currentData.classificationDetails || (currentData as any).class_input || "")}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

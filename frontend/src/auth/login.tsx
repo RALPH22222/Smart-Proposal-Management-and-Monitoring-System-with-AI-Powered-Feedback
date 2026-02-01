@@ -108,10 +108,32 @@ export default function Login() {
         throw new Error("No roles assigned to this user.");
       }
     } catch (err: unknown) {
+      console.error("Login error:", err);
+
+      // Extract error message from axios response
+      let errorMessage = "Login failed. Please try again.";
+
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { message?: string } } };
+        console.log("Backend response data:", axiosError.response?.data);
+        console.log("Message from backend:", axiosError.response?.data?.message);
+
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        }
+      } else if (err instanceof Error) {
+        // Fallback to error message if not from axios
+        console.log("Not an axios error, using Error message:", err.message);
+        errorMessage = err.message;
+      }
+
+      console.log("Final error message to show:", errorMessage);
+
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: err instanceof Error ? err.message : "Login failed",
+        title: "Login Failed",
+        text: errorMessage,
+        confirmButtonColor: "#C8102E",
       });
     } finally {
       setLoading(false);

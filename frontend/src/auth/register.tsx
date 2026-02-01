@@ -68,16 +68,33 @@ export default function Register() {
       setPassword("");
 
     } catch (err) {
-      if (err instanceof Error) {
-        Swal.fire({
-          icon: "error",
-          title: "Registration Failed",
-          text: err.message || "An error occurred during registration.",
-          confirmButtonColor: "#C8102E",
-        });
-      } else {
-        console.error(err);
+      console.error("Registration error:", err);
+
+      // Extract error message from axios response
+      let errorMessage = "An error occurred during registration. Please try again.";
+
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { message?: string } } };
+        console.log("Backend response data:", axiosError.response?.data);
+        console.log("Message from backend:", axiosError.response?.data?.message);
+
+        if (axiosError.response?.data?.message) {
+          errorMessage = axiosError.response.data.message;
+        }
+      } else if (err instanceof Error) {
+        // Fallback to error message if not from axios
+        console.log("Not an axios error, using Error message:", err.message);
+        errorMessage = err.message;
       }
+
+      console.log("Final error message to show:", errorMessage);
+
+      Swal.fire({
+        icon: "error",
+        title: "Registration Failed",
+        text: errorMessage,
+        confirmButtonColor: "#C8102E",
+      });
     } finally {
       setLoading(false);
     }
@@ -138,8 +155,8 @@ export default function Register() {
 
             <label className="w-full md:w-20">
               <span className="text-sm font-medium text-gray-700">M.I.</span>
-                <input
-                  type="text"
+              <input
+                type="text"
                 value={middle_ini}
                 onChange={(e) => setMiddleInitial(e.target.value.toUpperCase().slice(0, 1))}
                 placeholder="-"
