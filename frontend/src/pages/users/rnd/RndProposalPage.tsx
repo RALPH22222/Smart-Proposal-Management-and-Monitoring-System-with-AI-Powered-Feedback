@@ -347,7 +347,9 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                               <Calendar className="w-3.5 h-3.5 text-slate-400" />
                               <span>{new Date(proposal.submittedDate).toLocaleDateString()}</span>
                             </div>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}>
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}
+                            >
                               <Tag className="w-3 h-3" />
                               {proposal.department}
                             </span>

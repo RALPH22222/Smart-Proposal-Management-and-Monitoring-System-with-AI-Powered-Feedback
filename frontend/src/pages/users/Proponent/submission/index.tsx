@@ -260,7 +260,6 @@ const Submission: React.FC = () => {
       // Store the result and show the modal
       setAiCheckResult(result);
       setShowAIModal(true);
-
     } catch (error) {
       console.error("AI Analysis Error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to analyze the proposal. Please try again.";
@@ -284,7 +283,6 @@ const Submission: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
       <AIModal
         show={showAIModal}
         onClose={() => {

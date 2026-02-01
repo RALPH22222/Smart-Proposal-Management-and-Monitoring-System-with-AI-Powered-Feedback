@@ -1,19 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  FileText, Calendar, User, Eye, Filter, Search,
-  ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, Users, Microscope
-} from 'lucide-react';
-import { getProposals } from '../../../services/proposal.api';
-import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
-import { transformProposalForModal } from '../../../utils/proposal-transform';
-import SendToRndModal from '../../../components/admin-component/SendToRndModal';
-import ForwardToEvaluatorsModal from '../../../components/shared/ForwardToEvaluatorsModal';
-import RevisionModal from '../../../components/shared/RevisionModal';
-import RejectModal from '../../../components/shared/RejectModal';
+  FileText,
+  Calendar,
+  User,
+  Eye,
+  Filter,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Tag,
+  Clock,
+  XCircle,
+  RefreshCw,
+  Users,
+  Microscope,
+} from "lucide-react";
+import { getProposals } from "../../../services/proposal.api";
+import DetailedProposalModal from "../../../components/admin-component/AdminViewModal";
+import { transformProposalForModal } from "../../../utils/proposal-transform";
+import SendToRndModal from "../../../components/admin-component/SendToRndModal";
+import ForwardToEvaluatorsModal from "../../../components/shared/ForwardToEvaluatorsModal";
+import RevisionModal from "../../../components/shared/RevisionModal";
+import RejectModal from "../../../components/shared/RejectModal";
 
 // Backend status values
-type BackendStatus = 'review_rnd' | 'under_evaluation' | 'revision_rnd' | 'rejected_rnd' | 'endorsed_for_funding' | 'funded' | 'pending';
+type BackendStatus =
+  | "review_rnd"
+  | "under_evaluation"
+  | "revision_rnd"
+  | "rejected_rnd"
+  | "endorsed_for_funding"
+  | "funded"
+  | "pending";
 
 interface MappedProposal {
   id: number;
@@ -27,13 +45,13 @@ interface MappedProposal {
 }
 
 const statusLabels: Record<BackendStatus, string> = {
-  pending: 'Pending Review',
-  review_rnd: 'Under R&D Evaluation',
-  under_evaluation: 'Under Evaluators Assessment',
-  revision_rnd: 'Revision Required',
-  rejected_rnd: 'Rejected',
-  endorsed_for_funding: 'Endorsed',
-  funded: 'Funded',
+  pending: "Pending Review",
+  review_rnd: "Under R&D Evaluation",
+  under_evaluation: "Under Evaluators Assessment",
+  revision_rnd: "Revision Required",
+  rejected_rnd: "Rejected",
+  endorsed_for_funding: "Endorsed",
+  funded: "Funded",
 };
 
 interface AdminProposalPageProps {
@@ -75,8 +93,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<BackendStatus | 'all'>(filter || 'all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<BackendStatus | "all">(filter || "all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,23 +116,24 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
       setLoading(true);
       const data = await getProposals();
       const mapped: MappedProposal[] = (data || []).map((p: any) => {
-        const proponent = p.proponent_id && typeof p.proponent_id === 'object'
-          ? `${p.proponent_id.first_name || ''} ${p.proponent_id.last_name || ''}`.trim()
-          : 'Unknown';
+        const proponent =
+          p.proponent_id && typeof p.proponent_id === "object"
+            ? `${p.proponent_id.first_name || ""} ${p.proponent_id.last_name || ""}`.trim()
+            : "Unknown";
         return {
           id: p.id,
-          title: p.project_title || 'Untitled',
+          title: p.project_title || "Untitled",
           submittedBy: proponent,
           submittedDate: p.created_at,
           status: p.status as BackendStatus,
-          department: p.rnd_station?.name || 'N/A',
-          sector: p.sector?.name || 'N/A',
+          department: p.rnd_station?.name || "N/A",
+          sector: p.sector?.name || "N/A",
           raw: p,
         };
       });
       setProposals(mapped);
     } catch (error) {
-      console.error('Error loading proposals:', error);
+      console.error("Error loading proposals:", error);
     } finally {
       setLoading(false);
     }
@@ -127,16 +146,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
   // Filtered list
   const filteredProposals = React.useMemo(() => {
     let list = proposals;
-    if (statusFilter !== 'all') {
+    if (statusFilter !== "all") {
       list = list.filter((p) => p.status === statusFilter);
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(term) ||
-          p.submittedBy.toLowerCase().includes(term),
-      );
+      list = list.filter((p) => p.title.toLowerCase().includes(term) || p.submittedBy.toLowerCase().includes(term));
     }
     return list;
   }, [proposals, statusFilter, searchTerm]);
@@ -155,38 +170,78 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     if (onStatsUpdate) onStatsUpdate();
   };
 
-  const openAction = (id: number, action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject') => {
+  const openAction = (id: number, action: "sendToRnd" | "forwardEval" | "revision" | "reject") => {
     setActionProposalId(id);
-    if (action === 'sendToRnd') setIsSendToRndOpen(true);
-    else if (action === 'forwardEval') setIsForwardEvalOpen(true);
-    else if (action === 'revision') setIsRevisionOpen(true);
-    else if (action === 'reject') setIsRejectOpen(true);
+    if (action === "sendToRnd") setIsSendToRndOpen(true);
+    else if (action === "forwardEval") setIsForwardEvalOpen(true);
+    else if (action === "revision") setIsRevisionOpen(true);
+    else if (action === "reject") setIsRejectOpen(true);
   };
 
   const getStatusBadge = (status: BackendStatus) => {
-    const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border';
+    const base = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border";
     switch (status) {
-      case 'review_rnd':
-        return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><Microscope className="w-3 h-3" />Under R&D Evaluation</span>;
-      case 'under_evaluation':
-        return <span className={`${base} text-purple-600 bg-purple-50 border-purple-200`}><Users className="w-3 h-3" />Under Evaluators Assessment</span>;
-      case 'revision_rnd':
-        return <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}><RefreshCw className="w-3 h-3" />Revision Required</span>;
-      case 'rejected_rnd':
-        return <span className={`${base} text-red-600 bg-red-50 border-red-200`}><XCircle className="w-3 h-3" />Rejected</span>;
-      case 'endorsed_for_funding':
-        return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><FileText className="w-3 h-3" />Endorsed</span>;
-      case 'funded':
-        return <span className={`${base} text-green-600 bg-green-50 border-green-200`}><FileText className="w-3 h-3" />Funded</span>;
-      case 'pending':
-        return <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}><Clock className="w-3 h-3" />Pending Review</span>;
+      case "review_rnd":
+        return (
+          <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}>
+            <Microscope className="w-3 h-3" />
+            Under R&D Evaluation
+          </span>
+        );
+      case "under_evaluation":
+        return (
+          <span className={`${base} text-purple-600 bg-purple-50 border-purple-200`}>
+            <Users className="w-3 h-3" />
+            Under Evaluators Assessment
+          </span>
+        );
+      case "revision_rnd":
+        return (
+          <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}>
+            <RefreshCw className="w-3 h-3" />
+            Revision Required
+          </span>
+        );
+      case "rejected_rnd":
+        return (
+          <span className={`${base} text-red-600 bg-red-50 border-red-200`}>
+            <XCircle className="w-3 h-3" />
+            Rejected
+          </span>
+        );
+      case "endorsed_for_funding":
+        return (
+          <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}>
+            <FileText className="w-3 h-3" />
+            Endorsed
+          </span>
+        );
+      case "funded":
+        return (
+          <span className={`${base} text-green-600 bg-green-50 border-green-200`}>
+            <FileText className="w-3 h-3" />
+            Funded
+          </span>
+        );
+      case "pending":
+        return (
+          <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}>
+            <Clock className="w-3 h-3" />
+            Pending Review
+          </span>
+        );
       default:
-        return <span className={`${base} text-slate-600 bg-slate-50 border-slate-200`}><FileText className="w-3 h-3" />{status}</span>;
+        return (
+          <span className={`${base} text-slate-600 bg-slate-50 border-slate-200`}>
+            <FileText className="w-3 h-3" />
+            {status}
+          </span>
+        );
     }
   };
 
-  const getStatusCount = (status: BackendStatus | 'all') => {
-    if (status === 'all') return proposals.length;
+  const getStatusCount = (status: BackendStatus | "all") => {
+    if (status === "all") return proposals.length;
     return proposals.filter((p) => p.status === status).length;
   };
 
@@ -208,7 +263,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         <header className="flex-shrink-0">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-              {filter ? `${statusLabels[filter]} Proposals` : 'Research Proposal Review'}
+              {filter ? `${statusLabels[filter]} Proposals` : "Research Proposal Review"}
             </h1>
             <p className="text-slate-600 mt-2 text-sm leading-relaxed">
               Review and manage all research proposals submitted to WMSU
@@ -239,16 +294,16 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                 </div>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as BackendStatus | 'all')}
+                  onChange={(e) => setStatusFilter(e.target.value as BackendStatus | "all")}
                   className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors cursor-pointer"
                 >
-                  <option value="all">All Statuses ({getStatusCount('all')})</option>
-                  <option value="review_rnd">Pending Review ({getStatusCount('review_rnd')})</option>
-                  <option value="under_evaluation">Under Evaluation ({getStatusCount('under_evaluation')})</option>
-                  <option value="revision_rnd">Revision Required ({getStatusCount('revision_rnd')})</option>
-                  <option value="rejected_rnd">Rejected ({getStatusCount('rejected_rnd')})</option>
-                  <option value="endorsed_for_funding">Endorsed ({getStatusCount('endorsed_for_funding')})</option>
-                  <option value="funded">Funded ({getStatusCount('funded')})</option>
+                  <option value="all">All Statuses ({getStatusCount("all")})</option>
+                  <option value="review_rnd">Pending Review ({getStatusCount("review_rnd")})</option>
+                  <option value="under_evaluation">Under Evaluation ({getStatusCount("under_evaluation")})</option>
+                  <option value="revision_rnd">Revision Required ({getStatusCount("revision_rnd")})</option>
+                  <option value="rejected_rnd">Rejected ({getStatusCount("rejected_rnd")})</option>
+                  <option value="endorsed_for_funding">Endorsed ({getStatusCount("endorsed_for_funding")})</option>
+                  <option value="funded">Funded ({getStatusCount("funded")})</option>
                 </select>
               </div>
             </div>
@@ -280,7 +335,10 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
               </div>
             ) : (
               paginatedProposals.map((proposal) => (
-                <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100">
+                <article
+                  key={proposal.id}
+                  className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100"
+                >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex-1">
                       <span className="text-base font-semibold text-slate-800 mb-2 block group-hover:text-[#C8102E] transition-colors">
@@ -293,11 +351,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>
-                            {new Date(proposal.submittedDate).toLocaleDateString()}
-                          </span>
+                          <span>{new Date(proposal.submittedDate).toLocaleDateString()}</span>
                         </div>
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getRandomColorClass(proposal.department)}`}
+                        >
                           <Tag className="w-3 h-3" />
                           {proposal.department}
                         </span>
@@ -310,7 +368,10 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* View */}
                         <button
-                          onClick={() => { setViewProposal(transformProposalForModal(proposal.raw)); setIsViewOpen(true); }}
+                          onClick={() => {
+                            setViewProposal(transformProposalForModal(proposal.raw));
+                            setIsViewOpen(true);
+                          }}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
                           title="View details"
                         >
@@ -328,7 +389,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
               <span>
-                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of{" "}
+                {filteredProposals.length} proposals
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -354,11 +416,15 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             </div>
           </div>
         </main>
-      </div>    {/* View Modal */}
+      </div>{" "}
+      {/* View Modal */}
       <DetailedProposalModal
         proposal={viewProposal}
         isOpen={isViewOpen}
-        onClose={() => { setIsViewOpen(false); setViewProposal(null); }}
+        onClose={() => {
+          setIsViewOpen(false);
+          setViewProposal(null);
+        }}
         onAction={(action: any, id: any) => {
           // Close view modal before opening action modal if desired, or keep both?
           // Usually better to act directly. The user might want to act from the view.
@@ -366,7 +432,6 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           openAction(Number(id), action);
         }}
       />
-
       {/* Action Modals */}
       <SendToRndModal
         isOpen={isSendToRndOpen}
@@ -374,21 +439,18 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         proposalId={actionProposalId}
         onSuccess={handleActionSuccess}
       />
-
       <ForwardToEvaluatorsModal
         isOpen={isForwardEvalOpen}
         onClose={() => setIsForwardEvalOpen(false)}
         proposalId={actionProposalId}
         onSuccess={handleActionSuccess}
       />
-
       <RevisionModal
         isOpen={isRevisionOpen}
         onClose={() => setIsRevisionOpen(false)}
         proposalId={actionProposalId}
         onSuccess={handleActionSuccess}
       />
-
       <RejectModal
         isOpen={isRejectOpen}
         onClose={() => setIsRejectOpen(false)}
