@@ -41,6 +41,7 @@ export const signUpSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   first_name: z.string().min(1, "Name is required"),
   last_name: z.string().min(1, "Name is required"),
+  middle_ini: z.string().min(1, "Name is required").max(1, "Exceed the character limit").optional(),
   roles: z.array(RoleEnum).min(1, "At least one role is required"),
 });
 

@@ -8,10 +8,11 @@ import UploadSidebar from "./uploadSidebar";
 import AIModal from "../../../../components/proponent-component/aiModal";
 
 // Type Imports
-import type { FormData, AICheckResult } from "../../../../types/proponent-form"; // Fixed: Removed unused 'BudgetItem'
+import type { FormData } from "../../../../types/proponent-form";
+import type { AIAnalysisResult } from "../../../../components/proponent-component/aiModal";
 
 // API Service
-import { submitProposal } from "../../../../services/proposal.api";
+import { submitProposal, analyzeProposalWithAI } from "../../../../services/proposal.api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
@@ -30,7 +31,7 @@ const Submission: React.FC = () => {
 
   // ... (AI State remains the same)
   const [isCheckingTemplate, setIsCheckingTemplate] = useState(false);
-  const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
+  const [aiCheckResult, setAiCheckResult] = useState<AIAnalysisResult | null>(null);
 
   // ... (Data State remains the same)
   // ... (Data State remains the same)
@@ -257,8 +258,8 @@ const Submission: React.FC = () => {
       Swal.close();
 
       // Store the result and show the modal
-      setAiAnalysisResult(result);
-      setShowAIResultsModal(true);
+      setAiCheckResult(result);
+      setShowAIModal(true);
 
     } catch (error) {
       console.error("AI Analysis Error:", error);

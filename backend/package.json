@@ -30,6 +30,7 @@
     "constructs": "^10.0.0",
     "jsonwebtoken": "^9.0.2",
     "lambda-multipart-parser": "^1.0.1",
+    "pdf-parse": "^1.1.1",
     "zod": "^4.1.13"
   }
 }

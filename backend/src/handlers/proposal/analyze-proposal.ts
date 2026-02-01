@@ -1,0 +1,172 @@
+import { buildCorsHeaders } from "../../utils/cors";
+import { getAuthContext } from "../../utils/auth-context";
+import { analyzeProposal, type ExtractedData } from "../../services/ai-analyzer.service";
+import multipart from "lambda-multipart-parser";
+
+// pdf-parse v1 has no type declarations
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdf = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
+
+/**
+ * Lambda handler: POST /proposal/analyze
+ *
+ * Accepts multipart/form-data with a PDF file, extracts text,
+ * parses proposal metadata using regex (same patterns as scan_pdf.py),
+ * runs pure-TypeScript AI inference, and returns analysis results.
+ */
+export const handler = buildCorsHeaders(async (event) => {
+  // Verify authentication
+  const auth = getAuthContext(event);
+  if (!auth.userId) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "Unauthorized: User ID not found in token" }),
+    };
+  }
+
+  // Parse multipart form data
+  const payload = await multipart.parse(event);
+  const file = payload.files?.[0];
+
+  if (!file || !file.content) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "No file uploaded. Please attach a PDF file." }),
+    };
+  }
+
+  // Extract text from PDF
+  let text: string;
+  try {
+    const pdfData = await pdf(file.content);
+    text = pdfData.text;
+  } catch (err) {
+    console.error("PDF parse error:", err);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "Failed to read PDF. Please upload a valid PDF file." }),
+    };
+  }
+
+  if (!text || text.trim().length === 0) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "Could not extract text from PDF. The file may be scanned/image-based." }),
+    };
+  }
+
+  // Extract proposal data from text (replicates scan_pdf.py regex patterns)
+  const extracted = extractDataFromText(text);
+
+  // Run AI analysis
+  const result = analyzeProposal(extracted);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify(result),
+  };
+});
+
+/**
+ * Extract proposal metadata from raw PDF text.
+ * Replicates the regex patterns from trained-ai/scan_pdf.py.
+ */
+function extractDataFromText(text: string): ExtractedData {
+  const data: ExtractedData = {
+    title: "Unknown Project",
+    duration: 12,
+    cooperating_agencies: 0,
+    total: 0,
+    mooe: 0,
+    ps: 0,
+    co: 0,
+  };
+
+  // 1. Extract Title: "Project Title: ..." (allow multiple spaces between words)
+  //    PDF extractors often insert extra spaces. Also handle multi-line titles
+  //    by grabbing the next line if the first line ends without punctuation.
+  const titleMatch = text.match(/Project\s+Title[:\s]*(.+)/i);
+  if (titleMatch) {
+    let title = titleMatch[1].trim();
+    // Check if title continues on the next line (line ends mid-sentence)
+    const matchEnd = (titleMatch.index ?? 0) + titleMatch[0].length;
+    const restText = text.substring(matchEnd);
+    const nextLineMatch = restText.match(/^\n([^\n]+)/);
+    if (nextLineMatch) {
+      const nextLine = nextLineMatch[1].trim();
+      // Append next line if it doesn't look like a new field label
+      if (nextLine && !/^(Leader|Agency|Address|Telephone|Fax|Email|Program)/i.test(nextLine)) {
+        title = title + " " + nextLine;
+      }
+    }
+    // Collapse multiple spaces into single space
+    data.title = title.replace(/\s{2,}/g, " ").trim();
+  }
+
+  // 2. Extract Duration
+  const monthLabelMatch = text.match(/\(In months\)\s*(\d+)/i);
+  const durationLabelMatch = text.match(/Duration[:\s]+(\d+)/i);
+
+  if (monthLabelMatch) {
+    data.duration = parseInt(monthLabelMatch[1], 10);
+  } else if (durationLabelMatch) {
+    const val = parseInt(durationLabelMatch[1], 10);
+    if (val < 120) {
+      data.duration = val;
+    }
+  }
+
+  // 3. Extract Cooperating Agencies
+  const agencySection = text.match(/Cooperating Agencies.*?\n(.*?)(?=\n\(\d\)|$|Classification)/is);
+  if (agencySection) {
+    const rawAgencies = agencySection[1].trim();
+    if (rawAgencies.length > 3 && !rawAgencies.includes("N/A")) {
+      const count = (rawAgencies.match(/,/g) || []).length + 1;
+      data.cooperating_agencies = count;
+    }
+  }
+
+  // 4. Extract Budget
+  const numbers = text.match(/([\d,]+\.\d{2})/g);
+  if (numbers && numbers.length > 0) {
+    const cleanNums: number[] = [];
+    for (const n of numbers) {
+      try {
+        const val = parseFloat(n.replace(/,/g, ""));
+        if (!isNaN(val)) cleanNums.push(val);
+      } catch {
+        // skip invalid numbers
+      }
+    }
+
+    if (cleanNums.length > 0) {
+      data.total = Math.max(...cleanNums);
+
+      // Extract PS
+      if (text.includes("PS")) {
+        const psMatch = text.match(/PS.*?([\d,]+\.\d{2})/s);
+        if (psMatch) {
+          const val = parseFloat(psMatch[1].replace(/,/g, ""));
+          if (val < data.total) data.ps = val;
+        }
+      }
+
+      // Extract MOOE
+      if (text.includes("MOOE")) {
+        const mooeMatch = text.match(/MOOE.*?([\d,]+\.\d{2})/s);
+        if (mooeMatch) {
+          const val = parseFloat(mooeMatch[1].replace(/,/g, ""));
+          if (val < data.total) data.mooe = val;
+        }
+      }
+
+      // Calculate CO as remainder
+      if (data.co === 0 && data.total > 0) {
+        const remainder = data.total - (data.ps + data.mooe);
+        if (remainder > 0) data.co = remainder;
+      }
+    }
+  }
+
+  return data;
+}

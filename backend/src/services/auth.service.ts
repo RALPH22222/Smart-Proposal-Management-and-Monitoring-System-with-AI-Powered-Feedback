@@ -32,7 +32,7 @@ export class AuthService {
     return { data: { ...data, roles }, error: null };
   }
 
-  async signup({ email, password, roles, first_name, last_name }: SignUpInput) {
+  async signup({ email, password, roles, first_name, last_name, middle_ini }: SignUpInput) {
     const { data, error } = await this.db!.auth.signUp({
       email: email,
       password: password,
@@ -41,6 +41,7 @@ export class AuthService {
           roles,
           first_name,
           last_name,
+          middle_ini,
         },
       },
     });

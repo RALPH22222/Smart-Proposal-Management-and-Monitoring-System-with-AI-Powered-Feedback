@@ -320,8 +320,8 @@ export class ProposalService {
 
   async decisionEvaluatorToProposal(
     input: Omit<decisionEvaluatorToProposalInput, "deadline_at">,
-    deadline_at: string,
     evaluator_id: string,
+    deadline_at?: string,
   ) {
     const { data: insertedData, error: insertError } = await this.db
       .from("proposal_assignment_tracker")

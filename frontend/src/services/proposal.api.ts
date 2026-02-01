@@ -205,6 +205,31 @@ export const fetchProposalVersions = async (proposalId: number): Promise<Proposa
   return data;
 };
 
+// ========== AI ANALYSIS API ==========
+
+export type AIAnalysisResponse = {
+  title: string;
+  score: number;
+  isValid: boolean;
+  noveltyScore: number;
+  keywords: string[];
+  similarPapers: { title: string; year: string }[];
+  issues: string[];
+  suggestions: string[];
+};
+
+export const analyzeProposalWithAI = async (file: File): Promise<AIAnalysisResponse> => {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const { data } = await api.post<AIAnalysisResponse>("/proposal/analyze", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    withCredentials: true,
+  });
+
+  return data;
+};
+
 export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
   const params = new URLSearchParams();
   if (search) params.append("search", search);

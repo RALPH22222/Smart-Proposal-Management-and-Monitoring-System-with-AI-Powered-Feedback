@@ -576,6 +576,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const analyze_proposal_lambda = new NodejsFunction(this, "pms-analyze-proposal", {
+      functionName: "pms-analyze-proposal",
+      memorySize: 256,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(30),
+      entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const verify_token_lambda = new NodejsFunction(this, "pms-verify-token", {
       functionName: "pms-verify-token",
       memorySize: 128,
@@ -658,6 +669,13 @@ export class BackendStack extends Stack {
     // /proposal/create (protected)
     const create_proposal = proposal.addResource("create");
     create_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(create_proposal_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/analyze (protected) - AI proposal analysis
+    const analyze_proposal = proposal.addResource("analyze");
+    analyze_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(analyze_proposal_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
