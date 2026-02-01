@@ -201,6 +201,7 @@ const Submission: React.FC = () => {
       };
 
       const result = await submitProposal(payload, selectedFile);
+<<<<<<< Updated upstream
 
       await Swal.fire({
         icon: "success",
@@ -210,6 +211,9 @@ const Submission: React.FC = () => {
         showConfirmButton: false,
       });
 
+=======
+      alert("Proposal submitted successfully!");
+>>>>>>> Stashed changes
       console.log("Server Response:", result);
 
       // Redirect to profile
