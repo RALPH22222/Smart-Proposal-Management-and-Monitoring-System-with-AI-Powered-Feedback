@@ -123,10 +123,10 @@ const Profile: React.FC = () => {
             priority: "medium",
             evaluators: p.proposal_evaluators?.length || 0,
             proponent: (function () {
-              const u = p.proponent || (typeof p.proponent_id === "object" ? p.proponent_id : null);
+              const u = p.proponent || (typeof p.proponent_id === 'object' ? p.proponent_id : null);
               if (!u) return "Unknown Proponent";
               return [u.first_name, u.last_name].filter(Boolean).join(" ");
-            })(),
+            })()
           };
         });
 
@@ -354,9 +354,9 @@ const Profile: React.FC = () => {
     const proposal: Proposal = {
       id: String(raw.id),
       title: val(raw.project_title),
-      status: getLocalStatusLabel(project),
+      status: getStatusFromIndex(project.currentIndex),
       proponent: (function () {
-        const u = raw.proponent || (typeof raw.proponent_id === "object" ? raw.proponent_id : null);
+        const u = raw.proponent || (typeof raw.proponent_id === 'object' ? raw.proponent_id : null);
         if (!u) return "Unknown Proponent";
         return [u.first_name, u.last_name].filter(Boolean).join(" ");
       })(),

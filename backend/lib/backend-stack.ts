@@ -578,12 +578,31 @@ export class BackendStack extends Stack {
 
     const analyze_proposal_lambda = new NodejsFunction(this, "pms-analyze-proposal", {
       functionName: "pms-analyze-proposal",
-      memorySize: 256,
+      memorySize: 512, // Needed for PDF parsing + AI math (no TensorFlow, just JSON + for-loops)
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60), // PDF text extraction + ~200 lines of matrix math can take time
       entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
       environment: {
         SUPABASE_KEY,
+      },
+      bundling: {
+        // ⚠️ CRITICAL: Include JSON weight files (vocab, embedding, etc.) 
+        // Without these, ai-analyzer.service.ts will fail to load models → 502 error
+        commandHooks: {
+          beforeBundling(inputDir: string, outputDir: string): string[] {
+            return [];
+          },
+          beforeInstall(inputDir: string, outputDir: string): string[] {
+            return [];
+          },
+          afterBundling(inputDir: string, outputDir: string): string[] {
+            // Copy ai-models/*.json to Lambda package
+            // These are JUST numbers in JSON (1.5MB total), NOT the TensorFlow framework
+            return [
+              `cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`,
+            ];
+          },
+        },
       },
     });
 

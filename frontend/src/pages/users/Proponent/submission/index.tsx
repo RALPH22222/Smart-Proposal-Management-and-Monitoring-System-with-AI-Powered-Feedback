@@ -201,19 +201,7 @@ const Submission: React.FC = () => {
       };
 
       const result = await submitProposal(payload, selectedFile);
-<<<<<<< Updated upstream
-
-      await Swal.fire({
-        icon: "success",
-        title: "Submitted!",
-        text: "Proposal submitted successfully!",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
-=======
       alert("Proposal submitted successfully!");
->>>>>>> Stashed changes
       console.log("Server Response:", result);
 
       // Redirect to profile
