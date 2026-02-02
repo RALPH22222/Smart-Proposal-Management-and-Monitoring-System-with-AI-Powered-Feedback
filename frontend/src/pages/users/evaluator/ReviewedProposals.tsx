@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getEvaluatorProposals } from "../../../services/proposal.api";
 import {
   FileText,
   Eye,
@@ -19,162 +20,101 @@ export default function ReviewedProposals() {
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
-  // ... (Keep the reviewedProposals data array exactly as provided)
-  const reviewedProposals = [
-    {
-      id: 1,
-      title: "AI-Powered Educational Assessment System",
-      reviewedDate: "Sept 20, 2025",
-      proponent: "Jasmine Anderson",
-      gender: "Female",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 991-1771",
-      email: "jasmine.anderson@wmsu.edu.ph",
-      cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
-      rdStation: "College of Computing Studies",
-      classification: "Research",
-      classificationDetails: "Applied",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Education 4.0, Artificial Intelligence",
-      sector: "Education Technology",
-      discipline: "Information and Communication Technology",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱600,000.00",
-          mooe: "₱500,000.00",
-          co: "₱150,000.00",
-          total: "₱1,250,000.00",
-        },
-      ],
-      budgetTotal: "₱1,250,000.00",
-      projectFile: "AI_Educational_Assessment_Proposal.pdf",
-      ratings: {
-        objectives: 5,
-        methodology: 4,
-        budget: 5,
-        timeline: 4,
-      },
-      decision: "Approve",
-      comment:
-        "This is a strong proposal with clear objectives, solid methodology, and appropriate budget. Recommended for approval with minor revisions to the data collection timeline.",
-    },
-    {
-      id: 2,
-      title: "Smart Grid Energy Management System",
-      reviewedDate: "Sept 22, 2025",
-      proponent: "Michael Chen",
-      gender: "Male",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      telephone: "(062) 991-2345",
-      email: "m.chen@zscms.edu.ph",
-      cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
-      rdStation: "Agricultural Research Center",
-      classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization",
-      modeOfImplementation: "Single Agency",
-      priorityAreas: "Renewable Energy, Smart Agriculture",
-      sector: "Energy and Utilities",
-      discipline: "Electrical Engineering",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱800,000.00",
-          mooe: "₱700,000.00",
-          co: "₱100,000.00",
-          total: "₱1,600,000.00",
-        },
-        {
-          source: "DA RO9",
-          ps: "₱300,000.00",
-          mooe: "₱200,000.00",
-          co: "₱0.00",
-          total: "₱500,000.00",
-        },
-      ],
-      budgetTotal: "₱2,100,000.00",
-      projectFile: "Energy_Management_Proposal.pdf",
-      ratings: {
-        objectives: 5,
-        methodology: 5,
-        budget: 3,
-        timeline: 5,
-      },
-      decision: "Approve",
-      comment:
-        "Excellent proposal with strong potential for significant impact on sustainable farming practices. Highly recommended for funding.",
-    },
-    {
-      id: 3,
-      title: "Blockchain-Based Energy Trading Platform",
-      reviewedDate: "Sept 18, 2025",
-      proponent: "Emily Rodriguez",
-      gender: "Female",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 991-2934",
-      email: "e.rodriguez@zcmc.doh.gov.ph",
-      cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
-      rdStation: "Medical Informatics Department",
-      classification: "Research",
-      classificationDetails: "Applied",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Health Information Systems, Data Security",
-      sector: "Energy and Utilities",
-      discipline: "Energy Systems Engineering",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱700,000.00",
-          mooe: "₱800,000.00",
-          co: "₱300,000.00",
-          total: "₱1,800,000.00",
-        },
-      ],
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-      budgetTotal: "₱1,800,000.00",
-      projectFile: "Energy_Trading_Proposal.pdf",
-      ratings: {
-        objectives: 5,
-        methodology: 2,
-        budget: 2,
-        timeline: 3,
-      },
-      decision: "Revise",
-      comment:
-        "Strong proposal addressing critical healthcare data management needs. Recommended for approval with emphasis on data privacy compliance.",
-    },
-  ];
+  // Helper to format currency
+  const formatCurrency = (val: number | string) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(num || 0);
+  };
 
-  // ... (Keep filtering logic)
+  const fetchProposals = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Fetch all proposals for this evaluator
+      const data = await getEvaluatorProposals();
+      
+      const completedStatuses = ['approve', 'revise', 'reject', 'decline'];
+      const filtered = data.filter((item: any) => completedStatuses.includes(item.status));
+
+      const mapped = filtered.map((item: any) => {
+         const p = item.proposal_id || {};
+         const proponent = p.proponent_id || {};
+         const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
+         
+         // Map budget
+         const budgetSourcesMap: Record<string, {ps: number, mooe: number, co: number}> = {};
+         (p.estimated_budget || []).forEach((b: any) => {
+             if (!budgetSourcesMap[b.source]) {
+                 budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+             }
+             if (b.budget === 'ps') budgetSourcesMap[b.source].ps += b.amount;
+             if (b.budget === 'mooe') budgetSourcesMap[b.source].mooe += b.amount;
+             if (b.budget === 'co') budgetSourcesMap[b.source].co += b.amount;
+         });
+
+         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+             source,
+             ps: formatCurrency(amounts.ps),
+             mooe: formatCurrency(amounts.mooe),
+             co: formatCurrency(amounts.co),
+             total: formatCurrency(amounts.ps + amounts.mooe + amounts.co)
+         }));
+
+         const totalBudgetVal = (p.estimated_budget || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+
+         return {
+             id: p.id,
+             title: p.project_title || "Untitled",
+             reviewedDate: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A", // Use updated_at as review date
+             proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
+             projectType: p.sector?.name || "N/A",
+             agency: p.agency?.name || "N/A",
+             address: agencyAddress,
+             implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
+             telephone: p.phone || "N/A",
+             email: p.email || "N/A",
+             cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+             rdStation: p.rnd_station?.name || "N/A",
+             classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
+             classificationDetails: p.research_class || p.development_class || "N/A",
+             modeOfImplementation: p.implementation_mode === 'multi_agency' ? 'Multi Agency' : 'Single Agency',
+             priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
+             sector: p.sector?.name || "N/A",
+             discipline: p.discipline?.name || "N/A",
+             duration: p.duration ? `${p.duration} months` : "N/A",
+             schoolYear: p.school_year || "N/A",
+             startDate: p.plan_start_date || "N/A",
+             endDate: p.plan_end_date || "N/A",
+             budgetSources,
+             budgetTotal: formatCurrency(totalBudgetVal),
+             projectFile: p.proposal_version?.[0]?.file_url || null,
+             ratings: {}, // Scores are not in the main proposal view response, would need separate fetch or join update if needed
+             decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
+             comment: item.comments_for_evaluators || "No comment", // Or fetch from evaluation_scores if that's where the final comment lives
+             evaluatorId: item.id
+         };
+      });
+
+      setProposals(mapped);
+
+    } catch (err) {
+      console.error("Failed to fetch proposals", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
+
+  const reviewedProposals = proposals;
+
   const filtered = reviewedProposals.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === "All" || p.projectType === typeFilter;
@@ -302,7 +242,11 @@ export default function ReviewedProposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {paginatedProposals.length > 0 ? (
+          {loading ? (
+             <div className="flex items-center justify-center h-64">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+             </div>
+          ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article

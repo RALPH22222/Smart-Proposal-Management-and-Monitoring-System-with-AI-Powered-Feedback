@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
 import {
   FileText,
   Eye,
@@ -20,360 +21,93 @@ export default function EndorsedProposals() {
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
-  const endorsedProposals = [
-    {
-      id: 1,
-      title: "AI-Powered Educational Assessment System",
-      reviewDeadline: "Oct 25, 2025",
-      proponent: "Jasmine Anderson",
-      gender: "Female",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 991-1771",
-      email: "jasmine.anderson@wmsu.edu.ph",
-      cooperatingAgencies: "DepEd RO9, CHED RO9, DICT RO9",
-      rdStation: "College of Computing Studies",
-      classification: "Research",
-      classificationDetails: "Applied",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Education 4.0, Artificial Intelligence",
-      sector: "Education Technology",
-      discipline: "Information and Communication Technology",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱600,000.00",
-          mooe: "₱500,000.00",
-          co: "₱150,000.00",
-          total: "₱1,250,000.00",
-        },
-      ],
-      budgetTotal: "₱1,250,000.00",
-      projectFile: "AI_Educational_Assessment_Proposal.pdf",
-    },
-    {
-      id: 2,
-      title: "Smart Grid Energy Management System",
-      reviewDeadline: "Oct 28, 2025",
-      proponent: "Michael Chen",
-      gender: "Male",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      telephone: "(062) 991-2345",
-      email: "m.chen@zscms.edu.ph",
-      cooperatingAgencies: "DA RO9, DTI RO9, LGU Zamboanga",
-      rdStation: "Agricultural Research Center",
-      classification: "Development",
-      classificationDetails: "Pilot Testing",
-      modeOfImplementation: "Single Agency",
-      priorityAreas: "Renewable Energy, Smart Agriculture",
-      sector: "Agriculture and Fisheries",
-      discipline: "Agricultural Engineering",
-      duration: "36 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2028",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱800,000.00",
-          mooe: "₱700,000.00",
-          co: "₱100,000.00",
-          total: "₱1,600,000.00",
-        },
-        {
-          source: "DA RO9",
-          ps: "₱300,000.00",
-          mooe: "₱200,000.00",
-          co: "₱0.00",
-          total: "₱500,000.00",
-        },
-      ],
-      budgetTotal: "₱2,100,000.00",
-      projectFile: "Agriculture_IoT_Proposal.pdf",
-    },
-    {
-      id: 3,
-      title: "Blockchain-Based Energy Trading Platform",
-      reviewDeadline: "Oct 22, 2025",
-      proponent: "Emily Rodriguez",
-      gender: "Female",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 991-2934",
-      email: "e.rodriguez@zcmc.doh.gov.ph",
-      cooperatingAgencies: "DOH RO9, PhilHealth RO9, DICT RO9",
-      rdStation: "Medical Informatics Department",
-      classification: "Research",
-      classificationDetails: "Applied",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Health Information Systems, Data Security",
-      sector: "Health and Wellness",
-      discipline: "Health Information Technology",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱700,000.00",
-          mooe: "₱800,000.00",
-          co: "₱300,000.00",
-          total: "₱1,800,000.00",
-        },
-      ],
-      budgetTotal: "₱1,800,000.00",
-      projectFile: "Blockchain_Healthcare_Proposal.pdf",
-    },
-    {
-      id: 4,
-      title: "Renewable Energy Storage Optimization",
-      reviewDeadline: "Oct 30, 2025",
-      proponent: "James Wilson",
-      gender: "Male",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(063) 221-4050",
-      email: "j.wilson@msumain.edu.ph",
-      cooperatingAgencies: "DOE RO9, NEDA RO9, Private Sector Partners",
-      rdStation: "Renewable Energy Research Lab",
-      classification: "Development",
-      classificationDetails: "Pilot Testing",
-      modeOfImplementation: "Single Year",
-      priorityAreas: "Energy Efficiency, Renewable Energy",
-      sector: "Energy and Power",
-      discipline: "Electrical Engineering",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,200,000.00",
-          mooe: "₱800,000.00",
-          co: "₱300,000.00",
-          total: "₱2,300,000.00",
-        },
-        {
-          source: "DOE RO9",
-          ps: "₱100,000.00",
-          mooe: "₱100,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱2,500,000.00",
-      projectFile: "Energy_Storage_Proposal.pdf",
-    },
-    {
-      id: 5,
-      title: "IoT Sensor Network for Energy Efficiency",
-      reviewDeadline: "Nov 2, 2025",
-      proponent: "Maria Santos",
-      gender: "Female",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 991-1771",
-      email: "maria.santos@wmsu.edu.ph",
-      cooperatingAgencies: "DENR RO9, BFAR RO9, LGU Coastal Areas",
-      rdStation: "Marine Biology Research Center",
-      classification: "Research",
-      classificationDetails: "Applied",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Environmental Conservation, IoT",
-      sector: "Environment and Natural Resources",
-      discipline: "Marine Science",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱900,000.00",
-          mooe: "₱750,000.00",
-          co: "₱200,000.00",
-          total: "₱1,850,000.00",
-        },
-        {
-          source: "DENR RO9",
-          ps: "₱50,000.00",
-          mooe: "₱50,000.00",
-          co: "₱0.00",
-          total: "₱100,000.00",
-        },
-      ],
-      budgetTotal: "₱1,950,000.00",
-      projectFile: "Marine_Conservation_Proposal.pdf",
-    },
-    {
-      id: 6,
-      title: "AI-Driven Smart Building Systems",
-      reviewDeadline: "Oct 20, 2025",
-      proponent: "Robert Kim",
-      gender: "Male",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' }
-      ],
-      telephone: "(062) 991-0871",
-      email: "r.kim@adzu.edu.ph",
-      cooperatingAgencies: "DILG RO9, LTO RO9, PNP RO9",
-      rdStation: "Urban Planning Research Institute",
-      classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization",
-      modeOfImplementation: "Single Agency",
-      priorityAreas: "Smart Cities, Public Safety",
-      sector: "Public Safety and Security",
-      discipline: "Civil Engineering and ICT",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,500,000.00",
-          mooe: "₱1,200,000.00",
-          co: "₱300,000.00",
-          total: "₱3,000,000.00",
-        },
-        {
-          source: "DILG RO9",
-          ps: "₱100,000.00",
-          mooe: "₱100,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱3,200,000.00",
-      projectFile: "Smart_Traffic_Proposal.pdf",
-    },
-    {
-      id: 7,
-      title: "Microgrid Control System Development",
-      reviewDeadline: "Nov 5, 2025",
-      proponent: "Dr. Lisa Martinez",
-      gender: "Female",
-      projectType: "Energy",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(062) 955-0104",
-      email: "l.martinez@zpmc.doh.gov.ph",
-      cooperatingAgencies: "DOH RO9, DICT RO9, PhilHealth RO9",
-      rdStation: "Telemedicine Research Unit",
-      classification: "Development",
-      classificationDetails: "Technology Promotion/Commercialization",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Digital Health, Rural Medicine",
-      sector: "Health and Wellness",
-      discipline: "Medical Technology and ICT",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,200,000.00",
-          mooe: "₱1,050,000.00",
-          co: "₱300,000.00",
-          total: "₱2,550,000.00",
-        },
-        {
-          source: "DOH RO9",
-          ps: "₱150,000.00",
-          mooe: "₱50,000.00",
-          co: "₱0.00",
-          total: "₱200,000.00",
-        },
-      ],
-      budgetTotal: "₱2,750,000.00",
-      projectFile: "Telemedicine_Proposal.pdf",
-    },
-    {
-      id: 8,
-      title: "Machine Learning for Energy Forecasting",
-      reviewDeadline: "Oct 18, 2025",
-      proponent: "Prof. Daniel Lee",
-      gender: "Male",
-      projectType: "ICT",
-      agency: "Western Mindanao State University",
-      address: "Normal Road, Baliwasan",
-      implementationSites: [
-        { site: 'Main Campus', city: 'Zamboanga City' },
-        { site: 'Satellite Campus', city: 'Pagadian City' }
-      ],
-      telephone: "(063) 221-4052",
-      email: "d.lee@msumain.edu.ph",
-      cooperatingAgencies: "PAGASA RO9, DENR RO9, NEDA RO9",
-      rdStation: "Climate Science Research Center",
-      classification: "Research",
-      classificationDetails: "Basic",
-      modeOfImplementation: "Multi Agency",
-      priorityAreas: "Climate Change Adaptation, Data Science",
-      sector: "Environment and Climate",
-      discipline: "Atmospheric Science and Data Science",
-      duration: "24 months",
-      schoolYear: "2024-2025",
-      startDate: "01/05/2025",
-      endDate: "01/05/2027",
-      budgetSources: [
-        {
-          source: "DOST",
-          ps: "₱1,100,000.00",
-          mooe: "₱900,000.00",
-          co: "₱200,000.00",
-          total: "₱2,200,000.00",
-        },
-        {
-          source: "PAGASA RO9",
-          ps: "₱50,000.00",
-          mooe: "₱50,000.00",
-          co: "₱0.00",
-          total: "₱100,000.00",
-        },
-      ],
-      budgetTotal: "₱2,300,000.00",
-      projectFile: "Climate_Prediction_Proposal.pdf",
-    },
-  ];
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Helper to format currency
+  const formatCurrency = (val: number | string) => {
+    const num = typeof val === "string" ? parseFloat(val) : val;
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(num || 0);
+  };
+
+  const fetchProposals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getEvaluatorProposals(undefined, "for_review"); 
+      
+      const mapped = data.map((item: any) => {
+         const p = item.proposal_id || {};
+         const proponent = p.proponent_id || {};
+         const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
+         
+         // Map budget
+         const budgetSourcesMap: Record<string, {ps: number, mooe: number, co: number}> = {};
+         (p.estimated_budget || []).forEach((b: any) => {
+             if (!budgetSourcesMap[b.source]) {
+                 budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+             }
+             if (b.budget === 'ps') budgetSourcesMap[b.source].ps += b.amount;
+             if (b.budget === 'mooe') budgetSourcesMap[b.source].mooe += b.amount;
+             if (b.budget === 'co') budgetSourcesMap[b.source].co += b.amount;
+         });
+
+         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+             source,
+             ps: formatCurrency(amounts.ps),
+             mooe: formatCurrency(amounts.mooe),
+             co: formatCurrency(amounts.co),
+             total: formatCurrency(amounts.ps + amounts.mooe + amounts.co)
+         }));
+
+         const totalBudgetVal = (p.estimated_budget || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+
+         return {
+             id: p.id,
+             title: p.project_title || "Untitled",
+             reviewDeadline: item.deadline_at ? new Date(item.deadline_at).toLocaleDateString() : "N/A",
+             proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
+             projectType: p.sector?.name || "N/A",
+             agency: p.agency?.name || "N/A",
+             address: agencyAddress,
+             implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
+             telephone: p.phone || "N/A",
+             email: p.email || "N/A",
+             cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+             rdStation: p.rnd_station?.name || "N/A",
+             classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
+             classificationDetails: p.research_class || p.development_class || "N/A",
+             modeOfImplementation: p.implementation_mode === 'multi_agency' ? 'Multi Agency' : 'Single Agency',
+             priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
+             sector: p.sector?.name || "N/A",
+             discipline: p.discipline?.name || "N/A",
+             duration: p.duration ? `${p.duration} months` : "N/A",
+             schoolYear: p.school_year || "N/A",
+             startDate: p.plan_start_date || "N/A",
+             endDate: p.plan_end_date || "N/A",
+             budgetSources,
+             budgetTotal: formatCurrency(totalBudgetVal),
+             projectFile: p.proposal_version?.[0]?.file_url || null,
+             evaluatorId: item.id
+         };
+      });
+
+      setProposals(mapped);
+
+    } catch (err) {
+      console.error("Failed to fetch proposals", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
+
+  const endorsedProposals = proposals;
 
   const filtered = endorsedProposals.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
@@ -421,10 +155,28 @@ export default function EndorsedProposals() {
     setSelectedProposal(null);
   };
 
-  const handleSubmitReview = (data: { decision: string; comments: any }) => {
-    console.log("[v0] Received submission from modal:", data);
-    // Perform API calls here
-    closeModal();
+  const handleSubmitReview = async (data: { decision: string; ratings: any; comments: string }) => {
+    if (!selectedProposal) return;
+    
+    // Show a loading indicator ideally, but for now just await
+    try {
+        await submitEvaluation({
+            proposal_id: selectedProposal,
+            status: data.decision.toLowerCase(),
+            objective: data.ratings.objectives,
+            methodology: data.ratings.methodology,
+            budget: data.ratings.budget,
+            timeline: data.ratings.timeline,
+            comment: data.comments
+        });
+
+        // Refresh the list to remove the completed item
+        fetchProposals();
+        closeModal();
+    } catch (error) {
+        console.error("Failed to submit review:", error);
+        alert("Failed to submit review. Please try again.");
+    }
   };
 
   const proposal = endorsedProposals.find((p) => p.id === selectedProposal);
@@ -516,7 +268,11 @@ export default function EndorsedProposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {paginatedProposals.length > 0 ? (
+          {loading ? (
+             <div className="flex items-center justify-center h-64">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+             </div>
+          ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article

@@ -272,14 +272,7 @@ export default function ReviewModal({
                     {proposal.proponent}
                   </p>
                 </div>
-                <div>
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
-                    Gender
-                  </span>
-                  <p className="font-medium text-slate-900 text-sm">
-                    {proposal.gender}
-                  </p>
-                </div>
+
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">

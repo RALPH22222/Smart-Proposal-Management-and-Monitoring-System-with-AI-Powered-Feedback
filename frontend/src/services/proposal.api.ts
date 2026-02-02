@@ -253,8 +253,15 @@ export const getRndProposals = async (): Promise<any[]> => {
   return data;
 };
 
-export const getEvaluatorProposals = async (): Promise<any[]> => {
-  const { data } = await api.get<any[]>(`/proposal/view-evaluator`, {
+export const getEvaluatorProposals = async (
+  search?: string,
+  status?: string,
+): Promise<any[]> => {
+  const params = new URLSearchParams();
+  if (search) params.append("search", search);
+  if (status) params.append("status", status);
+
+  const { data } = await api.get<any[]>(`/proposal/view-evaluator?${params.toString()}`, {
     withCredentials: true,
   });
   return data;
@@ -269,6 +276,23 @@ export type DecisionEvaluatorInput = {
 
 export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput): Promise<any> => {
   const { data } = await api.post("/proposal/decision-evaluator-to-proposal", input, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export type SubmitEvaluationInput = {
+  proposal_id: number;
+  status: string;
+  objective: number;
+  methodology: number;
+  budget: number;
+  timeline: number;
+  comment?: string;
+};
+
+export const submitEvaluation = async (input: SubmitEvaluationInput): Promise<any> => {
+  const { data } = await api.post("/proposal/create-evaluation-scores-to-proposal", input, {
     withCredentials: true,
   });
   return data;
