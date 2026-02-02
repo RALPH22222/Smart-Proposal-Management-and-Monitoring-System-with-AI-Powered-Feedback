@@ -167,7 +167,7 @@ export default function Register() {
               />
             </label>
 
-            {/* <label className="w-full md:w-20">
+            <label className="w-full md:w-20">
               <span className="text-sm font-medium text-gray-700">M.I.</span>
               <input
                 type="text"
@@ -177,7 +177,7 @@ export default function Register() {
                 maxLength={2}
                 className="mt-1 block w-full text-center rounded-lg border border-gray-200 px-2 py-3 md:py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30 hover:border-gray-300 transition-colors duration-200"
               />
-            </label> */}
+            </label>
 
             <label className="flex-1">
               <span className="text-sm font-medium text-gray-700">Last Name</span>
