@@ -2,7 +2,7 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { api } from '../utils/axios';
+// import { api } from '../utils/axios';
 
 // --- Interfaces ---
 interface UserProfileData {
@@ -12,10 +12,10 @@ interface UserProfileData {
   profilePicture: File | null;
 }
 
-interface ProfileSetupResponse {
-  message: string;
-  photoUploaded: boolean;
-}
+// interface ProfileSetupResponse {
+//   message: string;
+//   photoUploaded: boolean;
+// }
 
 // --- Constants ---
 const RD_STATIONS = [

@@ -3,7 +3,7 @@ import { Role } from "../types/auth";
 import Swal from "sweetalert2";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
-import { api } from "../utils/axios";
+// import { api } from "../utils/axios";
 
 type ProtectedRouteProps = {
   roles?: (typeof Role)[keyof typeof Role][];
