@@ -19,7 +19,7 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -42,6 +42,10 @@ function App() {
               <Route path="/faqs" element={<FAQ />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+            </Route>
+
+            {/* General Protected Routes */}
+            <Route element={<ProtectedRoute />}>
               <Route path="/profile-setup" element={<ProfileSetup />} />
             </Route>
 

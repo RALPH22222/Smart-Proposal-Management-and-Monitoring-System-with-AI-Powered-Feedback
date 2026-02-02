@@ -597,7 +597,7 @@ export class BackendStack extends Stack {
         SUPABASE_KEY,
       },
       bundling: {
-        // ⚠️ CRITICAL: Include JSON weight files (vocab, embedding, etc.) 
+        // ⚠️ CRITICAL: Include JSON weight files (vocab, embedding, etc.)
         // Without these, ai-analyzer.service.ts will fail to load models → 502 error
         commandHooks: {
           beforeBundling(inputDir: string, outputDir: string): string[] {
@@ -609,9 +609,7 @@ export class BackendStack extends Stack {
           afterBundling(inputDir: string, outputDir: string): string[] {
             // Copy ai-models/*.json to Lambda package
             // These are JUST numbers in JSON (1.5MB total), NOT the TensorFlow framework
-            return [
-              `cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`,
-            ];
+            return [`cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`];
           },
         },
       },

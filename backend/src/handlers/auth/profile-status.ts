@@ -1,6 +1,7 @@
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
+import { AuthService } from "../../services/auth.service";
 
 /**
  * GET /auth/profile-status
@@ -8,45 +9,27 @@ import { getAuthContext } from "../../utils/auth-context";
  * Returns: { profileComplete: boolean, missingFields: string[] }
  */
 export const handler = buildCorsHeaders(async (event) => {
-       const auth = getAuthContext(event);
+  const auth = getAuthContext(event);
 
-       if (!auth.userId) {
-              return {
-                     statusCode: 401,
-                     body: JSON.stringify({ message: "Unauthorized" }),
-              };
-       }
+  if (!auth.userId) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "Unauthorized" }),
+    };
+  }
+  const authService = new AuthService(supabase);
+  const { data: isCompleted, error: profileStatusError } = await authService.profileStatus(auth.userId);
 
-       // Fetch user profile from database
-       const { data: user, error } = await supabase
-              .from("users")
-              .select("birthdate, gender, rnd_station_id")
-              .eq("id", auth.userId)
-              .single();
+  if (profileStatusError) {
+    console.error("Supabase error: ", JSON.stringify(profileStatusError, null, 2));
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Internal server error." }),
+    };
+  }
 
-       if (error) {
-              console.error("Error fetching user profile:", error);
-              return {
-                     statusCode: 500,
-                     body: JSON.stringify({ message: "Failed to fetch profile status" }),
-              };
-       }
-
-       // Check required fields
-       const missingFields: string[] = [];
-
-       if (!user.birthdate) missingFields.push("birthdate");
-       if (!user.gender) missingFields.push("gender");
-       if (!user.rnd_station_id) missingFields.push("rnd_station");
-
-       const profileComplete = missingFields.length === 0;
-
-       return {
-              statusCode: 200,
-              body: JSON.stringify({
-                     profileComplete,
-                     missingFields,
-                     userId: auth.userId,
-              }),
-       };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ isCompleted }),
+  };
 });

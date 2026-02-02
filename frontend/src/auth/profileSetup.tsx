@@ -50,6 +50,23 @@ export default function ProfileSetup() {
 
   // --- Effects ---
   useEffect(() => {
+    // TEMPORARILY DISABLED: Static mode
+    /*
+    const checkProfileStatus = async () => {
+      try {
+        const response = await api.get<{ isCompleted: boolean }>('/auth/profile-status');
+        if (response.data.isCompleted) {
+          navigate("/users/proponent/proponentMainLayout", { replace: true });
+        }
+      } catch (error) {
+        console.error("Failed to check profile status", error);
+      }
+    };
+    checkProfileStatus();
+    */
+  }, [navigate]);
+
+  useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
@@ -84,6 +101,8 @@ export default function ProfileSetup() {
     }
 
     try {
+      // PREPARE DATA (Simulated)
+      /*
       // Prepare form data
       const data = new FormData();
       data.append('birth_date', formData.birthdate);
@@ -102,8 +121,15 @@ export default function ProfileSetup() {
       });
 
       const result = response.data;
+      */
 
-      const successTitle = result.photoUploaded ? 'Profile Setup Complete!' : 'Profile Saved!';
+      // SIMULATED SUCCESS
+      const result = {
+        message: 'Profile setup simulated success',
+        photoUploaded: !!formData.profilePicture
+      };
+
+      const successTitle = result.photoUploaded ? 'Profile Setup Complete! (Simulated)' : 'Profile Saved! (Simulated)';
       const successText = result.photoUploaded
         ? 'Your information and photo have been saved successfully.'
         : 'Your information has been saved. You can add a photo later from your profile.';
