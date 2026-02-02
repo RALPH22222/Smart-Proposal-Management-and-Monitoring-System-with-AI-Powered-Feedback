@@ -1,6 +1,6 @@
 import { api } from "@utils/axios";
 import React, { useState } from "react";
-// Removed unused import: import { useNavigate } from "react-router-dom"; 
+// Removed unused import: import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
 const BACKGROUND_IMAGE_URL =
@@ -38,20 +38,16 @@ export default function Register() {
         last_name,
         email,
         password,
-        roles: ["proponent"]
+        roles: ["proponent"],
       };
 
       if (middle_ini && middle_ini.trim()) {
         payload.middle_ini = middle_ini;
       }
 
-      await api.post<SignUpResponse>(
-        "/auth/sign-up",
-        payload,
-        {
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      await api.post<SignUpResponse>("/auth/sign-up", payload, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       // --- SUCCESS MODAL ---
       await Swal.fire({
@@ -80,14 +76,13 @@ export default function Register() {
       setLastName("");
       setEmail("");
       setPassword("");
-
     } catch (err) {
       console.error("Registration error:", err);
 
       // Extract error message from axios response
       let errorMessage = "An error occurred during registration. Please try again.";
 
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const axiosError = err as { response?: { data?: { message?: string } } };
         console.log("Backend response data:", axiosError.response?.data);
         console.log("Message from backend:", axiosError.response?.data?.message);
@@ -127,11 +122,7 @@ export default function Register() {
       >
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
-          <img
-            src="/LOGO.png"
-            alt="Logo"
-            className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg"
-          />
+          <img src="/LOGO.png" alt="Logo" className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg" />
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal
           </h1>

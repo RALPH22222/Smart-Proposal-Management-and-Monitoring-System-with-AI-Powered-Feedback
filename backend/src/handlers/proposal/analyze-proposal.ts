@@ -2,16 +2,47 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { analyzeProposal, type ExtractedData } from "../../services/ai-analyzer.service";
 import multipart from "lambda-multipart-parser";
+import mammoth from "mammoth";
 
 // pdf-parse v1 has no type declarations
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdf = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const officeParser = require("officeparser");
+
+const SUPPORTED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+
+/**
+ * Extract plain text from a document buffer based on its MIME type.
+ */
+async function extractTextFromFile(buffer: Buffer, contentType: string): Promise<string> {
+  switch (contentType) {
+    case "application/pdf": {
+      const pdfData = await pdf(buffer);
+      return pdfData.text;
+    }
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    }
+    case "application/msword": {
+      const text = await officeParser.parseOfficeAsync(buffer);
+      return typeof text === "string" ? text : String(text);
+    }
+    default:
+      throw new Error(`Unsupported file format: ${contentType}`);
+  }
+}
 
 /**
  * Lambda handler: POST /proposal/analyze
  *
- * Accepts multipart/form-data with a PDF file, extracts text,
- * parses proposal metadata using regex (same patterns as scan_pdf.py),
+ * Accepts multipart/form-data with a document file (PDF, DOC, or DOCX),
+ * extracts text, parses proposal metadata using regex (same patterns as scan_pdf.py),
  * runs pure-TypeScript AI inference, and returns analysis results.
  */
 export const handler = buildCorsHeaders(async (event) => {
@@ -31,27 +62,37 @@ export const handler = buildCorsHeaders(async (event) => {
   if (!file || !file.content) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ message: "No file uploaded. Please attach a PDF file." }),
+      body: JSON.stringify({ message: "No file uploaded. Please attach a PDF, DOC, or DOCX file." }),
     };
   }
 
-  // Extract text from PDF
-  let text: string;
-  try {
-    const pdfData = await pdf(file.content);
-    text = pdfData.text;
-  } catch (err) {
-    console.error("PDF parse error:", err);
+  // Validate content type
+  const contentType = file.contentType || "";
+  if (!SUPPORTED_TYPES.includes(contentType as (typeof SUPPORTED_TYPES)[number])) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ message: "Failed to read PDF. Please upload a valid PDF file." }),
+      body: JSON.stringify({
+        message: `Unsupported file format. Please upload a PDF, DOC, or DOCX file. Received: ${contentType}`,
+      }),
+    };
+  }
+
+  // Extract text from document
+  let text: string;
+  try {
+    text = await extractTextFromFile(file.content, contentType);
+  } catch (err) {
+    console.error("Document parse error:", err);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "Failed to read the uploaded file. Please ensure it is a valid PDF, DOC, or DOCX." }),
     };
   }
 
   if (!text || text.trim().length === 0) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ message: "Could not extract text from PDF. The file may be scanned/image-based." }),
+      body: JSON.stringify({ message: "Could not extract text from the file. It may be empty or image-based." }),
     };
   }
 

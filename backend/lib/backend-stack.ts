@@ -607,8 +607,11 @@ export class BackendStack extends Stack {
             return [];
           },
           afterBundling(inputDir: string, outputDir: string): string[] {
-            // Copy ai-models/*.json to Lambda package
+            // Copy ai-models/*.json to Lambda package (cross-platform)
             // These are JUST numbers in JSON (1.5MB total), NOT the TensorFlow framework
+            if (process.platform === "win32") {
+              return [`xcopy "${inputDir}\\src\\ai-models" "${outputDir}\\ai-models" /E /I /Y`];
+            }
             return [`cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`];
           },
         },
