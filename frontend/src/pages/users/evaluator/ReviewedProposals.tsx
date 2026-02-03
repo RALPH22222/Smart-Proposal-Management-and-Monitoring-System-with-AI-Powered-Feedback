@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getEvaluatorProposals } from "../../../services/proposal.api";
+import { getEvaluatorProposals, getEvaluationScoresFromProposal } from "../../../services/proposal.api";
 import {
   FileText,
   Eye,
@@ -36,13 +36,19 @@ export default function ReviewedProposals() {
     setLoading(true);
     try {
       // Fetch all proposals for this evaluator
-      const data = await getEvaluatorProposals();
+      const [data, scores] = await Promise.all([
+        getEvaluatorProposals(),
+        getEvaluationScoresFromProposal()
+      ]);
       
       const completedStatuses = ['approve', 'revise', 'reject', 'decline'];
       const filtered = data.filter((item: any) => completedStatuses.includes(item.status));
 
+      const scoresMap = new Map(scores.map((s: any) => [s.proposal_id, s]));
+
       const mapped = filtered.map((item: any) => {
          const p = item.proposal_id || {};
+         const evaluationScore = scoresMap.get(item.proposal_id?.id);
          const proponent = p.proponent_id || {};
          const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
          
@@ -93,9 +99,14 @@ export default function ReviewedProposals() {
              budgetSources,
              budgetTotal: formatCurrency(totalBudgetVal),
              projectFile: p.proposal_version?.[0]?.file_url || null,
-             ratings: {}, // Scores are not in the main proposal view response, would need separate fetch or join update if needed
+             ratings: evaluationScore ? {
+                 objectives: evaluationScore.objective,
+                 methodology: evaluationScore.methodology,
+                 budget: evaluationScore.budget,
+                 timeline: evaluationScore.timeline
+             } : {},
              decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-             comment: item.comments_for_evaluators || "No comment", // Or fetch from evaluation_scores if that's where the final comment lives
+             comment: evaluationScore?.comment || item.comments_for_evaluators || "No comment",
              evaluatorId: item.id
          };
       });

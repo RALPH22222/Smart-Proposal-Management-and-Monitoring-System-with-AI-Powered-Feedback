@@ -6,70 +6,120 @@ import {
   Users,
   AlertCircle,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getEvaluatorProposalStats, getEvaluatorProposals } from "../../../services/proposal.api";
 
 export default function DashboardRdec() {
+  const [statsData, setStatsData] = useState({
+    pending: 0,
+    reject: 0,
+    approve: 0,
+    for_review: 0,
+    revise: 0,
+    decline: 0
+  });
+  const [proposals, setProposals] = useState<any[]>([]);
+
+  const [derivedStats, setDerivedStats] = useState({
+      reviewedToday: 0,
+      underReview: 0,
+      pending: 0,
+      thisMonth: 0,
+      thisWeek: 0,
+      today: 0
+  });
+
+  useEffect(() => {
+      const fetchData = async () => {
+          try {
+              const [stats, allProposals] = await Promise.all([
+                  getEvaluatorProposalStats(),
+                  getEvaluatorProposals()
+              ]);
+
+              setStatsData(stats || { pending: 0, reject: 0, approve: 0, for_review: 0, revise: 0, decline: 0 });
+
+              // Map proposals for table
+              const reviewedStatuses = ['approve', 'reject', 'revise', 'decline'];
+              
+              const mappedProposals = allProposals
+                .filter((item: any) => reviewedStatuses.includes(item.status))
+                .map((item: any) => ({
+                  id: item.proposal_id.id,
+                  title: item.proposal_id.project_title,
+                  proponent: `${item.proposal_id.proponent_id.first_name} ${item.proposal_id.proponent_id.last_name}`,
+                  date: new Date(item.updated_at).toLocaleDateString(), // Use updated_at for review date
+                  status: item.status,
+                  updatedAt: new Date(item.updated_at)
+              }));
+              
+              // Sort by review date desc
+              mappedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+              setProposals(mappedProposals.slice(0, 5)); // Take top 5 recent reviewed
+
+              // Calculate derived stats
+              const now = new Date();
+              const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+              const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+              const todayCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfDay).length;
+              const weekCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfWeek).length;
+              const monthCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfMonth).length;
+
+              // reviewed today = status in [approve, reject, revise] and updated_at today?
+              // The API response for getEvaluatorProposals doesn't seem to include updated_at clearly in the shared type, 
+              // but assuming we can count based on status for now.
+              // actually 'allProposals' has 'status'.
+              
+              const reviewedToday = allProposals.filter((p: any) => reviewedStatuses.includes(p.status) && new Date(p.updated_at) >= startOfDay).length;
+              const underReviewCount = allProposals.filter((p: any) => p.status === 'for_review').length;
+              const pendingCount = allProposals.filter((p: any) => p.status === 'pending').length;
+
+              setDerivedStats({
+                  reviewedToday,
+                  underReview: underReviewCount,
+                  pending: pendingCount,
+                  thisMonth: monthCount,
+                  thisWeek: weekCount,
+                  today: todayCount
+              });
+
+          } catch (error) {
+              console.error("Failed to fetch dashboard data", error);
+          }
+      };
+
+      fetchData();
+  }, []);
+
   const stats = [
     {
       icon: Clock,
       label: "Pending Proposals",
-      value: 100,
+      value: statsData.pending,
       color: "text-amber-500",
       bgColor: "bg-amber-50",
       borderColor: "border-amber-200",
+      description: "Awaiting review"
     },
     {
       icon: XCircle,
       label: "Rejected Proposals",
-      value: 12,
+      value: statsData.reject + statsData.decline,
       color: "text-red-500",
       bgColor: "bg-red-50",
       borderColor: "border-red-200",
+      description: "Declined or rejected"
     },
     {
       icon: CheckCircle,
       label: "Reviewed Proposals",
-      value: 45,
+      value: statsData.approve + statsData.revise, 
       color: "text-emerald-500",
       bgColor: "bg-emerald-50",
       borderColor: "border-emerald-200",
-    },
-  ];
-
-  const proposals = [
-    {
-      id: 1,
-      title: "AI Research on Education",
-      proponent: "John Doe",
-      date: "Sept 21, 2025",
-      priority: "High",
-    },
-    {
-      id: 2,
-      title: "Sustainable Farming Proposal",
-      proponent: "Jane Smith",
-      date: "Sept 19, 2025",
-      priority: "Medium",
-    },
-    {
-      id: 3,
-      title: "Blockchain in Healthcare",
-      proponent: "Michael Lee",
-      date: "Sept 15, 2025",
-      priority: "Low",
-    },
-    {
-      id: 4,
-      title: "Renewable Energy Infrastructure",
-      proponent: "Sarah Wilson",
-      date: "Sept 12, 2025",
-      priority: "High",
-    },
-    {
-      id: 5,
-      title: "Digital Transformation Initiative",
-      proponent: "David Chen",
-      date: "Sept 10, 2025",
-      priority: "Medium",
+      description: "Approved or revised"
     },
   ];
 
@@ -269,15 +319,15 @@ export default function DashboardRdec() {
             <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200">
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-emerald-600">24</div>
+                  <div className="text-2xl font-bold text-emerald-600">{derivedStats.thisMonth}</div>
                   <div className="text-xs text-slate-600">This Month</div>
                 </div>
                 <div className="text-center border-x border-slate-300">
-                  <div className="text-2xl font-bold text-amber-600">8</div>
+                  <div className="text-2xl font-bold text-amber-600">{derivedStats.thisWeek}</div>
                   <div className="text-xs text-slate-600">This Week</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">3</div>
+                  <div className="text-2xl font-bold text-blue-600">{derivedStats.today}</div>
                   <div className="text-xs text-slate-600">Today</div>
                 </div>
               </div>
@@ -300,7 +350,7 @@ export default function DashboardRdec() {
                     Pending
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-amber-700">28</span>
+                <span className="text-2xl font-bold text-amber-700">{statsData.pending}</span>
               </div>
 
               {/* Under Review */}
@@ -311,7 +361,7 @@ export default function DashboardRdec() {
                     Under Review
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-blue-700">15</span>
+                <span className="text-2xl font-bold text-blue-700">{statsData.for_review}</span>
               </div>
 
               {/* Reviewed */}
@@ -322,7 +372,7 @@ export default function DashboardRdec() {
                     Reviewed
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-emerald-700">45</span>
+                <span className="text-2xl font-bold text-emerald-700">{statsData.approve + statsData.revise + statsData.reject + statsData.decline}</span>
               </div>
             </div>
 
@@ -333,15 +383,15 @@ export default function DashboardRdec() {
               <div className="space-y-2 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  <span>8 proposals reviewed today</span>
+                  <span>{derivedStats.reviewedToday} proposals reviewed today</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <span>12 currently under review</span>
+                  <span>{derivedStats.underReview} currently under review</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                  <span>28 pending assignment</span>
+                  <span>{derivedStats.pending} pending assignment</span>
                 </div>
               </div>
             </div>

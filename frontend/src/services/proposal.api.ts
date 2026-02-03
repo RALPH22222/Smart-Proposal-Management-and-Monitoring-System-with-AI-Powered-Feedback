@@ -258,6 +258,13 @@ export const getEvaluatorProposals = async (search?: string, status?: string): P
   return data;
 };
 
+export const getEvaluatorProposalStats = async (): Promise<any> => {
+  const { data } = await api.get<any>("/proposal/view-evaluator-proposal-stats", {
+    withCredentials: true,
+  });
+  return data;
+};
+
 export type DecisionEvaluatorInput = {
   proposal_id: number;
   status: "pending" | "accept" | "decline" | "extend";
@@ -284,6 +291,13 @@ export type SubmitEvaluationInput = {
 
 export const submitEvaluation = async (input: SubmitEvaluationInput): Promise<any> => {
   const { data } = await api.post("/proposal/create-evaluation-scores-to-proposal", input, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export const getEvaluationScoresFromProposal = async (): Promise<any[]> => {
+  const { data } = await api.get<any[]>("/proposal/get-evaluation-scores-from-proposal", {
     withCredentials: true,
   });
   return data;
