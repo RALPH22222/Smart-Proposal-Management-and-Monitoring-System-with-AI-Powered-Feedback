@@ -15,6 +15,7 @@ import {
 import path from "path";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Bucket } from "aws-cdk-lib/aws-s3";
+import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const ALLOWED_STAGE_NAMES = ["dev", "prod"];
 
@@ -31,6 +32,11 @@ export class BackendStack extends Stack {
 
     const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
     const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_SECRET_JWT");
+    const SES_SENDER_EMAIL = StringParameter.valueForStringParameter(this, "/pms/backend/SES_SENDER_EMAIL");
+
+    const FRONTEND_URL = stageName === "prod"
+      ? "https://wmsu-spmams.vercel.app"
+      : "http://localhost:5173";
 
     // S3 Bucket
     const proposal_attachments_bucket = new Bucket(this, `pms-proposal-attachments-bucket-${stageName}`, {
@@ -98,10 +104,31 @@ export class BackendStack extends Stack {
       functionName: "pms-sign-up",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
+      timeout: Duration.seconds(15),
       entry: path.resolve("src", "handlers", "auth", "sign-up.ts"),
       environment: {
         SUPABASE_KEY,
+        SES_SENDER_EMAIL,
+        FRONTEND_URL,
+      },
+    });
+
+    // Grant SES send email permissions for verification emails
+    signup_lambda.addToRolePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ["ses:SendEmail"],
+      resources: ["*"],
+    }));
+
+    const confirm_email_lambda = new NodejsFunction(this, "pms-confirm-email", {
+      functionName: "pms-confirm-email",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "confirm-email.ts"),
+      environment: {
+        SUPABASE_KEY,
+        FRONTEND_URL,
       },
     });
 
@@ -685,6 +712,10 @@ export class BackendStack extends Stack {
     // /auth/sign-up
     const signup = auth.addResource("sign-up");
     signup.addMethod(HttpMethod.POST, new LambdaIntegration(signup_lambda));
+
+    // /auth/confirm-email (public — clicked from email link)
+    const confirm_email = auth.addResource("confirm-email");
+    confirm_email.addMethod(HttpMethod.GET, new LambdaIntegration(confirm_email_lambda));
 
     // /auth/profile-setup
     const profile_setup = auth.addResource("profile-setup");

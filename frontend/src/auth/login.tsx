@@ -1,8 +1,8 @@
 import { useAuthContext } from "../context/AuthContext";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { api } from "@utils/axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
 type LoginResponse = {
   message: string;
@@ -25,6 +25,28 @@ export default function Login() {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    if (verified === "success") {
+      Swal.fire({
+        icon: "success",
+        title: "Email Verified",
+        text: "Your email has been verified successfully. You can now log in.",
+        confirmButtonColor: "#C8102E",
+      });
+      setSearchParams({}, { replace: true });
+    } else if (verified === "already") {
+      Swal.fire({
+        icon: "info",
+        title: "Already Verified",
+        text: "Your email was already verified. You can log in.",
+        confirmButtonColor: "#C8102E",
+      });
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const navigateBasedOnRole = (role: string) => {
     switch (role.toLowerCase()) {

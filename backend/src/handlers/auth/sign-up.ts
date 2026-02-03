@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { AuthService } from "../../services/auth.service";
+import { EmailService } from "../../services/email.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { signUpSchema } from "../../schemas/auth-schema";
@@ -26,9 +27,9 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   if (error) {
     console.error("Error during sign up: ", JSON.stringify(error, null, 2));
     return {
-      statusCode: error.status || 400,
+      statusCode: (error as { status?: number }).status || 400,
       body: JSON.stringify({
-        message: error.message || error.code,
+        message: error.message || (error as { code?: string }).code,
       }),
     };
   }
@@ -45,11 +46,32 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  console.log("Successfully Signed up.");
+  // Send verification email via AWS SES
+  try {
+    const emailService = new EmailService();
+    const verificationToken = (data as any).verificationToken;
+    const domain = event.requestContext.domainName;
+    const stage = event.requestContext.stage;
+    const apiGatewayUrl = `https://${domain}/${stage}`;
+    const verificationLink = `${apiGatewayUrl}/auth/confirm-email?token=${verificationToken}`;
+
+    await emailService.sendVerificationEmail(
+      result.data.email,
+      result.data.first_name,
+      verificationLink,
+    );
+
+    console.log("Successfully signed up and sent verification email.");
+  } catch (emailError) {
+    console.error("Failed to send verification email:", emailError);
+    // User is created but email failed — still return success
+    // They can contact support if they don't receive the email
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: "Email invitation sent successfully.",
+      message: "Account created successfully. Please check your email to verify your account.",
     }),
   };
 });

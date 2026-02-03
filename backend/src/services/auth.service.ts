@@ -2,6 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { ProfileSetup, SignUpInput } from "../schemas/auth-schema";
 import jwt from "jsonwebtoken";
 import { DecodedToken } from "../types/auth";
+import { randomUUID } from "crypto";
 
 type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
   photo_profile_url: string | null; // Photo is optional
@@ -17,17 +18,23 @@ export class AuthService {
     const userId = data.user.id;
 
     const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles")
+      .select("roles, email_verified")
       .eq("id", userId)
       .maybeSingle();
 
-    // console.log("auth userId:", userId);
-    // console.log("rolesRow:", row);
-    // console.log("rolesError:", rolesError);
-
     if (rolesError) return { data: null, error: rolesError };
 
-    const roles = row?.roles ?? []; // ✅ array
+    if (!row?.email_verified) {
+      return {
+        data: null,
+        error: {
+          message: "Please verify your email address before logging in. Check your inbox for the verification link.",
+          status: 403,
+        },
+      };
+    }
+
+    const roles = row?.roles ?? [];
 
     return { data: { ...data, roles }, error: null };
   }
@@ -45,7 +52,66 @@ export class AuthService {
         },
       },
     });
-    return { data, error };
+
+    if (error || !data.user) {
+      return { data, error };
+    }
+
+    // Generate email verification token (24-hour expiry)
+    const verificationToken = randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: tokenError } = await this.db!
+      .from("users")
+      .update({
+        email_verification_token: verificationToken,
+        email_verification_token_expires_at: expiresAt,
+        email_verified: false,
+      })
+      .eq("id", data.user.id);
+
+    if (tokenError) {
+      console.error("Failed to store verification token:", tokenError);
+    }
+
+    return { data: { ...data, verificationToken }, error: null };
+  }
+
+  async confirmEmail(token: string) {
+    const { data: user, error: fetchError } = await this.db!
+      .from("users")
+      .select("id, email_verified, email_verification_token_expires_at")
+      .eq("email_verification_token", token)
+      .maybeSingle();
+
+    if (fetchError || !user) {
+      return { data: null, error: { message: "Invalid or expired verification token" } };
+    }
+
+    if (user.email_verified) {
+      return { data: { alreadyVerified: true }, error: null };
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(user.email_verification_token_expires_at);
+    if (now > expiresAt) {
+      return { data: null, error: { message: "Verification token has expired. Please register again." } };
+    }
+
+    const { error: updateError } = await this.db!
+      .from("users")
+      .update({
+        email_verified: true,
+        email_verification_token: null,
+        email_verification_token_expires_at: null,
+      })
+      .eq("id", user.id);
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    return { data: { verified: true }, error: null };
   }
 
   async profileSetup(userId: string, input: ProfileSetupDbPayload) {

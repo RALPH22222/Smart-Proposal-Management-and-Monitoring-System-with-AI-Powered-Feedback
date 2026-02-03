@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.940.0",
+    "@aws-sdk/client-ses": "^3.981.0",
     "@supabase/supabase-js": "^2.84.0",
     "aws-cdk-lib": "2.215.0",
     "busboy": "^1.6.0",

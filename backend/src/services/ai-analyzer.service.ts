@@ -57,7 +57,7 @@ export interface ExtractedData {
 
 // ── Model loading ────────────────────────────────────────────────────
 
-const MODELS_DIR = path.resolve(__dirname, "..", "ai-models");
+const MODELS_DIR = path.resolve(__dirname, "ai-models");
 
 function loadJSON<T>(filename: string): T {
   const raw = readFileSync(path.join(MODELS_DIR, filename), "utf-8");
