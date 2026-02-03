@@ -4,9 +4,10 @@ import { analyzeProposal, type ExtractedData } from "../../services/ai-analyzer.
 import multipart from "lambda-multipart-parser";
 import mammoth from "mammoth";
 
-// pdf-parse v1 has no type declarations
+// pdf-parse v1 eagerly reads a test PDF in its index.js which breaks in Lambda.
+// Import the inner module directly to bypass that behaviour.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdf = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
+const pdf = require("pdf-parse/lib/pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const officeParser = require("officeparser");
 

@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
-import {
-  FileText,
-  Eye,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
-  User,
-  Clock,
-  Tag,
-  Filter,
-} from "lucide-react";
+import { FileText, Eye, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, Filter } from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 
 export default function EndorsedProposals() {
@@ -36,66 +25,68 @@ export default function EndorsedProposals() {
   const fetchProposals = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getEvaluatorProposals(undefined, "for_review"); 
-      
+      const data = await getEvaluatorProposals(undefined, "for_review");
+
       const mapped = data.map((item: any) => {
-         const p = item.proposal_id || {};
-         const proponent = p.proponent_id || {};
-         const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
-         
-         // Map budget
-         const budgetSourcesMap: Record<string, {ps: number, mooe: number, co: number}> = {};
-         (p.estimated_budget || []).forEach((b: any) => {
-             if (!budgetSourcesMap[b.source]) {
-                 budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
-             }
-             if (b.budget === 'ps') budgetSourcesMap[b.source].ps += b.amount;
-             if (b.budget === 'mooe') budgetSourcesMap[b.source].mooe += b.amount;
-             if (b.budget === 'co') budgetSourcesMap[b.source].co += b.amount;
-         });
+        const p = item.proposal_id || {};
+        const proponent = p.proponent_id || {};
+        const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
 
-         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
-             source,
-             ps: formatCurrency(amounts.ps),
-             mooe: formatCurrency(amounts.mooe),
-             co: formatCurrency(amounts.co),
-             total: formatCurrency(amounts.ps + amounts.mooe + amounts.co)
-         }));
+        // Map budget
+        const budgetSourcesMap: Record<string, { ps: number; mooe: number; co: number }> = {};
+        (p.estimated_budget || []).forEach((b: any) => {
+          if (!budgetSourcesMap[b.source]) {
+            budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+          }
+          if (b.budget === "ps") budgetSourcesMap[b.source].ps += b.amount;
+          if (b.budget === "mooe") budgetSourcesMap[b.source].mooe += b.amount;
+          if (b.budget === "co") budgetSourcesMap[b.source].co += b.amount;
+        });
 
-         const totalBudgetVal = (p.estimated_budget || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+        const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+          source,
+          ps: formatCurrency(amounts.ps),
+          mooe: formatCurrency(amounts.mooe),
+          co: formatCurrency(amounts.co),
+          total: formatCurrency(amounts.ps + amounts.mooe + amounts.co),
+        }));
 
-         return {
-             id: p.id,
-             title: p.project_title || "Untitled",
-             reviewDeadline: item.deadline_at ? new Date(item.deadline_at).toLocaleDateString() : "N/A",
-             proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
-             projectType: p.sector?.name || "N/A",
-             agency: p.agency?.name || "N/A",
-             address: agencyAddress,
-             implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
-             telephone: p.phone || "N/A",
-             email: p.email || "N/A",
-             cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
-             rdStation: p.rnd_station?.name || "N/A",
-             classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
-             classificationDetails: p.research_class || p.development_class || "N/A",
-             modeOfImplementation: p.implementation_mode === 'multi_agency' ? 'Multi Agency' : 'Single Agency',
-             priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
-             sector: p.sector?.name || "N/A",
-             discipline: p.discipline?.name || "N/A",
-             duration: p.duration ? `${p.duration} months` : "N/A",
-             schoolYear: p.school_year || "N/A",
-             startDate: p.plan_start_date || "N/A",
-             endDate: p.plan_end_date || "N/A",
-             budgetSources,
-             budgetTotal: formatCurrency(totalBudgetVal),
-             projectFile: p.proposal_version?.[0]?.file_url || null,
-             evaluatorId: item.id
-         };
+        const totalBudgetVal = (p.estimated_budget || []).reduce(
+          (acc: number, curr: any) => acc + (curr.amount || 0),
+          0,
+        );
+
+        return {
+          id: p.id,
+          title: p.project_title || "Untitled",
+          reviewDeadline: item.deadline_at ? new Date(item.deadline_at).toLocaleDateString() : "N/A",
+          proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
+          projectType: p.sector?.name || "N/A",
+          agency: p.agency?.name || "N/A",
+          address: agencyAddress,
+          implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
+          telephone: p.phone || "N/A",
+          email: p.email || "N/A",
+          cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+          rdStation: p.rnd_station?.name || "N/A",
+          classification: p.classification_type === "research_class" ? "Research" : "Development",
+          classificationDetails: p.research_class || p.development_class || "N/A",
+          modeOfImplementation: p.implementation_mode === "multi_agency" ? "Multi Agency" : "Single Agency",
+          priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
+          sector: p.sector?.name || "N/A",
+          discipline: p.discipline?.name || "N/A",
+          duration: p.duration ? `${p.duration} months` : "N/A",
+          schoolYear: p.school_year || "N/A",
+          startDate: p.plan_start_date || "N/A",
+          endDate: p.plan_end_date || "N/A",
+          budgetSources,
+          budgetTotal: formatCurrency(totalBudgetVal),
+          projectFile: p.proposal_version?.[0]?.file_url || null,
+          evaluatorId: item.id,
+        };
       });
 
       setProposals(mapped);
-
     } catch (err) {
       console.error("Failed to fetch proposals", err);
     } finally {
@@ -123,10 +114,7 @@ export default function EndorsedProposals() {
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = sortedFiltered.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
   const getProjectTypeColor = (type: string) => {
     switch (type) {
@@ -157,25 +145,25 @@ export default function EndorsedProposals() {
 
   const handleSubmitReview = async (data: { decision: string; ratings: any; comments: string }) => {
     if (!selectedProposal) return;
-    
+
     // Show a loading indicator ideally, but for now just await
     try {
-        await submitEvaluation({
-            proposal_id: selectedProposal,
-            status: data.decision.toLowerCase(),
-            objective: data.ratings.objectives,
-            methodology: data.ratings.methodology,
-            budget: data.ratings.budget,
-            timeline: data.ratings.timeline,
-            comment: data.comments
-        });
+      await submitEvaluation({
+        proposal_id: selectedProposal,
+        status: data.decision.toLowerCase(),
+        objective: data.ratings.objectives,
+        methodology: data.ratings.methodology,
+        budget: data.ratings.budget,
+        timeline: data.ratings.timeline,
+        comment: data.comments,
+      });
 
-        // Refresh the list to remove the completed item
-        fetchProposals();
-        closeModal();
+      // Refresh the list to remove the completed item
+      fetchProposals();
+      closeModal();
     } catch (error) {
-        console.error("Failed to submit review:", error);
-        alert("Failed to submit review. Please try again.");
+      console.error("Failed to submit review:", error);
+      alert("Failed to submit review. Please try again.");
     }
   };
 
@@ -187,9 +175,7 @@ export default function EndorsedProposals() {
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-              Review Proposals
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">Review Proposals</h1>
             <p className="text-slate-600 mt-2 text-sm leading-relaxed">
               Track proposals that have been submitted for evaluation review.
             </p>
@@ -198,18 +184,12 @@ export default function EndorsedProposals() {
       </header>
 
       {/* Filter Section */}
-      <section
-        className="flex-shrink-0"
-        aria-label="Filter endorsed proposals"
-      >
+      <section className="flex-shrink-0" aria-label="Filter endorsed proposals">
         <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="relative flex-1 max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search
-                  className="h-4 w-4 text-slate-400"
-                  aria-hidden="true"
-                />
+                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
               </div>
               <input
                 type="text"
@@ -223,10 +203,7 @@ export default function EndorsedProposals() {
 
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter
-                  className="h-4 w-4 text-slate-400"
-                  aria-hidden="true"
-                />
+                <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
               </div>
               <select
                 value={typeFilter}
@@ -246,8 +223,7 @@ export default function EndorsedProposals() {
           </div>
 
           <div className="mt-4 text-xs text-slate-600">
-            Showing {sortedFiltered.length} of {endorsedProposals.length}{" "}
-            proposals for review
+            Showing {sortedFiltered.length} of {endorsedProposals.length} proposals for review
           </div>
         </div>
       </section>
@@ -269,16 +245,13 @@ export default function EndorsedProposals() {
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-             <div className="flex items-center justify-center h-64">
-               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
-             </div>
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+            </div>
           ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
-                <article
-                  key={proposal.id}
-                  className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
-                >
+                <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 group">
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -297,7 +270,7 @@ export default function EndorsedProposals() {
                           </div>
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                              proposal.projectType
+                              proposal.projectType,
                             )}`}
                           >
                             <Tag className="w-3 h-3" />
@@ -325,13 +298,9 @@ export default function EndorsedProposals() {
               <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <FileText className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
-                No proposals found
-              </h3>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               <p className="text-slate-500 max-w-sm mx-auto">
-                {search
-                  ? "Try adjusting your search criteria."
-                  : "No proposals have been reviewed yet."}
+                {search ? "Try adjusting your search criteria." : "No proposals have been reviewed yet."}
               </p>
             </div>
           )}
@@ -341,15 +310,12 @@ export default function EndorsedProposals() {
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
             <span>
-              Showing {startIndex + 1}-
-              {Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
+              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
               {sortedFiltered.length} proposals
             </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.max(prev - 1, 1))
-                }
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
               >
@@ -360,9 +326,7 @@ export default function EndorsedProposals() {
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg disabled:opacity-50 cursor-pointer"
               >

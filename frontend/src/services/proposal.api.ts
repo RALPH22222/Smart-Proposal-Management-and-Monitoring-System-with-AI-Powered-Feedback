@@ -56,10 +56,7 @@ export const fetchCommodities = async (): Promise<LookupItem[]> => {
   return data;
 };
 
-export const submitProposal = async (
-  formData: FormData,
-  file: File,
-): Promise<CreateProposalResponse> => {
+export const submitProposal = async (formData: FormData, file: File): Promise<CreateProposalResponse> => {
   const fd = new FormData();
   const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
   const endDate = formData.plannedEndDate ? new Date(formData.plannedEndDate).toISOString().split("T")[0] : "";
@@ -233,10 +230,7 @@ export const analyzeProposalWithAI = async (file: File): Promise<AIAnalysisRespo
   return data;
 };
 
-export const getProposals = async (
-  search?: string,
-  status?: string,
-): Promise<any[]> => {
+export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (status) params.append("status", status);
@@ -253,10 +247,7 @@ export const getRndProposals = async (): Promise<any[]> => {
   return data;
 };
 
-export const getEvaluatorProposals = async (
-  search?: string,
-  status?: string,
-): Promise<any[]> => {
+export const getEvaluatorProposals = async (search?: string, status?: string): Promise<any[]> => {
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (status) params.append("status", status);
