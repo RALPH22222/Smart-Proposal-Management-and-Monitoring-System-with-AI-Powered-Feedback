@@ -27,21 +27,10 @@ export const handler = buildCorsHeaders(async (event) => {
   const payload = await multipart.parse(event);
   const { files, ...body } = payload;
 
-  // 1) Ensure file exists early (optional but clearer error)
-  if (!files || files.length === 0) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        type: "validation_error",
-        data: [{ message: "photo_profile_url is required" }],
-      }),
-    };
-  }
-
-  // 2) Validate form fields + file (type + max size)
+  // 2) Validate form fields + file (type + max size) — photo is optional
   const validation = profileSetupSchema.safeParse({
     ...body,
-    photo_profile_url: files[0],
+    ...(files && files.length > 0 ? { photo_profile_url: files[0] } : {}),
   });
 
   if (!validation.success) {
@@ -57,26 +46,30 @@ export const handler = buildCorsHeaders(async (event) => {
   // validation.data.photo_profile_url has: filename, contentType, content (Buffer)
   const { photo_profile_url, ...data } = validation.data;
 
-  // 3) Upload to S3
-  const safeFilename = photo_profile_url?.filename.replace(/[^\w.\-]+/g, "_");
-  const Key = `profile-photos/${auth.userId}-${safeFilename}`;
+  let photoUrl: string | undefined;
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket,
-      Key,
-      Body: photo_profile_url?.content,
-      ContentType: photo_profile_url?.contentType,
-    }),
-  );
+  if (photo_profile_url) {
+    // 3) Upload to S3
+    const safeFilename = photo_profile_url.filename.replace(/[^\w.\-]+/g, "_");
+    const Key = `profile-photos/${auth.userId}-${safeFilename}`;
 
-  // 4) Build URL (region-aware)
-  const photoUrl = `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`;
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket,
+        Key,
+        Body: photo_profile_url.content,
+        ContentType: photo_profile_url.contentType,
+      }),
+    );
+
+    // 4) Build URL (region-aware)
+    photoUrl = `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`;
+  }
 
   // 5) Persist to DB via service
   const { error: profileSetupError } = await authService.profileSetup(auth.userId, {
     ...data,
-    photo_profile_url: photoUrl,
+    photo_profile_url: photoUrl ?? null,
   });
 
   if (profileSetupError) {
