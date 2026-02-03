@@ -39,9 +39,12 @@ export const RoleEnum = z.enum(["proponent", "rnd", "evaluator", "rdec", "admin"
 export const signUpSchema = z.object({
   email: z.string().email("Email is not valid"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-  middle_ini: z.string().max(1, "Middle initial must be 1 character").optional(),
+  first_name: z.string().min(1, "First name is required").max(64, "Response is too long"),
+  last_name: z.string().min(1, "Last name is required").max(64, "Response is too long"),
+  middle_ini: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z.string().max(1, "Middle initial must be 1 character").optional(),
+  ),
   roles: z.array(RoleEnum).min(1, "At least one role is required"),
 });
 

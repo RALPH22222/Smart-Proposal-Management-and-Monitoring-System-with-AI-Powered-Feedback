@@ -3,8 +3,6 @@ import {
   ClassificationType,
   EvaluatorFinalDecision,
   EvaluatorStatus,
-  ResearchClass,
-  DevelopmentClass,
   ImplementationMode,
   Status,
   AssignmentTracker,
@@ -101,14 +99,14 @@ export const proposalSchema = z.object({
   agency_address: z.preprocess(
     parseJsonIfString,
     z.object({
-      street: z.string().min(1, "Street is required"),
-      barangay: z.string().min(1, "Barangay is required"),
-      city: z.string().min(1, "City is required"),
+      street: z.string().min(1, "Street is required").max(50, "Street name is too long"),
+      barangay: z.string().min(1, "Barangay is required").max(50, "Barangay name is too long"),
+      city: z.string().min(1, "City is required").max(50, "City name is too long"),
     }),
   ),
   school_year: z.string(),
-  program_title: z.string(), // Changed from program_title
-  project_title: z.string().min(1, "Project title is required"), // Changed from project_title
+  program_title: z.string().max(50, "program title is too long"), // Changed from program_title
+  project_title: z.string().min(1, "Project title is required").max(50, "project title is too long"), // Changed from project_title
 
   email: z.string().or(z.literal("")),
   phone: z.coerce.number().optional().default(0), // Made optional with default for empty string
@@ -132,8 +130,8 @@ export const proposalSchema = z.object({
     normalizeImplementationSite,
     z.array(
       z.object({
-        site_name: z.string(),
-        city: z.string(),
+        site_name: z.string().max(50, "site name is too long"),
+        city: z.string().max(50, "city name is too long"),
       }),
     ),
   ),
@@ -151,7 +149,7 @@ export const proposalSchema = z.object({
 export const decisionEvaluatorToProposalSchema = z.object({
   proposal_id: z.number(),
   status: z.preprocess(parseJsonIfString, z.nativeEnum(AssignmentTracker)),
-  remarks: z.string().optional(),
+  remarks: z.string().max(2000, "Comments are too long").optional(),
   deadline_at: z.string().date().optional(),
 });
 
@@ -165,17 +163,17 @@ export const forwardToEvaluatorsSchema = z.object({
 
 export const revisionProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  objective_comment: z.string().max(2000, "Comments are too long").optional(),
-  methodology_comment: z.string().max(2000, "Comments are too long").optional(),
-  budget_comment: z.string().max(2000, "Comments are too long").optional(),
-  timeline_comment: z.string().max(2000, "Comments are too long").optional(),
-  overall_comment: z.string().max(2000, "Comments are too long").optional(),
+  objective_comment: z.string().max(256, "Comments are too long").optional(),
+  methodology_comment: z.string().max(256, "Comments are too long").optional(),
+  budget_comment: z.string().max(256, "Comments are too long").optional(),
+  timeline_comment: z.string().max(256, "Comments are too long").optional(),
+  overall_comment: z.string().max(256, "Comments are too long").optional(),
   deadline: z.coerce.number(),
 });
 
 export const rejectProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  comment: z.string().max(2000, "Comments are too long").optional(),
+  comment: z.string().max(256, "Comments are too long").optional(),
 });
 
 export const createEvaluationScoresToProposaltSchema = z.object({
@@ -213,8 +211,8 @@ export const submitRevisedProposalSchema = z.object({
   proponent_id: z.string().uuid("Invalid proponent ID"),
   file_url: fileSchema,
   // Optional metadata updates
-  project_title: z.string().min(1).optional(),
-  revision_response: z.string().max(2000, "Response is too long").optional(),
+  project_title: z.string().min(1).max(256, "project title is too long").optional(),
+  revision_response: z.string().max(256, "Response is too long").optional(),
 });
 
 export type ProposalInput = z.infer<typeof proposalSchema>;
