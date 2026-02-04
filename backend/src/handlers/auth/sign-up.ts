@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
 import { AuthService } from "../../services/auth.service";
-import { EmailService } from "../../services/email.service";
+// import { EmailService } from "../../services/email.service"; // TODO: Re-enable when email verification is ready
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { signUpSchema } from "../../schemas/auth-schema";
@@ -46,32 +46,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Send verification email via AWS SES
-  try {
-    const emailService = new EmailService();
-    const verificationToken = (data as any).verificationToken;
-    const domain = event.requestContext.domainName;
-    const stage = event.requestContext.stage;
-    const apiGatewayUrl = `https://${domain}/${stage}`;
-    const verificationLink = `${apiGatewayUrl}/auth/confirm-email?token=${verificationToken}`;
-
-    await emailService.sendVerificationEmail(
-      result.data.email,
-      result.data.first_name,
-      verificationLink,
-    );
-
-    console.log("Successfully signed up and sent verification email.");
-  } catch (emailError) {
-    console.error("Failed to send verification email:", emailError);
-    // User is created but email failed — still return success
-    // They can contact support if they don't receive the email
-  }
+  // TODO: Re-enable email verification when provider is configured (SES/SendGrid/Supabase)
+  // For now, skip email sending so signup can be tested directly.
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: "Account created successfully. Please check your email to verify your account.",
+      message: "Account created successfully.",
     }),
   };
 });

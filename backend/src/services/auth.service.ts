@@ -24,15 +24,16 @@ export class AuthService {
 
     if (rolesError) return { data: null, error: rolesError };
 
-    if (!row?.email_verified) {
-      return {
-        data: null,
-        error: {
-          message: "Please verify your email address before logging in. Check your inbox for the verification link.",
-          status: 403,
-        },
-      };
-    }
+    // TODO: Re-enable when email verification provider is configured
+    // if (!row?.email_verified) {
+    //   return {
+    //     data: null,
+    //     error: {
+    //       message: "Please verify your email address before logging in. Check your inbox for the verification link.",
+    //       status: 403,
+    //     },
+    //   };
+    // }
 
     const roles = row?.roles ?? [];
 
@@ -57,24 +58,22 @@ export class AuthService {
       return { data, error };
     }
 
-    // Generate email verification token (24-hour expiry)
-    const verificationToken = randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    // TODO: Re-enable when email verification provider is configured
+    // const verificationToken = randomUUID();
+    // const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    // const { error: tokenError } = await this.db!
+    //   .from("users")
+    //   .update({
+    //     email_verification_token: verificationToken,
+    //     email_verification_token_expires_at: expiresAt,
+    //     email_verified: false,
+    //   })
+    //   .eq("id", data.user.id);
+    // if (tokenError) {
+    //   console.error("Failed to store verification token:", tokenError);
+    // }
 
-    const { error: tokenError } = await this.db!
-      .from("users")
-      .update({
-        email_verification_token: verificationToken,
-        email_verification_token_expires_at: expiresAt,
-        email_verified: false,
-      })
-      .eq("id", data.user.id);
-
-    if (tokenError) {
-      console.error("Failed to store verification token:", tokenError);
-    }
-
-    return { data: { ...data, verificationToken }, error: null };
+    return { data, error: null };
   }
 
   async confirmEmail(token: string) {
