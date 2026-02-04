@@ -48,10 +48,22 @@ export default function Login() {
     }
   }, [searchParams, setSearchParams]);
 
-  const navigateBasedOnRole = (role: string) => {
+  const navigateBasedOnRole = async (role: string) => {
     switch (role.toLowerCase()) {
       case "proponent":
-        navigate("/profile-setup");
+        // Check if profile is complete before navigating
+        try {
+          const response = await api.get<{ isCompleted: boolean }>('/auth/profile-status');
+          if (response.data.isCompleted) {
+            navigate("/users/proponent/proponentMainLayout");
+          } else {
+            navigate("/profile-setup");
+          }
+        } catch (error) {
+          console.error("Failed to check profile status", error);
+          // Default to profile setup if check fails
+          navigate("/profile-setup");
+        }
         break;
       case "rnd":
         navigate("/users/rnd/rndMainLayout");
@@ -125,7 +137,7 @@ export default function Login() {
         setShowRoleModal(true);
       } else if (userRoles.length === 1) {
         // If single role, navigate immediately
-        navigateBasedOnRole(userRoles[0]);
+        await navigateBasedOnRole(userRoles[0]);
       } else {
         throw new Error("No roles assigned to this user.");
       }
@@ -181,6 +193,19 @@ export default function Login() {
       {/* --- FORM SECTION --- */}
       <div className="order-2 md:order-1 w-full md:w-1/2 flex items-center justify-center bg-white p-8">
         <form onSubmit={handleLogin} className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-4">
+          {/* Back to Home Button - Cool Design */}
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 bg-gray-50 border border-gray-100 transition-all duration-300 hover:bg-red-50 hover:text-[#C8102E] hover:border-red-200 hover:shadow-md hover:-translate-y-0.5 group mb-6"
+          >
+            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:bg-[#C8102E] group-hover:text-white transition-colors duration-300">
+              <svg className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </div>
+            <span>Back to Home</span>
+          </a>
+
           <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
             Sign in
           </h2>
@@ -290,7 +315,7 @@ export default function Login() {
                   return (
                     <button
                       key={role}
-                      onClick={() => navigateBasedOnRole(role)}
+                      onClick={async () => await navigateBasedOnRole(role)}
                       className="flex items-center gap-4 w-full p-4 rounded-xl border border-gray-200 hover:border-[#C8102E] hover:bg-red-50 transition-all duration-200 group text-left"
                     >
                       <div

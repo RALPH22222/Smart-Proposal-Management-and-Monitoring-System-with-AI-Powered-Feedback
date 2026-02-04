@@ -17,6 +17,7 @@ import { fetchAgencies, fetchTags } from "../../../../services/proposal.api";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Tooltip from "../../../../components/Tooltip";
 import type { FormData } from "src/types/proponent-form";
+import { useAuthContext } from "../../../../context/AuthContext";
 
 interface BasicInformationProps {
   formData: FormData;
@@ -25,6 +26,9 @@ interface BasicInformationProps {
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate }) => {
+  // --- AUTH CONTEXT ---
+  const { user } = useAuthContext();
+
   // --- STATE ---
   const [agenciesList, setAgenciesList] = useState<{ id: number; name: string }[]>([]);
   const [tagsList, setTagsList] = useState<{ id: number; name: string }[]>([]);
@@ -105,6 +109,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, []);
 
+  // Auto-populate email from authenticated user
+  useEffect(() => {
+    if (user?.email && !formData.email) {
+      onUpdate("email", user.email);
+    }
+  }, [user]);
+
+  // Helper function to format duration in readable format
+  const formatDuration = (months: number): string => {
+    if (months < 12) {
+      return `${months} Month${months !== 1 ? 's' : ''}`;
+    }
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+
+    if (remainingMonths === 0) {
+      return `${years} Year${years !== 1 ? 's' : ''}`;
+    }
+    return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
+  };
+
   // --- 3. DURATION LOGIC ---
   const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
     if (!startStr) return;
@@ -158,8 +183,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInputChange(e);
     const { name, value } = e.target;
+
     if (name === "plannedStartDate") {
+      // When start date changes, recalculate end date based on duration
       calculateImplementationDates(value, formData.duration);
+    } else if (name === "plannedEndDate") {
+      // When end date changes, calculate duration
+      if (formData.plannedStartDate && value) {
+        try {
+          const start = parseISO(formData.plannedStartDate);
+          const end = parseISO(value);
+
+          if (isValid(start) && isValid(end) && end >= start) {
+            const months = differenceInMonths(end, start);
+            if (months >= 0) {
+              onUpdate("duration", String(months));
+            }
+          }
+        } catch (e) {
+          console.error("Error calculating duration:", e);
+        }
+      }
     }
   };
 
@@ -389,12 +433,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               </option>
               <option value="6">6 Months</option>
               <option value="12">1 Year</option>
-              <option value="18">18 Months</option>
+              <option value="18">1 Year, 6 Months</option>
               <option value="24">2 Years</option>
               <option value="36">3 Years</option>
               {/* Fallback option if calculated value doesn't match predefined options */}
               {formData.duration && !["6", "12", "18", "24", "36"].includes(formData.duration) && (
-                <option value={formData.duration}>{formData.duration} Months</option>
+                <option value={formData.duration}>{formatDuration(parseInt(formData.duration))}</option>
               )}
             </select>
             {/* Custom Arrow because of appearance-none */}
@@ -510,15 +554,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Mail className="text-gray-400 w-4 h-4" />
             Email *
-            <Tooltip content="The email address for official project correspondence and communication" />
+            <Tooltip content="Your registered email address (from your account)" />
           </label>
           <input
             type="email"
             name="email"
             value={formData.email || ""}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-            placeholder="Enter email address"
+            readOnly
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+            placeholder="Email from your account"
           />
         </div>
       </div>

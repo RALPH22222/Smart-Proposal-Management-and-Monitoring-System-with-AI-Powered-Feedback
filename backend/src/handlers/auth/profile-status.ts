@@ -3,11 +3,6 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { AuthService } from "../../services/auth.service";
 
-/**
- * GET /auth/profile-status
- * Check if user's profile is complete
- * Returns: { profileComplete: boolean, missingFields: string[] }
- */
 export const handler = buildCorsHeaders(async (event) => {
   const auth = getAuthContext(event);
 

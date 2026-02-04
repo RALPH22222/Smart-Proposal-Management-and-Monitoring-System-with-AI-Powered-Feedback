@@ -32,18 +32,14 @@ export default function Register() {
     try {
       setLoading(true);
 
-      // Only include middle_ini if it has a value (workaround until backend is deployed)
-      const payload: any = {
+      const payload = {
         first_name,
         last_name,
+        middle_ini,
         email,
         password,
         roles: ["proponent"],
       };
-
-      if (middle_ini && middle_ini.trim()) {
-        payload.middle_ini = middle_ini;
-      }
 
       await api.post<SignUpResponse>("/auth/sign-up", payload, {
         headers: { "Content-Type": "application/json" },
@@ -138,6 +134,19 @@ export default function Register() {
           onSubmit={handleRegister}
           className="w-full max-w-[550px] bg-white rounded-xl shadow-lg p-6 md:p-8 space-y-4 md:space-y-6"
         >
+          {/* Back to Home Button - Cool Design */}
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 bg-gray-50 border border-gray-100 transition-all duration-300 hover:bg-red-50 hover:text-[#C8102E] hover:border-red-200 hover:shadow-md hover:-translate-y-0.5 group mb-6"
+          >
+            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:bg-[#C8102E] group-hover:text-white transition-colors duration-300">
+              <svg className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </div>
+            <span>Back to Home</span>
+          </a>
+
           <h2 className="text-xl md:text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer text-center md:text-left">
             Sign up
           </h2>

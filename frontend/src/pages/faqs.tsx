@@ -1,10 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
+
+const useInView = (options?: IntersectionObserverInit) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsInView(true);
+      }
+    }, { threshold: 0.1, ...options });
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  return { ref, isInView };
+};
 
 const FAQ: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState("general");
   const [openItems, setOpenItems] = useState<number[]>([]);
+  const heroSection = useInView();
+  const faqSection = useInView();
 
   const toggleItem = (index: number) => {
     setOpenItems((prev) =>
@@ -123,52 +150,135 @@ const FAQ: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes blob {
+          0%, 100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+        }
+        
+        @keyframes slideDown {
+          from {
+            max-height: 0;
+            opacity: 0;
+          }
+          to {
+            max-height: 500px;
+            opacity: 1;
+          }
+        }
+        
+        .animate-fade-in-down {
+          animation: fadeInDown 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-100 {
+          animation-delay: 100ms;
+        }
+        
+        .animation-delay-200 {
+          animation-delay: 200ms;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+      `}</style>
+
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-br from-white via-white to-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="mb-2">
-            <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-[#C8102E] border border-[#C8102E]/20">
-              Support Center
-            </span>
+      {/* Hero Section with animated background */}
+      <section className="pt-24 pb-16 bg-gradient-to-br from-white via-white to-gray-50 relative overflow-hidden">
+        {/* Animated background shapes */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-red-50 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+
+        <div ref={heroSection.ref} className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <div className={`transition-all duration-1000 ${heroSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div className="mb-2 animate-fade-in-down">
+              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-[#C8102E] border border-[#C8102E]/20">
+                Support Center
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 animate-fade-in-up animation-delay-100">
+              <span className="text-gray-800">Frequently Asked </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-[#C8102E]">
+                Questions
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
+              Find quick answers to questions about proposals, submission,
+              funding, and technical help.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            <span className="text-gray-800">Frequently Asked </span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-[#C8102E]">
-              Questions
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Find quick answers to questions about proposals, submission,
-            funding, and technical help.
-          </p>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div ref={faqSection.ref} className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar - Hidden on mobile */}
-          <div className="lg:col-span-1 hidden lg:block">
-            <div className="bg-white rounded-2xl p-6 border border-[#C8102E]/20 shadow-md sticky top-24">
+          <div className={`lg:col-span-1 hidden lg:block transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
+            <div className="bg-white rounded-2xl p-6 border border-[#C8102E]/20 shadow-md sticky top-24 transform hover:scale-102 transition-all duration-300">
               <h3 className="text-lg font-bold text-gray-900 mb-4">
                 Categories
               </h3>
               <div className="space-y-2">
-                {categories.map((category) => (
+                {categories.map((category, index) => (
                   <button
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}
-                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-all duration-200 ${
-                      activeCategory === category.id
-                        ? "text-white shadow-md"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-[#C8102E]"
-                    }`}
+                    className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 transform ${activeCategory === category.id
+                      ? "text-white shadow-lg hover:scale-101"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-[#C8102E] hover:scale-100"
+                      }`}
                     style={{
                       backgroundColor:
                         activeCategory === category.id ? "#C8102E" : "white",
+                      transitionDelay: `${index * 50}ms`
                     }}
                     onMouseOver={(e) => {
                       if (activeCategory !== category.id)
@@ -193,7 +303,7 @@ const FAQ: React.FC = () => {
                 <div className="space-y-3">
                   <a
                     href="mailto:research@wmsu.edu.ph"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md"
                     style={{ color: "#C8102E" }}
                     onMouseOver={(e) =>
                       (e.currentTarget.style.backgroundColor = "#FEECEC")
@@ -207,7 +317,7 @@ const FAQ: React.FC = () => {
                   </a>
                   <a
                     href="tel:+63629914569"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md"
                     style={{ color: "#C8102E" }}
                     onMouseOver={(e) =>
                       (e.currentTarget.style.backgroundColor = "#FEECEC")
@@ -225,7 +335,7 @@ const FAQ: React.FC = () => {
           </div>
 
           {/* FAQ Content */}
-          <div className="lg:col-span-3">
+          <div className={`lg:col-span-3 transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             {/* Category Selector for Mobile */}
             <div className="lg:hidden mb-6">
               <div className="bg-white rounded-2xl p-4 border border-[#C8102E]/20 shadow-md">
@@ -237,11 +347,10 @@ const FAQ: React.FC = () => {
                     <button
                       key={category.id}
                       onClick={() => setActiveCategory(category.id)}
-                      className={`px-3 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-200 text-sm ${
-                        activeCategory === category.id
-                          ? "text-white shadow-sm"
-                          : "text-gray-700 hover:bg-gray-50 hover:text-[#C8102E] border border-gray-200"
-                      }`}
+                      className={`px-3 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-300 text-sm transform ${activeCategory === category.id
+                        ? "text-white shadow-sm hover:scale-101"
+                        : "text-gray-700 hover:bg-gray-50 hover:text-[#C8102E] border border-gray-200 hover:scale-100"
+                        }`}
                       style={{
                         backgroundColor:
                           activeCategory === category.id ? "#C8102E" : "white",
@@ -255,10 +364,10 @@ const FAQ: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#C8102E]/20 shadow-md">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300">
               {/* Desktop Category Header */}
               <div className="hidden lg:flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
                   {CategoryIcons[activeCategory as keyof typeof CategoryIcons]}
                 </div>
                 <div>
@@ -291,7 +400,8 @@ const FAQ: React.FC = () => {
                   ].map((faq, index) => (
                     <div
                       key={index}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md"
+                      className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-100 mb-4"
+                      style={{ transitionDelay: `${index * 50}ms` }}
                     >
                       <button
                         onClick={() => toggleItem(index)}
@@ -301,9 +411,8 @@ const FAQ: React.FC = () => {
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${
-                            openItems.includes(index) ? "rotate-180" : ""
-                          }`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(index) ? "rotate-180" : ""
+                            }`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -318,11 +427,10 @@ const FAQ: React.FC = () => {
                       </button>
 
                       <div
-                        className={`transition-all duration-300 overflow-hidden ${
-                          openItems.includes(index)
-                            ? "max-h-96 opacity-100"
-                            : "max-h-0 opacity-0"
-                        }`}
+                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(index)
+                          ? "max-h-96 opacity-100"
+                          : "max-h-0 opacity-0"
+                          }`}
                       >
                         <div className="p-6 pt-0 border-t border-gray-100 text-gray-600">
                           {faq.answer}
@@ -337,7 +445,7 @@ const FAQ: React.FC = () => {
                   {allFaqItems.map((faq) => (
                     <div
                       key={faq.globalIndex}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md"
+                      className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg"
                     >
                       <div className="flex items-center gap-2 px-6 pt-4 pb-2">
                         <div className="flex items-center gap-2 text-xs text-[#C8102E] font-medium bg-[#C8102E]/10 px-2 py-1 rounded-full">
@@ -353,9 +461,8 @@ const FAQ: React.FC = () => {
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${
-                            openItems.includes(faq.globalIndex) ? "rotate-180" : ""
-                          }`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(faq.globalIndex) ? "rotate-180" : ""
+                            }`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -370,11 +477,10 @@ const FAQ: React.FC = () => {
                       </button>
 
                       <div
-                        className={`transition-all duration-300 overflow-hidden ${
-                          openItems.includes(faq.globalIndex)
-                            ? "max-h-96 opacity-100"
-                            : "max-h-0 opacity-0"
-                        }`}
+                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(faq.globalIndex)
+                          ? "max-h-96 opacity-100"
+                          : "max-h-0 opacity-0"
+                          }`}
                       >
                         <div className="p-6 pt-0 border-t border-gray-100 text-gray-600">
                           {faq.answer}
@@ -387,7 +493,7 @@ const FAQ: React.FC = () => {
 
               {/* Bottom Call to Action */}
               <div
-                className="mt-8 p-6 rounded-xl text-center text-white shadow-lg transition-all duration-300"
+                className="mt-8 p-6 rounded-xl text-center text-white shadow-lg transition-all duration-300 transform hover:scale-100 hover:shadow-2xl"
                 style={{ backgroundColor: "#C8102E" }}
                 onMouseOver={(e) =>
                   (e.currentTarget.style.backgroundColor = "#A00D26")
@@ -405,14 +511,14 @@ const FAQ: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <a
                     href="mailto:research@wmsu.edu.ph"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2 transform hover:scale-100"
                   >
                     {ContactIcons.email}
                     Email Support
                   </a>
                   <a
                     href="tel:+63629914569"
-                    className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2"
+                    className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2 transform hover:scale-100"
                   >
                     {ContactIcons.phone}
                     Call Now

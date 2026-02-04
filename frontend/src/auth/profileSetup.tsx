@@ -2,31 +2,25 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-// import { api } from '../utils/axios';
+import { api } from '../utils/axios';
 
 // --- Interfaces ---
 interface UserProfileData {
   birthdate: string;
-  sex: 'Male' | 'Female' | 'Prefer not to say' | '';
+  sex: 'male' | 'female' | 'prefer_not_to_say' | '';
   rdStation: string;
   profilePicture: File | null;
 }
 
-// interface ProfileSetupResponse {
-//   message: string;
-//   photoUploaded: boolean;
-// }
+interface ProfileSetupResponse {
+  message: string;
+  photoUploaded: boolean;
+}
 
-// --- Constants ---
-const RD_STATIONS = [
-  "College of Computing Studies",
-  "College of Engineering",
-  "College of Architecture",
-  "College of Arts and Sciences",
-  "College of Business",
-  "College of Education",
-  "College of Nursing"
-];
+interface Department {
+  id: number;
+  name: string;
+}
 
 const STEPS = [
   { id: 1, title: "Personal Info", icon: <User size={18} /> },
@@ -46,12 +40,12 @@ export default function ProfileSetup() {
   });
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   const navigate = useNavigate();
 
   // --- Effects ---
   useEffect(() => {
-    // TEMPORARILY DISABLED: Static mode
-    /*
     const checkProfileStatus = async () => {
       try {
         const response = await api.get<{ isCompleted: boolean }>('/auth/profile-status');
@@ -63,8 +57,28 @@ export default function ProfileSetup() {
       }
     };
     checkProfileStatus();
-    */
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        const response = await api.get<Department[]>('/proposal/view-department');
+        setDepartments(response.data || []);
+      } catch (error) {
+        console.error("Failed to fetch departments", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load departments. Please refresh the page.',
+          confirmButtonColor: '#C8102E',
+        });
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -101,8 +115,6 @@ export default function ProfileSetup() {
     }
 
     try {
-      // PREPARE DATA (Simulated)
-      /*
       // Prepare form data
       const data = new FormData();
       data.append('birth_date', formData.birthdate);
@@ -121,15 +133,8 @@ export default function ProfileSetup() {
       });
 
       const result = response.data;
-      */
 
-      // SIMULATED SUCCESS
-      const result = {
-        message: 'Profile setup simulated success',
-        photoUploaded: !!formData.profilePicture
-      };
-
-      const successTitle = result.photoUploaded ? 'Profile Setup Complete! (Simulated)' : 'Profile Saved! (Simulated)';
+      const successTitle = result.photoUploaded ? 'Profile Setup Complete!' : 'Profile Saved!';
       const successText = result.photoUploaded
         ? 'Your information and photo have been saved successfully.'
         : 'Your information has been saved. You can add a photo later from your profile.';
@@ -221,9 +226,9 @@ export default function ProfileSetup() {
                   className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
                 >
                   <option value="" disabled>Select Sex</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
                 </select>
               </div>
             </div>
@@ -259,11 +264,14 @@ export default function ProfileSetup() {
                 name="rdStation"
                 value={formData.rdStation}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
+                disabled={loadingDepartments}
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="" disabled>Select Station / Center</option>
-                {RD_STATIONS.map((station) => (
-                  <option key={station} value={station}>{station}</option>
+                <option value="" disabled>
+                  {loadingDepartments ? 'Loading departments...' : 'Select Department / Center'}
+                </option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id.toString()}>{dept.name}</option>
                 ))}
               </select>
             </div>
