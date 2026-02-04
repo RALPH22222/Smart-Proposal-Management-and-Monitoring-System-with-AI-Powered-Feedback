@@ -46,9 +46,9 @@ export default function Proposals() {
         // Sometimes p might be the proposal itself, or p.proposal_id object
 
         const proposalObj = p.proposal_id || p;
-
+        
         // Robust proponent name extraction
-        let proponentName = "Unknown";
+        let proponentName = 'Unknown';
         if (proposalObj.proponent_id) {
           if (typeof proposalObj.proponent_id === "object") {
             proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
@@ -61,17 +61,24 @@ export default function Proposals() {
           id: proposalObj.id,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
-          status: p.status || proposalObj.status || "pending",
-          deadline: proposalObj.target_date_of_completion
-            ? new Date(proposalObj.target_date_of_completion).toLocaleDateString()
-            : "N/A",
-          projectType: proposalObj.sector?.name || "N/A",
-          raw: p,
+          status: p.status || proposalObj.status || "pending", 
+          deadline: proposalObj.target_date_of_completion ? new Date(proposalObj.target_date_of_completion).toLocaleDateString() : "N/A",
+          projectType: proposalObj.sector?.name || "N/A", 
+          raw: p 
         };
       });
 
-      console.log("Mapped Proposals:", mapped);
-      setProposals(mapped);
+      const uniqueProposalsMap = new Map();
+      mapped.forEach((p: any) => {
+        if (!uniqueProposalsMap.has(p.id)) {
+          uniqueProposalsMap.set(p.id, p);
+        }
+      });
+      
+      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+      console.log("Mapped Unique Proposals:", uniqueProposals);
+      setProposals(uniqueProposals);
     } catch (error) {
       console.error("Failed to fetch proposals", error);
     } finally {

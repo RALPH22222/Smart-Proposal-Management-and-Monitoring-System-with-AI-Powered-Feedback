@@ -278,9 +278,6 @@ export default function DashboardRdec() {
                         <div className="font-semibold text-slate-800 group-hover:text-[#C8102E] transition-colors duration-200 text-pretty text-sm">
                           {proposal.title}
                         </div>
-                        <div className="text-xs text-slate-500 sm:hidden mt-1">
-                          by {proposal.proponent}
-                        </div>
                       </td>
                       <td
                         className="p-3 text-slate-700 hidden sm:table-cell text-sm"

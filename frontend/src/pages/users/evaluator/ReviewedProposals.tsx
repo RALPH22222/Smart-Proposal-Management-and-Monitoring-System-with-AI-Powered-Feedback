@@ -76,7 +76,7 @@ export default function ReviewedProposals() {
          return {
              id: p.id,
              title: p.project_title || "Untitled",
-             reviewedDate: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A", // Use updated_at as review date
+             reviewedDate: evaluationScore?.created_at ? new Date(evaluationScore.created_at).toLocaleDateString() : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A"),
              proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
              projectType: p.sector?.name || "N/A",
              agency: p.agency?.name || "N/A",
