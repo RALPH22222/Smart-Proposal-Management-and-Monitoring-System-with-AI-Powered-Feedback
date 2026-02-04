@@ -62,7 +62,7 @@ export default function Proposals() {
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
           status: p.status || proposalObj.status || "pending", 
-          deadline: proposalObj.target_date_of_completion ? new Date(proposalObj.target_date_of_completion).toLocaleDateString() : "N/A",
+          deadline: p.deadline_at ? new Date(p.deadline_at).toLocaleDateString() : "N/A",
           projectType: proposalObj.sector?.name || "N/A", 
           raw: p 
         };
