@@ -13,7 +13,7 @@ import {
   Clock,
   Tag,
   Gavel,
-  CalendarClock
+  CalendarClock,
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import Swal from "sweetalert2";
@@ -28,9 +28,7 @@ export default function Proposals() {
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
-  const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(
-    null
-  );
+  const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(null);
 
   const itemsPerPage = 5;
 
@@ -42,31 +40,33 @@ export default function Proposals() {
     try {
       const data = await getEvaluatorProposals();
       console.log("Evaluator Proposals Raw Data:", data);
-      
+
       const mapped = (data || []).map((p: any) => {
         // Handle different potential structures effectively
         // Sometimes p might be the proposal itself, or p.proposal_id object
-        
+
         const proposalObj = p.proposal_id || p;
-        
+
         // Robust proponent name extraction
-        let proponentName = 'Unknown';
+        let proponentName = "Unknown";
         if (proposalObj.proponent_id) {
-            if (typeof proposalObj.proponent_id === 'object') {
-                 proponentName = `${proposalObj.proponent_id.first_name || ''} ${proposalObj.proponent_id.last_name || ''}`;
-            } else if (typeof proposalObj.proponent_id === 'string') {
-                 proponentName = proposalObj.proponent_id;
-            }
+          if (typeof proposalObj.proponent_id === "object") {
+            proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
+          } else if (typeof proposalObj.proponent_id === "string") {
+            proponentName = proposalObj.proponent_id;
+          }
         }
 
         return {
           id: proposalObj.id,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
-          status: p.status || proposalObj.status || "pending", 
-          deadline: proposalObj.target_date_of_completion ? new Date(proposalObj.target_date_of_completion).toLocaleDateString() : "N/A",
-          projectType: proposalObj.sector?.name || "N/A", 
-          raw: p 
+          status: p.status || proposalObj.status || "pending",
+          deadline: proposalObj.target_date_of_completion
+            ? new Date(proposalObj.target_date_of_completion).toLocaleDateString()
+            : "N/A",
+          projectType: proposalObj.sector?.name || "N/A",
+          raw: p,
         };
       });
 
@@ -85,8 +85,7 @@ export default function Proposals() {
 
   const filtered = proposals.filter((p) => {
     const matchesSearch =
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.proponent.toLowerCase().includes(search.toLowerCase());
+      p.title.toLowerCase().includes(search.toLowerCase()) || p.proponent.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "All" || p.status === statusFilter;
     const matchesType = typeFilter === "All" || p.projectType === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -107,10 +106,7 @@ export default function Proposals() {
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = sortedFiltered.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -185,7 +181,7 @@ export default function Proposals() {
   const handleSubmitDecision = async (
     status: "accepted" | "rejected" | "extension",
     remarks: string,
-    newDeadline?: string
+    newDeadline?: string,
   ) => {
     if (!proposalToEvaluate) return;
 
@@ -207,15 +203,13 @@ export default function Proposals() {
     }
 
     // Format deadline if exists (Use YYYY-MM-DD to match backend expectations)
-    const formattedDeadline = newDeadline 
-        ? new Date(newDeadline).toISOString().split('T')[0] 
-        : undefined;
+    const formattedDeadline = newDeadline ? new Date(newDeadline).toISOString().split("T")[0] : undefined;
 
     const payload = {
-        proposal_id: proposalToEvaluate,
-        status: apiStatus,
-        remarks: remarks || undefined, // Send undefined if empty string
-        deadline_at: formattedDeadline,
+      proposal_id: proposalToEvaluate,
+      status: apiStatus,
+      remarks: remarks || undefined, // Send undefined if empty string
+      request_deadline_at: formattedDeadline,
     };
 
     try {
@@ -228,19 +222,18 @@ export default function Proposals() {
       });
 
       closeDecisionModal();
-      fetchProposals(); 
+      fetchProposals();
     } catch (err: any) {
       console.error("Evaluation Submission Error:", err);
       // Log full validation error if available
       if (err.response?.data?.data) {
         console.error("Validation Details:", err.response.data.data);
       }
-      
+
       Swal.fire({
         icon: "error",
         title: "Error",
-        text:
-          err?.response?.data?.message || "Failed to submit evaluation decision.",
+        text: err?.response?.data?.message || "Failed to submit evaluation decision.",
       });
     }
   };
@@ -254,12 +247,9 @@ export default function Proposals() {
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-              Evaluator Proposals
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">Evaluator Proposals</h1>
             <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-              Manage and review submitted research proposals. Track status and
-              take actions.
+              Manage and review submitted research proposals. Track status and take actions.
             </p>
           </div>
         </div>
@@ -378,20 +368,19 @@ export default function Proposals() {
                         )}
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                            proposal.projectType
+                            proposal.projectType,
                           )}`}
                         >
                           <Tag className="w-3 h-3" />
                           {proposal.projectType}
                         </span>
-
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 ${getStatusColor(
-                          proposal.status
+                          proposal.status,
                         )}`}
                       >
                         {getStatusIcon(proposal.status)}
@@ -430,9 +419,7 @@ export default function Proposals() {
               <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <FileText className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
-                No proposals found
-              </h3>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
               <p className="text-slate-500 max-w-sm mx-auto">
                 {search || statusFilter !== "All"
                   ? "Try adjusting your search or filter criteria."
@@ -446,9 +433,8 @@ export default function Proposals() {
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
             <span>
-              Showing {startIndex + 1}-
-              {Math.min(startIndex + itemsPerPage, filtered.length)} of{" "}
-              {filtered.length} proposals
+              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filtered.length)} of {filtered.length}{" "}
+              proposals
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -463,9 +449,7 @@ export default function Proposals() {
                 Page {currentPage} of {totalPages}
               </span>
               <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
@@ -479,11 +463,7 @@ export default function Proposals() {
 
       {/* Modals */}
       {selectedProposal && proposal && (
-        <ProposalModal
-          isOpen={!!selectedProposal}
-          proposal={proposal}
-          onClose={closeModal}
-        />
+        <ProposalModal isOpen={!!selectedProposal} proposal={proposal} onClose={closeModal} />
       )}
 
       {decisionModalOpen && evaluationProposal && (
