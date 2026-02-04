@@ -457,7 +457,7 @@ export class ProposalService {
     ) {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
-        .update({ status: status })
+        .update({ status: status, updated_at: new Date().toISOString() })
         .eq("proposal_id", input.proposal_id)
         .eq("evaluator_id", evaluator_id);
 

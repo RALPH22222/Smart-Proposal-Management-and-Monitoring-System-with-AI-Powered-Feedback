@@ -76,17 +76,14 @@ const normalizeImplementationSite = (val: unknown) => {
   }));
 };
 
-// Helper to extract IDs from cooperating agencies (handles {id, name} objects)
+// Helper to normalize cooperating agencies.
+// Frontend sends a mixed array: numeric ids for existing agencies, name strings for new ones.
+// e.g. [29, 33, "Test Subject #3"]
+// resolveLookupId handles both: numbers used as-is, strings looked up or created.
 const normalizeCooperatingAgencies = (val: unknown) => {
   const parsed = parseJsonIfString(val);
   if (!Array.isArray(parsed)) return [];
-
-  return parsed.map((item: any) => {
-    if (typeof item === "object" && item !== null && "id" in item) {
-      return item.id;
-    }
-    return item;
-  });
+  return parsed;
 };
 
 export const proposalSchema = z.object({

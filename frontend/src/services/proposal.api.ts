@@ -98,7 +98,12 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
     }),
   );
   fd.append("duration", String(durationNumber));
-  fd.append("cooperating_agencies", JSON.stringify(formData.cooperating_agencies));
+  // Existing agencies (from DB) send their numeric id, new ones send just the name string.
+  // e.g. [29, 33, "Test Subject #3"]
+  const agencies = formData.cooperating_agencies.map((a: any) =>
+    a.created_at ? a.id : a.name
+  );
+  fd.append("cooperating_agencies", JSON.stringify(agencies));
   fd.append("implementation_site", JSON.stringify(formData.implementation_site));
   const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
   fd.append("implementation_mode", implementationMode);
