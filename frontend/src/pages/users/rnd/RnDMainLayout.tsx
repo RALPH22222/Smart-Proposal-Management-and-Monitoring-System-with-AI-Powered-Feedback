@@ -55,10 +55,6 @@ const MainLayout: React.FC = () => {
 				);
 			case 'proposals':
 				return <ReviewPage />;
-			case 'revisions':
-				return (
-					<ReviewPage filter='revision_rnd' onStatsUpdate={loadData} />
-				);
 			case 'evaluators':
 				return <EvaluatorPage />;
 			case 'endorsements':
