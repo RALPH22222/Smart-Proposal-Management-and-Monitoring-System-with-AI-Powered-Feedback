@@ -20,6 +20,7 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
+import { fetchUsersByRole } from '../../services/proposal.api';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -98,43 +99,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   collaborationSession,
   currentUser
 }) => {
-  // --- MOCK DATA ---
-  const evaluators: Partial<Evaluator>[] = [
-    {
-      id: '1',
-      name: 'Dr. Alice Santos',
-      department: 'Information Technology',
-      availabilityStatus: 'Available',
-      email: 'alice@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-      id: '2',
-      name: 'Prof. Ben Reyes',
-      department: 'Computer Science',
-      availabilityStatus: 'Busy',
-      email: 'ben@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-      id: '3',
-      name: 'Engr. Carla Lim',
-      department: 'Information Technology',
-      availabilityStatus: 'Available',
-      email: 'carla@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-        id: '4',
-        name: 'Engr. Dan Brown',
-        department: 'Engineering',
-        availabilityStatus: 'Available',
-        email: 'dan@wmsu.edu.ph',
-        agency: 'WMSU - COE'
-    }
-  ];
-
   // --- STATE ---
+  const [evaluators, setEvaluators] = useState<Partial<Evaluator>[]>([]);
+  const [isLoadingEvaluators, setIsLoadingEvaluators] = useState(false);
+
   const [decision, setDecision] = useState<DecisionType>('Sent to Evaluators');
   const [evaluationDeadline, setEvaluationDeadline] = useState('14');
   const [structuredComments, setStructuredComments] = useState<StructuredComments>({
@@ -155,7 +123,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [checkedAvailableIds, setCheckedAvailableIds] = useState<string[]>([]); 
   const [checkedAssignedIds, setCheckedAssignedIds] = useState<string[]>([]);   
   const [assignedEvaluators, setAssignedEvaluators] = useState<Partial<Evaluator>[]>([]); 
-
+  
   // Evaluator List Modal State
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
 
@@ -166,6 +134,33 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [typingSection, setTypingSection] = useState<string>('');
 
   // --- EFFECTS ---
+
+  // Fetch evaluators when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const loadEvaluators = async () => {
+        try {
+          setIsLoadingEvaluators(true);
+          const users = await fetchUsersByRole('evaluator');
+          console.log("Fetched Evaluators:", users); // DEBUG LOG
+          const mappedEvaluators: Partial<Evaluator>[] = users.map(u => ({
+            id: u.id,
+            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
+            email: u.email || '',
+            department: u.departments?.[0]?.name || 'N/A',
+            agency: 'WMSU', // Default or need to fetch from somewhere else if available
+            availabilityStatus: 'Available' // Defaulting to Available
+          }));
+          setEvaluators(mappedEvaluators);
+        } catch (error) {
+          console.error("Failed to load evaluators:", error);
+        } finally {
+          setIsLoadingEvaluators(false);
+        }
+      };
+      loadEvaluators();
+    }
+  }, [isOpen]);
 
   // Reset modal state
   useEffect(() => {
@@ -232,7 +227,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     }
 
     setAvailableEvaluators(filtered);
-  }, [evaluatorSearch, departmentFilter, assignedEvaluators]);
+  }, [evaluatorSearch, departmentFilter, assignedEvaluators, evaluators]);
 
   // Simulate typing indicators
   useEffect(() => {
@@ -328,8 +323,6 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
-    const deadlineIso = new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString();
-
     const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both', assignedEvaluators?: string[] } = {
       proposalId: proposal.id,
       decision: 'Sent to Evaluators',
@@ -337,10 +330,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
-      evaluationDeadline: deadlineIso,
+      evaluationDeadline: evaluationDeadline, // Send '14', '7', etc. directly
       proponentInfoVisibility: showProponentInfo,
-      // IMPORTANT: Map to names here
-      assignedEvaluators: assignedEvaluators.map(ev => ev.name!) 
+      // IMPORTANT: Map to IDs here
+      assignedEvaluators: assignedEvaluators.map(ev => ev.id!) 
     };
 
     onSubmitDecision(decisionData);
@@ -500,7 +493,12 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         </div>
                         
                         <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto bg-gray-50 p-2 space-y-1">
-                            {availableEvaluators.length === 0 ? (
+                            {isLoadingEvaluators ? (
+                                <div className="text-center py-6">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#C8102E] mx-auto mb-2"></div>
+                                    <p className="text-xs text-gray-400">Loading evaluators...</p>
+                                </div>
+                            ) : availableEvaluators.length === 0 ? (
                                 <div className="text-center py-6">
                                     <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                                     <p className="text-xs text-gray-400">No available evaluators matching filters.</p>
@@ -520,7 +518,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                                             </div>
                                             {/* Department & Agency only */}
                                             <p className="text-xs text-gray-500 mt-0.5">
-                                                {ev.department} • {ev.agency}
+                                                {ev.email} • {ev.department}
                                             </p>
                                         </div>
                                     </label>

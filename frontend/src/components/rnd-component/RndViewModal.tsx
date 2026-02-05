@@ -49,7 +49,6 @@ export interface ModalProposalData {
   submittedDate: string;
   lastModified?: string;
   proponent: string;
-  gender: string;
   agency: string;
   address: string;
   telephone: string;
@@ -204,14 +203,14 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
         label: "Revision Required",
       };
 
-    // Blue
-    if (["review_rnd", "r&d evaluation", "under r&d evaluation"].includes(s))
+    // Amber/Orange (Under R&D Review - Matching List View)
+    if (["review_rnd", "r&d evaluation", "under r&d evaluation", "pending"].includes(s))
       return {
-        bg: "bg-blue-100",
-        border: "border-blue-200",
-        text: "text-blue-800",
-        icon: <Microscope className="w-4 h-4 text-blue-600" />,
-        label: "Under R&D Evaluation",
+        bg: "bg-amber-100",
+        border: "border-amber-200",
+        text: "text-amber-800",
+        icon: <Clock className="w-4 h-4 text-amber-600" />,
+        label: "Under R&D Review",
       };
 
     // Purple
@@ -376,8 +375,6 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Leader</h4>
               </div>
               <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
-              <p className="text-xs text-slate-500 mt-1">{p.gender}</p>
-
               <div className="mt-4 space-y-2">
                 <div>
                   <p className="text-xs text-slate-500 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</p>

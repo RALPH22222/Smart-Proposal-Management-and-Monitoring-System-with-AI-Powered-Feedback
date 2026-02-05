@@ -48,7 +48,17 @@ export function transformProposalForModal(raw: any) {
   const budgetMap: Record<string, { ps: CategoryData; mooe: CategoryData; co: CategoryData }> = {};
 
   (raw.estimated_budget || []).forEach((b: any) => {
-    const src = b.source || "Unknown";
+    const src = b.funding_agency || b.source || "Unknown";
+    const amount = Number(b.amount) || 0;
+    const desc = b.item_description || b.item_name || b.item || "Unspecified";
+    const rawType = (b.item_type || b.budget || "").toLowerCase();
+
+    // Determine category
+    let cat: "ps" | "mooe" | "co" | null = null;
+    if (rawType.includes("ps") || rawType.includes("personal")) cat = "ps";
+    else if (rawType.includes("mooe")) cat = "mooe";
+    else if (rawType.includes("co") || rawType.includes("capital")) cat = "co";
+
     if (!budgetMap[src]) {
       budgetMap[src] = {
         ps: { items: [], total: 0 },
@@ -56,12 +66,10 @@ export function transformProposalForModal(raw: any) {
         co: { items: [], total: 0 }
       };
     }
-    const cat = b.budget as "ps" | "mooe" | "co";
-    const itemData = { item: b.item_name || b.item || "Unspecified", amount: b.amount || 0 };
 
-    if (cat && budgetMap[src][cat]) {
-      budgetMap[src][cat].total += b.amount || 0;
-      budgetMap[src][cat].items.push(itemData);
+    if (cat) {
+      budgetMap[src][cat].total += amount;
+      budgetMap[src][cat].items.push({ item: desc, amount });
     }
   });
 
@@ -106,6 +114,7 @@ export function transformProposalForModal(raw: any) {
     submittedDate: raw.created_at || "",
     lastModified: raw.updated_at || raw.created_at || "",
     proponent,
+    gender: raw.proponent_id?.sex || "N/A",
     agency,
     address,
     telephone: raw.phone || "N/A",
