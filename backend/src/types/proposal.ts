@@ -79,6 +79,11 @@ export enum ProjectsStatus {
   BLOCKED = "blocked",
 }
 
+export enum ExtensionDecision {
+  APPROVED = "approved",
+  DENIED = "denied",
+}
+
 export enum EndorsementDecision {
   ENDORSED = "endorsed",
   REVISED = "revised",
@@ -94,9 +99,10 @@ export interface ImplementationSite {
 }
 
 export interface AgencyAddress {
-  street: string;
-  barangay: string;
-  city: string;
+  id?: string;              // UUID from agency_address table (for existing addresses)
+  street?: string | null;   // Now optional
+  barangay?: string | null; // Now optional
+  city: string;             // Required (per DB schema)
 }
 
 // Matches 'public.proposals' table

@@ -6,6 +6,7 @@ import {
   EndorsementDecision,
   EvaluatorFinalDecision,
   EvaluatorStatus,
+  ExtensionDecision,
   IdOrName,
   ProjectsStatus,
   Status,
@@ -16,6 +17,7 @@ import {
   EndorseForFundingInput,
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
+  HandleExtensionRequestInput,
   ProposalInput,
   ProposalVersionInput,
   rejectProposalToProponentInput,
@@ -68,40 +70,59 @@ export class ProposalService {
     return inserted.data.id as number;
   }
 
-  private async ensureAgencyAddressColumns(agency_id: number | null, agency_address?: AgencyAddress): Promise<void> {
-    if (!agency_id || !agency_address) return;
+  private async ensureAgencyAddress(
+    agency_id: number | null,
+    agency_address?: AgencyAddress
+  ): Promise<string | null> {
+    if (!agency_id || !agency_address) return null;
 
-    const existing_address = await this.db
-      .from("agencies")
-      .select("street, barangay, city")
-      .eq("id", agency_id)
-      .maybeSingle();
-
-    if (existing_address.error) {
-      throw new Error(`Fetch agency address failed: ${existing_address.error.message}`);
+    // 1. If existing address ID provided, verify it belongs to this agency
+    if (agency_address.id) {
+      const { data } = await this.db
+        .from("agency_address")
+        .select("id")
+        .eq("id", agency_address.id)
+        .eq("agency_id", agency_id)
+        .maybeSingle();
+      if (data) return data.id;
     }
 
-    if (!existing_address.data) {
-      throw new Error(`Agency not found for id=${agency_id}`);
+    // 2. Check for existing matching address
+    let query = this.db
+      .from("agency_address")
+      .select("id")
+      .eq("agency_id", agency_id)
+      .eq("city", agency_address.city);
+
+    // Handle null vs empty for barangay/street
+    if (agency_address.barangay) {
+      query = query.eq("barangay", agency_address.barangay);
+    } else {
+      query = query.is("barangay", null);
+    }
+    if (agency_address.street) {
+      query = query.eq("street", agency_address.street);
+    } else {
+      query = query.is("street", null);
     }
 
-    const hasAddress =
-      !!existing_address.data?.street && !!existing_address.data?.barangay && !!existing_address.data?.city;
+    const { data: existing } = await query.maybeSingle();
+    if (existing) return existing.id;
 
-    if (hasAddress) return;
-
-    const upd = await this.db
-      .from("agencies")
-      .update({
-        street: agency_address.street,
-        barangay: agency_address.barangay,
+    // 3. Insert new address
+    const { data: newAddr, error } = await this.db
+      .from("agency_address")
+      .insert({
+        agency_id,
         city: agency_address.city,
+        barangay: agency_address.barangay || null,
+        street: agency_address.street || null,
       })
-      .eq("id", agency_id);
+      .select("id")
+      .single();
 
-    if (upd.error) {
-      throw new Error(`Update agency address failed: ${upd.error.message}`);
-    }
+    if (error) throw new Error(`Insert agency address failed: ${error.message}`);
+    return newAddr.id;
   }
 
   async create(payload: Omit<ProposalInput, "file_url">) {
@@ -139,7 +160,7 @@ export class ProposalService {
       value: agency,
     });
 
-    await this.ensureAgencyAddressColumns(agency_id, agency_address);
+    await this.ensureAgencyAddress(agency_id, agency_address);
 
     const insertDbPayload = {
       ...proposal,
@@ -336,7 +357,7 @@ export class ProposalService {
     if (input.status === AssignmentTracker.EXTEND) {
       const { error: insertError } = await this.db
         .from("proposal_assignment_tracker")
-        .update({ deadline_at })
+        .update({ request_deadline_at: deadline_at })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id);
 
@@ -798,13 +819,29 @@ export class ProposalService {
   }
 
   async getAgency(search: string) {
-    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("agencies")
+      .select(`id, name, agency_address(id, city, barangay, street)`)
+      .ilike("name", `%${search}%`);
 
     return { data, error };
   }
 
   async getCooperatingAgency(search: string) {
-    const { data, error } = await this.db.from("agencies").select(`*`).ilike("name", `%${search}%`);
+    const { data, error } = await this.db
+      .from("agencies")
+      .select(`id, name, agency_address(id, city, barangay, street)`)
+      .ilike("name", `%${search}%`);
+
+    return { data, error };
+  }
+
+  async getAgencyAddresses(agency_id: number) {
+    const { data, error } = await this.db
+      .from("agency_address")
+      .select("id, city, barangay, street")
+      .eq("agency_id", agency_id)
+      .order("created_at", { ascending: false });
 
     return { data, error };
   }
@@ -1353,5 +1390,141 @@ export class ProposalService {
       },
       error: null,
     };
+  }
+
+  async getAssignmentTracker(proposal_id: number, user_sub: string, roles: string[]) {
+    const isAdmin = roles.includes("admin");
+
+    // Build the base query
+    let query = this.db
+      .from("proposal_assignment_tracker")
+      .select(
+        `
+        id,
+        proposal_id,
+        evaluator_id,
+        deadline_at,
+        request_deadline_at,
+        remark,
+        status,
+        created_at,
+        proposals:proposal_id(id, project_title),
+        users:evaluator_id(id, first_name, last_name),
+        proposal_evaluators:proposal_id(forwarded_by_rnd, evaluator_id)
+      `,
+      )
+      .eq("proposal_id", proposal_id);
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Admin sees all tracker records; RND only sees evaluators they assigned
+    let filtered = data || [];
+    if (!isAdmin) {
+      filtered = filtered.filter((row: any) => {
+        const evaluators = Array.isArray(row.proposal_evaluators) ? row.proposal_evaluators : [];
+        return evaluators.some(
+          (pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub,
+        );
+      });
+    }
+
+    // Strip the join data used for filtering
+    const result = filtered.map(({ proposal_evaluators, ...rest }: any) => rest);
+
+    return { data: result, error: null };
+  }
+
+  async handleExtensionRequest(input: HandleExtensionRequestInput, rnd_id: string) {
+    const { proposal_id, evaluator_id, decision, remarks } = input;
+
+    // Fetch the tracker record to get the requested deadline
+    const { data: tracker, error: fetchError } = await this.db
+      .from("proposal_assignment_tracker")
+      .select("id, deadline_at, request_deadline_at, status")
+      .eq("proposal_id", proposal_id)
+      .eq("evaluator_id", evaluator_id)
+      .single();
+
+    if (fetchError || !tracker) {
+      return { error: fetchError || new Error("Extension request not found") };
+    }
+
+    if (tracker.status !== AssignmentTracker.EXTEND) {
+      return { error: new Error("No pending extension request for this evaluator and proposal") };
+    }
+
+    if (decision === ExtensionDecision.APPROVED) {
+      const newDeadline = tracker.request_deadline_at;
+
+      // 1. Update tracker: status to accept, deadline_at to the requested date
+      const { error: trackerError } = await this.db
+        .from("proposal_assignment_tracker")
+        .update({ status: AssignmentTracker.ACCEPT, deadline_at: newDeadline })
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id);
+
+      if (trackerError) return { error: trackerError };
+
+      // 2. Update proposal_evaluators: status to for_review, deadline_at to the requested date
+      const { error: evalError } = await this.db
+        .from("proposal_evaluators")
+        .update({
+          status: EvaluatorStatus.FOR_REVIEW,
+          deadline_at: newDeadline,
+        })
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id);
+
+      if (evalError) return { error: evalError };
+
+      // 3. Insert notification
+      await this.db.from("notifications").insert({
+        user_id: evaluator_id,
+        message: `Your extension request for proposal #${proposal_id} has been approved.`,
+      });
+
+      // 4. Insert proposal log
+      await this.db.from("proposal_logs").insert({
+        proposal_id,
+        action: "extension_approved",
+        performed_by: rnd_id,
+        remarks: remarks || "Extension request approved",
+      });
+
+      return { data: { proposal_id, evaluator_id, decision }, error: null };
+    } else if (decision === ExtensionDecision.DENIED) {
+      // 1. Reset tracker status to pending, clear request_deadline_at
+      const { error: trackerError } = await this.db
+        .from("proposal_assignment_tracker")
+        .update({ status: AssignmentTracker.PENDING, request_deadline_at: null })
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id);
+
+      if (trackerError) return { error: trackerError };
+
+      // 2. proposal_evaluators stays pending (no change needed)
+
+      // 3. Insert notification
+      await this.db.from("notifications").insert({
+        user_id: evaluator_id,
+        message: `Your extension request for proposal #${proposal_id} has been denied. You may accept with the original deadline or decline.`,
+      });
+
+      // 4. Insert proposal log
+      await this.db.from("proposal_logs").insert({
+        proposal_id,
+        action: "extension_denied",
+        performed_by: rnd_id,
+        remarks: remarks || "Extension request denied",
+      });
+
+      return { data: { proposal_id, evaluator_id, decision }, error: null };
+    }
+
+    return { error: new Error("Invalid decision") };
   }
 }

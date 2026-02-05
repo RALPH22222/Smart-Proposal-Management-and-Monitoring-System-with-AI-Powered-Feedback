@@ -34,9 +34,7 @@ export class BackendStack extends Stack {
     const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_SECRET_JWT");
     const SES_SENDER_EMAIL = StringParameter.valueForStringParameter(this, "/pms/backend/SES_SENDER_EMAIL");
 
-    const FRONTEND_URL = stageName === "prod"
-      ? "https://wmsu-spmams.vercel.app"
-      : "http://localhost:5173";
+    const FRONTEND_URL = stageName === "prod" ? "https://wmsu-spmams.vercel.app" : "http://localhost:5173";
 
     // S3 Bucket
     const proposal_attachments_bucket = new Bucket(this, `pms-proposal-attachments-bucket-${stageName}`, {
@@ -114,11 +112,13 @@ export class BackendStack extends Stack {
     });
 
     // Grant SES send email permissions for verification emails
-    signup_lambda.addToRolePolicy(new PolicyStatement({
-      effect: Effect.ALLOW,
-      actions: ["ses:SendEmail"],
-      resources: ["*"],
-    }));
+    signup_lambda.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ["ses:SendEmail"],
+        resources: ["*"],
+      }),
+    );
 
     const confirm_email_lambda = new NodejsFunction(this, "pms-confirm-email", {
       functionName: "pms-confirm-email",
@@ -357,6 +357,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const get_agency_addresses_lambda = new NodejsFunction(this, "pms-get-agency-addresses", {
+      functionName: "pms-get-agency-addresses",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-agency-addresses.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const get_department_lambda = new NodejsFunction(this, "pms-get-department", {
       functionName: "pms-get-department",
       memorySize: 128,
@@ -486,6 +497,28 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal-versions.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const handle_extension_request_lambda = new NodejsFunction(this, "pms-handle-extension-request", {
+      functionName: "pms-handle-extension-request",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "handle-extension-request.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_assignment_tracker_lambda = new NodejsFunction(this, "pms-get-assignment-tracker", {
+      functionName: "pms-get-assignment-tracker",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-assignment-tracker.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -878,6 +911,13 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
+    // /proposal/view-agency-addresses
+    const get_agency_addresses = proposal.addResource("view-agency-addresses");
+    get_agency_addresses.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_addresses_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
     // /proposal/view-department
     const get_department = proposal.addResource("view-department");
     get_department.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lambda), {
@@ -970,6 +1010,20 @@ export class BackendStack extends Stack {
     // /proposal/versions (protected) - Get all versions of a proposal
     const get_proposal_versions = proposal.addResource("versions");
     get_proposal_versions.addMethod(HttpMethod.GET, new LambdaIntegration(get_proposal_versions_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/handle-extension-request (protected) - RND approves/denies extension
+    const handle_extension_request = proposal.addResource("handle-extension-request");
+    handle_extension_request.addMethod(HttpMethod.POST, new LambdaIntegration(handle_extension_request_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/assignment-tracker (protected) - GET assignment tracker for a proposal
+    const get_assignment_tracker = proposal.addResource("assignment-tracker");
+    get_assignment_tracker.addMethod(HttpMethod.GET, new LambdaIntegration(get_assignment_tracker_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

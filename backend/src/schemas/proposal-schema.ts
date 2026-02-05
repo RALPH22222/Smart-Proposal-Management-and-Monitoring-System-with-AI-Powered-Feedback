@@ -3,6 +3,7 @@ import {
   ClassificationType,
   EvaluatorFinalDecision,
   EvaluatorStatus,
+  ExtensionDecision,
   ImplementationMode,
   Status,
   AssignmentTracker,
@@ -96,8 +97,9 @@ export const proposalSchema = z.object({
   agency_address: z.preprocess(
     parseJsonIfString,
     z.object({
-      street: z.string().min(1, "Street is required").max(50, "Street name is too long"),
-      barangay: z.string().min(1, "Barangay is required").max(50, "Barangay name is too long"),
+      id: z.string().uuid().optional(),           // Existing address UUID
+      street: z.string().max(50).nullish(),       // Optional
+      barangay: z.string().max(50).nullish(),     // Optional
       city: z.string().min(1, "City is required").max(50, "City name is too long"),
     }),
   ),
@@ -212,6 +214,14 @@ export const submitRevisedProposalSchema = z.object({
   revision_response: z.string().max(256, "Response is too long").optional(),
 });
 
+export const handleExtensionRequestSchema = z.object({
+  proposal_id: z.number(),
+  evaluator_id: z.string().uuid(),
+  decision: z.nativeEnum(ExtensionDecision),
+  remarks: z.string().max(2000, "Remarks are too long").optional(),
+});
+
+export type HandleExtensionRequestInput = z.infer<typeof handleExtensionRequestSchema>;
 export type ProposalInput = z.infer<typeof proposalSchema>;
 export type ForwardToEvaluatorsInput = z.infer<typeof forwardToEvaluatorsSchema>;
 export type ForwardToRndInput = z.infer<typeof forwardToRndSchema>;

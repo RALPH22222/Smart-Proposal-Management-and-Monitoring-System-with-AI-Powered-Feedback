@@ -163,18 +163,38 @@ function euclideanDistance(a: number[], b: number[]): number {
 
 /**
  * Replicates Keras TextVectorization: lowercase, split on whitespace/punct, lookup indices.
+ * Supports both unigram (ngrams=1) and bigram (ngrams=2) modes based on vocabulary.
  * Returns array of integer token indices.
  */
 function tokenize(text: string, vocab: Record<string, number>): number[] {
   const OOV_INDEX = 1; // [UNK] token
   // Keras TextVectorization default: lowercase, strip punctuation, split on whitespace
-  const cleaned = text
+  const words = text
     .toLowerCase()
     .replace(/[^\w\s]/g, " ") // replace punctuation with space
     .split(/\s+/)
     .filter((w) => w.length > 0);
 
-  return cleaned.map((word) => vocab[word] ?? OOV_INDEX);
+  // Detect if vocabulary contains bigrams (space-separated word pairs)
+  // Bigram vocabularies have keys like "machine learning", "ai system"
+  const hasBigrams = Object.keys(vocab).some((key) => key.includes(" "));
+
+  if (hasBigrams) {
+    // Generate bigrams: consecutive word pairs
+    const tokens: number[] = [];
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i + 1]}`;
+      tokens.push(vocab[bigram] ?? OOV_INDEX);
+    }
+    // If only one word or no bigrams found, try unigrams as fallback
+    if (tokens.length === 0) {
+      return words.map((word) => vocab[word] ?? OOV_INDEX);
+    }
+    return tokens;
+  }
+
+  // Unigram mode (original behavior)
+  return words.map((word) => vocab[word] ?? OOV_INDEX);
 }
 
 /**
