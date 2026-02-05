@@ -220,8 +220,12 @@ const Submission: React.FC = () => {
   }, [localFormData, selectedFile, user, navigate]);
 
   // AI Template Check - Updated to use real AI
-  const handleAITemplateCheck = useCallback(async () => {
-    if (!selectedFile) {
+  // Modified to accept an optional file argument for immediate checking after selection
+  const handleAITemplateCheck = useCallback(async (fileToAnalyze?: File) => {
+    // Use the passed file OR the one in state
+    const targetFile = fileToAnalyze || selectedFile;
+
+    if (!targetFile) {
       Swal.fire({
         icon: "warning",
         title: "No File Selected",
@@ -244,7 +248,7 @@ const Submission: React.FC = () => {
       });
 
       // Call the AI analysis API
-      const result = await analyzeProposalWithAI(selectedFile);
+      const result = await analyzeProposalWithAI(targetFile);
 
       // Close loading alert
       Swal.close();
@@ -266,6 +270,18 @@ const Submission: React.FC = () => {
     }
   }, [selectedFile]);
 
+  // Wrapper to handle file selection AND trigger AI check immediately
+  const handleFileSelect = (file: File | null) => {
+    setSelectedFile(file);
+    if (file) {
+      // Auto-trigger AI check
+      handleAITemplateCheck(file);
+    } else {
+      // Clear previous results if file is removed
+      setAiCheckResult(null);
+    }
+  };
+
   // ... (Render Helpers remain the same)
 
   const getTabClass = (sectionName: string) => `
@@ -279,7 +295,9 @@ const Submission: React.FC = () => {
         show={showAIModal}
         onClose={() => {
           setShowAIModal(false);
-          setAiCheckResult(null);
+          // Don't clear result immediately so user can view it again if they want? 
+          // Actually usually better to keep it until new file. 
+          // But close clears modal.
         }}
         aiCheckResult={aiCheckResult}
         isChecking={isCheckingTemplate}
@@ -328,8 +346,8 @@ const Submission: React.FC = () => {
             isCheckingTemplate={isCheckingTemplate}
             isUploadDisabled={isSubmitting}
             isBudgetValid={isBudgetValid}
-            onFileSelect={setSelectedFile}
-            onAITemplateCheck={handleAITemplateCheck}
+            onFileSelect={handleFileSelect}
+            onAITemplateCheck={() => handleAITemplateCheck()}
             onSubmit={handleSubmit}
           />
         </div>

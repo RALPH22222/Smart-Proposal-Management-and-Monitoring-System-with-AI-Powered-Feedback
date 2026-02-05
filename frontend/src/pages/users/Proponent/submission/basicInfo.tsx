@@ -130,6 +130,20 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
   };
 
+  // Auto-populate school year with current academic year
+  useEffect(() => {
+    if (!formData.schoolYear) {
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth(); // 0-11
+      // If we're in Jan-May (0-4), we're in the second half of school year
+      // If we're in Jun-Dec (5-11), we're in the first half of school year
+      const startYear = currentMonth >= 5 ? currentYear : currentYear - 1;
+      const endYear = startYear + 1;
+      const schoolYear = `${startYear}-${endYear}`;
+      onUpdate("schoolYear", schoolYear);
+    }
+  }, []);
+
   // --- 3. DURATION LOGIC ---
   const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
     if (!startStr) return;
@@ -370,16 +384,35 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
             School Year *
-            <Tooltip content="The academic year in which the project will be executed (e.g., 2024-2025)" />
+            <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
           </label>
-          <input
-            type="text"
-            name="schoolYear"
-            value={formData.schoolYear || ""}
-            onChange={onInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-            placeholder="e.g. 2023-2024"
-          />
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              maxLength={4}
+              value={(formData.schoolYear || "").split("-")[0] || ""}
+              onChange={(e) => {
+                const start = e.target.value.replace(/\D/g, "");
+                const end = (formData.schoolYear || "").split("-")[1] || "";
+                onUpdate("schoolYear", `${start}-${end}`);
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
+              placeholder="YYYY"
+            />
+            <span className="text-gray-400 font-bold text-xl">–</span>
+            <input
+              type="text"
+              maxLength={4}
+              value={(formData.schoolYear || "").split("-")[1] || ""}
+              onChange={(e) => {
+                const start = (formData.schoolYear || "").split("-")[0] || "";
+                const end = e.target.value.replace(/\D/g, "");
+                onUpdate("schoolYear", `${start}-${end}`);
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
+              placeholder="YYYY"
+            />
+          </div>
         </div>
 
         {/* Planned Start Date */}

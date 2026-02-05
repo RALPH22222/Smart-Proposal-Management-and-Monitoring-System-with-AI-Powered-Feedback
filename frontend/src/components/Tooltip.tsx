@@ -8,8 +8,8 @@ interface TooltipProps {
   className?: string;
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ 
-  content, 
+const Tooltip: React.FC<TooltipProps> = ({
+  content,
   children,
   position = 'top',
   className = ''
@@ -43,7 +43,11 @@ const Tooltip: React.FC<TooltipProps> = ({
   // Design adjustments:
   // 1. w-max: Forces the tooltip to be as wide as the text needs.
   // 2. max-w-xs: Constraints it so it doesn't get too wide (wraps nicely).
-  const baseClasses = "absolute z-50 px-3 py-2 text-sm font-medium text-white bg-slate-900 rounded-md shadow-xl border border-slate-800 w-max max-w-xs animate-in fade-in zoom-in-95 duration-200";
+  // Design adjustments:
+  // 1. Mobile: Fixed width (w-48) to ensure it stays on screen, with wrapping.
+  // 2. Desktop (sm): Auto width (w-max) but capped at xs to keep it neat.
+  // 3. Removed previous positioning conflicts.
+  const baseClasses = "absolute z-50 px-3 py-2 text-sm font-medium text-white bg-slate-900 rounded-md shadow-xl border border-slate-800 animate-in fade-in zoom-in-95 duration-200 whitespace-normal break-words w-48 max-w-[90vw] sm:w-max sm:max-w-xs";
 
   const positionClasses = {
     top: 'bottom-full mb-2 left-1/2 -translate-x-1/2',
@@ -61,7 +65,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   };
 
   return (
-    <div 
+    <div
       ref={tooltipRef}
       className="relative inline-flex items-center"
     >
@@ -77,7 +81,7 @@ const Tooltip: React.FC<TooltipProps> = ({
       </div>
 
       {isVisible && (
-        <div 
+        <div
           className={`${baseClasses} ${positionClasses[position]}`}
           style={{ pointerEvents: 'none' }} // Prevents tooltip from blocking clicks if it fades out slowly
         >
@@ -85,9 +89,9 @@ const Tooltip: React.FC<TooltipProps> = ({
           <span className="block leading-relaxed text-slate-100">
             {content}
           </span>
-          
+
           {/* Arrow */}
-          <div 
+          <div
             className={`absolute w-0 h-0 border-[6px] ${arrowClasses[position]}`}
           ></div>
         </div>

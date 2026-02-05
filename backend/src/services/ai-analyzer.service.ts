@@ -240,10 +240,44 @@ function scaleMetadata(raw: number[]): number[] {
 function predict(title: string, scaledMeta: number[]): number {
   const denseLayers = getDenseLayers();
 
-  // denseLayers order from train.py:
-  //   [0] = meta Dense(32, relu)    — "meta_input -> Dense(32, relu)"
-  //   [1] = hidden Dense(32, relu)  — "combined -> Dense(32, relu)"
-  //   [2] = output Dense(1, sigmoid) — "-> Dense(1, sigmoid)"
+  // === ADAPTIVE ARCHITECTURE SUPPORT ===
+
+  // Case A: Improved Model (5 Dense Layers)
+  // Architecture: Text(Dense) + Meta(Dense) -> Concat -> Dense(64) -> Dense(32) -> Output
+  if (denseLayers.length === 5) {
+    // 1. Text Branch
+    // getEmbedding() will return 64-dim vectors for the new model
+    let x1 = encodeTitle(title);
+
+    // Apply Text Dense Layer (Layer 0)
+    const textDense = denseLayers[0];
+    x1 = denseForward(x1, textDense.kernel, textDense.bias, textDense.activation);
+
+    // 2. Meta Branch
+    // Apply Meta Dense Layer (Layer 1)
+    const metaDense = denseLayers[1];
+    const x2 = denseForward(scaledMeta, metaDense.kernel, metaDense.bias, metaDense.activation);
+
+    // 3. Combine branches
+    const combined = [...x1, ...x2];
+
+    // 4. Hidden Layer 1 (Layer 2)
+    const hidden1 = denseLayers[2];
+    const z1 = denseForward(combined, hidden1.kernel, hidden1.bias, hidden1.activation);
+
+    // 5. Hidden Layer 2 (Layer 3)
+    const hidden2 = denseLayers[3];
+    const z2 = denseForward(z1, hidden2.kernel, hidden2.bias, hidden2.activation);
+
+    // 6. Output Layer (Layer 4)
+    const outputLayer = denseLayers[4];
+    const output = denseForward(z2, outputLayer.kernel, outputLayer.bias, outputLayer.activation);
+
+    return output[0] * 100;
+  }
+
+  // Case B: Standard Model (3 Dense Layers) - Fallback
+  // Architecture: Text(Pooling) + Meta(Dense) -> Concat -> Dense(32) -> Output
 
   // Text branch: encode title to 32-dim vector
   const x1 = encodeTitle(title);
@@ -321,6 +355,111 @@ function checkUniqueness(titleVec: number[]): {
  * Returns the shape expected by the frontend AIModal component.
  */
 export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
+  // ========== ERROR HANDLING FOR UNDETECTABLE PROPOSALS ==========
+
+  // Check for "Unknown" title (default when extraction fails)
+  if (extracted.title === "Unknown Project" || extracted.title.toLowerCase().includes("unknown")) {
+    return {
+      title: "Cannot Detect Proposal",
+      score: 0,
+      isValid: false,
+      noveltyScore: 0,
+      keywords: ["Undetectable"],
+      similarPapers: [],
+      issues: [
+        "❌ Cannot detect proposal content. Please try again.",
+        "",
+        "Your PDF must follow the standard VAWC Capsule Proposal format:",
+        "",
+        "Required sections:",
+        "  ✓ Project Title: [Your project title here]",
+        "  ✓ Duration: (In months) [number]",
+        "  ✓ Budget breakdown (PS, MOOE, CO)",
+        "  ✓ Total Project Cost",
+        "",
+        "Common issues:",
+        "  • PDF is scanned image without text (use OCR first)",
+        "  • Missing 'Project Title:' label in document",
+        "  • Document structure doesn't match template",
+        "  • File is corrupted or password-protected",
+        "",
+        "📄 Reference format: VAWC_CapsuleProposal-updated.pdf"
+      ],
+      suggestions: [
+        "Use the official VAWC Capsule Proposal template",
+        "Ensure 'Project Title:' label is present in the document",
+        "If using a scanned PDF, apply OCR (Optical Character Recognition)",
+        "Check that the PDF contains extractable text (not just images)",
+        "Verify all required fields are filled in the template"
+      ],
+    };
+  }
+
+  // Check if proposal data is valid and detectable
+  const hasValidTitle = extracted.title && extracted.title.trim().length > 0;
+  const hasValidData = extracted.total > 0 || extracted.duration > 0;
+
+  if (!hasValidTitle || !hasValidData) {
+    // Return error result for undetectable proposals
+    return {
+      title: "Analysis Error",
+      score: 0,
+      isValid: false,
+      noveltyScore: 0,
+      keywords: ["Undetectable"],
+      similarPapers: [],
+      issues: [
+        "❌ Proposal content could not be detected or analyzed.",
+        "The uploaded PDF/document may be:",
+        "  • Empty or contains only images",
+        "  • Scanned without OCR (text not extractable)",
+        "  • Corrupted or in an unsupported format",
+        "  • Missing critical information (title, budget, duration)",
+        "",
+        "Please ensure your document:",
+        "  ✓ Contains readable text (not just scanned images)",
+        "  ✓ Includes a clear project title",
+        "  ✓ Has budget and timeline information",
+        "  ✓ Is in a supported format (PDF, DOC, DOCX)"
+      ],
+      suggestions: [
+        "Try re-uploading the document with text content",
+        "If using a scanned PDF, apply OCR (Optical Character Recognition) first",
+        "Verify the document is not password-protected or encrypted",
+        "Check that the file is not corrupted"
+      ],
+    };
+  }
+
+  // Check for minimal title quality
+  if (extracted.title.trim().length < 10) {
+    return {
+      title: extracted.title || "Incomplete Proposal",
+      score: 0,
+      isValid: false,
+      noveltyScore: 0,
+      keywords: ["Incomplete"],
+      similarPapers: [],
+      issues: [
+        "❌ Proposal title is too short or incomplete.",
+        `Detected title: "${extracted.title}"`,
+        "",
+        "A valid research proposal should have:",
+        "  • A descriptive title (at least 10 characters)",
+        "  • Clear research objectives",
+        "  • Budget breakdown",
+        "  • Timeline information"
+      ],
+      suggestions: [
+        "Ensure the document contains a complete project title",
+        "Check if the PDF text extraction was successful",
+        "Verify the document structure and formatting"
+      ],
+    };
+  }
+
+  // ========== NORMAL ANALYSIS FLOW ==========
+
   // 1. Prepare metadata vector: [duration, mooe, ps, co, total, agencies]
   const rawMeta = [
     extracted.duration,
