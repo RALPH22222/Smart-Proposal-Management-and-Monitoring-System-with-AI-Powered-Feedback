@@ -366,10 +366,10 @@ const Profile: React.FC = () => {
         ? raw.department.name
         : departments.find((d) => Number(d.id) === Number(raw.department_id))?.name || "",
       schoolYear: val(raw.school_year),
-      address: raw.agency
-        ? [raw.agency.street, raw.agency.barangay, raw.agency.city]
-          .map((part) => val(part)) // Ensure nulls become empty strings
-          .filter((part) => part !== "") // Remove empty strings
+      address: raw.agency_address
+        ? [raw.agency_address.street, raw.agency_address.barangay, raw.agency_address.city]
+          .map((part) => val(part))
+          .filter((part) => part !== "")
           .join(", ")
         : "",
       telephone: val(raw.phone),

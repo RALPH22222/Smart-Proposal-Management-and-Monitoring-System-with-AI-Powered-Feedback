@@ -17,10 +17,10 @@ export function transformProposalForModal(raw: any) {
   // Agency (string)
   const agency = raw.agency && typeof raw.agency === "object" ? raw.agency.name || "N/A" : "N/A";
 
-  // Address from agency object
+  // Address from agency_address object (direct FK on proposals)
   const address =
-    raw.agency && typeof raw.agency === "object"
-      ? [raw.agency.street, raw.agency.barangay, raw.agency.city].filter(Boolean).join(", ") || "N/A"
+    raw.agency_address && typeof raw.agency_address === "object"
+      ? [raw.agency_address.street, raw.agency_address.barangay, raw.agency_address.city].filter(Boolean).join(", ") || "N/A"
       : "N/A";
 
   // Cooperating agencies → comma-separated string

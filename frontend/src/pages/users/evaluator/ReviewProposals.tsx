@@ -30,7 +30,7 @@ export default function EndorsedProposals() {
       const mapped = data.map((item: any) => {
         const p = item.proposal_id || {};
         const proponent = p.proponent_id || {};
-        const agencyAddress = p.agency ? `${p.agency.street}, ${p.agency.barangay}, ${p.agency.city}` : "N/A";
+        const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
 
         // Map budget
         const budgetSourcesMap: Record<string, { ps: number; mooe: number; co: number }> = {};

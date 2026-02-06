@@ -160,7 +160,7 @@ export class ProposalService {
       value: agency,
     });
 
-    await this.ensureAgencyAddress(agency_id, agency_address);
+    const agency_address_id = await this.ensureAgencyAddress(agency_id, agency_address);
 
     const insertDbPayload = {
       ...proposal,
@@ -168,6 +168,7 @@ export class ProposalService {
       sector_id,
       discipline_id,
       agency_id,
+      agency_address_id,
     };
 
     const insertRes = await this.db.from("proposals").insert(insertDbPayload).select().single();
@@ -550,7 +551,8 @@ export class ProposalService {
       rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),
-      agency:agencies(name,city,street,barangay),
+      agency:agencies(name),
+      agency_address(id,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
       proposal_version(id,file_url)
     `);
@@ -764,7 +766,8 @@ export class ProposalService {
           rnd_station:departments(name),
           sector:sectors(name),
           discipline:disciplines(name),
-          agency:agencies(name,city,street,barangay),
+          agency:agencies(name),
+          agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
           proposal_version(id,file_url)
         )
@@ -803,7 +806,8 @@ export class ProposalService {
           rnd_station:departments(name),
           sector:sectors(name),
           discipline:disciplines(name),
-          agency:agencies(name,city,street,barangay),
+          agency:agencies(name),
+          agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
           proposal_version(id,file_url)
         )
