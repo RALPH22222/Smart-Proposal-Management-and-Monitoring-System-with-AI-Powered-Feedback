@@ -97,9 +97,9 @@ export const proposalSchema = z.object({
   agency_address: z.preprocess(
     parseJsonIfString,
     z.object({
-      id: z.string().uuid().optional(),           // Existing address UUID
-      street: z.string().max(50).nullish(),       // Optional
-      barangay: z.string().max(50).nullish(),     // Optional
+      id: z.string().uuid().optional(), // Existing address UUID
+      street: z.string().max(50).nullish(), // Optional
+      barangay: z.string().max(50).nullish(), // Optional
       city: z.string().min(1, "City is required").max(50, "City name is too long"),
     }),
   ),
@@ -217,7 +217,7 @@ export const submitRevisedProposalSchema = z.object({
 export const handleExtensionRequestSchema = z.object({
   proposal_id: z.number(),
   evaluator_id: z.string().uuid(),
-  decision: z.nativeEnum(ExtensionDecision),
+  action: z.nativeEnum(ExtensionDecision),
   remarks: z.string().max(2000, "Remarks are too long").optional(),
 });
 

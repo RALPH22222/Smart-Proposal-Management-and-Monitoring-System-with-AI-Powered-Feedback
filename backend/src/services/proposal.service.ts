@@ -70,10 +70,7 @@ export class ProposalService {
     return inserted.data.id as number;
   }
 
-  private async ensureAgencyAddress(
-    agency_id: number | null,
-    agency_address?: AgencyAddress
-  ): Promise<string | null> {
+  private async ensureAgencyAddress(agency_id: number | null, agency_address?: AgencyAddress): Promise<string | null> {
     if (!agency_id || !agency_address) return null;
 
     // 1. If existing address ID provided, verify it belongs to this agency
@@ -88,11 +85,7 @@ export class ProposalService {
     }
 
     // 2. Check for existing matching address
-    let query = this.db
-      .from("agency_address")
-      .select("id")
-      .eq("agency_id", agency_id)
-      .eq("city", agency_address.city);
+    let query = this.db.from("agency_address").select("id").eq("agency_id", agency_id).eq("city", agency_address.city);
 
     // Handle null vs empty for barangay/street
     if (agency_address.barangay) {
@@ -1400,10 +1393,8 @@ export class ProposalService {
     const isAdmin = roles.includes("admin");
 
     // Build the base query
-    let query = this.db
-      .from("proposal_assignment_tracker")
-      .select(
-        `
+    let query = this.db.from("proposal_assignment_tracker").select(
+      `
         id,
         proposal_id,
         evaluator_id,
@@ -1413,14 +1404,14 @@ export class ProposalService {
         status,
         created_at,
         proposals:proposal_id(
-          id, 
+          id,
           project_title,
           proposal_evaluators(forwarded_by_rnd, evaluator_id)
         ),
         users:evaluator_id(id, first_name, last_name)
       `,
-      );
-    
+    );
+
     if (proposal_id) {
       query = query.eq("proposal_id", proposal_id);
     }
@@ -1437,25 +1428,21 @@ export class ProposalService {
       filtered = filtered.filter((row: any) => {
         // Access nested proposal_evaluators from the proposal relation
         const proposal = row.proposals;
-        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators) 
-          ? proposal.proposal_evaluators 
-          : [];
-          
-        return evaluators.some(
-          (pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub,
-        );
+        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators) ? proposal.proposal_evaluators : [];
+
+        return evaluators.some((pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub);
       });
     }
     const result = filtered.map((row: any) => {
       // Create a clean proposal object without the nested evaluators list for the response
       const cleanProposal = {
         id: row.proposals?.id,
-        project_title: row.proposals?.project_title
+        project_title: row.proposals?.project_title,
       };
-      
+
       return {
         ...row,
-        proposal_id: cleanProposal
+        proposal_id: cleanProposal,
       };
     });
 
@@ -1463,7 +1450,7 @@ export class ProposalService {
   }
 
   async handleExtensionRequest(input: HandleExtensionRequestInput, rnd_id: string) {
-    const { proposal_id, evaluator_id, decision, remarks } = input;
+    const { proposal_id, evaluator_id, action, remarks } = input;
 
     // Fetch the tracker record to get the requested deadline
     const { data: tracker, error: fetchError } = await this.db
@@ -1481,7 +1468,7 @@ export class ProposalService {
       return { error: new Error("No pending extension request for this evaluator and proposal") };
     }
 
-    if (decision === ExtensionDecision.APPROVED) {
+    if (action === ExtensionDecision.APPROVED) {
       const newDeadline = tracker.request_deadline_at;
 
       // 1. Update tracker: status to accept, deadline_at to the requested date
@@ -1519,8 +1506,8 @@ export class ProposalService {
         remarks: remarks || "Extension request approved",
       });
 
-      return { data: { proposal_id, evaluator_id, decision }, error: null };
-    } else if (decision === ExtensionDecision.DENIED) {
+      return { data: { proposal_id, evaluator_id, action }, error: null };
+    } else if (action === ExtensionDecision.DENIED) {
       // 1. Reset tracker status to pending, clear request_deadline_at
       const { error: trackerError } = await this.db
         .from("proposal_assignment_tracker")
@@ -1546,7 +1533,7 @@ export class ProposalService {
         remarks: remarks || "Extension request denied",
       });
 
-      return { data: { proposal_id, evaluator_id, decision }, error: null };
+      return { data: { proposal_id, evaluator_id, action }, error: null };
     }
 
     return { error: new Error("Invalid decision") };

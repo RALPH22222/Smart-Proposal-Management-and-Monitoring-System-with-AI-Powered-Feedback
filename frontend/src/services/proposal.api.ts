@@ -119,9 +119,7 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
   fd.append("duration", String(durationNumber));
   // Existing agencies (from DB) send their numeric id, new ones send just the name string.
   // e.g. [29, 33, "Test Subject #3"]
-  const agencies = formData.cooperating_agencies.map((a: any) =>
-    a.created_at ? a.id : a.name
-  );
+  const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
   fd.append("cooperating_agencies", JSON.stringify(agencies));
   fd.append("implementation_site", JSON.stringify(formData.implementation_site));
   const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
@@ -407,7 +405,7 @@ export type AssignmentTrackerItem = {
       last_name: string;
     };
     sector: {
-       name: string;
+      name: string;
     };
   };
   evaluator_id: {
@@ -415,7 +413,7 @@ export type AssignmentTrackerItem = {
     first_name: string;
     last_name: string;
     department_id: {
-        name: string;
+      name: string;
     };
   };
   deadline: number;
@@ -435,7 +433,7 @@ export const getAssignmentTracker = async (proposalId: number): Promise<Assignme
 export type HandleExtensionPayload = {
   proposal_id: number;
   evaluator_id: string;
-  action: "approved" | "rejected";
+  action: "approved" | "denied";
 };
 
 export const handleExtensionRequest = async (input: HandleExtensionPayload): Promise<any> => {
