@@ -19,7 +19,7 @@ export interface EvaluatorOption {
   id: string;
   name: string;
   department: string;
-  status: 'Accepts' | 'Rejected' | 'Pending' | 'Extension Requested';
+  status: 'Accepts' | 'Rejected' | 'Pending' | 'Extension Requested' | 'Extension Approved' | 'Extension Rejected' | 'Completed';
   // Merged History Data
   comment?: string;
   extensionDate?: string;
@@ -246,11 +246,12 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                         </div>
                                       )}
                                   </div>
-                              ) : ev.status === 'Accepts' || ev.status === 'Rejected' ? (
-                                  // --- DECISION UI ---
+                              ) : ['Accepts', 'Rejected', 'Extension Approved', 'Extension Rejected', 'Completed'].includes(ev.status) ? (
+                                  // --- DECISION / STATUS UI ---
                                   <div>
                                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border mb-1.5
-                                          ${ev.status === 'Accepts' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                          ${ev.status === 'Accepts' || ev.status === 'Extension Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                            ev.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                             'bg-red-50 text-red-700 border-red-200'}`}
                                       >
                                           {ev.status}

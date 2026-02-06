@@ -7,7 +7,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getEvaluatorProposalStats, getEvaluatorProposals } from "../../../services/proposal.api";
+import { getEvaluatorProposals } from "../../../services/proposal.api";
 
 export default function DashboardRdec() {
   const [statsData, setStatsData] = useState({
@@ -32,55 +32,112 @@ export default function DashboardRdec() {
   useEffect(() => {
       const fetchData = async () => {
           try {
-              const [stats, allProposals] = await Promise.all([
-                  getEvaluatorProposalStats(),
+              // We only need getEvaluatorProposals to calculate everything accurately
+              // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
+              const [allProposals] = await Promise.all([
                   getEvaluatorProposals()
               ]);
 
-              setStatsData(stats || { pending: 0, reject: 0, approve: 0, for_review: 0, revise: 0, decline: 0 });
+              // 1. Robust Mapping (same as Proposals.tsx)
+              const mappedAll = (allProposals || []).map((p: any) => {
+                const proposalObj = p.proposal_id || p;
+                
+                let proponentName = 'Unknown';
+                if (proposalObj.proponent_id) {
+                  if (typeof proposalObj.proponent_id === "object") {
+                    proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
+                  } else if (typeof proposalObj.proponent_id === "string") {
+                    proponentName = proposalObj.proponent_id;
+                  }
+                }
 
-              // Map proposals for table
-              const reviewedStatuses = ['approve', 'reject', 'revise', 'decline'];
+                // Handle status normalization
+                let displayStatus = p.status || proposalObj.status || "pending";
+                
+                if (displayStatus === 'extend') {
+                   displayStatus = 'extension_requested';
+                }
+                // If status is pending but we have a request_deadline_at, it's an extension request
+                if (displayStatus === 'pending' && p.request_deadline_at) {
+                   displayStatus = 'extension_requested';
+                }
+
+                return {
+                  id: proposalObj.id,
+                  title: proposalObj.project_title || "Untitled",
+                  proponent: proponentName.trim(),
+                  status: displayStatus,
+                  created_at: new Date(p.created_at || proposalObj.created_at),
+                  updated_at: new Date(p.updated_at || proposalObj.updated_at),
+                  date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
+                  updatedAt: new Date(p.updated_at || proposalObj.updated_at)
+                };
+              });
+
+              // 2. Deduplication
+              const uniqueProposalsMap = new Map();
+              mappedAll.forEach((p: any) => {
+                if (!uniqueProposalsMap.has(p.id)) {
+                  uniqueProposalsMap.set(p.id, p);
+                }
+              });
+              const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+              // 3. Calculate Stats from Unique Proposals
+              const newStats = {
+                pending: 0,
+                reject: 0,
+                approve: 0,
+                for_review: 0,
+                revise: 0,
+                decline: 0
+              };
+
+              uniqueProposals.forEach((p: any) => {
+                const s = p.status;
+                if (s === 'pending') newStats.pending++;
+                else if (s === 'accepted' || s === 'approve') newStats.approve++; // normalize 'accepted' to 'approve' bucket
+                else if (s === 'rejected' || s === 'reject') newStats.reject++;   // normalize 'rejected' to 'reject' bucket
+                else if (s === 'for_review') newStats.for_review++;
+                else if (s === 'revise' || s === 'revision') newStats.revise++;
+                else if (s === 'decline') newStats.decline++;
+                else if (s === 'extension_requested' || s === 'extension_approved' || s === 'extension_rejected') newStats.pending++; // Treat extension flows as pending action
+              });
+
+              setStatsData(newStats);
+
+              // 4. Filter for "Recent Reviewed" Table
+              // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
+              const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
               
-              const mappedProposals = allProposals
-                .filter((item: any) => reviewedStatuses.includes(item.status))
-                .map((item: any) => ({
-                  id: item.proposal_id.id,
-                  title: item.proposal_id.project_title,
-                  proponent: `${item.proposal_id.proponent_id.first_name} ${item.proposal_id.proponent_id.last_name}`,
-                  date: new Date(item.updated_at).toLocaleDateString(), // Use updated_at for review date
-                  status: item.status,
-                  updatedAt: new Date(item.updated_at)
-              }));
+              const reviewedProposals = uniqueProposals
+                .filter((item: any) => reviewedStatuses.includes(item.status));
               
               // Sort by review date desc
-              mappedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-              setProposals(mappedProposals.slice(0, 5)); // Take top 5 recent reviewed
+              reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+              setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
 
-              // Calculate derived stats
+              // 5. Calculate derived stats (Activity)
               const now = new Date();
               const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
               const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
               const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-              const todayCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfDay).length;
-              const weekCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfWeek).length;
-              const monthCount = allProposals.filter((p: any) => new Date(p.created_at) >= startOfMonth).length;
+              const todayCount = uniqueProposals.filter((p: any) => p.created_at >= startOfDay).length;
+              const weekCount = uniqueProposals.filter((p: any) => p.created_at >= startOfWeek).length;
+              const monthCount = uniqueProposals.filter((p: any) => p.created_at >= startOfMonth).length;
 
-              // reviewed today = status in [approve, reject, revise] and updated_at today?
-              // The API response for getEvaluatorProposals doesn't seem to include updated_at clearly in the shared type, 
-              // but assuming we can count based on status for now.
-              // actually 'allProposals' has 'status'.
-              
-              const reviewedToday = allProposals.filter((p: any) => reviewedStatuses.includes(p.status) && new Date(p.updated_at) >= startOfDay).length;
-              const underReviewCount = allProposals.filter((p: any) => p.status === 'for_review').length;
-              const pendingCount = allProposals.filter((p: any) => p.status === 'pending').length;
+              const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
+              const underReviewCount = newStats.for_review; 
+              // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
+              // we can just use the pending count
+              const pendingCount = newStats.pending;
 
               setDerivedStats({
                   reviewedToday,
                   underReview: underReviewCount,
                   pending: pendingCount,
-                  thisMonth: monthCount,
+                  thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
                   thisWeek: weekCount,
                   today: todayCount
               });

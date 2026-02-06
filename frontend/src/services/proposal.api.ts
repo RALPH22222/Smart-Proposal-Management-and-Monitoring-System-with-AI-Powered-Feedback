@@ -378,3 +378,50 @@ export const rejectProposal = async (input: RejectProposalPayload): Promise<any>
   });
   return data;
 };
+export type AssignmentTrackerItem = {
+  id: number;
+  proposal_id: {
+    id: number;
+    project_title: string;
+    proponent_id: {
+      first_name: string;
+      last_name: string;
+    };
+    sector: {
+       name: string;
+    };
+  };
+  evaluator_id: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    department_id: {
+        name: string;
+    };
+  };
+  deadline: number;
+  status: string;
+  request_deadline_at?: number | null;
+  remarks?: string | null;
+  date_forwarded: string;
+};
+
+export const getAssignmentTracker = async (proposalId: number): Promise<AssignmentTrackerItem[]> => {
+  const { data } = await api.get<AssignmentTrackerItem[]>(`/proposal/assignment-tracker?proposal_id=${proposalId}`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
+export type HandleExtensionPayload = {
+  proposal_id: number;
+  evaluator_id: string;
+  action: "approved" | "rejected";
+};
+
+export const handleExtensionRequest = async (input: HandleExtensionPayload): Promise<any> => {
+  const { data } = await api.post("/proposal/handle-extension-request", input, {
+    withCredentials: true,
+  });
+  return data;
+};

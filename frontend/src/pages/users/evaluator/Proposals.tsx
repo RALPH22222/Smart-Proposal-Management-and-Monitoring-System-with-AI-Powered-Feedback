@@ -43,8 +43,6 @@ export default function Proposals() {
 
       const mapped = (data || []).map((p: any) => {
         // Handle different potential structures effectively
-        // Sometimes p might be the proposal itself, or p.proposal_id object
-
         const proposalObj = p.proposal_id || p;
         
         // Robust proponent name extraction
@@ -57,11 +55,23 @@ export default function Proposals() {
           }
         }
 
+        // Handle status normalization
+        let displayStatus = p.status || proposalObj.status || "pending";
+        
+        // Fix: Backend might return 'extend' or keep it 'pending' with a request date
+        if (displayStatus === 'extend') {
+           displayStatus = 'extension_requested';
+        }
+        // If status is pending but we have a request_deadline_at, it's an extension request
+        if (displayStatus === 'pending' && p.request_deadline_at) {
+           displayStatus = 'extension_requested';
+        }
+
         return {
           id: proposalObj.id,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
-          status: p.status || proposalObj.status || "pending", 
+          status: displayStatus, 
           deadline: p.deadline_at ? new Date(p.deadline_at).toLocaleDateString() : "N/A",
           projectType: proposalObj.sector?.name || "N/A", 
           raw: p 
@@ -124,7 +134,12 @@ export default function Proposals() {
       case "rejected":
         return "text-red-600 bg-red-50 border-red-200";
       case "extension_requested":
+      case "extend":
         return "text-blue-600 bg-blue-50 border-blue-200";
+      case "extension_approved":
+        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      case "extension_rejected":
+        return "text-red-600 bg-red-50 border-red-200";
       default:
         return "text-slate-600 bg-slate-50 border-slate-200";
     }
@@ -133,12 +148,15 @@ export default function Proposals() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "accepted":
+      case "extension_approved":
         return <CheckCircle className="w-3 h-3" />;
       case "pending":
         return <Clock className="w-3 h-3" />;
       case "rejected":
+      case "extension_rejected":
         return <XCircle className="w-3 h-3" />;
       case "extension_requested":
+      case "extend":
         return <CalendarClock className="w-3 h-3" />;
       default:
         return null;
@@ -146,7 +164,9 @@ export default function Proposals() {
   };
 
   const formatStatus = (status: string) => {
-    if (status === "extension_requested") return "Extension Requested";
+    if (status === "extension_requested" || status === "extend") return "Extension Requested";
+    if (status === "extension_approved") return "Extension Approved";
+    if (status === "extension_rejected") return "Extension Rejected";
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -395,7 +415,7 @@ export default function Proposals() {
                       </span>
 
                       <div className="flex items-center gap-2">
-                        {proposal.status === "pending" && (
+                        {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
                           <button
                             onClick={() => handleEvaluateClick(proposal.id)}
                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"

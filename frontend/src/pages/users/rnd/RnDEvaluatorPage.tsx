@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Clock,
   Edit2,
@@ -8,48 +8,45 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  ClipboardCheck
+  ClipboardCheck,
+  Tag
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 import RnDEvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
-import { Tag } from 'lucide-react';
+import { getAssignmentTracker, handleExtensionRequest, getRndProposals } from '../../../services/proposal.api';
 
 // --- INTERFACES ---
 
 interface Assignment {
-  id: string;
+  id: string; // unique ID for key
   proposalId: string;
+  proposalIdNumeric: number;
   proposalTitle: string;
   evaluatorIds: string[];
   evaluatorNames: string[];
   department: string;
   deadline: string;
-  status: 'Pending' | 'Accepts' | 'Completed' | 'Overdue' | 'Rejected' | 'Extension Requested';
+  status: 'Pending' | 'Accepts' | 'Completed' | 'Overdue' | 'Rejected' | 'Extension Requested' | 'Extension Approved' | 'Extension Rejected';
   projectType: string;
 }
 
-interface HistoryRecord {
-  id: string;
-  evaluatorId: string;
-  evaluatorName: string;
-  decision: 'Accept' | 'Reject';
-  comment: string;
-  date: string;
-}
-
-interface ExtensionRequest {
-  requestId: string;
-  evaluatorId: string;
-  evaluatorName: string;
-  reason: string;
-  requestedNewDate: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-}
-
-interface ProposalHistoryData {
-  records: HistoryRecord[];
-  extensionRequests: ExtensionRequest[]; 
+// Grouping structure to handle multiple evaluators per proposal
+interface GroupedAssignment {
+    proposalIdNumeric: number;
+    proposalTitle: string;
+    projectType: string;
+    deadline: string;
+    evaluators: {
+        id: string; // evaluator ID
+        name: string;
+        department: string;
+        status: string;
+        deadline: number;
+        request_deadline_at?: number | null; // For extension
+        remarks?: string | null;
+    }[];
 }
 
 export const RnDEvaluatorPage: React.FC = () => {
@@ -60,199 +57,267 @@ export const RnDEvaluatorPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentEvaluators, setCurrentEvaluators] = useState<EvaluatorOption[]>([]);
   const [selectedProposalTitle, setSelectedProposalTitle] = useState('');
-  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
+  const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // --- MOCK ASSIGNMENTS ---
-  const [assignments, setAssignments] = useState<Assignment[]>([
-    {
-      id: '1',
-      proposalId: 'p1',
-      proposalTitle: 'AI-driven Smart Proposal Management System',
-      evaluatorIds: ['e1', 'e2'],
-      evaluatorNames: ['Dr. Alice Santos', 'Prof. Ben Reyes'],
-      department: 'Information Technology',
-      deadline: '2025-10-20',
-      status: 'Extension Requested',
-      projectType: 'ICT'
-    },
-    {
-      id: '2',
-      proposalId: 'p2',
-      proposalTitle: 'Blockchain-based Voting Application',
-      evaluatorIds: ['e3'],
-      evaluatorNames: ['Engr. Carla Lim'],
-      department: 'Information Technology',
-      deadline: '2025-10-25',
-      status: 'Pending',
-      projectType: 'Public Safety'
-    },
-    {
-      id: '3',
-      proposalId: 'p3',
-      proposalTitle: 'IoT-based Waste Management for Zamboanga City',
-      evaluatorIds: ['e4', 'e5'],
-      evaluatorNames: ['Dr. John Cruz', 'Prof. Eva Martinez'],
-      department: 'Engineering',
-      deadline: '2025-10-30',
-      status: 'Rejected',
-      projectType: 'Environment'
-    },
-    {
-        id: '4',
-        proposalId: 'p4',
-        proposalTitle: 'Machine Learning for Agricultural Optimization',
-        evaluatorIds: ['e6', 'e7'],
-        evaluatorNames: ['Dr. Maria Santos', 'Prof. Carlos Reyes'],
-        department: 'Agriculture',
-        deadline: '2025-11-05',
-        status: 'Completed',
-        projectType: 'Agriculture'
-      },
-      {
-        id: '5',
-        proposalId: 'p5',
-        proposalTitle: 'Renewable Energy Microgrid Systems',
-        evaluatorIds: ['e8'],
-        evaluatorNames: ['Engr. David Tan'],
-        department: 'Engineering',
-        deadline: '2025-09-15',
-        status: 'Overdue',
-        projectType: 'Energy'
-      }
-  ]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // --- MOCK HISTORY & EXTENSION DATA ---
-  const [mockHistoryData, setMockHistoryData] = useState<Record<string, ProposalHistoryData>>({
-    p1: {
-      records: [
-        { id: 'h1', evaluatorId: 'e2', evaluatorName: 'Prof. Ben Reyes', decision: 'Accept', comment: 'Excellent and feasible research idea.', date: '2025-10-02' },
-      ],
-      extensionRequests: [
-        {
-          requestId: 'ext1',
-          evaluatorId: 'e1',
-          evaluatorName: 'Dr. Alice Santos',
-          reason: 'Need more time to review the updated dataset schema.',
-          requestedNewDate: '2025-10-25',
-          status: 'Pending'
-        }
-      ]
-    },
-    p3: {
-        records: [
-            { id: 'h2', evaluatorId: 'e5', evaluatorName: 'Prof. Eva Martinez', decision: 'Reject', comment: 'Methodology is unclear.', date: '2025-10-02' },
-            { id: 'h3', evaluatorId: 'e4', evaluatorName: 'Dr. John Cruz', decision: 'Reject', comment: 'Budget is too high.', date: '2025-10-02' }
-        ],
-        extensionRequests: []
-    }
-  });
-
-  // --- ACTIONS ---
-
-  // Handle Extension actions directly from the Modal
-  const handleExtensionAction = (evaluatorId: string, action: 'Accept' | 'Reject') => {
-    if (!selectedProposalId) return;
-
-    // 1. Update Mock Data (Backend Simulation)
-    setMockHistoryData((prev) => {
-        const currentData = prev[selectedProposalId];
-        if (!currentData) return prev;
+  // --- DATA FETCHING ---
+  // --- DATA FETCHING ---
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+        // 1. Fetch all proposals visible to R&D
+        const proposals = await getRndProposals();
         
-        const updatedExtensions: ExtensionRequest[] = currentData.extensionRequests.map((req) => 
-            req.evaluatorId === evaluatorId 
-            ? { ...req, status: (action === 'Accept' ? 'Approved' : 'Rejected') as ExtensionRequest['status'] }
-            : req
-        );
+        // 2. For each proposal, fetch its assignment tracker data
+        const trackerPromises = proposals.map((p: any) => getAssignmentTracker(p.id));
+        const trackerResults = await Promise.all(trackerPromises);
+        
+        // Flat list of all assignments
+        const allAssignments = trackerResults.flat();
+        console.log("Aggregated Assignment Data:", allAssignments);
 
-        return {
-            ...prev,
-            [selectedProposalId]: {
-                ...currentData,
-                extensionRequests: updatedExtensions
+        // Group by Proposal
+        const groupedMap = new Map<number, GroupedAssignment>();
+
+        allAssignments.forEach((item: any) => {
+            // Robust check for missing relations
+            if (!item || !item.proposal_id || !item.evaluator_id) {
+                return;
             }
-        };
-    });
 
-    // 2. Update the "Current Evaluators" list currently visible in the modal
-    // This allows the modal to re-render immediately without closing
-    setCurrentEvaluators(prev => prev.map(ev => {
-        if (ev.id === evaluatorId) {
-            // If approved, we might clear the request or change status. 
-            // For now, let's change status to Pending (with new date implied) or whatever logic fits.
-            return { 
-                ...ev, 
-                status: action === 'Accept' ? 'Pending' : 'Pending', // Reset status 
-                extensionReason: undefined, // Clear extension UI
-                extensionDate: undefined 
+            const pid = item.proposal_id.id;
+            // Additional safety: ensure pid exists
+            if (!pid) return;
+
+            if (!groupedMap.has(pid)) {
+                groupedMap.set(pid, {
+                    proposalIdNumeric: pid,
+                    proposalTitle: item.proposal_id.project_title || "Untitled Proposal",
+                    projectType: item.proposal_id.sector?.name || 'N/A',
+                    deadline: item.deadline ? new Date(item.deadline).toISOString() : new Date().toISOString(), 
+                    evaluators: []
+                });
+            }
+            
+            const group = groupedMap.get(pid)!;
+
+            // Normalize status: If 'pending' but has a request_deadline_at, it's an extension request
+            let effectiveStatus = item.status;
+            if (item.status === 'pending' && item.request_deadline_at) {
+                effectiveStatus = 'extension_requested';
+            }
+
+            // Safe Evaluator Data Extraction
+            const evalId = item.evaluator_id.id || "unknown";
+            const evalFirstName = item.evaluator_id.first_name || "Unknown";
+            const evalLastName = item.evaluator_id.last_name || "";
+            const evalName = `${evalFirstName} ${evalLastName}`.trim();
+            const evalDept = item.evaluator_id.department_id?.name || 'N/A';
+
+            group.evaluators.push({
+                id: evalId,
+                name: evalName,
+                department: evalDept,
+                status: effectiveStatus, // extend, pending, accept, decline, completed
+                deadline: item.deadline ? item.deadline : Date.now(),
+                request_deadline_at: item.request_deadline_at,
+                remarks: item.remarks
+            });
+        });
+
+        // Convert Grouped Data to Display 'Assignment' Interface
+        const mappedAssignments: Assignment[] = Array.from(groupedMap.values()).map(group => {
+            // Determine aggregate status
+            // If ANY evaluator requested extension, show 'Extension Requested' for visibility
+            // Else find dominant status
+            
+            let aggregateStatus: Assignment['status'] = 'Pending';
+            const statusSet = new Set(group.evaluators.map(e => e.status));
+            
+            if (statusSet.has('extend') || statusSet.has('extension_requested')) {
+                aggregateStatus = 'Extension Requested';
+            } else if (statusSet.has('extension_approved')) {
+                 aggregateStatus = 'Extension Approved';
+            } else if (statusSet.has('extension_rejected')) {
+                 aggregateStatus = 'Extension Rejected';
+            } else if (statusSet.has('pending')) {
+                aggregateStatus = 'Pending';
+            } else if (statusSet.has('completed') || statusSet.has('done')) {
+                // If all completed?
+                if (group.evaluators.every(e => e.status === 'completed')) aggregateStatus = 'Completed';
+                else aggregateStatus = 'Pending'; // Mixed
+            } else if (statusSet.has('accept') || statusSet.has('accepted')) {
+                 aggregateStatus = 'Accepts';
+            }
+
+            // Check overdue (simple check against today)
+            const now = new Date().getTime();
+            if (aggregateStatus !== 'Completed' && aggregateStatus !== 'Extension Requested') {
+                 // Check if any deadline passed
+                 const anyOverdue = group.evaluators.some(e => e.deadline < now);
+                 if (anyOverdue) aggregateStatus = 'Overdue';
+            }
+
+            return {
+                id: String(group.proposalIdNumeric),
+                proposalIdNumeric: group.proposalIdNumeric,
+                proposalId: `PRO-${group.proposalIdNumeric}`,
+                proposalTitle: group.proposalTitle,
+                evaluatorIds: group.evaluators.map(e => e.id),
+                evaluatorNames: group.evaluators.map(e => e.name),
+                department: group.evaluators[0]?.department || 'N/A', // Just take first for list view
+                deadline: new Date(group.evaluators[0]?.deadline || Date.now()).toISOString(),
+                status: aggregateStatus,
+                projectType: group.projectType
             };
-        }
-        return ev;
-    }));
+        });
 
-    // 3. Update main table status if needed (Optional)
-    if(action === 'Accept') {
-         setAssignments(prev => prev.map(a => 
-             a.proposalId === selectedProposalId && a.status === 'Extension Requested'
-             ? { ...a, status: 'Pending' } // Reset general status
-             : a
-         ));
+        setAssignments(mappedAssignments);
+
+    } catch (error) {
+        console.error("Failed to fetch assignment tracker:", error);
+    } finally {
+        setLoading(false);
     }
   };
 
-  const handleEdit = (id: string) => {
-    const record = assignments.find((a) => a.id === id);
-    if (record) {
-      setSelectedProposalTitle(record.proposalTitle);
-      setSelectedProposalId(record.proposalId);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-      // --- MERGE LOGIC ---
-      // We need to combine the basic assignment info with the detailed history/extension info
-      const historyData = mockHistoryData[record.proposalId] || { records: [], extensionRequests: [] };
+  // --- ACTIONS ---
 
-      const mergedEvaluators: EvaluatorOption[] = record.evaluatorNames.map((name, index) => {
-        const evId = record.evaluatorIds[index] || `temp-${index}`;
+  const handleExtensionAction = async (evaluatorId: string, action: 'Accept' | 'Reject') => {
+    if (!selectedProposalId) return;
+
+    try {
+        await handleExtensionRequest({
+            proposal_id: selectedProposalId,
+            evaluator_id: evaluatorId,
+            action: action === 'Accept' ? 'approved' : 'rejected'
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: `Extension request ${action === 'Accept' ? 'approved' : 'rejected'} successfully.`
+        });
+
+        // Refresh Data
+        await fetchData();
         
-        // Check for specific history (Decision)
-        const historyRecord = historyData.records.find(h => h.evaluatorId === evId);
+        // Update Modal State Locally to reflect change immediately without closing
+        setCurrentEvaluators(prev => prev.map(ev => {
+            if (ev.id === evaluatorId) {
+                return { 
+                    ...ev, 
+                    // Update status for UI feedback
+                    status: action === 'Accept' ? 'Extension Approved' : 'Extension Rejected', // Or map back to 'Pending' if approved means new deadline set
+                    extensionReason: undefined // Clear request UI
+                }; 
+            }
+            return ev;
+        }));
+
+        // Close modal after short delay or keep open? 
+        // Best to close to refresh full main view state consistency
+        setShowModal(false);
+
+    } catch (error: any) {
+        console.error("Extension Action Error:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error?.response?.data?.message || "Failed to process extension request."
+        });
+    }
+  };
+
+  const handleEdit = async (id: string) => {
+    // When clicking 'Action' on a proposal row
+    // We need to fetch/prepare the detailed evaluators list for that proposal
+    // We can rely on the raw data we already fetched if we stored it properly, 
+    // or re-fetch. Since we grouped it earlier, let's look at the mapping logic or re-find in 'assignments'
+    // But 'assignments' is simplified.
+    // Better strategy: re-fetch or keep raw data. 
+    // For simplicity, let's filter from the 'assignments' state logic re-applied or just re-run the finding logic.
+    // Actually, distinct evaluators details (remarks, request_deadline) are lost in 'assignments' map.
+    // Let's re-fetch specifically or just use the tracker again.
+    
+    // Quick fix: Let's fetch the tracker again to be sure we have latest status details for the modal
+    // OR, simpler: filter the last API response. But we didn't save it.
+    // Let's modify fetchAssignments to save raw data or just accept a re-fetch pattern for now to rely on single source of truth.
+    // Re-fetching full list might be heavy. Let's optimize by saving raw data in a ref or state if needed.
+    // For now, let's just trigger a fresh fetch inside the modal logic or just allow the use of 'assignments' if we enrich it.
+    
+    // Let's enrich 'assignments' or use a separate fetch. 
+    // To save time/code churn, I'll just re-call the API since it's cleaner than modifying the main state structure heavily.
+    setLoading(true);
+    try {
+        const proposalIdNumeric = parseInt(id);
+        const data = await getAssignmentTracker(proposalIdNumeric);
         
-        // Check for specific extension request
-        const extensionReq = historyData.extensionRequests.find(ext => ext.evaluatorId === evId && ext.status === 'Pending');
+        const relevantItems = data; // Data is already filtered by API now!
+        
+        if (relevantItems.length === 0) return;
 
-        let status: EvaluatorOption['status'] = 'Pending';
-        let comment = undefined;
-        let extensionDate = undefined;
-        let extensionReason = undefined;
+        const modalEvaluators: EvaluatorOption[] = relevantItems.map(item => {
+            let status: EvaluatorOption['status'] = 'Pending';
+            let extensionDate = undefined;
+            let extensionReason = undefined;
 
-        if (extensionReq) {
-            status = 'Extension Requested';
-            extensionDate = extensionReq.requestedNewDate;
-            extensionReason = extensionReq.reason;
-        } else if (historyRecord) {
-            status = historyRecord.decision === 'Accept' ? 'Accepts' : 'Rejected';
-            comment = historyRecord.comment;
-        }
+            // Map backend status to UI status
+            // Backend: pending, accept, decline, extend (or extension_requested), completed
+            
+            // Check for implicit extension request first
+            const isExtensionRequest = 
+                item.status === 'extend' || 
+                item.status === 'extension_requested' || 
+                (item.status === 'pending' && item.request_deadline_at);
 
-        return {
-          id: evId,
-          name,
-          department: record.department,
-          status,
-          comment,
-          extensionDate,
-          extensionReason
-        };
-      });
+            if (isExtensionRequest) {
+                status = 'Extension Requested';
+                extensionDate = item.request_deadline_at ? new Date(item.request_deadline_at).toLocaleDateString() : 'N/A';
+                extensionReason = item.remarks || 'No reason provided';
+            } else if (item.status === 'accept' || item.status === 'accepted') {
+                status = 'Accepts';
+            } else if (item.status === 'decline' || item.status === 'rejected') {
+                status = 'Rejected';
+            } else if (item.status === 'completed') {
+                status = 'Completed';
+            }
 
-      setCurrentEvaluators(mergedEvaluators);
-      setShowModal(true);
+            return {
+                id: item.evaluator_id.id,
+                name: `${item.evaluator_id.first_name} ${item.evaluator_id.last_name}`,
+                department: item.evaluator_id.department_id?.name || 'N/A',
+                status: status,
+                comment: item.remarks || '', // potential overlap with extension reason, but ok
+                extensionDate,
+                extensionReason
+            };
+        });
+
+        setSelectedProposalTitle(relevantItems[0].proposal_id.project_title);
+        setSelectedProposalId(proposalIdNumeric);
+        setCurrentEvaluators(modalEvaluators);
+        setShowModal(true);
+
+    } catch (e) {
+        console.error("Failed to load details", e);
+    } finally {
+        setLoading(false);
     }
   };
 
   const handleReassignEvaluators = (newEvaluators: EvaluatorOption[]) => {
-    console.log('Reassigned Evaluators for:', selectedProposalTitle, newEvaluators);
+    // Reassignment logic not fully requested in this prompt, placeholder
+    console.log('Reassigned Evaluators behavior to be implemented if needed', newEvaluators);
     setShowModal(false);
   };
 
@@ -349,6 +414,8 @@ export const RnDEvaluatorPage: React.FC = () => {
                      <option value="Pending">Pending</option>
                      <option value="Accepts">Accepts</option>
                      <option value="Extension Requested">Extension Requested</option>
+                     <option value="Extension Approved">Extension Approved</option>
+                     <option value="Extension Rejected">Extension Rejected</option>
                      <option value="Completed">Completed</option>
                      <option value="Overdue">Overdue</option>
                      <option value="Rejected">Rejected</option>
@@ -370,48 +437,48 @@ export const RnDEvaluatorPage: React.FC = () => {
              </h3>
            </div>
            <div className="flex-1 overflow-y-auto">
-             {paginatedAssignments.map((assignment) => (
-                <article key={assignment.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100">
-                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
-                         <h2 className="text-base font-semibold text-slate-800 mb-2">{assignment.proposalTitle}</h2>
-                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                            <div className="flex items-center gap-1.5">
-                               <User className="w-3 h-3" />
-                               <span>{assignment.evaluatorNames.join(', ')}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                               <Clock className="w-3 h-3" />
-                               <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
-                            </div>
-                            {/* Project Type Badge */}
-                            {assignment.projectType && (
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(assignment.projectType)}`}>
-                                <Tag className="w-3 h-3" />
-                                {assignment.projectType}
-                              </span>
-                            )}
-                         </div>
-                            {/* Status Badge in List */}
-                            {/* <span className={`px-2 py-0.5 rounded-full font-medium border ${
-                                assignment.status === 'Extension Requested' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                assignment.status === 'Accepts' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                assignment.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                                assignment.status === 'Overdue' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                'bg-slate-100 text-slate-600 border-slate-200'
-                            }`}>
-                                {assignment.status}
-                            </span> */}
+             {loading ? (
+                <div className="flex justify-center items-center h-48">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700"></div>
+                </div>
+             ) : (
+                paginatedAssignments.map((assignment) => (
+                    <article key={assignment.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100">
+                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="flex-1">
+                             <h2 className="text-base font-semibold text-slate-800 mb-2">{assignment.proposalTitle}</h2>
+                             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                                <div className="flex items-center gap-1.5">
+                                   <User className="w-3 h-3" />
+                                   <span>{assignment.evaluatorNames.join(', ')}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                   <Clock className="w-3 h-3" />
+                                   <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
+                                </div>
+                                {/* Project Type Badge */}
+                                {assignment.projectType && (
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(assignment.projectType)}`}>
+                                    <Tag className="w-3 h-3" />
+                                    {assignment.projectType}
+                                  </span>
+                                )}
+                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <button onClick={() => handleEdit(assignment.id)} className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1">
+                                <Edit2 className="w-3 h-3" /> Action
+                             </button>
+                          </div>
                        </div>
-                      <div className="flex items-center gap-2">
-                         {/* Removed separate History Button */}
-                         <button onClick={() => handleEdit(assignment.id)} className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1">
-                            <Edit2 className="w-3 h-3" /> Action
-                         </button>
-                      </div>
-                   </div>
-                </article>
-             ))}
+                    </article>
+                 ))
+             )}
+             {!loading && paginatedAssignments.length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                    No assignments found.
+                </div>
+             )}
            </div>
 
            {/* Pagination Footer */}

@@ -1408,12 +1408,18 @@ export class ProposalService {
         remark,
         status,
         created_at,
-        proposals:proposal_id(id, project_title),
-        users:evaluator_id(id, first_name, last_name),
-        proposal_evaluators:proposal_id(forwarded_by_rnd, evaluator_id)
+        proposals:proposal_id(
+          id, 
+          project_title,
+          proposal_evaluators(forwarded_by_rnd, evaluator_id)
+        ),
+        users:evaluator_id(id, first_name, last_name)
       `,
-      )
-      .eq("proposal_id", proposal_id);
+      );
+    
+    if (proposal_id) {
+      query = query.eq("proposal_id", proposal_id);
+    }
 
     const { data, error } = await query;
 
@@ -1425,15 +1431,29 @@ export class ProposalService {
     let filtered = data || [];
     if (!isAdmin) {
       filtered = filtered.filter((row: any) => {
-        const evaluators = Array.isArray(row.proposal_evaluators) ? row.proposal_evaluators : [];
+        // Access nested proposal_evaluators from the proposal relation
+        const proposal = row.proposals;
+        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators) 
+          ? proposal.proposal_evaluators 
+          : [];
+          
         return evaluators.some(
           (pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub,
         );
       });
     }
-
-    // Strip the join data used for filtering
-    const result = filtered.map(({ proposal_evaluators, ...rest }: any) => rest);
+    const result = filtered.map((row: any) => {
+      // Create a clean proposal object without the nested evaluators list for the response
+      const cleanProposal = {
+        id: row.proposals?.id,
+        project_title: row.proposals?.project_title
+      };
+      
+      return {
+        ...row,
+        proposal_id: cleanProposal
+      };
+    });
 
     return { data: result, error: null };
   }
