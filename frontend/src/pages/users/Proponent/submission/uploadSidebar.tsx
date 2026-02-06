@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   FaUpload,
   FaCheck,
@@ -8,9 +8,9 @@ import {
   FaRobot,
   FaFileAlt,
   FaPaperPlane,
-  FaExclamationCircle,
   FaLock
 } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
 
 interface UploadSidebarProps {
@@ -37,7 +37,6 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   isBudgetValid
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -51,8 +50,6 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     // 2. Check Basic Info (Required Fields)
     if (!formData.project_title?.trim()) return false;
     if (!formData.duration?.trim()) return false;
-    if (!formData.agencyAddress?.street?.trim()) return false;
-    if (!formData.agencyAddress?.barangay?.trim()) return false;
     if (!formData.agencyAddress?.city?.trim()) return false;
     if (!formData.telephone?.trim()) return false;
     if (!formData.email?.trim()) return false;
@@ -82,13 +79,21 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
   const handleInitialSubmit = () => {
     if (isFormValid) {
-      setShowConfirmation(true);
+      Swal.fire({
+        title: 'Confirm Submission',
+        text: "Are you sure you are ready to submit this proposal? Please verify that all provided information is accurate and the required documents are attached.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#C8102E',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Confirm Submission',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onSubmit();
+        }
+      });
     }
-  };
-
-  const handleFinalSubmit = () => {
-    setShowConfirmation(false);
-    onSubmit();
   };
 
   return (
@@ -255,41 +260,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         </div>
       </div>
 
-      {/* --- Confirmation Modal --- */}
-      {showConfirmation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            <div className="text-center">
-              <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaExclamationCircle className="w-8 h-8 text-[#C8102E]" />
-              </div>
 
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Confirm Submission
-              </h3>
-
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Are you sure you are ready to submit this proposal? Please verify that all provided information is accurate and the required documents are attached.
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirmation(false)}
-                  className="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleFinalSubmit}
-                  className="flex-1 py-3 px-4 rounded-xl bg-[#C8102E] text-white font-semibold hover:bg-[#9d0d24] shadow-md transition-all flex items-center justify-center gap-2"
-                >
-                  Confirm Submission
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

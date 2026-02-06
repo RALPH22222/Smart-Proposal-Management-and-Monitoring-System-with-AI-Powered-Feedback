@@ -372,6 +372,7 @@ const Profile: React.FC = () => {
           .filter((part) => part !== "")
           .join(", ")
         : "",
+      agency_address: raw.agency_address ? [raw.agency_address] : [],
       telephone: val(raw.phone),
       email: val(raw.email),
       cooperatingAgencies: Array.isArray(raw.cooperating_agencies)

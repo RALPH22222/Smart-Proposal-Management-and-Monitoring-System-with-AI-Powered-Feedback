@@ -53,6 +53,12 @@ export interface Proposal {
   department?: string;
   schoolYear: string;
   address: string;
+  agency_address?: {
+    id: string;
+    street: string;
+    barangay: string;
+    city: string;
+  }[];
   telephone: string;
   email: string;
   cooperatingAgencies: string;

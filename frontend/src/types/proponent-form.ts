@@ -16,8 +16,9 @@ export interface BudgetItem {
 
 
 export interface AgencyAddress {
-  street: string;
-  barangay: string;
+  id?: string;
+  street?: string;
+  barangay?: string;
   city: string;
 }
 export type LookupItem = { id: number; name: string };

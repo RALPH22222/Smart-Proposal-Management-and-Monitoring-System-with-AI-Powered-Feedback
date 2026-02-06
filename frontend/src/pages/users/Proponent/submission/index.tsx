@@ -326,7 +326,10 @@ const Submission: React.FC = () => {
               />
             )}
             {activeSection === "research-details" && (
-              <ResearchDetails formData={localFormData} onUpdate={handleDirectUpdate} />
+              <ResearchDetails
+                formData={localFormData}
+                onUpdate={handleDirectUpdate}
+              />
             )}
             {activeSection === "budget" && (
               <BudgetSection

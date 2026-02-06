@@ -33,7 +33,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import type { LookupItem } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem } from "../../services/proposal.api";
 
 interface Site {
   site: string;
@@ -72,6 +72,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
+  const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
 
   useEffect(() => {
     if (proposal) {
@@ -88,6 +89,49 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       setNewFile(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      const targetAgencyName = isEditing ? editedProposal?.agency : proposal?.agency;
+      if (!targetAgencyName) return;
+
+      const agency = agencies.find(a => a.name === targetAgencyName);
+      if (agency) {
+        try {
+          const addresses = await fetchAgencyAddresses(agency.id);
+          setAgencyAddresses(addresses);
+        } catch (error) {
+          console.error("Failed to fetch agency addresses:", error);
+          setAgencyAddresses([]);
+        }
+      } else {
+        setAgencyAddresses([]);
+      }
+    };
+
+    if (isOpen) {
+      fetchAddresses();
+    }
+  }, [isOpen, isEditing, editedProposal?.agency, proposal?.agency, agencies]);
+
+  const handleAddressSelect = (addressId: string) => {
+    if (!editedProposal) return;
+    const selectedAddress = agencyAddresses.find(a => String(a.id) === addressId);
+
+    if (selectedAddress) {
+      const formattedAddress = [
+        selectedAddress.street,
+        selectedAddress.barangay,
+        selectedAddress.city
+      ].filter(Boolean).join(", ");
+
+      setEditedProposal({
+        ...editedProposal,
+        address: formattedAddress,
+        agency_address: [selectedAddress]
+      } as Proposal);
+    }
+  };
 
   if (!isOpen || !proposal || !editedProposal) {
     return null;
@@ -777,22 +821,51 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Address
                 </label>
                 {canEdit ? (
-                  <textarea
-                    value={currentData.address}
-                    onChange={(e) =>
-                      handleInputChange("address", e.target.value)
-                    }
-                    rows={2}
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                      true
-                    )}`}
-                  />
+                  <div className="space-y-2">
+                    {agencyAddresses.length > 0 && (
+                      <select
+                        onChange={(e) => handleAddressSelect(e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Select from Agency Addresses</option>
+                        {agencyAddresses.map(addr => (
+                          <option key={addr.id} value={addr.id}>
+                            {[addr.street, addr.barangay, addr.city].filter(Boolean).join(", ")}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <textarea
+                      value={currentData.address}
+                      onChange={(e) =>
+                        handleInputChange("address", e.target.value)
+                      }
+                      rows={2}
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                        true
+                      )}`}
+                      placeholder="Or enter address manually"
+                    />
+                  </div>
                 ) : (
                   renderFundedField(
                     <div className="flex items-start gap-2">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
                       <p className="text-sm text-slate-900">
-                        {currentData.address}
+                        {(() => {
+                          const addrString = currentData.address;
+                          if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
+                            return addrString;
+                          }
+                          // Fallback to first agency address if available
+                          if (agencyAddresses.length > 0) {
+                            const a = agencyAddresses[0];
+                            const parts = [a.street, a.barangay, a.city].filter(Boolean);
+                            return parts.length > 0 ? parts.join(", ") : "N/A";
+                          }
+                          return "N/A";
+                        })()}
                       </p>
                     </div>
                   )

@@ -1,12 +1,3 @@
-/**
- * Pure TypeScript reimplementation of the proposal AI model inference.
- *
- * Replicates the forward pass of the trained Keras model without any ML framework:
- *   TextVectorization -> Embedding -> GlobalAveragePooling1D -> concat with metadata Dense -> Dense -> sigmoid
- *
- * Model JSON files are loaded from ../ai-models/ (exported by trained-ai/export_weights.py).
- */
-
 import path from "path";
 import { readFileSync } from "fs";
 

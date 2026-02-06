@@ -6,18 +6,37 @@ export type LookupItem = {
   name: string;
 };
 
+export type AddressItem = {
+  id: string;
+  city: string;
+  barangay: string | null;
+  street: string | null;
+};
+
+export type AgencyItem = {
+  id: number;
+  name: string;
+  agency_address: AddressItem[];
+};
+
 export type CreateProposalResponse = {
   message: string;
   proposalId?: string;
+  // ... any other fields
 };
 
-export const fetchAgencies = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-agency");
+export const fetchAgencies = async (): Promise<AgencyItem[]> => {
+  const { data } = await api.get<AgencyItem[]>("/proposal/view-agency");
   return data;
 };
 
-export const fetchCooperatingAgencies = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-agency");
+export const fetchAgencyAddresses = async (agencyId: number): Promise<AddressItem[]> => {
+  const { data } = await api.get<AddressItem[]>(`/proposal/view-agency-addresses?agency_id=${agencyId}`);
+  return data;
+};
+
+export const fetchCooperatingAgencies = async (): Promise<AgencyItem[]> => {
+  const { data } = await api.get<AgencyItem[]>("/proposal/view-agency");
   return data;
 };
 

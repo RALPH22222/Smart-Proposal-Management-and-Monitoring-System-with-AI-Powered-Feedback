@@ -12,8 +12,10 @@ import {
   X,
   MapPin,
   Building2,
-  Trash2
+  Trash2,
+
 } from 'lucide-react';
+
 import type { FormData } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
 
@@ -74,6 +76,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
   const sectorRef = useRef<HTMLDivElement>(null);
   const disciplineRef = useRef<HTMLDivElement>(null);
   const priorityRef = useRef<HTMLDivElement>(null);
+
+
 
   // --- 1. FETCH DATA ON MOUNT ---
   useEffect(() => {
@@ -343,6 +347,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+
 
   if (!formData) return <div className="p-4 text-gray-500">Loading...</div>;
 
@@ -786,6 +792,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         </div>
         <p className="text-xs text-gray-500">Select from the list or type your own custom priority area.</p>
       </div>
+
     </div >
   );
 };

@@ -13,10 +13,12 @@ import {
   Calendar,
   MapPin,
 } from "lucide-react";
-import { fetchAgencies, fetchTags } from "../../../../services/proposal.api";
+
+import { fetchAgencies, fetchTags, fetchAgencyAddresses } from "../../../../services/proposal.api";
+import type { AgencyItem } from "../../../../services/proposal.api";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Tooltip from "../../../../components/Tooltip";
-import type { FormData } from "src/types/proponent-form";
+import type { FormData } from "../../../../types/proponent-form";
 import { useAuthContext } from "../../../../context/AuthContext";
 
 interface BasicInformationProps {
@@ -26,11 +28,10 @@ interface BasicInformationProps {
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate }) => {
-  // --- AUTH CONTEXT ---
   const { user } = useAuthContext();
 
   // --- STATE ---
-  const [agenciesList, setAgenciesList] = useState<{ id: number; name: string }[]>([]);
+  const [agenciesList, setAgenciesList] = useState<AgencyItem[]>([]);
   const [tagsList, setTagsList] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,6 +39,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [isAgencyDropdownOpen, setIsAgencyDropdownOpen] = useState(false);
   const [isCooperatingDropdownOpen, setIsCooperatingDropdownOpen] = useState(false);
   const [isTagsDropdownOpen, setIsTagsDropdownOpen] = useState(false);
+
+  // Address Selection State
+  const [availableAddresses, setAvailableAddresses] = useState<{ id: string; street: string | null; barangay: string | null; city: string }[]>([]);
 
   // Search Terms
   const [agencySearchTerm, setAgencySearchTerm] = useState("");
@@ -49,9 +53,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Filtered Lists
-  const [filteredAgencies, setFilteredAgencies] = useState<{ id: number; name: string }[]>([]);
-  const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState<{ id: number; name: string }[]>([]);
+  const [filteredAgencies, setFilteredAgencies] = useState<AgencyItem[]>([]);
+  const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState<AgencyItem[]>([]);
   const [filteredTags, setFilteredTags] = useState<{ id: number; name: string }[]>([]);
+
+
 
   // --- 1. FETCH DATA ---
   useEffect(() => {
@@ -62,10 +68,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           fetchTags().catch(() => []),
         ]);
         setAgenciesList(agenciesData || []);
-        setFilteredAgencies(agenciesData || []);
-        setFilteredCooperatingAgencies(agenciesData || []);
         setTagsList(tagsData || []);
-        setFilteredTags(tagsData || []);
       } catch (error) {
         console.error("Error loading basic info data:", error);
       } finally {
@@ -75,116 +78,98 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     loadData();
   }, []);
 
-  // --- 2. RESTORE SELECTIONS ---
+  // --- FILTERING ---
   useEffect(() => {
-    if (!isLoading && agenciesList.length > 0) {
+    if (agenciesList.length > 0) {
+      setFilteredAgencies(agenciesList.filter((a) => a.name.toLowerCase().includes(agencySearchTerm.toLowerCase())));
+      setFilteredCooperatingAgencies(
+        agenciesList.filter((a) => a.name.toLowerCase().includes(cooperatingSearchTerm.toLowerCase())),
+      );
+    }
+  }, [agencySearchTerm, cooperatingSearchTerm, agenciesList]);
+
+  useEffect(() => {
+    if (tagsList.length > 0) {
+      if (!tagsSearchTerm) {
+        setFilteredTags(tagsList);
+      } else {
+        setFilteredTags(tagsList.filter((t) => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
+      }
+    }
+  }, [tagsSearchTerm, tagsList]);
+
+  // --- 2. RESTORE SELECTIONS & DEFAULTS ---
+  useEffect(() => {
+    if (!isLoading) {
+      // Restore Cooperating Agencies
       if (formData.cooperating_agencies && formData.cooperating_agencies.length > 0) {
+        // If they are saved as IDs or objects, handle accordingly. Assuming objects based on previous code.
         setSelectedAgencies(formData.cooperating_agencies);
       }
-    }
-    // Restore tags
-    if (!isLoading && tagsList.length > 0 && formData.tags && formData.tags.length > 0) {
-      const tagNames = formData.tags
-        .map((id: number) => tagsList.find((t) => t.id === id)?.name)
-        .filter((name): name is string => !!name);
-      if (tagNames.join(",") !== selectedTags.join(",")) {
-        setSelectedTags(tagNames);
+
+      // Restore Tags
+      if (tagsList.length > 0 && formData.tags && formData.tags.length > 0) {
+        const tagNames = formData.tags
+          .map((id: number) => tagsList.find((t) => t.id === id)?.name)
+          .filter((name): name is string => !!name);
+        if (tagNames.join(",") !== selectedTags.join(",")) {
+          setSelectedTags(tagNames);
+        }
       }
-    }
-    // Restore Agency Search Term
-    if (formData.agency && !agencySearchTerm) {
-      if (typeof formData.agency === "number") {
-        const found = agenciesList.find((a) => a.id === formData.agency);
-        if (found) setAgencySearchTerm(found.name);
-      } else {
-        setAgencySearchTerm(String(formData.agency));
+
+      // Restore Agency
+      if (formData.agency && !agencySearchTerm) {
+        if (typeof formData.agency === "number") {
+          const found = agenciesList.find((a) => a.id === formData.agency);
+          if (found) {
+            setAgencySearchTerm(found.name);
+            if (found.agency_address) setAvailableAddresses(found.agency_address);
+          }
+        } else {
+          setAgencySearchTerm(String(formData.agency));
+        }
       }
     }
   }, [isLoading, agenciesList, tagsList, formData.cooperating_agencies, formData.tags, formData.agency]);
 
-  // Set default duration to 6 months if empty
-  useEffect(() => {
-    if (!formData.duration) {
-      onUpdate("duration", "6");
-    }
-  }, []);
-
-  // Auto-populate email from authenticated user
+  // Default Email
   useEffect(() => {
     if (user?.email && !formData.email) {
       onUpdate("email", user.email);
     }
   }, [user]);
 
-  // Helper function to format duration in readable format
-  const formatDuration = (months: number): string => {
-    if (months < 12) {
-      return `${months} Month${months !== 1 ? 's' : ''}`;
+  // Default Duration
+  useEffect(() => {
+    if (!formData.duration) {
+      onUpdate("duration", "6");
     }
-    const years = Math.floor(months / 12);
-    const remainingMonths = months % 12;
+  }, []);
 
-    if (remainingMonths === 0) {
-      return `${years} Year${years !== 1 ? 's' : ''}`;
-    }
-    return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
-  };
-
-  // Auto-populate school year with current academic year
+  // Default School Year
   useEffect(() => {
     if (!formData.schoolYear) {
       const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth(); // 0-11
-      // If we're in Jan-May (0-4), we're in the second half of school year
-      // If we're in Jun-Dec (5-11), we're in the first half of school year
+      const currentMonth = new Date().getMonth();
       const startYear = currentMonth >= 5 ? currentYear : currentYear - 1;
       const endYear = startYear + 1;
-      const schoolYear = `${startYear}-${endYear}`;
-      onUpdate("schoolYear", schoolYear);
+      onUpdate("schoolYear", `${startYear}-${endYear}`);
     }
   }, []);
+
 
   // --- 3. DURATION LOGIC ---
   const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
     if (!startStr) return;
-
     const start = parseISO(startStr);
     if (!isValid(start)) return;
 
-    const effectiveDuration = durationStr || "6";
-    const monthsToAdd = parseInt(effectiveDuration, 10);
-
-    if (!isNaN(monthsToAdd) && monthsToAdd > 0) {
-      const newEnd = addMonths(start, monthsToAdd);
+    const effectiveDuration = parseInt(durationStr || "6", 10);
+    if (!isNaN(effectiveDuration) && effectiveDuration > 0) {
+      const newEnd = addMonths(start, effectiveDuration);
       onUpdate("plannedEndDate", format(newEnd, "yyyy-MM-dd"));
-
-      if (!formData.duration) {
-        onUpdate("duration", effectiveDuration);
-      }
     }
   };
-
-  useEffect(() => {
-    const startDate = formData.plannedStartDate;
-    const endDate = formData.plannedEndDate;
-
-    if (startDate && endDate) {
-      try {
-        const start = parseISO(startDate);
-        const end = parseISO(endDate);
-
-        if (isValid(start) && isValid(end) && end >= start) {
-          const months = differenceInMonths(end, start);
-          const durationValue = String(months);
-          if (months > 0 && formData.duration !== durationValue) {
-            // Logic to update duration if needed based on dates
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, [formData.plannedStartDate, formData.plannedEndDate]);
 
   const handleDurationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDuration = e.target.value;
@@ -199,75 +184,78 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     const { name, value } = e.target;
 
     if (name === "plannedStartDate") {
-      // When start date changes, recalculate end date based on duration
       calculateImplementationDates(value, formData.duration);
     } else if (name === "plannedEndDate") {
-      // When end date changes, calculate duration
       if (formData.plannedStartDate && value) {
         try {
           const start = parseISO(formData.plannedStartDate);
           const end = parseISO(value);
-
           if (isValid(start) && isValid(end) && end >= start) {
             const months = differenceInMonths(end, start);
             if (months >= 0) {
               onUpdate("duration", String(months));
             }
           }
-        } catch (e) {
-          console.error("Error calculating duration:", e);
-        }
+        } catch (e) { console.error(e); }
       }
     }
   };
 
-  // --- FILTERING ---
-  useEffect(() => {
-    if (agenciesList.length > 0) {
-      setFilteredAgencies(agenciesList.filter((a) => a.name.toLowerCase().includes(agencySearchTerm.toLowerCase())));
-    }
-  }, [agencySearchTerm, agenciesList]);
+  const formatDuration = (months: number): string => {
+    if (months < 12) return `${months} Month${months !== 1 ? 's' : ''}`;
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    if (remainingMonths === 0) return `${years} Year${years !== 1 ? 's' : ''}`;
+    return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
+  };
 
-  useEffect(() => {
-    if (agenciesList.length > 0) {
-      setFilteredCooperatingAgencies(
-        agenciesList.filter((a) => a.name.toLowerCase().includes(cooperatingSearchTerm.toLowerCase())),
-      );
-    }
-  }, [cooperatingSearchTerm, agenciesList]);
-
-  useEffect(() => {
-    if (tagsList.length > 0) {
-      if (!tagsSearchTerm) {
-        setFilteredTags(tagsList);
-      } else {
-        setFilteredTags(tagsList.filter((t) => t.name.toLowerCase().includes(tagsSearchTerm.toLowerCase())));
-      }
-    }
-  }, [tagsSearchTerm, tagsList]);
 
   // --- HANDLERS ---
   const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAgencySearchTerm(value);
     onUpdate("agency", value);
+    setAvailableAddresses([]);
   };
 
-  const handleAgencyNameSelect = (agency: { id: number; name: string }) => {
+  const handleAgencyNameSelect = async (agency: AgencyItem) => {
     onUpdate("agency", agency.id);
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
+    setAvailableAddresses([]);
+
+    try {
+      const addresses = await fetchAgencyAddresses(agency.id);
+      setAvailableAddresses(addresses || []);
+    } catch (error) {
+      console.error("Error fetching agency addresses:", error);
+      if (agency.agency_address) {
+        setAvailableAddresses(agency.agency_address);
+      }
+    }
+  };
+
+  const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    if (!selectedId) return;
+    const selectedAddr = availableAddresses.find(a => String(a.id) === selectedId);
+    if (selectedAddr) {
+      onUpdate("agencyAddress", {
+        id: String(selectedAddr.id),
+        street: selectedAddr.street || "",
+        barangay: selectedAddr.barangay || "",
+        city: selectedAddr.city || ""
+      });
+    }
   };
 
   const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
-    const newAddress = {
-      ...formData.agencyAddress,
-      [field]: value,
-    };
+    const newAddress = { ...formData.agencyAddress, [field]: value };
+    if (newAddress.id) delete newAddress.id;
     onUpdate("agencyAddress", newAddress);
   };
 
-  const handleAgencySelect = (agency: { id: number; name: string }) => {
+  const handleAgencySelect = (agency: AgencyItem) => {
     const isSelected = selectedAgencies.some((a) => a.id === agency.id);
     let newSelectedAgencies;
     if (isSelected) newSelectedAgencies = selectedAgencies.filter((a) => a.id !== agency.id);
@@ -283,11 +271,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       setCooperatingSearchTerm("");
       return;
     }
-    const newAgency = { id: Date.now(), name: cooperatingSearchTerm.trim() };
+    const newAgency: AgencyItem = { id: Date.now(), name: cooperatingSearchTerm.trim(), agency_address: [] };
     setAgenciesList((prev) => [...prev, newAgency]);
-    const newSelectedAgencies = [...selectedAgencies, newAgency];
-    setSelectedAgencies(newSelectedAgencies);
-    onUpdate("cooperating_agencies", newSelectedAgencies);
+    handleAgencySelect(newAgency);
     setCooperatingSearchTerm("");
     setIsCooperatingDropdownOpen(false);
   };
@@ -302,7 +288,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     if (!selectedTags.includes(tag.name)) {
       const newSelectedTags = [...selectedTags, tag.name];
       setSelectedTags(newSelectedTags);
-
       const currentTagIds = formData.tags || [];
       const newTagIds = [...currentTagIds, tag.id];
       onUpdate("tags", newTagIds);
@@ -315,7 +300,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     const tagToRemove = tagsList.find((t) => t.name === tagName);
     const newSelectedTags = selectedTags.filter((t) => t !== tagName);
     setSelectedTags(newSelectedTags);
-
     if (tagToRemove) {
       const currentTagIds = formData.tags || [];
       const newTagIds = currentTagIds.filter((id: number) => id !== tagToRemove.id);
@@ -335,6 +319,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+
+
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -351,7 +338,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
       </div>
 
-      {/* Fields - Project Details & Dates */}
+      {/* Program, Project, School Year */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -415,7 +402,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           </div>
         </div>
 
-        {/* Planned Start Date */}
+        {/* Dates & Duration */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Calendar className="text-gray-400 w-4 h-4" />
@@ -431,7 +418,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
 
-        {/* Planned End Date */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Calendar className="text-gray-400 w-4 h-4" />
@@ -447,7 +433,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
 
-        {/* Duration (Select Dropdown) */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Clock className="text-gray-400 w-4 h-4" />
@@ -461,20 +446,16 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               onChange={handleDurationChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
             >
-              <option value="" disabled>
-                Select Duration or Calculate
-              </option>
+              <option value="" disabled>Select Duration or Calculate</option>
               <option value="6">6 Months</option>
               <option value="12">1 Year</option>
               <option value="18">1 Year, 6 Months</option>
               <option value="24">2 Years</option>
               <option value="36">3 Years</option>
-              {/* Fallback option if calculated value doesn't match predefined options */}
               {formData.duration && !["6", "12", "18", "24", "36"].includes(formData.duration) && (
                 <option value={formData.duration}>{formatDuration(parseInt(formData.duration))}</option>
               )}
             </select>
-            {/* Custom Arrow because of appearance-none */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
               <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                 <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
@@ -510,6 +491,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   onClick={() => handleAgencyNameSelect(agency)}
                 >
                   <span className="text-sm text-gray-700">{agency.name}</span>
+                  {agency.agency_address && agency.agency_address.length > 0 && (
+                    <span className="ml-2 text-xs text-gray-400">({agency.agency_address.length} addresses)</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -522,10 +506,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <MapPin className="text-gray-400 w-4 h-4" />
           Agency Address *
-          <Tooltip content="The complete office address where the project will be managed, including street, barangay, and city" />
+          <Tooltip content="The complete office address where the project will be managed" />
         </label>
+
+        {availableAddresses.length > 0 && (
+          <div className="mb-3">
+            <select
+              className="w-full px-4 py-2 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={handleAddressSelect}
+              value={formData.agencyAddress?.id ? String(formData.agencyAddress.id) : ""}
+            >
+              <option value="" disabled>-- Select a known address (Optional) --</option>
+              {availableAddresses.map(addr => (
+                <option key={addr.id} value={addr.id}>
+                  {addr.street || ""}, {addr.barangay || ""}, {addr.city}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Street */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-500">Street</label>
             <input
@@ -537,8 +538,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               placeholder="Street Name / # "
             />
           </div>
-
-          {/* Barangay */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-500">Barangay</label>
             <input
@@ -550,10 +549,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               placeholder="Barangay Name"
             />
           </div>
-
-          {/* City */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-500">City *</label>
+            <label className="block text-sm font-medium text-gray-800 font-semibold">City *</label>
             <input
               type="text"
               name="city"
@@ -722,6 +719,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           )}
         </div>
       </div>
+
     </div>
   );
 };
