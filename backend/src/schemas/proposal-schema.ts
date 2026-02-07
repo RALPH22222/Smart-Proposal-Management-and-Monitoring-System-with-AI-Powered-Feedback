@@ -162,17 +162,17 @@ export const forwardToEvaluatorsSchema = z.object({
 
 export const revisionProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  objective_comment: z.string().max(256, "Comments are too long").optional(),
-  methodology_comment: z.string().max(256, "Comments are too long").optional(),
-  budget_comment: z.string().max(256, "Comments are too long").optional(),
-  timeline_comment: z.string().max(256, "Comments are too long").optional(),
-  overall_comment: z.string().max(256, "Comments are too long").optional(),
+  objective_comment: z.string().max(2000, "Comments are too long").optional(),
+  methodology_comment: z.string().max(2000, "Comments are too long").optional(),
+  budget_comment: z.string().max(2000, "Comments are too long").optional(),
+  timeline_comment: z.string().max(2000, "Comments are too long").optional(),
+  overall_comment: z.string().max(2000, "Comments are too long").optional(),
   deadline: z.coerce.number(),
 });
 
 export const rejectProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  comment: z.string().max(256, "Comments are too long").optional(),
+  comment: z.string().max(2000, "Comments are too long").optional(),
 });
 
 export const createEvaluationScoresToProposaltSchema = z.object({
@@ -182,7 +182,7 @@ export const createEvaluationScoresToProposaltSchema = z.object({
   methodology: z.number(),
   budget: z.number(),
   timeline: z.number(),
-  comment: z.string().optional(),
+  comment: z.string().max(2000, "Comments are too long").optional(),
 });
 
 export const forwardToRndSchema = z.object({
@@ -211,7 +211,7 @@ export const submitRevisedProposalSchema = z.object({
   file_url: fileSchema,
   // Optional metadata updates
   project_title: z.string().min(1).max(256, "project title is too long").optional(),
-  revision_response: z.string().max(256, "Response is too long").optional(),
+  revision_response: z.string().max(2000, "Response is too long").optional(),
 });
 
 export const handleExtensionRequestSchema = z.object({
