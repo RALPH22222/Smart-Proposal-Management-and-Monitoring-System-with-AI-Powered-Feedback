@@ -1396,19 +1396,17 @@ export class ProposalService {
     let query = this.db.from("proposal_assignment_tracker").select(
       `
         id,
-        proposal_id,
-        evaluator_id,
-        deadline_at,
-        request_deadline_at,
-        remark,
-        status,
-        created_at,
         proposals:proposal_id(
           id,
           project_title,
           proposal_evaluators(forwarded_by_rnd, evaluator_id)
         ),
-        users:evaluator_id(id, first_name, last_name)
+        evaluator_id(first_name, last_name, middle_ini),
+        deadline_at,
+        request_deadline_at,
+        remarks,
+        status,
+        created_at,
       `,
     );
 
