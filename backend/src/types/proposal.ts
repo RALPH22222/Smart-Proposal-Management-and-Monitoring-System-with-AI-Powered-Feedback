@@ -44,6 +44,7 @@ export enum EvaluatorStatus {
   REVISE = "revise",
   REJECT = "reject",
   DECLINE = "decline",
+  EXTEND = "extend",
 }
 
 export enum EvaluatorFinalDecision {

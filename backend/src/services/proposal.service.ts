@@ -370,6 +370,16 @@ export class ProposalService {
       if (updateError) {
         return { error: updateError };
       }
+    } else if (input.status === AssignmentTracker.EXTEND) {
+      const { error: updateError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: EvaluatorStatus.EXTEND })
+        .eq("evaluator_id", evaluator_id)
+        .eq("proposal_id", input.proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
     } else if (input.status === AssignmentTracker.DECLINE) {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
