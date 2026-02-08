@@ -5,35 +5,94 @@ import {
 	type Statistics,
 	type Activity
 } from '../../types/InterfaceProposal';
+import { getRndProposals } from '../../services/proposal.api';
 
-// API service functions (stubbed for demo)
+// Create Proposal object from raw API data
+const transformProposal = (raw: any): Proposal => {
+    // Check if raw is a wrapper or the data itself
+    const p = (raw.proposal_id && (raw.proposal_id.project_title || raw.proposal_id.title)) ? raw.proposal_id : raw;
+    
+    // Helper to extract budget total string
+    const getBudgetTotal = () => {
+        if(p.total_budget) return `₱${parseFloat(p.total_budget).toLocaleString()}`;
+        if(p.budget) {
+             try {
+                 const budgetItems = JSON.parse(p.budget);
+                 if(Array.isArray(budgetItems)) {
+                     const total = budgetItems.reduce((acc: number, item: any) => acc + (parseFloat(item.total) || 0), 0);
+                     return `₱${total.toLocaleString()}`;
+                 }
+             } catch(e) {}
+        }
+        return '₱0.00';
+    };
+
+    return {
+        id: p.id,
+        title: p.project_title || p.title || "Untitled",
+        documentUrl: p.file_url || "",
+        status: mapBackendStatusToFrontend(p.status),
+        submittedBy: p.proponent_id ? `${p.proponent_id.first_name} ${p.proponent_id.last_name}` : "Unknown",
+        submittedDate: p.created_at,
+        lastModified: p.updated_at || p.created_at,
+        proponent: p.proponent_id ? `${p.proponent_id.first_name} ${p.proponent_id.last_name}` : "Unknown",
+        gender: p.proponent_id?.sex || "N/A",
+        telephone: p.phone || "N/A",
+        fax: "N/A",
+        email: p.email || "",
+        projectType: p.sector?.name || "N/A",
+        agency: p.agency?.name || "WMSU",
+        address: "N/A",
+        cooperatingAgencies: p.cooperating_agencies ? JSON.stringify(p.cooperating_agencies) : "",
+        rdStation: p.rnd_station?.name || "N/A",
+        classification: p.classification_type || "Research",
+        classificationDetails: p.class_input || "",
+        modeOfImplementation: p.implementation_mode || "Single Agency",
+        implementationSites: p.implementation_site || [],
+        priorityAreas: p.priorities_id ? JSON.stringify(p.priorities_id) : "",
+        sector: p.sector?.name || "N/A",
+        discipline: p.discipline?.name || "N/A",
+        duration: p.duration || "0",
+        startDate: p.plan_start_date || "",
+        endDate: p.plan_end_date || "",
+        budgetSources: [], 
+        budgetTotal: getBudgetTotal(),
+        assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
+        evaluatorInstruction: p.evaluator_instruction || ""
+    };
+};
+
+const mapBackendStatusToFrontend = (status: string): ProposalStatus => {
+    switch (status) {
+        case 'review_rnd': return 'Pending';
+        case 'under_evaluation': return 'Sent to Evaluators'; // Or 'Under Evaluators Assessment'
+        case 'revision_rnd': return 'Revision Required';
+        case 'rejected_rnd': return 'Rejected Proposal';
+        case 'endorsed_for_funding': return 'Endorsed';
+        case 'funded': return 'Funded';
+        default: return 'Pending';
+    }
+};
+
+
+// API service functions
 export const proposalApi = {
 	// Fetch all proposals for R&D staff review
 	fetchProposals: async (): Promise<Proposal[]> => {
-		// Simulate API delay
-		await new Promise((resolve) => setTimeout(resolve, 500));
-
-		// In real implementation, this would be:
-		// const response = await fetch('/api/proposals');
-		// return response.json();
-
-		console.log('Fetching proposals from API...');
-		return getDummyProposals();
+		try {
+            const data = await getRndProposals();
+            return data.map(transformProposal);
+        } catch (error) {
+            console.error("Failed to fetch proposals", error);
+            return [];
+        }
 	},
 
 	// Submit decision for a proposal
 	submitDecision: async (decision: Decision): Promise<void> => {
-		// Simulate API delay
-		await new Promise((resolve) => setTimeout(resolve, 300));
-
-		// In real implementation, this would be:
-		// await fetch('/api/proposals/decisions', {
-		//   method: 'POST',
-		//   headers: { 'Content-Type': 'application/json' },
-		//   body: JSON.stringify(decision)
-		// });
-
-		console.log('Submitting decision to API:', decision);
+		// This uses the other API services directly in the components, 
+        // but keeping this stub for interface compatibility if needed.
+        console.warn("submitDecision in ProposalApi is deprecated. Use direct API calls.");
 	},
 
 	// Update proposal status
@@ -41,503 +100,133 @@ export const proposalApi = {
 		proposalId: string,
 		status: ProposalStatus
 	): Promise<void> => {
-		// Simulate API delay
-		await new Promise((resolve) => setTimeout(resolve, 200));
-
-		// In real implementation, this would be:
-		// await fetch(`/api/proposals/${proposalId}/status`, {
-		//   method: 'PATCH',
-		//   headers: { 'Content-Type': 'application/json' },
-		//   body: JSON.stringify({ status })
-		// });
-
-		console.log(`Updating proposal ${proposalId} status to ${status}`);
+         console.warn("updateProposalStatus in ProposalApi is deprecated.");
 	},
 
 	// Fetch statistics
 	fetchStatistics: async (): Promise<Statistics> => {
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		try {
+            const rawProposals = await getRndProposals();
+            
+            const stats: Statistics = {
+                totalProposals: rawProposals.length,
+                pendingProposals: 0,
+                acceptedProposals: 0, // Maps to 'under_evaluation' (Forwarded)
+                rejectedProposals: 0,
+                revisionRequiredProposals: 0,
+                monthlySubmissions: []
+            };
 
-		console.log('Fetching statistics from API...');
-		return getDummyStatistics();
+            const monthCounts: Record<string, number> = {};
+
+            rawProposals.forEach(raw => {
+                // Normalize using the same logic as transformProposal
+                const p = (raw.proposal_id && (raw.proposal_id.project_title || raw.proposal_id.title)) ? raw.proposal_id : raw;
+                const status = p.status;
+                
+                console.log(`[Stats Debug] Proposal: ${p.id}, Status: ${status}`);
+
+                if (status === 'review_rnd' || status === 'under_rnd_review') stats.pendingProposals++;
+                else if (status === 'under_evaluation' || status === 'under_evaluator_assessment') stats.acceptedProposals++;
+                else if (status === 'rejected_rnd') stats.rejectedProposals++;
+                else if (status === 'revision_rnd') stats.revisionRequiredProposals++;
+
+                // Monthly Submissions
+                const date = new Date(p.created_at);
+                const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+            });
+
+            // Convert monthCounts to array and sort
+            stats.monthlySubmissions = Object.entries(monthCounts)
+                .map(([month, count]) => ({ month, count }))
+                .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+            // If empty, provide default
+             if (stats.monthlySubmissions.length === 0) {
+                const today = new Date();
+                const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                stats.monthlySubmissions.push({ month: monthYear, count: 0 });
+            }
+
+            return stats;
+
+        } catch (error) {
+            console.error("Failed to fetch statistics", error);
+             return {
+                totalProposals: 0,
+                pendingProposals: 0,
+                acceptedProposals: 0,
+                rejectedProposals: 0,
+                revisionRequiredProposals: 0,
+                monthlySubmissions: []
+            };
+        }
 	},
 
 	// Fetch recent activity
 	fetchRecentActivity: async (): Promise<Activity[]> => {
-		await new Promise((resolve) => setTimeout(resolve, 200));
+		try {
+            const rawProposals = await getRndProposals();
+            const activities: Activity[] = [];
 
-		console.log('Fetching recent activity from API...');
-		return getDummyActivity();
+            rawProposals.forEach(p => {
+                const proposal = transformProposal(p);
+                const userName = proposal.submittedBy;
+                
+                // 1. Submission Activity
+                activities.push({
+                    id: `sub-${p.id}`,
+                    type: 'submission',
+                    proposalId: proposal.id,
+                    proposalTitle: proposal.title,
+                    action: 'New proposal submitted',
+                    timestamp: proposal.submittedDate,
+                    user: userName
+                });
+
+                // 2. Status Change Activities (Approximation based on status and updated_at)
+                // In a real event-sourced system, we'd query an events table. 
+                // Here we infer from current status if updated_at > created_at
+                const created = new Date(proposal.submittedDate).getTime();
+                const updated = new Date(proposal.lastModified).getTime();
+
+                if (updated > created + 60000) { // If updated more than 1 min after creation
+                     let action = '';
+                     let type: Activity['type'] = 'review'; // Default
+
+                     if (p.status === 'under_evaluation') {
+                         action = 'Forwarded to Evaluators';
+                         type = 'review';
+                     } else if (p.status === 'revision_rnd') {
+                         action = 'Revision requested';
+                         type = 'revision';
+                     } else if (p.status === 'rejected_rnd') {
+                         action = 'Proposal rejected';
+                         type = 'review';
+                     }
+
+                     if (action) {
+                         activities.push({
+                            id: `act-${p.id}`,
+                            type: type,
+                            proposalId: proposal.id,
+                            proposalTitle: proposal.title,
+                            action: action,
+                            timestamp: proposal.lastModified,
+                            user: 'R&D Staff' // We don't have the actor ID easily here without more data
+                        });
+                     }
+                }
+            });
+
+            // Sort by timestamp descending and take top 10
+            return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10);
+
+        } catch (error) {
+            console.error("Failed to fetch recent activities", error);
+            return [];
+        }
 	}
 };
 
-// Enhanced dummy data with detailed proposal information
-const getDummyProposals = (): Proposal[] => [
-  {
-    id: 'PROP-2025-001',
-    title: 'Development of AI-Powered Student Learning Analytics Platform for Enhanced Academic Performance',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Pending',
-    projectFile: "development_ai.pdf",
-    submittedBy: 'Dr. Maria Santos',
-    submittedDate: '2025-01-10T08:30:00Z',
-    lastModified: '2025-01-10T08:30:00Z',                     
-    proponent: 'Dr. Maria Santos',
-    gender: 'Female',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-1771',
-    fax: 'N/A',
-    email: 'm.santos@wmsu.edu.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' },
-      { site: 'Satellite Campus', city: 'Pagadian City' }
-    ],
-    priorityAreas: 'Artificial Intelligence in Education',
-    projectType: 'ICT',
-    cooperatingAgencies: 'DepEd RO9, CHED RO9, DICT RO9',
-    rdStation: 'College of Computing Studies',
-    classification: 'Development',
-    classificationDetails: 'Pilot Testing',
-    sector: 'Education Technology',
-    discipline: 'Information and Communication Technology',
-    duration: '24 months',
-    startDate: 'April 2025',
-    endDate: 'March 2027',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱600,000.00',
-        mooe: '₱500,000.00',
-        co: '₱150,000.00',
-        total: '₱1,250,000.00',
-      },
-    ],
-    budgetTotal: '₱1,250,000.00',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-    
-  },
-  {
-    id: 'PROP-2025-002',
-    title: 'Sustainable Water Management System Using IoT and Machine Learning',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Revision Required',
-    projectFile: "research_proposal_document.pdf",
-    submittedBy: 'Prof. Juan dela Cruz',
-    submittedDate: '2025-01-08T14:15:00Z',
-    lastModified: '2025-01-12T10:20:00Z',
-    proponent: 'Prof. Juan dela Cruz',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-2002',
-    fax: 'N/A',
-    email: 'j.delacruz@zscmst.edu.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' },
-      { site: 'Satellite Campus', city: 'Pagadian City' }
-    ],
-    priorityAreas: 'Renewable Energy & Smart Grids',
-    projectType: 'Energy',
-    cooperatingAgencies: 'DA RO9, DTI RO9, LGU Zamboanga',
-    rdStation: 'Agricultural Research Center',
-    classification: 'Development',
-    classificationDetails: 'Technology Promotion/Commercialization',
-    sector: 'Agriculture and Fisheries',
-    discipline: 'Agricultural Engineering',
-    duration: '36 months',
-    startDate: 'March 2025',
-    endDate: 'February 2028',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱800,000.00',
-        mooe: '₱700,000.00',
-        co: '₱100,000.00',
-        total: '₱1,600,000.00',
-      },
-      {
-        source: 'DA RO9',
-        ps: '₱300,000.00',
-        mooe: '₱200,000.00',
-        co: '₱0.00',
-        total: '₱500,000.00',
-      },
-    ],
-    budgetTotal: '₱2,100,000.00',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-    
-  },
-  {
-    id: 'PROP-2025-003',
-    title: 'Blockchain-Based Academic Credential Verification System',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Sent to Evaluators',
-    projectFile: "research_proposal_document.pdf",
-    submittedBy: 'Dr. Angela Rivera',
-    submittedDate: '2025-01-05T11:45:00Z',
-    lastModified: '2025-01-11T16:30:00Z',
-    proponent: 'Dr. Angela Rivera',
-    gender: 'Female',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-3333',
-    fax: '(062) 991-3334',
-    email: 'a.rivera@zcmc.doh.gov.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Internet of Things (IoT)',
-    projectType: 'ICT',
-    cooperatingAgencies: 'DOH RO9, PhilHealth RO9, DICT RO9',
-    rdStation: 'Medical Informatics Department',
-    classification: 'Research',
-    classificationDetails: 'Applied',
-    sector: 'Health and Wellness',
-    discipline: 'Health Information Technology',
-    duration: '30 months',
-    startDate: 'February 2025',
-    endDate: 'July 2027',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱700,000.00',
-        mooe: '₱800,000.00',
-        co: '₱300,000.00',
-        total: '₱1,800,000.00',
-      },
-    ],
-    budgetTotal: '₱1,800,000.00',
-    assignedEvaluators: [
-      'Dr. John Joseph',
-      'Engr. Amelia Reyes'
-    ],
-    evaluatorInstruction: 'Please focus strictly on the methodology and the budget feasibility. We need this reviewed by Friday.'
-  },
-  {
-    id: 'PROP-2025-004',
-    title: 'Mobile Health Monitoring Application for Remote Patient Care',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Pending',
-    projectFile: "research_proposal_document.pdf",
-    submittedBy: 'Dr. Carlos Mendoza',
-    submittedDate: '2025-01-12T09:00:00Z',
-    lastModified: '2025-01-12T09:00:00Z',
-    proponent: 'Dr. Carlos Mendoza',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-4444',
-    fax: 'N/A',
-    email: 'c.mendoza@msu.edu.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Quantum Computing',
-    projectType: 'Healthcare',
-    cooperatingAgencies: 'DOST RO9, DICT RO9, Private Sector',
-    rdStation: 'Computer Science Research Lab',
-    classification: 'Research',
-    classificationDetails: 'Applied',
-    sector: 'Information Technology',
-    discipline: 'Computer Science',
-    duration: '24 months',
-    startDate: 'April 2025',
-    endDate: 'March 2027',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱1,000,000.00',
-        mooe: '₱900,000.00',
-        co: '₱400,000.00',
-        total: '₱2,300,000.00',
-      },
-      {
-        source: 'MSU',
-        ps: '₱150,000.00',
-        mooe: '₱50,000.00',
-        co: '₱0.00',
-        total: '₱200,000.00',
-      },
-    ],
-    budgetTotal: '₱2,500,000.00',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-005',
-    title: 'Smart Campus Security System with Facial Recognition Technology',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Rejected Proposal',
-    projectFile: "research_proposal_document.pdf",
-    submittedBy: 'Prof. Lisa Garcia',
-    submittedDate: '2025-01-03T13:20:00Z',
-    lastModified: '2025-01-09T14:45:00Z',
-    proponent: 'Prof. Lisa Garcia',
-    gender: 'Female',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-5555',
-    fax: 'N/A',
-    email: 'l.garcia@msu.edu.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' },
-      { site: 'Satellite Campus', city: 'Pagadian City' }
-    ],
-    priorityAreas: 'Energy Storage Systems',
-    projectType: 'Public Safety',
-    cooperatingAgencies: 'DOE RO9, NEDA RO9, Private Sector Partners',
-    rdStation: 'Renewable Energy Research Lab',
-    classification: 'Development',
-    classificationDetails: 'Technology Promotion/Commercialization',
-    sector: 'Energy and Power',
-    discipline: 'Electrical Engineering',
-    duration: '24 months',
-    startDate: 'April 2025',
-    endDate: 'March 2027',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱1,200,000.00',
-        mooe: '₱800,000.00',
-        co: '₱300,000.00',
-        total: '₱2,300,000.00',
-      },
-      {
-        source: 'DOE RO9',
-        ps: '₱100,000.00',
-        mooe: '₱100,000.00',
-        co: '₱0.00',
-        total: '₱200,000.00',
-      },
-    ],
-    budgetTotal: '₱2,500,000.00',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-006',
-    title: 'Virtual Reality Learning Environment for STEM Education',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Pending',
-    projectFile: "virtual_reality_learning.pdf", 
-    submittedBy: 'Dr. Roberto Fernandez',
-    submittedDate: '2025-01-13T10:30:00Z',
-    lastModified: '2025-01-13T10:30:00Z',
-    proponent: 'Dr. Roberto Fernandez',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-6666',
-    fax: 'N/A',
-    email: 'r.fernandez@adzu.edu.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Artificial Intelligence',
-    projectType: 'ICT',
-    cooperatingAgencies: 'DOST RO9, DICT RO9',
-    rdStation: 'AI Research Center',
-    classification: 'Research',
-    classificationDetails: 'Applied',
-    sector: 'Artificial Intelligence',
-    discipline: 'Computer Science and Mathematics',
-    duration: '18 months',
-    startDate: 'May 2025',
-    endDate: 'October 2026',
-    budgetSources: [
-      {
-        source: 'DOST',
-        ps: '₱700,000.00',
-        mooe: '₱600,000.00',
-        co: '₱200,000.00',
-        total: '₱1,500,000.00',
-      },
-    ],
-    budgetTotal: '₱1,500,000.00',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-007',
-    title: 'Automated Traffic Control System using Machine Learning',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Endorsed',
-    projectFile: "traffic_control.pdf", 
-    submittedBy: 'Engr. Sarah Lee',
-    submittedDate: '2025-01-14T09:00:00Z',
-    lastModified: '2025-01-14T09:00:00Z',
-    proponent: 'Engr. Sarah Lee',
-    gender: 'Female',
-    agency: "City Engineer's Office",
-    address: "Pasonanca, Zamboanga City",
-    telephone: '(062) 992-1234',
-    fax: 'N/A',
-    email: 's.lee@zamboanga.gov.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-        { site: 'Zamboanga City', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Smart Cities',
-    projectType: 'ICT',
-    cooperatingAgencies: 'LTO RO9',
-    rdStation: 'Smart City Lab',
-    classification: 'Development',
-    classificationDetails: 'Pilot Testing',
-    sector: 'ICT',
-    discipline: 'Computer Engineering',
-    duration: '12 months',
-    startDate: 'June 2025',
-    endDate: 'May 2026',
-    budgetSources: [ { source: 'LGU', ps: '₱500,000', mooe: '₱200,000', co: '₱300,000', total: '₱1,000,000' } ],
-    budgetTotal: '₱1,000,000',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-008',
-    title: 'Solar Powered Irrigation System for Small Scale Farmers',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Waiting for Funding',
-    projectFile: "mangrove_restoration.pdf",
-    submittedBy: 'Dr. James Reid',
-    submittedDate: '2024-12-01T08:00:00Z',
-    lastModified: '2025-01-15T10:00:00Z',
-    proponent: 'Dr. James Reid',
-    gender: 'Male',
-    agency: "DENR RO9",
-    address: "Pasonanca, Zamboanga City",
-    telephone: '(062) 991-0000',
-    fax: 'N/A',
-    email: 'j.reid@denr.gov.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [ { site: 'Manicahan', city: 'Zamboanga City' } ],
-    priorityAreas: 'Environment',
-    projectType: 'Environment',
-    cooperatingAgencies: 'LGU Zamboanga',
-    rdStation: 'Coastal Resource Center',
-    classification: 'Extension',
-    classificationDetails: 'Community Service',
-    sector: 'Agriculture',
-    discipline: 'Environmental Science',
-    duration: '24 months',
-    startDate: 'February 2025',
-    endDate: 'January 2027',
-    budgetSources: [ { source: 'DENR', ps: '₱1,000,000', mooe: '₱500,000', co: '₱100,000', total: '₱1,600,000' } ],
-    budgetTotal: '₱1,600,000',
-    assignedEvaluators: [],
-    evaluatorInstruction: '',
-    rdStaffReviewer: 'Dr. Michael Chen'
-  },
-  {
-    id: 'PROP-2025-009',
-    title: 'Development of Hybrid Solar-Wind Energy System',
-    documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-    status: 'Funded',
-    projectFile: "solar_irrigation.pdf",
-    submittedBy: 'Engr. Tom Cruz',
-    submittedDate: '2024-11-15T13:00:00Z',
-    lastModified: '2025-01-05T14:00:00Z',
-    proponent: 'Engr. Tom Cruz',
-    gender: 'Male',
-    agency: "DA RO9",
-    address: "Tumaga, Zamboanga City",
-    telephone: '(062) 993-4567',
-    fax: 'N/A',
-    email: 't.cruz@da.gov.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [ { site: 'Vitali', city: 'Zamboanga City' } ],
-    priorityAreas: 'Agriculture',
-    projectType: 'Agriculture',
-    cooperatingAgencies: 'NIA',
-    rdStation: 'Agricultural Engineering Lab',
-    classification: 'Development',
-    classificationDetails: 'Technology Rollout',
-    sector: 'Energy',
-    discipline: 'Agricultural Engineering',
-    duration: '18 months',
-    startDate: 'January 2025',
-    endDate: 'June 2026',
-    budgetSources: [ { source: 'DA', ps: '₱2,000,000', mooe: '₱1,000,000', co: '₱500,000', total: '₱3,500,000' } ],
-    budgetTotal: '₱3,500,000',
-    assignedEvaluators: [],
-    evaluatorInstruction: '',
-    rdStaffReviewer: 'Engr. Sarah Connor'
-  }
-];
-
-// Dummy statistics for demonstration
-const getDummyStatistics = (): Statistics => ({
-	totalProposals: 6,
-	pendingProposals: 3,
-	acceptedProposals: 1,
-	rejectedProposals: 1,
-	revisionRequiredProposals: 1,
-	monthlySubmissions: [
-		{ month: 'Jan 2025', count: 6 },
-		{ month: 'Dec 2024', count: 4 },
-		{ month: 'Nov 2024', count: 8 },
-		{ month: 'Oct 2024', count: 5 },
-		{ month: 'Sep 2024', count: 7 }
-	]
-});
-
-// Dummy activity for demonstration
-const getDummyActivity = (): Activity[] => [
-	{
-		id: 'ACT-001',
-		type: 'review',
-		proposalId: 'PROP-2025-003',
-		proposalTitle: 'Blockchain-Based Academic Credential Verification System',
-		action: 'Proposal accepted',
-		timestamp: '2025-01-11T16:30:00Z',
-		user: 'Dr. John Smith'
-	},
-	{
-		id: 'ACT-002',
-		type: 'submission',
-		proposalId: 'PROP-2025-006',
-		proposalTitle: 'Virtual Reality Learning Environment for STEM Education',
-		action: 'New proposal submitted',
-		timestamp: '2025-01-13T10:30:00Z',
-		user: 'Dr. Roberto Fernandez'
-	},
-	{
-		id: 'ACT-003',
-		type: 'revision',
-		proposalId: 'PROP-2025-002',
-		proposalTitle:
-			'Sustainable Water Management System Using IoT and Machine Learning',
-		action: 'Revision requested',
-		timestamp: '2025-01-12T10:20:00Z',
-		user: 'Dr. John Smith'
-	},
-	{
-		id: 'ACT-004',
-		type: 'review',
-		proposalId: 'PROP-2025-005',
-		proposalTitle:
-			'Smart Campus Security System with Facial Recognition Technology',
-		action: 'Proposal rejected',
-		timestamp: '2025-01-09T14:45:00Z',
-		user: 'Dr. John Smith'
-	},
-	{
-		id: 'ACT-005',
-		type: 'submission',
-		proposalId: 'PROP-2025-004',
-		proposalTitle:
-			'Mobile Health Monitoring Application for Remote Patient Care',
-		action: 'New proposal submitted',
-		timestamp: '2025-01-12T09:00:00Z',
-		user: 'Dr. Carlos Mendoza'
-	}
-];

@@ -28,7 +28,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 			color: 'text-blue-500',
 			bgColor: 'bg-blue-50',
 			borderColor: 'border-blue-200',
-			trend: '+5%',
 		},
 		{
 			title: 'Pending Review',
@@ -37,7 +36,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 			color: 'text-amber-500',
 			bgColor: 'bg-amber-50',
 			borderColor: 'border-amber-200',
-			trend: '+12%',
 		},
 		{
 			title: 'Forward to Evaluators',
@@ -46,7 +44,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 			color: 'text-emerald-500',
 			bgColor: 'bg-emerald-50',
 			borderColor: 'border-emerald-200',
-			trend: '+8%',
 		},
 		{
 			title: 'Rejected',
@@ -55,7 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 			color: 'text-red-500',
 			bgColor: 'bg-red-50',
 			borderColor: 'border-red-200',
-			trend: '-3%',
 		},
 		{
 			title: 'Need Revision',
@@ -64,7 +60,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 			color: 'text-orange-500',
 			bgColor: 'bg-orange-50',
 			borderColor: 'border-orange-200',
-			trend: '+2%',
 		}
 	];
 
@@ -122,16 +117,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 								className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
 								role="button"
 								tabIndex={0}
-								aria-label={`${stat.title}: ${stat.value} proposals, ${stat.trend} change`}
+								aria-label={`${stat.title}: ${stat.value} proposals`}
 							>
 								<div className="flex items-center justify-between mb-3">
 									<IconComponent
 										className={`${stat.color} w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform duration-300`}
 									/>
-									<div className="flex items-center gap-1">
-										<TrendingUp className="w-3 h-3 text-slate-400" />
-										<span className="text-xs font-medium text-slate-600">{stat.trend}</span>
-									</div>
 								</div>
 								<h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 leading-tight">{stat.title}</h3>
 								<p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums">{stat.value.toLocaleString()}</p>
@@ -221,9 +212,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                                    <div className="flex items-baseline gap-2">
                                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
                                        {statistics.monthlySubmissions.reduce((sum, m) => sum + m.count, 0)}
-                                     </span>
-                                     <span className="text-xs text-emerald-600 font-medium bg-emerald-100 px-1.5 py-0.5 rounded-full">
-                                       +12%
                                      </span>
                                    </div>
                                  </div>
