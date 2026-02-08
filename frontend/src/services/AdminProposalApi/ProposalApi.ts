@@ -3,24 +3,76 @@ import {
   type Decision,
   type ProposalStatus,
   type Statistics,
-  type Activity
+  type Activity,
+  type BudgetSource
 } from '../../types/InterfaceProposal';
+import { 
+  getProposals,
+  forwardProposalToRnd,
+  forwardProposalToEvaluators,
+  requestRevision,
+  rejectProposal
+} from '../../services/proposal.api';
 
 // Admin-specific API service
 export const adminProposalApi = {
   // Fetch all proposals for Admin review
   fetchProposals: async (): Promise<Proposal[]> => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    console.log('Fetching ADMIN proposals from API...');
-    return getAdminDummyProposals();
+    try {
+      console.log('Fetching ADMIN proposals from Real API...');
+      const data = await getProposals(); // Fetch from backend
+      return data.map(mapToProposal);
+    } catch (error) {
+      console.error("Failed to fetch admin proposals:", error);
+      return [];
+    }
   },
 
   // Submit decision (Admin override/assignment)
   submitDecision: async (decision: Decision): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log('Admin submitting decision:', decision);
+    try {
+      console.log('Admin submitting decision:', decision);
+      
+      const proposalId = parseInt(decision.proposalId, 10);
+      const deadlineTimestamp = decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : 0;
+
+      // Map DecisionType to specific API calls
+      if (decision.decision === 'Assign to RnD') {
+          if (decision.assignedRdStaffId) {
+             await forwardProposalToRnd(proposalId, [decision.assignedRdStaffId]);
+          } else {
+             console.warn("No R&D staff ID provided for assignment");
+          }
+      } else if (decision.decision === 'Sent to Evaluators') {
+          if (decision.assignedEvaluators && decision.assignedEvaluators.length > 0) {
+             await forwardProposalToEvaluators({
+                proposal_id: proposalId,
+                evaluator_id: decision.assignedEvaluators,
+                deadline_at: deadlineTimestamp,
+                commentsForEvaluators: decision.structuredComments?.objectives?.content // Using 'objectives' content field as general comment container from Modal
+             });
+          }
+      } else if (decision.decision === 'Rejected Proposal') {
+          await rejectProposal({ 
+              proposal_id: proposalId, 
+              comment: decision.structuredComments?.overall?.content 
+          });
+      } else if (decision.decision === 'Revision Required') {
+           await requestRevision({
+              proposal_id: proposalId,
+              deadline: deadlineTimestamp,
+              objective_comment: decision.structuredComments?.objectives?.content,
+              methodology_comment: decision.structuredComments?.methodology?.content,
+              budget_comment: decision.structuredComments?.budget?.content,
+              timeline_comment: decision.structuredComments?.timeline?.content,
+              overall_comment: decision.structuredComments?.overall?.content
+           });
+      }
+      
+    } catch (error) {
+       console.error("Error submitting decision", error);
+       throw error;
+    }
   },
 
   // Update proposal status
@@ -28,226 +80,112 @@ export const adminProposalApi = {
     proposalId: string,
     status: ProposalStatus
   ): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    console.log(`Admin updating proposal ${proposalId} status to ${status}`);
+      // Calls the generic update status if available, or implies it was handled by the specific action
+      console.log(`Admin updating proposal ${proposalId} status to ${status}`);
+      
+      // If status is "Assigned to RnD", we might want to trigger `forwardProposalToRnd` if we knew real parameters.
+      // However, we lack the "rnd_id" here.
   },
 
   // Fetch Admin statistics
   fetchStatistics: async (): Promise<Statistics> => {
+     // TODO: Connect to real stats API if available
     await new Promise((resolve) => setTimeout(resolve, 300));
     return getAdminDummyStatistics();
   },
 
   // Fetch Admin recent activity
   fetchRecentActivity: async (): Promise<Activity[]> => {
+    // TODO: Connect to real activity API
     await new Promise((resolve) => setTimeout(resolve, 200));
     return getAdminDummyActivity();
   }
 };
 
-// --- ADMIN MOCK DATA ---
+// --- DATA MAPPING HELPER ---
 
-const getAdminDummyProposals = (): Proposal[] => [
-  {
-    id: 'PROP-2025-ADMIN-01',
-    title: 'Automated Drone Surveillance for Campus Security',
-    documentUrl: '#',
-    status: 'Revised Proposal',
-    projectFile: "drone_security.pdf",
-    submittedBy: 'Engr. Victor Magtanggol',
-    submittedDate: '2025-02-10T08:30:00Z',
-    lastModified: '2025-02-11T09:00:00Z',
-    proponent: 'Engr. Victor Magtanggol',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-0001',
-    fax: 'N/A',
-    email: 'v.magtanggol@wmsu.edu.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Public Safety',
-    projectType: 'Public Safety',
-    cooperatingAgencies: 'PNP, LGU',
-    rdStation: 'Robotics Lab',
-    classification: 'Development',
-    classificationDetails: 'Prototype',
-    sector: 'Engineering',
-    discipline: 'Electronics Engineering',
-    duration: '12 months',
-    startDate: 'May 2025',
-    endDate: 'May 2026',
-    budgetSources: [
-      { source: 'WMSU', ps: '₱200,000', mooe: '₱100,000', co: '₱500,000', total: '₱800,000' }
-    ],
-    budgetTotal: '₱800,000',
-    assignedRdStaff: undefined, 
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-ADMIN-02',
-    title: 'Preservation of Zamboanga Chavacano through NLP',
-    documentUrl: '#',
-    status: 'Pending',
-    projectFile: "chavacano_nlp.pdf",
-    submittedBy: 'Prof. Maria Clara',
-    submittedDate: '2025-02-12T14:15:00Z',
-    lastModified: '2025-02-12T14:15:00Z',
-    proponent: 'Prof. Maria Clara',
-    gender: 'Female',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-0002',
-    fax: 'N/A',
-    email: 'm.clara@wmsu.edu.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Cultural Heritage',
-    projectType: 'ICT',
-    cooperatingAgencies: 'National Museum',
-    rdStation: 'Social Sciences Lab',
-    classification: 'Research',
-    classificationDetails: 'Basic',
-    sector: 'Social Sciences',
-    discipline: 'Linguistics',
-    duration: '24 months',
-    startDate: 'June 2025',
-    endDate: 'June 2027',
-    budgetSources: [
-      { source: 'NCCA', ps: '₱300,000', mooe: '₱150,000', co: '₱50,000', total: '₱500,000' }
-    ],
-    budgetTotal: '₱500,000',
-    assignedRdStaff: undefined, 
-    assignedEvaluators: []
-  },
-  {
-    id: 'PROP-2025-ADMIN-03',
-    title: 'Hydroponics Automation for Urban Farming',
-    documentUrl: '#',
-    status: 'Sent to Evaluators',
-    projectFile: "hydroponics.pdf",
-    submittedBy: 'Dr. Juan Dela Cruz',
-    submittedDate: '2025-02-05T11:45:00Z',
-    lastModified: '2025-02-06T09:30:00Z',
-    proponent: 'Dr. Juan Dela Cruz',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-0003',
-    fax: 'N/A',
-    email: 'j.delacruz@wmsu.edu.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' },
-      { site: 'Satellite Campus', city: 'Pagadian City' }
-    ],
-    priorityAreas: 'Food Security',
-    projectType: 'Agriculture',
-    cooperatingAgencies: 'DA',
-    rdStation: 'Agri-Tech Center',
-    classification: 'Development',
-    classificationDetails: 'Pilot Testing',
-    sector: 'Agriculture',
-    discipline: 'Agricultural Engineering',
-    duration: '18 months',
-    startDate: 'May 2025',
-    endDate: 'Nov 2026',
-    budgetSources: [
-      { source: 'DA', ps: '₱500,000', mooe: '₱200,000', co: '₱300,000', total: '₱1,000,000' }
-    ],
-    budgetTotal: '₱1,000,000',
-    assignedRdStaff: undefined,
-    assignedEvaluators: [
-      'Dr. Alice Santos',
-      'Engr. Mark Villanueva'
-    ],
-    evaluatorInstruction: 'Please focus strictly on the methodology and the budget feasibility. We need this reviewed by Friday.'
-  },
-  {
-    id: 'PROP-2025-ADMIN-04',
-    title: 'Solar-Powered Water Filtration for Remote Barangays',
-    documentUrl: '#',
-    status: 'Assigned to RnD',
-    projectFile: "solar_water.pdf",
-    submittedBy: 'Engr. Sarah Al-Fayed',
-    submittedDate: '2025-02-14T09:00:00Z',
-    lastModified: '2025-02-14T09:00:00Z',
-    proponent: 'Engr. Sarah Al-Fayed',
-    gender: 'Female',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-0004',
-    fax: 'N/A',
-    email: 's.alfayed@wmsu.edu.ph',
-    modeOfImplementation: 'Multi Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' },
-      { site: 'Satellite Campus', city: 'Pagadian City' }
-    ],
-    priorityAreas: 'Water & Energy',
-    projectType: 'Energy',
-    cooperatingAgencies: 'DOST',
-    rdStation: 'Energy Lab',
-    classification: 'Development',
-    classificationDetails: 'Technology Promotion',
-    sector: 'Energy',
-    discipline: 'Mechanical Engineering',
-    duration: '12 months',
-    startDate: 'July 2025',
-    endDate: 'July 2026',
-    budgetSources: [
-      { source: 'DOST', ps: '₱400,000', mooe: '₱300,000', co: '₱800,000', total: '₱1,500,000' }
-    ],
-    budgetTotal: '₱1,500,000',
-    assignedRdStaff: 'Engr. Carla Lim',
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
-  },
-  {
-    id: 'PROP-2025-ADMIN-05',
-    title: 'Mental Health Chatbot for Students',
-    documentUrl: '#',
-    status: 'Revision Required',
-    projectFile: "health_chatbot.pdf",
-    submittedBy: 'Dr. psychology Lead',
-    submittedDate: '2025-01-20T13:20:00Z',
-    lastModified: '2025-01-25T15:00:00Z',
-    proponent: 'Dr. psychology Lead',
-    gender: 'Male',
-    agency: "Western Mindanao State University",
-    address: "Normal Road, Baliwasan",
-    telephone: '(062) 991-0005',
-    fax: 'N/A',
-    email: 'psy.lead@wmsu.edu.ph',
-    modeOfImplementation: 'Single Agency',
-    implementationSites: [
-      { site: 'Main Campus', city: 'Zamboanga City' }
-    ],
-    priorityAreas: 'Health',
-    projectType: 'Healthcare',
-    cooperatingAgencies: 'DOH',
-    rdStation: 'Health Info Lab',
-    classification: 'Research',
-    classificationDetails: 'Applied',
-    sector: 'Health',
-    discipline: 'Psychology',
-    duration: '12 months',
-    startDate: 'April 2025',
-    endDate: 'April 2026',
-    budgetSources: [
-      { source: 'WMSU', ps: '₱100,000', mooe: '₱50,000', co: '₱0', total: '₱150,000' }
-    ],
-    budgetTotal: '₱150,000',
-    assignedRdStaff: undefined,
-    assignedEvaluators: [],
-    evaluatorInstruction: ''
+const mapStatus = (status: string): ProposalStatus => {
+  switch (status?.toLowerCase()) {
+    case 'pending': return 'Pending';
+    case 'review_rnd': return 'Under R&D Review'; 
+    case 'revision_rnd': return 'Revision Required'; // Based on enum
+    case 'rejected_rnd': return 'Rejected Proposal';
+    case 'under_evaluation': return 'Under Evaluators Assessment';
+    case 'endorsed_for_funding': return 'Endorsed';
+    case 'funded': return 'Funded';
+    // 'revised_proposal' logic might be complex if backend doesn't have explicit status for it
+    // But let's check if 'revision_rnd' means "Revision Submitted" or "Revision Requested"
+    // Usually 'revision_rnd' = Revision Requested by RnD.
+    // If proponent submits revision, status might change back to 'review_rnd' or similar.
+    // Let's assume for now:
+    case 'revised': return 'Revised Proposal'; // Hypothetical
+    default: return 'Pending'; // Fallback
   }
-];
+};
+
+const mapToProposal = (data: any): Proposal => {
+  // Helper to safely get array buffer
+  const budgetSources: BudgetSource[] = Array.isArray(data.estimated_budget) 
+    ? data.estimated_budget.map((b: any) => ({
+        source: b.source || 'Unknown',
+        ps: b.amount || '0', // Adjust mapping based on actual structure
+        mooe: '0',
+        co: '0',
+        total: b.amount || '0'
+      })) 
+    : [];
+
+  // Calculate generic total if possible
+  const budgetTotal = budgetSources.reduce((acc, curr) => acc + parseFloat(curr.total || '0'), 0).toString();
+
+  const proponentName = data.proponent_id 
+    ? `${data.proponent_id.first_name} ${data.proponent_id.last_name}`.trim()
+    : 'Unknown Proponent';
+
+  const mappedStatus = mapStatus(data.status);
+
+  return {
+    id: data.id?.toString() || '',
+    title: data.project_title || 'Untitled Proposal',
+    documentUrl: data.proposal_version?.[0]?.file_url || '#',
+    status: mappedStatus,
+    submittedBy: proponentName,
+    submittedDate: data.created_at || new Date().toISOString(),
+    lastModified: data.updated_at || new Date().toISOString(),
+    proponent: proponentName,
+    gender: 'N/A', // Not in main query?
+    agency: data.agency?.name || 'WMSU',
+    address: data.agency_address ? `${data.agency_address.street || ''} ${data.agency_address.city || ''}` : '',
+    telephone: data.telephone || '', // map if available
+    fax: data.fax || '',
+    email: data.email || '',
+    modeOfImplementation: data.implementation_mode || '',
+    implementationSites: Array.isArray(data.implementation_site) 
+        ? data.implementation_site.map((s: any) => ({ site: s.site_name, city: s.city })) 
+        : [],
+    priorityAreas: data.proposal_priorities?.map((p: any) => p.priorities?.name).join(', ') || '',
+    projectType: data.proposal_tags?.map((t: any) => t.tags?.name).join(', ') || '', // Using tags as type?
+    cooperatingAgencies: data.cooperating_agencies?.map((c: any) => c.agencies?.name).join(', ') || '',
+    rdStation: data.rnd_station?.name || '',
+    classification: data.classification_type || '', // map "research_class" etc
+    classificationDetails: data.class_input || '',
+    sector: data.sector?.name || '',
+    discipline: data.discipline?.name || '',
+    duration: data.duration?.toString() || '',
+    startDate: data.plan_start_date || '',
+    endDate: data.plan_end_date || '',
+    budgetSources: budgetSources,
+    budgetTotal: `₱${budgetTotal}`,
+    projectFile: data.proposal_version?.[0]?.file_url || undefined,
+    assignedRdStaff: undefined, // Need to fetch from tracker/assignment if R&D is assigned
+    assignedEvaluators: [], // Fetched via tracker usually
+    evaluatorInstruction: ''
+  };
+};
+
+
+// --- KEEPING OTHER MOCKS TEMPORARILY FOR STATS/ACTIVITY ---
+// (Until real APIs for these are confirmed)
 
 const getAdminDummyStatistics = (): Statistics => ({
   totalProposals: 125,

@@ -1,161 +1,375 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  FileText, Calendar, User, Eye, Filter, Search,
-  ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, Users, Send
+import React, { useState, useEffect } from 'react';
+import { 
+  FileText, Calendar, User, Eye, Filter, Search, 
+  ChevronLeft, ChevronRight, Tag, Clock, XCircle, 
+  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare
 } from 'lucide-react';
-import { getProposals } from '../../../services/proposal.api';
+import {
+  type Proposal,
+  type Decision,
+  type ProposalStatus,
+  type Reviewer
+} from '../../../types/InterfaceProposal';
+import { adminProposalApi as proposalApi } from '../../../services/AdminProposalApi/ProposalApi';
+import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
-import SendToRndModal from '../../../components/admin-component/SendToRndModal';
-import ForwardToEvaluatorsModal from '../../../components/shared/ForwardToEvaluatorsModal';
-import RevisionModal from '../../../components/shared/RevisionModal';
-import RejectModal from '../../../components/shared/RejectModal';
+import ChangeRndModal from '../../../components/admin-component/changeRndModal';
 
-// Backend status values
-type BackendStatus = 'review_rnd' | 'under_evaluation' | 'revision_rnd' | 'rejected_rnd' | 'endorsed_for_funding' | 'funded';
-
-interface MappedProposal {
-  id: number;
-  title: string;
-  submittedBy: string;
-  submittedDate: string;
-  status: BackendStatus;
-  department: string;
-  sector: string;
-  raw: any; // full backend row for the view modal
+// --- HELPER COMPONENT: Evaluator List Modal ---
+interface EvaluatorListModalProps {
+  evaluators: string[];
+  message?: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const statusLabels: Record<BackendStatus, string> = {
-  review_rnd: 'Pending Review',
-  under_evaluation: 'Under Evaluation',
-  revision_rnd: 'Revision Required',
-  rejected_rnd: 'Rejected',
-  endorsed_for_funding: 'Endorsed',
-  funded: 'Funded',
+const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
+  evaluators,
+  message,
+  isOpen,
+  onClose
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-[#C8102E]" />
+            <h2 className="font-bold text-slate-800">Assigned Evaluators</h2>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 max-h-[500px] overflow-y-auto">
+          {/* List */}
+          <div className="space-y-3">
+            {(!evaluators || evaluators.length === 0) ? (
+                <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
+                </div>
+            ) : (
+                evaluators.map((name, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
+                    {name.charAt(0)}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{name}</span>
+                </div>
+                ))
+            )}
+          </div>
+
+          {/* Message Section */}
+          {message && (
+            <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instruction / Message</h3>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-700 italic">
+                    "{message}"
+                </div>
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4 border-t bg-slate-50 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+                Close
+            </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
+// --- MAIN PAGE COMPONENT ---
+
 interface AdminProposalPageProps {
-  filter?: BackendStatus;
+  filter?: ProposalStatus;
   onStatsUpdate?: () => void;
 }
 
+// Extended Status type for the filter dropdown
+type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Unassigned' | 'Under R&D Review' | 'Under Evaluators Assessment';
+
 const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUpdate }) => {
-  const [proposals, setProposals] = useState<MappedProposal[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal States
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [selectedProposalForView, setSelectedProposalForView] = useState<Proposal | null>(null);
+  const [selectedProposalForChange, setSelectedProposalForChange] = useState<Proposal | null>(null);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isChangeRdModalOpen, setIsChangeRdModalOpen] = useState(false);
+  
+  // Evaluator List Modal State
+  const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
+  const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
+  const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>(''); // NEW STATE
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<BackendStatus | 'all'>(filter || 'all');
+  // Filter State
+  const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Pagination
+  
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
+  
+  // Mock Current User
+  const currentUser: Reviewer = { name: 'Admin User', role: 'R&D Staff', id: 'admin-1', email: 'admin@wmsu.edu.ph' };
 
-  // View modal
-  const [viewProposal, setViewProposal] = useState<any>(null);
-  const [isViewOpen, setIsViewOpen] = useState(false);
+  // Load proposals on component mount
+  useEffect(() => {
+    loadProposals();
+  }, []);
 
-  // Action modals
-  const [actionProposalId, setActionProposalId] = useState<number>(0);
-  const [isSendToRndOpen, setIsSendToRndOpen] = useState(false);
-  const [isForwardEvalOpen, setIsForwardEvalOpen] = useState(false);
-  const [isRevisionOpen, setIsRevisionOpen] = useState(false);
-  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  // Filter proposals based on status and search term
+  useEffect(() => {
+    let filtered = proposals;
 
-  const loadProposals = useCallback(async () => {
+    // Apply status filter
+    if (statusFilter !== 'All') {
+      if (statusFilter === 'Unassigned') {
+         filtered = filtered.filter(p => !p.assignedRdStaff && (p.status === 'Pending' || p.status === 'Revised Proposal'));
+      } else {
+         filtered = filtered.filter(proposal => proposal.status === statusFilter);
+      }
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (proposal) =>
+          proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          proposal.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Sort logic
+    const statusPriority: Record<ExtendedProposalStatus | string, number> = {
+      'Pending': 1,
+      'Revised Proposal': 2,
+      'Under R&D Review': 3,
+      'Under Evaluators Assessment': 4,
+      'Revision Required': 5,
+      'Rejected Proposal': 6,
+      'Endorsed': 7,
+      'Funded': 8,
+      'Unassigned': 99
+    };
+
+    filtered.sort((a, b) => {
+      const priorityA = statusPriority[a.status] || 100;
+      const priorityB = statusPriority[b.status] || 100;
+      return priorityA - priorityB;
+    });
+
+    setFilteredProposals(filtered);
+    setCurrentPage(1); 
+  }, [proposals, statusFilter, searchTerm]);
+
+  const loadProposals = async () => {
     try {
       setLoading(true);
-      const data = await getProposals();
-      const mapped: MappedProposal[] = (data || []).map((p: any) => {
-        const proponent = p.proponent_id && typeof p.proponent_id === 'object'
-          ? `${p.proponent_id.first_name || ''} ${p.proponent_id.last_name || ''}`.trim()
-          : 'Unknown';
-        return {
-          id: p.id,
-          title: p.project_title || 'Untitled',
-          submittedBy: proponent,
-          submittedDate: p.created_at,
-          status: p.status as BackendStatus,
-          department: p.rnd_station?.name || 'N/A',
-          sector: p.sector?.name || 'N/A',
-          raw: p,
-        };
-      });
-      setProposals(mapped);
+      const data = await proposalApi.fetchProposals();
+      setProposals(data);
     } catch (error) {
-      console.error("Error loading proposals:", error);
+      console.error('Error loading proposals:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    loadProposals();
-  }, [loadProposals]);
+  // --- Handlers ---
 
-  // Filtered list
-  const filteredProposals = React.useMemo(() => {
-    let list = proposals;
-    if (statusFilter !== 'all') {
-      list = list.filter((p) => p.status === statusFilter);
-    }
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(term) ||
-          p.submittedBy.toLowerCase().includes(term),
+  const handleViewProposal = (proposal: Proposal) => {
+    setSelectedProposal(proposal);
+    setIsModalOpen(true);
+  };
+
+  const handleViewDetails = (proposal: Proposal) => {
+    setSelectedProposalForView(proposal);
+    setIsViewModalOpen(true);
+  };
+
+  const handleChangeRdStaff = (proposal: Proposal) => {
+    setSelectedProposalForChange(proposal);
+    setIsChangeRdModalOpen(true);
+  }
+
+  const confirmRdChange = async (proposalId: string, newStaffName: string) => {
+    setProposals(prev => prev.map(p => 
+      p.id === proposalId 
+      ? { 
+          ...p, 
+          assignedRdStaff: newStaffName, 
+          status: 'Under R&D Review' as ProposalStatus, 
+          lastModified: new Date().toISOString() 
+        } 
+      : p
+    ));
+    setIsChangeRdModalOpen(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProposal(null);
+  };
+
+  // Handler for the Main Action Modal
+  const handleSubmitDecision = async (decision: Decision) => {
+    try {
+      await proposalApi.submitDecision(decision);
+
+      // Determine new status based on decision
+      let newStatus: ProposalStatus;
+      let newAssignedEvaluators: string[] | undefined = undefined;
+      // Capture the instruction message
+      // Note: In AdminProposalModal, "Comments for Evaluators" maps to structuredComments.objectives.content
+      let instructionMessage = decision.structuredComments?.objectives?.content || "";
+
+      if (decision.decision === 'Sent to Evaluators') {
+        newStatus = 'Under Evaluators Assessment';
+        newAssignedEvaluators = decision.assignedEvaluators || []; 
+      } else if (decision.decision === 'Rejected Proposal') {
+        newStatus = 'Rejected Proposal';
+      } else if (decision.decision === 'Revision Required') {
+        newStatus = 'Revision Required';
+      } else {
+        newStatus = 'Under R&D Review';
+      }
+
+      setProposals((prev) =>
+        prev.map((proposal) =>
+          proposal.id === decision.proposalId
+            ? {
+                ...proposal,
+                status: newStatus,
+                assignedRdStaff: proposal.assignedRdStaff || (decision.assignedRdStaffId ? 'Assigned' : 'Unassigned'), // Partial fix until reload
+                assignedEvaluators: newAssignedEvaluators, 
+                // Store the instruction message in the proposal object (casting for now)
+                evaluatorInstruction: instructionMessage,
+                lastModified: new Date().toISOString()
+              } as Proposal 
+            : proposal
+        )
       );
+
+      // proposalApi.updateProposalStatus(decision.proposalId, newStatus); // Handled by submitDecision
+
+      if (onStatsUpdate) {
+        onStatsUpdate();
+      }
+      
+      // Refresh to get consistent data (e.g. assigned names)
+      await loadProposals();
+
+    } catch (error) {
+      console.error('Error submitting decision:', error);
     }
-    return list;
-  }, [proposals, statusFilter, searchTerm]);
+  };
 
-  // Reset page on filter change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, searchTerm]);
+  // --- Helper: Status Badge Logic ---
+  const getStatusBadge = (proposal: Proposal) => {
+    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 max-w-[200px] truncate cursor-pointer hover:opacity-80 transition-opacity';
+    
+    switch (proposal.status) {
+      case 'Under R&D Review': 
+        return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200 cursor-default`}>
+            <Search className="w-3 h-3 flex-shrink-0" />
+            Under R&D Review
+        </span>;
+      
+      case 'Pending': 
+        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200 cursor-default`}><Clock className="w-3 h-3 flex-shrink-0" />Pending</span>;
+      
+      case 'Revised Proposal':
+        if (proposal.assignedRdStaff) {
+             return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`} title={`Assigned to: ${proposal.assignedRdStaff}`}>
+                <Bot className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">RnD: {proposal.assignedRdStaff}</span>
+             </span>;
+        }
+        return <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}><GitBranch className="w-3 h-3 flex-shrink-0" />Revised Proposal</span>;
+      
+      case 'Under Evaluators Assessment':
+        const evaluators = (proposal as any).assignedEvaluators || [];
+        const message = (proposal as any).evaluatorInstruction || ""; // Retrieve the message
+        
+        const evaluatorText = 'Under Evaluators Assessment';
 
+        return <button 
+            onClick={(e) => {
+                e.stopPropagation();
+                if (evaluators.length > 0) {
+                    setCurrentEvaluatorsList(evaluators);
+                    setCurrentEvaluatorMessage(message); // Set the message state
+                    setIsEvaluatorModalOpen(true);
+                }
+            }}
+            className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`} 
+            title={evaluators.join(', ')}
+        >
+            <Users className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{evaluatorText}</span>
+        </button>;
+
+      case 'Rejected Proposal':
+        return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200 cursor-default`}><XCircle className="w-3 h-3 flex-shrink-0" />Rejected Proposal</span>;
+      case 'Revision Required':
+        return <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}><RefreshCw className="w-3 h-3 flex-shrink-0" />Revision Required</span>;
+      default:
+        return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200 cursor-default`}><FileText className="w-3 h-3 flex-shrink-0" />{proposal.status}</span>;
+    }
+  };
+
+  const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
+    if (status === 'All') return proposals.length;
+    if (status === 'Unassigned') return proposals.filter(p => !p.assignedRdStaff && (p.status === 'Pending' || p.status === 'Revised Proposal')).length;
+    return proposals.filter((p) => p.status === status).length;
+  };
+
+  const getProjectTypeColor = (type: string) => {
+    if (!type) return 'bg-slate-100 text-slate-700 border-slate-200';
+
+    const colors = [
+      'bg-blue-100 text-blue-700 border-blue-200',
+      'bg-pink-100 text-pink-700 border-pink-200',
+      'bg-green-100 text-green-700 border-green-200',
+      'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'bg-purple-100 text-purple-700 border-purple-200',
+      'bg-indigo-100 text-indigo-700 border-indigo-200',
+      'bg-teal-100 text-teal-700 border-teal-200',
+      'bg-orange-100 text-orange-700 border-orange-200',
+      'bg-cyan-100 text-cyan-700 border-cyan-200',
+      'bg-rose-100 text-rose-700 border-rose-200',
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) {
+      hash = type.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  // Pagination logic
   const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = filteredProposals.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleActionSuccess = () => {
-    loadProposals();
-    if (onStatsUpdate) onStatsUpdate();
-  };
-
-  const openAction = (id: number, action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject') => {
-    setActionProposalId(id);
-    if (action === 'sendToRnd') setIsSendToRndOpen(true);
-    else if (action === 'forwardEval') setIsForwardEvalOpen(true);
-    else if (action === 'revision') setIsRevisionOpen(true);
-    else if (action === 'reject') setIsRejectOpen(true);
-  };
-
-  const getStatusBadge = (status: BackendStatus) => {
-    const base = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border';
-    switch (status) {
-      case 'review_rnd':
-        return <span className={`${base} text-amber-600 bg-amber-50 border-amber-200`}><Clock className="w-3 h-3" />Pending Review</span>;
-      case 'under_evaluation':
-        return <span className={`${base} text-emerald-600 bg-emerald-50 border-emerald-200`}><Users className="w-3 h-3" />Under Evaluation</span>;
-      case 'revision_rnd':
-        return <span className={`${base} text-orange-600 bg-orange-50 border-orange-200`}><RefreshCw className="w-3 h-3" />Revision Required</span>;
-      case 'rejected_rnd':
-        return <span className={`${base} text-red-600 bg-red-50 border-red-200`}><XCircle className="w-3 h-3" />Rejected</span>;
-      case 'endorsed_for_funding':
-        return <span className={`${base} text-blue-600 bg-blue-50 border-blue-200`}><FileText className="w-3 h-3" />Endorsed</span>;
-      case 'funded':
-        return <span className={`${base} text-green-600 bg-green-50 border-green-200`}><FileText className="w-3 h-3" />Funded</span>;
-      default:
-        return <span className={`${base} text-slate-600 bg-slate-50 border-slate-200`}><FileText className="w-3 h-3" />{status}</span>;
-    }
-  };
-
-  const getStatusCount = (status: BackendStatus | 'all') => {
-    if (status === 'all') return proposals.length;
-    return proposals.filter((p) => p.status === status).length;
-  };
 
   if (loading) {
     return (
@@ -168,28 +382,30 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     );
   }
 
-  return (
+  return (  
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
       <div className="flex-1 flex flex-col p-6 gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-              {filter ? `${statusLabels[filter]} Proposals` : 'Research Proposal Review'}
-            </h1>
-            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-              Review and manage all research proposals submitted to WMSU
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+                {filter ? `${filter} Proposals` : 'Research Proposal Review'}
+              </h1>
+              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+                Review and evaluate research proposals submitted to WMSU
+              </p>
+            </div>
           </div>
         </header>
 
         {/* Filters */}
-        <section className="flex-shrink-0">
+        <section className="flex-shrink-0" aria-label="Filter proposals">
           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
               <div className="relative flex-1 max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400" />
+                  <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
                 </div>
                 <input
                   type="text"
@@ -202,20 +418,21 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Filter className="h-4 w-4 text-slate-400" />
+                  <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
                 </div>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as BackendStatus | 'all')}
+                  onChange={(e) => setStatusFilter(e.target.value as ExtendedProposalStatus | 'All')}
                   className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors cursor-pointer"
                 >
-                  <option value="all">All Statuses ({getStatusCount('all')})</option>
-                  <option value="review_rnd">Pending Review ({getStatusCount('review_rnd')})</option>
-                  <option value="under_evaluation">Under Evaluation ({getStatusCount('under_evaluation')})</option>
-                  <option value="revision_rnd">Revision Required ({getStatusCount('revision_rnd')})</option>
-                  <option value="rejected_rnd">Rejected ({getStatusCount('rejected_rnd')})</option>
-                  <option value="endorsed_for_funding">Endorsed ({getStatusCount('endorsed_for_funding')})</option>
-                  <option value="funded">Funded ({getStatusCount('funded')})</option>
+                  <option value="All">All Statuses ({getStatusCount('All')})</option>
+                  <option value="Unassigned">Unassigned ({getStatusCount('Unassigned')})</option>
+                  <option value="Under R&D Review">Under R&D Review ({getStatusCount('Under R&D Review')})</option>
+                  <option value="Pending">Pending ({getStatusCount('Pending')})</option>
+                  <option value="Revised Proposal">Revised Proposal ({getStatusCount('Revised Proposal' as any)})</option>
+                  <option value="Revision Required">Revision Required ({getStatusCount('Revision Required')})</option>
+                  <option value="Under Evaluators Assessment">Under Evaluators Assessment ({getStatusCount('Under Evaluators Assessment')})</option>
+                  <option value="Rejected Proposal">Rejected Proposal ({getStatusCount('Rejected Proposal')})</option>
                 </select>
               </div>
             </div>
@@ -223,8 +440,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
         </section>
 
         {/* Proposals List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          <div className="p-4 border-b border-slate-200 bg-slate-50 flex-shrink-0">
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
+          <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
@@ -237,7 +454,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -249,93 +466,79 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
               <table className="min-w-full text-left align-middle">
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {paginatedProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-slate-50 transition-colors duration-200 group">
-                      {/* Details */}
+                    <tr
+                      key={proposal.id}
+                      className="hover:bg-slate-50 transition-colors duration-200 group"
+                    >
+                      {/* --- COL 1: DETAILS --- */}
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-2">
                           <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
                             {proposal.title}
                           </span>
+
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
                               <span>{proposal.submittedBy}</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <div className={'flex items-center gap-1.5'}>
+                              <Calendar className={'w-3.5 h-3.5 text-slate-400'} />
                               <span>
-                                {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
+                            {/* Project Type Badge */}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(
+                                proposal.projectType
+                              )}`}
+                            >
                               <Tag className="w-3 h-3" />
-                              {proposal.department}
+                              {proposal.projectType}
                             </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* Actions */}
+                      {/* --- COL 2: ACTIONS (Admin Power) --- */}
                       <td className="px-6 py-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          {getStatusBadge(proposal.status)}
+                        <div className="flex items-center justify-end gap-3">
+                          
+                          {/* Status Badge */}
+                          {getStatusBadge(proposal)}
 
-                          {/* Send to RND - only for review_rnd status */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'sendToRnd')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
-                              title="Assign to R&D Staff"
-                            >
-                              <Send className="w-3 h-3" />
-                              Send to RND
-                            </button>
-                          )}
-
-                          {/* Forward to Evaluators - for review_rnd */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'forwardEval')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer"
-                              title="Forward to Evaluators"
-                            >
-                              <Users className="w-3 h-3" />
-                              Evaluators
-                            </button>
-                          )}
-
-                          {/* Request Revision - for review_rnd or under_evaluation */}
-                          {(proposal.status === 'review_rnd' || proposal.status === 'under_evaluation') && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'revision')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200 transition-colors cursor-pointer"
-                              title="Request Revision"
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              Revise
-                            </button>
-                          )}
-
-                          {/* Reject - for review_rnd */}
-                          {proposal.status === 'review_rnd' && (
-                            <button
-                              onClick={() => openAction(proposal.id, 'reject')}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium shadow-sm bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-colors cursor-pointer"
-                              title="Reject Proposal"
-                            >
-                              <XCircle className="w-3 h-3" />
-                              Reject
-                            </button>
-                          )}
-
-                          {/* View */}
+                          {/* Eye Button */}
                           <button
-                            onClick={() => { setViewProposal(proposal.raw); setIsViewOpen(true); }}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all cursor-pointer"
+                            onClick={() => handleViewDetails(proposal)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
                             title="View details"
                           >
                             <Eye className="w-3 h-3" />
                           </button>
+
+                          {/* Action Button */}
+                          {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
+                            <button
+                              onClick={() => handleViewProposal(proposal)}
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24]"
+                            >
+                              <Pen className="w-3 h-3" />
+                              Action
+                            </button>
+                          )}
+
+                          {/* Change R&D */}
+                          {(proposal.status === 'Under R&D Review' || (proposal.assignedRdStaff && (proposal.status === 'Pending' || proposal.status === 'Revised Proposal'))) && (
+                             <button
+                               onClick={() => handleChangeRdStaff(proposal)}
+                               className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                             >
+                               <UserCog className="w-3 h-3" />
+                               Change R&D
+                             </button>
+                          )}
+
                         </div>
                       </td>
                     </tr>
@@ -346,23 +549,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
           </div>
 
           {/* Pagination */}
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-              <span>
-                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of{" "}
-                {filteredProposals.length} proposals
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <ChevronLeft className="w-3 h-3" />
-                  Previous
-                </button>
-                <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                  Page {currentPage} of {totalPages || 1}
+          {filteredProposals.length > 0 && (
+            <div className="p-4 bg-slate-50 border-t border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -374,11 +565,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                     Previous
                   </button>
                   <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                    Page {currentPage} of {totalPages || 1}
+                    Page {currentPage} of {totalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || totalPages === 0}
+                    disabled={currentPage === totalPages}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Next
@@ -387,44 +578,50 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
 
-        {/* View Modal */}
+        {/* Modals */}
+        <ProposalModal
+          proposal={selectedProposal}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onSubmitDecision={handleSubmitDecision}
+          currentUser={currentUser}
+        />
+
         <DetailedProposalModal
-          proposal={viewProposal}
-          isOpen={isViewOpen}
-          onClose={() => { setIsViewOpen(false); setViewProposal(null); }}
+          proposal={selectedProposalForView}
+          isOpen={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setSelectedProposalForView(null);
+          }}
         />
 
-        {/* Action Modals */}
-        <SendToRndModal
-          isOpen={isSendToRndOpen}
-          onClose={() => setIsSendToRndOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
+        {/* New Change R&D Modal */}
+        <ChangeRndModal 
+          proposal={selectedProposalForChange}
+          isOpen={isChangeRdModalOpen}
+          onClose={() => {
+            setIsChangeRdModalOpen(false);
+            setSelectedProposalForChange(null);
+          }}
+          onConfirm={confirmRdChange}
         />
 
-        <ForwardToEvaluatorsModal
-          isOpen={isForwardEvalOpen}
-          onClose={() => setIsForwardEvalOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
+        {/* Evaluator List Modal */}
+        <EvaluatorListModal
+          evaluators={currentEvaluatorsList}
+          message={currentEvaluatorMessage}
+          isOpen={isEvaluatorModalOpen}
+          onClose={() => {
+            setIsEvaluatorModalOpen(false);
+            setCurrentEvaluatorsList([]);
+            setCurrentEvaluatorMessage('');
+          }}
         />
 
-        <RevisionModal
-          isOpen={isRevisionOpen}
-          onClose={() => setIsRevisionOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
-
-        <RejectModal
-          isOpen={isRejectOpen}
-          onClose={() => setIsRejectOpen(false)}
-          proposalId={actionProposalId}
-          onSuccess={handleActionSuccess}
-        />
       </div>
     </div>
   );

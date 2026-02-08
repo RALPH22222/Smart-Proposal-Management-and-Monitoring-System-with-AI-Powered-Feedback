@@ -54,8 +54,8 @@ export interface Proposal {
 
 export type ProposalStatus =
 	| 'Pending'
-	| 'Under Review'
-	| 'Sent to Evaluators'
+	| 'Under R&D Review'
+	| 'Under Evaluators Assessment'
 	| 'Revision Required'
 	| 'Rejected Proposal'
 	| 'Revised Proposal'
@@ -63,12 +63,15 @@ export type ProposalStatus =
 	| 'Endorsed'
 	| 'Waiting for Funding'
 	| 'Funded'
-	| 'Unassigned';
+	| 'Unassigned'
+	| 'Under Review' // Keep for backward compatibility if needed
+	| 'Sent to Evaluators'; // Keep for backward compatibility if needed
 
 export type DecisionType =
 	| 'Sent to Evaluators'
 	| 'Revision Required'
-	| 'Rejected Proposal';
+	| 'Rejected Proposal'
+	| 'Assign to RnD';
 
 export interface CommentSection {
 	id: string;
@@ -107,6 +110,7 @@ export interface Decision {
 	reviewedDate: string;
 	evaluationDeadline?: string;
 	assignedEvaluators?: string[];
+	assignedRdStaffId?: string;
 }
 
 export interface Reviewer {

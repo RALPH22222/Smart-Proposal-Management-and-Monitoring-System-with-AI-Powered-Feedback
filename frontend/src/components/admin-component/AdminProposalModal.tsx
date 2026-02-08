@@ -19,6 +19,7 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
+import { fetchUsersByRole, type UserItem } from '../../services/proposal.api';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -35,84 +36,38 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   onSubmitDecision,
   currentUser
 }) => {
-  // --- MOCK DATA ---
-  const evaluators: Partial<Evaluator>[] = [
-    {
-      id: '1',
-      name: 'Dr. Alice Santos',
-      department: 'Information Technology',
-      availabilityStatus: 'Available',
-      email: 'alice@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-      id: '2',
-      name: 'Prof. Ben Reyes',
-      department: 'Computer Science',
-      availabilityStatus: 'Busy',
-      email: 'ben@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-      id: '3',
-      name: 'Engr. Carla Lim',
-      department: 'Information Technology',
-      availabilityStatus: 'Available',
-      email: 'carla@wmsu.edu.ph',
-      agency: 'WMSU - CCS'
-    },
-    {
-        id: '4',
-        name: 'Engr. Dan Brown',
-        department: 'Engineering',
-        availabilityStatus: 'Available',
-        email: 'dan@wmsu.edu.ph',
-        agency: 'WMSU - COE'
-    },
-    {
-        id: '5',
-        name: 'Dr. Elena Cruz',
-        department: 'Nursing',
-        availabilityStatus: 'Available',
-        email: 'elena@wmsu.edu.ph',
-        agency: 'WMSU - CON'
-    },
-    {
-        id: '6',
-        name: 'Prof. Frank Farmer',
-        department: 'Agriculture',
-        availabilityStatus: 'Available',
-        email: 'frank@wmsu.edu.ph',
-        agency: 'WMSU - CA'
-    },
-    {
-        id: '7',
-        name: 'Dr. Gary Guard',
-        department: 'Criminology',
-        availabilityStatus: 'Available',
-        email: 'gary@wmsu.edu.ph',
-        agency: 'WMSU - CCJE'
-    }
-  ];
+  // --- REAL DATA FETCHING ---
+  const [evaluators, setEvaluators] = useState<Partial<Evaluator>[]>([]);
+  const [rndStaffList, setRndStaffList] = useState<Partial<Evaluator>[]>([]);
 
-  const rndStaffList: Partial<Evaluator>[] = [
-    {
-      id: 'rnd-1',
-      name: 'Dr. R&D Lead',
-      department: 'R&D',
-      availabilityStatus: 'Available',
-      email: 'rnd.lead@wmsu.edu.ph',
-      agency: 'WMSU - R&D Center'
-    },
-    {
-      id: 'rnd-2',
-      name: 'Ms. R&D Specialist',
-      department: 'R&D',
-      availabilityStatus: 'Available',
-      email: 'rnd.spec@wmsu.edu.ph',
-      agency: 'WMSU - R&D Center'
+  useEffect(() => {
+    if (isOpen) {
+      const loadUsers = async () => {
+        try {
+          const [rndData, evalData] = await Promise.all([
+            fetchUsersByRole('rnd'),
+            fetchUsersByRole('evaluator')
+          ]);
+
+          const mapToEvaluator = (u: UserItem): Partial<Evaluator> => ({
+             id: u.id,
+             name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
+             department: u.departments?.[0]?.name || 'N/A',
+             availabilityStatus: 'Available', // Default available for now
+             email: u.email || '',
+             agency: 'WMSU' // Default agency
+          });
+
+          setRndStaffList(rndData.map(mapToEvaluator));
+          setEvaluators(evalData.map(mapToEvaluator));
+
+        } catch (error) {
+           console.error("Failed to load users", error);
+        }
+      };
+      loadUsers();
     }
-  ];
+  }, [isOpen]);
 
   // --- STATE ---
   const [decision, setDecision] = useState<DecisionType | 'Assign to RnD'>('Assign to RnD');
@@ -212,7 +167,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     }
 
     setAvailableEvaluators(filtered);
-  }, [evaluatorSearch, departmentFilter, assignedEvaluators]);
+  }, [evaluatorSearch, departmentFilter, assignedEvaluators, evaluators]);
 
   // Simulate typing indicators
   useEffect(() => {
@@ -287,14 +242,15 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
 
     const decisionData: Decision = {
       proposalId: proposal.id,
-      decision: decision as any,
+      decision: decision,
       structuredComments,
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: (decision === 'Revision Required' || decision === 'Assign to RnD')
           ? new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString()
-          : undefined
+          : undefined,
+      assignedRdStaffId: decision === 'Assign to RnD' ? selectedRnDStaff?.id : undefined
     };
 
     onSubmitDecision(decisionData);
@@ -310,7 +266,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
 
     const deadlineIso = new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString();
 
-    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both', assignedEvaluators?: string[] } = {
+    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' } = {
       proposalId: proposal.id,
       decision: 'Sent to Evaluators',
       structuredComments,
@@ -319,7 +275,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: deadlineIso,
       proponentInfoVisibility: showProponentInfo,
-      assignedEvaluators: assignedEvaluators.map(ev => ev.name!) 
+      assignedEvaluators: assignedEvaluators.map(ev => ev.id!) 
     };
 
     onSubmitDecision(decisionData);
