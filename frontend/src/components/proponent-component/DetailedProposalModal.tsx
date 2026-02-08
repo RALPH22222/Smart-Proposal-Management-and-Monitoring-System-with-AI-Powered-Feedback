@@ -33,7 +33,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary } from "../../services/proposal.api";
 
 interface Site {
   site: string;
@@ -73,6 +73,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
+  const [rejectionComment, setRejectionComment] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRejection = async () => {
+      const pStatus = (proposal?.status || '').toLowerCase();
+      if (['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(pStatus)) {
+        try {
+          const summary = await fetchRejectionSummary(Number(proposal?.id));
+          if (summary && summary.comment) {
+            setRejectionComment(summary.comment);
+          } else {
+            setRejectionComment("No specific comment provided.");
+          }
+        } catch (error) {
+          console.error("Failed to fetch rejection summary:", error);
+          setRejectionComment("Failed to load rejection details.");
+        }
+      } else {
+        setRejectionComment(null);
+      }
+    };
+    if (isOpen && proposal) {
+      fetchRejection();
+    }
+  }, [isOpen, proposal?.status, proposal?.id]);
 
   useEffect(() => {
     if (proposal) {
@@ -232,36 +257,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, implementationSites: updatedSites });
   };
 
-  /*
-  const handleBudgetChange = (
-    index: number,
-    field: keyof BudgetSource,
-    value: string
-  ) => {
-    if (!editedProposal) return;
-    const updatedBudgetSources = [...editedProposal.budgetSources];
-    updatedBudgetSources[index] = {
-      ...updatedBudgetSources[index],
-      [field]: value,
-    };
-    if (field === "ps" || field === "mooe" || field === "co") {
-      const ps = parseCurrency(updatedBudgetSources[index].ps);
-      const mooe = parseCurrency(updatedBudgetSources[index].mooe);
-      const co = parseCurrency(updatedBudgetSources[index].co);
-      updatedBudgetSources[index].total = formatCurrency(ps + mooe + co);
-    }
-    const grandTotal = updatedBudgetSources.reduce(
-      (sum, item) => sum + parseCurrency(item.total),
-      0
-    );
-    setEditedProposal({
-      ...editedProposal,
-      budgetSources: updatedBudgetSources,
-      budgetTotal: formatCurrency(grandTotal),
-    });
-  };
-  */
-
   const handleAddBudgetItem = () => {
     if (!editedProposal) return;
     const newSource: BudgetSource = {
@@ -281,24 +276,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       budgetSources: [...editedProposal.budgetSources, newSource],
     });
   };
-
-  /*
-  const handleRemoveBudgetItem = (index: number) => {
-    if (!editedProposal) return;
-    const updatedBudgetSources = editedProposal.budgetSources.filter(
-      (_, i) => i !== index
-    );
-    const grandTotal = updatedBudgetSources.reduce(
-      (sum, item) => sum + parseCurrency(item.total),
-      0
-    );
-    setEditedProposal({
-      ...editedProposal,
-      budgetSources: updatedBudgetSources,
-      budgetTotal: formatCurrency(grandTotal),
-    });
-  };
-  */
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -354,6 +331,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       .filter(Boolean)
     : [];
 
+  // ... (getStatusTheme update) ...
   const getStatusTheme = (status: string) => {
     const s = status.toLowerCase();
     if (["endorsed"].includes(s))
@@ -372,7 +350,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
         label: "Project Funded",
       };
-    if (["rejected", "disapproved", "reject"].includes(s))
+    if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s))
       return {
         bg: "bg-red-50",
         border: "border-red-200",
@@ -420,6 +398,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       label: "Under Evaluators Assessment",
     };
   };
+
+  // ...
 
   const theme = getStatusTheme(proposal.status);
 
@@ -470,18 +450,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation.",
     },
   ];
-  const rejectComments = [
-    {
-      section: "Reason for Rejection",
-      comment:
-        "Project objectives do not align with current organizational priorities.",
-    },
-  ];
+
   const activeComments =
     proposal.status === "revise"
       ? reviseComments
-      : proposal.status === "reject"
-        ? rejectComments
+      : ["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(proposal.status.toLowerCase())
+        ? [{
+          section: "Reason for Rejection",
+          comment: rejectionComment || "Loading details..."
+        }]
         : [];
 
   return (
@@ -602,7 +579,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           )}
 
-          {(proposal.status === "revise" || proposal.status === "reject") && (
+          {(proposal.status === "revise" || ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(proposal.status?.toLowerCase())) && (
             <div
               className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}
             >
@@ -638,6 +615,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
           )}
+
 
           {/* 3. File Management */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -1441,8 +1419,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

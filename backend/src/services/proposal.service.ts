@@ -37,7 +37,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   private async resolveLookupId(args: {
     table: Table;
@@ -433,10 +433,21 @@ export class ProposalService {
   }
 
   async rejectProposalToProponent(input: rejectProposalToProponentInput, rnd_id: string) {
-    // Include rnd_id in the insert payload so we know which RND submitted this rejection
-    const { data, error: insertError } = await this.db.from("proposal_reject_summary").insert({ ...input, rnd_id });
+    console.log("Rejecting proposal:", input.proposal_id, "by RND:", rnd_id);
 
-    if (insertError) return { error: insertError };
+    // Explicitly construct payload to avoid schema mismatches
+    const insertPayload = {
+      proposal_id: input.proposal_id,
+      comment: input.comment,
+      rnd_id: rnd_id,
+    };
+
+    const { data, error: insertError } = await this.db.from("proposal_reject_summary").insert(insertPayload);
+
+    if (insertError) {
+      console.error("Error inserting into proposal_reject_summary:", insertError);
+      return { error: insertError };
+    }
 
     const { error: updateError } = await this.db
       .from("proposals")
@@ -446,7 +457,10 @@ export class ProposalService {
       })
       .eq("id", input.proposal_id);
 
-    if (updateError) return { error: updateError };
+    if (updateError) {
+      console.error("Error updating proposals status:", updateError);
+      return { error: updateError };
+    }
 
     return { data };
   }
@@ -1309,13 +1323,12 @@ export class ProposalService {
     };
   }
 
-  async getRejectionSummary(proposal_id: number, proponent_id: string) {
-    // 1. First verify the proposal belongs to this proponent
+  async getRejectionSummary(proposal_id: number, requesting_user_id: string) {
+    // 1. Verify access: User must be either the Proponent OR an assigned RND
     const { data: proposal, error: proposalError } = await this.db
       .from("proposals")
       .select("id, proponent_id")
       .eq("id", proposal_id)
-      .eq("proponent_id", proponent_id)
       .maybeSingle();
 
     if (proposalError) {
@@ -1323,6 +1336,25 @@ export class ProposalService {
     }
 
     if (!proposal) {
+      return { data: null, error: new Error("Proposal not found") };
+    }
+
+    // Check Proponent
+    const isProponent = proposal.proponent_id === requesting_user_id;
+
+    // Check RND (if not proponent)
+    let isRnd = false;
+    if (!isProponent) {
+      const { data: rndEntry } = await this.db
+        .from("proposal_rnd")
+        .select("id")
+        .eq("proposal_id", proposal_id)
+        .eq("rnd_id", requesting_user_id)
+        .maybeSingle();
+      isRnd = !!rndEntry;
+    }
+
+    if (!isProponent && !isRnd) {
       return { data: null, error: new Error("Proposal not found or you don't have access") };
     }
 
@@ -1426,9 +1458,13 @@ export class ProposalService {
       filtered = filtered.filter((row: any) => {
         // Access nested proposal_evaluators from the proposal relation
         const proposal = row.proposals;
-        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators) ? proposal.proposal_evaluators : [];
+        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators)
+          ? proposal.proposal_evaluators
+          : [];
 
-        return evaluators.some((pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub);
+        return evaluators.some(
+          (pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub,
+        );
       });
     }
     const result = filtered.map((row: any) => {

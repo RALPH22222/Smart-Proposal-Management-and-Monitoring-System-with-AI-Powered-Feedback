@@ -54,7 +54,7 @@ const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
         <div className="p-5 space-y-3 max-h-[400px] overflow-y-auto">
           {(!evaluators || evaluators.length === 0) ? (
             <div className="text-center py-8">
-                <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
+              <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
             </div>
           ) : (
             evaluators.map((name, index) => (
@@ -67,11 +67,11 @@ const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
             ))
           )}
         </div>
-        
+
         <div className="p-4 border-t bg-slate-50 flex justify-end">
-            <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
-                Close
-            </button>
+          <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -106,24 +106,24 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [decision, setDecision] = useState<DecisionType>('Sent to Evaluators');
   const [evaluationDeadline, setEvaluationDeadline] = useState('14');
   const [structuredComments, setStructuredComments] = useState<StructuredComments>({
-      objectives: { id: '1', title: 'Objectives', content: '', lastModified: '', author: currentUser.name },
-      methodology: { id: '2', title: 'Methodology', content: '', lastModified: '', author: currentUser.name },
-      budget: { id: '3', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
-      timeline: { id: '4', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
-      overall: { id: '5', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
-      additional: []
-    });
-  
+    objectives: { id: '1', title: 'Objectives', content: '', lastModified: '', author: currentUser.name },
+    methodology: { id: '2', title: 'Methodology', content: '', lastModified: '', author: currentUser.name },
+    budget: { id: '3', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
+    timeline: { id: '4', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
+    overall: { id: '5', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
+    additional: []
+  });
+
   // Evaluator Assignment State
   const [evaluatorSearch, setEvaluatorSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [availableEvaluators, setAvailableEvaluators] = useState<Partial<Evaluator>[]>([]);
-  
+
   // Selection States
-  const [checkedAvailableIds, setCheckedAvailableIds] = useState<string[]>([]); 
-  const [checkedAssignedIds, setCheckedAssignedIds] = useState<string[]>([]);   
-  const [assignedEvaluators, setAssignedEvaluators] = useState<Partial<Evaluator>[]>([]); 
-  
+  const [checkedAvailableIds, setCheckedAvailableIds] = useState<string[]>([]);
+  const [checkedAssignedIds, setCheckedAssignedIds] = useState<string[]>([]);
+  const [assignedEvaluators, setAssignedEvaluators] = useState<Partial<Evaluator>[]>([]);
+
   // Evaluator List Modal State
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
 
@@ -178,7 +178,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       setActiveSection('objectives');
       setShowAnonymitySelection(false);
       setShowProponentInfo('both');
-      
+
       // Reset Assignment States
       setEvaluatorSearch('');
       setDepartmentFilter('All');
@@ -205,25 +205,25 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
   // Filter Available Evaluators
   useEffect(() => {
-    let filtered = evaluators.filter(ev => 
-        // 1. Exclude already assigned
-        !assignedEvaluators.some(assigned => assigned.id === ev.id) &&
-        // 2. Only show Available
-        ev.availabilityStatus === 'Available'
+    let filtered = evaluators.filter(ev =>
+      // 1. Exclude already assigned
+      !assignedEvaluators.some(assigned => assigned.id === ev.id) &&
+      // 2. Only show Available
+      ev.availabilityStatus === 'Available'
     );
 
     // Apply Department Filter
     if (departmentFilter !== 'All') {
-        filtered = filtered.filter(ev => ev.department === departmentFilter);
+      filtered = filtered.filter(ev => ev.department === departmentFilter);
     }
 
     // Apply Search Filter (Name Only)
     if (evaluatorSearch.trim()) {
-        const lowerSearch = evaluatorSearch.toLowerCase();
-        filtered = filtered.filter(ev => 
-            (ev.name && ev.name.toLowerCase().includes(lowerSearch)) ||
-            (ev.agency && ev.agency.toLowerCase().includes(lowerSearch))
-        );
+      const lowerSearch = evaluatorSearch.toLowerCase();
+      filtered = filtered.filter(ev =>
+        (ev.name && ev.name.toLowerCase().includes(lowerSearch)) ||
+        (ev.agency && ev.agency.toLowerCase().includes(lowerSearch))
+      );
     }
 
     setAvailableEvaluators(filtered);
@@ -255,34 +255,34 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   // --- ASSIGNMENT LOGIC ---
 
   const handleAvailableCheckboxChange = (evaluatorId: string) => {
-    setCheckedAvailableIds(prev => 
-        prev.includes(evaluatorId) 
-            ? prev.filter(id => id !== evaluatorId) 
-            : [...prev, evaluatorId]
+    setCheckedAvailableIds(prev =>
+      prev.includes(evaluatorId)
+        ? prev.filter(id => id !== evaluatorId)
+        : [...prev, evaluatorId]
     );
   };
 
   const handleAddSelectedEvaluators = () => {
-    const toAdd = evaluators.filter(ev => 
-        checkedAvailableIds.includes(ev.id!) && 
-        !assignedEvaluators.some(ae => ae.id === ev.id)
+    const toAdd = evaluators.filter(ev =>
+      checkedAvailableIds.includes(ev.id!) &&
+      !assignedEvaluators.some(ae => ae.id === ev.id)
     );
     setAssignedEvaluators(prev => [...prev, ...toAdd]);
-    setCheckedAvailableIds([]); 
-    setEvaluatorSearch(''); 
+    setCheckedAvailableIds([]);
+    setEvaluatorSearch('');
   };
 
   const handleAssignedCheckboxChange = (evaluatorId: string) => {
-    setCheckedAssignedIds(prev => 
-        prev.includes(evaluatorId) 
-            ? prev.filter(id => id !== evaluatorId) 
-            : [...prev, evaluatorId]
+    setCheckedAssignedIds(prev =>
+      prev.includes(evaluatorId)
+        ? prev.filter(id => id !== evaluatorId)
+        : [...prev, evaluatorId]
     );
   };
 
   const handleRemoveSelectedEvaluators = () => {
     setAssignedEvaluators(prev => prev.filter(ev => !checkedAssignedIds.includes(ev.id!)));
-    setCheckedAssignedIds([]); 
+    setCheckedAssignedIds([]);
   };
 
   // --- SUBMISSION HANDLERS ---
@@ -292,9 +292,9 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     if (!proposal) return;
 
     if (decision === 'Sent to Evaluators') {
-      if(assignedEvaluators.length === 0) {
-          alert("Please assign at least one evaluator.");
-          return;
+      if (assignedEvaluators.length === 0) {
+        alert("Please assign at least one evaluator.");
+        return;
       }
       handleForwardToEvaluators();
       return;
@@ -308,8 +308,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: (decision === 'Revision Required')
-          ? new Date(Date.now() + parseInt(evaluationDeadline) * 24 * 60 * 60 * 1000).toISOString()
-          : undefined
+        ? new Date(Date.now() + parseInt(evaluationDeadline) * 24 * 60 * 60 * 1000).toISOString()
+        : undefined
     };
 
     onSubmitDecision(decisionData);
@@ -333,7 +333,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       evaluationDeadline: evaluationDeadline, // Send '14', '7', etc. directly
       proponentInfoVisibility: showProponentInfo,
       // IMPORTANT: Map to IDs here
-      assignedEvaluators: assignedEvaluators.map(ev => ev.id!) 
+      assignedEvaluators: assignedEvaluators.map(ev => ev.id!)
     };
 
     onSubmitDecision(decisionData);
@@ -367,7 +367,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     <>
       <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4'>
         <div className='bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[100vh] overflow-hidden flex flex-col'>
-          
+
           {/* Modal Header */}
           <div className='p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50 flex-shrink-0'>
             <div className='flex-1 text-gray-600'>
@@ -397,7 +397,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
           <div className='flex-1 overflow-y-auto'>
             <form onSubmit={handleSubmit} className='h-full flex flex-col'>
-              
+
               {/* Decision Options */}
               <div className='p-4 border-b border-gray-200'>
                 <h4 className='text-base font-semibold text-gray-800 mb-3'>Make Decision</h4>
@@ -413,10 +413,9 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         className='w-4 h-4 text-[#C10003] bg-gray-100 border-gray-300 focus:ring-[#C10003] focus:ring-2'
                       />
                       <div className='ml-3 flex-1'>
-                        <span className={`text-sm font-medium ${
-                            option === 'Sent to Evaluators' ? 'text-green-700' : 
+                        <span className={`text-sm font-medium ${option === 'Sent to Evaluators' ? 'text-green-700' :
                             option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
-                        }`}>
+                          }`}>
                           {getDecisionButtonText(option)}
                         </span>
                       </div>
@@ -452,150 +451,150 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
               {decision === 'Sent to Evaluators' && (
                 <div className='p-4 border-b border-gray-200'>
                   <h4 className='text-base font-semibold text-gray-800 mb-3'>Evaluator Assignment</h4>
-                  
+
                   {/* Filter Toolbar */}
                   <div className='flex flex-col gap-3 mb-4'>
                     <div className='relative'>
-                        <Search className='absolute left-3 top-2.5 w-4 h-4 text-gray-400' />
-                        <input 
-                            type='text'
-                            placeholder='Search by name...'
-                            value={evaluatorSearch}
-                            onChange={(e) => setEvaluatorSearch(e.target.value)}
-                            className='w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003]'
-                        />
+                      <Search className='absolute left-3 top-2.5 w-4 h-4 text-gray-400' />
+                      <input
+                        type='text'
+                        placeholder='Search by name...'
+                        value={evaluatorSearch}
+                        onChange={(e) => setEvaluatorSearch(e.target.value)}
+                        className='w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003]'
+                      />
                     </div>
-                    
+
                     {/* Department Filter */}
                     <div className='relative'>
-                        <Filter className='absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400' />
-                        <select 
-                            value={departmentFilter}
-                            onChange={(e) => setDepartmentFilter(e.target.value)}
-                            className='w-full pl-8 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] appearance-none bg-white'
-                        >
-                            <option value='All'>All Departments</option>
-                            {departments.filter(d => d !== 'All').map(dept => (
-                                <option key={dept} value={dept}>{dept}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.828l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
-                        </div>
+                      <Filter className='absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400' />
+                      <select
+                        value={departmentFilter}
+                        onChange={(e) => setDepartmentFilter(e.target.value)}
+                        className='w-full pl-8 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] appearance-none bg-white'
+                      >
+                        <option value='All'>All Departments</option>
+                        {departments.filter(d => d !== 'All').map(dept => (
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.828l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      </div>
                     </div>
                   </div>
 
                   {/* Available Evaluators List */}
                   <div className='mb-4 animate-in fade-in'>
-                        <div className="flex items-center justify-between mb-2">
-                            <label className='block text-xs font-bold text-gray-700 uppercase'>Available Evaluators</label>
-                            <span className="text-xs text-gray-500">{checkedAvailableIds.length} selected</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className='block text-xs font-bold text-gray-700 uppercase'>Available Evaluators</label>
+                      <span className="text-xs text-gray-500">{checkedAvailableIds.length} selected</span>
+                    </div>
+
+                    <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto bg-gray-50 p-2 space-y-1">
+                      {isLoadingEvaluators ? (
+                        <div className="text-center py-6">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#C8102E] mx-auto mb-2"></div>
+                          <p className="text-xs text-gray-400">Loading evaluators...</p>
                         </div>
-                        
-                        <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto bg-gray-50 p-2 space-y-1">
-                            {isLoadingEvaluators ? (
-                                <div className="text-center py-6">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#C8102E] mx-auto mb-2"></div>
-                                    <p className="text-xs text-gray-400">Loading evaluators...</p>
-                                </div>
-                            ) : availableEvaluators.length === 0 ? (
-                                <div className="text-center py-6">
-                                    <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                    <p className="text-xs text-gray-400">No available evaluators matching filters.</p>
-                                </div>
-                            ) : (
-                                availableEvaluators.map(ev => (
-                                    <label key={ev.id} className="flex items-start p-2 hover:bg-white rounded cursor-pointer border border-transparent hover:border-gray-200 transition-colors">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={checkedAvailableIds.includes(ev.id!)}
-                                            onChange={() => handleAvailableCheckboxChange(ev.id!)}
-                                            className="mt-1 w-4 h-4 text-[#C10003] rounded focus:ring-[#C10003] border-gray-300"
-                                        />
-                                        <div className="ml-3 flex-1">
-                                            <div className="flex justify-between items-center">
-                                                <p className="text-sm font-medium text-gray-800">{ev.name}</p>
-                                            </div>
-                                            {/* Department & Agency only */}
-                                            <p className="text-xs text-gray-500 mt-0.5">
-                                                {ev.email} • {ev.department}
-                                            </p>
-                                        </div>
-                                    </label>
-                                ))
-                            )}
+                      ) : availableEvaluators.length === 0 ? (
+                        <div className="text-center py-6">
+                          <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-xs text-gray-400">No available evaluators matching filters.</p>
                         </div>
-                        
-                        <button
-                            type="button"
-                            disabled={checkedAvailableIds.length === 0}
-                            onClick={handleAddSelectedEvaluators}
-                            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
-                        >
-                            <UserPlus className="w-3.5 h-3.5" />
-                            Add {checkedAvailableIds.length > 0 ? `(${checkedAvailableIds.length}) ` : ''}Selected Evaluators
-                        </button>
+                      ) : (
+                        availableEvaluators.map(ev => (
+                          <label key={ev.id} className="flex items-start p-2 hover:bg-white rounded cursor-pointer border border-transparent hover:border-gray-200 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={checkedAvailableIds.includes(ev.id!)}
+                              onChange={() => handleAvailableCheckboxChange(ev.id!)}
+                              className="mt-1 w-4 h-4 text-[#C10003] rounded focus:ring-[#C10003] border-gray-300"
+                            />
+                            <div className="ml-3 flex-1">
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm font-medium text-gray-800">{ev.name}</p>
+                              </div>
+                              {/* Department & Agency only */}
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {ev.email} • {ev.department}
+                              </p>
+                            </div>
+                          </label>
+                        ))
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={checkedAvailableIds.length === 0}
+                      onClick={handleAddSelectedEvaluators}
+                      className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add {checkedAvailableIds.length > 0 ? `(${checkedAvailableIds.length}) ` : ''}Selected Evaluators
+                    </button>
                   </div>
 
                   {/* Assigned List (With Checkboxes & Bulk Remove) */}
                   <div className="mt-6 pt-4 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-2">
-                        <label className='block text-xs font-bold text-gray-700 uppercase'>Assigned ({assignedEvaluators.length})</label>
-                        {assignedEvaluators.length > 0 && (
-                            <span className="text-xs text-gray-500">{checkedAssignedIds.length} selected</span>
-                        )}
-                        {/* VIEW LIST BUTTON (NEW) */}
-                        {assignedEvaluators.length > 0 && (
-                           <button 
-                             type="button" 
-                             onClick={() => setIsEvaluatorModalOpen(true)}
-                             className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                           >
-                             <Eye className="w-3 h-3" /> View All
-                           </button>
-                        )}
+                      <label className='block text-xs font-bold text-gray-700 uppercase'>Assigned ({assignedEvaluators.length})</label>
+                      {assignedEvaluators.length > 0 && (
+                        <span className="text-xs text-gray-500">{checkedAssignedIds.length} selected</span>
+                      )}
+                      {/* VIEW LIST BUTTON (NEW) */}
+                      {assignedEvaluators.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEvaluatorModalOpen(true)}
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> View All
+                        </button>
+                      )}
                     </div>
-                    
-                    {assignedEvaluators.length === 0 ? (
-                        <div className="text-center py-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
-                            <p className="text-xs text-gray-500">No evaluators assigned yet.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {/* Assigned Evaluators List (Scrollable) */}
-                            <div className="border border-green-100 rounded-lg max-h-40 overflow-y-auto bg-green-50/30 p-2 space-y-1">
-                                {assignedEvaluators.map(ev => (
-                                    <label key={ev.id} className="flex items-center p-2 bg-white border border-green-100 rounded-lg shadow-sm hover:border-green-200 cursor-pointer transition-colors">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={checkedAssignedIds.includes(ev.id!)}
-                                            onChange={() => handleAssignedCheckboxChange(ev.id!)}
-                                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500 border-gray-300"
-                                        />
-                                        <div className="ml-3 flex-1 flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-800">{ev.name}</p>
-                                                <p className="text-[10px] text-gray-500">{ev.department}</p>
-                                            </div>
-                                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold text-xs">
-                                                {ev.name!.charAt(0)}
-                                            </div>
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
 
-                            {/* Bulk Remove Button */}
-                            <button 
-                                type="button"
-                                onClick={handleRemoveSelectedEvaluators}
-                                disabled={checkedAssignedIds.length === 0}
-                                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <UserMinus className="w-3.5 h-3.5" />
-                                Remove Selected ({checkedAssignedIds.length})
-                            </button>
+                    {assignedEvaluators.length === 0 ? (
+                      <div className="text-center py-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
+                        <p className="text-xs text-gray-500">No evaluators assigned yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {/* Assigned Evaluators List (Scrollable) */}
+                        <div className="border border-green-100 rounded-lg max-h-40 overflow-y-auto bg-green-50/30 p-2 space-y-1">
+                          {assignedEvaluators.map(ev => (
+                            <label key={ev.id} className="flex items-center p-2 bg-white border border-green-100 rounded-lg shadow-sm hover:border-green-200 cursor-pointer transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={checkedAssignedIds.includes(ev.id!)}
+                                onChange={() => handleAssignedCheckboxChange(ev.id!)}
+                                className="w-4 h-4 text-red-600 rounded focus:ring-red-500 border-gray-300"
+                              />
+                              <div className="ml-3 flex-1 flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-800">{ev.name}</p>
+                                  <p className="text-[10px] text-gray-500">{ev.department}</p>
+                                </div>
+                                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold text-xs">
+                                  {ev.name!.charAt(0)}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
                         </div>
+
+                        {/* Bulk Remove Button */}
+                        <button
+                          type="button"
+                          onClick={handleRemoveSelectedEvaluators}
+                          disabled={checkedAssignedIds.length === 0}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <UserMinus className="w-3.5 h-3.5" />
+                          Remove Selected ({checkedAssignedIds.length})
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -613,9 +612,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         key={section.key}
                         type='button'
                         onClick={() => setActiveSection(section.key)}
-                        className={`px-2 py-1 text-xs font-medium rounded-t-lg transition-colors ${
-                          activeSection === section.key ? 'bg-[#C10003] text-white' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                        }`}
+                        className={`px-2 py-1 text-xs font-medium rounded-t-lg transition-colors ${activeSection === section.key ? 'bg-[#C10003] text-white' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                          }`}
                       >
                         {section.title}
                       </button>
@@ -686,15 +684,15 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                 <h3 className='text-lg font-semibold text-gray-800'>Proponent Information Visibility</h3>
               </div>
               <p className='text-sm text-gray-600 mb-6'>Choose what information about the proponent will be visible to evaluators:</p>
-              
+
               <div className='space-y-3 mb-6'>
                 {['both', 'name', 'agency'].map((val) => (
-                    <label key={val} className='flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50'>
-                        <input type='radio' name='proponentInfo' value={val} checked={showProponentInfo === val} onChange={() => setShowProponentInfo(val as any)} className='w-4 h-4 text-[#C10003] focus:ring-[#C10003]' />
-                        <div className='ml-3'>
-                            <span className='text-sm font-medium text-gray-700'>{val === 'both' ? 'Show Both' : val === 'name' ? 'Show Name Only' : 'Show Agency Only'}</span>
-                        </div>
-                    </label>
+                  <label key={val} className='flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50'>
+                    <input type='radio' name='proponentInfo' value={val} checked={showProponentInfo === val} onChange={() => setShowProponentInfo(val as any)} className='w-4 h-4 text-[#C10003] focus:ring-[#C10003]' />
+                    <div className='ml-3'>
+                      <span className='text-sm font-medium text-gray-700'>{val === 'both' ? 'Show Both' : val === 'name' ? 'Show Name Only' : 'Show Agency Only'}</span>
+                    </div>
+                  </label>
                 ))}
               </div>
 
@@ -708,10 +706,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       )}
 
       {/* Evaluator List Modal (Used to View Assigned List Clearly) */}
-      <EvaluatorListModal 
-         evaluators={assignedEvaluators.map(e => e.name!)} 
-         isOpen={isEvaluatorModalOpen} 
-         onClose={() => setIsEvaluatorModalOpen(false)} 
+      <EvaluatorListModal
+        evaluators={assignedEvaluators.map(e => e.name!)}
+        isOpen={isEvaluatorModalOpen}
+        onClose={() => setIsEvaluatorModalOpen(false)}
       />
 
     </>

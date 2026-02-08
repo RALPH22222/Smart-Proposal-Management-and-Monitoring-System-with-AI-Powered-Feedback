@@ -30,6 +30,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       statusCode: 500,
       body: JSON.stringify({
         message: "Internal server error.",
+        error: error,
       }),
     };
   }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Users,
@@ -22,7 +22,9 @@ import {
   MapPin,
   Globe,
   CheckCircle,
+  Search,
 } from "lucide-react";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary } from "../../services/proposal.api";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -80,6 +82,7 @@ interface RndViewModalProps {
   proposal: any;
   // Handler for actions, slightly adjusted types for generic usage if needed
   onAction?: (action: 'forwardEval' | 'revision' | 'reject', proposalId: string) => void;
+  agencies?: LookupItem[];
 }
 
 // --- HELPER FUNCTIONS ---
@@ -119,9 +122,61 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
   onClose,
   proposal,
   onAction,
+  agencies = [],
 }) => {
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
+
+  const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
+  const [rejectionComment, setRejectionComment] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      const targetAgencyName = p?.agency;
+      if (!targetAgencyName) return;
+
+      const agency = agencies.find(a => a.name === targetAgencyName);
+      if (agency) {
+        try {
+          const addresses = await fetchAgencyAddresses(agency.id);
+          setAgencyAddresses(addresses);
+        } catch (error) {
+          console.error("Failed to fetch agency addresses:", error);
+          setAgencyAddresses([]);
+        }
+      } else {
+        setAgencyAddresses([]);
+      }
+    };
+
+    if (isOpen && p?.agency) {
+      fetchAddresses();
+    }
+  }, [isOpen, p?.agency, agencies]);
+
+  useEffect(() => {
+    const fetchRejection = async () => {
+      if (['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes((p.status || '').toLowerCase())) {
+        try {
+          const summary = await fetchRejectionSummary(Number(p.id));
+          if (summary && summary.comment) {
+            setRejectionComment(summary.comment);
+          } else {
+            setRejectionComment("No specific comment provided.");
+          }
+        } catch (error) {
+          console.error("Failed to fetch rejection summary:", error);
+          setRejectionComment("Failed to load rejection details.");
+        }
+      } else {
+        setRejectionComment(null);
+      }
+    };
+
+    if (isOpen && p?.id) {
+      fetchRejection();
+    }
+  }, [isOpen, p?.id, p?.status]);
 
   if (!isOpen || !proposal) return null;
 
@@ -203,13 +258,13 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
         label: "Revision Required",
       };
 
-    // Amber/Orange (Under R&D Review - Matching List View)
+    // Blue (Under R&D Review)
     if (["review_rnd", "r&d evaluation", "under r&d evaluation", "pending"].includes(s))
       return {
-        bg: "bg-amber-100",
-        border: "border-amber-200",
-        text: "text-amber-800",
-        icon: <Clock className="w-4 h-4 text-amber-600" />,
+        bg: "bg-blue-100",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: <Search className="w-4 h-4 text-blue-600" />,
         label: "Under R&D Review",
       };
 
@@ -339,6 +394,24 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
             </div>
           )}
 
+          {/* Rejection Details Block */}
+          {(['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes((p.status || '').toLowerCase())) && (
+            <div className="bg-red-50 rounded-lg p-5 border border-red-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
+                  <XCircle className="w-5 h-5" />
+                  Rejection Details
+                </h3>
+              </div>
+              <div className="bg-white p-4 rounded border border-red-100">
+                <p className="text-xs font-bold text-red-700 mb-2">Reason for Rejection</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                  {rejectionComment || "Loading rejection details..."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Documents Section */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
             <div className="flex items-center justify-between mb-3">
@@ -395,7 +468,20 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               </div>
               <p className="text-sm font-semibold text-slate-900">{p.agency}</p>
               <p className="text-xs text-slate-600 mt-1 flex items-start gap-1">
-                <MapPin className="w-3 h-3 mt-0.5" /> {p.address}
+                <MapPin className="w-3 h-3 mt-0.5" />
+                {(() => {
+                  const addrString = p.address;
+                  if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
+                    return addrString;
+                  }
+                  // Fallback to first agency address if available
+                  if (agencyAddresses.length > 0) {
+                    const a = agencyAddresses[0];
+                    const parts = [a.street, a.barangay, a.city].filter(Boolean);
+                    return parts.length > 0 ? parts.join(", ") : "N/A";
+                  }
+                  return "N/A";
+                })()}
               </p>
             </div>
           </div>

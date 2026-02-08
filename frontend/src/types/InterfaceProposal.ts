@@ -7,9 +7,9 @@ export interface BudgetSource {
 	total: string;
 }
 
-interface Site{
-  site: string;
-  city: string;
+interface Site {
+	site: string;
+	city: string;
 }
 
 export interface Proposal {
@@ -42,7 +42,7 @@ export interface Proposal {
 	endDate: string;
 	budgetSources: BudgetSource[];
 	budgetTotal: string;
-	projectFile?: string;          
+	projectFile?: string;
 	endorsementJustification?: string;
 	rdStaffReviewer?: string;
 	evaluationDeadline?: string;
@@ -54,16 +54,16 @@ export interface Proposal {
 
 export type ProposalStatus =
 	| 'Pending'
-  | 'Under Review'
-  | 'Sent to Evaluators'
-  | 'Revision Required'
-  | 'Rejected Proposal'
-  | 'Revised Proposal'
+	| 'Under Review'
+	| 'Sent to Evaluators'
+	| 'Revision Required'
+	| 'Rejected Proposal'
+	| 'Revised Proposal'
 	| 'Assigned to RnD'
-  | 'Endorsed'
-  | 'Waiting for Funding'
-  | 'Funded'
-  | 'Unassigned';
+	| 'Endorsed'
+	| 'Waiting for Funding'
+	| 'Funded'
+	| 'Unassigned';
 
 export type DecisionType =
 	| 'Sent to Evaluators'

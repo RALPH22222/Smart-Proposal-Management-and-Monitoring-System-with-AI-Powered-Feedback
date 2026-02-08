@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FileText, Calendar, User, Eye, Gavel, Filter, Search, 
-  ChevronLeft, ChevronRight, Tag, Clock, XCircle, 
-  RefreshCw, GitBranch, Users, X, MessageSquare 
+import {
+  FileText, Calendar, User, Eye, Gavel, Filter, Search,
+  ChevronLeft, ChevronRight, Tag, XCircle,
+  GitBranch, Users, X, MessageSquare, AlertTriangle
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import {
   type Proposal,
   type Decision,
   type ProposalStatus,
   type Reviewer
 } from '../../../types/InterfaceProposal';
-import { 
-  getRndProposals, 
-  forwardProposalToEvaluators, 
-  requestRevision, 
-  rejectProposal 
+import {
+  getRndProposals,
+  forwardProposalToEvaluators,
+  requestRevision,
+  rejectProposal,
+  fetchAgencies,
+  type LookupItem
 } from '../../../services/proposal.api';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
@@ -55,39 +58,39 @@ const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
           {/* List */}
           <div className="space-y-3">
             {(!evaluators || evaluators.length === 0) ? (
-                <div className="text-center py-4">
-                    <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
-                </div>
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-500">No evaluators assigned yet.</p>
+              </div>
             ) : (
-                evaluators.map((name, index) => (
+              evaluators.map((name, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
-                    <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
+                  <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
                     {name.charAt(0)}
-                    </div>
-                    <span className="text-sm font-medium text-slate-700">{name}</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700">{name}</span>
                 </div>
-                ))
+              ))
             )}
           </div>
 
           {/* Message Section */}
           {message && (
             <div className="mt-6 pt-4 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 text-slate-400" />
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instruction / Message</h3>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-700 italic">
-                    "{message}"
-                </div>
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4 text-slate-400" />
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instruction / Message</h3>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm text-slate-700 italic">
+                "{message}"
+              </div>
             </div>
           )}
         </div>
-        
+
         <div className="p-4 border-t bg-slate-50 flex justify-end">
-            <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
-                Close
-            </button>
+          <button onClick={onClose} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -120,33 +123,45 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal States
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
-  const [selectedProposalForView, setSelectedProposalForView] = useState<ModalProposalData | null >(null);
-  
+  const [selectedProposalForView, setSelectedProposalForView] = useState<ModalProposalData | null>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  
+
   // Evaluator List Modal State
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
   const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
-  const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>(''); 
+  const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>('');
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  
+
   const currentUser: Reviewer = { id: 'current-user', name: 'Dr. John Smith', role: 'R&D Staff', email: 'john@example.com' };
+
+  const [agencies, setAgencies] = useState<LookupItem[]>([]);
 
   // Load proposals on component mount
   useEffect(() => {
     loadProposals();
+    loadLookups();
   }, []);
+
+  const loadLookups = async () => {
+    try {
+      const agencyData = await fetchAgencies();
+      setAgencies(agencyData);
+    } catch (err) {
+      console.error("Failed to load agencies:", err);
+    }
+  };
 
   // Filter proposals based on status and search term
   useEffect(() => {
@@ -170,7 +185,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     }
 
     setFilteredProposals(filtered);
-    setCurrentPage(1); 
+    setCurrentPage(1);
   }, [proposals, statusFilter, searchTerm]);
 
   const loadProposals = async () => {
@@ -178,61 +193,61 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       setLoading(true);
       const data = await getRndProposals();
       console.log("RND Proposals Data:", data); // DEBUG LOG
-      
+
       // Transform logic
       // Transform logic
       const mappedProposals: Proposal[] = data.map((p: any) => {
         // Normalize raw data: Check if p is a wrapper or the data itself
         const hasNestedProposal = p.proposal_id && typeof p.proposal_id === 'object' && (p.proposal_id.project_title || p.proposal_id.title);
         const raw = hasNestedProposal ? p.proposal_id : p;
-        
+
         console.log(`Processing Proposal [${raw.id}]:`, raw);
 
         // Extract evaluator names for the list view
         // Check for common field names for evaluators
         const rawEvaluators = raw.proposal_evaluator || raw.evaluators || raw.assigned_evaluators || [];
-        
+
         const evaluatorNames = rawEvaluators.map((e: any) => {
-            const name = `${e.evaluator_id?.first_name || ''} ${e.evaluator_id?.last_name || ''}`.trim() || 'Unknown';
-            const email = e.evaluator_id?.email || '';
-            return email ? `${name} (${email})` : name;
+          const name = `${e.evaluator_id?.first_name || ''} ${e.evaluator_id?.last_name || ''}`.trim() || 'Unknown';
+          const email = e.evaluator_id?.email || '';
+          return email ? `${name} (${email})` : name;
         });
 
         // Construct basic Proposal object
         const transformed: Proposal = {
-            id: raw.id, 
-            title: raw.project_title || "Untitled",
-            documentUrl: raw.file_url || "", 
-            status: backendToFrontendStatus(raw.status),
-            submittedBy: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
-            submittedDate: raw.created_at,
-            lastModified: raw.updated_at || raw.created_at,
-            proponent: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
-            gender: raw.proponent_id?.sex || "N/A",
-            agency: raw.agency?.name || raw.agency || "WMSU",
-            address: "N/A",
-            telephone: raw.phone || raw.telephone || "N/A",
-            fax: "N/A",
-            email: raw.email || "",
-            projectType: raw.sector?.name || "N/A",
-            classification: raw.classification_type || "Research",
-            classificationDetails: raw.class_input || "",
-            duration: raw.duration || "0",
-            startDate: raw.plan_start_date || "",
-            endDate: raw.plan_end_date || "",
-            budgetTotal: raw.total_budget || "0",
-            budgetSources: [],
-            modeOfImplementation: raw.implementation_mode || "Single Agency",
-            implementationSites: raw.implementation_site || [],
-            priorityAreas: raw.priorities_id ? JSON.stringify(raw.priorities_id) : "",
-            sector: raw.sector?.name || "N/A",
-            discipline: raw.discipline?.name || "N/A",
-            cooperatingAgencies: raw.cooperating_agencies ? JSON.stringify(raw.cooperating_agencies) : "",
-            rdStation: raw.rnd_station?.name || "N/A",
-            assignedEvaluators: evaluatorNames, 
-            evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "", 
-            projectFile: raw.file_url,
-            raw: raw // Pass normalized data to modal
+          id: raw.id,
+          title: raw.project_title || "Untitled",
+          documentUrl: raw.file_url || "",
+          status: backendToFrontendStatus(raw.status),
+          submittedBy: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
+          submittedDate: raw.created_at,
+          lastModified: raw.updated_at || raw.created_at,
+          proponent: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
+          gender: raw.proponent_id?.sex || "N/A",
+          agency: raw.agency?.name || raw.agency || "WMSU",
+          address: "N/A",
+          telephone: raw.phone || raw.telephone || "N/A",
+          fax: "N/A",
+          email: raw.email || "",
+          projectType: raw.sector?.name || "N/A",
+          classification: raw.classification_type || "Research",
+          classificationDetails: raw.class_input || "",
+          duration: raw.duration || "0",
+          startDate: raw.plan_start_date || "",
+          endDate: raw.plan_end_date || "",
+          budgetTotal: raw.total_budget || "0",
+          budgetSources: [],
+          modeOfImplementation: raw.implementation_mode || "Single Agency",
+          implementationSites: raw.implementation_site || [],
+          priorityAreas: raw.priorities_id ? JSON.stringify(raw.priorities_id) : "",
+          sector: raw.sector?.name || "N/A",
+          discipline: raw.discipline?.name || "N/A",
+          cooperatingAgencies: raw.cooperating_agencies ? JSON.stringify(raw.cooperating_agencies) : "",
+          rdStation: raw.rnd_station?.name || "N/A",
+          assignedEvaluators: evaluatorNames,
+          evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
+          projectFile: raw.file_url,
+          raw: raw // Pass normalized data to modal
         } as any;
         return transformed;
       });
@@ -265,32 +280,41 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   // --- SUBMIT DECISION (Calls Real API) ---
   const handleSubmitDecision = async (decision: Decision) => {
     try {
-        const proposalIdNumber = Number(decision.proposalId); // API usually expects number
+      const proposalIdNumber = Number(decision.proposalId); // API usually expects number
 
-        if (decision.decision === 'Sent to Evaluators') {
-            await forwardProposalToEvaluators({
-                proposal_id: proposalIdNumber,
-                evaluator_id: decision.assignedEvaluators || [],
-                deadline_at: decision.evaluationDeadline ? parseInt(decision.evaluationDeadline, 10) : 14,
-                commentsForEvaluators: decision.structuredComments?.objectives?.content // Use available comment field
-            });
-        } else if (decision.decision === 'Revision Required') {
-            await requestRevision({
-                proposal_id: proposalIdNumber,
-                deadline: decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : Date.now() + 14 * 24 * 60 * 60 * 1000,
-                // Map comments
-                objective_comment: decision.structuredComments?.objectives?.content,
-                methodology_comment: decision.structuredComments?.methodology?.content,
-                budget_comment: decision.structuredComments?.budget?.content,
-                timeline_comment: decision.structuredComments?.timeline?.content,
-                overall_comment: decision.structuredComments?.overall?.content,
-            });
-        } else if (decision.decision === 'Rejected Proposal') {
-            await rejectProposal({
-                proposal_id: proposalIdNumber,
-                comment: decision.structuredComments?.overall?.content || "No comment provided."
-            });
-        }
+      if (decision.decision === 'Sent to Evaluators') {
+        await forwardProposalToEvaluators({
+          proposal_id: proposalIdNumber,
+          evaluator_id: decision.assignedEvaluators || [],
+          deadline_at: decision.evaluationDeadline ? parseInt(decision.evaluationDeadline, 10) : 14,
+          commentsForEvaluators: decision.structuredComments?.objectives?.content // Use available comment field
+        });
+      } else if (decision.decision === 'Revision Required') {
+        await requestRevision({
+          proposal_id: proposalIdNumber,
+          deadline: decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : Date.now() + 14 * 24 * 60 * 60 * 1000,
+          // Map comments
+          objective_comment: decision.structuredComments?.objectives?.content,
+          methodology_comment: decision.structuredComments?.methodology?.content,
+          budget_comment: decision.structuredComments?.budget?.content,
+          timeline_comment: decision.structuredComments?.timeline?.content,
+          overall_comment: decision.structuredComments?.overall?.content,
+        });
+      } else if (decision.decision === 'Rejected Proposal') {
+        await rejectProposal({
+          proposal_id: proposalIdNumber,
+          // FIX: Read from objectives.content because RndProposalModal binds it there for Rejection
+          comment: decision.structuredComments?.objectives?.content || decision.structuredComments?.overall?.content || "No comment provided."
+        });
+      }
+
+      // Success Alert
+      Swal.fire({
+        title: 'Success!',
+        text: `Proposal has been ${decision.decision === 'Sent to Evaluators' ? 'forwarded' : decision.decision === 'Revision Required' ? 'returned for revision' : 'rejected'}.`,
+        icon: 'success',
+        confirmButtonColor: '#C8102E'
+      });
 
       // Refresh list to update status
       await loadProposals();
@@ -298,20 +322,26 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       if (onStatsUpdate) {
         onStatsUpdate();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting decision:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: error?.response?.data?.message || 'Something went wrong. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#C8102E'
+      });
     }
   };
 
   // --- Helper: Status Badge Logic (Updated with Clickable Evaluators) ---
   const getStatusBadge = (status: ExtendedProposalStatus, proposal: Proposal) => {
     const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 max-w-[200px] truncate cursor-pointer hover:opacity-80 transition-opacity';
-  
+
     switch (status) {
       case 'Pending':
         return (
-          <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200 cursor-default`}>
-            <Clock className="w-3 h-3 flex-shrink-0" />
+          <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200 cursor-default`}>
+            <Search className="w-3 h-3 flex-shrink-0" />
             Under R&D Review
           </span>
         );
@@ -326,13 +356,13 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         const evaluators = (proposal as any).assignedEvaluators || [];
         const evaluatorText = 'Under Evaluators Assessment';
         return (
-            <span 
-                className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`} 
-                title={evaluators.join(', ')}
-            >
-                <Users className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{evaluatorText}</span>
-            </span>
+          <span
+            className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}
+            title={evaluators.join(', ')}
+          >
+            <Users className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{evaluatorText}</span>
+          </span>
         );
 
       case 'Rejected Proposal':
@@ -345,7 +375,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       case 'Revision Required':
         return (
           <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}>
-            <RefreshCw className="w-3 h-3 flex-shrink-0" />
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
             {status}
           </span>
         );
@@ -365,14 +395,28 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   };
 
   const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case 'ICT': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Healthcare': return 'bg-pink-100 text-pink-700 border-pink-200';
-      case 'Agriculture': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Energy': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Public Safety': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    if (!type) return 'bg-slate-100 text-slate-700 border-slate-200';
+
+    const colors = [
+      'bg-blue-100 text-blue-700 border-blue-200',
+      'bg-pink-100 text-pink-700 border-pink-200',
+      'bg-green-100 text-green-700 border-green-200',
+      'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'bg-purple-100 text-purple-700 border-purple-200',
+      'bg-indigo-100 text-indigo-700 border-indigo-200',
+      'bg-teal-100 text-teal-700 border-teal-200',
+      'bg-orange-100 text-orange-700 border-orange-200',
+      'bg-cyan-100 text-cyan-700 border-cyan-200',
+      'bg-rose-100 text-rose-700 border-rose-200',
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < type.length; i++) {
+      hash = type.charCodeAt(i) + ((hash << 5) - hash);
     }
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   // Pagination logic
@@ -391,7 +435,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     );
   }
 
-  return (  
+  return (
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
@@ -511,7 +555,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                       {/* --- COL 2: STATUS & ACTIONS --- */}
                       <td className="px-6 py-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-3">
-                          
+
                           {/* Status Badge (Clickable for Evaluators) */}
                           {getStatusBadge(proposal.status as ExtendedProposalStatus, proposal)}
 
@@ -593,6 +637,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             setIsViewModalOpen(false);
             setSelectedProposalForView(null);
           }}
+          agencies={agencies}
         />
 
         {/* Evaluator List Modal */}
