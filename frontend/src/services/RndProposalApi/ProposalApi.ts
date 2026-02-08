@@ -89,7 +89,7 @@ export const proposalApi = {
 	},
 
 	// Submit decision for a proposal
-	submitDecision: async (decision: Decision): Promise<void> => {
+	submitDecision: async (_decision: Decision): Promise<void> => {
 		// This uses the other API services directly in the components, 
         // but keeping this stub for interface compatibility if needed.
         console.warn("submitDecision in ProposalApi is deprecated. Use direct API calls.");
@@ -97,8 +97,8 @@ export const proposalApi = {
 
 	// Update proposal status
 	updateProposalStatus: async (
-		proposalId: string,
-		status: ProposalStatus
+		_proposalId: string,
+		_status: ProposalStatus
 	): Promise<void> => {
          console.warn("updateProposalStatus in ProposalApi is deprecated.");
 	},
