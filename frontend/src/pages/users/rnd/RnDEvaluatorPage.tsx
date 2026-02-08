@@ -74,17 +74,26 @@ export const RnDEvaluatorPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // --- DATA FETCHING ---
-  // --- DATA FETCHING ---
   const fetchData = async () => {
     setLoading(true);
     try {
       // 1. Fetch all proposals visible to R&D
       const proposals = await getRndProposals();
+      console.log("RND Proposals:", proposals);
 
       // 2. For each proposal, fetch its assignment tracker data
-      const trackerPromises = proposals.map((p: any) => getAssignmentTracker(p.id));
+      const trackerPromises = proposals.map((p: any) => {
+        if (!p?.proposal_id?.id) {
+          console.warn("Invalid proposal record:", p);
+          return Promise.resolve([]);
+        }
+        return getAssignmentTracker(p.proposal_id.id).catch(err => {
+            console.error(`Failed to fetch tracker for proposal ${p.proposal_id.id}`, err);
+            return []; // Return empty array on error to prevent total failure
+        });
+      });
       const trackerResults = await Promise.all(trackerPromises);
-
+      
       // Flat list of all assignments
       const allAssignments = trackerResults.flat();
       console.log("Aggregated Assignment Data:", allAssignments);
@@ -121,17 +130,17 @@ export const RnDEvaluatorPage: React.FC = () => {
         }
 
         // Safe Evaluator Data Extraction
-        const evalId = item.evaluator_id.id || "unknown";
-        const evalFirstName = item.evaluator_id.first_name || "Unknown";
-        const evalLastName = item.evaluator_id.last_name || "";
+        const evalId = item.evaluator_id?.id || "unknown";
+        const evalFirstName = item.evaluator_id?.first_name || "Unknown";
+        const evalLastName = item.evaluator_id?.last_name || "";
         const evalName = `${evalFirstName} ${evalLastName}`.trim();
-        const evalDept = item.evaluator_id.department_id?.name || "N/A";
+        const evalDept = "N/A";
 
         group.evaluators.push({
           id: evalId,
           name: evalName,
           department: evalDept,
-          status: effectiveStatus, // extend, pending, accept, decline, completed
+          status: effectiveStatus, 
           deadline: item.deadline ? item.deadline : Date.now(),
           request_deadline_at: item.request_deadline_at,
           remarks: item.remarks,
@@ -156,9 +165,8 @@ export const RnDEvaluatorPage: React.FC = () => {
         } else if (statusSet.has("pending")) {
           aggregateStatus = "Pending";
         } else if (statusSet.has("completed") || statusSet.has("done")) {
-          // If all completed?
-          if (group.evaluators.every((e) => e.status === "completed")) aggregateStatus = "Completed";
-          else aggregateStatus = "Pending"; // Mixed
+           if (group.evaluators.every((e) => e.status === "completed")) aggregateStatus = "Completed";
+           else aggregateStatus = "Pending"; // Mixed
         } else if (statusSet.has("accept") || statusSet.has("accepted")) {
           aggregateStatus = "Accepts";
         }
@@ -268,6 +276,7 @@ export const RnDEvaluatorPage: React.FC = () => {
     setLoading(true);
     try {
       const proposalIdNumeric = parseInt(id);
+      
       const data = await getAssignmentTracker(proposalIdNumeric);
 
       const relevantItems = data; // Data is already filtered by API now!

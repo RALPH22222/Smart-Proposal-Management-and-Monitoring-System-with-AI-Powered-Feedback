@@ -236,7 +236,7 @@ export default function Proposals() {
       proposal_id: proposalToEvaluate,
       status: apiStatus,
       remarks: remarks || undefined, // Send undefined if empty string
-      request_deadline_at: formattedDeadline,
+      deadline_at: formattedDeadline,
     };
 
     try {

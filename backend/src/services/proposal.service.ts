@@ -1434,16 +1434,14 @@ export class ProposalService {
   async getAssignmentTracker(proposal_id: number, user_sub: string, roles: string[]) {
     const isAdmin = roles.includes("admin");
 
-    // Build the base query
     let query = this.db.from("proposal_assignment_tracker").select(
       `
         id,
         proposals:proposal_id(
           id,
-          project_title,
-          proposal_evaluators(forwarded_by_rnd, evaluator_id)
+          project_title
         ),
-        evaluator_id(first_name, last_name, middle_ini),
+        evaluator_id(id, first_name, last_name, middle_ini),
         deadline_at,
         request_deadline_at,
         remarks,
@@ -1456,29 +1454,44 @@ export class ProposalService {
       query = query.eq("proposal_id", proposal_id);
     }
 
-    const { data, error } = await query;
+    const { data: trackerData, error } = await query;
 
     if (error) {
       return { data: null, error };
     }
-
+    
     // Admin sees all tracker records; RND only sees evaluators they assigned
-    let filtered = data || [];
-    if (!isAdmin) {
-      filtered = filtered.filter((row: any) => {
-        // Access nested proposal_evaluators from the proposal relation
-        const proposal = row.proposals;
-        const evaluators = proposal && Array.isArray(proposal.proposal_evaluators)
-          ? proposal.proposal_evaluators
-          : [];
+    let filtered = trackerData || [];
 
-        return evaluators.some(
-          (pe: any) => pe.evaluator_id === row.evaluator_id && pe.forwarded_by_rnd === user_sub,
+    // Filter by RND assignments if not admin
+    if (!isAdmin) {
+      let authQuery = this.db
+        .from("proposal_evaluators")
+        .select("proposal_id, evaluator_id")
+        .eq("forwarded_by_rnd", user_sub);
+      
+      if (proposal_id) {
+        authQuery = authQuery.eq("proposal_id", proposal_id);
+      }
+
+      const { data: allowedAssignments, error: authError } = await authQuery;
+
+      if (!authError && allowedAssignments) {
+        const allowedSet = new Set(
+          allowedAssignments.map((a: any) => `${a.proposal_id}-${a.evaluator_id}`)
         );
-      });
+
+        filtered = filtered.filter((row: any) => {
+           const pId = row.proposals?.id;
+           const eId = row.evaluator_id?.id;
+           
+           if (!pId || !eId) return false;
+           return allowedSet.has(`${pId}-${eId}`);
+        });
+      }
     }
+
     const result = filtered.map((row: any) => {
-      // Create a clean proposal object without the nested evaluators list for the response
       const cleanProposal = {
         id: row.proposals?.id,
         project_title: row.proposals?.project_title,
