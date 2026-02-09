@@ -17,6 +17,8 @@ import {
   requestRevision,
   rejectProposal,
   fetchAgencies,
+  fetchSectors,
+  fetchPriorities,
   type LookupItem
 } from '../../../services/proposal.api';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
@@ -147,6 +149,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const currentUser: Reviewer = { id: 'current-user', name: 'Dr. John Smith', role: 'R&D Staff', email: 'john@example.com' };
 
   const [agencies, setAgencies] = useState<LookupItem[]>([]);
+  const [sectors, setSectors] = useState<LookupItem[]>([]);
+  const [priorityAreas, setPriorityAreas] = useState<LookupItem[]>([]);
 
   // Load proposals on component mount
   useEffect(() => {
@@ -156,8 +160,14 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   const loadLookups = async () => {
     try {
-      const agencyData = await fetchAgencies();
+      const [agencyData, sectorData, priorityData] = await Promise.all([
+        fetchAgencies(),
+        fetchSectors(),
+        fetchPriorities(),
+      ]);
       setAgencies(agencyData);
+      setSectors(sectorData);
+      setPriorityAreas(priorityData);
     } catch (err) {
       console.error("Failed to load agencies:", err);
     }
@@ -247,6 +257,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           assignedEvaluators: evaluatorNames,
           evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
           projectFile: raw.file_url,
+          tags: raw.proposal_tags?.map((t: any) => t.tags?.name) || [],
           raw: raw // Pass normalized data to modal
         } as any;
         return transformed;
@@ -419,6 +430,30 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     return colors[index];
   };
 
+  // Helper for Random Tag Colors (Matches Profile.tsx)
+  const getTagColor = (tag: string) => {
+    // Simple hash function to get consistent color for same tag
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -539,15 +574,18 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                                 Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
-                            {/* Project Type Badge */}
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(
-                                proposal.projectType
-                              )}`}
-                            >
-                              <Tag className="w-3 h-3" />
-                              {proposal.projectType}
-                            </span>
+
+
+                            {/* Render Additional Tags */}
+                            {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
+                              >
+                                <Tag className="w-3 h-3" />
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </td>
@@ -638,6 +676,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             setSelectedProposalForView(null);
           }}
           agencies={agencies}
+          sectors={sectors}
+          priorityAreas={priorityAreas}
         />
 
         {/* Evaluator List Modal */}

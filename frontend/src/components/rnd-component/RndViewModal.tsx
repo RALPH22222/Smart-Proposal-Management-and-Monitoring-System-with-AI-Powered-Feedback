@@ -18,11 +18,11 @@ import {
   Briefcase,
   FileCheck,
   Timer,
-  Building2,
   MapPin,
   Globe,
   CheckCircle,
   Search,
+  Target,
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary } from "../../services/proposal.api";
 
@@ -83,6 +83,8 @@ interface RndViewModalProps {
   // Handler for actions, slightly adjusted types for generic usage if needed
   onAction?: (action: 'forwardEval' | 'revision' | 'reject', proposalId: string) => void;
   agencies?: LookupItem[];
+  sectors?: LookupItem[];
+  priorityAreas?: LookupItem[];
 }
 
 // --- HELPER FUNCTIONS ---
@@ -123,12 +125,16 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
   proposal,
   onAction,
   agencies = [],
+  sectors = [],
+  priorityAreas = [],
 }) => {
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
 
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
+  const [rejectionDate, setRejectionDate] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'revision' | 'reject' | null, id: string | number | null }>({ type: null, id: null });
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -159,17 +165,21 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
       if (['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes((p.status || '').toLowerCase())) {
         try {
           const summary = await fetchRejectionSummary(Number(p.id));
-          if (summary && summary.comment) {
-            setRejectionComment(summary.comment);
+          if (summary) {
+            setRejectionComment(summary.comment || "No specific comment provided.");
+            setRejectionDate(summary.created_at || null);
           } else {
             setRejectionComment("No specific comment provided.");
+            setRejectionDate(null);
           }
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);
           setRejectionComment("Failed to load rejection details.");
+          setRejectionDate(null);
         }
       } else {
         setRejectionComment(null);
+        setRejectionDate(null);
       }
     };
 
@@ -408,6 +418,11 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 <p className="text-sm text-slate-700 whitespace-pre-wrap">
                   {rejectionComment || "Loading rejection details..."}
                 </p>
+                {rejectionDate && (
+                  <p className="text-xs text-slate-500 mt-2 text-right italic">
+                    Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -439,62 +454,75 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
             </div>
           </div>
 
-          {/* General Information Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Leader Info */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <User className="w-4 h-4 text-[#C8102E]" />
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Leader</h4>
-              </div>
-              <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
-              <div className="mt-4 space-y-2">
-                <div>
-                  <p className="text-xs text-slate-500 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</p>
-                  <p className="text-sm text-slate-800">{p.email}</p>
+          {/* General Information Grid (Leader & Agency) */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+              <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Leader Info */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
+                <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent}</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Phone className="w-3.5 h-3.5 text-slate-400" /> {p.telephone}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 flex items-center gap-1"><Phone className="w-3 h-3" /> Contact</p>
-                  <p className="text-sm text-slate-800">{p.telephone}</p>
-                </div>
               </div>
-            </div>
 
-            {/* Agency Info */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Building2 className="w-4 h-4 text-[#C8102E]" />
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Agency</h4>
+              {/* Agency Info */}
+              <div>
+                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Agency</label>
+                <p className="text-sm font-semibold text-slate-900 mb-2">{p.agency}</p>
+                <div className="flex items-start gap-2 text-sm text-slate-700">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                  {(() => {
+                    const addrString = p.address;
+                    if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
+                      return addrString;
+                    }
+                    if (agencyAddresses.length > 0) {
+                      const a = agencyAddresses[0];
+                      const parts = [a.street, a.barangay, a.city].filter(Boolean);
+                      return parts.length > 0 ? parts.join(", ") : "N/A";
+                    }
+                    return "N/A";
+                  })()}
+                </div>
               </div>
-              <p className="text-sm font-semibold text-slate-900">{p.agency}</p>
-              <p className="text-xs text-slate-600 mt-1 flex items-start gap-1">
-                <MapPin className="w-3 h-3 mt-0.5" />
-                {(() => {
-                  const addrString = p.address;
-                  if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
-                    return addrString;
-                  }
-                  // Fallback to first agency address if available
-                  if (agencyAddresses.length > 0) {
-                    const a = agencyAddresses[0];
-                    const parts = [a.street, a.barangay, a.city].filter(Boolean);
-                    return parts.length > 0 ? parts.join(", ") : "N/A";
-                  }
-                  return "N/A";
-                })()}
-              </p>
             </div>
           </div>
 
-          {/* Project Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
-              </h4>
-              <p className="text-sm font-semibold text-slate-900">{formatString(p.modeOfImplementation)}</p>
+          {/* Implementation Sites */}
+          {p.implementationSites && p.implementationSites.length > 0 && (
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {p.implementationSites.map((site, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 leading-tight">{site.site}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{site.city}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
 
+          {/* Project Details Grid (Consolidated) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Cooperating Agencies */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
@@ -502,13 +530,15 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               <p className="text-sm text-slate-900">{p.cooperatingAgencies || "None"}</p>
             </div>
 
+            {/* Mode of Implementation */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
+                <FileText className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
               </h4>
-              <p className="text-sm text-slate-900">{p.rdStation}</p>
+              <p className="text-sm font-semibold text-slate-900">{formatString(p.modeOfImplementation)}</p>
             </div>
 
+            {/* Classification */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
@@ -516,24 +546,62 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               <p className="text-sm font-semibold text-slate-900">{formatString(p.classification)}</p>
               {p.classificationDetails && <p className="text-xs text-slate-600 mt-1">{p.classificationDetails}</p>}
             </div>
-          </div>
 
-          {/* Sites */}
-          {p.implementationSites && p.implementationSites.length > 0 && (
+            {/* R&D Station */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites
+                <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {p.implementationSites.map((site, i) => (
-                  <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 shadow-sm">
-                    <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                    {site.site}, {site.city}
-                  </span>
-                ))}
-              </div>
+              <p className="text-sm text-slate-900">{p.rdStation}</p>
             </div>
-          )}
+
+            {/* Priority Areas */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {(() => {
+                  if (!p.priorityAreas) return "N/A";
+                  // Try to parse array of IDs
+                  try {
+                    const parsed = JSON.parse(p.priorityAreas);
+                    if (Array.isArray(parsed)) {
+                      return parsed.map(id =>
+                        priorityAreas.find(pa => Number(pa.id) === Number(id))?.name || id
+                      ).join(", ");
+                    }
+                    return p.priorityAreas;
+                  } catch (e) {
+                    return p.priorityAreas;
+                  }
+                })()}
+              </p>
+            </div>
+
+            {/* Sector */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {isNaN(Number(p.sector))
+                  ? p.sector
+                  : sectors.find(s => Number(s.id) === Number(p.sector))?.name || p.sector}
+              </p>
+            </div>
+
+            {/* Discipline (If available in data, else show N/A or hide) */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Discipline
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {p.discipline || "N/A"}
+              </p>
+            </div>
+
+          </div>
 
           {/* Schedule Section (ReadOnly) */}
           <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
@@ -669,14 +737,14 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 Assigned to Evaluator
               </button>
               <button
-                onClick={() => onAction('revision', p.id)}
+                onClick={() => setConfirmAction({ type: 'revision', id: p.id })}
                 className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-200 rounded-lg hover:bg-orange-200 transition-colors shadow-sm flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Revise
               </button>
               <button
-                onClick={() => onAction('reject', p.id)}
+                onClick={() => setConfirmAction({ type: 'reject', id: p.id })}
                 className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-200 rounded-lg hover:bg-red-200 transition-colors shadow-sm flex items-center justify-center gap-2"
               >
                 <XCircle className="w-4 h-4" />
@@ -691,6 +759,46 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
             Close
           </button>
         </div>
+
+        {/* Confirmation Modal */}
+        {confirmAction.type && (
+          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[1px] p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-6 w-full max-w-sm transform scale-100 animate-in zoom-in-95 duration-200">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${confirmAction.type === 'reject' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                  {confirmAction.type === 'reject' ? <AlertTriangle className="w-6 h-6" /> : <RefreshCw className="w-6 h-6" />}
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {confirmAction.type === 'reject' ? 'Reject Proposal?' : 'Request Revision?'}
+                </h3>
+                <p className="text-sm text-slate-600">
+                  {confirmAction.type === 'reject'
+                    ? "Are you sure you want to reject this proposal? This action cannot be undone."
+                    : "Are you sure you want to return this proposal for revision?"}
+                </p>
+                <div className="flex w-full gap-3 mt-4">
+                  <button
+                    onClick={() => setConfirmAction({ type: null, id: null })}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onAction && confirmAction.id) {
+                        onAction(confirmAction.type as 'revision' | 'reject', String(confirmAction.id));
+                      }
+                      setConfirmAction({ type: null, id: null });
+                    }}
+                    className={`flex-1 px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors ${confirmAction.type === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}`}
+                  >
+                    Yes, {confirmAction.type === 'reject' ? 'Reject' : 'Revise'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

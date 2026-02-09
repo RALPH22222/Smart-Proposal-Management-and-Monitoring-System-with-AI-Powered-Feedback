@@ -6,7 +6,7 @@ import {
   type Activity,
   type BudgetSource
 } from '../../types/InterfaceProposal';
-import { 
+import {
   getProposals,
   forwardProposalToRnd,
   forwardProposalToEvaluators,
@@ -32,46 +32,46 @@ export const adminProposalApi = {
   submitDecision: async (decision: Decision): Promise<void> => {
     try {
       console.log('Admin submitting decision:', decision);
-      
+
       const proposalId = parseInt(decision.proposalId, 10);
       const deadlineTimestamp = decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : 0;
 
       // Map DecisionType to specific API calls
       if (decision.decision === 'Assign to RnD') {
-          if (decision.assignedRdStaffId) {
-             await forwardProposalToRnd(proposalId, [decision.assignedRdStaffId]);
-          } else {
-             console.warn("No R&D staff ID provided for assignment");
-          }
+        if (decision.assignedRdStaffId) {
+          await forwardProposalToRnd(proposalId, [decision.assignedRdStaffId]);
+        } else {
+          console.warn("No R&D staff ID provided for assignment");
+        }
       } else if (decision.decision === 'Sent to Evaluators') {
-          if (decision.assignedEvaluators && decision.assignedEvaluators.length > 0) {
-             await forwardProposalToEvaluators({
-                proposal_id: proposalId,
-                evaluator_id: decision.assignedEvaluators,
-                deadline_at: deadlineTimestamp,
-                commentsForEvaluators: decision.structuredComments?.objectives?.content // Using 'objectives' content field as general comment container from Modal
-             });
-          }
-      } else if (decision.decision === 'Rejected Proposal') {
-          await rejectProposal({ 
-              proposal_id: proposalId, 
-              comment: decision.structuredComments?.overall?.content 
+        if (decision.assignedEvaluators && decision.assignedEvaluators.length > 0) {
+          await forwardProposalToEvaluators({
+            proposal_id: proposalId,
+            evaluator_id: decision.assignedEvaluators,
+            deadline_at: deadlineTimestamp,
+            commentsForEvaluators: decision.structuredComments?.objectives?.content // Using 'objectives' content field as general comment container from Modal
           });
+        }
+      } else if (decision.decision === 'Rejected Proposal') {
+        await rejectProposal({
+          proposal_id: proposalId,
+          comment: decision.structuredComments?.overall?.content
+        });
       } else if (decision.decision === 'Revision Required') {
-           await requestRevision({
-              proposal_id: proposalId,
-              deadline: deadlineTimestamp,
-              objective_comment: decision.structuredComments?.objectives?.content,
-              methodology_comment: decision.structuredComments?.methodology?.content,
-              budget_comment: decision.structuredComments?.budget?.content,
-              timeline_comment: decision.structuredComments?.timeline?.content,
-              overall_comment: decision.structuredComments?.overall?.content
-           });
+        await requestRevision({
+          proposal_id: proposalId,
+          deadline: deadlineTimestamp,
+          objective_comment: decision.structuredComments?.objectives?.content,
+          methodology_comment: decision.structuredComments?.methodology?.content,
+          budget_comment: decision.structuredComments?.budget?.content,
+          timeline_comment: decision.structuredComments?.timeline?.content,
+          overall_comment: decision.structuredComments?.overall?.content
+        });
       }
-      
+
     } catch (error) {
-       console.error("Error submitting decision", error);
-       throw error;
+      console.error("Error submitting decision", error);
+      throw error;
     }
   },
 
@@ -80,16 +80,16 @@ export const adminProposalApi = {
     proposalId: string,
     status: ProposalStatus
   ): Promise<void> => {
-      // Calls the generic update status if available, or implies it was handled by the specific action
-      console.log(`Admin updating proposal ${proposalId} status to ${status}`);
-      
-      // If status is "Assigned to RnD", we might want to trigger `forwardProposalToRnd` if we knew real parameters.
-      // However, we lack the "rnd_id" here.
+    // Calls the generic update status if available, or implies it was handled by the specific action
+    console.log(`Admin updating proposal ${proposalId} status to ${status}`);
+
+    // If status is "Assigned to RnD", we might want to trigger `forwardProposalToRnd` if we knew real parameters.
+    // However, we lack the "rnd_id" here.
   },
 
   // Fetch Admin statistics
   fetchStatistics: async (): Promise<Statistics> => {
-     // TODO: Connect to real stats API if available
+    // TODO: Connect to real stats API if available
     await new Promise((resolve) => setTimeout(resolve, 300));
     return getAdminDummyStatistics();
   },
@@ -107,7 +107,7 @@ export const adminProposalApi = {
 const mapStatus = (status: string): ProposalStatus => {
   switch (status?.toLowerCase()) {
     case 'pending': return 'Pending';
-    case 'review_rnd': return 'Under R&D Review'; 
+    case 'review_rnd': return 'Under R&D Review';
     case 'revision_rnd': return 'Revision Required'; // Based on enum
     case 'rejected_rnd': return 'Rejected Proposal';
     case 'under_evaluation': return 'Under Evaluators Assessment';
@@ -125,20 +125,20 @@ const mapStatus = (status: string): ProposalStatus => {
 
 const mapToProposal = (data: any): Proposal => {
   // Helper to safely get array buffer
-  const budgetSources: BudgetSource[] = Array.isArray(data.estimated_budget) 
+  const budgetSources: BudgetSource[] = Array.isArray(data.estimated_budget)
     ? data.estimated_budget.map((b: any) => ({
-        source: b.source || 'Unknown',
-        ps: b.amount || '0', // Adjust mapping based on actual structure
-        mooe: '0',
-        co: '0',
-        total: b.amount || '0'
-      })) 
+      source: b.source || 'Unknown',
+      ps: b.amount || '0', // Adjust mapping based on actual structure
+      mooe: '0',
+      co: '0',
+      total: b.amount || '0'
+    }))
     : [];
 
   // Calculate generic total if possible
   const budgetTotal = budgetSources.reduce((acc, curr) => acc + parseFloat(curr.total || '0'), 0).toString();
 
-  const proponentName = data.proponent_id 
+  const proponentName = data.proponent_id
     ? `${data.proponent_id.first_name} ${data.proponent_id.last_name}`.trim()
     : 'Unknown Proponent';
 
@@ -160,9 +160,9 @@ const mapToProposal = (data: any): Proposal => {
     fax: data.fax || '',
     email: data.email || '',
     modeOfImplementation: data.implementation_mode || '',
-    implementationSites: Array.isArray(data.implementation_site) 
-        ? data.implementation_site.map((s: any) => ({ site: s.site_name, city: s.city })) 
-        : [],
+    implementationSites: Array.isArray(data.implementation_site)
+      ? data.implementation_site.map((s: any) => ({ site: s.site_name, city: s.city }))
+      : [],
     priorityAreas: data.proposal_priorities?.map((p: any) => p.priorities?.name).join(', ') || '',
     projectType: data.proposal_tags?.map((t: any) => t.tags?.name).join(', ') || '', // Using tags as type?
     cooperatingAgencies: data.cooperating_agencies?.map((c: any) => c.agencies?.name).join(', ') || '',
@@ -177,7 +177,9 @@ const mapToProposal = (data: any): Proposal => {
     budgetSources: budgetSources,
     budgetTotal: `₱${budgetTotal}`,
     projectFile: data.proposal_version?.[0]?.file_url || undefined,
-    assignedRdStaff: undefined, // Need to fetch from tracker/assignment if R&D is assigned
+    assignedRdStaff: data.proposal_rnd?.[0]?.users
+      ? `${data.proposal_rnd[0].users.first_name} ${data.proposal_rnd[0].users.last_name} (${data.proposal_rnd[0].users.department?.name || 'No Dept'}) - ${data.proposal_rnd[0].users.email}`
+      : undefined,
     assignedEvaluators: [], // Fetched via tracker usually
     evaluatorInstruction: ''
   };

@@ -571,7 +571,8 @@ export class ProposalService {
       agency:agencies(name),
       agency_address(id,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
-      proposal_version(id,file_url)
+      proposal_version(id,file_url),
+      proposal_rnd(users(first_name,last_name,email,department:departments(name)))
     `);
 
     // Filter by proponent_id if provided (security filter for proponent users)
@@ -1459,7 +1460,7 @@ export class ProposalService {
     if (error) {
       return { data: null, error };
     }
-    
+
     // Admin sees all tracker records; RND only sees evaluators they assigned
     let filtered = trackerData || [];
 
@@ -1469,7 +1470,7 @@ export class ProposalService {
         .from("proposal_evaluators")
         .select("proposal_id, evaluator_id")
         .eq("forwarded_by_rnd", user_sub);
-      
+
       if (proposal_id) {
         authQuery = authQuery.eq("proposal_id", proposal_id);
       }
@@ -1482,11 +1483,11 @@ export class ProposalService {
         );
 
         filtered = filtered.filter((row: any) => {
-           const pId = row.proposals?.id;
-           const eId = row.evaluator_id?.id;
-           
-           if (!pId || !eId) return false;
-           return allowedSet.has(`${pId}-${eId}`);
+          const pId = row.proposals?.id;
+          const eId = row.evaluator_id?.id;
+
+          if (!pId || !eId) return false;
+          return allowedSet.has(`${pId}-${eId}`);
         });
       }
     }

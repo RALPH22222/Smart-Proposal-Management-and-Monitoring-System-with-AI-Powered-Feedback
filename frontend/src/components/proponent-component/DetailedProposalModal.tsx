@@ -74,6 +74,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
+  const [rejectionDate, setRejectionDate] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -81,17 +82,21 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       if (['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(pStatus)) {
         try {
           const summary = await fetchRejectionSummary(Number(proposal?.id));
-          if (summary && summary.comment) {
-            setRejectionComment(summary.comment);
+          if (summary) {
+            setRejectionComment(summary.comment || "No specific comment provided.");
+            setRejectionDate(summary.created_at || null);
           } else {
             setRejectionComment("No specific comment provided.");
+            setRejectionDate(null);
           }
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);
           setRejectionComment("Failed to load rejection details.");
+          setRejectionDate(null);
         }
       } else {
         setRejectionComment(null);
+        setRejectionDate(null);
       }
     };
     if (isOpen && proposal) {
@@ -590,25 +595,46 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </h3>
               <div className="grid gap-3">
                 {activeComments.map((c, i) => {
-                  const isRevision = proposal.status === "revise";
+                  const isRevision = proposal?.status === "revise";
                   const isOverall = c.section === "Overall Comments";
                   const cardBg =
                     isRevision && !isOverall
                       ? "bg-white border-white/50"
                       : "bg-white/60 border-white/50";
                   const textStyle = isRevision && isOverall ? "italic" : "";
+
                   return (
-                    <div key={i} className={`rounded-lg p-3 border ${cardBg}`}>
-                      <span
-                        className={`text-xs font-bold tracking-wider block mb-1 opacity-75 ${theme.text}`}
+                    <div
+                      key={i}
+                      className={`p-4 rounded-lg border ${c.section === "Reason for Rejection" ? "bg-red-50/50 border-red-100" : cardBg} shadow-sm`}
+                    >
+                      <h4
+                        className={`text-xs uppercase font-bold tracking-wider mb-2 ${c.section === "Reason for Rejection" ? "text-red-700" : "text-gray-500"
+                          } flex items-center gap-2`}
                       >
+                        {c.section === "Reason for Rejection" ? (
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        ) : (
+                          <BookOpen className="w-3.5 h-3.5" />
+                        )}
                         {c.section}
-                      </span>
-                      <p
-                        className={`text-sm leading-relaxed ${theme.text} ${textStyle}`}
-                      >
+                      </h4>
+                      <div className={`text-sm leading-relaxed ${textStyle} ${c.section === "Reason for Rejection" ? "text-gray-700 whitespace-pre-wrap" : "text-gray-600"}`}>
                         {c.comment}
-                      </p>
+                      </div>
+
+                      {c.section === "Reason for Rejection" && (
+                        <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+                          <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
+                            Formal Decision by R&D Office
+                          </span>
+                          {rejectionDate && (
+                            <span className="text-xs text-slate-500 italic">
+                              Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Users,
@@ -25,6 +25,7 @@ import {
   CheckCircle,
 
 } from "lucide-react";
+import { fetchAgencies, fetchDepartments, type AgencyItem, type AddressItem, type LookupItem } from "../../services/proposal.api";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -51,7 +52,7 @@ export interface ModalProposalData {
   submittedDate: string;
   lastModified?: string;
   proponent: string;
-  gender: string;
+  department?: string;
   agency: string;
   address: string;
   telephone: string;
@@ -74,6 +75,9 @@ export interface ModalProposalData {
   budgetTotal: string;
   classification_type?: string;
   class_input?: string;
+  assignedBy?: string;
+  assignedRdStaff?: string;
+  evaluators?: { name: string; department?: string; status: string }[];
 }
 
 interface AdminViewModalProps {
@@ -82,6 +86,7 @@ interface AdminViewModalProps {
   // Use 'any' for prop to accept parent data, then cast internally
   proposal: any;
   onAction?: (action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject', proposalId: string) => void;
+  agencies?: LookupItem[];
 }
 
 // --- HELPER FUNCTIONS ---
@@ -136,9 +141,90 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   onClose,
   proposal,
   onAction,
+  agencies = [],
 }) => {
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
+
+  const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
+  // Local state for full agency objects to find address
+  const [agenciesList, setAgenciesList] = useState<AgencyItem[]>([]);
+  // Local state for departments to resolving ID to name
+  const [departmentsList, setDepartmentsList] = useState<LookupItem[]>([]);
+
+  // Fetch Agencies and Departments if not provided
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load Agencies
+        const agenciesData = await fetchAgencies();
+        setAgenciesList(agenciesData);
+      } catch (error) {
+        console.error("Failed to fetch agencies:", error);
+      }
+
+      try {
+        // Load Departments
+        const deptsData = await fetchDepartments();
+        setDepartmentsList(deptsData);
+      } catch (error) {
+        console.error("Failed to fetch departments:", error);
+      }
+    };
+
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
+
+  // Derive addresses from the fetched agency list
+  useEffect(() => {
+    if (!p?.agency || agenciesList.length === 0) {
+      setAgencyAddresses([]);
+      return;
+    }
+    const agency = agenciesList.find(a => a.name === p.agency);
+    if (agency && agency.agency_address) {
+      setAgencyAddresses(agency.agency_address);
+    } else {
+      setAgencyAddresses([]);
+    }
+  }, [p?.agency, agenciesList]);
+
+  // Derived Address (Matching RndViewModal logic)
+  const displayAddress = React.useMemo(() => {
+    if (!p) return "";
+
+    // 1. Prefer proposal address if valid/meaningful string
+    const addrString = p.address;
+    // Check if it's not effectively empty or "N/A"
+    if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
+      return addrString;
+    }
+
+    // 2. Fallback to first fetched agency address if available
+    if (agencyAddresses.length > 0) {
+      const a = agencyAddresses[0];
+      const parts = [a.street, a.barangay, a.city].filter(Boolean);
+      return parts.length > 0 ? parts.join(", ") : "N/A";
+    }
+
+    // 3. Last resort
+    return "N/A";
+  }, [p, agencyAddresses]);
+
+  // Derived Department Name
+  const departmentName = React.useMemo(() => {
+    if (!p?.department) return null;
+    // p.department is likely a UUID string or ID. departmentsList items have numeric ID if from LookupItem?
+    // Wait, fetchDepartments returns LookupItem[] {id: number, name: string}.
+    // If p.department is a UUID string, it won't match numeric ID.
+    // Assuming backend returns numeric ID for department if using standard LookupItem, 
+    // OR fetchDepartments returns objects with UUID ids if aligned with new backend.
+    // We try to match loosely.
+    const dept = departmentsList.find(d => String(d.id) === String(p.department));
+    return dept ? dept.name : p.department; // Fallback to displaying the ID if not found
+  }, [p?.department, departmentsList]);
 
   if (!isOpen || !proposal) return null;
 
@@ -220,7 +306,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
       };
 
     // Blue
-    if (["review_rnd", "r&d evaluation", "under r&d evaluation"].includes(s))
+    if (["review_rnd", "r&d evaluation", "under r&d evaluation", "under r&d review"].includes(s))
       return {
         bg: "bg-blue-100",
         border: "border-blue-200",
@@ -282,6 +368,52 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
 
+          {/* Assigned By (if available) - Matching RndViewModal */}
+          {p.assignedBy && (
+            <div className="bg-slate-50/50 px-4 py-2 rounded-lg border border-slate-100 flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              <p className="text-xs text-slate-600">
+                Forwarded by: <span className="font-semibold text-slate-800">{p.assignedBy}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Evaluators Section (Only for Under Evaluation) - Matching RndViewModal */}
+          {(p.status === "Under Evaluators Assessment" || p.status === "under_evaluation" || p.status === "under evaluators assessment") && (
+            <div className="bg-purple-50 rounded-lg p-5 border border-purple-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-purple-800 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Assigned Evaluators
+                </h3>
+              </div>
+              {p.evaluators && p.evaluators.length > 0 ? (
+                <ul className="space-y-2">
+                  {p.evaluators.map((ev, i) => (
+                    <li key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-purple-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-bold">
+                          {ev.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-700">{ev.name}</p>
+                          <p className="text-[10px] text-slate-500">{ev.department || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {ev.status || 'Pending'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-sm text-purple-600 italic bg-white/50 p-3 rounded border border-purple-100 text-center">
+                  No evaluators assigned yet.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Status Feedback Blocks */}
           {(p.status === "Revision Required" || p.status === "revision_rnd") && (
             <div className="bg-orange-50 rounded-lg p-5 border border-orange-200 shadow-sm">
@@ -304,6 +436,28 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 <div className="bg-white p-3 rounded border border-orange-100">
                   <p className="text-xs font-bold text-orange-700 mb-1">Objectives Assessment</p>
                   <p className="text-sm text-slate-700">{mockAssessment.objectives}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Assigned R&D Staff (Only for Under R&D Review) */}
+          {(p.status === "Under R&D Review" || p.status === "review_rnd" || p.status === "r&d evaluation") && p.assignedRdStaff && (
+            <div className="bg-blue-50 rounded-lg p-5 border border-blue-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                  <Microscope className="w-5 h-5" />
+                  Assigned R&D Staff
+                </h3>
+              </div>
+              <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-blue-100">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">
+                  {p.assignedRdStaff.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{p.assignedRdStaff.split('(')[0].trim()}</p>
+                  {/* Extract department/email from format: Name (Dept) - Email */}
+                  <p className="text-xs text-slate-500">{p.assignedRdStaff.substring(p.assignedRdStaff.indexOf('('))}</p>
                 </div>
               </div>
             </div>
@@ -345,16 +499,16 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Leader</h4>
               </div>
               <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
-              <p className="text-xs text-slate-500 mt-1">{p.gender}</p>
+              {departmentName && <p className="text-xs text-slate-500 mt-1">{departmentName}</p>}
 
               <div className="mt-4 space-y-2">
                 <div>
                   <p className="text-xs text-slate-500 flex items-center gap-1"><Mail className="w-3 h-3" /> Email</p>
-                  <p className="text-sm text-slate-800">{p.email}</p>
+                  <p className="text-sm text-slate-800">{p.email || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 flex items-center gap-1"><Phone className="w-3 h-3" /> Contact</p>
-                  <p className="text-sm text-slate-800">{p.telephone}</p>
+                  <p className="text-sm text-slate-800">{p.telephone || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -367,7 +521,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               </div>
               <p className="text-sm font-semibold text-slate-900">{p.agency}</p>
               <p className="text-xs text-slate-600 mt-1 flex items-start gap-1">
-                <MapPin className="w-3 h-3 mt-0.5" /> {p.address}
+                <MapPin className="w-3 h-3 mt-0.5" /> {displayAddress}
               </p>
             </div>
           </div>

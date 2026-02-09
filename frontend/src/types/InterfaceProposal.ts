@@ -50,6 +50,7 @@ export interface Proposal {
 	rdCommentsToEvaluator?: string;
 	assignedEvaluators?: string[];
 	evaluatorInstruction?: string;
+	tags?: string[];
 }
 
 export type ProposalStatus =
