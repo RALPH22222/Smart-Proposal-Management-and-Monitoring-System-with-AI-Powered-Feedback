@@ -1438,16 +1438,16 @@ export class ProposalService {
     let query = this.db.from("proposal_assignment_tracker").select(
       `
         id,
-        proposals:proposal_id(
+        proposals:proposals(
           id,
           project_title
         ),
-        evaluator_id(id, first_name, last_name, middle_ini),
+        evaluator_id:users(id, first_name, last_name, middle_ini),
         deadline_at,
         request_deadline_at,
         remarks,
         status,
-        created_at,
+        created_at
       `,
     );
 
