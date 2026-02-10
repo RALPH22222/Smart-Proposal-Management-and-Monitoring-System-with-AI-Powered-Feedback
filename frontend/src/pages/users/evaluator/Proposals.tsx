@@ -142,7 +142,7 @@ export default function Proposals() {
       case "extension_rejected":
         return "text-red-600 bg-red-50 border-red-200";
       case "for_review":
-        return "text-purple-600 bg-purple-50 border-purple-200";
+        return "text-emerald-600 bg-emerald-50 border-emerald-200";
       default:
         return "text-slate-600 bg-slate-50 border-slate-200";
     }
@@ -172,7 +172,7 @@ export default function Proposals() {
     if (status === "extension_requested" || status === "extend") return "Extension Requested";
     if (status === "extension_approved") return "Extension Approved";
     if (status === "extension_rejected") return "Extension Rejected";
-    if (status === "for_review") return "Under Evaluators Assessment";
+    if (status === "for_review") return "Under Review";
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
