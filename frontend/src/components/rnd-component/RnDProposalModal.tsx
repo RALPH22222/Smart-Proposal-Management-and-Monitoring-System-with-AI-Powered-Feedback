@@ -60,6 +60,7 @@ const EvaluatorListModal: React.FC<EvaluatorListModalProps> = ({
             evaluators.map((name, index) => (
               <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
                 <div className="w-8 h-8 rounded-full bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold">
+                  {/* No profile pic in this helper modal data yet, just name. Keeping simple or could pass object.*/}
                   {name.charAt(0)}
                 </div>
                 <span className="text-sm font-medium text-slate-700">{name}</span>
@@ -414,7 +415,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       />
                       <div className='ml-3 flex-1'>
                         <span className={`text-sm font-medium ${option === 'Sent to Evaluators' ? 'text-green-700' :
-                            option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
+                          option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
                           }`}>
                           {getDecisionButtonText(option)}
                         </span>
@@ -517,7 +518,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                               </div>
                               {/* Department & Agency only */}
                               <p className="text-xs text-gray-500 mt-0.5">
-                                {ev.email} • {ev.department}
+                                {ev.department}
                               </p>
                             </div>
                           </label>

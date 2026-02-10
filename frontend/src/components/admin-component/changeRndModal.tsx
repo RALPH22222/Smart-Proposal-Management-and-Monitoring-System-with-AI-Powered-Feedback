@@ -16,132 +16,45 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  // --- MOCK DATA: R&D Staff List ---
-  const rndStaffList: Evaluator[] = [
-    { 
-      id: 'rnd-1', 
-      name: 'Dr. R&D Lead', 
-      department: 'R&D', 
-      specialty: ['Public Safety', 'Environment'], 
-      availabilityStatus: 'Available', 
-      currentWorkload: 3, 
-      maxWorkload: 10, 
-      rating: 5.0, 
-      completedReviews: 50, 
-      email: 'rnd.lead@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    },
-    { 
-      id: 'rnd-2', 
-      name: 'Ms. R&D Specialist', 
-      department: 'R&D', 
-      specialty: ['ICT'],
-      availabilityStatus: 'Available', 
-      currentWorkload: 1, 
-      maxWorkload: 5, 
-      rating: 4.7, 
-      completedReviews: 12, 
-      email: 'rnd.spec@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    },
-    { 
-      id: 'rnd-3', 
-      name: 'Dr. Alice Santos', 
-      department: 'R&D', 
-      specialty: ['ICT', 'Energy'],
-      availabilityStatus: 'Busy', 
-      currentWorkload: 5, 
-      maxWorkload: 5, 
-      rating: 4.8, 
-      completedReviews: 20, 
-      email: 'alice.santos@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    },
-    { 
-      id: 'rnd-4', 
-      name: 'Prof. Juan Agri', 
-      department: 'R&D', 
-      specialty: ['Agriculture', 'Environment'],
-      availabilityStatus: 'Available', 
-      currentWorkload: 2, 
-      maxWorkload: 5, 
-      rating: 4.9, 
-      completedReviews: 15, 
-      email: 'juan.agri@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    },
-    { 
-      id: 'rnd-5', 
-      name: 'Dr. Maria Health', 
-      department: 'R&D', 
-      specialty: ['Healthcare'], 
-      availabilityStatus: 'Available', 
-      currentWorkload: 0, 
-      maxWorkload: 5, 
-      rating: 4.9, 
-      completedReviews: 30, 
-      email: 'maria.health@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    },
-    { 
-      id: 'rnd-6', 
-      name: 'Engr. Power', 
-      department: 'R&D', 
-      specialty: ['Energy', 'Public Safety'],
-      availabilityStatus: 'Available', 
-      currentWorkload: 1, 
-      maxWorkload: 5, 
-      rating: 4.6, 
-      completedReviews: 8, 
-      email: 'engr.power@wmsu.edu.ph', 
-      agency: 'WMSU - R&D Center' 
-    }
-  ];
-
-  const specializations = [
-    'Agriculture',
-    'Energy',
-    'Environment',
-    'Healthcare',
-    'ICT',
-    'Public Safety'
-  ];
-
-  const [selectedSpecialization, setSelectedSpecialization] = useState<string>('');
+  // --- STATE ---
+  const [rndStaffList, setRndStaffList] = useState<any[]>([]); // Use 'any' or defined interface
+  const [loading, setLoading] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [error, setError] = useState('');
 
+  // Fetch R&D Staff on Open
   useEffect(() => {
-    if (isOpen && proposal) {
-      setSelectedStaffId('');
-      setError('');
-
-      // Auto-select specialization
-      const autoSelectedSpec = specializations.find(spec => {
-        const specLower = spec.toLowerCase();
-        
-        // Helper to check fields safely
-        const checkField = (field?: string) => field?.toLowerCase().includes(specLower);
-
-        // Check explicit fields
-        if (checkField(proposal.projectType)) return true;
-        if (checkField(proposal.priorityAreas)) return true;
-        if (checkField(proposal.sector)) return true;
-        if (checkField(proposal.discipline)) return true;
-
-        // Fallback to title
-        if (checkField(proposal.title)) return true;
-
-        return false;
+    if (isOpen) {
+      setLoading(true);
+      // Import this from your API file
+      import('../../services/proposal.api').then(({ fetchUsersByRole }) => {
+        fetchUsersByRole('rnd')
+          .then((data) => {
+            // Map to a usable format
+            const mapped = data.map(u => ({
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+              email: u.email,
+              profile_picture: u.profile_picture, // Map the profile picture
+              departments: u.departments || [], // Array of {id, name}
+              // Mock stats for UI compatibility if needed, or remove them from UI
+              currentWorkload: 0,
+            }));
+            setRndStaffList(mapped);
+          })
+          .catch(err => console.error("Failed to fetch R&D staff:", err))
+          .finally(() => setLoading(false));
       });
 
-      if (autoSelectedSpec) {
-        setSelectedSpecialization(autoSelectedSpec);
-      } else {
-        setSelectedSpecialization(''); 
-      }
+      setSelectedStaffId('');
+      setError('');
+      setSelectedDepartment('');
     }
-  }, [isOpen, proposal]);
+  }, [isOpen]);
+
+  // Extract unique departments for filter
+  const departments = Array.from(new Set(rndStaffList.flatMap(staff => staff.departments.map((d: any) => d.name)))).sort();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,19 +72,27 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
 
   if (!isOpen || !proposal) return null;
 
-  // Filter staff based on selected specialization
+  // Filter staff based on selected department
   const filteredStaff = rndStaffList.filter(staff => {
-    const isNotCurrentAssignee = staff.name !== proposal.assignedRdStaff;
-    const matchesSpecialization = selectedSpecialization 
-      ? staff.specialty.includes(selectedSpecialization) 
+    // Check if the current proposal's assigned staff string contains this staff's email
+    // usage of email is safer than name matching
+    const assignedString = proposal.assignedRdStaff || '';
+    const isNotCurrentAssignee = !assignedString.includes(staff.email);
+
+    // Fallback name check if email isn't in the string for some reason
+    const isNotCurrentAssigneeByName = !assignedString.includes(staff.name);
+
+    const matchesDepartment = selectedDepartment
+      ? staff.departments.some((d: any) => d.name === selectedDepartment)
       : true;
-    return isNotCurrentAssignee && matchesSpecialization;
+
+    return (isNotCurrentAssignee && isNotCurrentAssigneeByName) && matchesDepartment;
   });
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
-        
+
         {/* Header */}
         <div className="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
           <div className="flex items-center gap-2 text-slate-800">
@@ -187,106 +108,155 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
 
         {/* Body */}
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* Context: From -> To */}
-            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm">
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-500 uppercase font-semibold">Current</span>
-                <span className="font-medium text-slate-700 flex items-center gap-1">
-                  <User className="w-3 h-3" /> {proposal.assignedRdStaff}
-                </span>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400" />
-              <div className="flex flex-col text-right">
-                <span className="text-xs text-slate-500 uppercase font-semibold">New</span>
-                <span className="font-medium text-blue-600">
-                  {selectedStaffId 
-                    ? rndStaffList.find(s => s.id === selectedStaffId)?.name 
-                    : 'Select...'}
-                </span>
-              </div>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
 
-            <div className="space-y-4">
-                {/* 1. Specialization Filter */}
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                        Filter by Specialization
-                    </label>
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                        <select
-                            value={selectedSpecialization}
-                            onChange={(e) => {
-                                setSelectedSpecialization(e.target.value);
-                                setSelectedStaffId(''); // Reset selection
-                            }}
-                            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
-                        >
-                            <option value="">-- All Specializations --</option>
-                            {specializations.map((spec) => (
-                                <option key={spec} value={spec}>
-                                    {spec}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+              {/* Context: From -> To */}
+              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 uppercase font-semibold">Current</span>
+                  <span className="font-medium text-slate-700 flex items-center gap-1">
+                    <User className="w-3 h-3" /> {proposal.assignedRdStaff || 'Unassigned'}
+                  </span>
                 </div>
+                <ArrowRight className="w-4 h-4 text-slate-400" />
+                <div className="flex flex-col text-right">
+                  <span className="text-xs text-slate-500 uppercase font-semibold">New</span>
+                  <span className="font-medium text-blue-600">
+                    {selectedStaffId
+                      ? rndStaffList.find(s => s.id === selectedStaffId)?.name
+                      : 'Select...'}
+                  </span>
+                </div>
+              </div>
 
-                {/* 2. Staff Selection */}
+              <div className="space-y-4">
+                {/* 1. Department Filter */}
                 <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                        Select R&D Staff
-                    </label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Filter by Department
+                  </label>
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <select
-                        value={selectedStaffId}
-                        onChange={(e) => {
-                            setSelectedStaffId(e.target.value);
-                            setError('');
-                        }}
-                        disabled={filteredStaff.length === 0}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-slate-100 disabled:text-slate-400"
+                      value={selectedDepartment}
+                      onChange={(e) => {
+                        setSelectedDepartment(e.target.value);
+                        setSelectedStaffId(''); // Reset selection
+                      }}
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
                     >
-                        <option value="">
-                            {filteredStaff.length === 0 ? 'No staff found for this tag' : '-- Choose Staff Member --'}
+                      <option value="">-- All Departments --</option>
+                      {departments.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
                         </option>
-                        {filteredStaff.map((staff) => (
-                            <option key={staff.id} value={staff.id}>
-                                {staff.name} — {staff.currentWorkload} active tasks
-                            </option>
-                        ))}
+                      ))}
                     </select>
+                  </div>
                 </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 p-2 rounded-lg border border-red-100">
-                <AlertCircle className="w-4 h-4" />
-                {error}
+                {/* 2. Staff Selection List */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Select R&D Staff
+                  </label>
+
+                  <div className="border border-slate-300 rounded-lg max-h-60 overflow-y-auto bg-white">
+                    {filteredStaff.length === 0 ? (
+                      <div className="p-4 text-sm text-slate-500 text-center">
+                        No staff found matching criteria
+                      </div>
+                    ) : (
+                      filteredStaff.map((staff) => (
+                        <div
+                          key={staff.id}
+                          onClick={() => {
+                            setSelectedStaffId(staff.id);
+                            setError('');
+                          }}
+                          className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b last:border-b-0 border-slate-100 ${selectedStaffId === staff.id
+                            ? 'bg-blue-50 border-l-4 border-l-blue-600'
+                            : 'hover:bg-slate-50 border-l-4 border-l-transparent'
+                            }`}
+                        >
+                          {/* Profile Picture */}
+                          <div className="relative shrink-0">
+                            {staff.profile_picture ? (
+                              <img
+                                src={staff.profile_picture}
+                                alt={staff.name}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                                <User className="w-5 h-5" />
+                              </div>
+                            )}
+                            {selectedStaffId === staff.id && (
+                              <div className="absolute -right-1 -bottom-1 bg-blue-600 text-white rounded-full p-0.5">
+                                <Check className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold truncate ${selectedStaffId === staff.id ? 'text-blue-900' : 'text-slate-800'}`}>
+                              {staff.name}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {staff.email}
+                            </p>
+                            {staff.departments.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {staff.departments.map((d: any) => (
+                                  <span key={d.id} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                    {d.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                Confirm Change
-              </button>
-            </div>
+              {/* Error Message */}
+              {error && (
+                <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 p-2 rounded-lg border border-red-100">
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
 
-          </form>
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Confirm Change
+                </button>
+              </div>
+
+            </form>
+          )}
         </div>
       </div>
     </div>

@@ -45,6 +45,11 @@ export const fetchDepartments = async (): Promise<LookupItem[]> => {
   return data;
 };
 
+export const getDepartmentById = async (id: number): Promise<LookupItem | undefined> => {
+  const departments = await fetchDepartments();
+  return departments.find((d) => d.id === id);
+};
+
 export const fetchDisciplines = async (): Promise<LookupItem[]> => {
   const { data } = await api.get<LookupItem[]>("/proposal/view-discipline");
   return data;
@@ -332,6 +337,7 @@ export type UserItem = {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  profile_picture?: string;
   departments: { id: number; name: string }[];
 };
 

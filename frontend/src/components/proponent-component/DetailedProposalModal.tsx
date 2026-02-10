@@ -82,12 +82,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       if (['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(pStatus)) {
         try {
           const summary = await fetchRejectionSummary(Number(proposal?.id));
-          if (summary) {
-            setRejectionComment(summary.comment || "No specific comment provided.");
-            setRejectionDate(summary.created_at || null);
+          if (summary && summary.comment) {
+            setRejectionComment(summary.comment);
           } else {
             setRejectionComment("No specific comment provided.");
-            setRejectionDate(null);
           }
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);

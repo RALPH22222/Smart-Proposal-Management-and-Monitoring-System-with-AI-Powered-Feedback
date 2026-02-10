@@ -523,7 +523,7 @@ export class ProposalService {
     // a separate junction table. The department name is joined via FK.
     let query = this.db
       .from("users")
-      .select("id, first_name, last_name, email, department_id, department:departments(id, name)");
+      .select("id, first_name, last_name, email, profile_picture, department_id, department:departments(id, name)");
 
     // Filter by role using the roles array column (contains operator)
     query = query.contains("roles", [role]);
@@ -551,6 +551,7 @@ export class ProposalService {
         first_name: u.first_name,
         last_name: u.last_name,
         email: u.email,
+        profile_picture: u.profile_picture,
         departments: u.department ? [u.department] : [],
       })),
       error: null,
@@ -564,7 +565,7 @@ export class ProposalService {
       proposal_tags(tags(name)),
       proposal_priorities(priorities(id,name)),
       implementation_site(site_name,city),
-      proponent_id(id,first_name,last_name,department:department_id(name)),
+      proponent_id(id,first_name,last_name,email,profile_picture,department:department_id(name)),
       rnd_station:departments(name),
       sector:sectors(name),
       discipline:disciplines(name),

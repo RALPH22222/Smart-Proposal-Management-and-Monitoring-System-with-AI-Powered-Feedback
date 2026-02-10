@@ -52,6 +52,7 @@ export interface ModalProposalData {
   submittedDate: string;
   lastModified?: string;
   proponent: string;
+  proponentProfilePicture?: string;
   department?: string;
   agency: string;
   address: string;
@@ -498,8 +499,23 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 <User className="w-4 h-4 text-[#C8102E]" />
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Leader</h4>
               </div>
-              <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
-              {departmentName && <p className="text-xs text-slate-500 mt-1">{departmentName}</p>}
+              <div className="flex items-center gap-3 mb-1">
+                {p.proponentProfilePicture ? (
+                  <img
+                    src={p.proponentProfilePicture}
+                    alt={p.proponent}
+                    className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                    <User className="w-5 h-5" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
+                  {departmentName && <p className="text-xs text-slate-500">{departmentName}</p>}
+                </div>
+              </div>
 
               <div className="mt-4 space-y-2">
                 <div>

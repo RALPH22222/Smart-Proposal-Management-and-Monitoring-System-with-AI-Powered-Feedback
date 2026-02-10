@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FileText, Calendar, User, Eye, Filter, Search,
+  FileText, Calendar, User, Eye, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
   RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare
 } from 'lucide-react';
@@ -99,7 +99,7 @@ interface AdminProposalPageProps {
 // Extended Status type for the filter dropdown
 type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Under R&D Review' | 'Under Evaluators Assessment';
 
-const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUpdate }) => {
+const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -419,6 +419,29 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
     return colors[index];
   };
 
+  // Helper for Random Tag Colors (Matches RndProposalPage)
+  const getTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   if (loading) {
     return (
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
@@ -539,15 +562,18 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ filter, onStatsUp
                                 {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
-                            {/* Project Type Badge */}
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(
-                                proposal.projectType
-                              )}`}
-                            >
-                              <Tag className="w-3 h-3" />
-                              {proposal.projectType}
-                            </span>
+
+
+                            {/* Tags */}
+                            {proposal.tags && proposal.tags.map((tag, idx) => (
+                              <span
+                                key={idx}
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
+                              >
+                                <Tag className="w-3 h-3" />
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </td>

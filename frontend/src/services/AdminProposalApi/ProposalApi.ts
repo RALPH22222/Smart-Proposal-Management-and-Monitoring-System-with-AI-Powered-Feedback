@@ -14,14 +14,21 @@ import {
   rejectProposal
 } from '../../services/proposal.api';
 
+// Used for manual lookups if the join doesn't return the name
+import { fetchDepartments, type LookupItem } from '../../services/proposal.api';
+
 // Admin-specific API service
 export const adminProposalApi = {
   // Fetch all proposals for Admin review
   fetchProposals: async (): Promise<Proposal[]> => {
     try {
       console.log('Fetching ADMIN proposals from Real API...');
-      const data = await getProposals(); // Fetch from backend
-      return data.map(mapToProposal);
+      const [data, departments] = await Promise.all([
+        getProposals(),
+        fetchDepartments()
+      ]);
+
+      return data.map(item => mapToProposal(item, departments));
     } catch (error) {
       console.error("Failed to fetch admin proposals:", error);
       return [];
@@ -123,7 +130,7 @@ const mapStatus = (status: string): ProposalStatus => {
   }
 };
 
-const mapToProposal = (data: any): Proposal => {
+const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
   // Helper to safely get array buffer
   const budgetSources: BudgetSource[] = Array.isArray(data.estimated_budget)
     ? data.estimated_budget.map((b: any) => ({
@@ -143,6 +150,15 @@ const mapToProposal = (data: any): Proposal => {
     : 'Unknown Proponent';
 
   const mappedStatus = mapStatus(data.status);
+
+  // Map Department / R&D Station
+  // First try the joined object, then try manual lookup by ID
+  let rdStationName = data.rnd_station?.name || '';
+  if (!rdStationName && data.department_id && departments.length > 0) {
+    const found = departments.find(d => d.id === Number(data.department_id));
+    if (found) rdStationName = found.name;
+  }
+  if (!rdStationName) rdStationName = 'N/A'; // Default if still not found
 
   return {
     id: data.id?.toString() || '',
@@ -166,7 +182,7 @@ const mapToProposal = (data: any): Proposal => {
     priorityAreas: data.proposal_priorities?.map((p: any) => p.priorities?.name).join(', ') || '',
     projectType: data.proposal_tags?.map((t: any) => t.tags?.name).join(', ') || '', // Using tags as type?
     cooperatingAgencies: data.cooperating_agencies?.map((c: any) => c.agencies?.name).join(', ') || '',
-    rdStation: data.rnd_station?.name || '',
+    rdStation: rdStationName,
     classification: data.classification_type || '', // map "research_class" etc
     classificationDetails: data.class_input || '',
     sector: data.sector?.name || '',
@@ -177,11 +193,25 @@ const mapToProposal = (data: any): Proposal => {
     budgetSources: budgetSources,
     budgetTotal: `₱${budgetTotal}`,
     projectFile: data.proposal_version?.[0]?.file_url || undefined,
-    assignedRdStaff: data.proposal_rnd?.[0]?.users
-      ? `${data.proposal_rnd[0].users.first_name} ${data.proposal_rnd[0].users.last_name} (${data.proposal_rnd[0].users.department?.name || 'No Dept'}) - ${data.proposal_rnd[0].users.email}`
-      : undefined,
+    assignedRdStaff: (() => {
+      // Debug R&D mapping
+      if (data.status === 'review_rnd' || data.status === 'under_evaluation') {
+        console.log(`[DEBUG Proposal ${data.id}] Status: ${data.status}`, data.proposal_rnd);
+      }
+
+      if (data.proposal_rnd?.[0]?.users) {
+        const u = data.proposal_rnd[0].users;
+        // Check if u is an array (unexpected) or object
+        const userObj = Array.isArray(u) ? u[0] : u;
+        if (!userObj) return undefined;
+
+        return `${userObj.first_name} ${userObj.last_name} (${userObj.department?.name || 'No Dept'}) - ${userObj.email}`;
+      }
+      return undefined;
+    })(),
     assignedEvaluators: [], // Fetched via tracker usually
-    evaluatorInstruction: ''
+    evaluatorInstruction: '',
+    tags: data.proposal_tags?.map((t: any) => t.tags?.name) || [] // Add tags array
   };
 };
 

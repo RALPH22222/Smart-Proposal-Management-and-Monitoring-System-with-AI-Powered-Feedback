@@ -114,6 +114,7 @@ export function transformProposalForModal(raw: any) {
     submittedDate: raw.created_at || "",
     lastModified: raw.updated_at || raw.created_at || "",
     proponent,
+    proponentProfilePicture: raw.proponent_id && typeof raw.proponent_id === "object" ? raw.proponent_id.profile_picture : undefined,
     gender: raw.proponent_id?.sex || "N/A",
     agency,
     address,
