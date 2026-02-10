@@ -134,7 +134,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         const evalFirstName = item.evaluator_id?.first_name || "Unknown";
         const evalLastName = item.evaluator_id?.last_name || "";
         const evalName = `${evalFirstName} ${evalLastName}`.trim();
-        const evalDept = "N/A";
+        const evalDept =  item.evaluator_id?.department_id?.name || "N/A";
 
         group.evaluators.push({
           id: evalId,

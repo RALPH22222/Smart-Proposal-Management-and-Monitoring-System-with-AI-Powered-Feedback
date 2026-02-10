@@ -1443,7 +1443,7 @@ export class ProposalService {
           id,
           project_title
         ),
-        evaluator_id:users(id, first_name, last_name, middle_ini),
+        evaluator_id:users(id, first_name, last_name, middle_ini, department_id:departments(name)),
         deadline_at,
         request_deadline_at,
         remarks,

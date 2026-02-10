@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Calendar
 } from 'lucide-react';
+import { fetchDepartments, fetchUsersByRole, type UserItem } from '../../services/proposal.api';
 
 // --- UPDATED INTERFACE TO INCLUDE HISTORY DETAILS ---
 export interface EvaluatorOption {
@@ -44,27 +45,8 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   onExtensionAction,
   proposalTitle = "Untitled Project"
 }) => {
-  const departments = [
-    'Information Technology',
-    'Computer Science',
-    'Engineering'
-  ];
-
-  // --- MOCK DATA FOR AVAILABLE EVALUATORS ---
-  const mockEvaluators: Record<string, EvaluatorOption[]> = {
-    'Information Technology': [
-      { id: 'e1', name: 'Dr. Alice Santos', department: 'Information Technology', status: 'Pending' },
-      { id: 'e2', name: 'Prof. Ben Reyes', department: 'Information Technology', status: 'Accepts' },
-      { id: 'e7', name: 'Dr. Michael Chen', department: 'Information Technology', status: 'Pending' },
-      { id: 'e8', name: 'Prof. Sarah Johnson', department: 'Information Technology', status: 'Accepts' },
-      { id: 'e13', name: 'Dr. Emily White', department: 'Information Technology', status: 'Extension Requested' }
-    ],
-    // ... (Other departments remain same for brevity)
-    'Engineering': [
-      { id: 'e5', name: 'Dr. John Cruz', department: 'Engineering', status: 'Accepts' },
-      { id: 'e12', name: 'Prof. Maria Rodriguez', department: 'Engineering', status: 'Pending' }
-    ]
-  };
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [allEvaluators, setAllEvaluators] = useState<UserItem[]>([]);
 
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [availableEvaluators, setAvailableEvaluators] = useState<EvaluatorOption[]>([]);
@@ -76,6 +58,24 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [evaluatorToRemove, setEvaluatorToRemove] = useState<EvaluatorOption | null>(null); 
   const [replacingId, setReplacingId] = useState<string | null>(null); 
+
+  useEffect(() => {
+    if (isOpen) {
+        const loadData = async () => {
+            try {
+                const [deptData, usersData] = await Promise.all([
+                    fetchDepartments(),
+                    fetchUsersByRole("evaluator"),
+                ]);
+                setDepartments(deptData.map((d) => d.name));
+                setAllEvaluators(usersData);
+            } catch (error) {
+                console.error("Failed to load modal data", error);
+            }
+        };
+        loadData();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (currentEvaluators.length > 0) {
@@ -101,9 +101,26 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
   const handleDepartmentChange = (dept: string) => {
     setSelectedDepartment(dept);
-    const evaluators = mockEvaluators[dept] || [];
-    setAvailableEvaluators(evaluators);
-    setFilteredEvaluators(evaluators);
+    if (!dept) {
+        setAvailableEvaluators([]);
+        setFilteredEvaluators([]);
+        return;
+    }
+    
+    // Filter evaluators by the selected department name
+    // Note: The API returns UserItem with departments: {id, name}[].
+    // We check if the user belongs to the selected department name.
+    const filteredByDept = allEvaluators.filter(user => 
+        user.departments.some(d => d.name === dept)
+    ).map(user => ({
+        id: user.id,
+        name: `${user.first_name} ${user.last_name}`,
+        department: user.departments.find(d => d.name === dept)?.name || dept, // Should exist
+        status: 'Pending' as const
+    }));
+
+    setAvailableEvaluators(filteredByDept);
+    setFilteredEvaluators(filteredByDept);
     setSearchQuery('');
   };
 
@@ -135,7 +152,20 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const confirmReplace = (originalId: string, newEvaluatorId: string, department: string) => {
     if (!newEvaluatorId) return;
 
-    const candidates = mockEvaluators[department] || [];
+    // Use allEvaluators to find the replacement, handling potentially different departments if logic permits, 
+    // but here we restrict to the same department as the original or any available?
+    // The original logic used mockEvaluators[department]. 
+    // We should filter allEvaluators by the passed 'department' string.
+    
+    const candidates = allEvaluators.filter(user => 
+        user.departments.some(d => d.name === department)
+    ).map(user => ({
+        id: user.id,
+        name: `${user.first_name} ${user.last_name}`,
+        department: user.departments.find(d => d.name === department)?.name || department,
+        status: 'Pending' as const
+    }));
+
     const newEvaluatorObj = candidates.find(c => c.id === newEvaluatorId);
 
     if (newEvaluatorObj) {
@@ -282,7 +312,12 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                     autoFocus
                                   >
                                     <option value="" disabled>Select Replacement</option>
-                                    {(mockEvaluators[ev.department] || [])
+                                    {allEvaluators
+                                      .filter(user => user.departments.some(d => d.name === ev.department))
+                                      .map(user => ({
+                                          id: user.id,
+                                          name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+                                      }))
                                       .filter(c => !currentList.some(curr => curr.id === c.id))
                                       .map(c => (
                                         <option key={c.id} value={c.id}>{c.name}</option>
