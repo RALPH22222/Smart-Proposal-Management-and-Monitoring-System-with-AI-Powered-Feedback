@@ -86,7 +86,18 @@ export default function EndorsedProposals() {
         };
       });
 
-      setProposals(mapped);
+      // Deduplicate mapped proposals using string ID
+      const uniqueProposalsMap = new Map();
+      mapped.forEach((p: any) => {
+        const key = String(p.id);
+        if (!uniqueProposalsMap.has(key)) {
+          uniqueProposalsMap.set(key, p);
+        }
+      });
+      
+      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+      setProposals(uniqueProposals);
     } catch (err) {
       console.error("Failed to fetch proposals", err);
     } finally {
