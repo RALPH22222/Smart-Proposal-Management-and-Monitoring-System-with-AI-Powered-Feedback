@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter } from 'lucide-react';
 import { type Proposal } from '../../types/InterfaceProposal';
-import { type Evaluator } from '../../types/evaluator';
+// import { type Evaluator } from '../../types/evaluator';
 
 interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
@@ -17,33 +17,51 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
   onConfirm,
 }) => {
   // --- STATE ---
-  const [rndStaffList, setRndStaffList] = useState<any[]>([]); // Use 'any' or defined interface
+  const [rndStaffList, setRndStaffList] = useState<any[]>([]);
+  const [allDepartments, setAllDepartments] = useState<any[]>([]); // Full list for filter & lookup
   const [loading, setLoading] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [error, setError] = useState('');
 
-  // Fetch R&D Staff on Open
+  // Fetch R&D Staff & Departments on Open
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
-      // Import this from your API file
-      import('../../services/proposal.api').then(({ fetchUsersByRole }) => {
-        fetchUsersByRole('rnd')
-          .then((data) => {
-            // Map to a usable format
-            const mapped = data.map(u => ({
-              id: u.id,
-              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
-              email: u.email,
-              profile_picture: u.profile_picture, // Map the profile picture
-              departments: u.departments || [], // Array of {id, name}
-              // Mock stats for UI compatibility if needed, or remove them from UI
-              currentWorkload: 0,
-            }));
+
+      import('../../services/proposal.api').then(({ fetchUsersByRole, fetchDepartments }) => {
+        Promise.all([
+          fetchUsersByRole('rnd'),
+          fetchDepartments()
+        ])
+          .then(([usersData, departmentsData]) => {
+            setAllDepartments(departmentsData);
+
+            // Map users to a usable format, resolving department if missing
+            const mapped = usersData.map(u => {
+              let userDepts = u.departments || [];
+
+              // Fallback: If no departments array but has department_id, look it up
+              if (userDepts.length === 0 && u.department_id) {
+                const found = departmentsData.find(d => d.id === Number(u.department_id));
+                if (found) {
+                  userDepts = [{ id: found.id, name: found.name }];
+                }
+              }
+
+              return {
+                id: u.id,
+                name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+                email: u.email,
+                profile_picture: u.profile_picture,
+                departments: userDepts,
+                // Mock stats 
+                currentWorkload: 0,
+              };
+            });
             setRndStaffList(mapped);
           })
-          .catch(err => console.error("Failed to fetch R&D staff:", err))
+          .catch(err => console.error("Failed to fetch data:", err))
           .finally(() => setLoading(false));
       });
 
@@ -53,8 +71,8 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
     }
   }, [isOpen]);
 
-  // Extract unique departments for filter
-  const departments = Array.from(new Set(rndStaffList.flatMap(staff => staff.departments.map((d: any) => d.name)))).sort();
+  // Use the full fetched list for filter options (names)
+  const departmentNames = allDepartments.map(d => d.name).sort();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,7 +169,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
                       className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none"
                     >
                       <option value="">-- All Departments --</option>
-                      {departments.map((dept) => (
+                      {departmentNames.map((dept) => (
                         <option key={dept} value={dept}>
                           {dept}
                         </option>

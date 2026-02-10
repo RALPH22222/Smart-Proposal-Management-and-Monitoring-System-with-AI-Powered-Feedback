@@ -19,7 +19,7 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
-import { fetchUsersByRole, type UserItem } from '../../services/proposal.api';
+import { fetchUsersByRole, fetchDepartments, type UserItem } from '../../services/proposal.api';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -39,25 +39,44 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   // --- REAL DATA FETCHING ---
   const [evaluators, setEvaluators] = useState<Partial<Evaluator>[]>([]);
   const [rndStaffList, setRndStaffList] = useState<Partial<Evaluator>[]>([]);
+  const [allDepartments, setAllDepartments] = useState<any[]>([]); // Store all departments
 
   useEffect(() => {
     if (isOpen) {
       const loadUsers = async () => {
         try {
-          const [rndData, evalData] = await Promise.all([
+          const [rndData, evalData, deptData] = await Promise.all([
             fetchUsersByRole('rnd'),
-            fetchUsersByRole('evaluator')
+            fetchUsersByRole('evaluator'),
+            fetchDepartments()
           ]);
 
-          const mapToEvaluator = (u: UserItem): Partial<Evaluator> => ({
-            id: u.id,
-            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
-            department: u.departments?.[0]?.name || 'N/A',
-            availabilityStatus: 'Available', // Default available for now
-            email: u.email || '',
-            agency: 'WMSU', // Default agency
-            avatar: u.profile_picture
-          });
+          setAllDepartments(deptData); // Save for filter
+
+          const mapToEvaluator = (u: UserItem): Partial<Evaluator> => {
+            let deptName = 'N/A';
+
+            // Logic aligned with ChangeRndModal
+            // 1. Try array
+            if (u.departments && u.departments.length > 0) {
+              deptName = u.departments[0].name;
+            }
+            // 2. Try department_id fallback with lookup
+            else if (u.department_id) {
+              const found = deptData.find(d => d.id === Number(u.department_id));
+              if (found) deptName = found.name;
+            }
+
+            return {
+              id: u.id,
+              name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
+              department: deptName,
+              availabilityStatus: 'Available', // Default available for now
+              email: u.email || '',
+              agency: 'WMSU', // Default agency
+              avatar: u.profile_picture
+            };
+          };
 
           setRndStaffList(rndData.map(mapToEvaluator));
           setEvaluators(evalData.map(mapToEvaluator));
@@ -304,8 +323,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     { key: 'overall', title: 'Overall Asessment', data: structuredComments.overall }
   ];
 
-  // Derive Departments for Filter
-  const departments = ['All', ...new Set(evaluators.map(e => e.department).filter(Boolean))];
+
 
   return (
     <>
@@ -350,8 +368,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                       />
                       <div className='ml-3 flex-1'>
                         <span className={`text-sm font-medium ${option === 'Assign to RnD' ? 'text-blue-700' :
-                            option === 'Sent to Evaluators' ? 'text-green-700' :
-                              option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
+                          option === 'Sent to Evaluators' ? 'text-green-700' :
+                            option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
                           }`}>
                           {getDecisionButtonText(option)}
                         </span>
@@ -410,8 +428,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                         className='w-full pl-8 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] appearance-none bg-white'
                       >
                         <option value='All'>All Departments</option>
-                        {[...new Set(rndStaffList.map(e => e.department).filter(Boolean))].map(dept => (
-                          <option key={dept} value={dept}>{dept}</option>
+                        {allDepartments.map(dept => (
+                          <option key={dept.id} value={dept.name}>{dept.name}</option>
                         ))}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
@@ -492,8 +510,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                         className='w-full pl-8 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C10003] appearance-none bg-white'
                       >
                         <option value='All'>All Departments</option>
-                        {departments.filter(d => d !== 'All').map(dept => (
-                          <option key={dept} value={dept}>{dept}</option>
+                        {allDepartments.map(dept => (
+                          <option key={dept.id} value={dept.name}>{dept.name}</option>
                         ))}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">

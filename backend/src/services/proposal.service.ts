@@ -549,9 +549,8 @@ export class ProposalService {
       data: users.map((u: any) => {
         let depts: any[] = [];
 
-        // Supabase/PostgREST usually returns the relation name 'departments'
-        // For Many-to-One, it can be an object or null depending on constraints and headers
-        const rawDept = u.departments;
+        // Check both 'departments' (standard) and 'department' (potential singular response)
+        const rawDept = u.departments || u.department;
 
         if (rawDept) {
           if (Array.isArray(rawDept)) {
@@ -567,6 +566,7 @@ export class ProposalService {
           last_name: u.last_name,
           email: u.email,
           profile_picture: u.photo_profile_url, // map to frontend expected key
+          department_id: u.department_id, // Pass raw ID for frontend lookup
           departments: depts,
         };
       }),

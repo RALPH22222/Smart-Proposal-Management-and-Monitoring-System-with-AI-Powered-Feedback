@@ -338,6 +338,7 @@ export type UserItem = {
   last_name: string | null;
   email: string | null;
   profile_picture?: string;
+  department_id?: number;
   departments: { id: number; name: string }[];
 };
 

@@ -357,7 +357,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             setIsEvaluatorModalOpen(true);
           }
         }}
-        className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}
+        className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}
         title={evaluators.join(', ')}
       >
         <Users className="w-3 h-3 flex-shrink-0" />

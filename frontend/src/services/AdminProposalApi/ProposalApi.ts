@@ -171,6 +171,8 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     proponent: proponentName,
     gender: 'N/A', // Not in main query?
     agency: data.agency?.name || 'WMSU',
+    // Fallback: use proponent's department ID if available 
+    department: data.proponent_id?.department_id?.toString() || undefined,
     address: data.agency_address ? `${data.agency_address.street || ''} ${data.agency_address.city || ''}` : '',
     telephone: data.telephone || '', // map if available
     fax: data.fax || '',

@@ -28,6 +28,7 @@ export interface Proposal {
 	projectType: string;
 	agency: string;
 	address: string;
+	department?: string;
 	cooperatingAgencies: string;
 	rdStation: string;
 	classification: string;
