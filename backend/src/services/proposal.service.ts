@@ -523,7 +523,7 @@ export class ProposalService {
     // a separate junction table. The department name is joined via FK.
     let query = this.db
       .from("users")
-      .select("id, first_name, last_name, email, photo_profile_url, department_id, department:departments(id, name)");
+      .select("id, first_name, last_name, email, photo_profile_url, department_id, departments(id, name)");
 
     // Filter by role using the roles array column (contains operator)
     query = query.contains("roles", [role]);
@@ -544,16 +544,32 @@ export class ProposalService {
     }
 
     // Transform: wrap the single department into a departments[] array
-    // so the frontend shape stays consistent
+    // so the frontend shape stays consistent. Handle both object and array cases safely.
     return {
-      data: users.map((u: any) => ({
-        id: u.id,
-        first_name: u.first_name,
-        last_name: u.last_name,
-        email: u.email,
-        profile_picture: u.photo_profile_url, // map to frontend expected key if needed, or keep same name
-        departments: u.department ? [u.department] : [],
-      })),
+      data: users.map((u: any) => {
+        let depts: any[] = [];
+
+        // Supabase/PostgREST usually returns the relation name 'departments'
+        // For Many-to-One, it can be an object or null depending on constraints and headers
+        const rawDept = u.departments;
+
+        if (rawDept) {
+          if (Array.isArray(rawDept)) {
+            depts = rawDept;
+          } else {
+            depts = [rawDept];
+          }
+        }
+
+        return {
+          id: u.id,
+          first_name: u.first_name,
+          last_name: u.last_name,
+          email: u.email,
+          profile_picture: u.photo_profile_url, // map to frontend expected key
+          departments: depts,
+        };
+      }),
       error: null,
     };
   }

@@ -103,6 +103,12 @@ export default function ProfileSetup() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    // Prevent premature submission if not on final step (e.g. triggered by Enter key)
+    if (currentStep < 3) {
+      nextStep();
+      return;
+    }
+
     // Validate required fields (photo is optional)
     if (!formData.birthdate || !formData.sex || !formData.rdStation) {
       Swal.fire({
