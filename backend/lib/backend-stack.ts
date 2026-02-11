@@ -102,14 +102,16 @@ export class BackendStack extends Stack {
       functionName: "pms-sign-up",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(15),
+      timeout: Duration.seconds(30),
       entry: path.resolve("src", "handlers", "auth", "sign-up.ts"),
       environment: {
         SUPABASE_KEY,
         SES_SENDER_EMAIL,
         FRONTEND_URL,
+        PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
       },
     });
+    profile_setup_bucket.grantPut(signup_lambda);
 
     // Grant SES send email permissions for verification emails
     signup_lambda.addToRolePolicy(
@@ -749,6 +751,10 @@ export class BackendStack extends Stack {
     // /auth/confirm-email (public — clicked from email link)
     const confirm_email = auth.addResource("confirm-email");
     confirm_email.addMethod(HttpMethod.GET, new LambdaIntegration(confirm_email_lambda));
+
+    // /auth/departments (PUBLIC — for sign-up form to fetch R&D stations without auth)
+    const auth_departments = auth.addResource("departments");
+    auth_departments.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lambda));
 
     // /auth/profile-setup
     const profile_setup = auth.addResource("profile-setup");

@@ -55,6 +55,25 @@ export const profileSetupSchema = z.object({
   photo_profile_url: photoProfileSchema.optional(), // Photo is optional
 });
 
+export const signUpWithProfileSchema = z.object({
+  // Account fields
+  email: z.string().email("Email is not valid"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  first_name: z.string().min(1, "First name is required").max(64, "Response is too long"),
+  last_name: z.string().min(1, "Last name is required").max(64, "Response is too long"),
+  middle_ini: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z.string().max(1, "Middle initial must be 1 character").optional(),
+  ),
+  roles: z.preprocess(parseJsonIfString, z.array(RoleEnum).min(1, "At least one role is required")),
+  // Profile fields
+  birth_date: z.coerce.date(),
+  sex: z.preprocess(parseJsonIfString, z.nativeEnum(Sex)),
+  department_id: z.string().min(1, "Department is required"),
+  photo_profile_url: photoProfileSchema.optional(),
+});
+
 export type Role = z.infer<typeof RoleEnum>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type ProfileSetup = z.infer<typeof profileSetupSchema>;
+export type SignUpWithProfileInput = z.infer<typeof signUpWithProfileSchema>;

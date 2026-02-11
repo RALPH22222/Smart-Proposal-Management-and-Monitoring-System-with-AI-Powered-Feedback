@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { ProfileSetup, SignUpInput } from "../schemas/auth-schema";
+import { ProfileSetup, SignUpInput, SignUpWithProfileInput } from "../schemas/auth-schema";
 import jwt from "jsonwebtoken";
 import { DecodedToken } from "../types/auth";
 import { randomUUID } from "crypto";
@@ -74,6 +74,50 @@ export class AuthService {
     // }
 
     return { data, error: null };
+  }
+
+  async signupWithProfile(
+    input: Omit<SignUpWithProfileInput, "photo_profile_url">,
+    photoUrl: string | null,
+  ) {
+    const { email, password, roles, first_name, last_name, middle_ini, birth_date, sex, department_id } = input;
+
+    // 1. Create auth account (trigger auto-creates users row)
+    const { data, error } = await this.db!.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { roles, first_name, last_name, middle_ini },
+      },
+    });
+
+    if (error || !data.user) {
+      return { data, error };
+    }
+
+    // 2. Check duplicate email (Supabase returns a fake user with empty role)
+    if (data.user.role !== "authenticated" && data.user.role === "") {
+      return { data: null, error: { message: "Email already exists.", status: 409 } };
+    }
+
+    // 3. Update the users row with profile data + mark profile as completed
+    const { error: profileError } = await this.db!
+      .from("users")
+      .update({
+        birth_date,
+        sex,
+        department_id,
+        photo_profile_url: photoUrl,
+        profile_completed: true,
+      })
+      .eq("id", data.user.id);
+
+    if (profileError) {
+      console.error("Failed to update profile during signup:", profileError);
+      return { data, error: null, profileError };
+    }
+
+    return { data, error: null, profileError: null };
   }
 
   async confirmEmail(token: string) {
