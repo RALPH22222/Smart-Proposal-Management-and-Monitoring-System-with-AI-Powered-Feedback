@@ -680,6 +680,52 @@ export class BackendStack extends Stack {
       },
     });
 
+    // ========== ADMIN ACCOUNT MANAGEMENT LAMBDAS ==========
+
+    const admin_create_account_lambda = new NodejsFunction(this, "pms-admin-create-account", {
+      functionName: "pms-admin-create-account",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "create-account.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const admin_get_accounts_lambda = new NodejsFunction(this, "pms-admin-get-accounts", {
+      functionName: "pms-admin-get-accounts",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "get-accounts.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const admin_update_account_lambda = new NodejsFunction(this, "pms-admin-update-account", {
+      functionName: "pms-admin-update-account",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "update-account.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const admin_toggle_account_status_lambda = new NodejsFunction(this, "pms-admin-toggle-account-status", {
+      functionName: "pms-admin-toggle-account-status",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "toggle-account-status.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const verify_token_lambda = new NodejsFunction(this, "pms-verify-token", {
       functionName: "pms-verify-token",
       memorySize: 128,
@@ -1112,6 +1158,39 @@ export class BackendStack extends Stack {
     // /project/overdue-reports (protected) - GET overdue reports
     const overdue_reports = project.addResource("overdue-reports");
     overdue_reports.addMethod(HttpMethod.GET, new LambdaIntegration(get_overdue_reports_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // ========== ADMIN ACCOUNT MANAGEMENT ROUTES ==========
+
+    // /admin
+    const admin = api.root.addResource("admin");
+
+    // /admin/create-account (protected) - POST create account
+    const admin_create_account = admin.addResource("create-account");
+    admin_create_account.addMethod(HttpMethod.POST, new LambdaIntegration(admin_create_account_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/accounts (protected) - GET all accounts
+    const admin_accounts = admin.addResource("accounts");
+    admin_accounts.addMethod(HttpMethod.GET, new LambdaIntegration(admin_get_accounts_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/update-account (protected) - POST update account
+    const admin_update_account = admin.addResource("update-account");
+    admin_update_account.addMethod(HttpMethod.POST, new LambdaIntegration(admin_update_account_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/toggle-account-status (protected) - POST toggle disable/enable
+    const admin_toggle_account_status = admin.addResource("toggle-account-status");
+    admin_toggle_account_status.addMethod(HttpMethod.POST, new LambdaIntegration(admin_toggle_account_status_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

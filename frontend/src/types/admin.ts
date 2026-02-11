@@ -1,11 +1,13 @@
 export type User = {
-  id: number;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
+  id: string;
+  first_name: string;
+  middle_ini?: string;
+  last_name: string;
   email: string;
-  role: string;
-  status: "Active" | "Inactive" | "Blocked";
-  agency?: string;
-  specialties?: string[];
+  roles: string[];
+  is_disabled: boolean;
+  department_id?: number;
+  department_name?: string;
+  photo_profile_url?: string;
+  profile_completed?: boolean;
 };

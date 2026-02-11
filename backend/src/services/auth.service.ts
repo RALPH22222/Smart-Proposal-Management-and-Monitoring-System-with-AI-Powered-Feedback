@@ -18,11 +18,21 @@ export class AuthService {
     const userId = data.user.id;
 
     const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles, email_verified")
+      .select("roles, email_verified, is_disabled")
       .eq("id", userId)
       .maybeSingle();
 
     if (rolesError) return { data: null, error: rolesError };
+
+    if (row?.is_disabled) {
+      return {
+        data: null,
+        error: {
+          message: "Your account has been disabled. Contact admin.",
+          status: 403,
+        },
+      };
+    }
 
     // TODO: Re-enable when email verification provider is configured
     // if (!row?.email_verified) {
