@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter } from 'lucide-react';
 import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
+import Swal from 'sweetalert2';
 
 interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
@@ -83,8 +84,26 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
 
     const selectedStaff = rndStaffList.find(s => s.id === selectedStaffId);
     if (selectedStaff && proposal) {
-      onConfirm(proposal.id, selectedStaff.name);
-      onClose();
+      Swal.fire({
+        title: 'Confirm Reassignment',
+        text: `Are you sure you want to reassign this proposal to ${selectedStaff.name}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, reassign',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          onConfirm(proposal.id, selectedStaff.name);
+          onClose();
+          Swal.fire(
+            'Reassigned!',
+            `Proposal has been reassigned to ${selectedStaff.name}.`,
+            'success'
+          );
+        }
+      });
     }
   };
 

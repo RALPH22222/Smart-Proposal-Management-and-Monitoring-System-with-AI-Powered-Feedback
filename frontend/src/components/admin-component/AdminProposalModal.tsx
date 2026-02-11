@@ -10,6 +10,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import {
   type Proposal,
   type Decision,
@@ -273,8 +274,23 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       assignedRdStaffId: decision === 'Assign to RnD' ? selectedRnDStaff?.id : undefined
     };
 
-    onSubmitDecision(decisionData);
-    onClose();
+    // Confirmation Dialog
+    Swal.fire({
+      title: 'Confirm Decision',
+      text: `Are you sure you want to proceed with: ${decision}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#C8102E',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Submit',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onSubmitDecision(decisionData);
+        onClose();
+        Swal.fire('Submitted!', 'Your decision has been recorded.', 'success');
+      }
+    });
   };
 
   const handleForwardToEvaluators = () => {
@@ -298,9 +314,24 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       assignedEvaluators: assignedEvaluators.map(ev => ev.id!)
     };
 
-    onSubmitDecision(decisionData);
-    setShowAnonymitySelection(false);
-    onClose();
+    // Confirmation Dialog for Evaluators
+    Swal.fire({
+      title: 'Confirm Assignment',
+      text: `Are you sure you want to forward this proposal to ${assignedEvaluators.length} evaluators?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#C8102E',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Forward',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onSubmitDecision(decisionData);
+        setShowAnonymitySelection(false);
+        onClose();
+        Swal.fire('Forwarded!', 'Proposal has been sent to evaluators.', 'success');
+      }
+    });
   };
 
   const getDecisionButtonText = (decisionType: DecisionType | 'Assign to RnD') => {

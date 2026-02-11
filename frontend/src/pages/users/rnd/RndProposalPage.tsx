@@ -21,6 +21,7 @@ import {
   fetchPriorities,
   type LookupItem
 } from '../../../services/proposal.api';
+import { supabase } from '../../../config/supabaseClient';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
 import { transformProposalForModal } from "../../../utils/proposal-transform";
@@ -270,6 +271,25 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       setLoading(false);
     }
   };
+
+  // --- Realtime Subscription ---
+  useEffect(() => {
+    const channel = supabase
+      .channel('rnd-proposals-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proposals' },
+        (_) => {
+          // console.log('Realtime update detected:', payload);
+          loadProposals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleViewProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal);
