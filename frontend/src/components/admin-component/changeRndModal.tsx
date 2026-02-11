@@ -8,7 +8,7 @@ interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (proposalId: string, newStaffName: string) => void;
+  onConfirm: (proposalId: string, newStaffName: string, newStaffId?: string) => void;
 }
 
 const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
@@ -95,7 +95,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          onConfirm(proposal.id, selectedStaff.name);
+          onConfirm(proposal.id, selectedStaff.name, selectedStaff.id);
           onClose();
           Swal.fire(
             'Reassigned!',

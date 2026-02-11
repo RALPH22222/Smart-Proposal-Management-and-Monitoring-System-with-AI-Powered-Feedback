@@ -46,9 +46,11 @@ export const adminProposalApi = {
       // Map DecisionType to specific API calls
       if (decision.decision === 'Assign to RnD') {
         if (decision.assignedRdStaffId) {
+          console.log(`Forwarding proposal ${proposalId} to R&D Staff ID: ${decision.assignedRdStaffId}`);
           await forwardProposalToRnd(proposalId, [decision.assignedRdStaffId]);
         } else {
           console.warn("No R&D staff ID provided for assignment");
+          throw new Error("Please select an R&D staff member.");
         }
       } else if (decision.decision === 'Sent to Evaluators') {
         if (decision.assignedEvaluators && decision.assignedEvaluators.length > 0) {

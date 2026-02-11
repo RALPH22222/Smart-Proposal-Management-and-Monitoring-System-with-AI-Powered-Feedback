@@ -106,7 +106,7 @@ export interface AttachmentFile {
 export interface Decision {
 	proposalId: string;
 	decision: DecisionType;
-	structuredComments: StructuredComments;
+	structuredComments?: StructuredComments;
 	attachments: AttachmentFile[];
 	reviewedBy: string;
 	reviewedDate: string;
