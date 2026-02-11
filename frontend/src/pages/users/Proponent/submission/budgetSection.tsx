@@ -185,6 +185,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     type="text"
                     value={item.source}
                     onChange={(e) => onBudgetItemUpdate(item.id, 'source', e.target.value)}
+                    maxLength={100}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm font-medium"
                     placeholder="e.g., GAA, LGUs, Industry"
                   />
@@ -333,6 +334,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                       placeholder="Description (e.g. Travel, Supplies)"
                       value={item.item} // Changed from description to item based on type
                       onChange={(e) => handleUpdateBreakdownItem(idx, 'item', e.target.value)}
+                      maxLength={100}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
                     />
                     <input

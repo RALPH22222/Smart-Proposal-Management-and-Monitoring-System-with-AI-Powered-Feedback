@@ -53,8 +53,14 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!formData.agencyAddress?.city?.trim()) return false;
     if (!formData.telephone?.trim()) return false;
     if (!formData.email?.trim()) return false;
+    if (!formData.agency) return false;
+    if (!formData.schoolYear?.trim()) return false;
 
     // 3. Check Research Details
+    if (!formData.sector) return false;
+    if (!formData.discipline) return false;
+    if (!formData.plannedStartDate) return false;
+    if (!formData.plannedEndDate) return false;
     // Check Classification Type (uses classification_type from FormData)
     if (!formData.classification_type) return false;
 
@@ -213,16 +219,16 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </div>
 
             {/* Basic Info Status */}
-            <div className={`flex items-center ${(formData.project_title && formData.email) ? 'text-green-700 font-medium' : 'text-gray-500'
+            <div className={`flex items-center ${(formData.project_title && formData.email && formData.agency && formData.agencyAddress?.city?.trim() && formData.schoolYear?.trim() && formData.telephone?.trim()) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.project_title && formData.email) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.project_title && formData.email && formData.agency && formData.agencyAddress?.city?.trim() && formData.schoolYear?.trim() && formData.telephone?.trim()) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 
             {/* Research Details Status */}
-            <div className={`flex items-center ${(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
+            <div className={`flex items-center ${(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0 && formData.sector && formData.discipline) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0 && formData.sector && formData.discipline) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Research Details</span>
             </div>
 

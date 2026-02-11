@@ -15,6 +15,7 @@ import type { AIAnalysisResult } from "../../../../components/proponent-componen
 import { submitProposal, analyzeProposalWithAI } from "../../../../services/proposal.api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { isValidationError, parseValidationErrors } from "../../../../utils/validationErrors";
 
 // Auth Context
 import { useAuthContext } from "../../../../context/AuthContext";
@@ -177,6 +178,25 @@ const Submission: React.FC = () => {
       return;
     }
 
+    // Pre-submit validation for fields the backend requires
+    const missingFields: string[] = [];
+    if (!localFormData.agency) missingFields.push("Agency");
+    if (!localFormData.agencyAddress?.city?.trim()) missingFields.push("Agency City");
+    if (!localFormData.sector) missingFields.push("Sector/Commodity");
+    if (!localFormData.discipline) missingFields.push("Discipline");
+    if (!localFormData.plannedStartDate) missingFields.push("Planned Start Date");
+    if (!localFormData.plannedEndDate) missingFields.push("Planned End Date");
+    if (!localFormData.schoolYear?.trim()) missingFields.push("School Year");
+
+    if (missingFields.length > 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Required Fields",
+        html: `<p>Please fill in the following fields:</p><ul style="text-align:left;margin-top:8px;">${missingFields.map((f) => `<li>• ${f}</li>`).join("")}</ul>`,
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -201,19 +221,37 @@ const Submission: React.FC = () => {
       };
 
       const result = await submitProposal(payload, selectedFile);
-      alert("Proposal submitted successfully!");
       console.log("Server Response:", result);
 
-      // Redirect to profile
-      navigate("/users/proponent/proponentMainLayout?tab=profile");
-    } catch (error) {
-      console.error("Submission Error:", error);
-      const errorMessage = error instanceof Error ? error.message : "An error occurred during submission.";
       Swal.fire({
-        icon: "error",
-        title: "Submission Failed",
-        text: errorMessage,
+        icon: "success",
+        title: "Proposal Submitted!",
+        text: "Your proposal has been submitted successfully.",
+        confirmButtonColor: "#C8102E",
+      }).then(() => {
+        navigate("/users/proponent/proponentMainLayout?tab=profile");
       });
+    } catch (error: any) {
+      console.error("Submission Error:", error);
+
+      if (isValidationError(error)) {
+        const fieldErrors = parseValidationErrors(error.response.data.data);
+        Swal.fire({
+          icon: "error",
+          title: "Validation Error",
+          html: `<p>Please fix the following issues:</p><ul style="text-align:left;margin-top:8px;">${fieldErrors.map((e) => `<li>• ${e}</li>`).join("")}</ul>`,
+        });
+      } else {
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          "An error occurred during submission.";
+        Swal.fire({
+          icon: "error",
+          title: "Submission Failed",
+          text: errorMessage,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }

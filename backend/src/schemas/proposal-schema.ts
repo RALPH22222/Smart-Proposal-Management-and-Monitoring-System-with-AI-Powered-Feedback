@@ -32,7 +32,7 @@ const fileSchema = z.object({
 });
 
 const budgetLineSchema = z.object({
-  item: z.string().min(1),
+  item: z.string().min(1).max(100, "Budget item description is too long"),
   value: z.coerce.number().min(0),
 });
 
@@ -45,26 +45,26 @@ const budgetCategorySchema = z.object({
 const budgetsSchema = z
   .array(
     z.object({
-      source: z.string().min(1),
+      source: z.string().min(1).max(100, "Funding source name is too long"),
       budget: budgetCategorySchema,
     }),
   )
   .min(1, "At least one budget source is required");
 
-// Helper to normalize development_class (camelCase to snake_case)
-const normalizeDevelopmentClass = (val: unknown): string | undefined => {
-  const parsed = parseJsonIfString(val);
-  if (!parsed || parsed === "") return undefined;
+// // Helper to normalize development_class (camelCase to snake_case)
+// const normalizeDevelopmentClass = (val: unknown): string | undefined => {
+//   const parsed = parseJsonIfString(val);
+//   if (!parsed || parsed === "") return undefined;
 
-  const keyMap: Record<string, string> = {
-    pilotTesting: "pilot_testing",
-    pilot_testing: "pilot_testing",
-    techPromotion: "tech_promotion",
-    tech_promotion: "tech_promotion",
-  };
+//   const keyMap: Record<string, string> = {
+//     pilotTesting: "pilot_testing",
+//     pilot_testing: "pilot_testing",
+//     techPromotion: "tech_promotion",
+//     tech_promotion: "tech_promotion",
+//   };
 
-  return keyMap[String(parsed)] || String(parsed);
-};
+//   return keyMap[String(parsed)] || String(parsed);
+// };
 
 // Helper to normalize implementation_site (site -> site_name)
 const normalizeImplementationSite = (val: unknown) => {
@@ -98,14 +98,14 @@ export const proposalSchema = z.object({
     parseJsonIfString,
     z.object({
       id: z.string().uuid().optional(), // Existing address UUID
-      street: z.string().max(50).nullish(), // Optional
-      barangay: z.string().max(50).nullish(), // Optional
-      city: z.string().min(1, "City is required").max(50, "City name is too long"),
+      street: z.string().max(256).nullish(), // Optional
+      barangay: z.string().max(256).nullish(), // Optional
+      city: z.string().min(1, "City is required").max(256, "City name is too long"),
     }),
   ),
   school_year: z.string(),
-  program_title: z.string().max(50, "program title is too long"), // Changed from program_title
-  project_title: z.string().min(1, "Project title is required").max(50, "project title is too long"), // Changed from project_title
+  program_title: z.string().max(256, "program title is too long"), // Changed from program_title
+  project_title: z.string().min(1, "Project title is required").max(256, "project title is too long"), // Changed from project_title
 
   email: z.string().or(z.literal("")),
   phone: z.coerce.number().optional().default(0), // Made optional with default for empty string
@@ -129,8 +129,8 @@ export const proposalSchema = z.object({
     normalizeImplementationSite,
     z.array(
       z.object({
-        site_name: z.string().max(50, "site name is too long"),
-        city: z.string().max(50, "city name is too long"),
+        site_name: z.string().max(256, "site name is too long"),
+        city: z.string().max(256, "city name is too long"),
       }),
     ),
   ),

@@ -350,6 +350,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             name="program_title"
             value={formData.program_title || ""}
             onChange={onInputChange}
+            maxLength={256}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             placeholder="Enter program title"
           />
@@ -364,6 +365,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             name="project_title"
             value={formData.project_title || ""}
             onChange={onInputChange}
+            maxLength={256}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             placeholder="Enter project title"
           />
@@ -534,6 +536,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               name="street"
               value={formData.agencyAddress?.street || ""}
               onChange={(e) => handleAddressChange("street", e.target.value)}
+              maxLength={256}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="Street Name / # "
             />
@@ -545,6 +548,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               name="barangay"
               value={formData.agencyAddress?.barangay || ""}
               onChange={(e) => handleAddressChange("barangay", e.target.value)}
+              maxLength={256}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="Barangay Name"
             />
@@ -556,6 +560,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               name="city"
               value={formData.agencyAddress?.city || ""}
               onChange={(e) => handleAddressChange("city", e.target.value)}
+              maxLength={256}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
               placeholder="City / Municipality"
             />

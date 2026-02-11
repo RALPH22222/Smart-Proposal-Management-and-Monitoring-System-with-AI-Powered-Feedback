@@ -508,6 +508,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                 type="text"
                 value={item.site}
                 onChange={(e) => handleSiteChange(index, "site", e.target.value)}
+                maxLength={256}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
                 placeholder={`Site Name ${index + 1}`}
               />
@@ -521,6 +522,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                   type="text"
                   value={item.city}
                   onChange={(e) => handleSiteChange(index, "city", e.target.value)}
+                  maxLength={256}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
                   placeholder={`City/Municipality ${index + 1}`}
                 />
