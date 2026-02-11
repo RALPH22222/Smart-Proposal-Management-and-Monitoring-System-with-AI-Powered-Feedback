@@ -415,7 +415,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       />
                       <div className='ml-3 flex-1'>
                         <span className={`text-sm font-medium ${option === 'Sent to Evaluators' ? 'text-green-700' :
-                          option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
+                            option === 'Revision Required' ? 'text-orange-700' : 'text-red-700'
                           }`}>
                           {getDecisionButtonText(option)}
                         </span>
@@ -518,7 +518,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                               </div>
                               {/* Department & Agency only */}
                               <p className="text-xs text-gray-500 mt-0.5">
-                                {ev.department}
+                                {ev.email} • {ev.department}
                               </p>
                             </div>
                           </label>
