@@ -142,7 +142,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   onClose,
   proposal,
   onAction,
-  agencies = [],
+
 }) => {
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
