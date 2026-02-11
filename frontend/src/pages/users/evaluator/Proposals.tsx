@@ -45,7 +45,7 @@ export default function Proposals() {
       const mapped = (data || []).map((p: any) => {
         // Handle different potential structures effectively
         const proposalObj = p.proposal_id || p;
-
+        
         // Robust proponent name extraction
         let proponentName = 'Unknown';
         if (proposalObj.proponent_id) {
@@ -58,24 +58,85 @@ export default function Proposals() {
 
         // Handle status normalization
         let displayStatus = p.status || proposalObj.status || "pending";
-
+        console.log(`Proposal ID: ${proposalObj.id}, Status: ${displayStatus}`); // DEBUG: Check exact status string
+        
         // Fix: Backend might return 'extend' or keep it 'pending' with a request date
         if (displayStatus === 'extend') {
-          displayStatus = 'extension_requested';
+           displayStatus = 'extension_requested';
         }
         // If status is pending but we have a request_deadline_at, it's an extension request
         if (displayStatus === 'pending' && p.request_deadline_at) {
-          displayStatus = 'extension_requested';
+           displayStatus = 'extension_requested';
         }
+
+        // Format currency helper
+        const formatCurrency = (val: number | string) => {
+          const num = typeof val === "string" ? parseFloat(val) : val;
+          return new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+          }).format(num || 0);
+        };
+
+        // Map budget
+        const budgetSourcesMap: Record<string, { ps: number; mooe: number; co: number }> = {};
+        (proposalObj.estimated_budget || []).forEach((b: any) => {
+          if (!budgetSourcesMap[b.source]) {
+            budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+          }
+          if (b.budget === "ps") budgetSourcesMap[b.source].ps += b.amount;
+          if (b.budget === "mooe") budgetSourcesMap[b.source].mooe += b.amount;
+          if (b.budget === "co") budgetSourcesMap[b.source].co += b.amount;
+        });
+
+        const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+          source,
+          ps: formatCurrency(amounts.ps),
+          mooe: formatCurrency(amounts.mooe),
+          co: formatCurrency(amounts.co),
+          total: formatCurrency(amounts.ps + amounts.mooe + amounts.co),
+        }));
+
+        const totalBudgetVal = (proposalObj.estimated_budget || []).reduce(
+          (acc: number, curr: any) => acc + (curr.amount || 0),
+          0,
+        );
+
+        // Address formatting
+        const agencyAddress = proposalObj.agency_address 
+          ? [proposalObj.agency_address.street, proposalObj.agency_address.barangay, proposalObj.agency_address.city].filter(Boolean).join(", ") 
+          : "N/A";
 
         return {
           id: proposalObj.id,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
+          gender: proposalObj.proponent_id?.sex || "N/A",
           status: displayStatus,
           deadline: p.deadline_at ? new Date(p.deadline_at).toLocaleDateString() : "N/A",
           projectType: proposalObj.sector?.name || "N/A",
-          raw: p
+          agency: proposalObj.agency?.name || "N/A",
+          address: agencyAddress,
+          telephone: proposalObj.phone || "N/A",
+          email: proposalObj.email || "N/A",
+          modeOfImplementation: proposalObj.implementation_mode === "multi_agency" ? "Multi Agency" : "Single Agency",
+          implementationSites: (proposalObj.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
+          priorityAreas: (proposalObj.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
+          cooperatingAgencies: (proposalObj.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+          rdStation: proposalObj.rnd_station?.name || "N/A",
+          classification: proposalObj.classification_type === "research_class" ? "Research" : "Development",
+          classificationDetails: proposalObj.research_class || proposalObj.development_class || "N/A",
+          sector: proposalObj.sector?.name || "N/A",
+          discipline: proposalObj.discipline?.name || "N/A",
+          duration: proposalObj.duration ? `${proposalObj.duration} months` : "N/A",
+          schoolYear: proposalObj.school_year || "N/A",
+          startDate: proposalObj.plan_start_date || "N/A",
+          endDate: proposalObj.plan_end_date || "N/A",
+          budgetSources,
+          budgetTotal: formatCurrency(totalBudgetVal),
+          projectFile: proposalObj.proposal_version?.[0]?.file_url || null,
+          extensionReason: p.remarks || null,
+          raw: p 
         };
       });
 
@@ -85,13 +146,8 @@ export default function Proposals() {
           uniqueProposalsMap.set(p.id, p);
         }
       });
-
-      const uniqueProposals = Array.from(uniqueProposalsMap.values()).sort((a: any, b: any) => {
-        // Sort by raw created_at or updated_at if available
-        const dateA = new Date(a.raw?.created_at || a.raw?.updated_at || 0).getTime();
-        const dateB = new Date(b.raw?.created_at || b.raw?.updated_at || 0).getTime();
-        return dateB - dateA; // Descending
-      });
+      
+      const uniqueProposals = Array.from(uniqueProposalsMap.values());
 
       console.log("Mapped Unique Proposals:", uniqueProposals);
       setProposals(uniqueProposals);
@@ -119,6 +175,7 @@ export default function Proposals() {
     extension_requested: 1,
     accepted: 2,
     rejected: 3,
+    decline: 3, // Group Decline with Rejected
   };
 
   const sortedFiltered = [...filtered].sort((a, b) => {
@@ -134,10 +191,12 @@ export default function Proposals() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "accepted":
-        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      case "approve": 
+        return "text-indigo-600 bg-indigo-50 border-indigo-200";
       case "pending":
         return "text-amber-600 bg-amber-50 border-amber-200";
       case "rejected":
+      case "decline": // Add Decline with Red Styling
         return "text-red-600 bg-red-50 border-red-200";
       case "extension_requested":
       case "extend":
@@ -162,6 +221,7 @@ export default function Proposals() {
         return <Clock className="w-3 h-3" />;
       case "rejected":
       case "extension_rejected":
+      case "decline": // Add Decline Icon (XCircle)
         return <XCircle className="w-3 h-3" />;
       case "extension_requested":
       case "extend":
@@ -178,6 +238,8 @@ export default function Proposals() {
     if (status === "extension_approved") return "Extension Approved";
     if (status === "extension_rejected") return "Extension Rejected";
     if (status === "for_review") return "Under Review";
+    if (status === "accepted" || status === "approve") return "Reviewed"; 
+    if (status === "decline") return "Declined"; // Format Decline to "Declined"
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -324,6 +386,7 @@ export default function Proposals() {
                 <option value="All">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="accepted">Accepted</option>
+                <option value="approve">Reviewed</option>
                 <option value="rejected">Rejected</option>
                 <option value="extension_requested">Extension Requested</option>
               </select>

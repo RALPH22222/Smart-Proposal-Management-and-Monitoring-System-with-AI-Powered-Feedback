@@ -137,8 +137,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     try {
       setLoading(true);
       const data = await proposalApi.fetchProposals();
-      const sortedData = data.sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime());
-      setProposals(sortedData);
+      setProposals(data);
     } catch (error) {
       console.error('Error loading proposals:', error);
     } finally {
@@ -211,51 +210,18 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     setIsChangeRdModalOpen(true);
   }
 
-  const confirmRdChange = async (proposalId: string, newStaffName: string, newStaffId?: string) => {
-    try {
-      // Find the Staff ID if not passed directly (though ChangeRndModal should ideally pass it)
-      // Here we assume newStaffName might be just for display, but let's try to update using the ID if we can get it from the modal logic
-      // But notice ChangeRndModal calls onConfirm(proposal.id, selectedStaff.name). It SHOULD pass the ID.
-
-      // Let's rely on the Modal update below to pass the ID.
-
-      if (!newStaffId) {
-        console.error("Staff ID missing for assignment");
-        return;
-      }
-
-      const decision: Decision = {
-        proposalId: proposalId,
-        decision: 'Assign to RnD',
-        reviewedBy: currentUser.name,
-        reviewedDate: new Date().toISOString(),
-        assignedRdStaffId: newStaffId,
-        attachments: []
-      };
-
-      await proposalApi.submitDecision(decision);
-
-      // Optimistic update or reload
-      setProposals(prev => prev.map(p =>
-        p.id === proposalId
-          ? {
-            ...p,
-            assignedRdStaff: newStaffName,
-            status: 'Under R&D Review' as ProposalStatus,
-            lastModified: new Date().toISOString()
-          }
-          : p
-      ));
-
-      setIsChangeRdModalOpen(false);
-
-      // Reload to ensure sync
-      await loadProposals();
-
-    } catch (error) {
-      console.error("Failed to reassign R&D staff:", error);
-      // Optionally show error toast
-    }
+  const confirmRdChange = async (proposalId: string, newStaffName: string) => {
+    setProposals(prev => prev.map(p =>
+      p.id === proposalId
+        ? {
+          ...p,
+          assignedRdStaff: newStaffName,
+          status: 'Under R&D Review' as ProposalStatus,
+          lastModified: new Date().toISOString()
+        }
+        : p
+    ));
+    setIsChangeRdModalOpen(false);
   };
 
   const handleCloseModal = () => {
@@ -271,7 +237,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       // Determine new status based on decision
       let newStatus: ProposalStatus;
       let newAssignedEvaluators: string[] | undefined = undefined;
-      let instructionMessage = decision.structuredComments?.objectives?.content || "";
+      const instructionMessage = decision.structuredComments?.objectives?.content || "";
 
       if (decision.decision === 'Sent to Evaluators') {
         newStatus = 'Under Evaluators Assessment';
@@ -427,9 +393,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     { id: 'Under Evaluators Assessment', label: 'Evaluators', icon: Users },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
-
-
-
+  
   // Helper for Random Tag Colors (Matches RndProposalPage)
   const getTagColor = (tag: string) => {
     let hash = 0;

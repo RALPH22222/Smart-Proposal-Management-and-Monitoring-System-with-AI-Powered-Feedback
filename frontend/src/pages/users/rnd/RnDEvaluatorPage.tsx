@@ -15,7 +15,7 @@ import Swal from "sweetalert2";
 
 import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
-import { getAssignmentTracker, handleExtensionRequest, getRndProposals } from "../../../services/proposal.api";
+import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators } from "../../../services/proposal.api";
 
 // --- INTERFACES ---
 
@@ -331,10 +331,58 @@ export const RnDEvaluatorPage: React.FC = () => {
     }
   };
 
-  const handleReassignEvaluators = (newEvaluators: EvaluatorOption[]) => {
-    // Reassignment logic not fully requested in this prompt, placeholder
-    console.log("Reassigned Evaluators behavior to be implemented if needed", newEvaluators);
-    setShowModal(false);
+  const handleReassignEvaluators = async (newEvaluators: EvaluatorOption[]) => {
+    if (!selectedProposalId) return;
+    
+    const currentAssignment = assignments.find(a => a.proposalIdNumeric === selectedProposalId);
+    const existingEvaluatorIds = new Set(currentAssignment?.evaluatorIds || []);
+
+    const newEvaluatorIds = newEvaluators
+      .map(ev => ev.id)
+      .filter(id => !existingEvaluatorIds.has(id));
+
+    if (newEvaluatorIds.length === 0) {
+      Swal.fire({
+        icon: "info",
+        title: "No Changes",
+        text: "No new evaluators to add. The selected evaluators are already assigned.",
+      });
+      setShowModal(false);
+      return;
+    }
+
+    try {
+      const deadlineInDays = 14; // 14 days from now
+
+      const payload = {
+        proposal_id: selectedProposalId,
+        evaluator_id: newEvaluatorIds,
+        deadline_at: deadlineInDays,
+        commentsForEvaluators: "Updated via R&D Tracker",
+      };
+
+      console.log("Sending reassignment payload:", payload);
+
+      await forwardProposalToEvaluators(payload);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: `${newEvaluatorIds.length} new evaluator(s) added successfully.`,
+      });
+
+      // Refresh Data
+      await fetchData();
+      setShowModal(false);
+    } catch (error: any) {
+      console.error("Failed to assign evaluators:", error);
+      console.error("Error details:", error?.response?.data);
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Failed",
+        text: error?.response?.data?.message || error?.response?.data?.error || "Could not save changes.",
+      });
+    }
   };
 
   const filteredAssignments = assignments.filter((a) => {

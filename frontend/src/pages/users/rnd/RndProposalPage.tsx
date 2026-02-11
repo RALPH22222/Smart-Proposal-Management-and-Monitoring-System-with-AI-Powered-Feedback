@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FileText, Calendar, User, Eye, Gavel, Search,
-  ChevronLeft, ChevronRight, Tag, XCircle,
-  GitBranch, Users, X, MessageSquare, AlertTriangle, Clock, RefreshCw
+  FileText, Calendar, User, Eye, Gavel, Filter, Search,
+  ChevronLeft, ChevronRight, XCircle, Tag,
+  GitBranch, Users, X, MessageSquare, AlertTriangle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -21,7 +21,6 @@ import {
   fetchPriorities,
   type LookupItem
 } from '../../../services/proposal.api';
-import { supabase } from '../../../config/supabaseClient';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
 import { transformProposalForModal } from "../../../utils/proposal-transform";
@@ -108,13 +107,13 @@ interface RndProposalPageProps {
 }
 
 // Extended Status type to include Revised Proposal locally for this view
-type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Endorsed';
+type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal';
 
 const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
   switch (status) {
     case 'review_rnd': return 'Pending';
-    case 'under_evaluation': return 'Sent to Evaluators'; // Map to 'Under Evaluators Assessment' if preferred, but existing code uses this
-    case 'revision_rnd': return 'Revision Required';
+    case 'under_evaluation': return 'Sent to Evaluators';
+    case 'revision_rnd': return 'Revision Required'; // Or possibly 'Revised Proposal' depending on context, using Revision Required for general bucket
     case 'rejected_rnd': return 'Rejected Proposal';
     case 'endorsed_for_funding': return 'Endorsed';
     case 'funded': return 'Funded';
@@ -139,8 +138,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
   const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>('');
 
-  // Filters (switched to activeTab for consistency with Admin page)
-  const [activeTab, setActiveTab] = useState<ExtendedProposalStatus | 'All'>(filter as any || 'All');
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<ExtendedProposalStatus | 'All'>(filter || 'All');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination
@@ -174,50 +173,30 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     }
   };
 
-  // Filter proposals based on status and search term (Enhanced Logic)
+  // Filter proposals based on status and search term
   useEffect(() => {
-    let filtered = proposals.filter((proposal) => {
-      const matchesSearch =
-        proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        proposal.id.toLowerCase().includes(searchTerm.toLowerCase());
+    let filtered = proposals;
 
-      if (!matchesSearch) return false;
+    // Apply status filter
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(
+        (proposal) => proposal.status === statusFilter
+      );
+    }
 
-      // Status Filter Logic
-      if (activeTab === 'All') return true;
-
-      const s = proposal.status;
-
-      if (activeTab === 'Pending') {
-        return s === 'Pending' || s === 'Under R&D Review' || s === 'review_rnd' as any;
-      }
-
-      return s === activeTab;
-    });
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (proposal) =>
+          proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          proposal.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
     setFilteredProposals(filtered);
     setCurrentPage(1);
-  }, [proposals, activeTab, searchTerm]);
-
-  const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
-    if (status === 'All') return proposals.length;
-    // Mirrored logic from filter effect for consistency
-    return proposals.filter((p) => {
-      if (status === 'Pending') return p.status === 'Pending' || p.status === 'Under R&D Review' || p.status === 'review_rnd' as any;
-      return p.status === status;
-    }).length;
-  };
-
-  const tabs: { id: ExtendedProposalStatus | 'All'; label: string; icon: any }[] = [
-    { id: 'All', label: 'All', icon: FileText },
-    { id: 'Pending', label: 'Pending Review', icon: Clock },
-    { id: 'Revised Proposal', label: 'Revised', icon: GitBranch },
-    { id: 'Revision Required', label: 'To Revise', icon: RefreshCw },
-    { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
-    { id: 'Endorsed', label: 'Endorsed', icon: Gavel },
-    { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
-  ];
+  }, [proposals, statusFilter, searchTerm]);
 
   const loadProposals = async () => {
     try {
@@ -279,41 +258,18 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
           projectFile: raw.file_url,
           tags: raw.proposal_tags?.map((t: any) => t.tags?.name) || [],
-          raw: raw
+          raw: raw // Pass normalized data to modal
         } as any;
         return transformed;
       });
 
-      const sortedInfo = mappedProposals.sort((a, b) => {
-        return new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime();
-      });
-
-      setProposals(sortedInfo);
+      setProposals(mappedProposals);
     } catch (error) {
       console.error('Error loading proposals:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  // --- Realtime Subscription ---
-  useEffect(() => {
-    const channel = supabase
-      .channel('rnd-proposals-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'proposals' },
-        (_) => {
-          // console.log('Realtime update detected:', payload);
-          loadProposals();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const handleViewProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal);
@@ -444,7 +400,10 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     }
   };
 
-
+  const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
+    if (status === 'All') return proposals.length;
+    return proposals.filter((p) => p.status === status).length;
+  };
 
   // Helper for Random Tag Colors (Matches Profile.tsx)
   const getTagColor = (tag: string) => {
@@ -494,7 +453,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                R&D Proposal Review
+                {filter ? `${filter} Proposals` : 'R&D Proposal Review'}
               </h1>
               <p className="text-slate-600 mt-2 text-sm leading-relaxed">
                 Review and evaluate research proposals submitted to WMSU
@@ -503,65 +462,60 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           </div>
         </header>
 
-        {/* Stepper / Tabs */}
-        <section className="flex-shrink-0 overflow-x-auto pb-2">
-          <div className="flex gap-2">
-            {tabs.map(tab => {
-              const isActive = activeTab === tab.id;
-              const count = getStatusCount(tab.id);
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${isActive
-                    ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
-                  <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{tab.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive
-                    ? 'bg-white/20 text-white'
-                    : 'bg-slate-100 text-slate-500'
-                    }`}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </section>
+        {/* Filters and Search */}
+        <section className="flex-shrink-0" aria-label="Filter proposals">
+          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <div className="relative flex-1 max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search proposals..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
+                />
+              </div>
 
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search proposals..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
-            />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as ExtendedProposalStatus | 'All')}
+                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors cursor-pointer"
+                >
+                  <option value="All">All Statuses ({getStatusCount('All')})</option>
+                  <option value="Pending">Pending ({getStatusCount('Pending')})</option>
+                  {/* <option value="Revised Proposal">Revised Proposal ({getStatusCount('Revised Proposal' as any)})</option> */}
+                  <option value="Revision Required">Revision Required ({getStatusCount('Revision Required')})</option>
+                  <option value="Sent to Evaluators">Sent to Evaluators ({getStatusCount('Sent to Evaluators')})</option>
+                  <option value="Rejected Proposal">Rejected Proposal ({getStatusCount('Rejected Proposal')})</option>
+                </select>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* Proposals List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit overflow-hidden flex-1">
+        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit">
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
-                {activeTab === 'All' ? 'All Proposals' : `${activeTab} Proposals`}
+                Research Proposals
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
-                <span>{filteredProposals.length} total proposals</span>
+                <span>{proposals.length} total proposals</span>
               </div>
             </div>
           </div>
 
-          <div className="overflow-y-auto custom-scrollbar flex-1">
+          <div className="overflow-x-auto custom-scrollbar">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

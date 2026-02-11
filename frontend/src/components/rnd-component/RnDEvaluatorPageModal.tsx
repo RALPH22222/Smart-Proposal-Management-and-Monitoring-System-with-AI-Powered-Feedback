@@ -149,29 +149,23 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     setReplacingId(null);
   };
 
-  const confirmReplace = (originalId: string, newEvaluatorId: string, department: string) => {
+  const confirmReplace = (originalId: string, newEvaluatorId: string) => {
     if (!newEvaluatorId) return;
 
-    // Use allEvaluators to find the replacement, handling potentially different departments if logic permits, 
-    // but here we restrict to the same department as the original or any available?
-    // The original logic used mockEvaluators[department]. 
-    // We should filter allEvaluators by the passed 'department' string.
-    
-    const candidates = allEvaluators.filter(user => 
-        user.departments.some(d => d.name === department)
-    ).map(user => ({
-        id: user.id,
-        name: `${user.first_name} ${user.last_name}`,
-        department: user.departments.find(d => d.name === department)?.name || department,
-        status: 'Pending' as const
-    }));
+    // Find the new evaluator from the FULL list of evaluators
+    const newEvaluatorUser = allEvaluators.find(user => user.id === newEvaluatorId);
 
-    const newEvaluatorObj = candidates.find(c => c.id === newEvaluatorId);
+    if (newEvaluatorUser) {
+      const newEvaluatorObj: EvaluatorOption = {
+        id: newEvaluatorUser.id,
+        name: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}`.trim(),
+        department: newEvaluatorUser.departments[0]?.name || "Unknown Dept",
+        status: 'Pending'
+      };
 
-    if (newEvaluatorObj) {
       setCurrentList(prev => prev.map(ev => {
         if (ev.id === originalId) {
-          return { ...newEvaluatorObj, status: 'Pending' }; 
+          return newEvaluatorObj;
         }
         return ev;
       }));
@@ -307,20 +301,20 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                 <div className="flex flex-col gap-2 animate-in fade-in duration-200">
                                   <select 
                                     className="w-full text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-1 focus:ring-[#C10003] outline-none"
-                                    onChange={(e) => confirmReplace(ev.id, e.target.value, ev.department)}
+                                    onChange={(e) => confirmReplace(ev.id, e.target.value)}
                                     defaultValue=""
                                     autoFocus
                                   >
                                     <option value="" disabled>Select Replacement</option>
                                     {allEvaluators
-                                      .filter(user => user.departments.some(d => d.name === ev.department))
                                       .map(user => ({
                                           id: user.id,
-                                          name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
+                                          name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim(),
+                                          department: user.departments[0]?.name || "Unknown"
                                       }))
                                       .filter(c => !currentList.some(curr => curr.id === c.id))
                                       .map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                        <option key={c.id} value={c.id}>{c.name} ({c.department})</option>
                                       ))
                                     }
                                   </select>
