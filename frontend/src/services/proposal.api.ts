@@ -274,7 +274,6 @@ export const getRndProposals = async (): Promise<any[]> => {
   return data;
 };
 
-<<<<<<< Updated upstream
 export const getEvaluatorProposals = async (search?: string, status?: string): Promise<any[]> => {
   const params = new URLSearchParams();
   if (search) params.append("search", search);
@@ -288,13 +287,6 @@ export const getEvaluatorProposals = async (search?: string, status?: string): P
 
 export const getEvaluatorProposalStats = async (): Promise<any> => {
   const { data } = await api.get<any>("/proposal/view-evaluator-proposal-stats", {
-=======
-export const getEvaluatorProposals = async (status?: string): Promise<any[]> => {
-  const params: Record<string, string> = {};
-  if (status) params.status = status;
-
-  const { data } = await api.get<any[]>(`/proposal/view-evaluator`, {
->>>>>>> Stashed changes
     withCredentials: true,
   });
   return data;
@@ -457,4 +449,3 @@ export const handleExtensionRequest = async (input: HandleExtensionPayload): Pro
   });
   return data;
 };
-
