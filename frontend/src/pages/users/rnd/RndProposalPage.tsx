@@ -405,8 +405,6 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     return proposals.filter((p) => p.status === status).length;
   };
 
-
-
   // Helper for Random Tag Colors (Matches Profile.tsx)
   const getTagColor = (tag: string) => {
     // Simple hash function to get consistent color for same tag

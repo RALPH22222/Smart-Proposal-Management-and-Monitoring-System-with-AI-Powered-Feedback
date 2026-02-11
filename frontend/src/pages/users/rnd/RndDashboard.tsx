@@ -25,6 +25,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 	const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
 
 	useEffect(() => {
+		if (!user) return;
+
 		const hasVisited = localStorage.getItem('rnd_welcome_seen');
 		const isNewUser = !hasVisited;
 
@@ -32,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			localStorage.setItem('rnd_welcome_seen', 'true');
 		}
 
-		const firstName = user?.first_name || 'User';
+		const firstName = user.first_name || 'User';
 		const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
 		const targetName = firstName;
 		const targetSuffix = !isNewUser ? '!' : '';
@@ -62,7 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 		}, 50);
 
 		return () => clearInterval(typeInterval);
-	}, [user]);
+	}, [user?.first_name]);
 
 	const statCards = [
 		{

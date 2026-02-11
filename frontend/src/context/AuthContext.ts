@@ -6,6 +6,7 @@ export type AuthUser = {
   roles: string[];
   first_name?: string;
   last_name?: string;
+  profile_photo_url?: string;
 };
 
 type AuthContextValue = {
@@ -22,8 +23,8 @@ const AuthContext = createContext<AuthContextValue>({
   loading: false,
   isAuthenticated: false,
   verifyToken: async () => undefined,
-  logout: async () => {},
-  setUser: () => {},
+  logout: async () => { },
+  setUser: () => { },
 });
 
 export const useAuthContext = () => useContext(AuthContext);

@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { useAuthContext } from '../../../context/AuthContext';
 import {
   Users,
   FileText,
@@ -10,6 +12,51 @@ import {
 } from "lucide-react";
 
 export default function DashboardAdmin() {
+  const { user } = useAuthContext();
+  const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
+
+  useEffect(() => {
+    if (!user) return;
+
+    const hasVisited = localStorage.getItem('admin_welcome_seen');
+    const isNewUser = !hasVisited;
+
+    if (isNewUser) {
+      localStorage.setItem('admin_welcome_seen', 'true');
+    }
+
+    const firstName = user.first_name || 'Admin';
+    const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
+    const targetName = firstName;
+    const targetSuffix = !isNewUser ? '!' : '';
+
+    const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
+    let charIndex = 0;
+
+    // Clear initial
+    setDisplayedText({ prefix: '', name: '', suffix: '' });
+
+    const typeInterval = setInterval(() => {
+      charIndex++;
+      const currentTotal = charIndex;
+
+      const pLen = targetPrefix.length;
+      const nLen = targetName.length;
+
+      const p = targetPrefix.slice(0, Math.min(currentTotal, pLen));
+      const n = currentTotal > pLen ? targetName.slice(0, Math.min(currentTotal - pLen, nLen)) : '';
+      const s = currentTotal > pLen + nLen ? targetSuffix.slice(0, currentTotal - (pLen + nLen)) : '';
+
+      setDisplayedText({ prefix: p, name: n, suffix: s });
+
+      if (currentTotal >= totalLength) {
+        clearInterval(typeInterval);
+      }
+    }, 50);
+
+    return () => clearInterval(typeInterval);
+  }, [user?.first_name]);
+
   const stats = [
     {
       icon: Users,
@@ -109,11 +156,13 @@ export default function DashboardAdmin() {
   return (
     <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden">
       {/* Header */}
-      <header className="flex-shrink-0 pt-10 sm:pt-0 pb-4 sm:pb-6">
+      <header className="flex-shrink-0 pt-10 sm:pt-0 pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#C8102E] leading-tight">
-              Admin Dashboard
+            <h1 className="text-xl sm:text-2xl font-bold text-[#C8102E] leading-tight min-h-[32px]">
+              {displayedText.prefix}
+              <span className="text-black">{displayedText.name}</span>
+              {displayedText.suffix}
             </h1>
             <p className="text-slate-600 mt-2 text-sm leading-relaxed">
               System overview and performance metrics
@@ -275,13 +324,12 @@ export default function DashboardAdmin() {
                       role="cell"
                     >
                       <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          metric.status === "up"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : metric.status === "warning"
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${metric.status === "up"
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : metric.status === "warning"
                             ? "bg-amber-50 text-amber-700 border border-amber-200"
                             : "bg-blue-50 text-blue-700 border border-blue-200"
-                        }`}
+                          }`}
                       >
                         {metric.trend}
                       </span>
@@ -387,13 +435,12 @@ export default function DashboardAdmin() {
                       {user.active}/{user.total}
                     </span>
                     <span
-                      className={`px-2 py-1 rounded-full ${
-                        parseInt(user.percentage) > 80
-                          ? "bg-emerald-100 text-emerald-700"
-                          : parseInt(user.percentage) > 60
+                      className={`px-2 py-1 rounded-full ${parseInt(user.percentage) > 80
+                        ? "bg-emerald-100 text-emerald-700"
+                        : parseInt(user.percentage) > 60
                           ? "bg-amber-100 text-amber-700"
                           : "bg-red-100 text-red-700"
-                      }`}
+                        }`}
                     >
                       {user.percentage}
                     </span>

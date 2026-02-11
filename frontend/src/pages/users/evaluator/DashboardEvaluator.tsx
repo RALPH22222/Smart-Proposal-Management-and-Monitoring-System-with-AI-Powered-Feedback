@@ -8,8 +8,54 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getEvaluatorProposals } from "../../../services/proposal.api";
+import { useAuthContext } from "../../../context/AuthContext";
 
 export default function DashboardRdec() {
+  const { user } = useAuthContext();
+  const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
+
+  useEffect(() => {
+    if (!user) return;
+
+    const hasVisited = localStorage.getItem('evaluator_welcome_seen');
+    const isNewUser = !hasVisited;
+
+    if (isNewUser) {
+      localStorage.setItem('evaluator_welcome_seen', 'true');
+    }
+
+    const firstName = user.first_name || 'Evaluator';
+    const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
+    const targetName = firstName;
+    const targetSuffix = !isNewUser ? '!' : '';
+
+    const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
+    let charIndex = 0;
+
+    // Clear initial
+    setDisplayedText({ prefix: '', name: '', suffix: '' });
+
+    const typeInterval = setInterval(() => {
+      charIndex++;
+      const currentTotal = charIndex;
+
+      const pLen = targetPrefix.length;
+      const nLen = targetName.length;
+
+      const p = targetPrefix.slice(0, Math.min(currentTotal, pLen));
+      const n = currentTotal > pLen ? targetName.slice(0, Math.min(currentTotal - pLen, nLen)) : '';
+      const s = currentTotal > pLen + nLen ? targetSuffix.slice(0, currentTotal - (pLen + nLen)) : '';
+
+      setDisplayedText({ prefix: p, name: n, suffix: s });
+
+      if (currentTotal >= totalLength) {
+        clearInterval(typeInterval);
+      }
+    }, 50);
+
+    return () => clearInterval(typeInterval);
+  }, [user?.first_name]);
+
   const [statsData, setStatsData] = useState({
     pending: 0,
     reject: 0,
@@ -21,133 +67,133 @@ export default function DashboardRdec() {
   const [proposals, setProposals] = useState<any[]>([]);
 
   const [derivedStats, setDerivedStats] = useState({
-      reviewedToday: 0,
-      underReview: 0,
-      pending: 0,
-      thisMonth: 0,
-      thisWeek: 0,
-      today: 0
+    reviewedToday: 0,
+    underReview: 0,
+    pending: 0,
+    thisMonth: 0,
+    thisWeek: 0,
+    today: 0
   });
 
   useEffect(() => {
-      const fetchData = async () => {
-          try {
-              // We only need getEvaluatorProposals to calculate everything accurately
-              // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
-              const [allProposals] = await Promise.all([
-                  getEvaluatorProposals()
-              ]);
+    const fetchData = async () => {
+      try {
+        // We only need getEvaluatorProposals to calculate everything accurately
+        // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
+        const [allProposals] = await Promise.all([
+          getEvaluatorProposals()
+        ]);
 
-              // 1. Robust Mapping (same as Proposals.tsx)
-              const mappedAll = (allProposals || []).map((p: any) => {
-                const proposalObj = p.proposal_id || p;
-                
-                let proponentName = 'Unknown';
-                if (proposalObj.proponent_id) {
-                  if (typeof proposalObj.proponent_id === "object") {
-                    proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
-                  } else if (typeof proposalObj.proponent_id === "string") {
-                    proponentName = proposalObj.proponent_id;
-                  }
-                }
+        // 1. Robust Mapping (same as Proposals.tsx)
+        const mappedAll = (allProposals || []).map((p: any) => {
+          const proposalObj = p.proposal_id || p;
 
-                // Handle status normalization
-                let displayStatus = p.status || proposalObj.status || "pending";
-                
-                if (displayStatus === 'extend') {
-                   displayStatus = 'extension_requested';
-                }
-                // If status is pending but we have a request_deadline_at, it's an extension request
-                if (displayStatus === 'pending' && p.request_deadline_at) {
-                   displayStatus = 'extension_requested';
-                }
-
-                return {
-                  id: proposalObj.id,
-                  title: proposalObj.project_title || "Untitled",
-                  proponent: proponentName.trim(),
-                  status: displayStatus,
-                  created_at: new Date(p.created_at || proposalObj.created_at),
-                  updated_at: new Date(p.updated_at || proposalObj.updated_at),
-                  date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
-                  updatedAt: new Date(p.updated_at || proposalObj.updated_at)
-                };
-              });
-
-              // 2. Deduplication
-              const uniqueProposalsMap = new Map();
-              mappedAll.forEach((p: any) => {
-                if (!uniqueProposalsMap.has(p.id)) {
-                  uniqueProposalsMap.set(p.id, p);
-                }
-              });
-              const uniqueProposals = Array.from(uniqueProposalsMap.values());
-
-              // 3. Calculate Stats from Unique Proposals
-              const newStats = {
-                pending: 0,
-                reject: 0,
-                approve: 0,
-                for_review: 0,
-                revise: 0,
-                decline: 0
-              };
-
-              uniqueProposals.forEach((p: any) => {
-                const s = p.status;
-                if (s === 'pending') newStats.pending++;
-                else if (s === 'accepted' || s === 'approve') newStats.approve++; // normalize 'accepted' to 'approve' bucket
-                else if (s === 'rejected' || s === 'reject') newStats.reject++;   // normalize 'rejected' to 'reject' bucket
-                else if (s === 'for_review') newStats.for_review++;
-                else if (s === 'revise' || s === 'revision') newStats.revise++;
-                else if (s === 'decline') newStats.decline++;
-                else if (s === 'extension_requested' || s === 'extension_approved' || s === 'extension_rejected') newStats.pending++; // Treat extension flows as pending action
-              });
-
-              setStatsData(newStats);
-
-              // 4. Filter for "Recent Reviewed" Table
-              // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
-              const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
-              
-              const reviewedProposals = uniqueProposals
-                .filter((item: any) => reviewedStatuses.includes(item.status));
-              
-              // Sort by review date desc
-              reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-              setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
-
-              // 5. Calculate derived stats (Activity)
-              const now = new Date();
-              const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-              const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-              const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-              const todayCount = uniqueProposals.filter((p: any) => p.created_at >= startOfDay).length;
-              const weekCount = uniqueProposals.filter((p: any) => p.created_at >= startOfWeek).length;
-              const monthCount = uniqueProposals.filter((p: any) => p.created_at >= startOfMonth).length;
-
-              const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
-              const underReviewCount = newStats.for_review; 
-              // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
-              // we can just use the pending count
-              const pendingCount = newStats.pending;
-
-              setDerivedStats({
-                  reviewedToday,
-                  underReview: underReviewCount,
-                  pending: pendingCount,
-                  thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
-                  thisWeek: weekCount,
-                  today: todayCount
-              });
-
-          } catch (error) {
-              console.error("Failed to fetch dashboard data", error);
+          let proponentName = 'Unknown';
+          if (proposalObj.proponent_id) {
+            if (typeof proposalObj.proponent_id === "object") {
+              proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
+            } else if (typeof proposalObj.proponent_id === "string") {
+              proponentName = proposalObj.proponent_id;
+            }
           }
-      };
 
-      fetchData();
+          // Handle status normalization
+          let displayStatus = p.status || proposalObj.status || "pending";
+
+          if (displayStatus === 'extend') {
+            displayStatus = 'extension_requested';
+          }
+          // If status is pending but we have a request_deadline_at, it's an extension request
+          if (displayStatus === 'pending' && p.request_deadline_at) {
+            displayStatus = 'extension_requested';
+          }
+
+          return {
+            id: proposalObj.id,
+            title: proposalObj.project_title || "Untitled",
+            proponent: proponentName.trim(),
+            status: displayStatus,
+            created_at: new Date(p.created_at || proposalObj.created_at),
+            updated_at: new Date(p.updated_at || proposalObj.updated_at),
+            date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
+            updatedAt: new Date(p.updated_at || proposalObj.updated_at)
+          };
+        });
+
+        // 2. Deduplication
+        const uniqueProposalsMap = new Map();
+        mappedAll.forEach((p: any) => {
+          if (!uniqueProposalsMap.has(p.id)) {
+            uniqueProposalsMap.set(p.id, p);
+          }
+        });
+        const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+        // 3. Calculate Stats from Unique Proposals
+        const newStats = {
+          pending: 0,
+          reject: 0,
+          approve: 0,
+          for_review: 0,
+          revise: 0,
+          decline: 0
+        };
+
+        uniqueProposals.forEach((p: any) => {
+          const s = p.status;
+          if (s === 'pending') newStats.pending++;
+          else if (s === 'accepted' || s === 'approve') newStats.approve++; // normalize 'accepted' to 'approve' bucket
+          else if (s === 'rejected' || s === 'reject') newStats.reject++;   // normalize 'rejected' to 'reject' bucket
+          else if (s === 'for_review') newStats.for_review++;
+          else if (s === 'revise' || s === 'revision') newStats.revise++;
+          else if (s === 'decline') newStats.decline++;
+          else if (s === 'extension_requested' || s === 'extension_approved' || s === 'extension_rejected') newStats.pending++; // Treat extension flows as pending action
+        });
+
+        setStatsData(newStats);
+
+        // 4. Filter for "Recent Reviewed" Table
+        // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
+        const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
+
+        const reviewedProposals = uniqueProposals
+          .filter((item: any) => reviewedStatuses.includes(item.status));
+
+        // Sort by review date desc
+        reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
+
+        // 5. Calculate derived stats (Activity)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const todayCount = uniqueProposals.filter((p: any) => p.created_at >= startOfDay).length;
+        const weekCount = uniqueProposals.filter((p: any) => p.created_at >= startOfWeek).length;
+        const monthCount = uniqueProposals.filter((p: any) => p.created_at >= startOfMonth).length;
+
+        const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
+        const underReviewCount = newStats.for_review;
+        // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
+        // we can just use the pending count
+        const pendingCount = newStats.pending;
+
+        setDerivedStats({
+          reviewedToday,
+          underReview: underReviewCount,
+          pending: pendingCount,
+          thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
+          thisWeek: weekCount,
+          today: todayCount
+        });
+
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const stats = [
@@ -172,7 +218,7 @@ export default function DashboardRdec() {
     {
       icon: CheckCircle,
       label: "Reviewed Proposals",
-      value: statsData.approve + statsData.revise, 
+      value: statsData.approve + statsData.revise,
       color: "text-emerald-500",
       bgColor: "bg-emerald-50",
       borderColor: "border-emerald-200",
@@ -187,11 +233,13 @@ export default function DashboardRdec() {
         <header className="pb-4 sm:pb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                Evaluator Dashboard
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px]">
+                {displayedText.prefix}
+                <span className="text-black">{displayedText.name}</span>
+                {displayedText.suffix}
               </h1>
               <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Welcome back! Here's an overview of your proposals.
+                Overview of your assigned proposals.
               </p>
             </div>
           </div>

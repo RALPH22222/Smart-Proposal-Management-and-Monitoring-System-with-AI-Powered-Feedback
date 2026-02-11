@@ -12,6 +12,7 @@ type VerifyTokenResponse = {
     roles: string[];
     first_name?: string;
     last_name?: string;
+    profile_photo_url?: string;
   };
 };
 
@@ -47,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         roles: data.user.roles,
         first_name: data.user.first_name,
         last_name: data.user.last_name,
+        profile_photo_url: data.user.profile_photo_url,
       };
 
       setUser(hydratedUser);

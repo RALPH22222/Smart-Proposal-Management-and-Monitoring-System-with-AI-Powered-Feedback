@@ -271,6 +271,50 @@ const Profile: React.FC = () => {
     return colors[index];
   };
 
+  const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const hasVisited = localStorage.getItem('proponent_welcome_seen');
+    const isNewUser = !hasVisited;
+
+    if (isNewUser) {
+      localStorage.setItem('proponent_welcome_seen', 'true');
+    }
+
+    const firstName = user.first_name || 'User';
+    const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
+    const targetName = firstName;
+    const targetSuffix = !isNewUser ? '!' : '';
+
+    const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
+    let charIndex = 0;
+
+    // Clear initial
+    setDisplayedText({ prefix: '', name: '', suffix: '' });
+
+    const typeInterval = setInterval(() => {
+      charIndex++;
+      const currentTotal = charIndex;
+
+      const pLen = targetPrefix.length;
+      const nLen = targetName.length;
+
+      const p = targetPrefix.slice(0, Math.min(currentTotal, pLen));
+      const n = currentTotal > pLen ? targetName.slice(0, Math.min(currentTotal - pLen, nLen)) : '';
+      const s = currentTotal > pLen + nLen ? targetSuffix.slice(0, currentTotal - (pLen + nLen)) : '';
+
+      setDisplayedText({ prefix: p, name: n, suffix: s });
+
+      if (currentTotal >= totalLength) {
+        clearInterval(typeInterval);
+      }
+    }, 50);
+
+    return () => clearInterval(typeInterval);
+  }, [user?.first_name]);
+
   // Event handlers
   const openShare = (project: Project) => {
     setShareProject(project);
@@ -684,13 +728,18 @@ const Profile: React.FC = () => {
       {/* Header Section */}
       <header className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg">
-              <FaUsers className="text-white text-xl lg:text-2xl" />
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg">
+              <FaUsers className="text-white text-2xl" />
             </div>
+
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Project Portfolio</h1>
-              <p className="text-gray-600 mt-1 text-sm lg:text-base">
+              <h1 className="text-2xl lg:text-3xl font-bold text-[#C8102E] mb-1 min-h-[40px]">
+                {displayedText.prefix}
+                <span className="text-black">{displayedText.name}</span>
+                {displayedText.suffix}
+              </h1>
+              <p className="text-gray-600 text-sm lg:text-base">
                 Monitor your research proposals through the entire lifecycle
               </p>
             </div>
