@@ -402,6 +402,13 @@ export class ProposalService {
       rnd_id: rnd,
     }));
 
+    // Clear existing assignments first to support "Reassign" behavior
+    const { error: deleteError } = await this.db.from("proposal_rnd").delete().eq("proposal_id", proposal_id);
+
+    if (deleteError) {
+      return { error: deleteError, assignments: null };
+    }
+
     const { error: insertError, data: assignments } = await this.db.from("proposal_rnd").insert(assignmentsPayload);
 
     if (insertError) {

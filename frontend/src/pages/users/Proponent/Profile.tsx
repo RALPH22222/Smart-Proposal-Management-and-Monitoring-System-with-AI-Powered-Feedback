@@ -71,13 +71,24 @@ const Profile: React.FC = () => {
         const data: any[] = await getProposals();
 
         // Filter by current user
-        const myProposals = data.filter((p: any) => {
-          // Handle case where proponent_id is an object (populated user) or just a value
-          const pId = (typeof p.proponent_id === 'object' && p.proponent_id !== null)
-            ? p.proponent_id.id
-            : p.proponent_id;
-          return String(pId) === String(user.id);
-        });
+        const myProposals = data
+          .filter((p: any) => {
+            // Handle case where proponent_id is an object (populated user) or just a value
+            const pId = (typeof p.proponent_id === 'object' && p.proponent_id !== null)
+              ? p.proponent_id.id
+              : p.proponent_id;
+            return String(pId) === String(user.id);
+          })
+          .sort((a: any, b: any) => {
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+
+            // Sort by creation date descending
+            if (dateB !== dateA) return dateB - dateA;
+
+            // Fallback to ID descending if dates are equal (assuming auto-increment ID)
+            return (Number(b.id) || 0) - (Number(a.id) || 0);
+          });
 
         setRawProposals(myProposals);
 
@@ -508,10 +519,10 @@ const Profile: React.FC = () => {
 
   const filteredProjects = baseProjects.filter((project: Project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const tags = getProjectTags(project.id);
-    const matchesType = typeFilter === "All" || tags.includes(typeFilter);
+    const status = getLocalStatusLabel(project);
+    const matchesStatus = typeFilter === "All" || status === typeFilter;
 
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesStatus;
   });
 
   // Project Portfolio rendering functions
@@ -934,12 +945,14 @@ const Profile: React.FC = () => {
                   onChange={(e) => setTypeFilter(e.target.value)}
                   className="appearance-none bg-white pl-8 pr-8 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] cursor-pointer"
                 >
-                  <option value="All">All Types</option>
-                  <option value="ICT">ICT</option>
-                  <option value="Agriculture">Agriculture</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Health">Health</option>
-                  <option value="Research">Research</option>
+                  <option value="All">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Under R&D Evaluation">Under R&D Evaluation</option>
+                  <option value="Under Evaluators Assessment">Under Evaluators Assessment</option>
+                  <option value="Revision Required">Revision Required</option>
+                  <option value="Endorsed for Funding">Endorsed for Funding</option>
+                  <option value="Funded">Funded</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
               </div>
             </div>

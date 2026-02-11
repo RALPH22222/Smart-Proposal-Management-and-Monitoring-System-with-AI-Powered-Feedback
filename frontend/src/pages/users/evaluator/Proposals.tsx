@@ -45,7 +45,7 @@ export default function Proposals() {
       const mapped = (data || []).map((p: any) => {
         // Handle different potential structures effectively
         const proposalObj = p.proposal_id || p;
-        
+
         // Robust proponent name extraction
         let proponentName = 'Unknown';
         if (proposalObj.proponent_id) {
@@ -58,24 +58,24 @@ export default function Proposals() {
 
         // Handle status normalization
         let displayStatus = p.status || proposalObj.status || "pending";
-        
+
         // Fix: Backend might return 'extend' or keep it 'pending' with a request date
         if (displayStatus === 'extend') {
-           displayStatus = 'extension_requested';
+          displayStatus = 'extension_requested';
         }
         // If status is pending but we have a request_deadline_at, it's an extension request
         if (displayStatus === 'pending' && p.request_deadline_at) {
-           displayStatus = 'extension_requested';
+          displayStatus = 'extension_requested';
         }
 
         return {
           id: proposalObj.id,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
-          status: displayStatus, 
+          status: displayStatus,
           deadline: p.deadline_at ? new Date(p.deadline_at).toLocaleDateString() : "N/A",
-          projectType: proposalObj.sector?.name || "N/A", 
-          raw: p 
+          projectType: proposalObj.sector?.name || "N/A",
+          raw: p
         };
       });
 
@@ -85,8 +85,13 @@ export default function Proposals() {
           uniqueProposalsMap.set(p.id, p);
         }
       });
-      
-      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+      const uniqueProposals = Array.from(uniqueProposalsMap.values()).sort((a: any, b: any) => {
+        // Sort by raw created_at or updated_at if available
+        const dateA = new Date(a.raw?.created_at || a.raw?.updated_at || 0).getTime();
+        const dateB = new Date(b.raw?.created_at || b.raw?.updated_at || 0).getTime();
+        return dateB - dateA; // Descending
+      });
 
       console.log("Mapped Unique Proposals:", uniqueProposals);
       setProposals(uniqueProposals);
