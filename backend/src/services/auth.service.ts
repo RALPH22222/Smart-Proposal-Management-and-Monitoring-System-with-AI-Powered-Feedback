@@ -9,7 +9,7 @@ type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
 };
 
 export class AuthService {
-  constructor(private db?: SupabaseClient) {}
+  constructor(private db?: SupabaseClient) { }
 
   async login(email: string, password: string) {
     const { data, error } = await this.db!.auth.signInWithPassword({ email, password });
