@@ -2,6 +2,7 @@ import { api } from "@utils/axios";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Swal from "sweetalert2";
 import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
+import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
 
 const BACKGROUND_IMAGE_URL =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg";
@@ -326,9 +327,8 @@ export default function Register() {
                     if (birthdateError) setBirthdateError("");
                   }}
                   onBlur={handleBirthdateBlur}
-                  className={`block w-full rounded-xl border px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white ${
-                    birthdateError ? "border-red-400" : "border-gray-200"
-                  }`}
+                  className={`block w-full rounded-xl border px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white ${birthdateError ? "border-red-400" : "border-gray-200"
+                    }`}
                 />
                 {birthdateError && <p className="mt-1.5 text-sm text-red-500">{birthdateError}</p>}
               </div>
@@ -392,9 +392,8 @@ export default function Register() {
             <div className="flex flex-col items-center justify-center pt-2">
               <div className="relative group">
                 <div
-                  className={`w-36 h-36 rounded-full border-[6px] shadow-lg overflow-hidden flex items-center justify-center bg-gray-50 ${
-                    previewUrl ? "border-[#C8102E]" : "border-white ring-1 ring-gray-200"
-                  }`}
+                  className={`w-36 h-36 rounded-full border-[6px] shadow-lg overflow-hidden flex items-center justify-center bg-gray-50 ${previewUrl ? "border-[#C8102E]" : "border-white ring-1 ring-gray-200"
+                    }`}
                 >
                   {previewUrl ? (
                     <img src={previewUrl} alt="Profile Preview" className="w-full h-full object-cover" />
@@ -454,7 +453,10 @@ export default function Register() {
         >
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
           <div className="relative max-w-md text-center space-y-4 md:space-y-6">
-            <img src="/LOGO.png" alt="Logo" className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg" />
+            <div className="flex justify-center items-center gap-3">
+              <img src="/LOGO.png" alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+            </div>
             <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
               Project Proposal
             </h1>
@@ -508,18 +510,16 @@ export default function Register() {
                     return (
                       <div key={step.id} className="relative z-10 flex flex-col items-center group cursor-default">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 shadow-sm ${
-                            isActive || isCompleted
-                              ? "bg-[#C8102E] border-[#C8102E] text-white scale-110"
-                              : "bg-white border-gray-200 text-gray-400 group-hover:border-gray-300"
-                          }`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center border-[3px] transition-all duration-300 shadow-sm ${isActive || isCompleted
+                            ? "bg-[#C8102E] border-[#C8102E] text-white scale-110"
+                            : "bg-white border-gray-200 text-gray-400 group-hover:border-gray-300"
+                            }`}
                         >
                           {isCompleted ? <Check size={18} strokeWidth={3} /> : step.icon}
                         </div>
                         <span
-                          className={`text-[10px] sm:text-xs mt-2 font-bold uppercase tracking-wider transition-colors duration-300 ${
-                            isActive ? "text-[#C8102E]" : "text-gray-400"
-                          }`}
+                          className={`text-[10px] sm:text-xs mt-2 font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-[#C8102E]" : "text-gray-400"
+                            }`}
                         >
                           {step.title}
                         </span>
@@ -539,11 +539,10 @@ export default function Register() {
                 type="button"
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className={`flex items-center px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 ${
-                  currentStep === 1
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"
-                }`}
+                className={`flex items-center px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 ${currentStep === 1
+                  ? "text-gray-300 cursor-not-allowed"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"
+                  }`}
               >
                 <ChevronLeft size={18} className="mr-1.5" />
                 Back

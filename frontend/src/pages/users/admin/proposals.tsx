@@ -137,7 +137,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     try {
       setLoading(true);
       const data = await proposalApi.fetchProposals();
-      setProposals(data);
+      const sortedData = data.sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime());
+      setProposals(sortedData);
     } catch (error) {
       console.error('Error loading proposals:', error);
     } finally {

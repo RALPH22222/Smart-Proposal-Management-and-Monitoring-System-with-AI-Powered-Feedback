@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
+import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
 type LoginResponse = {
   message: string;
   user: {
@@ -297,7 +298,10 @@ export default function Login() {
       >
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
-          <img src="/LOGO.png" alt="Logo" className="mx-auto w-24 h-24 md:w-40 md:h-40 object-contain rounded-lg" />
+          <div className="flex justify-center items-center gap-6">
+            <img src="/LOGO.png" alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+            <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+          </div>
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal
           </h1>

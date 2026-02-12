@@ -45,7 +45,7 @@ export default function Proposals() {
       const mapped = (data || []).map((p: any) => {
         // Handle different potential structures effectively
         const proposalObj = p.proposal_id || p;
-        
+
         // Robust proponent name extraction
         let proponentName = 'Unknown';
         if (proposalObj.proponent_id) {
@@ -58,15 +58,13 @@ export default function Proposals() {
 
         // Handle status normalization
         let displayStatus = p.status || proposalObj.status || "pending";
-        console.log(`Proposal ID: ${proposalObj.id}, Status: ${displayStatus}`); // DEBUG: Check exact status string
-        
         // Fix: Backend might return 'extend' or keep it 'pending' with a request date
         if (displayStatus === 'extend') {
-           displayStatus = 'extension_requested';
+          displayStatus = 'extension_requested';
         }
         // If status is pending but we have a request_deadline_at, it's an extension request
         if (displayStatus === 'pending' && p.request_deadline_at) {
-           displayStatus = 'extension_requested';
+          displayStatus = 'extension_requested';
         }
 
         // Format currency helper
@@ -146,8 +144,13 @@ export default function Proposals() {
           uniqueProposalsMap.set(p.id, p);
         }
       });
-      
-      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+      const uniqueProposals = Array.from(uniqueProposalsMap.values()).sort((a: any, b: any) => {
+        // Sort by raw created_at or updated_at if available
+        const dateA = new Date(a.raw?.created_at || a.raw?.updated_at || 0).getTime();
+        const dateB = new Date(b.raw?.created_at || b.raw?.updated_at || 0).getTime();
+        return dateB - dateA; // Descending
+      });
 
       console.log("Mapped Unique Proposals:", uniqueProposals);
       setProposals(uniqueProposals);
@@ -196,7 +199,7 @@ export default function Proposals() {
       case "pending":
         return "text-amber-600 bg-amber-50 border-amber-200";
       case "rejected":
-      case "decline": // Add Decline with Red Styling
+      case "decline": 
         return "text-red-600 bg-red-50 border-red-200";
       case "extension_requested":
       case "extend":

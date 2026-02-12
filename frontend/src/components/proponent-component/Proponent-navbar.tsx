@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Logo from "../../assets/IMAGES/LOGO.png";
+import RdecLogo from "../../assets/IMAGES/RDEC-WMSU.png";
 import { useAuthContext } from "../../context/AuthContext";
 
 const COLORS = {
@@ -108,14 +109,13 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
   return (
     <header
       role="banner"
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${
-        scrolled || isMobileMenuOpen ? "bg-brand shadow-xl" : "bg-brand shadow-lg"
-      }`}
+      className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${scrolled || isMobileMenuOpen ? "bg-brand shadow-xl" : "bg-brand shadow-lg"
+        }`}
       style={{ backgroundColor: COLORS.brand }}
     >
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          
+
           {/* Logo Area */}
           <a
             href="#"
@@ -125,10 +125,15 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
               onPageChange("submission");
             }}
           >
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
               <img
                 src={Logo}
                 alt="WMSU Logo"
+                className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300"
+              />
+              <img
+                src={RdecLogo}
+                alt="RDEC-WMSU Logo"
                 className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300"
               />
             </div>
@@ -151,9 +156,8 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
                 <button
                   key={item.id}
                   onClick={() => onPageChange(item.id)}
-                  className={`cursor-pointer relative px-4 py-2 font-medium transition-all duration-300 rounded-md flex items-center gap-2 ${
-                    isActive ? "font-bold text-white" : "text-white/90 hover:text-brandLight"
-                  }`}
+                  className={`cursor-pointer relative px-4 py-2 font-medium transition-all duration-300 rounded-md flex items-center gap-2 ${isActive ? "font-bold text-white" : "text-white/90 hover:text-brandLight"
+                    }`}
                 >
                   {item.name}
                   <span className={`absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 ${isActive ? "w-full bg-white" : "w-0 bg-brandLight"}`} />
@@ -183,36 +187,34 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
 
       {/* Mobile Dropdown Menu */}
       <div
-        className={`md:hidden absolute top-16 left-0 w-full border-b border-red-800 shadow-xl transition-all duration-300 ease-in-out transform origin-top ${
-          isMobileMenuOpen ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0 h-0 overflow-hidden"
-        }`}
+        className={`md:hidden absolute top-16 left-0 w-full border-b border-red-800 shadow-xl transition-all duration-300 ease-in-out transform origin-top ${isMobileMenuOpen ? "scale-y-100 opacity-100" : "scale-y-0 opacity-0 h-0 overflow-hidden"
+          }`}
         style={{ backgroundColor: COLORS.brand }}
       >
         <div className="flex flex-col p-4 space-y-2">
           {navItems.map((item) => {
-             const isActive = currentPage === item.id;
-             const IconComponent = item.icon;
-             return (
+            const isActive = currentPage === item.id;
+            const IconComponent = item.icon;
+            return (
               <button
                 key={item.id}
-                onClick={() => { 
-                  onPageChange(item.id); 
-                  setIsMobileMenuOpen(false); 
+                onClick={() => {
+                  onPageChange(item.id);
+                  setIsMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors w-full text-left ${
-                  isActive 
-                    ? "bg-red-800 text-white font-bold shadow-inner" 
-                    : "text-white/90 hover:bg-red-700"
-                }`}
+                className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors w-full text-left ${isActive
+                  ? "bg-red-800 text-white font-bold shadow-inner"
+                  : "text-white/90 hover:bg-red-700"
+                  }`}
               >
                 <IconComponent isActive={true} />
                 <span className="text-lg">{item.name}</span>
               </button>
-             )
+            )
           })}
-          
+
           <div className="h-px bg-red-800 my-2"></div>
-          
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-4 px-4 py-3 text-white/90 font-medium hover:bg-red-700 rounded-xl transition-colors w-full text-left"

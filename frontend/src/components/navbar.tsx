@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Logo from '../assets/IMAGES/LOGO.png';
+import RdecLogo from '../assets/IMAGES/RDEC-WMSU.png';
 
 const COLORS = {
   brand: "#C8102E",
@@ -46,7 +47,7 @@ const Navbar: React.FC = () => {
   const handleScroll = useCallback(() => {
     requestAnimationFrame(() => {
       setScrolled(window.scrollY > 10);
-      
+
       const currentPath = window.location.pathname;
       if (currentPath === '/about') {
         setActiveLink('about');
@@ -56,7 +57,7 @@ const Navbar: React.FC = () => {
         setActiveLink('contacts');
         return;
       }
-      
+
       const sections = ["home", "faq"];
       const current = sections.find((section) => {
         const element = document.getElementById(section);
@@ -76,8 +77,8 @@ const Navbar: React.FC = () => {
     const currentPath = window.location.pathname;
     if (currentPath === '/about') {
       setActiveLink('about');
-    // } else if (currentPath === '/services') {
-    //   setActiveLink('services');  
+      // } else if (currentPath === '/services') {
+      //   setActiveLink('services');  
     } else if (currentPath === '/contacts') {
       setActiveLink('contacts');
     } else if (currentPath === '/faqs') {
@@ -85,7 +86,7 @@ const Navbar: React.FC = () => {
     } else if (currentPath === '/') {
       setActiveLink('home');
     }
-    
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
@@ -114,10 +115,9 @@ const Navbar: React.FC = () => {
       {/* Top Bar */}
       <header
         role="banner"
-        className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${
-          scrolled ? "backdrop-blur-md bg-brand/95 shadow-xl" : "bg-brand shadow-lg"
-        }`}
-        style={{ backgroundColor: COLORS.brand }} 
+        className={`fixed top-0 w-full z-50 transition-all duration-500 ease-out ${scrolled ? "backdrop-blur-md bg-brand/95 shadow-xl" : "bg-brand shadow-lg"
+          }`}
+        style={{ backgroundColor: COLORS.brand }}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
@@ -128,28 +128,33 @@ const Navbar: React.FC = () => {
               onClick={() => handleNavClick("home", "/")}
               aria-label="Home - WMSU Project Proposal"
             >
-              <div className="relative">
+              <div className="relative flex items-center gap-2">
                 <img
                   src={Logo}
                   alt="WMSU Project Proposal Logo"
                   className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
                 />
+                <img
+                  src={RdecLogo}
+                  alt="RDEC-WMSU Logo"
+                  className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
+                />
               </div>
-               <div className="flex flex-col leading-tight">
-                 <span
-                   className="text-base lg:text-lg font-bold tracking-tight"
-                   style={{ color: COLORS.white }}
-                 >
-                   <span className="hidden lg:inline">WMSU Project Proposal</span>
-                   <span className="inline lg:hidden">WMSU ProjProp</span>
-                 </span>
-                 <span
-                   className="text-xs lg:text-sm opacity-80 hidden lg:block"
-                   style={{ color: COLORS.white }}
-                 >
-                   Research Development & Evaluation Center
-                 </span>
-               </div>
+              <div className="flex flex-col leading-tight">
+                <span
+                  className="text-base lg:text-lg font-bold tracking-tight"
+                  style={{ color: COLORS.white }}
+                >
+                  <span className="hidden lg:inline">WMSU Project Proposal</span>
+                  <span className="inline lg:hidden">WMSU ProjProp</span>
+                </span>
+                <span
+                  className="text-xs lg:text-sm opacity-80 hidden lg:block"
+                  style={{ color: COLORS.white }}
+                >
+                  Research Development & Evaluation Center
+                </span>
+              </div>
             </a>
 
             {/* Desktop Menu */}
@@ -157,23 +162,21 @@ const Navbar: React.FC = () => {
               {navItems.map((item) => {
                 const lowerItem = item.name.toLowerCase();
                 const isActive = activeLink === lowerItem;
-                
+
                 return (
                   <a
                     key={item.name}
                     href={item.href}
-                    className={`relative px-4 py-2 font-medium transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-white/50 rounded-md ${
-                      isActive ? "font-bold text-white" : "text-white/90 hover:text-brandLight"
-                    }`}
+                    className={`relative px-4 py-2 font-medium transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-white/50 rounded-md ${isActive ? "font-bold text-white" : "text-white/90 hover:text-brandLight"
+                      }`}
                     aria-current={isActive ? "page" : undefined}
                     onClick={() => handleNavClick(item.name, item.href)}
                   >
                     {item.name}
                     {/* Sliding Underline for Hover/Active */}
                     <span
-                      className={`absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 ${
-                        isActive ? "w-full bg-white" : "w-0 bg-brandLight group-hover:w-full"
-                      }`}
+                      className={`absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 ${isActive ? "w-full bg-white" : "w-0 bg-brandLight group-hover:w-full"
+                        }`}
                     />
                   </a>
                 );
@@ -217,7 +220,7 @@ const Navbar: React.FC = () => {
       </header>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav 
+      <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-red-700 shadow-2xl"
         style={{ backgroundColor: COLORS.brand }}
         role="navigation"
@@ -228,27 +231,24 @@ const Navbar: React.FC = () => {
             const lowerItem = item.name.toLowerCase();
             const isActive = activeLink === lowerItem;
             const IconComponent = item.icon;
-            
+
             return (
               <a
                 key={item.name}
                 href={item.href}
                 onClick={() => handleNavClick(item.name, item.href)}
-                className={`flex flex-col items-center py-3 px-2 flex-1 min-w-0 transition-all duration-200 ${
-                  isActive 
-                    ? "text-white bg-red-800" 
-                    : "text-white/90 hover:bg-red-800"
-                }`}
+                className={`flex flex-col items-center py-3 px-2 flex-1 min-w-0 transition-all duration-200 ${isActive
+                  ? "text-white bg-red-800"
+                  : "text-white/90 hover:bg-red-800"
+                  }`}
                 aria-current={isActive ? "page" : undefined}
               >
-                <div className={`mb-1 transition-transform duration-200 ${
-                  isActive ? "scale-110" : "scale-100"
-                }`}>
+                <div className={`mb-1 transition-transform duration-200 ${isActive ? "scale-110" : "scale-100"
+                  }`}>
                   <IconComponent isActive={isActive} />
                 </div>
-                <span className={`text-xs font-medium truncate max-w-full ${
-                  isActive ? "font-bold" : "font-normal"
-                }`}>
+                <span className={`text-xs font-medium truncate max-w-full ${isActive ? "font-bold" : "font-normal"
+                  }`}>
                   {item.name}
                 </span>
               </a>
