@@ -3,7 +3,7 @@ import { Role } from "../types/auth";
 import Swal from "sweetalert2";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
-// import { api } from "../utils/axios";
+import { api } from "../utils/axios";
 
 type ProtectedRouteProps = {
   roles?: (typeof Role)[keyof typeof Role][];
@@ -24,21 +24,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
         return;
       }
 
-      // Check profile status (DISABLED TEMPORARILY)
-      /*
+      // Check profile status and password change requirement
       try {
-        const { data } = await api.get<{ isCompleted: boolean }>("/auth/profile-status");
-        if (!data.isCompleted && location.pathname !== "/profile-setup") {
+        const { data } = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>("/auth/profile-status");
+
+        if (data.passwordChangeRequired && location.pathname !== "/change-password") {
+          navigate("/change-password");
+          return;
+        }
+
+        if (!data.isCompleted && location.pathname !== "/profile-setup" && location.pathname !== "/change-password") {
           navigate("/profile-setup");
           return;
         }
       } catch (error) {
         console.error("Failed to check profile status", error);
-        // Optional: decide if we should block access or let them proceed on error.
-        // letting them proceed might be safer to avoid lockout, or block if critical.
-        // For now, we log and proceed to role check.
       }
-      */
 
       if (roles && roles.length > 0) {
         // Normalize roles - handle both singular "role" and plural "roles" from JWT

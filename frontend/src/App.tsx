@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Register from "./auth/register";
 import Login from "./auth/login";
 import ProfileSetup from "./auth/profileSetup";
+import ChangePassword from "./auth/changePassword";
 // Public
 import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
@@ -46,6 +47,7 @@ function App() {
 
             {/* General Protected Routes */}
             <Route element={<ProtectedRoute />}>
+              <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/profile-setup" element={<ProfileSetup />} />
             </Route>
 

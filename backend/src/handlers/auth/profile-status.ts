@@ -13,7 +13,7 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
   const authService = new AuthService(supabase);
-  const { data: isCompleted, error: profileStatusError } = await authService.profileStatus(auth.userId);
+  const { data, error: profileStatusError } = await authService.profileStatus(auth.userId);
 
   if (profileStatusError) {
     console.error("Supabase error: ", JSON.stringify(profileStatusError, null, 2));
@@ -25,6 +25,9 @@ export const handler = buildCorsHeaders(async (event) => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ isCompleted }),
+    body: JSON.stringify({
+      isCompleted: data!.isCompleted,
+      passwordChangeRequired: data!.passwordChangeRequired,
+    }),
   };
 });

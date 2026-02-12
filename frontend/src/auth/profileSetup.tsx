@@ -45,12 +45,31 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
 
   // --- Effects ---
+  const navigateToDashboard = () => {
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      const role = user.roles?.[0]?.toLowerCase();
+      switch (role) {
+        case 'rnd': navigate('/users/rnd/rndMainLayout', { replace: true }); return;
+        case 'admin': navigate('/users/admin/adminMainLayout', { replace: true }); return;
+        case 'evaluator': navigate('/users/evaluator/evaluatorMainLayout', { replace: true }); return;
+        default: navigate('/users/proponent/proponentMainLayout', { replace: true }); return;
+      }
+    }
+    navigate('/users/proponent/proponentMainLayout', { replace: true });
+  };
+
   useEffect(() => {
     const checkProfileStatus = async () => {
       try {
-        const response = await api.get<{ isCompleted: boolean }>('/auth/profile-status');
+        const response = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>('/auth/profile-status');
+        if (response.data.passwordChangeRequired) {
+          navigate("/change-password", { replace: true });
+          return;
+        }
         if (response.data.isCompleted) {
-          navigate("/users/proponent/proponentMainLayout", { replace: true });
+          navigateToDashboard();
         }
       } catch (error) {
         console.error("Failed to check profile status", error);
@@ -153,7 +172,7 @@ export default function ProfileSetup() {
         showConfirmButton: false
       });
 
-      navigate("/users/proponent/proponentMainLayout");
+      navigateToDashboard();
     } catch (error: any) {
       console.error('Profile setup error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to complete profile setup. Please try again.';

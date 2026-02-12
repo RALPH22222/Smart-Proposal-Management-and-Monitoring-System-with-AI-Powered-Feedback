@@ -30,6 +30,14 @@ export class AdminService {
       return { data: null, error: { message: "Email already exists.", status: 409 } };
     }
 
+    // Flag admin-created accounts so they must change password on first login
+    if (data.user) {
+      await this.db
+        .from("users")
+        .update({ password_change_required: true })
+        .eq("id", data.user.id);
+    }
+
     return { data, error: null };
   }
 

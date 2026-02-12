@@ -18,7 +18,7 @@ export class AuthService {
     const userId = data.user.id;
 
     const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles, email_verified, is_disabled")
+      .select("roles, email_verified, is_disabled, password_change_required")
       .eq("id", userId)
       .maybeSingle();
 
@@ -46,8 +46,9 @@ export class AuthService {
     // }
 
     const roles = row?.roles ?? [];
+    const password_change_required = row?.password_change_required === true;
 
-    return { data: { ...data, roles }, error: null };
+    return { data: { ...data, roles, password_change_required }, error: null };
   }
 
   async signup({ email, password, roles, first_name, last_name, middle_ini }: SignUpInput) {
@@ -186,11 +187,37 @@ export class AuthService {
   }
 
   async profileStatus(userId: string) {
-    const { data, error } = await this.db!.from("users").select("profile_completed").eq("id", userId).maybeSingle();
+    const { data, error } = await this.db!.from("users")
+      .select("profile_completed, password_change_required")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (error) return { data: null, error };
 
-    return { data: data?.profile_completed === true, error: null };
+    return {
+      data: {
+        isCompleted: data?.profile_completed === true,
+        passwordChangeRequired: data?.password_change_required === true,
+      },
+      error: null,
+    };
+  }
+
+  async changePassword(userId: string, newPassword: string) {
+    const { error: authError } = await this.db!.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
+
+    if (authError) return { data: null, error: authError };
+
+    const { error: updateError } = await this.db!
+      .from("users")
+      .update({ password_change_required: false })
+      .eq("id", userId);
+
+    if (updateError) return { data: null, error: updateError };
+
+    return { data: { success: true }, error: null };
   }
 
   async verifyToken(token: string) {

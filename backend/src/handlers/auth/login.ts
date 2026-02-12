@@ -23,6 +23,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   console.log("Successfully logged in.");
 
   const user_roles = (data as any)?.roles ?? [];
+  const password_change_required = (data as any)?.password_change_required === true;
 
   return {
     statusCode: 200,
@@ -32,6 +33,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         id: data.user?.id,
         email: data.user?.email,
         roles: user_roles,
+        password_change_required,
       },
     }),
     headers: {

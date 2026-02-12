@@ -73,7 +73,12 @@ export const signUpWithProfileSchema = z.object({
   photo_profile_url: photoProfileSchema.optional(),
 });
 
+export const changePasswordSchema = z.object({
+  new_password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export type Role = z.infer<typeof RoleEnum>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type ProfileSetup = z.infer<typeof profileSetupSchema>;
 export type SignUpWithProfileInput = z.infer<typeof signUpWithProfileSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

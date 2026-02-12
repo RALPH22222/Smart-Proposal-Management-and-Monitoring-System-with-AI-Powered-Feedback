@@ -147,6 +147,17 @@ export class BackendStack extends Stack {
     });
     profile_setup_bucket.grantPut(profile_setup_lambda);
 
+    const change_password_lambda = new NodejsFunction(this, "pms-change-password", {
+      functionName: "pms-change-password",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "change-password.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const profile_status_lambda = new NodejsFunction(this, "pms-profile-status", {
       functionName: "pms-profile-status",
       memorySize: 128,
@@ -812,6 +823,13 @@ export class BackendStack extends Stack {
     // /auth/profile-status
     const profile_status = auth.addResource("profile-status");
     profile_status.addMethod(HttpMethod.GET, new LambdaIntegration(profile_status_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /auth/change-password
+    const change_password = auth.addResource("change-password");
+    change_password.addMethod(HttpMethod.POST, new LambdaIntegration(change_password_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

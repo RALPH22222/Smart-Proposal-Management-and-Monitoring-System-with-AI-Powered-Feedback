@@ -50,22 +50,34 @@ export default function Login() {
     }
   }, [searchParams, setSearchParams]);
 
-  const navigateBasedOnRole = async (role: string) => {
+  const navigateBasedOnRole = async (role: string, passwordChangeRequired?: boolean) => {
+    // If password change is required, redirect there first (applies to all roles)
+    if (passwordChangeRequired) {
+      navigate("/change-password");
+      return;
+    }
+
+    // Check profile status for all roles
+    try {
+      const response = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>('/auth/profile-status');
+      if (response.data.passwordChangeRequired) {
+        navigate("/change-password");
+        return;
+      }
+      if (!response.data.isCompleted) {
+        navigate("/profile-setup");
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to check profile status", error);
+      // Default to profile setup if check fails
+      navigate("/profile-setup");
+      return;
+    }
+
     switch (role.toLowerCase()) {
       case "proponent":
-        // Check if profile is complete before navigating
-        try {
-          const response = await api.get<{ isCompleted: boolean }>('/auth/profile-status');
-          if (response.data.isCompleted) {
-            navigate("/users/proponent/proponentMainLayout");
-          } else {
-            navigate("/profile-setup");
-          }
-        } catch (error) {
-          console.error("Failed to check profile status", error);
-          // Default to profile setup if check fails
-          navigate("/profile-setup");
-        }
+        navigate("/users/proponent/proponentMainLayout");
         break;
       case "rnd":
         navigate("/users/rnd/rndMainLayout");
@@ -112,10 +124,13 @@ export default function Login() {
         userRoles = [res.data.user.role];
       }
 
+      const passwordChangeRequired = res.data.user.password_change_required === true;
+
       const hydratedUser = {
         id: res.data.user.id,
         email: res.data.user.email,
         roles: userRoles,
+        password_change_required: passwordChangeRequired,
       };
 
       setUser(hydratedUser);
@@ -134,12 +149,16 @@ export default function Login() {
 
       // 3. Logic: Single Role vs Multiple Roles
       if (userRoles.length > 1) {
-        // If multiple roles, open the modal
-        setAvailableRoles(userRoles);
-        setShowRoleModal(true);
+        // If password change required, skip the role modal and go straight
+        if (passwordChangeRequired) {
+          navigate("/change-password");
+        } else {
+          setAvailableRoles(userRoles);
+          setShowRoleModal(true);
+        }
       } else if (userRoles.length === 1) {
         // If single role, navigate immediately
-        await navigateBasedOnRole(userRoles[0]);
+        await navigateBasedOnRole(userRoles[0], passwordChangeRequired);
       } else {
         throw new Error("No roles assigned to this user.");
       }
