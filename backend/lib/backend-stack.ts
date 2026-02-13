@@ -726,6 +726,29 @@ export class BackendStack extends Stack {
       },
     });
 
+    const admin_invite_user_lambda = new NodejsFunction(this, "pms-admin-invite-user", {
+      functionName: "pms-admin-invite-user",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "invite-user.ts"),
+      environment: {
+        SUPABASE_KEY,
+        FRONTEND_URL,
+      },
+    });
+
+    const complete_invite_lambda = new NodejsFunction(this, "pms-auth-complete-invite", {
+      functionName: "pms-auth-complete-invite",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "complete-invite.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const admin_toggle_account_status_lambda = new NodejsFunction(this, "pms-admin-toggle-account-status", {
       functionName: "pms-admin-toggle-account-status",
       memorySize: 128,
@@ -812,6 +835,13 @@ export class BackendStack extends Stack {
     // /auth/departments (PUBLIC — for sign-up form to fetch R&D stations without auth)
     const auth_departments = auth.addResource("departments");
     auth_departments.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lambda));
+
+    // /auth/complete-invite (protected — user has session from invite link)
+    const complete_invite = auth.addResource("complete-invite");
+    complete_invite.addMethod(HttpMethod.POST, new LambdaIntegration(complete_invite_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /auth/profile-setup
     const profile_setup = auth.addResource("profile-setup");
@@ -1202,6 +1232,13 @@ export class BackendStack extends Stack {
     // /admin/update-account (protected) - POST update account
     const admin_update_account = admin.addResource("update-account");
     admin_update_account.addMethod(HttpMethod.POST, new LambdaIntegration(admin_update_account_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/invite-user (protected) - POST send invitation email
+    const admin_invite_user = admin.addResource("invite-user");
+    admin_invite_user.addMethod(HttpMethod.POST, new LambdaIntegration(admin_invite_user_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

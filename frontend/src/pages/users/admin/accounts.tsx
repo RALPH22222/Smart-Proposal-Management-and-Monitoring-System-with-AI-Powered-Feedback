@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 import { useLoading } from "../../../contexts/LoadingContext";
-import { UserPlus, Edit2, Power, Search } from "lucide-react";
+import { Mail, Edit2, Power, Search } from "lucide-react";
 
 import type { User } from "../../../types/admin";
 import { AccountApi } from "../../../services/admin/AccountApi";
@@ -85,16 +85,16 @@ const Accounts: React.FC = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  const handleAddSubmit = async (formData: any) => {
+  const handleInviteSubmit = async (formData: { email: string; roles: string[] }) => {
     try {
       setIsSubmitting(true);
-      await AccountApi.createAccount(formData);
+      await AccountApi.inviteUser(formData);
       setShowAddModal(false);
-      Swal.fire("Success", "Account created successfully!", "success");
+      Swal.fire("Success", "Invitation sent successfully!", "success");
       fetchAccounts();
     } catch (err: any) {
-      console.error("Failed to create account:", err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to create account", "error");
+      console.error("Failed to send invitation:", err);
+      Swal.fire("Error", err.response?.data?.message || "Failed to send invitation", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +152,10 @@ const Accounts: React.FC = () => {
     setSelectedUser(null);
   };
 
-  const getFullName = (user: User) => `${user.first_name} ${user.middle_ini ? user.middle_ini + ' ' : ''}${user.last_name}`;
+  const getFullName = (user: User) => {
+    if (!user.first_name && !user.last_name) return user.email;
+    return `${user.first_name || ''} ${user.middle_ini ? user.middle_ini + ' ' : ''}${user.last_name || ''}`.trim();
+  };
 
   const getRoleDisplay = (roles: string[]) => (roles || []).map(r => ROLE_DISPLAY[r] || r).join(", ");
 
@@ -201,8 +204,8 @@ const Accounts: React.FC = () => {
             </div>
 
             <button onClick={() => setShowAddModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C8102E] hover:bg-[#A00D26] text-white rounded-lg text-sm font-medium transition-colors shadow-sm w-full sm:w-auto whitespace-nowrap">
-              <UserPlus className="w-4 h-4" />
-              Add Account
+              <Mail className="w-4 h-4" />
+              Invite User
             </button>
           </div>
         </div>
@@ -285,7 +288,7 @@ const Accounts: React.FC = () => {
       <AddAccountModal
         isOpen={showAddModal}
         onClose={handleCloseModal}
-        onSubmit={handleAddSubmit}
+        onSubmit={handleInviteSubmit}
         isSubmitting={isSubmitting}
       />
 

@@ -10,6 +10,11 @@ export type CreateAccountPayload = {
   roles: string[];
 };
 
+export type InviteUserPayload = {
+  email: string;
+  roles: string[];
+};
+
 export type UpdateAccountPayload = {
   user_id: string;
   first_name?: string;
@@ -39,6 +44,13 @@ export const AccountApi = {
 
   updateAccount: async (payload: UpdateAccountPayload) => {
     const { data } = await api.post("/admin/update-account", payload, {
+      withCredentials: true,
+    });
+    return data;
+  },
+
+  inviteUser: async (payload: InviteUserPayload) => {
+    const { data } = await api.post("/admin/invite-user", payload, {
       withCredentials: true,
     });
     return data;

@@ -4,6 +4,7 @@ import Register from "./auth/register";
 import Login from "./auth/login";
 import ProfileSetup from "./auth/profileSetup";
 import ChangePassword from "./auth/changePassword";
+import AcceptInvite from "./auth/acceptInvite";
 // Public
 import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
@@ -35,6 +36,9 @@ function App() {
         <LoadingProvider>
           <LocationWatcher />
           <Routes>
+            {/* Invitation acceptance (outside auth guards) */}
+            <Route path="/accept-invite" element={<AcceptInvite />} />
+
             {/* Public Routes */}
             <Route element={<RedirectAuthenticated />}>
               <Route path="/" element={<LandingPage />} />

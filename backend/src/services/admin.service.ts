@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { CreateAccountInput, UpdateAccountInput, ToggleAccountStatusInput } from "../schemas/admin-schema";
+import { CreateAccountInput, UpdateAccountInput, ToggleAccountStatusInput, InviteUserInput } from "../schemas/admin-schema";
 
 export class AdminService {
   constructor(private db: SupabaseClient) {}
@@ -91,6 +91,21 @@ export class AdminService {
       .eq("id", user_id)
       .select()
       .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  }
+
+  async inviteUser(input: InviteUserInput, redirectTo: string) {
+    const { email, roles } = input;
+
+    const { data, error } = await this.db.auth.admin.inviteUserByEmail(email, {
+      data: { roles },
+      redirectTo,
+    });
 
     if (error) {
       return { data: null, error };
