@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
-import { useLoading } from "../../../contexts/LoadingContext";
+// import { useLoading } from "../../../contexts/LoadingContext";
 import { Mail, Edit2, Power, Search } from "lucide-react";
 
 import type { User } from "../../../types/admin";
@@ -17,7 +17,7 @@ const ROLE_DISPLAY: Record<string, string> = {
 };
 
 const Accounts: React.FC = () => {
-  const { setLoading } = useLoading();
+  // const { setLoading } = useLoading();
 
   const [users, setUsers] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,16 +35,13 @@ const Accounts: React.FC = () => {
 
   const fetchAccounts = useCallback(async () => {
     try {
-      setLoading(true);
       const data = await AccountApi.getAccounts();
       setUsers(data);
     } catch (err: any) {
       console.error("Failed to fetch accounts:", err);
       Swal.fire("Error", err.response?.data?.message || "Failed to fetch accounts", "error");
-    } finally {
-      setLoading(false);
     }
-  }, [setLoading]);
+  }, []);
 
   useEffect(() => {
     fetchAccounts();
@@ -244,9 +241,8 @@ const Accounts: React.FC = () => {
                       <td className="px-3 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{getRoleDisplay(user.roles)}</div></td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell"><div className="truncate max-w-[120px]">{user.department_name || "N/A"}</div></td>
                       <td className="px-3 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            !isDisabled ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${!isDisabled ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"
+                          }`}>
                           {isDisabled ? "Disabled" : "Active"}
                         </span>
                       </td>

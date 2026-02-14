@@ -20,7 +20,6 @@ interface SidebarProps {
 const accent = "#C10003";
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { logout } = useAuthContext();
@@ -32,13 +31,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
       label: "Dashboard",
       icon: LayoutDashboard,
     },
-    { id: "proposals", 
-      label: "Proposals", 
-      icon: FileText 
+    {
+      id: "proposals",
+      label: "Proposals",
+      icon: FileText
     },
-    { id: "review", 
-      label: "Under Review", 
-      icon: RefreshCw 
+    {
+      id: "review",
+      label: "Under Review",
+      icon: RefreshCw
     },
     {
       id: "reviewed",
@@ -88,11 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex flex-col z-40 transition-transform duration-300 ${
-          isMobileMenuOpen
-            ? "translate-x-0"
-            : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex flex-col z-40 transition-transform duration-300 ${isMobileMenuOpen
+          ? "translate-x-0"
+          : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-r from-red-50 to-red-50/30 border border-red-100/50 shadow-sm">
@@ -127,42 +127,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
                     onPageChange(item.id);
                     setIsMobileMenuOpen(false); // Close mobile menu
                   }}
-                  onMouseEnter={() => setHoveredItem(item.id)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
-                    isActive
-                      ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02] border border-red-200/50"
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-50/30 hover:text-red-600 hover:scale-[1.01] hover:shadow-sm"
-                  }`}
-                  style={
-                    isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}
-                  }
+                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
+                    ? "bg-[#C8102E] text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
                 >
                   <div className="relative">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-300 ${
-                        hoveredItem === item.id ? "scale-110" : ""
-                      }`}
-                      style={{ color: accent }}
-                    />
-                    {/* Animated glow effect */}
-                    <div
-                      className={`absolute inset-0 w-5 h-5 rounded-full transition-opacity duration-300 ${
-                        hoveredItem === item.id ? "opacity-20" : "opacity-0"
-                      }`}
-                      style={{ backgroundColor: accent, filter: "blur(8px)" }}
+                      className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"}`}
                     />
                   </div>
                   <span className="flex-1">{item.label}</span>
                   {item.badge && (
                     <span
-                      className={`px-2 py-1 text-xs font-bold rounded-full transition-all duration-300 ${
-                        item.badge === "!"
-                          ? "bg-red-500 text-white animate-pulse"
-                          : item.badge === "NEW"
+                      className={`px-2 py-1 text-xs font-bold rounded-full transition-all duration-300 ${item.badge === "!"
+                        ? "bg-red-500 text-white animate-pulse"
+                        : item.badge === "NEW"
                           ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
                           : "bg-red-100 text-red-600"
-                      } ${hoveredItem === item.id ? "scale-110" : ""}`}
+                        } ${isActive ? "" : "bg-red-100 text-red-600"}`}
                     >
                       {item.badge}
                     </span>
@@ -182,33 +165,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
                 <button
                   key={item.id}
                   onClick={() => {
-                    if(item.id === "logout") {
+                    if (item.id === "logout") {
                       handleLogout();
                     } else {
                       onPageChange(item.id);
                     }
                     setIsMobileMenuOpen(false);
                   }}
-                  onMouseEnter={() => setHoveredItem(item.id)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform w-full text-left ${
-                    isActive
-                      ? "bg-gradient-to-r from-red-50 to-red-100/50 text-red-700 shadow-md scale-[1.02]"
-                      : item.id === "logout"
-                      ? "text-gray-600 hover:bg-gradient-to-r hover:from-red-50/50 hover:to-red-100/30 hover:text-red-600 hover:scale-[1.01]"
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 hover:text-gray-800 hover:scale-[1.01]"
-                  }`}
-                  style={
-                    isActive ? { boxShadow: `inset 4px 0 0 ${accent}` } : {}
-                  }
+                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
+                    ? "bg-[#C8102E] text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
                 >
                   <Icon
-                    className={`w-5 h-5 transition-all duration-300 ${
-                      hoveredItem === item.id ? "scale-110" : ""
-                    } ${item.id === "logout" ? "group-hover:rotate-12" : ""}`}
-                    style={{ color: item.id === "logout" ? "#dc2626" : accent }}
+                    className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : item.id === "logout" ? "text-red-600 group-hover:text-red-700" : "text-gray-500 group-hover:text-gray-900"
+                      }`}
                   />
-                  <span>{item.label}</span>
+                  <span className={`${item.id === "logout" && !isActive ? "text-red-600 font-bold" : ""}`}>{item.label}</span>
                 </button>
               );
             })}

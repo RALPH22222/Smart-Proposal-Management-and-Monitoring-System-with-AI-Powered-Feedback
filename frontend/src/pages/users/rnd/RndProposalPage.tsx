@@ -152,10 +152,17 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [sectors, setSectors] = useState<LookupItem[]>([]);
   const [priorityAreas, setPriorityAreas] = useState<LookupItem[]>([]);
 
-  // Load proposals on component mount
+  // Load proposals on component mount and set up polling
   useEffect(() => {
-    loadProposals();
+    loadProposals(false);
     loadLookups();
+
+    // Poll every 3 seconds to keep table in sync with Admin reassignments
+    const interval = setInterval(() => {
+      loadProposals(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadLookups = async () => {
@@ -196,7 +203,12 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     });
 
     setFilteredProposals(filtered);
-    setCurrentPage(1);
+    // Only reset page if the filtered count changes significantly or current page is empty
+    // But for "realtime" feel, we generally don't want to jump pages unexpectedly.
+    // However, if the item we are looking at disappears, we might need to adjust.
+    if (currentPage > Math.ceil(filtered.length / itemsPerPage) && filtered.length > 0) {
+      setCurrentPage(1);
+    }
   }, [proposals, activeTab, searchTerm]);
 
   const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
@@ -218,20 +230,17 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
 
-  const loadProposals = async () => {
+  const loadProposals = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const data = await getRndProposals();
-      console.log("RND Proposals Data:", data); // DEBUG LOG
+      // console.log("RND Proposals Data:", data); // DEBUG LOG
 
-      // Transform logic
       // Transform logic
       const mappedProposals: Proposal[] = data.map((p: any) => {
         // Normalize raw data: Check if p is a wrapper or the data itself
         const hasNestedProposal = p.proposal_id && typeof p.proposal_id === 'object' && (p.proposal_id.project_title || p.proposal_id.title);
         const raw = hasNestedProposal ? p.proposal_id : p;
-
-        console.log(`Processing Proposal [${raw.id}]:`, raw);
 
         // Extract evaluator names for the list view
         // Check for common field names for evaluators
@@ -287,11 +296,19 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         return new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime();
       });
 
-      setProposals(sortedInfo);
+      setProposals(prev => {
+        // Simple distinct check to avoid unnecessary re-renders if data is identical?
+        // JSON.stringify is expensive but for small lists it's okay.
+        // For now, React's diffing will handle it.
+        if (JSON.stringify(prev) !== JSON.stringify(sortedInfo)) {
+          return sortedInfo;
+        }
+        return prev;
+      });
     } catch (error) {
       console.error('Error loading proposals:', error);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -532,7 +549,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
-                {activeTab === 'All' ? 'All Proposals' : `${activeTab} Proposals`}
+                {activeTab === 'All' ? 'Research Proposals' : `${activeTab} Proposals`}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />

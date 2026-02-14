@@ -4,6 +4,7 @@ import {
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
   RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import {
   type Proposal,
   type Decision,
@@ -14,6 +15,7 @@ import { adminProposalApi as proposalApi } from '../../../services/AdminProposal
 import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
+import { forwardProposalToRnd } from '../../../services/proposal.api';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -211,18 +213,32 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     setIsChangeRdModalOpen(true);
   }
 
-  const confirmRdChange = async (proposalId: string, newStaffName: string) => {
-    setProposals(prev => prev.map(p =>
-      p.id === proposalId
-        ? {
-          ...p,
-          assignedRdStaff: newStaffName,
-          status: 'Under R&D Review' as ProposalStatus,
-          lastModified: new Date().toISOString()
-        }
-        : p
-    ));
-    setIsChangeRdModalOpen(false);
+  const confirmRdChange = async (proposalId: string, newStaffName: string, newStaffId?: string) => {
+    try {
+      if (!newStaffId) throw new Error("No staff ID provided for reassignment.");
+
+      // Backend Update
+      await forwardProposalToRnd(Number(proposalId), [newStaffId]);
+
+      // Optimistic UI Update after Success
+      setProposals(prev => prev.map(p =>
+        p.id === proposalId
+          ? {
+            ...p,
+            assignedRdStaff: newStaffName,
+            status: 'Under R&D Review' as ProposalStatus,
+            lastModified: new Date().toISOString()
+          }
+          : p
+      ));
+
+      setIsChangeRdModalOpen(false);
+      // Success alert is handled by the modal component for better UX flow
+    } catch (error) {
+      console.error("Failed to reassign R&D staff:", error);
+      // Show error here only
+      Swal.fire("Error", "Failed to clear previous assignment or update new assignment.", "error");
+    }
   };
 
   const handleCloseModal = () => {
@@ -394,7 +410,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     { id: 'Under Evaluators Assessment', label: 'Evaluators', icon: Users },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
-  
+
   // Helper for Random Tag Colors (Matches RndProposalPage)
   const getTagColor = (tag: string) => {
     let hash = 0;
@@ -495,7 +511,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
-                {activeTab === 'All' ? 'All Proposals' : `${activeTab} Proposals`}
+                {activeTab === 'All' ? 'Research Proposals' : `${activeTab} Proposals`}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />

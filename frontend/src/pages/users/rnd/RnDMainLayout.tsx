@@ -28,12 +28,20 @@ const MainLayout: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
+		setLoading(true);
+		const timer = setTimeout(() => {
+			setLoading(false);
+		}, 1000);
+		return () => clearTimeout(timer);
+	}, [currentPage]);
+
+	useEffect(() => {
 		loadData();
 	}, []);
 
 	const loadData = async () => {
 		try {
-			setLoading(true);
+			// Don't set loading here to avoid conflict, or managing it via the effect is enough
 			const [statsData, activityData] = await Promise.all([
 				proposalApi.fetchStatistics(),
 				proposalApi.fetchRecentActivity()
@@ -42,8 +50,6 @@ const MainLayout: React.FC = () => {
 			setRecentActivity(activityData);
 		} catch (error) {
 			console.error('Error loading data:', error);
-		} finally {
-			setLoading(false);
 		}
 	};
 
@@ -59,8 +65,8 @@ const MainLayout: React.FC = () => {
 				return <EvaluatorPage />;
 			case 'endorsements':
 				return <EndorsePage />;
-      case 'funding':
-        return <FundingPage />;
+			case 'funding':
+				return <FundingPage />;
 			case 'monitoring':
 				return <Monitoring onStatsUpdate={loadData} />;
 			case 'settings':
@@ -71,17 +77,6 @@ const MainLayout: React.FC = () => {
 				);
 		}
 	};
-
-	if (loading) {
-		return (
-			<div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-				<div className='text-center'>
-					<div className='animate-spin rounded-full h-12 w-12 border-b-2 border-wmsu-red mx-auto'></div>
-					<p className='mt-4 text-gray-600'>Loading system...</p>
-				</div>
-			</div>
-		);
-	}
 
 	return (
 		<div className='min-h-screen bg-gray-50 flex'>
@@ -96,7 +91,16 @@ const MainLayout: React.FC = () => {
 
 			{/* Main Content */}
 			<div className='flex-1 bg-gray-50 overflow-y-auto'>
-				{renderCurrentPage()}
+				{loading ? (
+					<div className="flex h-full items-center justify-center">
+						<div className="text-center">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
+							<p className="mt-4 text-gray-600">Loading {currentPage.replace('-', ' ')}...</p>
+						</div>
+					</div>
+				) : (
+					renderCurrentPage()
+				)}
 			</div>
 		</div>
 	);

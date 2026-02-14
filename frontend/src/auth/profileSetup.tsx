@@ -28,6 +28,23 @@ const STEPS = [
   { id: 3, title: "Profile Photo", icon: <Camera size={18} /> },
 ];
 
+const validateAge = (dateString: string) => {
+  const birth = new Date(dateString);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age >= 18;
+};
+
+const getMaxDate = () => {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() - 18);
+  return today.toISOString().split('T')[0];
+};
+
 export default function ProfileSetup() {
   // --- State ---
   const [currentStep, setCurrentStep] = useState(1);
@@ -197,6 +214,16 @@ export default function ProfileSetup() {
         });
         return;
       }
+
+      if (!validateAge(formData.birthdate)) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Age Restriction',
+          text: 'You must be at least 18 years old to proceed.',
+          confirmButtonColor: '#C8102E',
+        });
+        return;
+      }
     } else if (currentStep === 2) {
       if (!formData.rdStation) {
         Swal.fire({
@@ -238,6 +265,7 @@ export default function ProfileSetup() {
                   name="birthdate"
                   value={formData.birthdate}
                   onChange={handleChange}
+                  max={getMaxDate()}
                   className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white"
                 />
               </div>

@@ -10,7 +10,7 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
-  const { verifyToken, loading } = useAuthContext();
+  const { verifyToken } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -85,16 +85,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
     verifyAuthentication();
   }, [roles, navigate, verifyToken, location]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-wmsu-red mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return <Outlet />;
 };

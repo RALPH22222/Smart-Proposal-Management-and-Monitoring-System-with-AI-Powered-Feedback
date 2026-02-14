@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminSidebar from "../../../components/admin-component/sidebar";
 
@@ -15,8 +16,17 @@ import Funding from "./funding"
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [loading, setLoading] = useState(true);
 
   const currentTab = searchParams.get("tab") || "dashboard";
+
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [currentTab]);
 
   const handlePageChange = (page: string) => {
     setSearchParams({ tab: page });
@@ -29,15 +39,15 @@ const AdminLayout: React.FC = () => {
       case "accounts":
         return <Accounts />;
       case "proposals":
-        return <Proposals />; 
+        return <Proposals />;
       case "evaluators":
         return <Evaluators />;
       case "endorsements":
         return <Endorsements />;
       case "project-funding":
-        return <Funding />;      
+        return <Funding />;
       case "monitoring":
-        return <Monitoring />; 
+        return <Monitoring />;
       case "contents":
         return <Contents />;
       case "reports":
@@ -57,7 +67,18 @@ const AdminLayout: React.FC = () => {
       <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} />
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">{renderContent()}</main>
+      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading {currentTab.replace('-', ' ')}...</p>
+            </div>
+          </div>
+        ) : (
+          renderContent()
+        )}
+      </main>
     </div>
   );
 };
