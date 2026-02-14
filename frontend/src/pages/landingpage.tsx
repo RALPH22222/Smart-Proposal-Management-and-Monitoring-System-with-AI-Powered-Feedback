@@ -3,6 +3,7 @@ import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 import CardSwap, { Card } from '../components/CardSwap';
 import templatePDF from '../assets/template/DOST-Template.pdf';
+import { ClipboardCheck, Clock, Bell, Mail, FileCheck, AlertCircle } from 'lucide-react';
 
 const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean = false) => {
   const [count, setCount] = useState(0);
@@ -571,127 +572,113 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Important Reminders Section */}
-      <section className="py-16 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <div className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
-              Guidelines & Procedures
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text text-transparent">
-              Important Reminders
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Ensure your proposal submission process goes smoothly by following these essential guidelines and procedures.
-            </p>
-          </div>
+      {/* Submission Guidelines Section - Unique Editorial Design */}
+      <section className="py-24 bg-white relative">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
 
-          <div className="max-w-4xl mx-auto">
-            {/* Main Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-              {/* Header */}
-              <div className="px-8 py-6"
-                style={{ background: 'rgba(200, 16, 46, 1)' }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
+            {/* Left Column: Sticky Title & Intro */}
+            <div className="lg:col-span-4 lg:sticky lg:top-32 self-start">
+              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-6">
+                Essentials
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
+                Submission Guidelines & Requirements
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
+                Your roadmap to a successful proposal submission. Follow these core requirements to ensure a smooth approval process.
+              </p>
+
+              {/* Pro Tip Integrated on Left */}
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hidden lg:block">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="text-[#C8102E] w-5 h-5" />
+                  <span className="font-bold text-gray-900">Pro Tip</span>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Gather your CVs, consent forms, and research instruments <span className="font-semibold text-[#C8102E]">before</span> you start to avoid timeouts or errors.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column: The List (No Cards) */}
+            <div className="lg:col-span-8 space-y-12">
+              {/* Item 1 */}
+              <div className="flex flex-col sm:flex-row gap-6 group">
+                <div className="shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
+                    <ClipboardCheck size={32} />
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Submission Guidelines & Requirements</h3>
-                    <p className="text-red-100 text-sm mt-1">Please read carefully before submitting your proposal</p>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Complete Documentation</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
+                    Incomplete attachments lead to automatic rejection. Ensure every required file is uploaded before you hit submit.
+                  </p>
+                </div>
+              </div>
+              <hr className="border-gray-100" />
+
+              {/* Item 2 */}
+              <div className="flex flex-col sm:flex-row gap-6 group">
+                <div className="shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
+                    <Clock size={32} />
                   </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">7-Day Revision Window</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
+                    Feedback received? You have exactly <span className="font-semibold text-gray-900">7 working days</span> to resubmit your revised proposal. Plan your timeline carefully.
+                  </p>
+                </div>
+              </div>
+              <hr className="border-gray-100" />
+
+              {/* Item 3 */}
+              <div className="flex flex-col sm:flex-row gap-6 group">
+                <div className="shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
+                    <Bell size={32} />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Stay Updated</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
+                    We notify via portal & email. Check your spam folder regularly so you don't miss critical updates about your proposal.
+                  </p>
+                </div>
+              </div>
+              <hr className="border-gray-100" />
+
+              {/* Item 4 */}
+              <div className="flex flex-col sm:flex-row gap-6 group">
+                <div className="shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
+                    <Mail size={32} />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Official Channels Only</h3>
+                  <p className="text-gray-600 text-lg leading-relaxed">
+                    All communication happens inside the portal. Avoid direct emails for procedural steps. Keep it official and documented.
+                  </p>
                 </div>
               </div>
 
-              {/* Reminders List */}
-              <div className="p-8">
-                <div className="space-y-6">
-                  {/* Reminder 1 */}
-                  <div className="flex gap-4 p-4 rounded-lg bg-red-50 border border-red-200">
-                    <div className="flex-shrink-0 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center mt-1">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2">Complete Documentation Required</h4>
-                      <p className="text-gray-700 leading-relaxed">
-                        <span className="font-semibold text-red-700">Proposals with incomplete attachments will not be processed.</span> Ensure all required documents,
-                        including supporting materials, consent forms, and supplementary files are properly attached before submission.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reminder 2 */}
-                  <div className="flex gap-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
-                    <div className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center mt-1">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2">Timely Revisions</h4>
-                      <p className="text-gray-700 leading-relaxed">
-                        <span className="font-semibold text-amber-700">Revisions must be resubmitted within 7 working days after receiving feedback. </span>
-                        Late submissions may require restarting the evaluation process. Plan your revision timeline accordingly.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reminder 3 */}
-                  <div className="flex gap-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mt-1">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2">System Notifications</h4>
-                      <p className="text-gray-700 leading-relaxed">
-                        <span className="font-semibold text-blue-700">The R&D office will notify proponents via the website portal and email for any updates. </span>
-                        Regularly check both your portal notifications and registered email address (including spam folder) for status updates, feedback, and important announcements.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reminder 4 */}
-                  <div className="flex gap-4 p-4 rounded-lg bg-green-50 border border-green-200">
-                    <div className="flex-shrink-0 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center mt-1">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900 mb-2">Official Communication Channel</h4>
-                      <p className="text-gray-700 leading-relaxed">
-                        <span className="font-semibold text-green-700">All communications are done through the portal. </span>
-                        Use the official WMSU Project Proposal portal for all correspondence, document submissions, and status inquiries.
-                        Avoid direct emails for procedural matters.
-                      </p>
-                    </div>
-                  </div>
+              {/* Mobile Only Pro Tip */}
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 lg:hidden mt-8">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="text-[#C8102E] w-5 h-5" />
+                  <span className="font-bold text-gray-900">Pro Tip</span>
                 </div>
-
-                {/* Additional Tips */}
-                <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Pro Tip: Prepare in Advance</h4>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        Save time by preparing all required documents before starting your submission. Common attachments include research instruments,
-                        consent forms, CVs of team members, and letters of support. Double-check file formats and size limits specified in the portal guidelines.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Gather your CVs, consent forms, and research instruments <span className="font-semibold text-[#C8102E]">before</span> you start.
+                </p>
               </div>
+
             </div>
+
           </div>
         </div>
       </section>

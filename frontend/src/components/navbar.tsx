@@ -145,8 +145,8 @@ const Navbar: React.FC = () => {
                   className="text-base lg:text-lg font-bold tracking-tight"
                   style={{ color: COLORS.white }}
                 >
-                  <span className="hidden lg:inline">WMSU Project Proposal</span>
-                  <span className="inline lg:hidden">WMSU ProjProp</span>
+                  <span className="hidden min-[321px]:inline">WMSU </span>
+                  <span>Project Proposal</span>
                 </span>
                 <span
                   className="text-xs lg:text-sm opacity-80 hidden lg:block"

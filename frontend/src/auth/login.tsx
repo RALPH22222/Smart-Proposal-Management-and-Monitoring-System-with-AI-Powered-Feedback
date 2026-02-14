@@ -317,7 +317,7 @@ export default function Login() {
       >
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
-          <div className="flex justify-center items-center gap-6">
+          <div className="flex justify-center items-center gap-3">
             <img src="/LOGO.png" alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
             <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
           </div>
