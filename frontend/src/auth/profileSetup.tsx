@@ -384,7 +384,7 @@ export default function ProfileSetup() {
           {/* WATERMARK LOGO */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 overflow-hidden">
             <img
-              src="../src/assets/IMAGES/LOGO.png"
+              src="../src/assets/images/WMSU-LOGO.png"
               alt="Logo Watermark"
               className="max-w-[50%] max-h-[50%] object-contain opacity-[0.03]"
             />

@@ -3,7 +3,7 @@ import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 import CardSwap, { Card } from '../components/CardSwap';
 import templatePDF from '../assets/template/DOST-Template.pdf';
-import { ClipboardCheck, Clock, Bell, Mail, FileCheck, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Clock, Bell, Mail, AlertCircle } from 'lucide-react';
 
 const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean = false) => {
   const [count, setCount] = useState(0);

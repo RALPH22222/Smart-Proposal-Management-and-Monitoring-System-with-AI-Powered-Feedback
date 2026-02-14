@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Logo from '../assets/IMAGES/LOGO.png';
-import RdecLogo from '../assets/IMAGES/RDEC-WMSU.png';
+import Logo from '../assets/images/WMSU.png';
+import RdecLogo from '../assets/images/RDEC-WMSU.png';
 
 const COLORS = {
   brand: "#C8102E",

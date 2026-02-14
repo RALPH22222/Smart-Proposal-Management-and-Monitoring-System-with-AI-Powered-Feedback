@@ -2,7 +2,7 @@ import { api } from "@utils/axios";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Swal from "sweetalert2";
 import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
-import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
+import RdecLogo from "../assets/images/RDEC-WMSU.png";
 
 const BACKGROUND_IMAGE_URL =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg";
@@ -454,7 +454,7 @@ export default function Register() {
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
           <div className="relative max-w-md text-center space-y-4 md:space-y-6">
             <div className="flex justify-center items-center gap-3">
-              <img src="/LOGO.png" alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <img src="/WMSU.png" alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
               <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">

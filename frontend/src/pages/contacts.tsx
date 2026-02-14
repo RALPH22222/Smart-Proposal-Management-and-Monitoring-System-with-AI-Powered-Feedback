@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
-import { MapPin, Phone, Mail, Clock, ShieldAlert, Globe, ChevronRight } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, ShieldAlert, ChevronRight } from "lucide-react";
 
 const useInView = (options?: IntersectionObserverInit) => {
   const ref = useRef<HTMLDivElement>(null);
