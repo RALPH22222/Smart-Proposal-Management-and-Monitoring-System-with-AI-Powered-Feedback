@@ -27,6 +27,52 @@ import {
 
 import { useAuthContext } from "../../../context/AuthContext";
 
+const Loader3D = () => (
+  <div className="flex flex-col items-center justify-center py-12 w-full">
+    <div className="relative w-24 h-24" style={{ perspective: "1000px" }}>
+      <div className="relative w-full h-full transform-style-3d animate-spin-file">
+        <style>{`
+          .transform-style-3d { transform-style: preserve-3d; }
+          .animate-spin-file { animation: spin-file 3s infinite ease-in-out; }
+          @keyframes spin-file {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+          }
+        `}</style>
+
+        {/* Document Body - Front */}
+        <div className="absolute inset-0 bg-white border-2 border-gray-200 rounded-lg shadow-lg flex flex-col p-3 gap-2"
+          style={{ width: '60px', height: '80px', margin: 'auto', transform: "translateZ(1px)", backfaceVisibility: "hidden" }}>
+          <div className="w-3/4 h-2 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-full h-1.5 bg-gray-100 rounded animate-pulse delay-75"></div>
+          <div className="w-full h-1.5 bg-gray-100 rounded animate-pulse delay-100"></div>
+          <div className="w-5/6 h-1.5 bg-gray-100 rounded animate-pulse delay-150"></div>
+          <div className="mt-auto self-end w-6 h-6 rounded-full bg-[#C8102E]/10 flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#C8102E] rounded-sm transform rotate-45"></div>
+          </div>
+        </div>
+
+        {/* Document Body - Back */}
+        <div className="absolute inset-0 bg-[#C8102E] border-2 border-[#C8102E] rounded-lg shadow-lg flex items-center justify-center p-4"
+          style={{ width: '60px', height: '80px', margin: 'auto', transform: "rotateY(180deg) translateZ(1px)", backfaceVisibility: "hidden" }}>
+          <div className="w-10 h-10 border-2 border-white/30 rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+          </div>
+        </div>
+
+        {/* Floating particles/elements */}
+        <div className="absolute top-0 right-0 w-3 h-3 bg-blue-400 rounded-full opacity-60 animate-bounce" style={{ animationDelay: '0.2s', transform: 'translateZ(20px)' }}></div>
+        <div className="absolute bottom-0 left-0 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-bounce" style={{ animationDelay: '0.5s', transform: 'translateZ(-10px)' }}></div>
+      </div>
+    </div>
+    <div className="mt-4 flex flex-col items-center gap-1">
+      <span className="text-[#C8102E] font-bold text-lg tracking-[0.2em] animate-pulse">LOADING</span>
+      <span className="text-gray-400 text-xs uppercase tracking-widest font-medium">Fetching Proposals</span>
+    </div>
+  </div>
+);
+
 const Profile: React.FC = () => {
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -529,9 +575,7 @@ const Profile: React.FC = () => {
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
       {loading ? (
-        <div className="text-center py-12 text-gray-500">
-          <p>Loading proposals...</p>
-        </div>
+        <Loader3D />
       ) : filteredProjects.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No projects found matching your criteria.</p>
@@ -645,7 +689,13 @@ const Profile: React.FC = () => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {filteredProjects.length === 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan={6} className="px-6 py-12">
+                <Loader3D />
+              </td>
+            </tr>
+          ) : filteredProjects.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                 No projects found.
