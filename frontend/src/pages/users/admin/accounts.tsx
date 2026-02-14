@@ -20,6 +20,7 @@ const Accounts: React.FC = () => {
   // const { setLoading } = useLoading();
 
   const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -35,11 +36,14 @@ const Accounts: React.FC = () => {
 
   const fetchAccounts = useCallback(async () => {
     try {
+      setIsLoading(true);
       const data = await AccountApi.getAccounts();
       setUsers(data);
     } catch (err: any) {
       console.error("Failed to fetch accounts:", err);
       Swal.fire("Error", err.response?.data?.message || "Failed to fetch accounts", "error");
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -222,7 +226,16 @@ const Accounts: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {currentUsers.length > 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#C8102E]"></div>
+                      <p className="mt-2 text-sm text-gray-500">Loading accounts...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentUsers.length > 0 ? (
                 currentUsers.map((user) => {
                   const avatarUrl = user.photo_profile_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`;
                   const isDisabled = user.is_disabled;

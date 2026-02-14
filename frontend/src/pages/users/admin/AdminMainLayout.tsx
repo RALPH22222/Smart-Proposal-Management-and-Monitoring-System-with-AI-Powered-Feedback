@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminSidebar from "../../../components/admin-component/sidebar";
 
@@ -8,25 +8,15 @@ import Contents from "./contents";
 import Reports from "./reports";
 import Settings from "./settings";
 import System from "./system";
-import Proposals from "./proposals"
-import Evaluators from "./evaluator"
-import Monitoring from "./monitoring"
-import Endorsements from "./endorsement"
-import Funding from "./funding"
+import Proposals from "./proposals";
+import Evaluators from "./evaluator";
+import Monitoring from "./monitoring";
+import Endorsements from "./endorsement";
+import Funding from "./funding";
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-
   const currentTab = searchParams.get("tab") || "dashboard";
-
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [currentTab]);
 
   const handlePageChange = (page: string) => {
     setSearchParams({ tab: page });
@@ -68,16 +58,7 @@ const AdminLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">
-        {loading ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading {currentTab.replace('-', ' ')}...</p>
-            </div>
-          </div>
-        ) : (
-          renderContent()
-        )}
+        {renderContent()}
       </main>
     </div>
   );

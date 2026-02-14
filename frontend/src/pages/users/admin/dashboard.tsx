@@ -13,49 +13,13 @@ import {
 
 export default function DashboardAdmin() {
   const { user } = useAuthContext();
-  const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
+  const [isReturningUser, setIsReturningUser] = useState(() => localStorage.getItem('admin_welcome_seen') === 'true');
 
   useEffect(() => {
-    if (!user) return;
-
-    const hasVisited = localStorage.getItem('admin_welcome_seen');
-    const isNewUser = !hasVisited;
-
-    if (isNewUser) {
+    if (!isReturningUser) {
       localStorage.setItem('admin_welcome_seen', 'true');
     }
-
-    const firstName = user.first_name || 'Admin';
-    const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
-    const targetName = firstName;
-    const targetSuffix = !isNewUser ? '!' : '';
-
-    const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
-    let charIndex = 0;
-
-    // Clear initial
-    setDisplayedText({ prefix: '', name: '', suffix: '' });
-
-    const typeInterval = setInterval(() => {
-      charIndex++;
-      const currentTotal = charIndex;
-
-      const pLen = targetPrefix.length;
-      const nLen = targetName.length;
-
-      const p = targetPrefix.slice(0, Math.min(currentTotal, pLen));
-      const n = currentTotal > pLen ? targetName.slice(0, Math.min(currentTotal - pLen, nLen)) : '';
-      const s = currentTotal > pLen + nLen ? targetSuffix.slice(0, currentTotal - (pLen + nLen)) : '';
-
-      setDisplayedText({ prefix: p, name: n, suffix: s });
-
-      if (currentTotal >= totalLength) {
-        clearInterval(typeInterval);
-      }
-    }, 50);
-
-    return () => clearInterval(typeInterval);
-  }, [user?.first_name]);
+  }, [isReturningUser]);
 
   const stats = [
     {
@@ -160,9 +124,8 @@ export default function DashboardAdmin() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#C8102E] leading-tight min-h-[32px]">
-              {displayedText.prefix}
-              <span className="text-black">{displayedText.name}</span>
-              {displayedText.suffix}
+              {isReturningUser ? 'Welcome back, ' : 'Welcome to RDEC, '}
+              <span className="text-black">{user?.first_name || 'Admin'}</span>!
             </h1>
             <p className="text-slate-600 mt-2 text-sm leading-relaxed">
               System overview and performance metrics

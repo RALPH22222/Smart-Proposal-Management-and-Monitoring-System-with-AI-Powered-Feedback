@@ -12,7 +12,7 @@ const EvaluatorLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
 
-  const currentTab = searchParams.get("tab") || "submission";
+  const currentTab = searchParams.get("tab") || "dashboard";
 
   useEffect(() => {
     setLoading(true);
