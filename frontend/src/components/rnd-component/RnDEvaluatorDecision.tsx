@@ -215,11 +215,9 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.objectives}/5
-                                                                                     </span>											
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.objectives}/5
+												</span>
 											</span>
 										</div>
 									</div>
@@ -236,11 +234,9 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.methodology}/5
-                                                                                     </span>											
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.methodology}/5
+												</span>
 											</span>
 										</div>
 									</div>
@@ -257,11 +253,10 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.budget}/5
-                                                                             </span>											</span>
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.budget}/5
+												</span>
+											</span>
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
@@ -277,11 +272,9 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                       className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.timeline}/5
-                                                                                     </span>
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.timeline}/5
+												</span>
 											</span>
 										</div>
 									</div>

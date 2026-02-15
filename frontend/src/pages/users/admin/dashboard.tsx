@@ -13,7 +13,7 @@ import {
 
 export default function DashboardAdmin() {
   const { user } = useAuthContext();
-  const [isReturningUser, setIsReturningUser] = useState(() => localStorage.getItem('admin_welcome_seen') === 'true');
+  const [isReturningUser] = useState(() => localStorage.getItem('admin_welcome_seen') === 'true');
 
   useEffect(() => {
     if (!isReturningUser) {
