@@ -48,7 +48,7 @@ export default function ReviewedProposals() {
 
       const mapped = filtered.map((item: any) => {
          const p = item.proposal_id || {};
-         const evaluationScore = scoresMap.get(item.proposal_id?.id);
+         const evaluationScore = scoresMap.get(p.id);
          const proponent = p.proponent_id || {};
          const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
          
@@ -111,7 +111,18 @@ export default function ReviewedProposals() {
          };
       });
 
-      setProposals(mapped);
+      // Deduplicate mapped proposals using string ID
+      const uniqueProposalsMap = new Map();
+      mapped.forEach((p: any) => {
+        const key = String(p.id);
+        if (!uniqueProposalsMap.has(key)) {
+          uniqueProposalsMap.set(key, p);
+        }
+      });
+
+      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+
+      setProposals(uniqueProposals);
 
     } catch (err) {
       console.error("Failed to fetch proposals", err);
