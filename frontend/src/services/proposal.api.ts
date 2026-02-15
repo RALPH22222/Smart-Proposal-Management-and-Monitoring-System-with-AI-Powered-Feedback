@@ -330,6 +330,14 @@ export const getEvaluationScoresFromProposal = async (): Promise<any[]> => {
   return data;
 };
 
+// New API for R&D to getting proposals ready for endorsement (with all scores)
+export const getProposalsForEndorsement = async (): Promise<any[]> => {
+  const { data } = await api.get<any[]>("/proposal/view-for-endorsement", {
+    withCredentials: true,
+  });
+  return data;
+};
+
 // ========== ADMIN & RND ACTION APIs ==========
 
 export type UserItem = {

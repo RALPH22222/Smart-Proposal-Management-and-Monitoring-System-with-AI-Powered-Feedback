@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../../../components/rnd-component/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndProposalPage';
@@ -14,7 +15,9 @@ import EvaluatorPage from './RnDEvaluatorPage';
 import FundingPage from './RnDFundingPage';
 
 const MainLayout: React.FC = () => {
-	const [currentPage, setCurrentPage] = useState('dashboard');
+	const [searchParams, setSearchParams] = useSearchParams();
+	const currentPage = searchParams.get("tab") || "dashboard";
+
 	const [statistics, setStatistics] = useState<Statistics>({
 		totalProposals: 0,
 		pendingProposals: 0,
@@ -53,6 +56,10 @@ const MainLayout: React.FC = () => {
 		}
 	};
 
+	const handlePageChange = (page: string) => {
+		setSearchParams({ tab: page });
+	};
+
 	const renderCurrentPage = () => {
 		switch (currentPage) {
 			case 'dashboard':
@@ -84,7 +91,7 @@ const MainLayout: React.FC = () => {
 			<div className='w-auto'>
 				<Sidebar
 					currentPage={currentPage}
-					onPageChange={setCurrentPage}
+					onPageChange={handlePageChange}
 					statistics={statistics}
 				/>
 			</div>

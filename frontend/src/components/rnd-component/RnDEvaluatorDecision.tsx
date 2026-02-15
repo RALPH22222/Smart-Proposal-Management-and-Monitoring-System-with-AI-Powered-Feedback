@@ -218,7 +218,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 												 <span
                                                                                        className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
                                                                                      >
-                                                                                       {decision.ratings.timeline}/5
+                                                                                       {decision.ratings.objectives}/5
                                                                                      </span>											
 											</span>
 										</div>
@@ -239,7 +239,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 												 <span
                                                                                        className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
                                                                                      >
-                                                                                       {decision.ratings.timeline}/5
+                                                                                       {decision.ratings.methodology}/5
                                                                                      </span>											
 											</span>
 										</div>
@@ -260,7 +260,7 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 												 <span
                                                                                        className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
                                                                                      >
-                                                                                       {decision.ratings.timeline}/5
+                                                                                       {decision.ratings.budget}/5
                                                                              </span>											</span>
 										</div>
 									</div>

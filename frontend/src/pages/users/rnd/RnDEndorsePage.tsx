@@ -18,6 +18,7 @@ import {
 } from '../../../types/evaluator';
 import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
 import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
+import { getProposalsForEndorsement } from '../../../services/proposal.api';
 
 const EndorsePage: React.FC = () => {
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
@@ -40,87 +41,7 @@ const EndorsePage: React.FC = () => {
 
   const itemsPerPage = 5;
 
-  // Mock data for proposals ready for endorsement.
-  const mockEndorsementProposals: EndorsementProposal[] = [
-    {
-      id: 'PROP-2025-001',
-      title: 'Development of AI-Powered Student Learning Analytics Platform',
-      submittedBy: 'Dr. Maria Santos',
-      budget: [
-        { source: "DOST-GIA", ps: 150000, mooe: 50000, co: 50000, total: 250000 },
-        { source: "University Counterpart", ps: 0, mooe: 20000, co: 0, total: 20000 }
-      ],
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-1',
-          evaluatorName: 'Dr. Sarah Johnson',
-          decision: 'Approve',
-          comments: 'Excellent methodology and clear objectives. The AI implementation is well-structured.',
-          submittedDate: '2025-01-20T14:30:00Z',
-          ratings: { objectives: 5, methodology: 2, budget: 4, timeline: 5 }
-        },
-        {
-          evaluatorId: 'eval-2',
-          evaluatorName: 'Dr. Michael Chen',
-          decision: 'Approve',
-          comments: 'Strong technical foundation. Recommend minor adjustments to the data privacy section.',
-          submittedDate: '2025-01-21T09:15:00Z',
-          ratings: { objectives: 4, methodology: 5, budget: 3, timeline: 4 }
-        }
-      ],
-      overallRecommendation: 'Approve',
-      readyForEndorsement: true,
-      projectType: 'ICT'
-    },
-    {
-      id: 'PROP-2025-003',
-      title: 'Blockchain-Based Academic Credential Verification System',
-      submittedBy: 'Dr. Angela Rivera',
-      budget: [
-        { source: "Research Grant", ps: 80000, mooe: 40000, co: 0, total: 120000 },
-        { source: "Internal Funding", ps: 20000, mooe: 10000, co: 5000, total: 35000 }
-      ],
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-4',
-          evaluatorName: 'Dr. Robert Kim',
-          decision: 'Approve',
-          comments: 'Innovative approach to credential verification. Security measures are comprehensive.',
-          submittedDate: '2025-01-19T16:45:00Z',
-          ratings: { objectives: 4, methodology: 3, budget: 4, timeline: 3 }
-        },
-        {
-          evaluatorId: 'eval-3',
-          evaluatorName: 'Dr. Lisa Rodriguez',
-          decision: 'Revise',
-          comments: 'Good concept but needs clearer user interface design and accessibility considerations.',
-          submittedDate: '2025-01-20T11:20:00Z',
-          ratings: { objectives: 3, methodology: 2, budget: 4, timeline: 3 }
-        }
-      ],
-      overallRecommendation: 'Revise',
-      readyForEndorsement: true,
-      projectType: 'Public Safety'
-    },
-    {
-      id: 'PROP-2025-006',
-      title: 'Virtual Reality Learning Environment for STEM Education',
-      submittedBy: 'Dr. Roberto Fernandez',
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-5',
-          evaluatorName: 'Dr. Amanda Foster',
-          decision: 'Approve',
-          comments: 'Outstanding educational technology proposal. VR implementation is cutting-edge.',
-          submittedDate: '2025-01-18T13:00:00Z',
-          ratings: { objectives: 5, methodology: 5, budget: 4, timeline: 4 }
-        }
-      ],
-      overallRecommendation: 'Approve',
-      readyForEndorsement: false, // Missing second evaluator
-      projectType: 'Education'
-    }
-  ];
+
 
   useEffect(() => {
     loadEndorsementProposals();
@@ -129,8 +50,40 @@ const EndorsePage: React.FC = () => {
   const loadEndorsementProposals = async () => {
     try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setEndorsementProposals(mockEndorsementProposals);
+      const data = await getProposalsForEndorsement();
+      console.log('Fetched endorsement proposals:', data);
+          
+      const mapped: EndorsementProposal[] = data.map((p: any) => ({
+        id: p.id,
+        title: p.title,
+        submittedBy: p.submittedBy,
+        budget: p.budget,
+        evaluatorDecisions: Object.values(
+          p.evaluatorDecisions.reduce((acc: Record<string, any>, d: any) => {
+            if (!acc[d.evaluatorId] || (acc[d.evaluatorId].decision === 'Pending' && d.decision !== 'Pending')) {
+              acc[d.evaluatorId] = d;
+            }
+            return acc;
+          }, {})
+        ).map((d: any) => ({
+          evaluatorId: String(d.evaluatorId),
+          evaluatorName: d.evaluatorName,
+          decision: d.decision,
+          comments: d.comment || "No comment provided",
+          submittedDate: d.submittedDate,
+          ratings: d.ratings ? {
+            objectives: d.ratings.objective || 0,
+            methodology: d.ratings.methodology || 0,
+            budget: d.ratings.budget || 0,
+            timeline: d.ratings.timeline || 0
+          } : undefined
+        })),
+        overallRecommendation: p.overallRecommendation,
+        readyForEndorsement: p.readyForEndorsement,
+        projectType: p.department
+      }));
+          
+      setEndorsementProposals(mapped);
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
     } finally {
@@ -461,9 +414,9 @@ const EndorsePage: React.FC = () => {
                             Evaluator Decisions
                           </h4>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                            {proposal.evaluatorDecisions.map((decision) => (
+                            {proposal.evaluatorDecisions.map((decision, index) => (
                               <div
-                                key={decision.evaluatorId}
+                                key={`${decision.evaluatorId}-${index}`}
                                 className={`border rounded-lg p-3 ${getDecisionColor(decision.decision)} cursor-pointer hover:shadow-md transition-all duration-200`}
                                 onClick={() => handleOpenEvaluatorModal(decision, proposal.title, proposal.id)}
                               >
