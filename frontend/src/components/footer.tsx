@@ -1,6 +1,6 @@
 import React from "react";
-import Logo from "../assets/images/WMSU.png";
-import RdecLogo from "../assets/images/RDEC-WMSU.png";
+import Logo from "../assets/IMAGES/WMSU.png";
+import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
 
 const Footer: React.FC = () => {
   return (
