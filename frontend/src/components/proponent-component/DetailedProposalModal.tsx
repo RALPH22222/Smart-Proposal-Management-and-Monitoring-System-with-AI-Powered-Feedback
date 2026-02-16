@@ -33,7 +33,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
 
 interface Site {
   site: string;
@@ -75,30 +75,55 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
+  const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
+  const [isLoadingRevision, setIsLoadingRevision] = useState(false);
+  const [isLoadingRejection, setIsLoadingRejection] = useState(false);
 
   useEffect(() => {
     const fetchRejection = async () => {
       const pStatus = (proposal?.status || '').toLowerCase();
       if (['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(pStatus)) {
+        setIsLoadingRejection(true);
         try {
+          // Rejection fetch logic (existing)
           const summary = await fetchRejectionSummary(Number(proposal?.id));
-          if (summary && summary.comment) {
-            setRejectionComment(summary.comment);
-          } else {
-            setRejectionComment("No specific comment provided.");
-          }
+          setRejectionComment(summary?.comment || "No specific comment provided.");
+          setRejectionDate(summary?.created_at || null);
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);
           setRejectionComment("Failed to load rejection details.");
           setRejectionDate(null);
+        } finally {
+          setIsLoadingRejection(false);
         }
       } else {
         setRejectionComment(null);
-        setRejectionDate(null);
+        setIsLoadingRejection(false);
       }
     };
+
+    const fetchRevision = async () => {
+      const pStatus = (proposal?.status || '').toLowerCase();
+      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes(pStatus)) {
+        setIsLoadingRevision(true);
+        try {
+          const data = await fetchRevisionSummary(Number(proposal?.id));
+          setRevisionData(data);
+        } catch (error) {
+          console.error("Failed to fetch revision summary:", error);
+          setRevisionData(null);
+        } finally {
+          setIsLoadingRevision(false);
+        }
+      } else {
+        setRevisionData(null);
+        setIsLoadingRevision(false);
+      }
+    };
+
     if (isOpen && proposal) {
       fetchRejection();
+      fetchRevision();
     }
   }, [isOpen, proposal?.status, proposal?.id]);
 
@@ -335,8 +360,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     : [];
 
   // ... (getStatusTheme update) ...
-  const getStatusTheme = (status: string) => {
-    const s = status.toLowerCase();
+  const getStatusTheme = (status: string | undefined) => {
+    const s = (status || "").toLowerCase();
     if (["endorsed"].includes(s))
       return {
         bg: "bg-green-200",
@@ -353,6 +378,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
         label: "Project Funded",
       };
+
+    // Check for Revision statuses
+    if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) {
+      return {
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        text: "text-orange-800",
+        icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
+        label: "Revision Required",
+      };
+    }
+
     if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s))
       return {
         bg: "bg-red-50",
@@ -361,15 +398,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <XCircle className="w-5 h-5 text-red-600" />,
         label: "Proposal Rejected",
       };
-    if (["revise", "revision"].includes(s))
-      return {
-        bg: "bg-orange-50",
-        border: "border-orange-200",
-        text: "text-orange-800",
-        icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
-        label: "Revision Required",
-      };
-    if (["r&d evaluation", "review_rnd"].includes(s))
+
+    if (["review_rnd", "r&d evaluation"].includes(s))
       return {
         bg: "bg-blue-50",
         border: "border-blue-200",
@@ -377,6 +407,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <Microscope className="w-5 h-5 text-blue-600" />,
         label: "Under R&D Evaluation",
       };
+
     if (["evaluators assessment", "under_evaluation"].includes(s))
       return {
         bg: "bg-purple-50",
@@ -385,6 +416,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <FileCheck className="w-5 h-5 text-purple-600" />,
         label: "Under Evaluators Assessment",
       };
+
     if (["pending"].includes(s))
       return {
         bg: "bg-orange-100",
@@ -393,6 +425,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         icon: <Clock className="w-5 h-5 text-orange-600" />,
         label: "Pending",
       };
+
     return {
       bg: "bg-purple-50",
       border: "border-purple-200",
@@ -401,8 +434,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       label: "Under Evaluators Assessment",
     };
   };
-
-  // ...
 
   const theme = getStatusTheme(proposal.status);
 
@@ -426,38 +457,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return content;
   };
 
-  const reviseComments = [
-    {
-      section: "Objectives Assessment",
-      comment:
-        "The specific objectives are generally clear but need more measurable indicators (SMART criteria). Objective 2 is currently too broad and needs to be narrowed down.",
-    },
-    {
-      section: "Methodology Assessment",
-      comment:
-        "Some line items require better justification and cost-benefit analysis.",
-    },
-    {
-      section: "Budget Assessment",
-      comment:
-        "The travel expenses listed for Q3 seem excessive relative to the project scope. Please provide a detailed breakdown.",
-    },
-    {
-      section: "Timeline Assessment",
-      comment:
-        "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
-    },
-    {
-      section: "Overall Comments",
-      comment:
-        "The proposal is promising but requires adjustments in the methodology and budget allocation before proceeding to evaluation.",
-    },
-  ];
-
   const activeComments =
-    proposal.status === "revise"
-      ? reviseComments
-      : ["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(proposal.status.toLowerCase())
+    ["revise", "revision", "revision_rnd", "revision required", "under r&d review"].includes((proposal.status || "").toLowerCase())
+      ? [
+        { section: "Objectives Assessment", comment: revisionData?.objective_comment },
+        { section: "Methodology Assessment", comment: revisionData?.methodology_comment },
+        { section: "Budget Assessment", comment: revisionData?.budget_comment },
+        { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
+        { section: "Overall Comments", comment: revisionData?.overall_comment },
+      ].filter(item => item.comment)
+      : ["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes((proposal.status || "").toLowerCase())
         ? [{
           section: "Reason for Rejection",
           comment: rejectionComment || "Loading details..."
@@ -465,7 +474,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200" >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         {/* --- HEADER --- */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 bg-white gap-4">
@@ -511,10 +520,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           </div>
         </div>
 
-        {proposal.status === "revise" && (
+        {['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal.status || '').toLowerCase()) && (
           <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-            <RefreshCw className="w-4 h-4" />
-            Deadline for Revision: {proposal.deadline || "2024-12-31 23:59"}
+            <RefreshCw className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+            Deadline for Revision: {
+              isLoadingRevision ? "Loading..." :
+                (revisionData?.created_at && revisionData?.deadline) ?
+                  new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString() :
+                  (proposal.deadline ? new Date(proposal.deadline).toLocaleDateString() : "No deadline set")
+            }
           </div>
         )}
 
@@ -582,7 +596,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           )}
 
-          {(proposal.status === "revise" || ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(proposal.status?.toLowerCase())) && (
+          {(['revise', 'revision', 'revision_rnd', 'revision required'].includes(proposal.status?.toLowerCase() || '') || ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(proposal.status?.toLowerCase())) && (
             <div
               className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}
             >
@@ -592,50 +606,67 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 {theme.icon} R&D Staff Feedback
               </h3>
               <div className="grid gap-3">
-                {activeComments.map((c, i) => {
-                  const isRevision = proposal?.status === "revise";
-                  const isOverall = c.section === "Overall Comments";
-                  const cardBg =
-                    isRevision && !isOverall
-                      ? "bg-white border-white/50"
-                      : "bg-white/60 border-white/50";
-                  const textStyle = isRevision && isOverall ? "italic" : "";
+                {isLoadingRevision ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-500 animate-pulse">
+                    <RefreshCw className="w-6 h-6 animate-spin mb-2" />
+                    <p className="text-sm">Fetching detailed feedback...</p>
+                  </div>
+                ) : (
+                  activeComments.map((c, i) => {
+                    const isRevision = ['revise', 'revision', 'revision_rnd', 'revision required'].includes(proposal.status?.toLowerCase() || '');
+                    const isOverall = c.section === "Overall Comments";
+                    const isRejection = c.section === "Reason for Rejection";
+                    const cardBg =
+                      isRevision && !isOverall
+                        ? "bg-white border-white/50"
+                        : "bg-white/60 border-white/50";
+                    const textStyle = isRevision && isOverall ? "italic" : "";
 
-                  return (
-                    <div
-                      key={i}
-                      className={`p-4 rounded-lg border ${c.section === "Reason for Rejection" ? "bg-red-50/50 border-red-100" : cardBg} shadow-sm`}
-                    >
-                      <h4
-                        className={`text-xs uppercase font-bold tracking-wider mb-2 ${c.section === "Reason for Rejection" ? "text-red-700" : "text-gray-500"
-                          } flex items-center gap-2`}
-                      >
-                        {c.section === "Reason for Rejection" ? (
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                        ) : (
-                          <BookOpen className="w-3.5 h-3.5" />
-                        )}
-                        {c.section}
-                      </h4>
-                      <div className={`text-sm leading-relaxed ${textStyle} ${c.section === "Reason for Rejection" ? "text-gray-700 whitespace-pre-wrap" : "text-gray-600"}`}>
-                        {c.comment}
-                      </div>
-
-                      {c.section === "Reason for Rejection" && (
-                        <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
-                          <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
-                            Formal Decision by R&D Office
-                          </span>
-                          {rejectionDate && (
-                            <span className="text-xs text-slate-500 italic">
-                              Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
-                            </span>
-                          )}
+                    if (isRejection && isLoadingRejection) {
+                      return (
+                        <div key={i} className="p-4 rounded-lg border bg-red-50/50 border-red-100 shadow-sm flex flex-col items-center justify-center py-6">
+                          <RefreshCw className="w-5 h-5 animate-spin text-red-400 mb-2" />
+                          <p className="text-xs text-red-400">Loading rejection details...</p>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={i}
+                        className={`p-4 rounded-lg border ${c.section === "Reason for Rejection" ? "bg-red-50/50 border-red-100" : cardBg} shadow-sm`}
+                      >
+                        <h4
+                          className={`text-xs uppercase font-bold tracking-wider mb-2 ${c.section === "Reason for Rejection" ? "text-red-700" : "text-gray-500"
+                            } flex items-center gap-2`}
+                        >
+                          {c.section === "Reason for Rejection" ? (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          ) : (
+                            <BookOpen className="w-3.5 h-3.5" />
+                          )}
+                          {c.section}
+                        </h4>
+                        <div className={`text-sm leading-relaxed ${textStyle} ${c.section === "Reason for Rejection" ? "text-gray-700 whitespace-pre-wrap" : "text-gray-600"}`}>
+                          {c.comment}
+                        </div>
+
+                        {c.section === "Reason for Rejection" && (
+                          <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+                            <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
+                              Formal Decision by R&D Office
+                            </span>
+                            {rejectionDate && (
+                              <span className="text-xs text-slate-500 italic">
+                                Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}

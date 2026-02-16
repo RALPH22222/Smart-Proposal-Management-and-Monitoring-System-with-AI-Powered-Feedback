@@ -24,7 +24,7 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
-import { fetchUsersByRole } from '../../services/proposal.api';
+import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type RevisionSummary, type RejectionSummary } from '../../services/proposal.api';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -137,8 +137,41 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
   const [activeSection, setActiveSection] = useState<string>('objectives');
   const [typingSection, setTypingSection] = useState<string>('');
+  const [revisionSummary, setRevisionSummary] = useState<RevisionSummary | null>(null);
+  const [isLoadingRevision, setIsLoadingRevision] = useState(false);
+  const [rejectionSummary, setRejectionSummary] = useState<RejectionSummary | null>(null);
+  const [isLoadingRejection, setIsLoadingRejection] = useState(false);
 
   // --- EFFECTS ---
+
+  // Fetch evaluators when modal opens
+  // Fetch Revision Summary if applicable
+  useEffect(() => {
+    if (isOpen && proposal && ['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes((proposal.status || '').toLowerCase())) {
+      setIsLoadingRevision(true);
+      fetchRevisionSummary(Number(proposal.id))
+        .then(setRevisionSummary)
+        .catch(() => setRevisionSummary(null))
+        .finally(() => setIsLoadingRevision(false));
+    } else {
+      setRevisionSummary(null);
+      setIsLoadingRevision(false);
+    }
+  }, [isOpen, proposal]);
+
+  // Fetch Rejection Summary if applicable
+  useEffect(() => {
+    if (isOpen && proposal && ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes((proposal.status || '').toLowerCase())) {
+      setIsLoadingRejection(true);
+      fetchRejectionSummary(Number(proposal.id))
+        .then(setRejectionSummary)
+        .catch(() => setRejectionSummary(null))
+        .finally(() => setIsLoadingRejection(false));
+    } else {
+      setRejectionSummary(null);
+      setIsLoadingRejection(false);
+    }
+  }, [isOpen, proposal]);
 
   // Fetch evaluators when modal opens
   useEffect(() => {
@@ -305,6 +338,17 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       return;
     }
 
+    if (decision === 'Revision Required') {
+      const hasComment = Object.values(structuredComments)
+        .filter(val => typeof val === 'object' && val.content)
+        .some((section: any) => section.content && section.content.trim() !== '');
+
+      if (!hasComment) {
+        alert("Please provide at least one comment for revision.");
+        return;
+      }
+    }
+
     const decisionData: Decision = {
       proposalId: proposal.id,
       decision: decision as DecisionType,
@@ -312,9 +356,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
-      evaluationDeadline: (decision === 'Revision Required')
-        ? new Date(Date.now() + parseInt(evaluationDeadline) * 24 * 60 * 60 * 1000).toISOString()
-        : undefined
+      evaluationDeadline: evaluationDeadline // Pass days directly (e.g. "14")
     };
 
     onSubmitDecision(decisionData);
@@ -398,6 +440,79 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
           <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
             <form id="decision-form" onSubmit={handleSubmit} className="space-y-6">
 
+              {/* Current Rejection Status */}
+              {(rejectionSummary || isLoadingRejection) && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-in fade-in slide-in-from-top-2 mb-6">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-red-800 mb-3">
+                    <XCircle className={`w-4 h-4 ${isLoadingRejection ? "animate-spin" : ""}`} />
+                    Rejection Reason
+                  </h4>
+
+                  {isLoadingRejection ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-red-400">
+                      <RefreshCw className="w-5 h-5 animate-spin mb-1" />
+                      <span className="text-xs">Loading rejection details...</span>
+                    </div>
+                  ) : (
+                    rejectionSummary && (
+                      <div className="bg-white p-3 rounded-lg border border-red-100/50 shadow-sm">
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{rejectionSummary.comment}</p>
+                        {rejectionSummary.created_at && (
+                          <div className="mt-3 text-[10px] text-slate-400 italic text-right">
+                            Rejected on: {new Date(rejectionSummary.created_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* Current Revision Status */}
+              {(revisionSummary || isLoadingRevision) && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 animate-in fade-in slide-in-from-top-2 mb-6">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-orange-800 mb-3">
+                    <RefreshCw className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+                    Current Revision Request
+                  </h4>
+
+                  {isLoadingRevision ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-orange-400">
+                      <RefreshCw className="w-5 h-5 animate-spin mb-1" />
+                      <span className="text-xs">Loading feedback...</span>
+                    </div>
+                  ) : (
+                    revisionSummary && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-xs font-medium text-orange-700 bg-orange-100/50 p-2 rounded-lg border border-orange-200 w-fit">
+                          <Clock className="w-3.5 h-3.5" />
+                          Deadline: {
+                            (revisionSummary.created_at && revisionSummary.deadline) ?
+                              new Date(new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000).toLocaleDateString() :
+                              (proposal && proposal.evaluationDeadline ? new Date(proposal.evaluationDeadline).toLocaleDateString() : "No deadline set")
+                          }
+                        </div>
+
+                        <div className="grid gap-3">
+                          {[
+                            { title: "Objectives", content: revisionSummary.objective_comment },
+                            { title: "Methodology", content: revisionSummary.methodology_comment },
+                            { title: "Budget", content: revisionSummary.budget_comment },
+                            { title: "Timeline", content: revisionSummary.timeline_comment },
+                            { title: "Overall", content: revisionSummary.overall_comment }
+                          ].map((item, idx) => item.content && (
+                            <div key={idx} className="bg-white p-3 rounded-lg border border-orange-100/50 shadow-sm">
+                              <h5 className="text-xs font-bold text-orange-800 uppercase mb-1">{item.title}</h5>
+                              <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{item.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+
               {/* Decision Selection Grid */}
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-3">
@@ -438,8 +553,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     type="button"
                     onClick={() => setDecision('Rejected Proposal')}
                     className={`relative p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${decision === 'Rejected Proposal'
-                        ? 'border-red-500 bg-red-50 text-red-700 shadow-md transform scale-[1.02]'
-                        : 'border-slate-200 hover:border-red-200 hover:bg-red-50/30 text-slate-500 hover:text-red-600'
+                      ? 'border-red-500 bg-red-50 text-red-700 shadow-md transform scale-[1.02]'
+                      : 'border-slate-200 hover:border-red-200 hover:bg-red-50/30 text-slate-500 hover:text-red-600'
                       }`}
                   >
                     {decision === 'Rejected Proposal' && <div className="absolute top-2 right-2"><CheckCircle className="w-4 h-4 text-red-600" /></div>}

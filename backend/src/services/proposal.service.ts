@@ -1294,12 +1294,11 @@ export class ProposalService {
   }
 
   async getRevisionSummary(proposal_id: number, proponent_id: string) {
-    // 1. First verify the proposal belongs to this proponent
+    // 1. Verify access: User must be either the Proponent OR an assigned RND
     const { data: proposal, error: proposalError } = await this.db
       .from("proposals")
       .select("id, proponent_id")
       .eq("id", proposal_id)
-      .eq("proponent_id", proponent_id)
       .maybeSingle();
 
     if (proposalError) {
@@ -1307,6 +1306,25 @@ export class ProposalService {
     }
 
     if (!proposal) {
+      return { data: null, error: new Error("Proposal not found") };
+    }
+
+    // Check Proponent
+    const isProponent = proposal.proponent_id === proponent_id;
+
+    // Check RND (if not proponent)
+    let isRnd = false;
+    if (!isProponent) {
+      const { data: rndEntry } = await this.db
+        .from("proposal_rnd")
+        .select("id")
+        .eq("proposal_id", proposal_id)
+        .eq("rnd_id", proponent_id)
+        .maybeSingle();
+      isRnd = !!rndEntry;
+    }
+
+    if (!isProponent && !isRnd) {
       return { data: null, error: new Error("Proposal not found or you don't have access") };
     }
 

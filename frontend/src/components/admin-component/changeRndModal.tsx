@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter } from 'lucide-react';
+import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter, Search } from 'lucide-react';
 import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
 import Swal from 'sweetalert2';
@@ -23,6 +23,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
 
   // Fetch R&D Staff & Departments on Open
@@ -69,6 +70,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
       setSelectedStaffId('');
       setError('');
       setSelectedDepartment('');
+      setSearchTerm('');
     }
   }, [isOpen]);
 
@@ -123,7 +125,12 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
       ? staff.departments.some((d: any) => d.name === selectedDepartment)
       : true;
 
-    return (isNotCurrentAssignee && isNotCurrentAssigneeByName) && matchesDepartment;
+    const matchesSearch = searchTerm
+      ? staff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      staff.email.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+
+    return (isNotCurrentAssignee && isNotCurrentAssigneeByName) && matchesDepartment && matchesSearch;
   });
 
   return (
@@ -172,6 +179,23 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
               </div>
 
               <div className="space-y-4">
+                {/* 0. Search Filter */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Search Staff
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
                 {/* 1. Department Filter */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">

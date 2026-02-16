@@ -281,7 +281,7 @@ const Profile: React.FC = () => {
   const getLocalStatusLabel = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "Pending";
-    if (["revise", "revision"].includes(s)) return "Revision Required";
+    if (["revise", "revision", "revision_rnd"].includes(s)) return "Revision Required";
     if (["review_rnd", "r&d evaluation"].includes(s)) return "Under R&D Evaluation";
     if (["under_evaluation", "evaluators assessment"].includes(s)) return "Under Evaluators Assessment";
     return getStatusLabelByIndex(project.currentIndex);
@@ -290,7 +290,7 @@ const Profile: React.FC = () => {
   const getLocalStatusColor = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
-    if (["revise", "revision"].includes(s)) return "bg-orange-50 text-orange-800 border border-orange-200";
+    if (["revise", "revision", "revision_rnd"].includes(s)) return "bg-orange-50 text-orange-800 border border-orange-200";
     if (["review_rnd", "r&d evaluation"].includes(s)) return "bg-blue-100 text-blue-800 border border-blue-300";
     if (["under_evaluation", "evaluators assessment"].includes(s)) return "bg-purple-100 text-purple-800 border border-purple-300";
     return getStatusColorByIndex(project.currentIndex);
@@ -300,7 +300,7 @@ const Profile: React.FC = () => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     // Match the modal: if pending or revise, progress is 0% (or stalled)
     if (s === "pending") return 0;
-    if (["revise", "revision"].includes(s)) return 0;
+    if (["revise", "revision", "revision_rnd"].includes(s)) return 0;
     return getProgressPercentageByIndex(project.currentIndex);
   };
 

@@ -182,7 +182,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   // Filter proposals based on status and search term (Enhanced Logic)
   useEffect(() => {
-    let filtered = proposals.filter((proposal) => {
+    const filtered = proposals.filter((proposal) => {
       const matchesSearch =
         proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
