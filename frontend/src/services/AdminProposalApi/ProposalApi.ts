@@ -133,19 +133,60 @@ const mapStatus = (status: string): ProposalStatus => {
 };
 
 const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
-  // Helper to safely get array buffer
-  const budgetSources: BudgetSource[] = Array.isArray(data.estimated_budget)
-    ? data.estimated_budget.map((b: any) => ({
-      source: b.source || 'Unknown',
-      ps: b.amount || '0', // Adjust mapping based on actual structure
-      mooe: '0',
-      co: '0',
-      total: b.amount || '0'
-    }))
-    : [];
+  // Group budget items by source and category
+  const budgetSources: BudgetSource[] = [];
 
-  // Calculate generic total if possible
-  const budgetTotal = budgetSources.reduce((acc, curr) => acc + parseFloat(curr.total || '0'), 0).toString();
+  if (Array.isArray(data.estimated_budget) && data.estimated_budget.length > 0) {
+    // Group by source
+    const sourceMap = new Map<string, { ps: any[], mooe: any[], co: any[] }>();
+
+    data.estimated_budget.forEach((item: any) => {
+      const source = item.source || 'Unknown';
+      if (!sourceMap.has(source)) {
+        sourceMap.set(source, { ps: [], mooe: [], co: [] });
+      }
+
+      const group = sourceMap.get(source)!;
+      const budgetItem = { item: item.item || '', amount: parseFloat(item.amount || '0') };
+
+      // Group by budget category (ps, mooe, co)
+      const category = (item.budget || '').toLowerCase();
+      if (category === 'ps') {
+        group.ps.push(budgetItem);
+      } else if (category === 'mooe') {
+        group.mooe.push(budgetItem);
+      } else if (category === 'co') {
+        group.co.push(budgetItem);
+      }
+    });
+
+    // Convert map to array with totals
+    sourceMap.forEach((categories, source) => {
+      const psTotal = categories.ps.reduce((sum, item) => sum + item.amount, 0);
+      const mooeTotal = categories.mooe.reduce((sum, item) => sum + item.amount, 0);
+      const coTotal = categories.co.reduce((sum, item) => sum + item.amount, 0);
+      const total = psTotal + mooeTotal + coTotal;
+
+      budgetSources.push({
+        source,
+        ps: `₱${psTotal.toLocaleString()}`,
+        mooe: `₱${mooeTotal.toLocaleString()}`,
+        co: `₱${coTotal.toLocaleString()}`,
+        total: `₱${total.toLocaleString()}`,
+        breakdown: {
+          ps: categories.ps,
+          mooe: categories.mooe,
+          co: categories.co
+        }
+      } as any);
+    });
+  }
+
+  // Calculate grand total
+  const budgetTotal = budgetSources.reduce((acc, curr) => {
+    const total = curr.total.replace(/[₱,]/g, '');
+    return acc + parseFloat(total || '0');
+  }, 0);
 
   const proponentName = data.proponent_id
     ? `${data.proponent_id.first_name} ${data.proponent_id.last_name}`.trim()
@@ -176,7 +217,7 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     // Fallback: use proponent's department ID if available 
     department: data.proponent_id?.department_id?.toString() || undefined,
     address: data.agency_address ? `${data.agency_address.street || ''} ${data.agency_address.city || ''}` : '',
-    telephone: data.telephone || '', // map if available
+    telephone: data.phone || '', // Backend uses 'phone' field
     fax: data.fax || '',
     email: data.email || '',
     modeOfImplementation: data.implementation_mode || '',

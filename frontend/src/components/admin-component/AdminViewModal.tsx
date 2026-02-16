@@ -23,9 +23,10 @@ import {
   Send,
   Globe,
   CheckCircle,
+  Target,
 
 } from "lucide-react";
-import { fetchAgencies, fetchDepartments, type AgencyItem, type AddressItem, type LookupItem } from "../../services/proposal.api";
+import { fetchAgencyAddresses, fetchDepartments, fetchRejectionSummary, type AddressItem, type LookupItem } from "../../services/proposal.api";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -88,6 +89,8 @@ interface AdminViewModalProps {
   proposal: any;
   onAction?: (action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject', proposalId: string) => void;
   agencies?: LookupItem[];
+  sectors?: LookupItem[];
+  priorityAreas?: LookupItem[];
 }
 
 // --- HELPER FUNCTIONS ---
@@ -142,30 +145,24 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   onClose,
   proposal,
   onAction,
-
+  agencies = [],
+  sectors = [],
+  priorityAreas = [],
 }) => {
   // Safe cast for internal use
   const p = proposal as ModalProposalData;
 
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
-  // Local state for full agency objects to find address
-  const [agenciesList, setAgenciesList] = useState<AgencyItem[]>([]);
   // Local state for departments to resolving ID to name
   const [departmentsList, setDepartmentsList] = useState<LookupItem[]>([]);
+  // Rejection summary state
+  const [rejectionComment, setRejectionComment] = useState<string | null>(null);
+  const [rejectionDate, setRejectionDate] = useState<string | null>(null);
 
-  // Fetch Agencies and Departments if not provided
+  // Fetch Departments if not provided
   useEffect(() => {
-    const loadData = async () => {
+    const loadDepartments = async () => {
       try {
-        // Load Agencies
-        const agenciesData = await fetchAgencies();
-        setAgenciesList(agenciesData);
-      } catch (error) {
-        console.error("Failed to fetch agencies:", error);
-      }
-
-      try {
-        // Load Departments
         const deptsData = await fetchDepartments();
         setDepartmentsList(deptsData);
       } catch (error) {
@@ -174,23 +171,87 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     };
 
     if (isOpen) {
-      loadData();
+      loadDepartments();
     }
   }, [isOpen]);
 
-  // Derive addresses from the fetched agency list
+  // Fetch agency addresses (matching RndViewModal pattern)
   useEffect(() => {
-    if (!p?.agency || agenciesList.length === 0) {
-      setAgencyAddresses([]);
-      return;
+    const fetchAddresses = async () => {
+      const targetAgencyName = p?.agency;
+      if (!targetAgencyName) return;
+
+      const agency = agencies.find(a => a.name === targetAgencyName);
+      if (agency) {
+        try {
+          const addresses = await fetchAgencyAddresses(agency.id);
+          setAgencyAddresses(addresses);
+        } catch (error) {
+          console.error("Failed to fetch agency addresses:", error);
+          setAgencyAddresses([]);
+        }
+      } else {
+        setAgencyAddresses([]);
+      }
+    };
+
+    if (isOpen && p?.agency) {
+      fetchAddresses();
     }
-    const agency = agenciesList.find(a => a.name === p.agency);
-    if (agency && agency.agency_address) {
-      setAgencyAddresses(agency.agency_address);
-    } else {
-      setAgencyAddresses([]);
+  }, [isOpen, p?.agency, agencies]);
+
+  // Fetch Rejection Summary (matching RndViewModal)
+  useEffect(() => {
+    const fetchRejection = async () => {
+      const statusLower = (p.status || '').toLowerCase();
+      const isRejected = ['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes(statusLower);
+      
+      console.log(`[AdminViewModal] Proposal ${p.id} status check:`, {
+        originalStatus: p.status,
+        statusLower,
+        isRejected,
+        proposalId: p.id
+      });
+
+      if (isRejected) {
+        try {
+          console.log(`[AdminViewModal] Fetching rejection summary for proposal ${p.id}...`);
+          const summary = await fetchRejectionSummary(Number(p.id));
+          console.log(`[AdminViewModal] Rejection summary received:`, summary);
+          
+          if (summary) {
+            setRejectionComment(summary.comment || "No specific comment provided.");
+            setRejectionDate(summary.created_at || null);
+          } else {
+            setRejectionComment("No specific comment provided.");
+            setRejectionDate(null);
+          }
+        } catch (error: any) {
+          // Only log error if it's not a 404 (missing rejection data is expected for some cases)
+          const status = error?.response?.status;
+          if (status !== 404) {
+            console.error(`Failed to fetch rejection summary for proposal ${p.id}:`, {
+              status,
+              message: error?.response?.data?.message || error?.message,
+              error
+            });
+          } else {
+            console.log(`[AdminViewModal] No rejection data found (404) for proposal ${p.id}`);
+          }
+          // Set default message instead of error message
+          setRejectionComment("No rejection details available.");
+          setRejectionDate(null);
+        }
+      } else {
+        setRejectionComment(null);
+        setRejectionDate(null);
+      }
+    };
+
+    if (isOpen && p?.id) {
+      fetchRejection();
     }
-  }, [p?.agency, agenciesList]);
+  }, [isOpen, p?.id, p?.status]);
 
   // Derived Address (Matching RndViewModal logic)
   const displayAddress = React.useMemo(() => {
@@ -442,6 +503,29 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
             </div>
           )}
 
+          {/* Rejection Details Block (matching RndViewModal) */}
+          {(['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes((p.status || '').toLowerCase())) && (
+            <div className="bg-red-50 rounded-lg p-5 border border-red-200 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
+                  <XCircle className="w-5 h-5" />
+                  Rejection Details
+                </h3>
+              </div>
+              <div className="bg-white p-4 rounded border border-red-100">
+                <p className="text-xs font-bold text-red-700 mb-2">Reason for Rejection</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                  {rejectionComment || "Loading rejection details..."}
+                </p>
+                {rejectionDate && (
+                  <p className="text-xs text-slate-500 mt-2 text-right italic">
+                    Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Assigned R&D Staff (Only for Under R&D Review) */}
           {(p.status === "Under R&D Review" || p.status === "review_rnd" || p.status === "r&d evaluation") && p.assignedRdStaff && (
             <div className="bg-blue-50 rounded-lg p-5 border border-blue-200 shadow-sm">
@@ -573,6 +657,52 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               {(p.classificationDetails || p.class_input) && (
                 <p className="text-xs text-slate-600 mt-1">{formatClassInput(p.classificationDetails || p.class_input || "")}</p>
               )}
+            </div>
+
+            {/* Priority Areas */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {(() => {
+                  if (!p.priorityAreas) return "N/A";
+                  // Try to parse array of IDs
+                  try {
+                    const parsed = JSON.parse(p.priorityAreas);
+                    if (Array.isArray(parsed)) {
+                      return parsed.map(id =>
+                        priorityAreas.find(pa => Number(pa.id) === Number(id))?.name || id
+                      ).join(", ");
+                    }
+                    return p.priorityAreas;
+                  } catch (e) {
+                    return p.priorityAreas;
+                  }
+                })()}
+              </p>
+            </div>
+
+            {/* Sector */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {isNaN(Number(p.sector))
+                  ? p.sector
+                  : sectors.find(s => Number(s.id) === Number(p.sector))?.name || p.sector}
+              </p>
+            </div>
+
+            {/* Discipline */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Discipline
+              </h4>
+              <p className="text-sm font-semibold text-slate-900">
+                {p.discipline || "N/A"}
+              </p>
             </div>
           </div>
 

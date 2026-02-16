@@ -25,7 +25,7 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
-import { fetchUsersByRole, fetchDepartments, type UserItem } from '../../services/proposal.api';
+import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserItem, type RejectionSummary } from '../../services/proposal.api';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -126,6 +126,10 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   const [activeSection, setActiveSection] = useState<string>('objectives');
   const [typingSection, setTypingSection] = useState<string>('');
 
+  // Rejection Summary State
+  const [rejectionSummary, setRejectionSummary] = useState<RejectionSummary | null>(null);
+  const [isLoadingRejection, setIsLoadingRejection] = useState(false);
+
   // --- EFFECTS ---
 
   // Reset modal state when proposal changes or modal opens
@@ -152,8 +156,23 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       setCheckedAssignedIds([]);
       setAssignedEvaluators([]);
       setSelectedRnDStaff(null);
+      setSelectedRnDStaff(null);
     }
   }, [isOpen, proposal, currentUser.name]);
+
+  // Fetch Rejection Summary if applicable
+  useEffect(() => {
+    if (isOpen && proposal && ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes((proposal.status || '').toLowerCase())) {
+      setIsLoadingRejection(true);
+      fetchRejectionSummary(Number(proposal.id))
+        .then(setRejectionSummary)
+        .catch(() => setRejectionSummary(null))
+        .finally(() => setIsLoadingRejection(false));
+    } else {
+      setRejectionSummary(null);
+      setIsLoadingRejection(false);
+    }
+  }, [isOpen, proposal]);
 
   // Set default comment for reject decision
   useEffect(() => {
@@ -385,6 +404,34 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
             <form id="admin-decision-form" onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Current Rejection Status Display */}
+              {(rejectionSummary || isLoadingRejection) && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-in fade-in slide-in-from-top-2">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-red-800 mb-3">
+                    <XCircle className={`w-4 h-4 ${isLoadingRejection ? "animate-spin" : ""}`} />
+                    Rejection Reason
+                  </h4>
+
+                  {isLoadingRejection ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-red-400">
+                      <RefreshCw className="w-5 h-5 animate-spin mb-1" />
+                      <span className="text-xs">Loading rejection details...</span>
+                    </div>
+                  ) : (
+                    rejectionSummary && (
+                      <div className="bg-white p-3 rounded-lg border border-red-100/50 shadow-sm">
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{rejectionSummary.comment}</p>
+                        {rejectionSummary.created_at && (
+                          <div className="mt-3 text-[10px] text-slate-400 italic text-right">
+                            Rejected on: {new Date(rejectionSummary.created_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
 
               {/* Decision Selection Grid */}
               <div>

@@ -1407,7 +1407,18 @@ export class ProposalService {
       isRnd = !!rndEntry;
     }
 
+    // Check Admin role (if not proponent or RND)
+    let isAdmin = false;
     if (!isProponent && !isRnd) {
+      const { data: userData } = await this.db
+        .from("users")
+        .select("role")
+        .eq("id", requesting_user_id)
+        .maybeSingle();
+      isAdmin = userData?.role === "admin";
+    }
+
+    if (!isProponent && !isRnd && !isAdmin) {
       return { data: null, error: new Error("Proposal not found or you don't have access") };
     }
 

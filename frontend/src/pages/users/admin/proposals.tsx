@@ -15,7 +15,7 @@ import { adminProposalApi as proposalApi } from '../../../services/AdminProposal
 import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
-import { forwardProposalToRnd } from '../../../services/proposal.api';
+import { forwardProposalToRnd, fetchAgencies, type LookupItem } from '../../../services/proposal.api';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -130,9 +130,13 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
   // Mock Current User
   const currentUser: Reviewer = { name: 'Admin User', role: 'R&D Staff', id: 'admin-1', email: 'admin@wmsu.edu.ph' };
 
-  // Load proposals on component mount
+  // Lookup data
+  const [agencies, setAgencies] = useState<LookupItem[]>([]);
+
+  // Load proposals and lookup data on component mount
   useEffect(() => {
     loadProposals();
+    loadLookupData();
   }, []);
 
   const loadProposals = async () => {
@@ -145,6 +149,17 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       console.error('Error loading proposals:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLookupData = async () => {
+    try {
+      const [agenciesData] = await Promise.all([
+        fetchAgencies()
+      ]);
+      setAgencies(agenciesData);
+    } catch (error) {
+      console.error('Error loading lookup data:', error);
     }
   };
 
@@ -666,6 +681,9 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             setIsViewModalOpen(false);
             setSelectedProposalForView(null);
           }}
+          agencies={agencies}
+          sectors={[]}
+          priorityAreas={[]}
         />
 
         {/* New Change R&D Modal */}

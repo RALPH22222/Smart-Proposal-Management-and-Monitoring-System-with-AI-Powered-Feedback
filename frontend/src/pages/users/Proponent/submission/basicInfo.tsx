@@ -209,6 +209,51 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Allow empty string or just the + sign during typing
+    if (value === "" || value === "+") {
+      onUpdate("telephone", value);
+      return;
+    }
+
+    // Only allow digits and leading +
+    if (!/^[+]?[0-9]*$/.test(value)) return;
+
+    // Logic for starting with +
+    if (value.startsWith("+")) {
+      // Must follow +639 pattern eventually
+      // Enforce: +6... +63... +639...
+      const prefix = "+639";
+
+      // If length is small, ensure it matches prefix
+      if (value.length <= 4) {
+        if (!prefix.startsWith(value)) return;
+      } else {
+        // Length > 4, must start with +639 fully
+        if (!value.startsWith("+639")) return;
+      }
+
+      // Max length 13 (+639 + 9 digits)
+      if (value.length > 13) return;
+
+    } else {
+      // Logic for starting with 0
+      // Must start with 09 eventually
+      if (value.length >= 1 && !value.startsWith("0")) return; // Must start with 0
+
+      if (value.length >= 2) {
+        if (!value.startsWith("09")) return; // Must start with 09
+      }
+
+      // Max length 11 (09 + 9 digits)
+      if (value.length > 11) return;
+    }
+
+    onUpdate("telephone", value);
+  };
+
 
   // --- HANDLERS ---
   const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -580,7 +625,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             type="tel"
             name="telephone"
             value={formData.telephone || ""}
-            onChange={onInputChange}
+            onChange={handlePhoneChange}
+            title="Please enter a valid PH mobile number (e.g. 09123456789 or +639123456789)"
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             placeholder="Enter telephone number"
           />
