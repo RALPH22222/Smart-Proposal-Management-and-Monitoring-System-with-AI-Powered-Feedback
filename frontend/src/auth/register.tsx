@@ -2,8 +2,8 @@ import { api } from "@utils/axios";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Swal from "sweetalert2";
 import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
-import RdecLogo from "../assets/images/RDEC-WMSU.png";
-import WmsuLogo from "../assets/images/WMSU.png";
+import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
+import WmsuLogo from "../assets/IMAGES/WMSU.png";
 
 const BACKGROUND_IMAGE_URL =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg";
