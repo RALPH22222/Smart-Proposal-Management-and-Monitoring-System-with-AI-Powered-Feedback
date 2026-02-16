@@ -4,8 +4,8 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
-import RdecLogo from "../assets/images/RDEC-WMSU.png";
-import WmsuLogo from "../assets/images/WMSU.png";
+import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
+import WmsuLogo from "../assets/IMAGES/WMSU.png";
 type LoginResponse = {
   message: string;
   user: {
