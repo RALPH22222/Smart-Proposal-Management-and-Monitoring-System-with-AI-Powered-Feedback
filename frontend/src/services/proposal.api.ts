@@ -473,3 +473,12 @@ export const handleExtensionRequest = async (input: HandleExtensionPayload): Pro
   });
   return data;
 };
+
+export const removeEvaluator = async (proposalId: number, evaluatorId: string): Promise<any> => {
+    const { data } = await api.delete("/proposal/evaluator", {
+        // @ts-ignore
+        data: { proposal_id: proposalId, evaluator_id: evaluatorId },
+        withCredentials: true,
+    });
+    return data;
+};
