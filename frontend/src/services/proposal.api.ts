@@ -411,6 +411,21 @@ export const rejectProposal = async (input: RejectProposalPayload): Promise<any>
   });
   return data;
 };
+
+export type EndorseProposalPayload = {
+  proposal_id: number;
+  rnd_id: string;
+  decision: "endorsed";
+  remarks?: string;
+};
+
+export const endorseProposal = async (input: EndorseProposalPayload): Promise<any> => {
+  const { data } = await api.post("/proposal/endorse-for-funding", input, {
+    withCredentials: true,
+  });
+  return data;
+};
+
 export type AssignmentTrackerItem = {
   id: number;
   proposal_id: {

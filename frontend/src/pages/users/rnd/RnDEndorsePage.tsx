@@ -14,13 +14,21 @@ import {
 import { 
   type EndorsementProposal, 
   type EvaluatorDecision,
-  type BudgetRow  // Add this import
+  type BudgetRow
 } from '../../../types/evaluator';
 import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
 import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
-import { getProposalsForEndorsement } from '../../../services/proposal.api';
+import { 
+  getProposalsForEndorsement, 
+  endorseProposal, 
+  requestRevision, 
+  rejectProposal 
+} from '../../../services/proposal.api';
+import Swal from 'sweetalert2';
+import { useAuthContext } from '../../../context/AuthContext';
 
 const EndorsePage: React.FC = () => {
+  const { user } = useAuthContext();
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,8 +48,6 @@ const EndorsePage: React.FC = () => {
   } | null>(null);
 
   const itemsPerPage = 5;
-
-
 
   useEffect(() => {
     loadEndorsementProposals();
@@ -86,6 +92,7 @@ const EndorsePage: React.FC = () => {
       setEndorsementProposals(mapped);
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
+      Swal.fire('Error', 'Failed to load endorsement proposals', 'error');
     } finally {
       setLoading(false);
     }
@@ -117,65 +124,160 @@ const EndorsePage: React.FC = () => {
     setIsDecisionModalOpen(false);
   };
 
-  const handleDecisionSubmit = (status: "endorsed" | "revised" | "rejected", remarks: string) => {
-    if (!selectedProposal) return;
+  const handleDecisionSubmit = (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => {
+    if (!selectedProposal) return; // Should not happen
 
-    // Log the remarks and status
-    console.log(`Decision: ${status.toUpperCase()} for ${selectedProposal.id}`);
-    console.log(`Remarks: ${remarks}`);
-
-    // Route to existing logic based on status
+    // Route to logic based on status
     if (status === 'endorsed') {
-      handleEndorseProposal(selectedProposal.id);
+      handleEndorseProposal(selectedProposal.id, remarks);
     } else if (status === 'revised') {
-      handleReturnForRevision(selectedProposal.id);
+      handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline);
     } else if (status === 'rejected') {
-      handleRejectForClarification(selectedProposal.id);
+      handleRejectForClarification(selectedProposal.id, remarks);
     }
 
     handleCloseDecisionModal();
   };
 
-  // --- Existing Action Logic ---
-  const handleEndorseProposal = async (proposalId: string) => {
+  // --- Action Logic ---
+  const handleEndorseProposal = async (proposalId: string, remarks: string) => {
+    if (!user?.id) {
+      Swal.fire('Error', 'User session not found. Please log in again.', 'error');
+      return;
+    }
+    
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      Swal.fire({
+        title: 'Endorsing Proposal...',
+        text: 'Please wait while we process the endorsement.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
-      setEndorsementProposals((prev) =>
-        prev.filter((proposal) => proposal.id !== proposalId)
-      );
-      console.log(`Proposal ${proposalId} endorsed successfully`);
-    } catch (error) {
+      await endorseProposal({ 
+        proposal_id: parseInt(proposalId),
+        rnd_id: user.id,
+        decision: "endorsed",
+        remarks 
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Endorsed!',
+        text: 'The proposal has been successfully endorsed for funding.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      // Refresh list
+      loadEndorsementProposals();
+
+    } catch (error: any) {
       console.error('Error endorsing proposal:', error);
+      Swal.fire('Error', error.response?.data?.message || 'Failed to endorse proposal.', 'error');
     }
   };
 
-  const handleReturnForRevision = async (proposalId: string) => {
+  const handleReturnForRevision = async (proposalId: string, remarks: string, deadlineStr?: string) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      Swal.fire({
+        title: 'Sending for Revision...',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
-      setEndorsementProposals((prev) =>
-        prev.filter((proposal) => proposal.id !== proposalId)
-      );
-      console.log(`Proposal ${proposalId} returned for revision`);
-    } catch (error) {
+      // 1. Calculate Deadline Timestamp
+      let days = 14; // Default 2 weeks
+      if (deadlineStr) {
+        if (deadlineStr.includes("1 Week")) days = 7;
+        else if (deadlineStr.includes("3 Weeks")) days = 21;
+        else if (deadlineStr.includes("1 Month")) days = 30;
+        else if (deadlineStr.includes("6 Weeks")) days = 42;
+        else if (deadlineStr.includes("2 Months")) days = 60;
+      }
+      const deadlineTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+      // 2. Parse Structured Remarks
+      let objective_comment: string | undefined, 
+          methodology_comment: string | undefined, 
+          budget_comment: string | undefined, 
+          timeline_comment: string | undefined, 
+          overall_comment: string | undefined;
+      
+      const parts = remarks.split(/\n\n(?=\[)/);
+      parts.forEach(part => {
+        if (part.startsWith("[Objectives Assessment]:")) objective_comment = part.replace("[Objectives Assessment]:\n", "").trim();
+        else if (part.startsWith("[Methodology Assessment]:")) methodology_comment = part.replace("[Methodology Assessment]:\n", "").trim();
+        else if (part.startsWith("[Budget Assessment]:")) budget_comment = part.replace("[Budget Assessment]:\n", "").trim();
+        else if (part.startsWith("[Timeline Assessment]:")) timeline_comment = part.replace("[Timeline Assessment]:\n", "").trim();
+        else if (part.startsWith("[Overall Assessment]:")) overall_comment = part.replace("[Overall Assessment]:\n", "").trim();
+        else {
+          // Fallback for custom sections or if parsing fails, append to overall
+          const cleanPart = part.replace(/^\[.*?\]:\n/, "").trim();
+          overall_comment = overall_comment ? `${overall_comment}\n\n${cleanPart}` : cleanPart;
+        }
+      });
+
+      await requestRevision({
+        proposal_id: parseInt(proposalId),
+        deadline: deadlineTimestamp,
+        objective_comment,
+        methodology_comment,
+        budget_comment,
+        timeline_comment,
+        overall_comment,
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Sent for Revision',
+        text: 'The proponent has been notified.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      loadEndorsementProposals();
+
+    } catch (error: any) {
       console.error('Error returning proposal for revision:', error);
+      Swal.fire('Error', error.response?.data?.message || 'Failed to send for revision.', 'error');
     }
   };
 
-  const handleRejectForClarification = async (proposalId: string) => {
+  const handleRejectForClarification = async (proposalId: string, remarks: string) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      Swal.fire({
+        title: 'Rejecting Proposal...',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
-      setEndorsementProposals((prev) =>
-        prev.filter((proposal) => proposal.id !== proposalId)
-      );
-      console.log(`Proposal ${proposalId} rejected for clarification`);
-    } catch (error) {
+      await rejectProposal({
+        proposal_id: parseInt(proposalId),
+        comment: remarks
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Rejected',
+        text: 'The proposal has been rejected.',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      loadEndorsementProposals();
+
+    } catch (error: any) {
       console.error('Error rejecting proposal:', error);
+      Swal.fire('Error', error.response?.data?.message || 'Failed to reject proposal.', 'error');
     }
   };
 

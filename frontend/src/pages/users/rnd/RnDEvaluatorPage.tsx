@@ -139,15 +139,18 @@ export const RnDEvaluatorPage: React.FC = () => {
         const evalName = `${evalFirstName} ${evalLastName}`.trim();
         const evalDept = item.evaluator_id?.department_id?.name || "N/A";
 
-        group.evaluators.push({
-          id: evalId,
-          name: evalName,
-          department: evalDept,
-          status: effectiveStatus,
-          deadline: item.deadline ? item.deadline : Date.now(),
-          request_deadline_at: item.request_deadline_at,
-          remarks: item.remarks,
-        });
+        // Avoid adding duplicate evaluators to the same proposal group
+        if (!group.evaluators.some((e) => e.id === evalId)) {
+          group.evaluators.push({
+            id: evalId,
+            name: evalName,
+            department: evalDept,
+            status: effectiveStatus,
+            deadline: item.deadline ? item.deadline : Date.now(),
+            request_deadline_at: item.request_deadline_at,
+            remarks: item.remarks,
+          });
+        }
       });
 
       // Convert Grouped Data to Display 'Assignment' Interface
@@ -287,7 +290,18 @@ export const RnDEvaluatorPage: React.FC = () => {
 
       if (relevantItems.length === 0) return;
 
-      const modalEvaluators: EvaluatorOption[] = relevantItems.map((item) => {
+      // Deduplicate relevantItems by evaluator_id.id
+      const seenEvaluators = new Set<string>();
+      const uniqueItems = relevantItems.filter((item: any) => {
+        const evalId = item.evaluator_id?.id;
+        if (!evalId || seenEvaluators.has(evalId)) {
+          return false;
+        }
+        seenEvaluators.add(evalId);
+        return true;
+      });
+
+      const modalEvaluators: EvaluatorOption[] = uniqueItems.map((item) => {
         let status: EvaluatorOption["status"] = "Pending";
         let extensionDate = undefined;
         let extensionReason = undefined;
