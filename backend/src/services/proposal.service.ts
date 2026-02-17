@@ -1412,10 +1412,12 @@ export class ProposalService {
     if (!isProponent && !isRnd) {
       const { data: userData } = await this.db
         .from("users")
-        .select("role")
+        .select("roles")
         .eq("id", requesting_user_id)
         .maybeSingle();
-      isAdmin = userData?.role === "admin";
+
+      const roles = userData?.roles || [];
+      isAdmin = Array.isArray(roles) && (roles.includes("admin") || roles.includes("Admin"));
     }
 
     if (!isProponent && !isRnd && !isAdmin) {
@@ -1446,13 +1448,19 @@ export class ProposalService {
     if (data.rnd_id) {
       const { data: rndUser } = await this.db
         .from("users")
-        .select("first_name, last_name, role")
+        .select("first_name, last_name, roles")
         .eq("id", data.rnd_id)
         .maybeSingle();
 
       if (rndUser) {
         rnd_name = `${rndUser.first_name || ""} ${rndUser.last_name || ""}`.trim() || "Unknown";
-        rejected_by_role = rndUser.role || "rnd";
+        // Use first role or find relevant one
+        const roles = rndUser.roles || [];
+        if (Array.isArray(roles)) {
+          if (roles.includes("admin")) rejected_by_role = "admin";
+          else if (roles.includes("rnd")) rejected_by_role = "rnd";
+          else rejected_by_role = roles[0] || "rnd";
+        }
       }
     }
 
