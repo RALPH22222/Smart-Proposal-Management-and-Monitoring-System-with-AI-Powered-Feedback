@@ -29,15 +29,16 @@ interface Assignment {
   department: string;
   deadline: string;
   status:
-    | "Pending"
-    | "Accepts"
-    | "Completed"
-    | "Overdue"
-    | "Rejected"
-    | "Extension Requested"
-    | "Extension Approved"
-    | "Extension Rejected";
+  | "Pending"
+  | "Accepts"
+  | "Completed"
+  | "Overdue"
+  | "Rejected"
+  | "Extension Requested"
+  | "Extension Approved"
+  | "Extension Rejected";
   projectType: string;
+  tags: string[];
 }
 
 // Grouping structure to handle multiple evaluators per proposal
@@ -46,6 +47,7 @@ interface GroupedAssignment {
   proposalTitle: string;
   projectType: string;
   deadline: string;
+  tags: string[]; // Add tags field
   evaluators: {
     id: string; // evaluator ID
     name: string;
@@ -88,12 +90,12 @@ export const RnDEvaluatorPage: React.FC = () => {
           return Promise.resolve([]);
         }
         return getAssignmentTracker(p.proposal_id.id).catch(err => {
-            console.error(`Failed to fetch tracker for proposal ${p.proposal_id.id}`, err);
-            return []; // Return empty array on error to prevent total failure
+          console.error(`Failed to fetch tracker for proposal ${p.proposal_id.id}`, err);
+          return []; // Return empty array on error to prevent total failure
         });
       });
       const trackerResults = await Promise.all(trackerPromises);
-      
+
       // Flat list of all assignments
       const allAssignments = trackerResults.flat();
       console.log("Aggregated Assignment Data:", allAssignments);
@@ -117,6 +119,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             proposalTitle: item.proposal_id.project_title || "Untitled Proposal",
             projectType: item.proposal_id.sector?.name || "N/A",
             deadline: item.deadline ? new Date(item.deadline).toISOString() : new Date().toISOString(),
+            tags: item.proposal_id.proposal_tags?.map((t: any) => t.tags?.name).filter(Boolean) || [],
             evaluators: [],
           });
         }
@@ -134,13 +137,13 @@ export const RnDEvaluatorPage: React.FC = () => {
         const evalFirstName = item.evaluator_id?.first_name || "Unknown";
         const evalLastName = item.evaluator_id?.last_name || "";
         const evalName = `${evalFirstName} ${evalLastName}`.trim();
-        const evalDept =  item.evaluator_id?.department_id?.name || "N/A";
+        const evalDept = item.evaluator_id?.department_id?.name || "N/A";
 
         group.evaluators.push({
           id: evalId,
           name: evalName,
           department: evalDept,
-          status: effectiveStatus, 
+          status: effectiveStatus,
           deadline: item.deadline ? item.deadline : Date.now(),
           request_deadline_at: item.request_deadline_at,
           remarks: item.remarks,
@@ -165,8 +168,8 @@ export const RnDEvaluatorPage: React.FC = () => {
         } else if (statusSet.has("pending")) {
           aggregateStatus = "Pending";
         } else if (statusSet.has("completed") || statusSet.has("done")) {
-           if (group.evaluators.every((e) => e.status === "completed")) aggregateStatus = "Completed";
-           else aggregateStatus = "Pending"; // Mixed
+          if (group.evaluators.every((e) => e.status === "completed")) aggregateStatus = "Completed";
+          else aggregateStatus = "Pending"; // Mixed
         } else if (statusSet.has("accept") || statusSet.has("accepted")) {
           aggregateStatus = "Accepts";
         }
@@ -190,6 +193,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           deadline: new Date(group.evaluators[0]?.deadline || Date.now()).toISOString(),
           status: aggregateStatus,
           projectType: group.projectType,
+          tags: group.tags,
         };
       });
 
@@ -276,7 +280,7 @@ export const RnDEvaluatorPage: React.FC = () => {
     setLoading(true);
     try {
       const proposalIdNumeric = parseInt(id);
-      
+
       const data = await getAssignmentTracker(proposalIdNumeric);
 
       const relevantItems = data; // Data is already filtered by API now!
@@ -333,7 +337,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
   const handleReassignEvaluators = async (newEvaluators: EvaluatorOption[]) => {
     if (!selectedProposalId) return;
-    
+
     const currentAssignment = assignments.find(a => a.proposalIdNumeric === selectedProposalId);
     const existingEvaluatorIds = new Set(currentAssignment?.evaluatorIds || []);
 
@@ -412,6 +416,30 @@ export const RnDEvaluatorPage: React.FC = () => {
       default:
         return "bg-slate-100 text-slate-700 border-slate-200";
     }
+  };
+
+  // Helper for Random Tag Colors (Matches RndProposalPage.tsx)
+  const getTagColor = (tag: string) => {
+    // Simple hash function to get consistent color for same tag
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   return (
@@ -537,6 +565,20 @@ export const RnDEvaluatorPage: React.FC = () => {
                           </span>
                         )}
                       </div>
+                      {/* Tags Display */}
+                      {assignment.tags && assignment.tags.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          {assignment.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagColor(tag)}`}
+                            >
+                              <Tag className="w-2.5 h-2.5" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button

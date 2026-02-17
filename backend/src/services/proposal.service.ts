@@ -1497,7 +1497,10 @@ export class ProposalService {
         id,
         proposals:proposals(
           id,
-          project_title
+          project_title,
+          proposal_tags(
+            tags:tags(name)
+          )
         ),
         evaluator_id:users(id, first_name, last_name, middle_ini, department_id:departments(name)),
         deadline_at,
@@ -1553,6 +1556,7 @@ export class ProposalService {
       const cleanProposal = {
         id: row.proposals?.id,
         project_title: row.proposals?.project_title,
+        proposal_tags: row.proposals?.proposal_tags,
       };
 
       return {

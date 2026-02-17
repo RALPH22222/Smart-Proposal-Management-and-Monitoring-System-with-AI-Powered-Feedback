@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Role } from "../types/auth";
 import Swal from "sweetalert2";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
@@ -13,13 +13,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   const { verifyToken } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isVerifying, setIsVerifying] = useState(() => {
+    // Only show loading if this is the first verification in this session
+    return !sessionStorage.getItem('auth_verified');
+  });
 
   useEffect(() => {
     const verifyAuthentication = async () => {
+      const hasVerified = sessionStorage.getItem('auth_verified');
+
+      // Only show loading screen on first verification
+      if (!hasVerified) {
+        setIsVerifying(true);
+      }
+
       const user = await verifyToken();
 
       if (!user) {
         localStorage.removeItem("user");
+        sessionStorage.removeItem('auth_verified');
         navigate("/login");
         return;
       }
@@ -74,20 +86,55 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
                 text: "You do not have permission to access this page.",
               });
               localStorage.removeItem("user");
+              sessionStorage.removeItem('auth_verified');
               navigate("/login");
               break;
             }
           }
+          return;
         }
       }
+
+      // Mark as verified for this session
+      sessionStorage.setItem('auth_verified', 'true');
+      setIsVerifying(false);
     };
 
     verifyAuthentication();
   }, [roles, navigate, verifyToken, location]);
 
+  // Show loading screen while verifying (only on first load)
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          {/* Spinner */}
+          <div className="relative inline-flex">
+            <div className="w-16 h-16 border-4 border-slate-200 border-t-[#C8102E] rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#C8102E] rounded-full opacity-20 animate-pulse"></div>
+            </div>
+          </div>
 
+          {/* Loading text */}
+          <div className="mt-6 space-y-2">
+            <h2 className="text-xl font-semibold text-slate-700">Verifying Access</h2>
+            <p className="text-sm text-slate-500">Please wait...</p>
+          </div>
+
+          {/* Animated dots */}
+          <div className="flex justify-center gap-1 mt-4">
+            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return <Outlet />;
 };
 
 export default ProtectedRoute;
+

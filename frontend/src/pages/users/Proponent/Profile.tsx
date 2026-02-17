@@ -790,7 +790,7 @@ const Profile: React.FC = () => {
       <header className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg">
               <FaUsers className="text-white text-2xl" />
             </div>
 
