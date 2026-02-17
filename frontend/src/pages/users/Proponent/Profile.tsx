@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
-import { FaListAlt, FaUsers, FaBell, FaTablet, FaShareAlt } from "react-icons/fa";
+import { FaListAlt, FaBell, FaTablet, FaShareAlt } from "react-icons/fa";
 import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Clock } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
@@ -784,14 +784,23 @@ const Profile: React.FC = () => {
     </div>
   );
 
+  const getFullName = () => {
+    if (!user) return "User";
+    const u: any = user;
+    if (!u.first_name && !u.last_name) return u.email || "User";
+    return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
+  };
+
+  const avatarUrl = user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
       {/* Header Section */}
       <header className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg">
-              <FaUsers className="text-white text-2xl" />
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg overflow-hidden">
+              <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
             </div>
 
             <div>

@@ -235,7 +235,7 @@ export class AuthService {
       const userId = decoded.sub;
 
       const { data: row, error: rolesError } = await this.db!.from("users")
-        .select("roles,email,first_name,last_name")
+        .select("roles,email,first_name,last_name,photo_profile_url")
         .eq("id", userId)
         .maybeSingle();
 
@@ -252,6 +252,7 @@ export class AuthService {
             first_name: (row?.first_name as string) ?? null,
             last_name: (row?.last_name as string) ?? null,
             roles,
+            profile_photo_url: (row?.photo_profile_url as string) ?? null,
           },
         },
         error: null,
