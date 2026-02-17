@@ -1315,39 +1315,41 @@ export class ProposalService {
     };
   }
 
-  async getRevisionSummary(proposal_id: number, proponent_id: string) {
-    // 1. Verify access: User must be either the Proponent OR an assigned RND
-    const { data: proposal, error: proposalError } = await this.db
-      .from("proposals")
-      .select("id, proponent_id")
-      .eq("id", proposal_id)
-      .maybeSingle();
-
-    if (proposalError) {
-      return { data: null, error: proposalError };
-    }
-
-    if (!proposal) {
-      return { data: null, error: new Error("Proposal not found") };
-    }
-
-    // Check Proponent
-    const isProponent = proposal.proponent_id === proponent_id;
-
-    // Check RND (if not proponent)
-    let isRnd = false;
-    if (!isProponent) {
-      const { data: rndEntry } = await this.db
-        .from("proposal_rnd")
-        .select("id")
-        .eq("proposal_id", proposal_id)
-        .eq("rnd_id", proponent_id)
+  async getRevisionSummary(proposal_id: number, proponent_id: string, isAdmin = false) {
+    // 1. Verify access: User must be the Proponent, an assigned RND, or an Admin
+    if (!isAdmin) {
+      const { data: proposal, error: proposalError } = await this.db
+        .from("proposals")
+        .select("id, proponent_id")
+        .eq("id", proposal_id)
         .maybeSingle();
-      isRnd = !!rndEntry;
-    }
 
-    if (!isProponent && !isRnd) {
-      return { data: null, error: new Error("Proposal not found or you don't have access") };
+      if (proposalError) {
+        return { data: null, error: proposalError };
+      }
+
+      if (!proposal) {
+        return { data: null, error: new Error("Proposal not found") };
+      }
+
+      // Check Proponent
+      const isProponent = proposal.proponent_id === proponent_id;
+
+      // Check RND (if not proponent)
+      let isRnd = false;
+      if (!isProponent) {
+        const { data: rndEntry } = await this.db
+          .from("proposal_rnd")
+          .select("id")
+          .eq("proposal_id", proposal_id)
+          .eq("rnd_id", proponent_id)
+          .maybeSingle();
+        isRnd = !!rndEntry;
+      }
+
+      if (!isProponent && !isRnd) {
+        return { data: null, error: new Error("Proposal not found or you don't have access") };
+      }
     }
 
     // 2. Now fetch the revision summary
@@ -1398,52 +1400,41 @@ export class ProposalService {
     };
   }
 
-  async getRejectionSummary(proposal_id: number, requesting_user_id: string) {
-    // 1. Verify access: User must be either the Proponent OR an assigned RND
-    const { data: proposal, error: proposalError } = await this.db
-      .from("proposals")
-      .select("id, proponent_id")
-      .eq("id", proposal_id)
-      .maybeSingle();
-
-    if (proposalError) {
-      return { data: null, error: proposalError };
-    }
-
-    if (!proposal) {
-      return { data: null, error: new Error("Proposal not found") };
-    }
-
-    // Check Proponent
-    const isProponent = proposal.proponent_id === requesting_user_id;
-
-    // Check RND (if not proponent)
-    let isRnd = false;
-    if (!isProponent) {
-      const { data: rndEntry } = await this.db
-        .from("proposal_rnd")
-        .select("id")
-        .eq("proposal_id", proposal_id)
-        .eq("rnd_id", requesting_user_id)
-        .maybeSingle();
-      isRnd = !!rndEntry;
-    }
-
-    // Check Admin role (if not proponent or RND)
-    let isAdmin = false;
-    if (!isProponent && !isRnd) {
-      const { data: userData } = await this.db
-        .from("users")
-        .select("roles")
-        .eq("id", requesting_user_id)
+  async getRejectionSummary(proposal_id: number, requesting_user_id: string, isAdmin = false) {
+    // 1. Verify access: User must be the Proponent, an assigned RND, or an Admin
+    if (!isAdmin) {
+      const { data: proposal, error: proposalError } = await this.db
+        .from("proposals")
+        .select("id, proponent_id")
+        .eq("id", proposal_id)
         .maybeSingle();
 
-      const roles = userData?.roles || [];
-      isAdmin = Array.isArray(roles) && (roles.includes("admin") || roles.includes("Admin"));
-    }
+      if (proposalError) {
+        return { data: null, error: proposalError };
+      }
 
-    if (!isProponent && !isRnd && !isAdmin) {
-      return { data: null, error: new Error("Proposal not found or you don't have access") };
+      if (!proposal) {
+        return { data: null, error: new Error("Proposal not found") };
+      }
+
+      // Check Proponent
+      const isProponent = proposal.proponent_id === requesting_user_id;
+
+      // Check RND (if not proponent)
+      let isRnd = false;
+      if (!isProponent) {
+        const { data: rndEntry } = await this.db
+          .from("proposal_rnd")
+          .select("id")
+          .eq("proposal_id", proposal_id)
+          .eq("rnd_id", requesting_user_id)
+          .maybeSingle();
+        isRnd = !!rndEntry;
+      }
+
+      if (!isProponent && !isRnd) {
+        return { data: null, error: new Error("Proposal not found or you don't have access") };
+      }
     }
 
     // 2. Now fetch the rejection summary

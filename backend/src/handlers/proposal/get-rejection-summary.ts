@@ -35,7 +35,10 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getRejectionSummary(proposalIdNum, user_sub);
+  const rolesStr = event.requestContext.authorizer?.roles as string | undefined;
+  const roles: string[] = rolesStr ? JSON.parse(rolesStr) : [];
+  const isAdmin = roles.includes("admin");
+  const { data, error } = await proposalService.getRejectionSummary(proposalIdNum, user_sub, isAdmin);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

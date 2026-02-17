@@ -7,4 +7,9 @@ if (!supabaseKey) {
 }
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// export const PROPOSAL_FILES_BUCKET = "proposal_files";
+// Admin client using service_role key — required for auth.admin.* methods
+// Only initialize when the env var is present (only invite-user Lambda needs it)
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseAdmin = supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : null;

@@ -33,6 +33,10 @@ export class BackendStack extends Stack {
     const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
     const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_SECRET_JWT");
     const SES_SENDER_EMAIL = StringParameter.valueForStringParameter(this, "/pms/backend/SES_SENDER_EMAIL");
+    const SUPABASE_SERVICE_ROLE_KEY = StringParameter.valueForStringParameter(
+      this,
+      "/pms/backend/SUPABASE_SERVICE_ROLE_KEY",
+    );
 
     const FRONTEND_URL = stageName === "prod" ? "https://wmsu-spmams.vercel.app" : "http://localhost:5173";
 
@@ -197,22 +201,16 @@ export class BackendStack extends Stack {
       },
     );
 
-
-
-    const proposal_remove_evaluator_lambda = new NodejsFunction(
-      this,
-      "pms-proposal-remove-evaluator-lambda",
-      {
-        functionName: "pms-proposal-remove-evaluator-lambda",
-        memorySize: 128,
-        runtime: Runtime.NODEJS_22_X,
-        timeout: Duration.seconds(10),
-        entry: path.resolve("src", "handlers", "proposal", "remove-evaluator.ts"),
-        environment: {
-          SUPABASE_KEY,
-        },
+    const proposal_remove_evaluator_lambda = new NodejsFunction(this, "pms-proposal-remove-evaluator-lambda", {
+      functionName: "pms-proposal-remove-evaluator-lambda",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "remove-evaluator.ts"),
+      environment: {
+        SUPABASE_KEY,
       },
-    );
+    });
 
     const proposal_forward_to_rnd_lambda = new NodejsFunction(this, "pms-proposal-forward-to-rnd-lambda", {
       functionName: "pms-proposal-forward-to-rnd-lambda",
@@ -676,6 +674,7 @@ export class BackendStack extends Stack {
       entry: path.resolve("src", "handlers", "admin", "invite-user.ts"),
       environment: {
         SUPABASE_KEY,
+        SUPABASE_SERVICE_ROLE_KEY,
         FRONTEND_URL,
       },
     });
@@ -844,14 +843,10 @@ export class BackendStack extends Stack {
 
     // /proposal/evaluator (protected) - DELETE remove evaluator
     const proposal_remove_evaluator = proposal.addResource("evaluator");
-    proposal_remove_evaluator.addMethod(
-      HttpMethod.DELETE,
-      new LambdaIntegration(proposal_remove_evaluator_lambda),
-      {
-        authorizer: requestAuthorizer,
-        authorizationType: AuthorizationType.CUSTOM,
-      },
-    );
+    proposal_remove_evaluator.addMethod(HttpMethod.DELETE, new LambdaIntegration(proposal_remove_evaluator_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/revision-proposal-to-proponent (protected)
     const revision_proposal_to_proponent = proposal.addResource("revision-proposal-to-proponent");
