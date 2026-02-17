@@ -258,6 +258,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const update_proposal_status_lambda = new NodejsFunction(this, "UpdateProposalStatusLambda", {
+      functionName: "pms-update-proposal-status",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "update-proposal-status.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const create_evaluation_scores_to_proposal_lambda = new NodejsFunction(
       this,
       "create-evaluation-scores-to-proposal_lambda",
@@ -960,6 +971,13 @@ export class BackendStack extends Stack {
         authorizationType: AuthorizationType.CUSTOM,
       },
     );
+
+    // /proposal/update-status (protected)
+    const update_proposal_status = proposal.addResource("update-status");
+    update_proposal_status.addMethod(HttpMethod.POST, new LambdaIntegration(update_proposal_status_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
 
     // /proposal/create-evaluation-scores-to-proposal (protected)
     const create_evaluation_scores_to_proposal = proposal.addResource("create-evaluation-scores-to-proposal");

@@ -6,6 +6,7 @@ import {
 	type Activity
 } from '../../types/InterfaceProposal';
 import { getRndProposals } from '../../services/proposal.api';
+import { api } from '../../utils/axios';
 
 // Create Proposal object from raw API data
 const transformProposal = (raw: any): Proposal => {
@@ -58,7 +59,8 @@ const transformProposal = (raw: any): Proposal => {
         budgetSources: [], 
         budgetTotal: getBudgetTotal(),
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
-        evaluatorInstruction: p.evaluator_instruction || ""
+        evaluatorInstruction: p.evaluator_instruction || "",
+        endorsementJustification: p.proposal_logs?.find((l: any) => l.action === 'endorsed_for_funding')?.remarks || ""
     };
 };
 
@@ -97,10 +99,22 @@ export const proposalApi = {
 
 	// Update proposal status
 	updateProposalStatus: async (
-		_proposalId: string,
-		_status: ProposalStatus
+		proposalId: string,
+		status: ProposalStatus
 	): Promise<void> => {
-         console.warn("updateProposalStatus in ProposalApi is deprecated.");
+        const backendStatusMap: Record<string, string> = {
+            'Waiting for Funding': 'waiting_for_funding',
+            'Funded': 'funded'
+        };
+
+        const backendStatus = backendStatusMap[status] || status;
+
+		await api.post("/proposal/update-status", {
+            proposal_id: parseInt(proposalId),
+            status: backendStatus
+        }, {
+            withCredentials: true
+        });
 	},
 
 	// Fetch statistics
