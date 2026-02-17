@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare
+  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare, CheckCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -371,7 +371,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
     // Revision Required
     if (s.includes('revision') || s.includes('require')) {
-      return <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}><RefreshCw className="w-3 h-3 flex-shrink-0" />Revision Required</span>;
+      return <span className={`${baseClasses} text-amber-800 bg-amber-100 border-amber-200 cursor-default`}><RefreshCw className="w-3 h-3 flex-shrink-0 text-amber-600" />Revision Required</span>;
     }
 
     // Under Evaluators Assessment
@@ -389,17 +389,22 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             setIsEvaluatorModalOpen(true);
           }
         }}
-        className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200`}
+        className={`${baseClasses} text-purple-800 bg-purple-100 border-purple-200`}
         title={evaluators.join(', ')}
       >
-        <Users className="w-3 h-3 flex-shrink-0" />
+        <FileText className="w-3 h-3 flex-shrink-0 text-purple-600" />
         <span className="truncate">{evaluatorText}</span>
       </button>;
     }
 
     // Rejected
     if (s.includes('reject')) {
-      return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200 cursor-default`}><XCircle className="w-3 h-3 flex-shrink-0" />Rejected Proposal</span>;
+      return <span className={`${baseClasses} text-red-800 bg-red-100 border-red-200 cursor-default`}><XCircle className="w-3 h-3 flex-shrink-0 text-red-600" />Rejected Proposal</span>;
+    }
+
+    // Endorsed
+    if (s.includes('endorsed') || s.includes('fund')) {
+      return <span className={`${baseClasses} text-green-800 bg-green-100 border-green-200 cursor-default`}><CheckCircle className="w-3 h-3 flex-shrink-0 text-green-600" />Endorsed for Funding</span>;
     }
 
     // Default / Unhandled

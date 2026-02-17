@@ -799,7 +799,7 @@ const Profile: React.FC = () => {
       <header className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg overflow-hidden">
+            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg overflow-hidden border-2 border-[#C8102E]">
               <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
             </div>
 

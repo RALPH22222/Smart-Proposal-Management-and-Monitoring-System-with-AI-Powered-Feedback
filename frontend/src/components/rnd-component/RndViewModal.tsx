@@ -24,7 +24,7 @@ import {
   Search,
   Target,
 } from "lucide-react";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -134,6 +134,8 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
+  const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
+  const [isLoadingRevision, setIsLoadingRevision] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'revision' | 'reject' | null, id: string | number | null }>({ type: null, id: null });
 
   useEffect(() => {
@@ -185,6 +187,31 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
 
     if (isOpen && p?.id) {
       fetchRejection();
+    }
+  }, [isOpen, p?.id, p?.status]);
+
+  useEffect(() => {
+    const fetchRevision = async () => {
+      const pStatus = (p.status || '').toLowerCase();
+      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes(pStatus)) {
+        setIsLoadingRevision(true);
+        try {
+          const data = await fetchRevisionSummary(Number(confirmAction.id || p.id));
+          setRevisionData(data);
+        } catch (error) {
+          console.error("Failed to fetch revision summary:", error);
+          setRevisionData(null);
+        } finally {
+          setIsLoadingRevision(false);
+        }
+      } else {
+        setRevisionData(null);
+        setIsLoadingRevision(false);
+      }
+    };
+
+    if (isOpen && p?.id) {
+      fetchRevision();
     }
   }, [isOpen, p?.id, p?.status]);
 
@@ -378,29 +405,86 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
           )}
 
           {/* Status Feedback Blocks */}
-          {(p.status === "Revision Required" || p.status === "revision_rnd") && (
-            <div className="bg-orange-50 rounded-lg p-5 border border-orange-200 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-orange-800 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Revision Requirements
-                </h3>
-              </div>
-              <div className="mb-5 bg-white border-l-4 border-red-500 rounded shadow-sm p-4">
-                <p className="text-xs font-bold text-red-600 tracking-wider mb-1">
-                  Revision Submission Deadline
-                </p>
-                <div className="flex items-center gap-2 text-slate-900">
-                  <Timer className="w-5 h-5 text-red-500" />
-                  <span className="font-medium text-base">{mockRevisionDeadline}</span>
+
+          {['revise', 'revision', 'revision_rnd', 'revision required'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-gradient-to-br from-orange-50 to-white rounded-xl p-6 border border-orange-200 shadow-sm transition-all animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-orange-100">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Revision Requirements
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Please review the feedback below and submit your revised proposal.</p>
                 </div>
               </div>
-              <div className="space-y-3">
-                <div className="bg-white p-3 rounded border border-orange-100">
-                  <p className="text-xs font-bold text-orange-700 mb-1">Objectives Assessment</p>
-                  <p className="text-sm text-slate-700">{mockAssessment.objectives}</p>
+
+              <div className="mb-6 bg-white rounded-xl border border-orange-100 p-4 flex items-center gap-4 shadow-sm">
+                <div className="p-3 bg-red-50 rounded-full">
+                  <Timer className="w-6 h-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 tracking-wider mb-1">
+                    Submission Deadline
+                  </p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {isLoadingRevision ? (
+                      <span className="text-gray-400 text-sm font-normal">Loading...</span>
+                    ) : (revisionData?.created_at && revisionData?.deadline) ? (
+                      new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    ) : (
+                      <span className="text-gray-400 text-sm font-normal italic">No specific deadline set</span>
+                    )}
+                  </p>
                 </div>
               </div>
+
+              {isLoadingRevision ? (
+                <div className="flex flex-col items-center justify-center py-8 text-orange-600 gap-2">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                  <p className="text-sm font-medium">Loading feedback details...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {[
+                    { section: "Objectives Assessment", comment: revisionData?.objective_comment },
+                    { section: "Methodology Assessment", comment: revisionData?.methodology_comment },
+                    { section: "Budget Assessment", comment: revisionData?.budget_comment },
+                    { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
+                    { section: "Overall Comments", comment: revisionData?.overall_comment },
+                  ].filter(item => item.comment).map((item, idx) => (
+                    <div key={idx} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2 mb-3">
+                        <h4 className="text-sm font-bold text-gray-800">
+                          {item.section}
+                        </h4>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                          {item.comment}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(!revisionData || ![
+                    revisionData.objective_comment,
+                    revisionData.methodology_comment,
+                    revisionData.budget_comment,
+                    revisionData.timeline_comment,
+                    revisionData.overall_comment
+                  ].some(Boolean)) && (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <p className="text-sm text-gray-500 italic">No specific feedback comments provided.</p>
+                      </div>
+                    )}
+                </div>
+              )}
             </div>
           )}
 

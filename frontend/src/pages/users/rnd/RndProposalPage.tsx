@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
-  GitBranch, Users, X, MessageSquare, AlertTriangle, Clock, RefreshCw
+  GitBranch, Users, X, MessageSquare, Clock, RefreshCw, CheckCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -268,7 +268,6 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           telephone: raw.phone || raw.telephone || "N/A",
           fax: "N/A",
           email: raw.email || "",
-          projectType: raw.sector?.name || "N/A",
           classification: raw.classification_type || "Research",
           classificationDetails: raw.class_input || "",
           duration: raw.duration || "0",
@@ -397,6 +396,13 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             Under R&D Review
           </span>
         );
+      case 'Rejected Proposal':
+        return (
+          <span className={`${baseClasses} text-red-800 bg-red-100 border-red-200 cursor-default`}>
+            <XCircle className="w-3 h-3 flex-shrink-0 text-red-600" />
+            {status}
+          </span>
+        );
       case 'Revised Proposal':
         return (
           <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}>
@@ -409,26 +415,26 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         const evaluatorText = 'Under Evaluators Assessment';
         return (
           <span
-            className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}
+            className={`${baseClasses} text-purple-800 bg-purple-100 border-purple-200 cursor-default`}
             title={evaluators.join(', ')}
           >
-            <Users className="w-3 h-3 flex-shrink-0" />
+            <FileText className="w-3 h-3 flex-shrink-0 text-purple-600" />
             <span className="truncate">{evaluatorText}</span>
           </span>
         );
 
-      case 'Rejected Proposal':
+      case 'Revision Required':
         return (
-          <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200 cursor-default`}>
-            <XCircle className="w-3 h-3 flex-shrink-0" />
+          <span className={`${baseClasses} text-amber-800 bg-amber-100 border-amber-200 cursor-default`}>
+            <RefreshCw className="w-3 h-3 flex-shrink-0 text-amber-600" />
             {status}
           </span>
         );
-      case 'Revision Required':
+      case 'Endorsed':
         return (
-          <span className={`${baseClasses} text-orange-600 bg-orange-50 border-orange-200 cursor-default`}>
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-            {status}
+          <span className={`${baseClasses} text-green-600 bg-green-50 border-green-200 cursor-default`}>
+            <CheckCircle className="w-3 h-3 flex-shrink-0" />
+            Endorsed for Funding
           </span>
         );
       default:

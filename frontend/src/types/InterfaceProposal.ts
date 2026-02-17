@@ -25,7 +25,7 @@ export interface Proposal {
 	telephone: string;
 	fax: string;
 	email: string;
-	projectType: string;
+	projectType?: string;
 	agency: string;
 	address: string;
 	department?: string;

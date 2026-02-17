@@ -101,8 +101,8 @@ export default function Proposals() {
         );
 
         // Address formatting
-        const agencyAddress = proposalObj.agency_address 
-          ? [proposalObj.agency_address.street, proposalObj.agency_address.barangay, proposalObj.agency_address.city].filter(Boolean).join(", ") 
+        const agencyAddress = proposalObj.agency_address
+          ? [proposalObj.agency_address.street, proposalObj.agency_address.barangay, proposalObj.agency_address.city].filter(Boolean).join(", ")
           : "N/A";
 
         return {
@@ -134,7 +134,7 @@ export default function Proposals() {
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: proposalObj.proposal_version?.[0]?.file_url || null,
           extensionReason: p.remarks || null,
-          raw: p 
+          raw: p
         };
       });
 
@@ -194,22 +194,10 @@ export default function Proposals() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "accepted":
-      case "approve": 
-        return "text-indigo-600 bg-indigo-50 border-indigo-200";
-      case "pending":
-        return "text-amber-600 bg-amber-50 border-amber-200";
-      case "rejected":
-      case "decline": 
-        return "text-red-600 bg-red-50 border-red-200";
-      case "extension_requested":
-      case "extend":
-        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "approve":
       case "extension_approved":
-        return "text-emerald-600 bg-emerald-50 border-emerald-200";
-      case "extension_rejected":
-        return "text-red-600 bg-red-50 border-red-200";
       case "for_review":
-        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+        return "text-green-600 bg-green-50 border-green-200";
       default:
         return "text-slate-600 bg-slate-50 border-slate-200";
     }
@@ -241,7 +229,7 @@ export default function Proposals() {
     if (status === "extension_approved") return "Extension Approved";
     if (status === "extension_rejected") return "Extension Rejected";
     if (status === "for_review") return "Under Review";
-    if (status === "accepted" || status === "approve") return "Reviewed"; 
+    if (status === "accepted" || status === "approve") return "Reviewed";
     if (status === "decline") return "Declined"; // Format Decline to "Declined"
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
