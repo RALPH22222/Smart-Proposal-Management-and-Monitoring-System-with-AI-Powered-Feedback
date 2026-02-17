@@ -239,3 +239,10 @@ export type decisionEvaluatorToProposalInput = z.infer<typeof decisionEvaluatorT
 export type createEvaluationScoresToProposaltInput = z.infer<typeof createEvaluationScoresToProposaltSchema>;
 export type EndorseForFundingInput = z.infer<typeof endorseForFundingSchema>;
 export type SubmitRevisedProposalInput = z.infer<typeof submitRevisedProposalSchema>;
+
+export const removeEvaluatorSchema = z.object({
+  proposal_id: z.number(),
+  evaluator_id: z.string(),
+});
+
+export type RemoveEvaluatorInput = z.infer<typeof removeEvaluatorSchema>;

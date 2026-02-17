@@ -333,6 +333,28 @@ export class ProposalService {
     };
   }
 
+  async removeEvaluator(proposal_id: number, evaluator_id: string) {
+    // 1. Remove from proposal_evaluators
+    const { error: evalError } = await this.db
+      .from("proposal_evaluators")
+      .delete()
+      .eq("proposal_id", proposal_id)
+      .eq("evaluator_id", evaluator_id);
+
+    if (evalError) return { error: evalError };
+
+    // 2. Remove from proposal_assignment_tracker
+    const { error: trackerError } = await this.db
+      .from("proposal_assignment_tracker")
+      .delete()
+      .eq("proposal_id", proposal_id)
+      .eq("evaluator_id", evaluator_id);
+
+    if (trackerError) return { error: trackerError };
+
+    return { error: null };
+  }
+
   async decisionEvaluatorToProposal(
     input: Omit<decisionEvaluatorToProposalInput, "deadline_at">,
     evaluator_id: string,

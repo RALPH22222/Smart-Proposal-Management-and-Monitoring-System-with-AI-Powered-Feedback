@@ -197,6 +197,23 @@ export class BackendStack extends Stack {
       },
     );
 
+
+
+    const proposal_remove_evaluator_lambda = new NodejsFunction(
+      this,
+      "pms-proposal-remove-evaluator-lambda",
+      {
+        functionName: "pms-proposal-remove-evaluator-lambda",
+        memorySize: 128,
+        runtime: Runtime.NODEJS_22_X,
+        timeout: Duration.seconds(10),
+        entry: path.resolve("src", "handlers", "proposal", "remove-evaluator.ts"),
+        environment: {
+          SUPABASE_KEY,
+        },
+      },
+    );
+
     const proposal_forward_to_rnd_lambda = new NodejsFunction(this, "pms-proposal-forward-to-rnd-lambda", {
       functionName: "pms-proposal-forward-to-rnd-lambda",
       memorySize: 128,
@@ -899,6 +916,17 @@ export class BackendStack extends Stack {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
+
+    // /proposal/evaluator (protected) - DELETE remove evaluator
+    const proposal_remove_evaluator = proposal.addResource("evaluator");
+    proposal_remove_evaluator.addMethod(
+      HttpMethod.DELETE,
+      new LambdaIntegration(proposal_remove_evaluator_lambda),
+      {
+        authorizer: requestAuthorizer,
+        authorizationType: AuthorizationType.CUSTOM,
+      },
+    );
 
     // /proposal/revision-proposal-to-proponent (protected)
     const revision_proposal_to_proponent = proposal.addResource("revision-proposal-to-proponent");
