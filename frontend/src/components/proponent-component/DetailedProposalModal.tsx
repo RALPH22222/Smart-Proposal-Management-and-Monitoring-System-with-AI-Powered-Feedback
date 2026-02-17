@@ -75,6 +75,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
+  const [rejectedBy, setRejectedBy] = useState<string | null>(null); // Store who rejected it
   const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
   const [isLoadingRevision, setIsLoadingRevision] = useState(false);
   const [isLoadingRejection, setIsLoadingRejection] = useState(false);
@@ -89,15 +90,19 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           const summary = await fetchRejectionSummary(Number(proposal?.id));
           setRejectionComment(summary?.comment || "No specific comment provided.");
           setRejectionDate(summary?.created_at || null);
+          // Use the rejected_by_role field to determine if it's admin or R&D
+          setRejectedBy(summary?.rejected_by_role === "admin" ? "Admin" : "R&D");
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);
           setRejectionComment("Failed to load rejection details.");
           setRejectionDate(null);
+          setRejectedBy(null);
         } finally {
           setIsLoadingRejection(false);
         }
       } else {
         setRejectionComment(null);
+        setRejectedBy(null);
         setIsLoadingRejection(false);
       }
     };
@@ -654,7 +659,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         {c.section === "Reason for Rejection" && (
                           <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
                             <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
-                              Formal Decision by R&D Office
+                              {rejectedBy === "Admin" ? "Admin Feedback" : "R&D Staff Feedback"}
                             </span>
                             {rejectionDate && (
                               <span className="text-xs text-slate-500 italic">

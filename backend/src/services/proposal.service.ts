@@ -1439,17 +1439,20 @@ export class ProposalService {
       return { data: null, error: null };
     }
 
-    // 3. Fetch RND user name separately
+
+    // 3. Fetch RND user name and role separately
     let rnd_name = "Unknown";
+    let rejected_by_role = "rnd"; // default to rnd
     if (data.rnd_id) {
       const { data: rndUser } = await this.db
         .from("users")
-        .select("first_name, last_name")
+        .select("first_name, last_name, role")
         .eq("id", data.rnd_id)
         .maybeSingle();
 
       if (rndUser) {
         rnd_name = `${rndUser.first_name || ""} ${rndUser.last_name || ""}`.trim() || "Unknown";
+        rejected_by_role = rndUser.role || "rnd";
       }
     }
 
@@ -1458,6 +1461,7 @@ export class ProposalService {
         proposal_id: data.proposal_id,
         rnd_id: data.rnd_id,
         rnd_name,
+        rejected_by_role, // Add role to response
         comment: data.comment,
         created_at: data.created_at,
       },

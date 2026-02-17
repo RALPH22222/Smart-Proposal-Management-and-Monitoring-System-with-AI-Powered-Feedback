@@ -196,6 +196,7 @@ export type RejectionSummary = {
   proposal_id: number;
   rnd_id: string;
   rnd_name: string;
+  rejected_by_role: string; // Role of person who rejected (admin or rnd)
   comment: string | null;
   created_at: string;
 };
