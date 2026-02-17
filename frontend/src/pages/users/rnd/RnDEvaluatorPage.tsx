@@ -15,7 +15,7 @@ import Swal from "sweetalert2";
 
 import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
-import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators } from "../../../services/proposal.api";
+import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
 
 // --- INTERFACES ---
 
@@ -355,52 +355,63 @@ export const RnDEvaluatorPage: React.FC = () => {
   const handleReassignEvaluators = async (newEvaluators: EvaluatorOption[]) => {
     if (!selectedProposalId) return;
 
-    const currentAssignment = assignments.find(a => a.proposalIdNumeric === selectedProposalId);
-    const existingEvaluatorIds = new Set(currentAssignment?.evaluatorIds || []);
+    // Use currentEvaluators (modal initial state) as baseline
+    const existingIds = new Set(currentEvaluators.map(e => e.id));
+    const newIds = new Set(newEvaluators.map(e => e.id));
 
-    const newEvaluatorIds = newEvaluators
-      .map(ev => ev.id)
-      .filter(id => !existingEvaluatorIds.has(id));
+    // Identify Additions
+    const toAdd = newEvaluators.filter(e => !existingIds.has(e.id));
+    const newEvaluatorIds = toAdd.map(e => e.id);
 
-    if (newEvaluatorIds.length === 0) {
+    // Identify Removals
+    const toRemove = currentEvaluators.filter(e => !newIds.has(e.id));
+
+    if (newEvaluatorIds.length === 0 && toRemove.length === 0) {
       Swal.fire({
         icon: "info",
         title: "No Changes",
-        text: "No new evaluators to add. The selected evaluators are already assigned.",
+        text: "No changes detected.",
       });
       setShowModal(false);
       return;
     }
 
     try {
-      const deadlineInDays = 14; // 14 days from now
+      // 1. Handle Removals
+      if (toRemove.length > 0) {
+        for (const evaluator of toRemove) {
+             await removeEvaluator(selectedProposalId, evaluator.id);
+        }
+      }
 
-      const payload = {
-        proposal_id: selectedProposalId,
-        evaluator_id: newEvaluatorIds,
-        deadline_at: deadlineInDays,
-        commentsForEvaluators: "Updated via R&D Tracker",
-      };
-
-      console.log("Sending reassignment payload:", payload);
-
-      await forwardProposalToEvaluators(payload);
+      // 2. Handle Additions
+      if (newEvaluatorIds.length > 0) {
+        const deadlineInDays = 14; // 14 days from now
+        const payload = {
+            proposal_id: selectedProposalId,
+            evaluator_id: newEvaluatorIds,
+            deadline_at: deadlineInDays,
+            commentsForEvaluators: "Updated via R&D Tracker",
+        };
+        console.log("Sending reassignment payload:", payload);
+        await forwardProposalToEvaluators(payload);
+      }
 
       Swal.fire({
         icon: "success",
         title: "Success!",
-        text: `${newEvaluatorIds.length} new evaluator(s) added successfully.`,
+        text: `Assignments updated successfully.`,
       });
 
       // Refresh Data
       await fetchData();
       setShowModal(false);
     } catch (error: any) {
-      console.error("Failed to assign evaluators:", error);
+      console.error("Failed to update assignments:", error);
       console.error("Error details:", error?.response?.data);
       Swal.fire({
         icon: "error",
-        title: "Assignment Failed",
+        title: "Update Failed",
         text: error?.response?.data?.message || error?.response?.data?.error || "Could not save changes.",
       });
     }
