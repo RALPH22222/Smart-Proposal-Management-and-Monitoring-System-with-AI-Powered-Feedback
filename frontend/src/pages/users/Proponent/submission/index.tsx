@@ -168,8 +168,7 @@ const Submission: React.FC = () => {
       disciplineName,
       priorities_id,
       classification_type,
-      class_input,
-      implementation_site
+      class_input
     } = localFormData;
 
     const missingFields: string[] = [];
