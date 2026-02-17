@@ -74,18 +74,30 @@ const Submission: React.FC = () => {
 
   // ... (Effects remain the same)
 
-  // ... (Validation remains the same)
+  // --- RESTORED HANDLERS ---
   const isBudgetValid = useMemo(() => {
     if (localFormData.budgetItems.length === 0) return false;
     return localFormData.budgetItems.every((item: any) => {
-      const sourceValid = item.source?.trim() !== "";
-      // Simple check: does it have at least one item in any category?
-      const hasBudget = item.budget.ps.length > 0 || item.budget.mooe.length > 0 || item.budget.co.length > 0;
-      return sourceValid && hasBudget; // Adjusted validation logic
+      // Check Source
+      if (!item.source?.trim()) return false;
+
+      const ps = item.budget.ps || [];
+      const mooe = item.budget.mooe || [];
+      const co = item.budget.co || [];
+
+      // Check for empty line items
+      const allExpenses = [...ps, ...mooe, ...co];
+      const hasEmptyLineItem = allExpenses.some((ex: any) => !ex.item?.trim() || !(ex.value > 0));
+      if (hasEmptyLineItem) return false;
+
+      // Check mandatory categories (PS & MOOE required per source)
+      if (ps.length === 0) return false;
+      if (mooe.length === 0) return false;
+
+      return true;
     });
   }, [localFormData.budgetItems]);
 
-  // ... (Form Update Handlers remain the same)
   const handleDirectUpdate = (field: keyof FormData | string, value: any) => {
     setLocalFormData((prev: any) => ({ ...prev, [field]: value }));
   };
@@ -103,9 +115,193 @@ const Submission: React.FC = () => {
     }
   };
 
+  // --- VALIDATION LOGIC ---
+
+  const validateBasicInfo = (): boolean => {
+    const {
+      program_title,
+      project_title,
+      schoolYear,
+      plannedStartDate,
+      plannedEndDate,
+      duration,
+      agency,
+      agencyAddress,
+      telephone,
+      email,
+      tags
+    } = localFormData;
+
+    const missingFields: string[] = [];
+    if (!program_title?.trim()) missingFields.push("Program Title");
+    if (!project_title?.trim()) missingFields.push("Project Title");
+    if (!schoolYear?.trim() || schoolYear.length < 9) missingFields.push("School Year (YYYY-YYYY)");
+    if (!plannedStartDate) missingFields.push("Planned Start Date");
+    if (!plannedEndDate) missingFields.push("Planned End Date");
+    if (!duration) missingFields.push("Duration");
+    if (!agency) missingFields.push("Agency");
+    // Street and Barangay are now optional
+    if (!agencyAddress?.city?.trim()) missingFields.push("City");
+    if (!telephone?.trim()) missingFields.push("Telephone");
+    if (!email?.trim()) missingFields.push("Email");
+    if (!tags || tags.length === 0) missingFields.push("Tags");
+
+    if (missingFields.length > 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Basic Information",
+        html: `<p>Please fill in the following required fields before proceeding:</p>
+               <ul style="text-align:left;margin-top:8px;display:inline-block;">
+                 ${missingFields.map((f) => `<li>• ${f}</li>`).join("")}
+               </ul>`,
+        confirmButtonColor: "#C8102E",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validateResearchDetails = (): boolean => {
+    const {
+      researchStation,
+      sectorCommodity,
+      disciplineName,
+      priorities_id,
+      classification_type,
+      class_input,
+      implementation_site
+    } = localFormData;
+
+    const missingFields: string[] = [];
+
+    if (!researchStation?.trim()) missingFields.push("Research Station");
+    if (!sectorCommodity?.trim()) missingFields.push("Sector/Commodity");
+    if (!disciplineName?.trim()) missingFields.push("Discipline");
+    if (!priorities_id || priorities_id.length === 0) missingFields.push("Priority Areas");
+    if (!classification_type) missingFields.push("Classification Type");
+    if (!class_input?.trim()) missingFields.push("Specific Classification (Research/Development Type)");
+
+    // Check implementation sites
+    const sites = localFormData.implementation_site || [];
+    const hasValidSite = sites.some((s: { site: string; city: string }) => s.site?.trim() && s.city?.trim());
+    if (!hasValidSite) missingFields.push("At least one valid Implementation Site");
+
+    // Check specific invalid sites if array exists
+    if (sites.length > 0) {
+      const invalidSites = sites.some((s: { site: string; city: string }) => !s.site?.trim() || !s.city?.trim());
+      if (invalidSites && hasValidSite) missingFields.push("All Implementation Sites must have both Name and City");
+    }
+
+    if (missingFields.length > 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Research Details",
+        html: `<p>Please complete the following required fields:</p>
+               <ul style="text-align:left;margin-top:8px;display:inline-block;">
+                 ${missingFields.map((f) => `<li>• ${f}</li>`).join("")}
+               </ul>`,
+        confirmButtonColor: "#C8102E",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const validateBudgetSection = (): boolean => {
+    // Check if there are any budget items
+    if (localFormData.budgetItems.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Budget Items",
+        text: "Please add at least one funding source.",
+        confirmButtonColor: "#C8102E",
+      });
+      return false;
+    }
+
+    // Check each budget item for valid source and content
+    for (let i = 0; i < localFormData.budgetItems.length; i++) {
+      const item = localFormData.budgetItems[i];
+
+      if (!item.source?.trim()) {
+        Swal.fire({
+          icon: "warning",
+          title: "Invalid Funding Source",
+          text: `Funding source #${i + 1} Name is empty.`,
+          confirmButtonColor: "#C8102E",
+        });
+        return false;
+      }
+
+      const ps = item.budget.ps || [];
+      const mooe = item.budget.mooe || [];
+      const co = item.budget.co || [];
+
+      // Check for empty line items (Description or Amount)
+      const allExpenses = [...ps, ...mooe, ...co];
+      const hasEmptyLineItem = allExpenses.some((ex: any) => !ex.item?.trim() || !(ex.value > 0));
+
+      if (hasEmptyLineItem) {
+        Swal.fire({
+          icon: "warning",
+          title: "Incomplete Line Items",
+          text: `Funding source "${item.source}" has items without a description or amount.`,
+          confirmButtonColor: "#C8102E",
+        });
+        return false;
+      }
+
+      // Check if PS and MOOE have at least one item
+      if (ps.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "Missing PS Items",
+          text: `Funding source "${item.source}" must have at least one Personnel Services (PS) item.`,
+          confirmButtonColor: "#C8102E",
+        });
+        return false;
+      }
+
+      if (mooe.length === 0) {
+        Swal.fire({
+          icon: "warning",
+          title: "Missing MOOE Items",
+          text: `Funding source "${item.source}" must have at least one Maintenance & Other Operating Expenses (MOOE) item.`,
+          confirmButtonColor: "#C8102E",
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleSectionChange = (nextSection: string) => {
+    // Navigation Guard Logic:
+    // 1. To enter Research Details, Basic Info must be valid.
+    if (nextSection === "research-details") {
+      if (!validateBasicInfo()) return;
+    }
+
+    // 2. To enter Budget, both Basic Info and Research Details must be valid.
+    if (nextSection === "budget") {
+      // Check Basic Info first
+      if (!validateBasicInfo()) return;
+
+      // Then Check Research Details
+      if (!validateResearchDetails()) return;
+    }
+
+    // 3. Going to Basic Info is always allowed (backward navigation).
+
+    setActiveSection(nextSection);
+  };
+
   // --- FIX 2: UPDATE BUDGET HANDLERS ---
 
   const addBudgetItem = () => {
+    // Validate existing items before adding new one
+    if (!validateBudgetSection()) return;
+
     setLocalFormData((prev: any) => ({
       ...prev,
       budgetItems: [
@@ -119,6 +315,7 @@ const Submission: React.FC = () => {
       ],
     }));
   };
+
 
   const removeBudgetItem = (id: number) => {
     setLocalFormData((prev: any) => ({
@@ -344,13 +541,13 @@ const Submission: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-            <button onClick={() => setActiveSection("basic-info")} className={getTabClass("basic-info")}>
+            <button onClick={() => handleSectionChange("basic-info")} className={getTabClass("basic-info")}>
               Basic Information
             </button>
-            <button onClick={() => setActiveSection("research-details")} className={getTabClass("research-details")}>
+            <button onClick={() => handleSectionChange("research-details")} className={getTabClass("research-details")}>
               Research Details
             </button>
-            <button onClick={() => setActiveSection("budget")} className={getTabClass("budget")}>
+            <button onClick={() => handleSectionChange("budget")} className={getTabClass("budget")}>
               Budget Section
             </button>
           </div>

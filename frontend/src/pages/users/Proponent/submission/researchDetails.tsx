@@ -372,7 +372,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       <div className="space-y-2" ref={researchStationRef}>
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <University className="text-gray-400 w-4 h-4" />
-          Research & Development Station
+          Research & Development Station *
           <Tooltip content="The research institution or facility that will conduct the research or development activities" />
         </label>
         <div className="relative">
@@ -408,7 +408,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="space-y-2" ref={sectorRef}>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <Tag className="text-gray-400 w-4 h-4" />
-            Sector/Commodity
+            Sector/Commodity *
             <Tooltip content="The agricultural or economic sector that the project will address (e.g., Crops, Livestock, Fisheries, Agribusiness)" />
           </label>
           <div className="relative">
@@ -443,7 +443,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="space-y-2" ref={disciplineRef}>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <GraduationCap className="text-gray-400 w-4 h-4" />
-            Discipline
+            Discipline *
             <Tooltip content="The scientific or technical field or specialization relevant to the project (e.g., Agricultural Engineering, Biotechnology, Horticulture)" />
           </label>
           <div className="relative">

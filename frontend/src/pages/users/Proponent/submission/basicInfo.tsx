@@ -483,7 +483,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Clock className="text-gray-400 w-4 h-4" />
-            Duration
+            Duration *
             <Tooltip content="The total length of the project implementation period in months or years" />
           </label>
           <div className="relative">
@@ -552,7 +552,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <MapPin className="text-gray-400 w-4 h-4" />
-          Agency Address *
+          Agency Address
           <Tooltip content="The complete office address where the project will be managed" />
         </label>
 
@@ -655,6 +655,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           Cooperating Agencies
           <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
         </label>
+        {selectedAgencies.length === 0 && (
+          <div className="text-sm text-gray-400 italic px-1 mb-2">None</div>
+        )}
         {selectedAgencies.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {selectedAgencies.map((agency) => (
@@ -724,7 +727,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="space-y-2 tags-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Tags className="text-gray-400 w-4 h-4" />
-          Tags
+          Tags *
           <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
         </label>
         {selectedTags.length > 0 && (

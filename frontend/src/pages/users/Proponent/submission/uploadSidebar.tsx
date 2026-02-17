@@ -48,6 +48,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!selectedFile) return false;
 
     // 2. Check Basic Info (Required Fields)
+    if (!formData.program_title?.trim()) return false;
     if (!formData.project_title?.trim()) return false;
     if (!formData.duration?.trim()) return false;
     if (!formData.agencyAddress?.city?.trim()) return false;
@@ -55,6 +56,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!formData.email?.trim()) return false;
     if (!formData.agency) return false;
     if (!formData.schoolYear?.trim()) return false;
+    if (!formData.tags || formData.tags.length === 0) return false;
 
     // 3. Check Research Details
     if (!formData.sector) return false;
@@ -69,7 +71,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
     // Check Implementation Sites
     if (!formData.implementation_site || formData.implementation_site.length === 0) return false;
-    const hasValidSite = formData.implementation_site.some(s => s.site?.trim() || s.city?.trim());
+    const hasValidSite = formData.implementation_site.some(s => s.site?.trim() && s.city?.trim());
     if (!hasValidSite) return false;
 
     // Check Priority Areas (now stored as array of IDs)
@@ -219,16 +221,16 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </div>
 
             {/* Basic Info Status */}
-            <div className={`flex items-center ${(formData.project_title && formData.email && formData.agency && formData.agencyAddress?.city?.trim() && formData.schoolYear?.trim() && formData.telephone?.trim()) ? 'text-green-700 font-medium' : 'text-gray-500'
+            <div className={`flex items-center ${(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.project_title && formData.email && formData.agency && formData.agencyAddress?.city?.trim() && formData.schoolYear?.trim() && formData.telephone?.trim()) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 
             {/* Research Details Status */}
-            <div className={`flex items-center ${(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0 && formData.sector && formData.discipline) ? 'text-green-700 font-medium' : 'text-gray-500'
+            <div className={`flex items-center ${(formData.sector && formData.discipline && formData.plannedStartDate && formData.plannedEndDate && formData.classification_type && formData.class_input?.trim() && formData.implementation_site?.length > 0 && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.classification_type && formData.class_input && formData.priorities_id?.length > 0 && formData.sector && formData.discipline) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.sector && formData.discipline && formData.plannedStartDate && formData.plannedEndDate && formData.classification_type && formData.class_input?.trim() && formData.implementation_site?.length > 0 && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Research Details</span>
             </div>
 

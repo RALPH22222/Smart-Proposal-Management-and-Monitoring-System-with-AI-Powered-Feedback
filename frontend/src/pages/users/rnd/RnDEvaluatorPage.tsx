@@ -119,7 +119,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             proposalTitle: item.proposal_id.project_title || "Untitled Proposal",
             projectType: item.proposal_id.sector?.name || "N/A",
             deadline: item.deadline ? new Date(item.deadline).toISOString() : new Date().toISOString(),
-            tags: item.proposal_id.proposal_tags?.map((t: any) => t.tags?.name).filter(Boolean) || [],
+            tags: item.proposal_id.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => t && t !== "N/A") || [],
             evaluators: [],
           });
         }
@@ -199,6 +199,9 @@ export const RnDEvaluatorPage: React.FC = () => {
           tags: group.tags,
         };
       });
+
+      // Sort by Proposal ID descending (Newest first)
+      mappedAssignments.sort((a, b) => b.proposalIdNumeric - a.proposalIdNumeric);
 
       setAssignments(mappedAssignments);
     } catch (error) {
@@ -415,22 +418,7 @@ export const RnDEvaluatorPage: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
 
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case "ICT":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Healthcare":
-        return "bg-pink-100 text-pink-700 border-pink-200";
-      case "Agriculture":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "Energy":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "Public Safety":
-        return "bg-purple-100 text-purple-700 border-purple-200";
-      default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
-    }
-  };
+
 
   // Helper for Random Tag Colors (Matches RndProposalPage.tsx)
   const getTagColor = (tag: string) => {
@@ -569,20 +557,10 @@ export const RnDEvaluatorPage: React.FC = () => {
                           <Clock className="w-3 h-3" />
                           <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
                         </div>
-                        {/* Project Type Badge */}
-                        {assignment.projectType && (
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(assignment.projectType)}`}
-                          >
-                            <Tag className="w-3 h-3" />
-                            {assignment.projectType}
-                          </span>
-                        )}
-                      </div>
-                      {/* Tags Display */}
-                      {assignment.tags && assignment.tags.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {assignment.tags.map((tag, idx) => (
+
+                        {/* Tags Display (Replaced Project Type) */}
+                        {assignment.tags && assignment.tags.length > 0 && (
+                          assignment.tags.map((tag, idx) => (
                             <span
                               key={idx}
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagColor(tag)}`}
@@ -590,9 +568,9 @@ export const RnDEvaluatorPage: React.FC = () => {
                               <Tag className="w-2.5 h-2.5" />
                               {tag}
                             </span>
-                          ))}
-                        </div>
-                      )}
+                          ))
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button

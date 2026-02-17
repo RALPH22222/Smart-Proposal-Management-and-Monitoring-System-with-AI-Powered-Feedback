@@ -1062,7 +1062,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 />
               ) : (
                 <p className="text-sm font-medium text-slate-900">
-                  {currentData.cooperatingAgencies}
+                  {(() => {
+                    const ca = currentData.cooperatingAgencies;
+                    if (!ca || (Array.isArray(ca) && ca.length === 0)) return "None";
+                    if (Array.isArray(ca)) {
+                      return ca.map((c: any) => c.name || c).join(", ");
+                    }
+                    return ca;
+                  })()}
                 </p>
               )}
             </div>

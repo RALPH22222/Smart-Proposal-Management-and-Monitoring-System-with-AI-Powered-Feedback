@@ -343,7 +343,7 @@ const Profile: React.FC = () => {
     const firstName = user.first_name || 'User';
     const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
     const targetName = firstName;
-    const targetSuffix = !isNewUser ? '!' : '';
+    const targetSuffix = !isNewUser ? '.⁠' : '';
 
     const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
     let charIndex = 0;
@@ -795,9 +795,9 @@ const Profile: React.FC = () => {
             </div>
 
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-[#C8102E] mb-1 min-h-[40px]">
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
                 {displayedText.prefix}
-                <span className="text-black">{displayedText.name}</span>
+                <span className="text-[#C8102E]">{displayedText.name}</span>
                 {displayedText.suffix}
               </h1>
               <p className="text-gray-600 text-sm lg:text-base">

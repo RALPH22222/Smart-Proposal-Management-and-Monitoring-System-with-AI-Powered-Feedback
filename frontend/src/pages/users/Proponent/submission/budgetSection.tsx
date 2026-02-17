@@ -67,6 +67,25 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
 
+    // Validation: Check if the last item is empty or incomplete
+    if (currentBreakdown.length > 0) {
+      const lastItem = currentBreakdown[currentBreakdown.length - 1];
+      if (!lastItem.item?.trim() || (!lastItem.value && lastItem.value !== 0)) {
+        // Using a simple alert or Swal if imported. Since Swal isn't imported here, I'll pass a prop or import it.
+        // Let's assume standard window.alert or better, import Swal. 
+        // But to keep it safe, I'll use imports.
+        import("sweetalert2").then((Swal) => {
+          Swal.default.fire({
+            icon: "warning",
+            title: "Incomplete Item",
+            text: "Please complete the previous item description and amount before adding a new one.",
+            confirmButtonColor: "#C8102E",
+          });
+        });
+        return;
+      }
+    }
+
     // Note: 'item' field maps to description in your previous code
     const newBreakdown = [
       ...currentBreakdown,
@@ -197,7 +216,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     PS
                     <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
                   </label>
-                  <div 
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'ps' })}
                   >
@@ -212,7 +231,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     MOOE
                     <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
                   </label>
-                  <div 
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'mooe' })}
                   >
@@ -227,7 +246,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     CO
                     <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
                   </label>
-                  <div 
+                  <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
                     onClick={() => setActiveModal({ itemId: item.id, category: 'co' })}
                   >

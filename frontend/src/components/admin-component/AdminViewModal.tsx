@@ -205,7 +205,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     const fetchRejection = async () => {
       const statusLower = (p.status || '').toLowerCase();
       const isRejected = ['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes(statusLower);
-      
+
       console.log(`[AdminViewModal] Proposal ${p.id} status check:`, {
         originalStatus: p.status,
         statusLower,
@@ -218,7 +218,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
           console.log(`[AdminViewModal] Fetching rejection summary for proposal ${p.id}...`);
           const summary = await fetchRejectionSummary(Number(p.id));
           console.log(`[AdminViewModal] Rejection summary received:`, summary);
-          
+
           if (summary) {
             setRejectionComment(summary.comment || "No specific comment provided.");
             setRejectionDate(summary.created_at || null);
@@ -639,7 +639,16 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
               </h4>
-              <p className="text-sm text-slate-900">{p.cooperatingAgencies || "None"}</p>
+              <p className="text-sm text-slate-900">
+                {(() => {
+                  const ca = p.cooperatingAgencies;
+                  if (!ca || (Array.isArray(ca) && ca.length === 0)) return "None";
+                  if (Array.isArray(ca)) {
+                    return ca.map((c: any) => c.name || c).join(", ");
+                  }
+                  return ca;
+                })()}
+              </p>
             </div>
 
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
