@@ -36,11 +36,16 @@ const budgetLineSchema = z.object({
   value: z.coerce.number().min(0),
 });
 
-const budgetCategorySchema = z.object({
-  ps: z.array(budgetLineSchema).default([]),
-  mooe: z.array(budgetLineSchema).default([]),
-  co: z.array(budgetLineSchema).default([]),
-});
+const budgetCategorySchema = z
+  .object({
+    ps: z.array(budgetLineSchema).default([]),
+    mooe: z.array(budgetLineSchema).default([]),
+    co: z.array(budgetLineSchema).default([]),
+  })
+  .refine(
+    (data) => data.ps.length > 0 || data.mooe.length > 0 || data.co.length > 0,
+    { message: "At least one budget item (PS, MOOE, or CO) is required per funding source" },
+  );
 
 const budgetsSchema = z
   .array(
@@ -138,7 +143,9 @@ export const proposalSchema = z.object({
   budget: z.preprocess(parseJsonIfString, budgetsSchema),
 
   // --- NEW: Cooperating Agencies - handles both {id, name} objects and primitives ---
-  cooperating_agencies: z.preprocess(normalizeCooperatingAgencies, z.array(z.union([z.coerce.number(), z.string()]))),
+  cooperating_agencies: z
+    .preprocess(normalizeCooperatingAgencies, z.array(z.union([z.coerce.number(), z.string()])))
+    .optional(),
 
   tags: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),
 
