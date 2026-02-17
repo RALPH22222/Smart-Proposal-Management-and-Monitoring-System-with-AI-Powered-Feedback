@@ -483,7 +483,7 @@ const LandingPage: React.FC = () => {
                     Download Template
                   </a>
                   <a
-                    href="/src/assets/template/DOST-Template.pdf"
+                    href={templatePDF}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center flex-1 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
