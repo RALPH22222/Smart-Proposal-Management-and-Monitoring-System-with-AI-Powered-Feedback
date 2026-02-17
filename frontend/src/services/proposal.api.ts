@@ -26,22 +26,22 @@ export type CreateProposalResponse = {
 };
 
 export const fetchAgencies = async (): Promise<AgencyItem[]> => {
-  const { data } = await api.get<AgencyItem[]>("/proposal/view-agency");
+  const { data } = await api.get<AgencyItem[]>("/proposal/lookup/agency");
   return data;
 };
 
 export const fetchAgencyAddresses = async (agencyId: number): Promise<AddressItem[]> => {
-  const { data } = await api.get<AddressItem[]>(`/proposal/view-agency-addresses?agency_id=${agencyId}`);
+  const { data } = await api.get<AddressItem[]>(`/proposal/lookup/agency-addresses?agency_id=${agencyId}`);
   return data;
 };
 
 export const fetchCooperatingAgencies = async (): Promise<AgencyItem[]> => {
-  const { data } = await api.get<AgencyItem[]>("/proposal/view-agency");
+  const { data } = await api.get<AgencyItem[]>("/proposal/lookup/cooperating-agency");
   return data;
 };
 
 export const fetchDepartments = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/department");
   return data;
 };
 
@@ -51,32 +51,32 @@ export const getDepartmentById = async (id: number): Promise<LookupItem | undefi
 };
 
 export const fetchDisciplines = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-discipline");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/discipline");
   return data;
 };
 
 export const fetchSectors = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-sector");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/sector");
   return data;
 };
 
 export const fetchTags = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-tag");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/tag");
   return data;
 };
 
 export const fetchPriorities = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-priority");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/priority");
   return data;
 };
 
 export const fetchStations = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-department");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/station");
   return data;
 };
 
 export const fetchCommodities = async (): Promise<LookupItem[]> => {
-  const { data } = await api.get<LookupItem[]>("/proposal/view-commodity");
+  const { data } = await api.get<LookupItem[]>("/proposal/lookup/commodity");
   return data;
 };
 

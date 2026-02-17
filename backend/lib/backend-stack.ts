@@ -376,100 +376,14 @@ export class BackendStack extends Stack {
       },
     });
 
-    const get_agency_lambda = new NodejsFunction(this, "pms-get-agency", {
-      functionName: "pms-get-agency",
+    // Unified lookup Lambda — replaces 9 individual lookup lambdas
+    // (agency, cooperating-agency, agency-addresses, department, discipline, sector, tag, priority, station)
+    const get_lookup_lambda = new NodejsFunction(this, "pms-get-lookup", {
+      functionName: "pms-get-lookup",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-agency.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_cooperating_agency_lambda = new NodejsFunction(this, "pms-cooperating-agency", {
-      functionName: "pms-cooperating-agency",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-cooperating-agency.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_agency_addresses_lambda = new NodejsFunction(this, "pms-get-agency-addresses", {
-      functionName: "pms-get-agency-addresses",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-agency-addresses.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_department_lambda = new NodejsFunction(this, "pms-get-department", {
-      functionName: "pms-get-department",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-department.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_discipline_lambda = new NodejsFunction(this, "pms-get-discipline", {
-      functionName: "pms-get-discipline",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-discipline.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_sector_lambda = new NodejsFunction(this, "pms-get-sector", {
-      functionName: "pms-get-sector",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-sector.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_tag_lambda = new NodejsFunction(this, "pms-get-tag", {
-      functionName: "pms-get-tag",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-tag.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_priority_lambda = new NodejsFunction(this, "pms-get-priority", {
-      functionName: "pms-get-priority",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-priority.ts"),
-      environment: {
-        SUPABASE_KEY,
-      },
-    });
-
-    const get_station_lambda = new NodejsFunction(this, "pms-get-station", {
-      functionName: "pms-get-station",
-      memorySize: 128,
-      runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(10),
-      entry: path.resolve("src", "handlers", "proposal", "get-station.ts"),
+      entry: path.resolve("src", "handlers", "proposal", "get-lookup.ts"),
       environment: {
         SUPABASE_KEY,
       },
@@ -862,7 +776,7 @@ export class BackendStack extends Stack {
 
     // /auth/departments (PUBLIC — for sign-up form to fetch R&D stations without auth)
     const auth_departments = auth.addResource("departments");
-    auth_departments.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lambda));
+    auth_departments.addMethod(HttpMethod.GET, new LambdaIntegration(get_lookup_lambda));
 
     // /auth/complete-invite (protected — user has session from invite link)
     const complete_invite = auth.addResource("complete-invite");
@@ -1043,66 +957,12 @@ export class BackendStack extends Stack {
       authorizationType: AuthorizationType.CUSTOM,
     });
 
-    // /proposal/view-agency
-    const get_agency = proposal.addResource("view-agency");
-    get_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-cooperating-agency
-    const get_cooperating_agency = proposal.addResource("view-cooperating-agency");
-    get_cooperating_agency.addMethod(HttpMethod.GET, new LambdaIntegration(get_cooperating_agency_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-agency-addresses
-    const get_agency_addresses = proposal.addResource("view-agency-addresses");
-    get_agency_addresses.addMethod(HttpMethod.GET, new LambdaIntegration(get_agency_addresses_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-department
-    const get_department = proposal.addResource("view-department");
-    get_department.addMethod(HttpMethod.GET, new LambdaIntegration(get_department_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-discipline
-    const get_discipline = proposal.addResource("view-discipline");
-    get_discipline.addMethod(HttpMethod.GET, new LambdaIntegration(get_discipline_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-sector
-    const get_sector = proposal.addResource("view-sector");
-    get_sector.addMethod(HttpMethod.GET, new LambdaIntegration(get_sector_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-tag
-    const get_tag = proposal.addResource("view-tag");
-    get_tag.addMethod(HttpMethod.GET, new LambdaIntegration(get_tag_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // /proposal/view-priority
-    const get_priority = proposal.addResource("view-priority");
-    get_priority.addMethod(HttpMethod.GET, new LambdaIntegration(get_priority_lambda), {
-      authorizer: requestAuthorizer,
-      authorizationType: AuthorizationType.CUSTOM,
-    });
-
-    // This is suppose to be separation between department and station, for now it doesn't do anything
-    // /proposal/view-station
-    const get_station = proposal.addResource("view-station");
-    get_station.addMethod(HttpMethod.GET, new LambdaIntegration(get_station_lambda), {
+    // /proposal/lookup/{type} — unified lookup route
+    // Replaces: view-agency, view-cooperating-agency, view-agency-addresses,
+    //           view-department, view-discipline, view-sector, view-tag, view-priority, view-station
+    const lookup = proposal.addResource("lookup");
+    const lookup_type = lookup.addResource("{type}");
+    lookup_type.addMethod(HttpMethod.GET, new LambdaIntegration(get_lookup_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

@@ -99,7 +99,7 @@ export default function ProfileSetup() {
     const fetchDepartments = async () => {
       try {
         setLoadingDepartments(true);
-        const response = await api.get<Department[]>('/proposal/view-department');
+        const response = await api.get<Department[]>('/proposal/lookup/department');
         setDepartments(response.data || []);
       } catch (error) {
         console.error("Failed to fetch departments", error);
