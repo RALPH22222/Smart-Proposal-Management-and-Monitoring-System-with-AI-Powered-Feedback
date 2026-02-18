@@ -17,6 +17,8 @@ interface EvaluatorDecision {
 	decision: string;
 	comments: string;
 	submittedDate: string;
+	evaluatorDepartment?: string;
+	evaluatorEmail?: string;
 	ratings?: {
 		objectives: number;
 		methodology: number;
@@ -93,6 +95,8 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			case 'Reject':
 				return 'text-red-600 bg-red-50 border-red-200';
+			case 'Pending':
+				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			default:
 				return 'text-slate-600 bg-slate-50 border-slate-200';
 		}
@@ -106,6 +110,8 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 				return <RotateCcw className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
 			case 'Reject':
 				return <XCircle className='w-4 h-4 sm:w-5 sm:h-5 text-red-600' />;
+			case 'Pending':
+				return <Clock className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
 			default:
 				return <FileText className='w-4 h-4 sm:w-5 sm:h-5 text-slate-600' />;
 		}
@@ -157,16 +163,28 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										<label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
 											Evaluator
 										</label>
-										<div className="flex items-center gap-2 mt-1">
-											<User className="w-4 h-4 text-slate-400" />
-											<p className="text-sm font-medium text-slate-800">
-												{decision.evaluatorName}
-											</p>
+										<div className="flex flex-col mt-1">
+											<div className="flex items-center gap-2">
+												<User className="w-4 h-4 text-slate-400" />
+												<p className="text-sm font-medium text-slate-800">
+													{decision.evaluatorName}
+												</p>
+											</div>
+											{decision.evaluatorDepartment && (
+												<p className="text-xs text-slate-500 ml-6">
+													{decision.evaluatorDepartment}
+												</p>
+											)}
+											{decision.evaluatorEmail && (
+												<p className="text-xs text-slate-400 ml-6">
+													{decision.evaluatorEmail}
+												</p>
+											)}
 										</div>
 									</div>
 								</div>
 							</div>
-							
+
 							{/* Proposal ID and Date/Time */}
 							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 								<div>
@@ -286,14 +304,14 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 						)}
 
 						{/* Comments */}
-                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                       <label className="block text-sm font-bold text-slate-900 mb-2">
-                                         Comments
-                                       </label>
-                                       <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
-                                         {decision.comments}
-                                       </div>
-                                     </div>
+						<div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+							<label className="block text-sm font-bold text-slate-900 mb-2">
+								Comments
+							</label>
+							<div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
+								{decision.comments}
+							</div>
+						</div>
 					</div>
 				</div>
 

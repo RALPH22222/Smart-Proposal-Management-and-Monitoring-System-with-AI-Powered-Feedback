@@ -133,7 +133,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
 
   const [showAnonymitySelection, setShowAnonymitySelection] = useState(false);
-  const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both'>('both');
+  const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both' | 'none'>('both');
 
   const [activeSection, setActiveSection] = useState<string>('objectives');
   const [typingSection, setTypingSection] = useState<string>('');
@@ -215,7 +215,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       });
       setActiveSection('objectives');
       setShowAnonymitySelection(false);
-      setShowProponentInfo('both');
+      setShowProponentInfo(proposal.proponentInfoVisibility || 'both');
 
       // Reset Assignment States
       setEvaluatorSearch('');
@@ -370,7 +370,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
-    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both', assignedEvaluators?: string[] } = {
+    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none', assignedEvaluators?: string[] } = {
       proposalId: proposal.id,
       decision: 'Sent to Evaluators',
       structuredComments,
@@ -827,15 +827,21 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
               </p>
 
               <div className='space-y-3 mb-8'>
-                {['both', 'name', 'agency'].map((val) => (
+                {['both', 'name', 'agency', 'none'].map((val) => (
                   <label key={val} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${showProponentInfo === val ? 'border-purple-500 bg-purple-50' : 'border-slate-200 hover:border-purple-200 hover:bg-slate-50'}`}>
                     <input type='radio' name='proponentInfo' value={val} checked={showProponentInfo === val} onChange={() => setShowProponentInfo(val as any)} className='w-4 h-4 text-purple-600 focus:ring-purple-500' />
                     <div className='ml-3'>
                       <span className='text-sm font-bold text-slate-700 capitalize'>
-                        {val === 'both' ? 'Show Full Details' : val === 'name' ? 'Hide Agency Only' : 'Hide Name Only'}
+                        {val === 'both' ? 'Show Full Details' :
+                          val === 'name' ? 'Hide Agency Only' :
+                            val === 'agency' ? 'Hide Name Only' :
+                              'Hide Both'}
                       </span>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {val === 'both' ? 'Evaluators see name and agency.' : val === 'name' ? 'Evaluators see name, agency is hidden.' : 'Evaluators see agency, name is hidden.'}
+                        {val === 'both' ? 'Evaluators see name and agency.' :
+                          val === 'name' ? 'Evaluators see name, agency is hidden.' :
+                            val === 'agency' ? 'Evaluators see agency, name is hidden.' :
+                              'Evaluators see neither name nor agency.'}
                       </p>
                     </div>
                   </label>

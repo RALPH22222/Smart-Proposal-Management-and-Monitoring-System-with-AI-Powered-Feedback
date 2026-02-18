@@ -5,24 +5,25 @@ import {
   RotateCcw,
   FileText,
   User,
+  Clock,
   MessageSquare,
   ChevronLeft,
   ChevronRight,
   Gavel,
   Tag
 } from 'lucide-react';
-import { 
-  type EndorsementProposal, 
+import {
+  type EndorsementProposal,
   type EvaluatorDecision,
   type BudgetRow
 } from '../../../types/evaluator';
 import EvaluatorDecisionModal from '../../../components/rnd-component/RnDEvaluatorDecision';
 import DecisionModal from '../../../components/rnd-component/EndorsementDecisionModal';
-import { 
-  getProposalsForEndorsement, 
-  endorseProposal, 
-  requestRevision, 
-  rejectProposal 
+import {
+  getProposalsForEndorsement,
+  endorseProposal,
+  requestRevision,
+  rejectProposal
 } from '../../../services/proposal.api';
 import Swal from 'sweetalert2';
 import { useAuthContext } from '../../../context/AuthContext';
@@ -32,14 +33,14 @@ const EndorsePage: React.FC = () => {
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
 
   // State for Endorsement Decision Modal
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
-  
+
   // Shared state for selected proposal (used by both modals)
   const [selectedProposal, setSelectedProposal] = useState<{
     title: string;
@@ -58,7 +59,7 @@ const EndorsePage: React.FC = () => {
       setLoading(true);
       const data = await getProposalsForEndorsement();
       console.log('Fetched endorsement proposals:', data);
-          
+
       const mapped: EndorsementProposal[] = data.map((p: any) => ({
         id: p.id,
         title: p.title,
@@ -74,6 +75,8 @@ const EndorsePage: React.FC = () => {
         ).map((d: any) => ({
           evaluatorId: String(d.evaluatorId),
           evaluatorName: d.evaluatorName,
+          evaluatorDepartment: d.evaluatorDepartment, // Assuming API provides this
+          evaluatorEmail: d.evaluatorEmail, // Assuming API provides this
           decision: d.decision,
           comments: d.comment || "No comment provided",
           submittedDate: d.submittedDate,
@@ -88,7 +91,7 @@ const EndorsePage: React.FC = () => {
         readyForEndorsement: p.readyForEndorsement,
         projectType: p.department
       }));
-          
+
       setEndorsementProposals(mapped);
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
@@ -112,8 +115,8 @@ const EndorsePage: React.FC = () => {
 
   // --- Handlers for Decision Modal ---
   const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[]) => {
-    setSelectedProposal({ 
-      title: proposalTitle, 
+    setSelectedProposal({
+      title: proposalTitle,
       id: proposalId,
       budget: budgetData
     });
@@ -145,7 +148,7 @@ const EndorsePage: React.FC = () => {
       Swal.fire('Error', 'User session not found. Please log in again.', 'error');
       return;
     }
-    
+
     try {
       Swal.fire({
         title: 'Endorsing Proposal...',
@@ -156,11 +159,11 @@ const EndorsePage: React.FC = () => {
         }
       });
 
-      await endorseProposal({ 
+      await endorseProposal({
         proposal_id: parseInt(proposalId),
         rnd_id: user.id,
         decision: "endorsed",
-        remarks 
+        remarks
       });
 
       await Swal.fire({
@@ -203,12 +206,12 @@ const EndorsePage: React.FC = () => {
       const deadlineTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
 
       // 2. Parse Structured Remarks
-      let objective_comment: string | undefined, 
-          methodology_comment: string | undefined, 
-          budget_comment: string | undefined, 
-          timeline_comment: string | undefined, 
-          overall_comment: string | undefined;
-      
+      let objective_comment: string | undefined,
+        methodology_comment: string | undefined,
+        budget_comment: string | undefined,
+        timeline_comment: string | undefined,
+        overall_comment: string | undefined;
+
       const parts = remarks.split(/\n\n(?=\[)/);
       parts.forEach(part => {
         if (part.startsWith("[Objectives Assessment]:")) objective_comment = part.replace("[Objectives Assessment]:\n", "").trim();
@@ -290,6 +293,8 @@ const EndorsePage: React.FC = () => {
         return <RotateCcw className='w-4 h-4 text-amber-600' />;
       case 'Reject':
         return <XCircle className='w-4 h-4 text-red-600' />;
+      case 'Pending':
+        return <Clock className='w-4 h-4 text-yellow-600' />;
       default:
         return <FileText className='w-4 h-4 text-slate-600' />;
     }
@@ -303,6 +308,8 @@ const EndorsePage: React.FC = () => {
         return 'text-amber-600 bg-amber-50 border-amber-200';
       case 'Reject':
         return 'text-red-600 bg-red-50 border-red-200';
+      case 'Pending':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       default:
         return 'text-slate-600 bg-slate-50 border-slate-200';
     }

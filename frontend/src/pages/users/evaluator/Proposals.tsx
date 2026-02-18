@@ -134,6 +134,7 @@ export default function Proposals() {
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: proposalObj.proposal_version?.[0]?.file_url || null,
           extensionReason: p.remarks || null,
+          proponentInfoVisibility: proposalObj.proponent_info_visibility,
           raw: p
         };
       });

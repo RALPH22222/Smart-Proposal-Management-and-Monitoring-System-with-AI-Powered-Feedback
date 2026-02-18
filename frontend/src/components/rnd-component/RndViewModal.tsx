@@ -22,6 +22,7 @@ import {
   Globe,
   CheckCircle,
   Search,
+  Eye,
   Target,
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
@@ -71,6 +72,7 @@ export interface ModalProposalData {
   endDate: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
   evaluators?: { name: string; department?: string; status: string }[];
   assignedBy?: string;
 }
@@ -350,40 +352,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
           )}
 
           {/* Evaluators Section (Only for Under Evaluation) */}
-          {(p.status === "Under Evaluators Assessment" || p.status === "under_evaluation" || p.status === "under evaluators assessment") && (
-            <div className="bg-purple-50 rounded-lg p-5 border border-purple-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-purple-800 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Assigned Evaluators
-                </h3>
-              </div>
-              {p.evaluators && p.evaluators.length > 0 ? (
-                <ul className="space-y-2">
-                  {p.evaluators.map((ev, i) => (
-                    <li key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-purple-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-bold">
-                          {ev.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">{ev.name}</p>
-                          <p className="text-[10px] text-slate-500">{ev.department || 'N/A'}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        {ev.status || 'Pending'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-purple-600 italic bg-white/50 p-3 rounded border border-purple-100 text-center">
-                  No evaluators assigned yet.
-                </div>
-              )}
-            </div>
-          )}
+
 
           {/* Status Feedback Blocks */}
 
@@ -777,6 +746,19 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Visibility Setting Indicator (Visible to R&D) */}
+                {(p.proponentInfoVisibility && p.proponentInfoVisibility !== 'both') && (
+                  <div className="bg-yellow-50 px-4 py-3 border-t border-yellow-100 flex items-center gap-2 text-yellow-800 text-xs">
+                    <Eye className="w-4 h-4" />
+                    <span className="font-semibold">Visibility Restriction Active:</span>
+                    <span>
+                      {p.proponentInfoVisibility === 'name' ? 'Evaluators cannot see Proponent Name.' :
+                        p.proponentInfoVisibility === 'agency' ? 'Evaluators cannot see Agency.' :
+                          'Evaluators cannot see Name or Agency.'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Grant Total Footer */}
                 <div className="flex justify-end items-center gap-4 pt-2">

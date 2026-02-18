@@ -269,6 +269,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           fax: "N/A",
           email: raw.email || "",
           classification: raw.classification_type || "Research",
+          proponentInfoVisibility: raw.proponent_info_visibility || 'both',
           classificationDetails: raw.class_input || "",
           duration: raw.duration || "0",
           startDate: raw.plan_start_date || "",

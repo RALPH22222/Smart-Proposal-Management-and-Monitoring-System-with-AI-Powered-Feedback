@@ -277,18 +277,19 @@ export class ProposalService {
   }
 
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
-    const { proposal_id, evaluator_id, deadline_at, commentsForEvaluators } = input;
+    const { proposal_id, evaluators, deadline_at, commentsForEvaluators } = input;
 
     const deadline_number_weeks = new Date();
     deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
 
-    const assignmentsPayload = evaluator_id.map((evaluator) => ({
+    const assignmentsPayload = evaluators.map((ev) => ({
       proposal_id: proposal_id,
-      evaluator_id: evaluator,
+      evaluator_id: ev.id,
       forwarded_by_rnd: rnd_id,
       deadline_at: deadline_number_weeks.toISOString(),
       comments_for_evaluators: commentsForEvaluators ?? null,
       status: EvaluatorStatus.PENDING,
+      proponent_info_visibility: ev.visibility || "both", // Saving per evaluator
     }));
 
     const { error: insertError, data: assignments } = await this.db
@@ -312,9 +313,9 @@ export class ProposalService {
       return { error: updateError, assignments: null };
     }
 
-    const assignmentsTrackerPayload = evaluator_id.map((evaluator) => ({
+    const assignmentsTrackerPayload = evaluators.map((ev) => ({
       proposal_id: proposal_id,
-      evaluator_id: evaluator,
+      evaluator_id: ev.id,
       deadline_at: deadline_number_weeks.toISOString(),
       status: AssignmentTracker.PENDING,
     }));
@@ -818,6 +819,7 @@ export class ProposalService {
         status,
         deadline_at,
         comments_for_evaluators,
+        proponent_info_visibility,
         evaluator_id(first_name,last_name),
         forwarded_by_rnd(first_name,last_name),
         proposal_id(
@@ -849,9 +851,60 @@ export class ProposalService {
       query = query.eq("status", status);
     }
 
-    const { data, error } = await query;
+    const { data: rawData, error } = await query;
 
-    return { data, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    const data = rawData?.map((item: any) => {
+      const p = item.proposal_id;
+      if (!p) return item;
+
+
+
+      const vis = item.proponent_info_visibility || p.proponent_info_visibility;
+      if (item.proponent_info_visibility) {
+        p.proponent_info_visibility = item.proponent_info_visibility;
+      }
+      if (!vis || vis === "both") return item;
+
+      // Note: 'agency' visibility means "Show Agency Only" (Hide Name)
+      //       'name' visibility means "Show Name Only" (Hide Agency)
+      //       'none' visibility means "Hide Both"
+
+      const shouldHideName = vis === "agency" || vis === "none";
+      const shouldHideAgency = vis === "name" || vis === "none";
+
+      if (shouldHideName) {
+        if (p.proponent_id) {
+          p.proponent_id.first_name = "Confidential";
+          p.proponent_id.last_name = "";
+          if (p.proponent_id.department) {
+            p.proponent_id.department.name = "Confidential";
+          }
+        }
+        // Scrub contact info
+        p.email = "Confidential";
+        p.phone = 0; // Set to 0 or null if number type required, frontend logic handles display
+      }
+
+      if (shouldHideAgency) {
+        if (p.agency) {
+          // p.agency is { name: string } from the join
+          if (typeof p.agency === 'object') p.agency.name = "Confidential";
+        }
+        if (p.agency_address) {
+          p.agency_address.city = "Confidential";
+          p.agency_address.street = "Confidential";
+          p.agency_address.barangay = "Confidential";
+        }
+      }
+
+      return item;
+    });
+
+    return { data, error: null };
   }
 
   async getRndProposals(rnd_id: string) {
@@ -995,7 +1048,7 @@ export class ProposalService {
     // 4. Fetch users and departments in parallel
     const [usersResult, departmentsResult, scoresResult, budgetsResult] = await Promise.all([
       allUserIds.length > 0
-        ? this.db.from("users").select("id, first_name, last_name").in("id", allUserIds)
+        ? this.db.from("users").select("id, first_name, last_name, email, department:department_id(name)").in("id", allUserIds)
         : { data: [], error: null },
       departmentIds.length > 0
         ? this.db.from("departments").select("id, name").in("id", departmentIds)
@@ -1053,6 +1106,9 @@ export class ProposalService {
           evaluatorName: evaluator
             ? `${evaluator.first_name || ""} ${evaluator.last_name || ""}`.trim() || "Unknown"
             : "Unknown",
+          // Adding department and email
+          evaluatorDepartment: Array.isArray((evaluator as any)?.department) ? (evaluator as any)?.department[0]?.name : ((evaluator as any)?.department?.name || "N/A"),
+          evaluatorEmail: evaluator?.email || "N/A",
           decision,
           status: ev.status,
           submittedDate: ev.deadline_at,

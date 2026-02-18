@@ -159,10 +159,14 @@ export const decisionEvaluatorToProposalSchema = z.object({
   deadline_at: z.string().date().optional(),
 });
 
-// --- Keep the rest the same ---
 export const forwardToEvaluatorsSchema = z.object({
   proposal_id: z.number().min(1, "Proposal ID is required"),
-  evaluator_id: z.array(z.string().uuid()),
+  evaluators: z.array(
+    z.object({
+      id: z.string().uuid(),
+      visibility: z.enum(["name", "agency", "both", "none"]).optional().default("both"),
+    })
+  ),
   deadline_at: z.number().int().positive().max(90, "Deadline cannot be more than 90 days"),
   commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
 });

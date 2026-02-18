@@ -110,6 +110,7 @@ export function transformProposalForModal(raw: any) {
     id: raw.id,
     title: raw.project_title || "Untitled",
     status: raw.status || "",
+    proponentInfoVisibility: raw.proponent_info_visibility,
     projectFile: latestVersion?.file_url || "",
     submittedDate: raw.created_at || "",
     lastModified: raw.updated_at || raw.created_at || "",
