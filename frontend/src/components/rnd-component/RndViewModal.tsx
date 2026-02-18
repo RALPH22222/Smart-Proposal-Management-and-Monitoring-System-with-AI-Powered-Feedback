@@ -222,25 +222,6 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
     alert(`Downloading ${fileName}...`);
   };
 
-  // Mock Assessment Data
-  const mockAssessment = {
-    objectives:
-      "The specific objectives are generally clear but need more measurable indicators (SMART criteria).",
-    methodology:
-      "The proposed statistical analysis method (ANOVA) needs further justification.",
-    budget:
-      "The travel expenses listed for Q3 seem excessive relative to the project scope.",
-    timeline:
-      "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
-    overall:
-      "The proposal is promising but requires adjustments in the methodology and budget allocation.",
-  };
-
-  //   const mockRejection =
-  //     "The proposal does not align with the current priority agenda of the institution.";
-
-  const mockRevisionDeadline = "November 30, 2025 | 5:00 PM";
-
   // --- THEME HELPER ---
   const getStatusTheme = (status: string) => {
     const s = (status || "").toLowerCase();
