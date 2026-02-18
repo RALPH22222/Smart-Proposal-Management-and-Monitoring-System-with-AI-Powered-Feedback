@@ -33,7 +33,21 @@ export const inviteUserSchema = z.object({
 export const completeInviteSchema = z.object({
   first_name: z.string().min(1, "First name is required").max(100),
   last_name: z.string().min(1, "Last name is required").max(100),
-  middle_ini: z.string().max(50).optional(),
+  middle_ini: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+    z.string().max(50).optional(),
+  ),
+  birth_date: z.coerce.date(),
+  sex: z.preprocess(
+    (val) => {
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return val; }
+      }
+      return val;
+    },
+    z.enum(["male", "female", "prefer_not_to_say"]),
+  ),
+  department_id: z.string().min(1, "Department is required"),
 });
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;

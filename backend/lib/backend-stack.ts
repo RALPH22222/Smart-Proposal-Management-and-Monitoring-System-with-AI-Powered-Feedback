@@ -687,8 +687,10 @@ export class BackendStack extends Stack {
       entry: path.resolve("src", "handlers", "auth", "complete-invite.ts"),
       environment: {
         SUPABASE_KEY,
+        PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
       },
     });
+    profile_setup_bucket.grantPut(complete_invite_lambda);
 
     const admin_toggle_account_status_lambda = new NodejsFunction(this, "pms-admin-toggle-account-status", {
       functionName: "pms-admin-toggle-account-status",
