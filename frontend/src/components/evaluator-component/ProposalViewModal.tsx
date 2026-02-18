@@ -1,6 +1,5 @@
 import {
   X,
-  Building2,
   Users,
   Target,
   Calendar,
@@ -18,8 +17,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle,
   Globe,
+  CalendarClock,
 } from "lucide-react";
 
 // --- LOCAL INTERFACES ---
@@ -90,31 +89,59 @@ export default function ProposalModal({
 
   // --- STATUS HELPERS ---
   const getStatusColor = (status: string) => {
-    const s = (status || "").toLowerCase();
-    switch (s) {
-      case "accepted": return "emerald";
-      case "rejected": return "red";
-      case "pending": return "amber";
-      case "revision required": return "orange";
-      case "extension_requested": return "blue";
-      default: return "slate";
+    switch (status) {
+      case "accepted":
+      case "approve": 
+        return "text-indigo-600 bg-indigo-50 border-indigo-200";
+      case "pending":
+        return "text-amber-600 bg-amber-50 border-amber-200";
+      case "rejected":
+      case "decline": 
+        return "text-red-600 bg-red-50 border-red-200";
+      case "extension_requested":
+      case "extend":
+        return "text-blue-600 bg-blue-50 border-blue-200";
+      case "extension_approved":
+        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      case "extension_rejected":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "for_review":
+        return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      default:
+        return "text-slate-600 bg-slate-50 border-slate-200";
     }
   };
 
   const getStatusIcon = (status: string) => {
-    const s = (status || "").toLowerCase();
-    switch (s) {
-      case "accepted": return CheckCircle;
-      case "rejected": return XCircle;
-      case "pending": return Clock;
-      case "revision required": return AlertTriangle;
-      case "extension_requested": return Clock;
-      default: return FileText;
+    switch (status) {
+      case "accepted":
+      case "extension_approved":
+        return <CheckCircle className="w-3 h-3" />;
+      case "pending":
+        return <Clock className="w-3 h-3" />;
+      case "rejected":
+      case "extension_rejected":
+      case "decline": 
+        return <XCircle className="w-3 h-3" />;
+      case "extension_requested":
+      case "extend":
+        return <CalendarClock className="w-3 h-3" />;
+      case "for_review":
+        return <Users className="w-3 h-3" />;
+      default:
+        return null;
     }
   };
 
-  const statusColor = getStatusColor(p.status);
-  const StatusIcon = getStatusIcon(p.status);
+  const formatStatus = (status: string) => {
+    if (status === "extension_requested" || status === "extend") return "Extension Requested";
+    if (status === "extension_approved") return "Extension Approved";
+    if (status === "extension_rejected") return "Extension Rejected";
+    if (status === "for_review") return "Under Review";
+    if (status === "accepted" || status === "approve") return "Reviewed"; 
+    if (status === "decline") return "Declined"; 
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
@@ -125,15 +152,10 @@ export default function ProposalModal({
           <div className="flex-1 pr-4">
             <div className="flex items-center gap-2 mb-2">
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize 
-                 ${statusColor === "emerald" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : ""}
-                 ${statusColor === "red" ? "bg-red-50 border-red-200 text-red-700" : ""}
-                 ${statusColor === "amber" ? "bg-amber-50 border-amber-200 text-amber-700" : ""}
-                 ${statusColor === "blue" ? "bg-blue-50 border-blue-200 text-blue-700" : ""}
-                 ${statusColor === "orange" ? "bg-orange-50 border-orange-200 text-orange-700" : ""}
-                 ${statusColor === "slate" ? "bg-slate-50 border-slate-200 text-slate-700" : ""}
+                 ${getStatusColor(p.status)}
                 `}>
-                <StatusIcon className="w-3 h-3" />
-                {p.status === 'extension_requested' ? 'Extension Requested' : p.status}
+                {getStatusIcon(p.status)}
+                {formatStatus(p.status)}
               </span>
               <span className="text-xs text-slate-500">ID: {p.id}</span>
             </div>
@@ -184,154 +206,150 @@ export default function ProposalModal({
                </div>
             </div>
 
-            {/* Leader & Agency */}
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
-                  <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency Info
-               </h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Proponent</span>
-                     <p className="text-sm font-medium text-slate-900">{p.proponent}</p>
-                  </div>
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Gender</span>
-                     <p className="text-sm font-medium text-slate-900">{p.gender}</p>
-                  </div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-                  {/* Agency String */}
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Agency</span>
-                     <div className="flex items-start gap-1.5 mt-0.5">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                        <p className="text-sm font-medium text-slate-900">{p.agency}</p>
-                     </div>
-                  </div>
-                  {/* Address String */}
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Address</span>
-                     <div className="flex items-start gap-1.5 mt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                        <p className="text-sm text-slate-700">{p.address}</p>
-                     </div>
-                  </div>
-               </div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Contact</span>
-                     <div className="flex items-center gap-1.5 mt-0.5">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        <p className="text-sm text-slate-700">{p.telephone}</p>
-                     </div>
-                  </div>
-                  <div>
-                     <span className="text-xs text-slate-500 uppercase font-semibold">Email</span>
-                     <div className="flex items-center gap-1.5 mt-0.5">
-                        <Mail className="w-3 h-3 text-slate-400" />
-                        <p className="text-sm text-slate-700">{p.email}</p>
-                     </div>
-                  </div>
-               </div>
+            {/* Leader & Agency Information (Standard Layout) */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+                <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Leader Info */}
+                <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
+                    <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent}</p>
+                    <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {p.telephone}
+                    </div>
+                    </div>
+                </div>
+
+                {/* Agency Info */}
+                <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Agency</label>
+                    <p className="text-sm font-semibold text-slate-900 mb-2">{p.agency}</p>
+                    <div className="flex items-start gap-2 text-sm text-slate-700">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
+                    {p.address || "N/A"}
+                    </div>
+                </div>
+                </div>
             </div>
 
             {/* Implementation Sites */}
             {p.implementationSites && p.implementationSites.length > 0 && (
-               <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                     <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites ({p.implementationSites.length})
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     {p.implementationSites.map((site, i) => (
-                        <div key={i} className="bg-white p-3 rounded-lg border border-slate-200 flex items-start gap-3 shadow-sm">
-                           <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                              <MapPin className="w-4 h-4" />
-                           </div>
-                           <div>
-                              <p className="text-sm font-bold text-slate-900">{site.site}</p>
-                              <p className="text-xs text-slate-500">{site.city}</p>
-                           </div>
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites ({p.implementationSites.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {p.implementationSites.map((site, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                        <MapPin className="w-4 h-4" />
                         </div>
-                     ))}
-                  </div>
-               </div>
+                        <div>
+                        <p className="text-sm font-bold text-slate-900 leading-tight">{site.site}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{site.city}</p>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                </div>
             )}
 
-            {/* 4. Cooperating Agencies & Mode */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{p.cooperatingAgencies}</p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{p.modeOfImplementation}</p>
-              </div>
-            </div>
+            {/* Project Details Grid (Consolidated 7 Items) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* 5. Classification & Station */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-700">
-                  <span className="font-semibold">{p.classification}:</span> {p.classificationDetails}
+                {/* Cooperating Agencies */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
+                </h4>
+                <p className="text-sm text-slate-900">{p.cooperatingAgencies || "None"}</p>
+                </div>
+
+                {/* Mode of Implementation */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <FileText className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
+                </h4>
+                <p className="text-sm font-semibold text-slate-900">{p.modeOfImplementation}</p>
+                </div>
+
+                {/* Classification */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
+                </h4>
+                <p className="text-sm font-semibold text-slate-900">{p.classification}</p>
+                {p.classificationDetails && <p className="text-xs text-slate-600 mt-1">{p.classificationDetails}</p>}
+                </div>
+
+                {/* R&D Station */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
+                </h4>
+                <p className="text-sm text-slate-900">{p.rdStation}</p>
+                </div>
+
+                {/* Priority Areas */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
+                </h4>
+                <p className="text-sm font-semibold text-slate-900">
+                    {p.priorityAreas || "N/A"}
                 </p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                  <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
+                </div>
+
+                {/* Sector */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
+                </h4>
+                <p className="text-sm font-semibold text-slate-900">
+                    {p.sector || "N/A"}
+                </p>
+                </div>
+
+                 {/* Discipline */}
+                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <BookOpen className="w-4 h-4 text-[#C8102E]" /> Discipline
+                    </h4>
+                    <p className="text-sm font-semibold text-slate-900">
+                    {p.discipline || "N/A"}
+                    </p>
+                </div>
+
+            </div>
+
+             {/* Schedule Section */}
+            <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
+                <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700">{p.rdStation}</p>
-              </div>
-            </div>
+                </div>
 
-            {/* 6. Sector, Priority, Discipline */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                        <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-700">{p.priorityAreas}</p>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-[#C8102E]" /> Discipline
-                    </h3>
-                    <p className="text-xs sm:text-sm text-slate-700">{p.discipline}</p>
-                </div>
-            </div>
-
-            {/* 7. Schedule */}
-            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-slate-600">School Year:</span>
-                  <p className="font-semibold text-slate-900">
-                    {proposal.schoolYear}
-                  </p>
+                    <p className="text-xs text-slate-500 mb-1">Duration</p>
+                    <p className="text-sm font-semibold text-slate-900">{p.duration}</p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">Duration</span>
-                  <p className="font-semibold text-slate-900 mt-1">{p.duration}</p>
+                    <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                    <p className="text-sm font-medium text-slate-900">{p.startDate}</p>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs tracking-wide">Start Date</span>
-                  <p className="font-semibold text-slate-900 mt-1">{p.startDate}</p>
+                    <p className="text-xs text-slate-500 mb-1">End Date</p>
+                    <p className="text-sm font-medium text-slate-900">{p.endDate}</p>
                 </div>
-                <div>
-                  <span className="text-slate-500 text-xs tracking-wide">End Date</span>
-                  <p className="font-semibold text-slate-900 mt-1">{p.endDate}</p>
                 </div>
-              </div>
             </div>
 
             {/* 8. Budget Table */}
