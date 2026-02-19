@@ -112,7 +112,7 @@ export interface Decision {
 	reviewedBy: string;
 	reviewedDate: string;
 	evaluationDeadline?: string;
-	assignedEvaluators?: string[];
+	assignedEvaluators?: (string | { id: string; visibility: string })[];
 	assignedRdStaffId?: string;
 }
 

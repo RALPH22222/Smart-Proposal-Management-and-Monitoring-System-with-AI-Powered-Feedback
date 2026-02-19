@@ -578,7 +578,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
               </h4>
               <p className="text-sm font-semibold text-slate-900">{formatString(p.classification)}</p>
-              {p.classificationDetails && <p className="text-xs text-slate-600 mt-1">{p.classificationDetails}</p>}
+              {p.classificationDetails && p.classificationDetails !== "N/A" && <p className="text-xs text-slate-600 mt-1">{formatString(p.classificationDetails)}</p>}
             </div>
 
             {/* R&D Station */}

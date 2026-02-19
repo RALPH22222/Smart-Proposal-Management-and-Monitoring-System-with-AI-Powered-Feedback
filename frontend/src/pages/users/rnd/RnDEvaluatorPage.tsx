@@ -380,7 +380,7 @@ export const RnDEvaluatorPage: React.FC = () => {
       // 1. Handle Removals
       if (toRemove.length > 0) {
         for (const evaluator of toRemove) {
-             await removeEvaluator(selectedProposalId, evaluator.id);
+          await removeEvaluator(selectedProposalId, evaluator.id);
         }
       }
 
@@ -388,10 +388,10 @@ export const RnDEvaluatorPage: React.FC = () => {
       if (newEvaluatorIds.length > 0) {
         const deadlineInDays = 14; // 14 days from now
         const payload = {
-            proposal_id: selectedProposalId,
-            evaluator_id: newEvaluatorIds,
-            deadline_at: deadlineInDays,
-            commentsForEvaluators: "Updated via R&D Tracker",
+          proposal_id: selectedProposalId,
+          evaluators: newEvaluatorIds.map(id => ({ id, visibility: "both" })),
+          deadline_at: deadlineInDays,
+          commentsForEvaluators: "Updated via R&D Tracker",
         };
         console.log("Sending reassignment payload:", payload);
         await forwardProposalToEvaluators(payload);

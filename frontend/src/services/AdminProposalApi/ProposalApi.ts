@@ -54,10 +54,16 @@ export const adminProposalApi = {
         }
       } else if (decision.decision === 'Sent to Evaluators') {
         if (decision.assignedEvaluators && decision.assignedEvaluators.length > 0) {
+          const daysUntilDeadline = deadlineTimestamp > Date.now()
+            ? Math.ceil((deadlineTimestamp - Date.now()) / (1000 * 60 * 60 * 24))
+            : 14;
+
           await forwardProposalToEvaluators({
             proposal_id: proposalId,
-            evaluator_id: decision.assignedEvaluators,
-            deadline_at: deadlineTimestamp,
+            evaluators: (decision.assignedEvaluators || []).map((e: any) =>
+              typeof e === 'string' ? { id: e, visibility: 'both' } : e
+            ),
+            deadline_at: daysUntilDeadline,
             commentsForEvaluators: decision.structuredComments?.objectives?.content // Using 'objectives' content field as general comment container from Modal
           });
         }

@@ -90,7 +90,7 @@ const ForwardToEvaluatorsModal: React.FC<ForwardToEvaluatorsModalProps> = ({
     try {
       await forwardProposalToEvaluators({
         proposal_id: proposalId,
-        evaluator_id: Array.from(selectedIds),
+        evaluators: Array.from(selectedIds).map(id => ({ id, visibility: "both" })),
         deadline_at: deadline,
         commentsForEvaluators: comments || undefined,
       });

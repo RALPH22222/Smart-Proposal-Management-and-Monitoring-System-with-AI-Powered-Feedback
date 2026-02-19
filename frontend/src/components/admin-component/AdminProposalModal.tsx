@@ -335,7 +335,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: deadlineIso,
       proponentInfoVisibility: showProponentInfo,
-      assignedEvaluators: assignedEvaluators.map(ev => ev.id!)
+      assignedEvaluators: assignedEvaluators.map(ev => ({ id: ev.id!, visibility: showProponentInfo }))
     };
 
     // Confirmation Dialog for Evaluators

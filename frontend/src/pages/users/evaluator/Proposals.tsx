@@ -76,23 +76,42 @@ export default function Proposals() {
           }).format(num || 0);
         };
 
-        // Map budget
-        const budgetSourcesMap: Record<string, { ps: number; mooe: number; co: number }> = {};
+        // Map budget — group by source and category, include breakdown items
+        const budgetSourcesMap: Record<string, { ps: { items: { item: string; amount: number }[], total: number }; mooe: { items: { item: string; amount: number }[], total: number }; co: { items: { item: string; amount: number }[], total: number } }> = {};
         (proposalObj.estimated_budget || []).forEach((b: any) => {
-          if (!budgetSourcesMap[b.source]) {
-            budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+          const src = b.source || "Unknown Source";
+          const amt = typeof b.amount === 'string' ? parseFloat(b.amount.replace(/,/g, '')) || 0 : Number(b.amount) || 0;
+          const itm = b.item || b.item_description || b.item_name || "Unspecified Item";
+          const type = (b.budget || b.item_type || "").toLowerCase();
+
+          if (!budgetSourcesMap[src]) {
+            budgetSourcesMap[src] = {
+              ps: { items: [], total: 0 },
+              mooe: { items: [], total: 0 },
+              co: { items: [], total: 0 },
+            };
           }
-          if (b.budget === "ps") budgetSourcesMap[b.source].ps += b.amount;
-          if (b.budget === "mooe") budgetSourcesMap[b.source].mooe += b.amount;
-          if (b.budget === "co") budgetSourcesMap[b.source].co += b.amount;
+
+          let cat: "ps" | "mooe" | "co" = "mooe"; // default
+          if (type.includes("ps") || type.includes("personal")) cat = "ps";
+          else if (type.includes("co") || type.includes("capital")) cat = "co";
+          else if (type.includes("mooe")) cat = "mooe";
+
+          budgetSourcesMap[src][cat].total += amt;
+          budgetSourcesMap[src][cat].items.push({ item: itm, amount: amt });
         });
 
-        const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+        const budgetSources = Object.entries(budgetSourcesMap).map(([source, data]) => ({
           source,
-          ps: formatCurrency(amounts.ps),
-          mooe: formatCurrency(amounts.mooe),
-          co: formatCurrency(amounts.co),
-          total: formatCurrency(amounts.ps + amounts.mooe + amounts.co),
+          ps: formatCurrency(data.ps.total),
+          mooe: formatCurrency(data.mooe.total),
+          co: formatCurrency(data.co.total),
+          total: formatCurrency(data.ps.total + data.mooe.total + data.co.total),
+          breakdown: {
+            ps: data.ps.items,
+            mooe: data.mooe.items,
+            co: data.co.items,
+          },
         }));
 
         const totalBudgetVal = (proposalObj.estimated_budget || []).reduce(
@@ -123,7 +142,7 @@ export default function Proposals() {
           cooperatingAgencies: (proposalObj.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
           rdStation: proposalObj.rnd_station?.name || "N/A",
           classification: proposalObj.classification_type === "research_class" ? "Research" : "Development",
-          classificationDetails: proposalObj.research_class || proposalObj.development_class || "N/A",
+          classificationDetails: proposalObj.class_input || "N/A",
           sector: proposalObj.sector?.name || "N/A",
           discipline: proposalObj.discipline?.name || "N/A",
           duration: proposalObj.duration ? `${proposalObj.duration} months` : "N/A",

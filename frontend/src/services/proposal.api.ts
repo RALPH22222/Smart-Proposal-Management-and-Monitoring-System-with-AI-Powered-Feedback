@@ -371,7 +371,7 @@ export const forwardProposalToRnd = async (proposalId: number, rndIds: string[])
 
 export type ForwardToEvaluatorsPayload = {
   proposal_id: number;
-  evaluator_id: string[];
+  evaluators: { id: string; visibility: string }[];
   deadline_at: number;
   commentsForEvaluators?: string;
 };
@@ -475,10 +475,10 @@ export const handleExtensionRequest = async (input: HandleExtensionPayload): Pro
 };
 
 export const removeEvaluator = async (proposalId: number, evaluatorId: string): Promise<any> => {
-    const { data } = await api.delete("/proposal/evaluator", {
-        // @ts-ignore
-        data: { proposal_id: proposalId, evaluator_id: evaluatorId },
-        withCredentials: true,
-    });
-    return data;
+  const { data } = await api.delete("/proposal/evaluator", {
+    // @ts-ignore
+    data: { proposal_id: proposalId, evaluator_id: evaluatorId },
+    withCredentials: true,
+  });
+  return data;
 };

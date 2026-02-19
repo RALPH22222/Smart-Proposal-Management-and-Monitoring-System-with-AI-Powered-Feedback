@@ -337,7 +337,9 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       if (decision.decision === 'Sent to Evaluators') {
         await forwardProposalToEvaluators({
           proposal_id: proposalIdNumber,
-          evaluator_id: decision.assignedEvaluators || [],
+          evaluators: (decision.assignedEvaluators || []).map((e: any) =>
+            typeof e === 'string' ? { id: e, visibility: 'both' } : e
+          ),
           deadline_at: decision.evaluationDeadline ? parseInt(decision.evaluationDeadline, 10) : 14,
           commentsForEvaluators: decision.structuredComments?.objectives?.content // Use available comment field
         });
