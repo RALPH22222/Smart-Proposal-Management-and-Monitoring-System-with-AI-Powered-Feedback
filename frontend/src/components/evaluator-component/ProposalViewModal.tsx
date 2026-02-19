@@ -22,6 +22,7 @@ import {
   FileCheck,
   EyeOff,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 
 // --- LOCAL INTERFACES ---
@@ -211,7 +212,7 @@ export default function ProposalModal({
         border: "border-emerald-200",
         text: "text-emerald-800",
         icon: <CheckCircle className="w-4 h-4 text-emerald-600" />,
-        label: "Reviewed / Approved",
+        label: "Reviewed",
       };
 
     if (["extension_approved"].includes(s))
@@ -253,14 +254,14 @@ export default function ProposalModal({
         label: "Pending Review",
       };
 
-    // Purple (Under Review)
+    // Cyan (Under Review)
     if (["for_review", "under_evaluation"].includes(s))
       return {
-        bg: "bg-purple-100",
-        border: "border-purple-200",
-        text: "text-purple-800",
-        icon: <FileText className="w-4 h-4 text-purple-600" />,
-        label: "Under Evaluation",
+        bg: "bg-cyan-100",
+        border: "border-cyan-200",
+        text: "text-cyan-800",
+        icon: <RefreshCw className="w-4 h-4 text-cyan-600" />,
+        label: "Under Review",
       };
 
     // Default

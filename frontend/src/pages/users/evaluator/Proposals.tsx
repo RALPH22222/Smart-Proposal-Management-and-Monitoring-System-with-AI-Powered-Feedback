@@ -14,7 +14,7 @@ import {
   Tag,
   Gavel,
   CalendarClock,
-  Users,
+  RefreshCw,
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import Swal from "sweetalert2";
@@ -24,7 +24,6 @@ import DecisionModal from "../../../components/evaluator-component/DecisionModal
 export default function Proposals() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
 
@@ -154,6 +153,7 @@ export default function Proposals() {
           projectFile: proposalObj.proposal_version?.[0]?.file_url || null,
           extensionReason: p.remarks || null,
           proponentInfoVisibility: proposalObj.proponent_info_visibility,
+          tags: (proposalObj.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           raw: p
         };
       });
@@ -189,87 +189,121 @@ export default function Proposals() {
     const matchesSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) || p.proponent.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "All" || p.status === statusFilter;
-    const matchesType = typeFilter === "All" || p.projectType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus;
   });
 
-  const statusOrder: Record<string, number> = {
+  // Newest proposals first; if same date, action-required statuses bubble up
+  const statusPriority: Record<string, number> = {
     pending: 0,
     extension_requested: 1,
-    accepted: 2,
-    rejected: 3,
-    decline: 3, // Group Decline with Rejected
+    extend: 1,
+    extension_approved: 2,
+    extension_rejected: 2,
+    for_review: 3,
+    under_evaluation: 3,
+    accepted: 4,
+    approve: 4,
+    approved: 4,
+    rejected: 5,
+    decline: 5,
+    disapproved: 5,
   };
 
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const orderA = statusOrder[a.status] ?? 4;
-    const orderB = statusOrder[b.status] ?? 4;
-    return orderA - orderB;
+    // Primary: newest first
+    const dateA = new Date(a.raw?.created_at || a.raw?.updated_at || 0).getTime();
+    const dateB = new Date(b.raw?.created_at || b.raw?.updated_at || 0).getTime();
+    if (dateB !== dateA) return dateB - dateA;
+    // Tiebreaker: pending/actionable first
+    const priorityA = statusPriority[a.status.toLowerCase()] ?? 6;
+    const priorityB = statusPriority[b.status.toLowerCase()] ?? 6;
+    return priorityA - priorityB;
   });
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "accepted":
-      case "approve":
-      case "extension_approved":
-      case "for_review":
-        return "text-green-600 bg-green-50 border-green-200";
-      default:
-        return "text-slate-600 bg-slate-50 border-slate-200";
-    }
+  const getStatusTheme = (status: string) => {
+    const s = (status || "").toLowerCase();
+
+    if (["accepted", "approve", "approved", "funded"].includes(s))
+      return {
+        bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-800",
+        icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
+        label: "Reviewed",
+      };
+
+    if (s === "extension_approved")
+      return {
+        bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-800",
+        icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
+        label: "Extension Approved",
+      };
+
+    if (["rejected", "decline", "disapproved"].includes(s))
+      return {
+        bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
+        icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
+        label: s === "decline" ? "Declined" : "Rejected",
+      };
+
+    if (s === "extension_rejected")
+      return {
+        bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
+        icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
+        label: "Extension Rejected",
+      };
+
+    if (["extension_requested", "extend"].includes(s))
+      return {
+        bg: "bg-blue-100", border: "border-blue-200", text: "text-blue-800",
+        icon: <CalendarClock className="w-3.5 h-3.5 text-blue-600" />,
+        label: "Extension Requested",
+      };
+
+    if (s === "pending")
+      return {
+        bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-800",
+        icon: <Clock className="w-3.5 h-3.5 text-amber-600" />,
+        label: "Pending Review",
+      };
+
+    if (["for_review", "under_evaluation"].includes(s))
+      return {
+        bg: "bg-cyan-100", border: "border-cyan-200", text: "text-cyan-800",
+        icon: <RefreshCw className="w-3.5 h-3.5 text-cyan-600" />,
+        label: "Under Review",
+      };
+
+    return {
+      bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700",
+      icon: <Clock className="w-3.5 h-3.5 text-slate-500" />,
+      label: status.charAt(0).toUpperCase() + status.slice(1),
+    };
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "accepted":
-      case "extension_approved":
-        return <CheckCircle className="w-3 h-3" />;
-      case "pending":
-        return <Clock className="w-3 h-3" />;
-      case "rejected":
-      case "extension_rejected":
-      case "decline": // Add Decline Icon (XCircle)
-        return <XCircle className="w-3 h-3" />;
-      case "extension_requested":
-      case "extend":
-        return <CalendarClock className="w-3 h-3" />;
-      case "for_review":
-        return <Users className="w-3 h-3" />;
-      default:
-        return null;
+
+  const getTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
-  const formatStatus = (status: string) => {
-    if (status === "extension_requested" || status === "extend") return "Extension Requested";
-    if (status === "extension_approved") return "Extension Approved";
-    if (status === "extension_rejected") return "Extension Rejected";
-    if (status === "for_review") return "Under Review";
-    if (status === "accepted" || status === "approve") return "Reviewed";
-    if (status === "decline") return "Declined"; // Format Decline to "Declined"
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case "ICT":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Healthcare":
-        return "bg-pink-100 text-pink-700 border-pink-200";
-      case "Agriculture":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "Energy":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "Public Safety":
-        return "bg-purple-100 text-purple-700 border-purple-200";
-      default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
-    }
-  };
 
   const handleViewClick = (proposalId: number) => {
     setSelectedProposal(proposalId);
@@ -395,31 +429,14 @@ export default function Proposals() {
                 aria-label="Filter by status"
               >
                 <option value="All">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="accepted">Accepted</option>
-                <option value="approve">Reviewed</option>
-                <option value="rejected">Rejected</option>
+                <option value="pending">Pending Review</option>
                 <option value="extension_requested">Extension Requested</option>
-              </select>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Tag className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Filter by project type"
-              >
-                <option value="All">All Types</option>
-                <option value="ICT">ICT</option>
-                <option value="Energy">Energy</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Agriculture">Agriculture</option>
-                <option value="Public Safety">Public Safety</option>
-                <option value="Environment">Environment</option>
+                <option value="extension_approved">Extension Approved</option>
+                <option value="extension_rejected">Extension Rejected</option>
+                <option value="accepted">Reviewed</option>
+                <option value="rejected">Rejected</option>
+                <option value="decline">Declined</option>
+                <option value="for_review">Under Review</option>
               </select>
             </div>
           </div>
@@ -478,26 +495,28 @@ export default function Proposals() {
                             <span>Deadline: {proposal.deadline}</span>
                           </div>
                         )}
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                            proposal.projectType,
-                          )}`}
-                        >
-                          <Tag className="w-3 h-3" />
-                          {proposal.projectType}
-                        </span>
+                        {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
+                          <span
+                            key={i}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
+                          >
+                            <Tag className="w-3 h-3" />
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 ${getStatusColor(
-                          proposal.status,
-                        )}`}
-                      >
-                        {getStatusIcon(proposal.status)}
-                        {formatStatus(proposal.status)}
-                      </span>
+                      {(() => {
+                        const theme = getStatusTheme(proposal.status);
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text}`}>
+                            {theme.icon}
+                            {theme.label}
+                          </span>
+                        );
+                      })()}
 
                       <div className="flex items-center gap-2">
                         {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
