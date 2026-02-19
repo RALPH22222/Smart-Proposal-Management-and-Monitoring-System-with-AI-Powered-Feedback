@@ -45,7 +45,7 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const { file_url, proposal_id, proponent_id, project_title, revision_response } = validation.data;
+  const { file_url, proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } = validation.data;
 
   // Get version count for path naming
   const proposalService = new ProposalService(supabase);
@@ -77,6 +77,9 @@ export const handler = buildCorsHeaders(async (event) => {
       proponent_id,
       project_title,
       revision_response,
+      plan_start_date,
+      plan_end_date,
+      budget,
     },
     fileUrl
   );
