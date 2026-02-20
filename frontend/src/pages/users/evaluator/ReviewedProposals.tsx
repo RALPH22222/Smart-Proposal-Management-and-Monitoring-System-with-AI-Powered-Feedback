@@ -40,75 +40,91 @@ export default function ReviewedProposals() {
         getEvaluatorProposals(),
         getEvaluationScoresFromProposal()
       ]);
-      
+
       const completedStatuses = ['approve', 'revise', 'reject', 'decline'];
       const filtered = data.filter((item: any) => completedStatuses.includes(item.status));
 
       const scoresMap = new Map(scores.map((s: any) => [s.proposal_id, s]));
 
       const mapped = filtered.map((item: any) => {
-         const p = item.proposal_id || {};
-         const evaluationScore = scoresMap.get(p.id);
-         const proponent = p.proponent_id || {};
-         const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
-         
-         // Map budget
-         const budgetSourcesMap: Record<string, {ps: number, mooe: number, co: number}> = {};
-         (p.estimated_budget || []).forEach((b: any) => {
-             if (!budgetSourcesMap[b.source]) {
-                 budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
-             }
-             if (b.budget === 'ps') budgetSourcesMap[b.source].ps += b.amount;
-             if (b.budget === 'mooe') budgetSourcesMap[b.source].mooe += b.amount;
-             if (b.budget === 'co') budgetSourcesMap[b.source].co += b.amount;
-         });
+        const p = item.proposal_id || {};
+        const evaluationScore = scoresMap.get(p.id);
+        const proponent = p.proponent_id || {};
+        const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
 
-         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
-             source,
-             ps: formatCurrency(amounts.ps),
-             mooe: formatCurrency(amounts.mooe),
-             co: formatCurrency(amounts.co),
-             total: formatCurrency(amounts.ps + amounts.mooe + amounts.co)
-         }));
+        // Map budget
+        const budgetSourcesMap: Record<string, {
+          ps: number; mooe: number; co: number;
+          breakdown: { ps: { item: string; amount: number }[], mooe: { item: string; amount: number }[], co: { item: string; amount: number }[] }
+        }> = {};
 
-         const totalBudgetVal = (p.estimated_budget || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+        (p.estimated_budget || []).forEach((b: any) => {
+          const src = b.source || 'Unknown';
+          if (!budgetSourcesMap[src]) {
+            budgetSourcesMap[src] = { ps: 0, mooe: 0, co: 0, breakdown: { ps: [], mooe: [], co: [] } };
+          }
 
-         return {
-             id: p.id,
-             title: p.project_title || "Untitled",
-             reviewedDate: evaluationScore?.created_at ? new Date(evaluationScore.created_at).toLocaleDateString() : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A"),
-             proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
-             projectType: p.sector?.name || "N/A",
-             agency: p.agency?.name || "N/A",
-             address: agencyAddress,
-             implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
-             telephone: p.phone || "N/A",
-             email: p.email || "N/A",
-             cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
-             rdStation: p.rnd_station?.name || "N/A",
-             classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
-             classificationDetails: p.research_class || p.development_class || "N/A",
-             modeOfImplementation: p.implementation_mode === 'multi_agency' ? 'Multi Agency' : 'Single Agency',
-             priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
-             sector: p.sector?.name || "N/A",
-             discipline: p.discipline?.name || "N/A",
-             duration: p.duration ? `${p.duration} months` : "N/A",
-             schoolYear: p.school_year || "N/A",
-             startDate: p.plan_start_date || "N/A",
-             endDate: p.plan_end_date || "N/A",
-             budgetSources,
-             budgetTotal: formatCurrency(totalBudgetVal),
-             projectFile: p.proposal_version?.[0]?.file_url || null,
-             ratings: evaluationScore ? {
-                 objectives: evaluationScore.objective,
-                 methodology: evaluationScore.methodology,
-                 budget: evaluationScore.budget,
-                 timeline: evaluationScore.timeline
-             } : {},
-             decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-             comment: evaluationScore?.comment || item.comments_for_evaluators || "No comment",
-             evaluatorId: item.id
-         };
+          const amount = Number(b.amount) || 0;
+          const itemLabel = b.object || b.item || 'Unspecified Item';
+          const rawType = (b.budget || '').toLowerCase();
+
+          let cat: 'ps' | 'mooe' | 'co' = 'mooe';
+          if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
+          else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
+          else if (rawType.includes('mooe')) cat = 'mooe';
+
+          budgetSourcesMap[src][cat] += amount;
+          budgetSourcesMap[src].breakdown[cat].push({ item: itemLabel, amount });
+        });
+
+        const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
+          source,
+          ps: formatCurrency(amounts.ps),
+          mooe: formatCurrency(amounts.mooe),
+          co: formatCurrency(amounts.co),
+          total: formatCurrency(amounts.ps + amounts.mooe + amounts.co),
+          breakdown: amounts.breakdown,
+        }));
+
+        const totalBudgetVal = (p.estimated_budget || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+
+        return {
+          id: p.id,
+          title: p.project_title || "Untitled",
+          reviewedDate: evaluationScore?.created_at ? new Date(evaluationScore.created_at).toLocaleDateString() : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A"),
+          proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
+          projectType: p.sector?.name || "N/A",
+          agency: p.agency?.name || "N/A",
+          address: agencyAddress,
+          implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
+          telephone: p.phone || "N/A",
+          email: p.email || "N/A",
+          cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+          rdStation: p.rnd_station?.name || "N/A",
+          classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
+          classificationDetails: p.class_input || p.research_class || p.development_class || "N/A",
+          modeOfImplementation: p.implementation_mode === 'multi_agency' ? 'Multi Agency' : 'Single Agency',
+          priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
+          sector: p.sector?.name || "N/A",
+          discipline: p.discipline?.name || "N/A",
+          duration: p.duration ? `${p.duration} months` : "N/A",
+          schoolYear: p.school_year || "N/A",
+          startDate: p.plan_start_date || "N/A",
+          endDate: p.plan_end_date || "N/A",
+          budgetSources,
+          budgetTotal: formatCurrency(totalBudgetVal),
+          projectFile: p.proposal_version?.[0]?.file_url || null,
+          ratings: evaluationScore ? {
+            objectives: evaluationScore.objective,
+            methodology: evaluationScore.methodology,
+            budget: evaluationScore.budget,
+            timeline: evaluationScore.timeline
+          } : {},
+          decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
+          comment: evaluationScore?.comment || item.comments_for_evaluators || "No comment",
+          evaluatorId: item.id,
+          proponentInfoVisibility: p.proponent_info_visibility,
+        };
       });
 
       // Deduplicate mapped proposals using string ID
@@ -265,9 +281,9 @@ export default function ReviewedProposals() {
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-             <div className="flex items-center justify-center h-64">
-               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
-             </div>
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+            </div>
           ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (

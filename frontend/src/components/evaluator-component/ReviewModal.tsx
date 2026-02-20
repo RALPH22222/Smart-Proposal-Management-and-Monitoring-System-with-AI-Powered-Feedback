@@ -21,6 +21,8 @@ import {
   BookOpen,
   Globe,
   FileCheck, // Added
+  Lock,
+  EyeOff,
 } from "lucide-react";
 
 // ... (keep RATING_CRITERIA and Interfaces unchanged)
@@ -74,6 +76,11 @@ interface BudgetSource {
   mooe: string;
   co: string;
   total: string;
+  breakdown?: {
+    ps: { item: string; amount: number }[];
+    mooe: { item: string; amount: number }[];
+    co: { item: string; amount: number }[];
+  }
 }
 
 interface Sites {
@@ -95,6 +102,7 @@ interface Proposal {
   rdStation: string;
   classification: string;
   classificationDetails: string;
+  class_input?: string;
   modeOfImplementation: string;
   implementationSites: Sites[];
   priorityAreas: string;
@@ -106,6 +114,7 @@ interface Proposal {
   endDate: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
 }
 
 interface ReviewModalProps {
@@ -164,6 +173,15 @@ export default function ReviewModal({
     alert(`Downloading ${fileName}`);
   };
 
+  const isNameVisible = (proposal?.proponentInfoVisibility === 'both' || proposal?.proponentInfoVisibility === 'name' || !proposal?.proponentInfoVisibility);
+  const isAgencyVisible = (proposal?.proponentInfoVisibility === 'both' || proposal?.proponentInfoVisibility === 'agency' || !proposal?.proponentInfoVisibility);
+
+  const ConfidentialBadge = () => (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-900 text-white border border-gray-800 text-xs font-semibold select-none">
+      <Lock className="w-3 h-3" /> Confidential
+    </span>
+  );
+
   const handleRatingChange = (category: string, value: number) => {
     setRatings((prev) => ({
       ...prev,
@@ -211,6 +229,24 @@ export default function ReviewModal({
     }
   };
 
+  const renderBreakdown = (items?: { item: string; amount: number }[]) => {
+    if (!items || items.length === 0) {
+      return <p className="italic text-slate-400">No itemized breakdown available</p>;
+    }
+    return (
+      <ul className="space-y-1">
+        {items.map((b, i) => (
+          <li key={i} className="flex justify-between items-start gap-2">
+            <span className="text-slate-600 line-clamp-2">{b.item}</span>
+            <span className="text-slate-900 font-medium whitespace-nowrap">
+              {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(b.amount)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   if (!isOpen || !proposal) return null;
 
   return (
@@ -220,10 +256,10 @@ export default function ReviewModal({
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
             <div className="flex items-center gap-2 mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                    <Briefcase className="w-3 h-3" />
-                    {proposal.sector || "No Sector"}
-                </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <Briefcase className="w-3 h-3" />
+                {proposal.sector || "No Sector"}
+              </span>
             </div>
             <h2 className="text-xl font-bold text-slate-900">
               {proposal.title}
@@ -245,181 +281,198 @@ export default function ReviewModal({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
-            
+
             {/* Documents Section (Updated Layout) */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
+                  <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
                 </h3>
-                </div>
-                <div 
-                    className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer" 
-                    onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
-                >
+              </div>
+              <div
+                className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer"
+                onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
+              >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                     <FileCheck className="w-5 h-5 text-[#C8102E]" />
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                     <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
-                        {proposal.projectFile || "Full Project Proposal.pdf"}
+                      {proposal.projectFile || "Full Project Proposal.pdf"}
                     </p>
                     <p className="text-xs text-slate-500">
-                         PDF Document
+                      PDF Document
                     </p>
-                    </div>
+                  </div>
                 </div>
                 <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
-                    <Download className="w-3 h-3" />
+                  <Download className="w-3 h-3" />
                 </button>
-                </div>
+              </div>
             </div>
 
             {/* General Information Grid (Leader & Agency) - REMOVED GENDER */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
                 <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {!isNameVisible && !isAgencyVisible && (
+                  <span className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-xs font-medium">
+                    <EyeOff className="w-3 h-3" /> Blind Review
+                  </span>
+                )}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Leader Info */}
                 <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
-                    <p className="text-sm font-semibold text-slate-900 mb-2">{proposal.proponent}</p>
-                    <div className="space-y-1">
+                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
+                  <div className="mb-2">
+                    {isNameVisible ? (
+                      <p className="text-sm font-semibold text-slate-900">{proposal.proponent}</p>
+                    ) : <ConfidentialBadge />}
+                  </div>
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {proposal.email}
+                      <Mail className="w-3.5 h-3.5 text-slate-400" /> {isNameVisible ? proposal.email : "---"}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {proposal.telephone}
+                      <Phone className="w-3.5 h-3.5 text-slate-400" /> {isNameVisible ? proposal.telephone : "---"}
                     </div>
-                    </div>
+                  </div>
                 </div>
 
                 {/* Agency Info */}
                 <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Agency</label>
-                    <p className="text-sm font-semibold text-slate-900 mb-2">{proposal.agency}</p>
-                    <div className="flex items-start gap-2 text-sm text-slate-700">
+                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Agency</label>
+                  <div className="mb-2">
+                    {isAgencyVisible ? (
+                      <p className="text-sm font-semibold text-slate-900">{proposal.agency}</p>
+                    ) : <ConfidentialBadge />}
+                  </div>
+                  <div className="flex items-start gap-2 text-sm text-slate-700">
                     <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                    {proposal.address || "N/A"}
+                    <div>
+                      {isAgencyVisible ? proposal.address : "---"}
                     </div>
+                  </div>
                 </div>
-                </div>
+              </div>
             </div>
 
             {/* Implementation Sites */}
             {proposal.implementationSites && proposal.implementationSites.length > 0 && (
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
                 <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites ({proposal.implementationSites.length})
+                  <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites ({proposal.implementationSites.length})
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {proposal.implementationSites.map((site, i) => (
+                  {proposal.implementationSites.map((site, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
                         <MapPin className="w-4 h-4" />
-                        </div>
-                        <div>
+                      </div>
+                      <div>
                         <p className="text-sm font-bold text-slate-900 leading-tight">{site.site}</p>
                         <p className="text-xs text-slate-500 mt-0.5">{site.city}</p>
-                        </div>
+                      </div>
                     </div>
-                    ))}
+                  ))}
                 </div>
-                </div>
+              </div>
             )}
 
             {/* Project Details Grid (Consolidated) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                {/* Cooperating Agencies */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* Cooperating Agencies */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
+                  <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
                 </h4>
                 <p className="text-sm text-slate-900">{proposal.cooperatingAgencies || "None"}</p>
-                </div>
+              </div>
 
-                {/* Mode of Implementation */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* Mode of Implementation */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <FileText className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
+                  <FileText className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
                 </h4>
                 <p className="text-sm font-semibold text-slate-900">{formatString(proposal.modeOfImplementation)}</p>
-                </div>
+              </div>
 
-                {/* Classification */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* Classification */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
+                  <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
                 </h4>
                 <p className="text-sm font-semibold text-slate-900">{formatString(proposal.classification)}</p>
-                {proposal.classificationDetails && <p className="text-xs text-slate-600 mt-1">{proposal.classificationDetails}</p>}
-                </div>
+                {proposal.classificationDetails && proposal.classificationDetails !== "N/A" && (
+                  <p className="text-xs text-slate-600 mt-1">{formatString(proposal.classificationDetails)}</p>
+                )}
+              </div>
 
-                {/* R&D Station */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* R&D Station */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
+                  <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
                 </h4>
                 <p className="text-sm text-slate-900">{proposal.rdStation}</p>
-                </div>
+              </div>
 
-                {/* Priority Areas */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* Priority Areas */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
+                  <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
                 </h4>
                 <p className="text-sm font-semibold text-slate-900">
-                    {proposal.priorityAreas || "N/A"}
+                  {proposal.priorityAreas || "N/A"}
                 </p>
-                </div>
+              </div>
 
-                {/* Sector */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+              {/* Sector */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
+                  <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
                 </h4>
                 <p className="text-sm font-semibold text-slate-900">
-                    {proposal.sector || "N/A"}
+                  {proposal.sector || "N/A"}
                 </p>
-                </div>
+              </div>
 
-                 {/* Discipline */}
-                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <BookOpen className="w-4 h-4 text-[#C8102E]" /> Discipline
-                    </h4>
-                    <p className="text-sm font-semibold text-slate-900">
-                    {proposal.discipline || "N/A"}
-                    </p>
-                </div>
+              {/* Discipline */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <BookOpen className="w-4 h-4 text-[#C8102E]" /> Discipline
+                </h4>
+                <p className="text-sm font-semibold text-slate-900">
+                  {proposal.discipline || "N/A"}
+                </p>
+              </div>
 
             </div>
 
-             {/* Schedule Section */}
+            {/* Schedule Section */}
             <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
-                <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
+                  <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
                 </h3>
-                </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <p className="text-xs text-slate-500 mb-1">Duration</p>
-                    <p className="text-sm font-semibold text-slate-900">{proposal.duration}</p>
-                </div>
-                <div>
-                    <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                    <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.startDate)}</p>
+                  <p className="text-xs text-slate-500 mb-1">Duration</p>
+                  <p className="text-sm font-semibold text-slate-900">{proposal.duration}</p>
                 </div>
                 <div>
-                    <p className="text-xs text-slate-500 mb-1">End Date</p>
-                    <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.endDate)}</p>
+                  <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.startDate)}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">End Date</p>
+                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.endDate)}</p>
                 </div>
+              </div>
             </div>
 
             {/* Budget Requirements (Card Style) */}
@@ -452,14 +505,12 @@ export default function ReviewModal({
                       {/* Card Body */}
                       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
                         {/* PS */}
-                        <div className="space-y-2 pt-2 md:pt-0">
+                        <div className="space-y-2 pt-2 md:pt-0 pl-0">
                           <div className="flex justify-between items-center mb-2">
                             <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
                             <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
                           </div>
-                          <div className="space-y-1">
-                            <p className="italic text-slate-400">No itemized breakdown available</p>
-                          </div>
+                          {renderBreakdown(budget.breakdown?.ps)}
                         </div>
 
                         {/* MOOE */}
@@ -468,9 +519,7 @@ export default function ReviewModal({
                             <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
                             <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
                           </div>
-                          <div className="space-y-1">
-                            <p className="italic text-slate-400">No itemized breakdown available</p>
-                          </div>
+                          {renderBreakdown(budget.breakdown?.mooe)}
                         </div>
 
                         {/* CO */}
@@ -479,9 +528,7 @@ export default function ReviewModal({
                             <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
                             <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
                           </div>
-                          <div className="space-y-1">
-                            <p className="italic text-slate-400">No itemized breakdown available</p>
-                          </div>
+                          {renderBreakdown(budget.breakdown?.co)}
                         </div>
                       </div>
                     </div>
@@ -520,27 +567,25 @@ export default function ReviewModal({
                       <button
                         key={num}
                         onClick={() => handleRatingChange("objectives", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                          (ratings as any).objectives === num
-                            ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                        }`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).objectives === num
+                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
+                          }`}
                       >
                         {num}
                       </button>
                     ))}
                   </div>
                   <div
-                    className={`text-xs p-3 rounded-lg border ${
-                      (ratings as any).objectives > 0
-                        ? getRatingColor((ratings as any).objectives)
-                        : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                    }`}
+                    className={`text-xs p-3 rounded-lg border ${(ratings as any).objectives > 0
+                      ? getRatingColor((ratings as any).objectives)
+                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                      }`}
                   >
                     {(ratings as any).objectives > 0
                       ? (RATING_CRITERIA.objectives.descriptions as any)[
-                          (ratings as any).objectives
-                        ]
+                      (ratings as any).objectives
+                      ]
                       : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
@@ -558,27 +603,25 @@ export default function ReviewModal({
                       <button
                         key={num}
                         onClick={() => handleRatingChange("methodology", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                          (ratings as any).methodology === num
-                            ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                        }`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).methodology === num
+                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
+                          }`}
                       >
                         {num}
                       </button>
                     ))}
                   </div>
                   <div
-                    className={`text-xs p-3 rounded-lg border ${
-                      (ratings as any).methodology > 0
-                        ? getRatingColor((ratings as any).methodology)
-                        : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                    }`}
+                    className={`text-xs p-3 rounded-lg border ${(ratings as any).methodology > 0
+                      ? getRatingColor((ratings as any).methodology)
+                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                      }`}
                   >
                     {(ratings as any).methodology > 0
                       ? (RATING_CRITERIA.methodology.descriptions as any)[
-                          (ratings as any).methodology
-                        ]
+                      (ratings as any).methodology
+                      ]
                       : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
@@ -596,27 +639,25 @@ export default function ReviewModal({
                       <button
                         key={num}
                         onClick={() => handleRatingChange("budget", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                          (ratings as any).budget === num
-                            ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                        }`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).budget === num
+                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
+                          }`}
                       >
                         {num}
                       </button>
                     ))}
                   </div>
                   <div
-                    className={`text-xs p-3 rounded-lg border ${
-                      (ratings as any).budget > 0
-                        ? getRatingColor((ratings as any).budget)
-                        : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                    }`}
+                    className={`text-xs p-3 rounded-lg border ${(ratings as any).budget > 0
+                      ? getRatingColor((ratings as any).budget)
+                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                      }`}
                   >
                     {(ratings as any).budget > 0
                       ? (RATING_CRITERIA.budget.descriptions as any)[
-                          (ratings as any).budget
-                        ]
+                      (ratings as any).budget
+                      ]
                       : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
@@ -634,27 +675,25 @@ export default function ReviewModal({
                       <button
                         key={num}
                         onClick={() => handleRatingChange("timeline", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${
-                          (ratings as any).timeline === num
-                            ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                            : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                        }`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).timeline === num
+                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
+                          }`}
                       >
                         {num}
                       </button>
                     ))}
                   </div>
                   <div
-                    className={`text-xs p-3 rounded-lg border ${
-                      (ratings as any).timeline > 0
-                        ? getRatingColor((ratings as any).timeline)
-                        : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                    }`}
+                    className={`text-xs p-3 rounded-lg border ${(ratings as any).timeline > 0
+                      ? getRatingColor((ratings as any).timeline)
+                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                      }`}
                   >
                     {(ratings as any).timeline > 0
                       ? (RATING_CRITERIA.timeline.descriptions as any)[
-                          (ratings as any).timeline
-                        ]
+                      (ratings as any).timeline
+                      ]
                       : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
@@ -687,52 +726,46 @@ export default function ReviewModal({
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       onClick={() => setDecision("Approve")}
-                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                        decision === "Approve"
-                          ? "bg-green-600 text-white border-green-600 shadow-md transform scale-[1.02]"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-green-500 hover:text-green-600 hover:bg-green-50"
-                      }`}
+                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${decision === "Approve"
+                        ? "bg-green-600 text-white border-green-600 shadow-md transform scale-[1.02]"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-green-500 hover:text-green-600 hover:bg-green-50"
+                        }`}
                     >
                       <CheckCircle
-                        className={`w-5 h-5 ${
-                          decision === "Approve"
-                            ? "text-white"
-                            : "text-green-600"
-                        }`}
+                        className={`w-5 h-5 ${decision === "Approve"
+                          ? "text-white"
+                          : "text-green-600"
+                          }`}
                       />
                       <span className="font-semibold text-sm">Approve</span>
                     </button>
 
                     <button
                       onClick={() => setDecision("Revise")}
-                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                        decision === "Revise"
-                          ? "bg-yellow-500 text-white border-yellow-500 shadow-md transform scale-[1.02]"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50"
-                      }`}
+                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${decision === "Revise"
+                        ? "bg-yellow-500 text-white border-yellow-500 shadow-md transform scale-[1.02]"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50"
+                        }`}
                     >
                       <AlertCircle
-                        className={`w-5 h-5 ${
-                          decision === "Revise"
-                            ? "text-white"
-                            : "text-yellow-500"
-                        }`}
+                        className={`w-5 h-5 ${decision === "Revise"
+                          ? "text-white"
+                          : "text-yellow-500"
+                          }`}
                       />
                       <span className="font-semibold text-sm">Revise</span>
                     </button>
 
                     <button
                       onClick={() => setDecision("Reject")}
-                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                        decision === "Reject"
-                          ? "bg-red-700 text-white border-red-700 shadow-md transform scale-[1.02]"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-red-800 hover:text-red-700 hover:bg-red-50"
-                      }`}
+                      className={`flex cursor-pointer flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${decision === "Reject"
+                        ? "bg-red-700 text-white border-red-700 shadow-md transform scale-[1.02]"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-red-800 hover:text-red-700 hover:bg-red-50"
+                        }`}
                     >
                       <XCircle
-                        className={`w-5 h-5 ${
-                          decision === "Reject" ? "text-white" : "text-red-700"
-                        }`}
+                        className={`w-5 h-5 ${decision === "Reject" ? "text-white" : "text-red-700"
+                          }`}
                       />
                       <span className="font-semibold text-sm">Reject</span>
                     </button>
@@ -754,11 +787,10 @@ export default function ReviewModal({
           <button
             onClick={handleSubmit}
             disabled={!isFormValid}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
-              !isFormValid
-                ? "bg-slate-400 cursor-not-allowed"
-                : "cursor-pointer bg-[#C8102E] hover:bg-[#A00E26]"
-            }`}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${!isFormValid
+              ? "bg-slate-400 cursor-not-allowed"
+              : "cursor-pointer bg-[#C8102E] hover:bg-[#A00E26]"
+              }`}
           >
             Submit Review
           </button>

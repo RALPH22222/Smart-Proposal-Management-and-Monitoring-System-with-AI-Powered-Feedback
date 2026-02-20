@@ -35,14 +35,28 @@ export default function EndorsedProposals() {
           : "N/A";
 
         // Map budget
-        const budgetSourcesMap: Record<string, { ps: number; mooe: number; co: number }> = {};
+        const budgetSourcesMap: Record<string, {
+          ps: number; mooe: number; co: number;
+          breakdown: { ps: { item: string; amount: number }[], mooe: { item: string; amount: number }[], co: { item: string; amount: number }[] }
+        }> = {};
+
         (p.estimated_budget || []).forEach((b: any) => {
-          if (!budgetSourcesMap[b.source]) {
-            budgetSourcesMap[b.source] = { ps: 0, mooe: 0, co: 0 };
+          const src = b.source || 'Unknown';
+          if (!budgetSourcesMap[src]) {
+            budgetSourcesMap[src] = { ps: 0, mooe: 0, co: 0, breakdown: { ps: [], mooe: [], co: [] } };
           }
-          if (b.budget === "ps") budgetSourcesMap[b.source].ps += b.amount;
-          if (b.budget === "mooe") budgetSourcesMap[b.source].mooe += b.amount;
-          if (b.budget === "co") budgetSourcesMap[b.source].co += b.amount;
+
+          const amount = Number(b.amount) || 0;
+          const itemLabel = b.object || b.item || 'Unspecified Item';
+          const rawType = (b.budget || '').toLowerCase();
+
+          let cat: 'ps' | 'mooe' | 'co' = 'mooe';
+          if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
+          else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
+          else if (rawType.includes('mooe')) cat = 'mooe';
+
+          budgetSourcesMap[src][cat] += amount;
+          budgetSourcesMap[src].breakdown[cat].push({ item: itemLabel, amount });
         });
 
         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({
@@ -51,6 +65,7 @@ export default function EndorsedProposals() {
           mooe: formatCurrency(amounts.mooe),
           co: formatCurrency(amounts.co),
           total: formatCurrency(amounts.ps + amounts.mooe + amounts.co),
+          breakdown: amounts.breakdown,
         }));
 
         const totalBudgetVal = (p.estimated_budget || []).reduce(
@@ -72,7 +87,7 @@ export default function EndorsedProposals() {
           cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
           rdStation: p.rnd_station?.name || "N/A",
           classification: p.classification_type === "research_class" ? "Research" : "Development",
-          classificationDetails: p.research_class || p.development_class || "N/A",
+          classificationDetails: p.class_input || p.research_class || p.development_class || "N/A",
           modeOfImplementation: p.implementation_mode === "multi_agency" ? "Multi Agency" : "Single Agency",
           priorityAreas: (p.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
           sector: p.sector?.name || "N/A",
@@ -85,6 +100,7 @@ export default function EndorsedProposals() {
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: p.proposal_version?.[0]?.file_url || null,
           evaluatorId: item.id,
+          proponentInfoVisibility: p.proponent_info_visibility,
         };
       });
 
