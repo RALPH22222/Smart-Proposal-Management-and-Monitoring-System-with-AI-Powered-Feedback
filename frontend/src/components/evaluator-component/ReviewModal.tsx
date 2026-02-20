@@ -422,73 +422,81 @@ export default function ReviewModal({
                 </div>
             </div>
 
-            {/* Budget Table */}
+            {/* Budget Requirements (Card Style) */}
             {proposal.budgetSources && (
-                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#C8102E]" />
-                    Estimated Budget by Source
+                  <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
                 </h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                    <thead>
-                        <tr className="bg-slate-100">
-                        <th className="border border-slate-300 px-3 py-2 text-left font-semibold text-slate-700">
-                            Source of Funds
-                        </th>
-                        <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            PS
-                        </th>
-                        <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            MOOE
-                        </th>
-                        <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            CO
-                        </th>
-                        <th className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-700">
-                            TOTAL
-                        </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {proposal.budgetSources.map((budget, index) => (
-                        <tr key={index} className="hover:bg-slate-50">
-                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">
-                            {budget.source}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                            {budget.ps}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                            {budget.mooe}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right text-slate-700">
-                            {budget.co}
-                            </td>
-                            <td className="border border-slate-300 px-3 py-2 text-right font-semibold text-slate-800">
-                            {budget.total}
-                            </td>
-                        </tr>
-                        ))}
-                        <tr className="bg-slate-200 font-bold">
-                        <td className="border border-slate-300 px-3 py-2 text-slate-900">
-                            TOTAL
-                        </td>
-                        <td
-                            className="border border-slate-300 px-3 py-2 text-right text-slate-900"
-                            colSpan={3}
-                        >
-                            →
-                        </td>
-                        <td className="border border-slate-300 px-3 py-2 text-right text-[#C8102E] text-sm">
-                            {proposal.budgetTotal}
-                        </td>
-                        </tr>
-                    </tbody>
-                    </table>
+
+                <div className="space-y-6">
+                  {proposal.budgetSources.map((budget, index) => (
+                    <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                      {/* Card Header */}
+                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                            <DollarSign className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
+                            <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
+                          <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                        </div>
+                      </div>
+
+                      {/* Card Body */}
+                      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
+                        {/* PS */}
+                        <div className="space-y-2 pt-2 md:pt-0">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
+                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="italic text-slate-400">No itemized breakdown available</p>
+                          </div>
+                        </div>
+
+                        {/* MOOE */}
+                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
+                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="italic text-slate-400">No itemized breakdown available</p>
+                          </div>
+                        </div>
+
+                        {/* CO */}
+                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
+                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="italic text-slate-400">No itemized breakdown available</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Grand Total Footer */}
+                  <div className="flex justify-end items-center gap-4 pt-2">
+                    <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
+                    <span className="text-xl font-bold text-[#C8102E]">{proposal.budgetTotal}</span>
+                  </div>
+
                 </div>
-                </div>
+              </div>
             )}
+
 
 
             {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
