@@ -273,7 +273,9 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
       if (decision.decision === 'Sent to Evaluators') {
         newStatus = 'Under Evaluators Assessment';
-        newAssignedEvaluators = decision.assignedEvaluators || [];
+        newAssignedEvaluators = (decision.assignedEvaluators || []).map((e) =>
+          typeof e === 'string' ? e : e.id
+        );
       } else if (decision.decision === 'Rejected Proposal') {
         newStatus = 'Rejected Proposal';
       } else if (decision.decision === 'Revision Required') {

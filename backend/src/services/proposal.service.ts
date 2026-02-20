@@ -1058,7 +1058,7 @@ export class ProposalService {
         .from("evaluation_scores")
         .select("proposal_id, evaluator_id, objective, methodology, budget, timeline, comment")
         .in("proposal_id", proposalIds),
-      this.db.from("estimated_budget").select("proposal_id, source, budget, amount").in("proposal_id", proposalIds),
+      this.db.from("estimated_budget").select("id, proposal_id, item, source, budget, amount").in("proposal_id", proposalIds),
     ]);
 
     if (usersResult.error) return { data: null, error: usersResult.error };
@@ -1165,6 +1165,7 @@ export class ProposalService {
         overallRecommendation,
         readyForEndorsement,
         budget,
+        estimated_budget: proposalBudgets, // raw items with item, source, budget(category), amount
       };
     });
 

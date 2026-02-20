@@ -30,6 +30,7 @@ import { useAuthContext } from '../../../context/AuthContext';
 
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
+
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,6 +49,50 @@ const EndorsePage: React.FC = () => {
     budget?: BudgetRow[];
   } | null>(null);
 
+  // --- Budget transformer: raw estimated_budget items → grouped BudgetRow[] with breakdowns ---
+  const transformEstimatedBudget = (items: any[]): BudgetRow[] => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const map: Record<string, {
+      ps: { items: { item: string; amount: number }[]; total: number };
+      mooe: { items: { item: string; amount: number }[]; total: number };
+      co: { items: { item: string; amount: number }[]; total: number };
+    }> = {};
+
+    items.forEach((b: any) => {
+      const src = b.source || 'Unknown';
+      const amount = Number(b.amount) || 0;
+      const itemLabel = b.item || 'Unspecified Item';
+      const rawType = (b.budget || '').toLowerCase();
+
+      let cat: 'ps' | 'mooe' | 'co' = 'mooe';
+      if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
+      else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
+      else if (rawType.includes('mooe')) cat = 'mooe';
+
+      if (!map[src]) map[src] = {
+        ps: { items: [], total: 0 },
+        mooe: { items: [], total: 0 },
+        co: { items: [], total: 0 },
+      };
+
+      map[src][cat].total += amount;
+      map[src][cat].items.push({ item: itemLabel, amount });
+    });
+
+    return Object.entries(map).map(([source, data]) => ({
+      source,
+      ps: data.ps.total,
+      mooe: data.mooe.total,
+      co: data.co.total,
+      total: data.ps.total + data.mooe.total + data.co.total,
+      breakdown: {
+        ps: data.ps.items,
+        mooe: data.mooe.items,
+        co: data.co.items,
+      },
+    }));
+  };
+
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -64,7 +109,7 @@ const EndorsePage: React.FC = () => {
         id: p.id,
         title: p.title,
         submittedBy: p.submittedBy,
-        budget: p.budget,
+        budget: transformEstimatedBudget(p.estimated_budget || []),
         evaluatorDecisions: Object.values(
           p.evaluatorDecisions.reduce((acc: Record<string, any>, d: any) => {
             if (!acc[d.evaluatorId] || (acc[d.evaluatorId].decision === 'Pending' && d.decision !== 'Pending')) {

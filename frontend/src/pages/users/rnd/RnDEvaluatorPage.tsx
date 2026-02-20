@@ -74,6 +74,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false); // separate flag for modal-open action
 
   // --- DATA FETCHING ---
   const fetchData = async () => {
@@ -283,7 +284,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
     // Let's enrich 'assignments' or use a separate fetch.
     // To save time/code churn, I'll just re-call the API since it's cleaner than modifying the main state structure heavily.
-    setLoading(true);
+    setEditLoading(true);
     try {
       const proposalIdNumeric = parseInt(id);
 
@@ -348,7 +349,7 @@ export const RnDEvaluatorPage: React.FC = () => {
     } catch (e) {
       console.error("Failed to load details", e);
     } finally {
-      setLoading(false);
+      setEditLoading(false);
     }
   };
 
@@ -586,7 +587,8 @@ export const RnDEvaluatorPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(assignment.id)}
-                        className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1"
+                        disabled={editLoading}
+                        className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <Edit2 className="w-3 h-3" /> Action
                       </button>

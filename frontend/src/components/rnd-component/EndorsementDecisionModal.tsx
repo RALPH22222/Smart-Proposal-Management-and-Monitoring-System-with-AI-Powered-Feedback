@@ -1,23 +1,17 @@
 import { useState, useEffect } from "react";
-import { 
-  ClipboardEdit, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
-  RotateCcw, 
-  Plus, 
+import {
+  ClipboardEdit,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  Plus,
   Trash2,
   AlertTriangle // Added for confirmation warning
 } from "lucide-react";
+import type { BudgetRow } from "../../types/evaluator";
 
-// New Interface for Budget Data
-export interface BudgetRow {
-  source: string;
-  ps: number;
-  mooe: number;
-  co: number;
-  total: number;
-}
+
 
 interface DecisionModalProps {
   isOpen: boolean;
@@ -67,16 +61,16 @@ export default function EndorsementDecisionModal({
 }: DecisionModalProps) {
   const [decision, setDecision] = useState<"endorsed" | "revised" | "rejected">("endorsed");
   const [remarks, setRemarks] = useState("");
-  
+
   // Revised Logic
   const [sections, setSections] = useState<string[]>(DEFAULT_SECTIONS);
   const [structuredRemarks, setStructuredRemarks] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState(DEFAULT_SECTIONS[0]);
   const [revisionDeadline, setRevisionDeadline] = useState("2 Weeks (Default)");
-  
+
   // Confirmation Logic
   const [showConfirmation, setShowConfirmation] = useState(false);
-  
+
   const [error, setError] = useState("");
 
   // Calculate Grand Total for Budget
@@ -130,8 +124,8 @@ export default function EndorsementDecisionModal({
     } else {
       if (!remarks.trim()) {
         setError(
-          decision === "endorsed" 
-            ? "Please provide a justification for this endorsement." 
+          decision === "endorsed"
+            ? "Please provide a justification for this endorsement."
             : "Please provide an explanation for this rejection."
         );
         return;
@@ -168,45 +162,43 @@ export default function EndorsementDecisionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh] relative">
-        
+
         {/* --- CONFIRMATION OVERLAY --- */}
         {showConfirmation && (
-           <div className="absolute inset-0 z-10 bg-white/95 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200 text-center">
-             <div className={`p-4 rounded-full mb-4 ${
-               decision === 'endorsed' ? 'bg-emerald-100 text-emerald-600' :
-               decision === 'revised' ? 'bg-yellow-100 text-yellow-600' :
-               'bg-red-100 text-red-600'
-             }`}>
-               <AlertTriangle className="w-12 h-12" />
-             </div>
-             
-             <h3 className="text-2xl font-bold text-slate-800 mb-2">Are you sure?</h3>
-             <p className="text-slate-600 mb-8 max-w-md">
-               You are about to <span className="font-bold">{decision}</span> the proposal <span className="italic">"{proposalTitle}"</span>. 
-               {decision === 'revised' && " The proponent will be notified to revise their submission."}
-               {decision === 'rejected' && " This action cannot be easily undone."}
-               {decision === 'endorsed' && " This will move the proposal to the next stage."}
-             </p>
+          <div className="absolute inset-0 z-10 bg-white/95 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200 text-center">
+            <div className={`p-4 rounded-full mb-4 ${decision === 'endorsed' ? 'bg-emerald-100 text-emerald-600' :
+              decision === 'revised' ? 'bg-yellow-100 text-yellow-600' :
+                'bg-red-100 text-red-600'
+              }`}>
+              <AlertTriangle className="w-12 h-12" />
+            </div>
 
-             <div className="flex gap-3 w-full max-w-xs">
-               <button
-                 onClick={() => setShowConfirmation(false)}
-                 className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-               >
-                 Go Back
-               </button>
-               <button
-                 onClick={handleFinalSubmit}
-                 className={`flex-1 px-4 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-transform active:scale-95 ${
-                    decision === 'endorsed' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                    decision === 'revised' ? 'bg-yellow-600 hover:bg-yellow-700' :
+            <h3 className="text-2xl font-bold text-slate-800 mb-2">Are you sure?</h3>
+            <p className="text-slate-600 mb-8 max-w-md">
+              You are about to <span className="font-bold">{decision}</span> the proposal <span className="italic">"{proposalTitle}"</span>.
+              {decision === 'revised' && " The proponent will be notified to revise their submission."}
+              {decision === 'rejected' && " This action cannot be easily undone."}
+              {decision === 'endorsed' && " This will move the proposal to the next stage."}
+            </p>
+
+            <div className="flex gap-3 w-full max-w-xs">
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleFinalSubmit}
+                className={`flex-1 px-4 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-transform active:scale-95 ${decision === 'endorsed' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                  decision === 'revised' ? 'bg-yellow-600 hover:bg-yellow-700' :
                     'bg-red-600 hover:bg-red-700'
-                 }`}
-               >
-                 Yes, {decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Revise' : 'Reject'}
-               </button>
-             </div>
-           </div>
+                  }`}
+              >
+                Yes, {decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Revise' : 'Reject'}
+              </button>
+            </div>
+          </div>
         )}
 
         {/* --- MAIN MODAL HEADER --- */}
@@ -216,9 +208,9 @@ export default function EndorsementDecisionModal({
             Manage Proposal
           </h3>
           <div className="flex justify-between items-end mt-1">
-             <p className="text-sm text-slate-500 line-clamp-1 max-w-[70%]">
-               {proposalTitle}
-             </p>
+            <p className="text-sm text-slate-500 line-clamp-1 max-w-[70%]">
+              {proposalTitle}
+            </p>
           </div>
         </div>
 
@@ -237,11 +229,10 @@ export default function EndorsementDecisionModal({
                   setRemarks("");
                   setError("");
                 }}
-                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
-                  decision === "endorsed"
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500"
-                    : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50 text-slate-500"
-                }`}
+                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${decision === "endorsed"
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-500"
+                  : "border-slate-200 hover:border-emerald-200 hover:bg-slate-50 text-slate-500"
+                  }`}
               >
                 {decision === "endorsed" && (
                   <div className="absolute top-2 right-2 text-emerald-600">
@@ -260,11 +251,10 @@ export default function EndorsementDecisionModal({
                   setRemarks("");
                   setError("");
                 }}
-                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
-                  decision === "revised"
-                    ? "border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md ring-1 ring-yellow-500"
-                    : "border-slate-200 hover:border-yellow-200 hover:bg-slate-50 text-slate-500"
-                }`}
+                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${decision === "revised"
+                  ? "border-yellow-500 bg-yellow-50 text-yellow-700 shadow-md ring-1 ring-yellow-500"
+                  : "border-slate-200 hover:border-yellow-200 hover:bg-slate-50 text-slate-500"
+                  }`}
               >
                 {decision === "revised" && (
                   <div className="absolute top-2 right-2 text-yellow-600">
@@ -283,11 +273,10 @@ export default function EndorsementDecisionModal({
                   setRemarks(REJECTION_TEMPLATE);
                   setError("");
                 }}
-                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${
-                  decision === "rejected"
-                    ? "border-red-500 bg-red-50 text-red-700 shadow-sm ring-1 ring-red-500"
-                    : "border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500"
-                }`}
+                className={`cursor-pointer relative p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all duration-200 ${decision === "rejected"
+                  ? "border-red-500 bg-red-50 text-red-700 shadow-sm ring-1 ring-red-500"
+                  : "border-slate-200 hover:border-red-200 hover:bg-slate-50 text-slate-500"
+                  }`}
               >
                 {decision === "rejected" && (
                   <div className="absolute top-2 right-2 text-red-600">
@@ -330,23 +319,22 @@ export default function EndorsementDecisionModal({
                       <button
                         key={section}
                         onClick={() => setActiveTab(section)}
-                        className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors relative top-[1px] ${
-                          activeTab === section
-                            ? "bg-[#C8102E] text-white border-t border-x border-[#C8102E]"
-                            : "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                        }`}
+                        className={`px-4 py-2 text-xs font-semibold rounded-t-lg transition-colors relative top-[1px] ${activeTab === section
+                          ? "bg-[#C8102E] text-white border-t border-x border-[#C8102E]"
+                          : "bg-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                          }`}
                       >
                         {section}
                       </button>
                     ))}
                   </div>
                   <div className="bg-white relative">
-                     <div className="flex justify-between items-center mb-2">
-                        <label className="text-sm font-medium text-slate-700">{activeTab}</label>
-                        {isCustomSection && (
-                          <button onClick={() => handleDeleteSection(activeTab)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                        )}
-                     </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-sm font-medium text-slate-700">{activeTab}</label>
+                      {isCustomSection && (
+                        <button onClick={() => handleDeleteSection(activeTab)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      )}
+                    </div>
                     <textarea
                       className="w-full h-40 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none resize-none text-sm"
                       placeholder={`Enter your comments for ${activeTab.toLowerCase()}...`}
@@ -359,48 +347,108 @@ export default function EndorsementDecisionModal({
             ) : (
               /* --- ENDORSE / REJECT VIEW --- */
               <div className="space-y-6">
-                
-                {/* NEW BUDGET TABLE (Only for Endorsed) */}
+
+                {/* NEW BUDGET CARD LAYOUT (matches ProposalViewModal Budget Requirements) */}
                 {decision === "endorsed" && (
                   <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
+                    <div className="p-4 border-b border-slate-200 flex items-center gap-2 bg-white">
                       <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                        <span className="text-[#C8102E] font-serif font-black text-lg">$</span>
-                         Estimated Budget by Source
+                        <span className="text-[#C8102E] font-serif font-black text-lg">₱</span>
+                        Budget Requirements
                       </h4>
                     </div>
-                    
+
                     {budgetData.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
-                            <tr>
-                              <th className="px-4 py-3">Source</th>
-                              <th className="px-4 py-3 text-right">PS</th>
-                              <th className="px-4 py-3 text-right">MOOE</th>
-                              <th className="px-4 py-3 text-right">CO</th>
-                              <th className="px-4 py-3 text-right">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 bg-white">
-                            {budgetData.map((row, index) => (
-                              <tr key={index} className="hover:bg-slate-50/50">
-                                <td className="px-4 py-3 font-medium text-slate-700">{row.source}</td>
-                                <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.ps)}</td>
-                                <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.mooe)}</td>
-                                <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.co)}</td>
-                                <td className="px-4 py-3 text-right font-bold text-slate-800">{formatCurrency(row.total)}</td>
-                              </tr>
-                            ))}
-                            {/* Grand Total Row */}
-                            <tr className="bg-slate-50 border-t-2 border-slate-200">
-                              <td colSpan={4} className="px-4 py-3 font-bold text-slate-800 tracking-wide">Grand Total</td>
-                              <td className="px-4 py-3 text-right font-black text-[#C8102E] text-base">
-                                {formatCurrency(grandTotal)}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                      <div className="p-4 space-y-4">
+                        {budgetData.map((budget, index) => (
+                          <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            {/* Card Header */}
+                            <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                                  <span className="text-sm font-black">₱</span>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
+                                  <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
+                                <p className="text-sm font-bold text-[#C8102E]">{formatCurrency(budget.total)}</p>
+                              </div>
+                            </div>
+
+                            {/* Card Body — PS / MOOE / CO columns */}
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
+                              {/* PS */}
+                              <div className="space-y-2 pt-2 md:pt-0">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
+                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                                    {formatCurrency(budget.ps)}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
+                                    budget.breakdown.ps.map((itm, i) => (
+                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                        <span>{itm.item}</span>
+                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
+                                      </div>
+                                    ))
+                                  ) : <p className="italic text-slate-400">No items</p>}
+                                </div>
+                              </div>
+
+                              {/* MOOE */}
+                              <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
+                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                                    {formatCurrency(budget.mooe)}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
+                                    budget.breakdown.mooe.map((itm, i) => (
+                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                        <span>{itm.item}</span>
+                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
+                                      </div>
+                                    ))
+                                  ) : <p className="italic text-slate-400">No items</p>}
+                                </div>
+                              </div>
+
+                              {/* CO */}
+                              <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
+                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                                    {formatCurrency(budget.co)}
+                                  </span>
+                                </div>
+                                <div className="space-y-1">
+                                  {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
+                                    budget.breakdown.co.map((itm, i) => (
+                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                        <span>{itm.item}</span>
+                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
+                                      </div>
+                                    ))
+                                  ) : <p className="italic text-slate-400">No items</p>}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Grand Total Footer */}
+                        <div className="flex justify-end items-center gap-4 pt-2 border-t border-slate-200 mt-2">
+                          <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
+                          <span className="text-xl font-bold text-[#C8102E]">{formatCurrency(grandTotal)}</span>
+                        </div>
                       </div>
                     ) : (
                       <div className="p-8 text-center text-slate-400 text-sm">
@@ -410,9 +458,10 @@ export default function EndorsementDecisionModal({
                   </div>
                 )}
 
+
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
-                    {decision === "endorsed" ? "Endorsement Justification" : "Rejection Explanation"} 
+                    {decision === "endorsed" ? "Endorsement Justification" : "Rejection Explanation"}
                     <span className="text-red-500 ml-1">*</span>
                   </label>
                   <textarea
@@ -454,11 +503,10 @@ export default function EndorsementDecisionModal({
           <button
             onClick={handleProceedToConfirm} // Changed to open confirmation instead of submit
             disabled={!decision}
-            className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-all shadow-sm flex items-center gap-2 ${
-              decision
-                ? "bg-[#C8102E] hover:bg-[#A00C24] hover:shadow-md cursor-pointer transform active:scale-95"
-                : "bg-slate-300 cursor-not-allowed"
-            }`}
+            className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-all shadow-sm flex items-center gap-2 ${decision
+              ? "bg-[#C8102E] hover:bg-[#A00C24] hover:shadow-md cursor-pointer transform active:scale-95"
+              : "bg-slate-300 cursor-not-allowed"
+              }`}
           >
             {decision === "endorsed" ? "Confirm Endorsement" : decision === "revised" ? "Send for Revision" : "Confirm Rejection"}
           </button>

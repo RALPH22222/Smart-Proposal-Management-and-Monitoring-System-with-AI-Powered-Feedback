@@ -10,7 +10,7 @@ import Monitoring from "./monitoring"
 const ProponentMainLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const currentTab = searchParams.get("tab") || "submission";
+  const currentTab = searchParams.get("tab") || "profile";
 
   const handlePageChange = (page: string) => {
     setSearchParams({ tab: page });
@@ -27,7 +27,7 @@ const ProponentMainLayout: React.FC = () => {
       case "monitoring":
         return <Monitoring />;
       default:
-        return <Submission />;
+        return <Profile />;
     }
   };
 

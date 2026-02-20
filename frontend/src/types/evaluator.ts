@@ -46,11 +46,16 @@ export interface EvaluatorAssignmentData {
 }
 
 export interface BudgetRow {
-  source: string;
-  ps: number;
-  mooe: number;
-  co: number;
-  total: number;
+	source: string;
+	ps: number;
+	mooe: number;
+	co: number;
+	total: number;
+	breakdown?: {
+		ps: { item: string; amount: number }[];
+		mooe: { item: string; amount: number }[];
+		co: { item: string; amount: number }[];
+	};
 }
 
 export interface EndorsementProposal {

@@ -92,9 +92,9 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
 
   // Updated Navigation Items with specific Sequence
   const navItems = [
-    { id: "submission", name: "Submission", icon: SubmissionIcon },
     { id: "profile", name: "Profile", icon: ProfileIcon },
-    { id: "monitoring", name: "Monitoring", icon: MonitoringIcon }, // Added Monitoring Here
+    { id: "submission", name: "Submission", icon: SubmissionIcon },
+    { id: "monitoring", name: "Monitoring", icon: MonitoringIcon },
     { id: "settings", name: "Settings", icon: SettingsIcon },
   ];
 
@@ -122,7 +122,7 @@ const ProponentNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) =
             className="flex items-center gap-3 group focus:outline-none z-50"
             onClick={(e) => {
               e.preventDefault();
-              onPageChange("submission");
+              onPageChange("profile");
             }}
           >
             <div className="relative flex items-center gap-2">
