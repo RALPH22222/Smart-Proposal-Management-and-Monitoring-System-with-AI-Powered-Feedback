@@ -223,6 +223,9 @@ export const submitRevisedProposalSchema = z.object({
   // Optional metadata updates
   project_title: z.string().min(1).max(256, "project title is too long").optional(),
   revision_response: z.string().max(2000, "Response is too long").optional(),
+  plan_start_date: z.string().date().optional(),
+  plan_end_date: z.string().date().optional(),
+  budget: z.preprocess(parseJsonIfString, budgetsSchema).optional(),
 });
 
 export const handleExtensionRequestSchema = z.object({

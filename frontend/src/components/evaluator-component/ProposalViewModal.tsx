@@ -76,7 +76,6 @@ export interface Proposal {
   projectFile?: string;
   extensionReason?: string;
   submittedDate?: string;
-  // Raw fields fallback
   estimated_budget?: any[];
   classification_type?: string;
   class_input?: string;

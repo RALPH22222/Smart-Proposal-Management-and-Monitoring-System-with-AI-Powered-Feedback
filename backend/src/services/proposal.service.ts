@@ -1283,7 +1283,7 @@ export class ProposalService {
   }
 
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
-    const { proposal_id, proponent_id, project_title, revision_response } = input;
+    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } = input;
 
     // 1. Verify proposal exists and belongs to proponent
     const { data: proposal, error: fetchError } = await this.db
@@ -1336,20 +1336,52 @@ export class ProposalService {
       return { error: versionError };
     }
 
-    // 6. Update proposal status to review_rnd and optionally update project_title
+    // 6. Update proposal status to review_rnd and optionally update fields
     const updatePayload: Record<string, any> = {
       status: Status.REVIEW_RND,
       updated_at: new Date().toISOString(),
     };
 
-    if (project_title) {
-      updatePayload.project_title = project_title;
-    }
+    if (project_title) updatePayload.project_title = project_title;
+    if (plan_start_date) updatePayload.plan_start_date = plan_start_date;
+    if (plan_end_date) updatePayload.plan_end_date = plan_end_date;
 
     const { error: updateError } = await this.db.from("proposals").update(updatePayload).eq("id", proposal_id);
 
     if (updateError) {
       return { error: updateError };
+    }
+
+    // 6b. Replace budget rows if provided
+    if (Array.isArray(budget) && budget.length > 0) {
+      const { error: deleteError } = await this.db
+        .from("estimated_budget")
+        .delete()
+        .eq("proposal_id", proposal_id);
+
+      if (deleteError) {
+        return { error: deleteError };
+      }
+
+      const budget_rows = budget.flatMap((entry) => {
+        const source = entry.source;
+        const toRows = (category: Budget) =>
+          entry.budget[category].map((x: { item: string; value: number }) => ({
+            proposal_id,
+            source,
+            budget: category,
+            item: x.item,
+            amount: x.value,
+          }));
+        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
+      });
+
+      if (budget_rows.length > 0) {
+        const { error: budgetError } = await this.db.from("estimated_budget").insert(budget_rows);
+        if (budgetError) {
+          return { error: budgetError };
+        }
+      }
     }
 
     // 7. Log the action to proposal_logs
