@@ -266,33 +266,30 @@ export const RnDEvaluatorPage: React.FC = () => {
   };
 
   const handleEdit = async (id: string) => {
-    // When clicking 'Action' on a proposal row
-    // We need to fetch/prepare the detailed evaluators list for that proposal
-    // We can rely on the raw data we already fetched if we stored it properly,
-    // or re-fetch. Since we grouped it earlier, let's look at the mapping logic or re-find in 'assignments'
-    // But 'assignments' is simplified.
-    // Better strategy: re-fetch or keep raw data.
-    // For simplicity, let's filter from the 'assignments' state logic re-applied or just re-run the finding logic.
-    // Actually, distinct evaluators details (remarks, request_deadline) are lost in 'assignments' map.
-    // Let's re-fetch specifically or just use the tracker again.
-
-    // Quick fix: Let's fetch the tracker again to be sure we have latest status details for the modal
-    // OR, simpler: filter the last API response. But we didn't save it.
-    // Let's modify fetchAssignments to save raw data or just accept a re-fetch pattern for now to rely on single source of truth.
-    // Re-fetching full list might be heavy. Let's optimize by saving raw data in a ref or state if needed.
-    // For now, let's just trigger a fresh fetch inside the modal logic or just allow the use of 'assignments' if we enrich it.
-
-    // Let's enrich 'assignments' or use a separate fetch.
-    // To save time/code churn, I'll just re-call the API since it's cleaner than modifying the main state structure heavily.
+    // Immediate feedback: Open modal and show loading state
+    setShowModal(true);
     setEditLoading(true);
+    setCurrentEvaluators([]); // Clear previous data to show loader effectively
+
     try {
       const proposalIdNumeric = parseInt(id);
+
+      // Optimistically set title if we can find it in the list (so header isn't empty)
+      const cachedAssignment = assignments.find(a => a.id === id);
+      if (cachedAssignment) {
+        setSelectedProposalTitle(cachedAssignment.proposalTitle);
+      }
+      setSelectedProposalId(proposalIdNumeric);
 
       const data = await getAssignmentTracker(proposalIdNumeric);
 
       const relevantItems = data; // Data is already filtered by API now!
 
-      if (relevantItems.length === 0) return;
+      if (relevantItems.length === 0) {
+        // If no data, stop loading but keep modal open (empty state)
+        setEditLoading(false);
+        return;
+      }
 
       // Deduplicate relevantItems by evaluator_id.id
       const seenEvaluators = new Set<string>();
@@ -342,12 +339,21 @@ export const RnDEvaluatorPage: React.FC = () => {
         };
       });
 
-      setSelectedProposalTitle(relevantItems[0].proposal_id.project_title);
-      setSelectedProposalId(proposalIdNumeric);
+      // Update with fetched details (Title might be more accurate here)
+      if (relevantItems[0]?.proposal_id?.project_title) {
+        setSelectedProposalTitle(relevantItems[0].proposal_id.project_title);
+      }
+
       setCurrentEvaluators(modalEvaluators);
-      setShowModal(true);
+
     } catch (e) {
       console.error("Failed to load details", e);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load evaluator details.'
+      });
+      setShowModal(false); // Close if error
     } finally {
       setEditLoading(false);
     }
@@ -450,6 +456,7 @@ export const RnDEvaluatorPage: React.FC = () => {
       "bg-orange-50 text-orange-700 border-orange-200",
       "bg-cyan-50 text-cyan-700 border-cyan-200",
       "bg-teal-50 text-teal-700 border-teal-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
     ];
 
     const index = Math.abs(hash) % colors.length;
@@ -587,7 +594,7 @@ export const RnDEvaluatorPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(assignment.id)}
-                        disabled={editLoading}
+                        disabled={false} // Always enable to allow clicking
                         className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <Edit2 className="w-3 h-3" /> Action
@@ -641,6 +648,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         onReassign={handleReassignEvaluators}
         onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
+        isLoading={editLoading}
       />
     </div>
   );
