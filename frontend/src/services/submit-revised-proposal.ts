@@ -1,4 +1,5 @@
 import { api } from "../utils/axios";
+import { getProposalUploadUrl, uploadFileToS3 } from "./proposal.api";
 import type { BudgetSource } from "../types/proponentTypes";
 
 export type SubmitRevisedProposalPayload = {
@@ -24,35 +25,39 @@ export type SubmitRevisedProposalResponse = {
 };
 
 /**
- * Submit a revised proposal with updated project title, file, schedule, and budget
- * Only the fields that were editable by proponent should be included
+ * Submit a revised proposal with updated project title, file, schedule, and budget.
+ * Uses presigned S3 URL: browser uploads directly to S3, then sends JSON to backend.
  */
 export const submitRevisedProposal = async (
   proposalId: number,
   payload: SubmitRevisedProposalPayload,
 ): Promise<SubmitRevisedProposalResponse> => {
-  const fd = new FormData();
+  // Step 1: Get presigned URL from backend (backend enforces 10 MB limit)
+  const { uploadUrl, fileUrl } = await getProposalUploadUrl(payload.file.name, payload.file.type, payload.file.size);
 
-  // Required fields
-  fd.append("proposal_id", String(proposalId));
-  fd.append("file_url", payload.file);
+  // Step 2: Upload file directly to S3 (bypasses Lambda)
+  await uploadFileToS3(uploadUrl, payload.file);
 
-  // Optional fields
+  // Step 3: Build JSON body and POST to backend
+  const body: Record<string, unknown> = {
+    proposal_id: proposalId,
+    file_url: fileUrl,
+  };
+
   if (payload.projectTitle) {
-    fd.append("project_title", payload.projectTitle);
+    body.project_title = payload.projectTitle;
   }
 
   if (payload.implementingSchedule?.startDate) {
-    fd.append("plan_start_date", payload.implementingSchedule.startDate);
+    body.plan_start_date = payload.implementingSchedule.startDate;
   }
 
   if (payload.implementingSchedule?.endDate) {
-    fd.append("plan_end_date", payload.implementingSchedule.endDate);
+    body.plan_end_date = payload.implementingSchedule.endDate;
   }
 
-  // Format budget for backend if provided
   if (payload.budgetSources && payload.budgetSources.length > 0) {
-    const formattedBudget = payload.budgetSources.map((source) => ({
+    body.budget = payload.budgetSources.map((source) => ({
       source: source.source,
       budget: {
         ps: source.breakdown?.ps?.map((item) => ({ item: item.item, value: item.amount })) || [],
@@ -60,15 +65,13 @@ export const submitRevisedProposal = async (
         co: source.breakdown?.co?.map((item) => ({ item: item.item, value: item.amount })) || [],
       },
     }));
-    fd.append("budget", JSON.stringify(formattedBudget));
   }
 
   if (payload.revisionResponse) {
-    fd.append("revision_response", payload.revisionResponse);
+    body.revision_response = payload.revisionResponse;
   }
 
-  const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
+  const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", body, {
     withCredentials: true,
   });
 

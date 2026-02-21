@@ -34,6 +34,7 @@ import {
   AlertCircle,
   Loader,
 } from "lucide-react";
+import Swal from "sweetalert2";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
 import { submitRevisedProposal } from "../../services/submit-revised-proposal";
@@ -326,7 +327,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) setNewFile(file);
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        Swal.fire({ icon: "error", title: "File too large", text: "Maximum file size is 10 MB." });
+        event.target.value = "";
+        return;
+      }
+      setNewFile(file);
+    }
   };
 
   const handleSave = async () => {

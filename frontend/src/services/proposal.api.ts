@@ -1,3 +1,4 @@
+import axios from "axios";
 import { api } from "../utils/axios";
 import type { FormData } from "../types/proponent-form";
 
@@ -80,8 +81,23 @@ export const fetchCommodities = async (): Promise<LookupItem[]> => {
   return data;
 };
 
+// Step 1: Get a presigned S3 upload URL from the backend
+export const getProposalUploadUrl = async (filename: string, contentType: string, fileSize: number): Promise<{ uploadUrl: string; fileUrl: string }> => {
+  const { data } = await api.get("/proposal/upload-url", {
+    params: { filename, contentType, fileSize },
+    withCredentials: true,
+  });
+  return data as { uploadUrl: string; fileUrl: string };
+};
+
+// Step 2: Upload the file directly to S3 (bypasses Lambda/API Gateway)
+export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<void> => {
+  await axios.put(uploadUrl, file, {
+    headers: { "Content-Type": file.type },
+  });
+};
+
 export const submitProposal = async (formData: FormData, file: File): Promise<CreateProposalResponse> => {
-  const fd = new FormData();
   const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
   const endDate = formData.plannedEndDate ? new Date(formData.plannedEndDate).toISOString().split("T")[0] : "";
 
@@ -96,42 +112,44 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
   // Duration is stored as numeric string (months), e.g., "6", "12", "18"
   const durationNumber = parseInt(formData.duration || "0", 10) || 0;
 
-  // proponent_id is no longer sent — backend extracts it from the JWT
-  fd.append("department", String(formData.department ?? ""));
-  fd.append("sector", String(formData.sector ?? ""));
-  fd.append("discipline", String(formData.discipline ?? ""));
-  fd.append("agency", String(formData.agency ?? ""));
-  fd.append("program_title", formData.program_title ?? "");
-  fd.append("project_title", formData.project_title);
-  fd.append("email", formData.email ?? "");
-  fd.append("phone", formData.telephone ?? "");
-  fd.append("class_input", formData.class_input ?? "");
-  fd.append("classification_type", mappedClassificationType);
-  fd.append("priorities_id", JSON.stringify(formData.priorities_id ?? []));
-  fd.append("plan_start_date", startDate);
-  fd.append("plan_end_date", endDate);
-  fd.append("budget", JSON.stringify(formData.budgetItems));
-  fd.append("file_url", file);
-  fd.append("school_year", formData.schoolYear ?? "");
-  fd.append(
-    "agency_address",
-    JSON.stringify({
+  // Step 1: Get presigned URL from backend (backend enforces 10 MB limit)
+  const { uploadUrl, fileUrl } = await getProposalUploadUrl(file.name, file.type, file.size);
+
+  // Step 2: Upload file directly to S3 (bypasses Lambda)
+  await uploadFileToS3(uploadUrl, file);
+
+  // Step 3: Submit proposal metadata as JSON with the S3 file URL
+  const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
+  const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
+
+  const { data } = await api.post<CreateProposalResponse>("/proposal/create", {
+    department: String(formData.department ?? ""),
+    sector: String(formData.sector ?? ""),
+    discipline: String(formData.discipline ?? ""),
+    agency: String(formData.agency ?? ""),
+    program_title: formData.program_title ?? "",
+    project_title: formData.project_title,
+    email: formData.email ?? "",
+    phone: formData.telephone ?? "",
+    class_input: formData.class_input ?? "",
+    classification_type: mappedClassificationType,
+    priorities_id: formData.priorities_id ?? [],
+    plan_start_date: startDate,
+    plan_end_date: endDate,
+    budget: formData.budgetItems,
+    file_url: fileUrl,
+    school_year: formData.schoolYear ?? "",
+    agency_address: {
       street: formData.agencyAddress.street,
       barangay: formData.agencyAddress.barangay,
       city: formData.agencyAddress.city,
-    }),
-  );
-  fd.append("duration", String(durationNumber));
-  // Existing agencies (from DB) send their numeric id, new ones send just the name string.
-  // e.g. [29, 33, "Test Subject #3"]
-  const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
-  fd.append("cooperating_agencies", JSON.stringify(agencies));
-  fd.append("implementation_site", JSON.stringify(formData.implementation_site));
-  const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
-  fd.append("implementation_mode", implementationMode);
-  fd.append("tags", JSON.stringify(formData.tags || []));
-  const { data } = await api.post<CreateProposalResponse>("/proposal/create", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
+    },
+    duration: durationNumber,
+    cooperating_agencies: agencies,
+    implementation_site: formData.implementation_site,
+    implementation_mode: implementationMode,
+    tags: formData.tags || [],
+  }, {
     withCredentials: true,
   });
 

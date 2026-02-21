@@ -149,7 +149,7 @@ export const proposalSchema = z.object({
 
   tags: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),
 
-  file_url: fileSchema,
+  file_url: z.string().url("Invalid file URL"),
 });
 
 export const decisionEvaluatorToProposalSchema = z.object({
@@ -219,7 +219,7 @@ export const endorseForFundingSchema = z.object({
 export const submitRevisedProposalSchema = z.object({
   proposal_id: z.coerce.number().min(1, "Proposal ID is required"),
   proponent_id: z.string().uuid("Invalid proponent ID"),
-  file_url: fileSchema,
+  file_url: z.string().url("Invalid file URL"),
   // Optional metadata updates
   project_title: z.string().min(1).max(256, "project title is too long").optional(),
   revision_response: z.string().max(2000, "Response is too long").optional(),

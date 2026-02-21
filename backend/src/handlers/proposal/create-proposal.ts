@@ -1,20 +1,10 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { supabase } from "../../lib/supabase";
 import { ProposalService } from "../../services/proposal.service";
 import { proposalSchema, proposalVersionSchema } from "../../schemas/proposal-schema";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
-import multipart from "lambda-multipart-parser";
-
-// Initialize S3
-const s3Client = new S3Client({});
 
 export const handler = buildCorsHeaders(async (event) => {
-  if (!process.env.PROPOSAL_BUCKET_NAME) {
-    throw new Error("PROPOSAL_BUCKET_NAME is not defined");
-  }
-  const Bucket = process.env.PROPOSAL_BUCKET_NAME;
-
   // Extract proponent identity from JWT
   const auth = getAuthContext(event);
   if (!auth.userId) {
@@ -24,15 +14,13 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  // Parse Multipart Data
-  const payload = await multipart.parse(event);
-  const { files, ...body } = payload;
+  // Parse JSON body
+  const body = JSON.parse(event.body || "{}");
 
-  // Validate form fields — inject proponent_id from JWT, not from body
+  // Validate fields — inject proponent_id from JWT, not from body
   const validation = proposalSchema.safeParse({
     ...body,
     proponent_id: auth.userId,
-    file_url: files[0],
   });
   if (!validation.success) {
     return {
@@ -46,7 +34,7 @@ export const handler = buildCorsHeaders(async (event) => {
 
   const { file_url, ...data } = validation.data;
 
-  // Create Proposal + Proposal Version
+  // Create Proposal
   const proposalService = new ProposalService(supabase);
   const { data: proposal, error: createError } = await proposalService.create(data);
 
@@ -61,19 +49,10 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  // Upload file to S3 bucket
-  const Key = `proposals/${proposal.id}/${file_url.filename}`;
-  const command = new PutObjectCommand({
-    Bucket,
-    Key,
-    Body: files[0].content,
-  });
-  await s3Client.send(command);
-
-  // Validate form fields
+  // Validate version entry (file_url already uploaded to S3 by browser)
   const validation_version = proposalVersionSchema.safeParse({
     proposal_id: proposal.id,
-    file_url: `https://${Bucket}.s3.us-east-1.amazonaws.com/${Key}`,
+    file_url,
   });
   if (!validation_version.success) {
     return {
@@ -85,9 +64,8 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const data_version = validation_version.data;
   // Create Proposal Version
-  await proposalService.createVersion(data_version);
+  await proposalService.createVersion(validation_version.data);
 
   return {
     statusCode: 200,

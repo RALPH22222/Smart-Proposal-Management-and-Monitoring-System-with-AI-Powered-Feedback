@@ -14,7 +14,7 @@ import {
 } from "aws-cdk-lib/aws-apigateway";
 import path from "path";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { Bucket } from "aws-cdk-lib/aws-s3";
+import { Bucket, HttpMethods } from "aws-cdk-lib/aws-s3";
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 
 const ALLOWED_STAGE_NAMES = ["dev", "prod"];
@@ -51,6 +51,14 @@ export class BackendStack extends Stack {
         restrictPublicBuckets: false,
       },
       removalPolicy: RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: [HttpMethods.PUT],
+          allowedOrigins: ["https://wmsu-spmams.vercel.app", "http://localhost:5173"],
+          maxAge: 3000,
+        },
+      ],
     });
 
     const profile_setup_bucket = new Bucket(this, `pms-profile-setup-bucket-${stageName}`, {
@@ -175,16 +183,14 @@ export class BackendStack extends Stack {
 
     const create_proposal_lambda = new NodejsFunction(this, "pms-create-propposal", {
       functionName: "pms-create-propposal",
-      memorySize: 256,
+      memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(60),
+      timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
       environment: {
         SUPABASE_KEY,
-        PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
       },
     });
-    proposal_attachments_bucket.grantPut(create_proposal_lambda);
 
     const proposal_forward_to_evaluators_lambda = new NodejsFunction(
       this,
@@ -417,10 +423,21 @@ export class BackendStack extends Stack {
       entry: path.resolve("src", "handlers", "proposal", "submit-revised-proposal.ts"),
       environment: {
         SUPABASE_KEY,
+      },
+    });
+
+    const get_upload_url_lambda = new NodejsFunction(this, "pms-get-upload-url", {
+      functionName: "pms-get-upload-url",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "proposal", "get-upload-url.ts"),
+      environment: {
+        SUPABASE_KEY,
         PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
       },
     });
-    proposal_attachments_bucket.grantPut(submit_revised_proposal_lambda);
+    proposal_attachments_bucket.grantPut(get_upload_url_lambda);
 
     const get_revision_summary_lambda = new NodejsFunction(this, "pms-get-revision-summary", {
       functionName: "pms-get-revision-summary",
@@ -992,6 +1009,13 @@ export class BackendStack extends Stack {
     // /proposal/submit-revised (protected) - Proponent submits revised proposal
     const submit_revised_proposal = proposal.addResource("submit-revised");
     submit_revised_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(submit_revised_proposal_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/upload-url (protected) - GET presigned S3 upload URL
+    const upload_url_resource = proposal.addResource("upload-url");
+    upload_url_resource.addMethod(HttpMethod.GET, new LambdaIntegration(get_upload_url_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

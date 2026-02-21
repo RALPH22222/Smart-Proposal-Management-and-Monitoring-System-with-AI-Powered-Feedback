@@ -1593,7 +1593,7 @@ export class ProposalService {
     return {
       data: {
         proposal_id,
-        versions: data || [],
+        versions: (data || []).map((v, i) => ({ ...v, version_number: i + 1 })),
       },
       error: null,
     };

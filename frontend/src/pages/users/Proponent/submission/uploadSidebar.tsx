@@ -121,6 +121,11 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+            if (file && file.size > 10 * 1024 * 1024) {
+              Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+              e.target.value = '';
+              return;
+            }
             onFileSelect(file);
           }}
           disabled={isUploadDisabled}
@@ -138,6 +143,10 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             e.preventDefault();
             if (!isUploadDisabled) {
               const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
+              if (file && file.size > 10 * 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                return;
+              }
               onFileSelect(file);
             }
           }}
