@@ -5,7 +5,7 @@ import ProponentNavbar from "../../../components/proponent-component/Proponent-n
 import Submission from "./submission";
 import Profile from "./Profile";
 import Settings from "./settings";
-import Monitoring from "./monitoring"
+import Monitoring from "./monitoring";
 
 const ProponentMainLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();

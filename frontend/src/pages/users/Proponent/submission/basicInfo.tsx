@@ -566,7 +566,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
               <option value="" disabled>-- Select a known address (Optional) --</option>
               {availableAddresses.map(addr => (
                 <option key={addr.id} value={addr.id}>
-                  {addr.street || ""}, {addr.barangay || ""}, {addr.city}
+                  {addr.city}, {addr.barangay || ""}, {addr.street || ""}
                 </option>
               ))}
             </select>
@@ -575,15 +575,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-500">Street</label>
+            <label className="block text-sm font-medium text-gray-800 font-semibold">City *</label>
             <input
               type="text"
-              name="street"
-              value={formData.agencyAddress?.street || ""}
-              onChange={(e) => handleAddressChange("street", e.target.value)}
+              name="city"
+              value={formData.agencyAddress?.city || ""}
+              onChange={(e) => handleAddressChange("city", e.target.value)}
               maxLength={256}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="Street Name / # "
+              placeholder="City / Municipality"
             />
           </div>
           <div className="space-y-2">
@@ -599,15 +599,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-800 font-semibold">City *</label>
+            <label className="block text-sm font-medium text-gray-500">Street</label>
             <input
               type="text"
-              name="city"
-              value={formData.agencyAddress?.city || ""}
-              onChange={(e) => handleAddressChange("city", e.target.value)}
+              name="street"
+              value={formData.agencyAddress?.street || ""}
+              onChange={(e) => handleAddressChange("street", e.target.value)}
               maxLength={256}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="City / Municipality"
+              placeholder="Street Name / # "
             />
           </div>
         </div>
