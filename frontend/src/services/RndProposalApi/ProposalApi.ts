@@ -1,9 +1,9 @@
 import {
-	type Proposal,
-	type Decision,
-	type ProposalStatus,
-	type Statistics,
-	type Activity
+    type Proposal,
+    type Decision,
+    type ProposalStatus,
+    type Statistics,
+    type Activity
 } from '../../types/InterfaceProposal';
 import { getRndProposals } from '../../services/proposal.api';
 import { api } from '../../utils/axios';
@@ -12,18 +12,18 @@ import { api } from '../../utils/axios';
 const transformProposal = (raw: any): Proposal => {
     // Check if raw is a wrapper or the data itself
     const p = (raw.proposal_id && (raw.proposal_id.project_title || raw.proposal_id.title)) ? raw.proposal_id : raw;
-    
+
     // Helper to extract budget total string
     const getBudgetTotal = () => {
-        if(p.total_budget) return `₱${parseFloat(p.total_budget).toLocaleString()}`;
-        if(p.budget) {
-             try {
-                 const budgetItems = JSON.parse(p.budget);
-                 if(Array.isArray(budgetItems)) {
-                     const total = budgetItems.reduce((acc: number, item: any) => acc + (parseFloat(item.total) || 0), 0);
-                     return `₱${total.toLocaleString()}`;
-                 }
-             } catch(e) {}
+        if (p.total_budget) return `₱${parseFloat(p.total_budget).toLocaleString()}`;
+        if (p.budget) {
+            try {
+                const budgetItems = JSON.parse(p.budget);
+                if (Array.isArray(budgetItems)) {
+                    const total = budgetItems.reduce((acc: number, item: any) => acc + (parseFloat(item.total) || 0), 0);
+                    return `₱${total.toLocaleString()}`;
+                }
+            } catch (e) { }
         }
         return '₱0.00';
     };
@@ -56,7 +56,7 @@ const transformProposal = (raw: any): Proposal => {
         duration: p.duration || "0",
         startDate: p.plan_start_date || "",
         endDate: p.plan_end_date || "",
-        budgetSources: [], 
+        budgetSources: [],
         budgetTotal: getBudgetTotal(),
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
         evaluatorInstruction: p.evaluator_instruction || "",
@@ -79,29 +79,29 @@ const mapBackendStatusToFrontend = (status: string): ProposalStatus => {
 
 // API service functions
 export const proposalApi = {
-	// Fetch all proposals for R&D staff review
-	fetchProposals: async (): Promise<Proposal[]> => {
-		try {
+    // Fetch all proposals for R&D staff review
+    fetchProposals: async (): Promise<Proposal[]> => {
+        try {
             const data = await getRndProposals();
             return data.map(transformProposal);
         } catch (error) {
             console.error("Failed to fetch proposals", error);
             return [];
         }
-	},
+    },
 
-	// Submit decision for a proposal
-	submitDecision: async (_decision: Decision): Promise<void> => {
-		// This uses the other API services directly in the components, 
+    // Submit decision for a proposal
+    submitDecision: async (_decision: Decision): Promise<void> => {
+        // This uses the other API services directly in the components, 
         // but keeping this stub for interface compatibility if needed.
         console.warn("submitDecision in ProposalApi is deprecated. Use direct API calls.");
-	},
+    },
 
-	// Update proposal status
-	updateProposalStatus: async (
-		proposalId: string,
-		status: ProposalStatus
-	): Promise<void> => {
+    // Update proposal status
+    updateProposalStatus: async (
+        proposalId: string,
+        status: ProposalStatus
+    ): Promise<void> => {
         const backendStatusMap: Record<string, string> = {
             'Waiting for Funding': 'waiting_for_funding',
             'Funded': 'funded'
@@ -109,19 +109,19 @@ export const proposalApi = {
 
         const backendStatus = backendStatusMap[status] || status;
 
-		await api.post("/proposal/update-status", {
+        await api.post("/proposal/update-status", {
             proposal_id: parseInt(proposalId),
             status: backendStatus
         }, {
             withCredentials: true
         });
-	},
+    },
 
-	// Fetch statistics
-	fetchStatistics: async (): Promise<Statistics> => {
-		try {
+    // Fetch statistics
+    fetchStatistics: async (): Promise<Statistics> => {
+        try {
             const rawProposals = await getRndProposals();
-            
+
             const stats: Statistics = {
                 totalProposals: rawProposals.length,
                 pendingProposals: 0,
@@ -137,7 +137,7 @@ export const proposalApi = {
                 // Normalize using the same logic as transformProposal
                 const p = (raw.proposal_id && (raw.proposal_id.project_title || raw.proposal_id.title)) ? raw.proposal_id : raw;
                 const status = p.status;
-                
+
                 console.log(`[Stats Debug] Proposal: ${p.id}, Status: ${status}`);
 
                 if (status === 'review_rnd' || status === 'under_rnd_review') stats.pendingProposals++;
@@ -157,7 +157,7 @@ export const proposalApi = {
                 .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
             // If empty, provide default
-             if (stats.monthlySubmissions.length === 0) {
+            if (stats.monthlySubmissions.length === 0) {
                 const today = new Date();
                 const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 stats.monthlySubmissions.push({ month: monthYear, count: 0 });
@@ -167,7 +167,7 @@ export const proposalApi = {
 
         } catch (error) {
             console.error("Failed to fetch statistics", error);
-             return {
+            return {
                 totalProposals: 0,
                 pendingProposals: 0,
                 acceptedProposals: 0,
@@ -176,18 +176,18 @@ export const proposalApi = {
                 monthlySubmissions: []
             };
         }
-	},
+    },
 
-	// Fetch recent activity
-	fetchRecentActivity: async (): Promise<Activity[]> => {
-		try {
+    // Fetch recent activity
+    fetchRecentActivity: async (): Promise<Activity[]> => {
+        try {
             const rawProposals = await getRndProposals();
             const activities: Activity[] = [];
 
             rawProposals.forEach(p => {
                 const proposal = transformProposal(p);
                 const userName = proposal.submittedBy;
-                
+
                 // 1. Submission Activity
                 activities.push({
                     id: `sub-${p.id}`,
@@ -206,22 +206,22 @@ export const proposalApi = {
                 const updated = new Date(proposal.lastModified).getTime();
 
                 if (updated > created + 60000) { // If updated more than 1 min after creation
-                     let action = '';
-                     let type: Activity['type'] = 'review'; // Default
+                    let action = '';
+                    let type: Activity['type'] = 'review'; // Default
 
-                     if (p.status === 'under_evaluation') {
-                         action = 'Forwarded to Evaluators';
-                         type = 'review';
-                     } else if (p.status === 'revision_rnd') {
-                         action = 'Revision requested';
-                         type = 'revision';
-                     } else if (p.status === 'rejected_rnd') {
-                         action = 'Proposal rejected';
-                         type = 'review';
-                     }
+                    if (p.status === 'under_evaluation') {
+                        action = 'Forwarded to Evaluators';
+                        type = 'review';
+                    } else if (p.status === 'revision_rnd') {
+                        action = 'Revision requested';
+                        type = 'revision';
+                    } else if (p.status === 'rejected_rnd') {
+                        action = 'Proposal rejected';
+                        type = 'review';
+                    }
 
-                     if (action) {
-                         activities.push({
+                    if (action) {
+                        activities.push({
                             id: `act-${p.id}`,
                             type: type,
                             proposalId: proposal.id,
@@ -230,7 +230,7 @@ export const proposalApi = {
                             timestamp: proposal.lastModified,
                             user: 'R&D Staff' // We don't have the actor ID easily here without more data
                         });
-                     }
+                    }
                 }
             });
 
@@ -241,6 +241,6 @@ export const proposalApi = {
             console.error("Failed to fetch recent activities", error);
             return [];
         }
-	}
+    }
 };
 

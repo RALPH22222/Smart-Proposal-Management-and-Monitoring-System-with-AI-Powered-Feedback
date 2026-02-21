@@ -5,7 +5,6 @@ import AdminSidebar from "../../../components/admin-component/sidebar";
 import Dashboard from "./dashboard";
 import Accounts from "./accounts";
 import Contents from "./contents";
-import Reports from "./reports";
 import Settings from "./settings";
 import System from "./system";
 import Proposals from "./proposals";
@@ -40,8 +39,6 @@ const AdminLayout: React.FC = () => {
         return <Monitoring />;
       case "contents":
         return <Contents />;
-      case "reports":
-        return <Reports />;
       case "system":
         return <System />;
       case "settings":

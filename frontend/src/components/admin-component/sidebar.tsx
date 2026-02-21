@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, Users, FileText, Bell, Settings, LogOut, Server, Menu, X, File, UserPen, BarChart3, Gavel, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, LogOut, Server, Menu, X, File, UserPen, BarChart3, Gavel, DollarSign } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
@@ -23,7 +23,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },
     { id: "contents", label: "Contents", icon: File },
-    { id: "reports", label: "Reports", icon: Bell, badge: "5" },
     { id: "system", label: "System", icon: Server },
   ];
 
@@ -105,18 +104,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
                     />
                   </div>
                   <span className="flex-1">{item.label}</span>
-                  {item.badge && (
-                    <span
-                      className={`px-2 py-1 text-xs font-bold rounded-full transition-all duration-300 ${item.badge === "!"
-                        ? "bg-red-500 text-white animate-pulse"
-                        : item.badge === "NEW"
-                          ? "bg-gradient-to-r from-green-400 to-green-500 text-white"
-                          : "bg-red-100 text-red-600"
-                        }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
+                  
                 </button>
               );
             })}

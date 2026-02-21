@@ -540,14 +540,38 @@ const Submission: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-            <button onClick={() => handleSectionChange("basic-info")} className={getTabClass("basic-info")}>
-              Basic Information
+            <button
+              onClick={() => handleSectionChange("basic-info")}
+              className={getTabClass("basic-info") + " group relative overflow-hidden"}
+            >
+              <span className="flex items-center gap-2 justify-center w-full text-center">
+                Basic Information
+              </span>
+              {activeSection === "basic-info" && (
+                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+              )}
             </button>
-            <button onClick={() => handleSectionChange("research-details")} className={getTabClass("research-details")}>
-              Research Details
+            <button
+              onClick={() => handleSectionChange("research-details")}
+              className={getTabClass("research-details") + " group relative overflow-hidden"}
+            >
+              <span className="flex items-center gap-2 justify-center w-full text-center">
+                Research Details
+              </span>
+              {activeSection === "research-details" && (
+                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+              )}
             </button>
-            <button onClick={() => handleSectionChange("budget")} className={getTabClass("budget")}>
-              Budget Section
+            <button
+              onClick={() => handleSectionChange("budget")}
+              className={getTabClass("budget") + " group relative overflow-hidden"}
+            >
+              <span className="flex items-center gap-2 justify-center w-full text-center">
+                Budget Section
+              </span>
+              {activeSection === "budget" && (
+                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+              )}
             </button>
           </div>
 

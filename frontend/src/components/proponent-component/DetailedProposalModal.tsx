@@ -31,9 +31,12 @@ import {
   Users,
   ShieldCheck,
   Globe,
+  AlertCircle,
+  Loader,
 } from "lucide-react";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
+import { submitRevisedProposal } from "../../services/submit-revised-proposal";
 
 interface Site {
   site: string;
@@ -79,6 +82,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
   const [isLoadingRevision, setIsLoadingRevision] = useState(false);
   const [isLoadingRejection, setIsLoadingRejection] = useState(false);
+  const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
+  const [revisionError, setRevisionError] = useState<string | null>(null);
+  const [submittedRevisionFile, setSubmittedRevisionFile] = useState<string | null>(null);
+  const [revisionChanges, setRevisionChanges] = useState<{
+    projectTitle?: { old: string; new: string };
+    startDate?: { old: string; new: string };
+    endDate?: { old: string; new: string };
+    budget?: { changed: boolean };
+    file?: { old: string; new: string };
+  } | null>(null);
+  const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal?.status || '').toLowerCase());
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -315,7 +329,80 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     if (file) setNewFile(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Check if in revision mode and submit revision
+    if (isInRevisionMode && proposal && newFile) {
+      setIsSubmittingRevision(true);
+      setRevisionError(null);
+      try {
+        // Track what changed
+        const changes: any = {};
+        
+        if (editedProposal?.title !== proposal.title) {
+          changes.projectTitle = { old: proposal.title, new: editedProposal?.title };
+        }
+        if (editedProposal?.startDate !== proposal.startDate) {
+          changes.startDate = { old: proposal.startDate, new: editedProposal?.startDate };
+        }
+        if (editedProposal?.endDate !== proposal.endDate) {
+          changes.endDate = { old: proposal.endDate, new: editedProposal?.endDate };
+        }
+        // Check if budget changed
+        const budgetChanged = JSON.stringify(editedProposal?.budgetSources) !== JSON.stringify(proposal.budgetSources);
+        if (budgetChanged) {
+          changes.budget = { changed: true };
+        }
+        changes.file = { old: getFileName(submittedFiles[submittedFiles.length - 1] || ""), new: newFile.name };
+
+        // Prepare revised proposal payload
+        const revisedPayload = {
+          projectTitle: editedProposal?.title !== proposal.title ? editedProposal?.title : undefined,
+          file: newFile,
+          implementingSchedule: {
+            startDate: editedProposal?.startDate && editedProposal.startDate !== proposal.startDate
+              ? editedProposal.startDate
+              : undefined,
+            endDate: editedProposal?.endDate && editedProposal.endDate !== proposal.endDate
+              ? editedProposal.endDate
+              : undefined,
+          },
+          budgetSources: editedProposal?.budgetSources,
+        };
+
+        // Submit via the service
+        const response = await submitRevisedProposal(Number(proposal.id), revisedPayload);
+
+        if (response.message) {
+          // Store the new file URL and changes for display
+          setSubmittedRevisionFile(response.data?.file_url || null);
+          setRevisionChanges(changes);
+          
+          // Success - show toast or notification
+          alert("Revision submitted successfully! Your proposal has been sent back to R&D for review.");
+          setNewFile(null);
+          setIsEditing(false);
+          // onClose();  // Don't close, show summary
+          
+          // Optionally refresh the parent component with backend status
+          if (onUpdateProposal && proposal) {
+            onUpdateProposal({
+              ...proposal,
+              status: response.data?.status || "review_rnd",
+              lastUpdated: new Date().toISOString().split("T")[0],
+            });
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Failed to submit revision. Please try again.";
+        setRevisionError(errorMsg);
+        console.error("Error submitting revision:", error);
+      } finally {
+        setIsSubmittingRevision(false);
+      }
+      return;
+    }
+
+    // Existing logic for non-revision edits
     if (onUpdateProposal) {
       const newFileUrl = newFile
         ? URL.createObjectURL(newFile)
@@ -354,7 +441,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   };
 
   const currentData = isEditing ? editedProposal : proposal;
-  const canEdit = proposal.status === "revise" && isEditing;
+  const canEdit = isInRevisionMode && isEditing;
+  // Only allow editing of specific fields in revision mode
+  const canEditTitle = isInRevisionMode && isEditing;
+  const canEditSchedule = isInRevisionMode && isEditing;
+  const canEditBudget = isInRevisionMode && isEditing;
+  const canEditFile = isInRevisionMode && isEditing;
+  // Restrict other fields in revision mode
+  const canEditOtherFields = !isInRevisionMode && isEditing;
   const isFunded = proposal.status === "funded";
   const sites = (currentData.implementationSites as Site[]) || [];
   const coProponentsList = proposal.coProponent
@@ -364,7 +458,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       .filter(Boolean)
     : [];
 
-  // ... (getStatusTheme update) ...
   const getStatusTheme = (status: string | undefined) => {
     const s = (status || "").toLowerCase();
     if (["endorsed"].includes(s))
@@ -392,6 +485,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         text: "text-orange-800",
         icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
         label: "Revision Required",
+      };
+    }
+
+    // Revised proposal submitted (under R&D review after revision)
+    if (["review_rnd"].includes(s)) {
+      return {
+        bg: "bg-yellow-100",
+        border: "border-yellow-300",
+        text: "text-yellow-900",
+        icon: <Edit className="w-5 h-5 text-yellow-700" />,
+        label: "Revised Proposal",
       };
     }
 
@@ -500,7 +604,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </h2>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            {proposal.status === "revise" && (
+            {isInRevisionMode && !revisionChanges && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${isEditing
@@ -525,16 +629,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           </div>
         </div>
 
-        {['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal.status || '').toLowerCase()) && (
-          <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-            <RefreshCw className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
-            Deadline for Revision: {
-              isLoadingRevision ? "Loading..." :
-                (revisionData?.created_at && revisionData?.deadline) ?
-                  new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString() :
-                  (proposal.deadline ? new Date(proposal.deadline).toLocaleDateString() : "No deadline set")
-            }
-          </div>
+        {isInRevisionMode && (
+          <>
+            <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
+              <RefreshCw className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+              Deadline for Revision: {
+                isLoadingRevision ? "Loading..." :
+                  (revisionData?.created_at && revisionData?.deadline) ?
+                    new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString() :
+                    (proposal.deadline ? new Date(proposal.deadline).toLocaleDateString() : "No deadline set")
+              }
+            </div>
+          </>
         )}
 
         {/* --- BODY --- */}
@@ -721,7 +827,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </a>
                 )}
               </div>
-              {canEdit && (
+              {canEditFile && (
                 <div
                   className={`border-2 border-dashed rounded-lg p-4 transition-colors ${newFile
                     ? "border-green-300 bg-green-50"
@@ -767,6 +873,131 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
 
+          {/* Revision Summary - Show after submission */}
+          {revisionChanges && (
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-bold text-green-900">Revision Submitted Successfully</h3>
+              </div>
+
+              {/* Files Comparison */}
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Original File */}
+                  <div className="bg-white p-4 rounded-lg border border-slate-200">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-2">Original File</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <FileCheck className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{revisionChanges.file?.old || "N/A"}</p>
+                        <p className="text-xs text-slate-500">Previous version</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* New File */}
+                  <div className="bg-white p-4 rounded-lg border border-green-200 shadow-md">
+                    <p className="text-xs font-bold text-green-600 uppercase mb-2">New File</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <FileCheck className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{revisionChanges.file?.new || "N/A"}</p>
+                        <p className="text-xs text-green-600">Submitted version</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modified Fields */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 mb-3">Modified Fields</h4>
+                <div className="space-y-2">
+                  {revisionChanges.projectTitle && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                      <p className="font-semibold text-slate-900">Project Title</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs">
+                        <span className="text-slate-500 line-through">{revisionChanges.projectTitle.old}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="text-green-700 font-medium">{revisionChanges.projectTitle.new}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {revisionChanges.startDate && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                      <p className="font-semibold text-slate-900">Start Date</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs">
+                        <span className="text-slate-500 line-through">{revisionChanges.startDate.old}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="text-green-700 font-medium">{revisionChanges.startDate.new}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {revisionChanges.endDate && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                      <p className="font-semibold text-slate-900">End Date</p>
+                      <div className="flex items-center gap-2 mt-1 text-xs">
+                        <span className="text-slate-500 line-through">{revisionChanges.endDate.old}</span>
+                        <span className="text-slate-400">→</span>
+                        <span className="text-green-700 font-medium">{revisionChanges.endDate.new}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {revisionChanges.budget?.changed && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm">
+                      <p className="font-semibold text-slate-900">Budget by Source</p>
+                      <p className="text-xs text-green-700 mt-1">✓ Updated</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="mt-4 p-3 rounded-lg border border-yellow-300 bg-yellow-100">
+                <p className="text-xs font-bold text-yellow-900 uppercase">Current Status</p>
+                <p className="text-sm font-bold text-yellow-900 mt-1">Revised Proposal</p>
+                <p className="text-xs text-yellow-800">Your revision has been submitted and is now under R&D evaluation.</p>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-full mt-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          )}
+
+          {/* 3.5. Project Title (Editable in Revision Mode) */}
+          {canEditTitle && (
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-[#C8102E]" />
+                <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  Project Title
+                </label>
+              </div>
+              <input
+                type="text"
+                value={editedProposal?.title || ""}
+                onChange={(e) => setEditedProposal({ ...editedProposal, title: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                placeholder="Enter project title"
+              />
+            </div>
+          )}
+
           {/* 4. LEADER & AGENCY (Updated Layout & Gray Background) */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
             <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
@@ -780,7 +1011,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Leader / Proponent
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <input
                     type="text"
                     value={currentData.proponent}
@@ -806,7 +1037,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Agency
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <select
                     value={currentData.agency}
                     onChange={(e) => handleInputChange("agency", e.target.value)}
@@ -834,7 +1065,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Department
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <select
                     value={currentData.department || ""}
                     onChange={(e) => handleInputChange("department" as any, e.target.value)}
@@ -858,7 +1089,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Address
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <div className="space-y-2">
                     {agencyAddresses.length > 0 && (
                       <select
@@ -915,7 +1146,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Telephone
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <input
                     type="text"
                     value={currentData.telephone}
@@ -941,7 +1172,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                   Email
                 </label>
-                {canEdit ? (
+                {canEditOtherFields ? (
                   <input
                     type="email"
                     value={currentData.email}
@@ -971,7 +1202,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation
                 Sites ({sites.length})
               </h3>
-              {canEdit && (
+              {canEditOtherFields && (
                 <button
                   onClick={handleAddSite}
                   className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
@@ -990,7 +1221,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <MapPin className="w-4 h-4" />
                   </div>
                   <div className="flex-1 space-y-2">
-                    {canEdit ? (
+                    {canEditOtherFields ? (
                       <>
                         <input
                           type="text"
@@ -1026,7 +1257,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       </>
                     )}
                   </div>
-                  {canEdit && (
+                  {canEditOtherFields && (
                     <button
                       onClick={() => handleRemoveSite(index)}
                       className="text-slate-400 hover:text-red-500 transition-colors"
@@ -1049,7 +1280,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Cooperating Agencies
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <input
                   type="text"
                   value={currentData.cooperatingAgencies}
@@ -1082,7 +1313,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Mode of Implementation
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <input
                   type="text"
                   value={currentData.modeOfImplementation}
@@ -1105,7 +1336,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                 <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
               </h4>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -1152,7 +1383,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   R&D Station
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <select
                   value={currentData.rdStation}
                   onChange={(e) => handleInputChange("rdStation", e.target.value)}
@@ -1178,7 +1409,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Priority Areas
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <select
                   value={currentData.priorityAreas}
                   onChange={(e) => handleInputChange("priorityAreas", e.target.value)}
@@ -1204,7 +1435,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Discipline
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <select
                   value={currentData.discipline}
                   onChange={(e) => handleInputChange("discipline", e.target.value)}
@@ -1229,7 +1460,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   Sector
                 </h4>
               </div>
-              {canEdit ? (
+              {canEditOtherFields ? (
                 <select
                   value={currentData.sector}
                   onChange={(e) => handleInputChange("sector", e.target.value)}
@@ -1259,7 +1490,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-slate-500 mb-1">School Year</p>
-                  {canEdit ? (
+                  {canEditOtherFields ? (
                     <input
                       type="text"
                       value={currentData.schoolYear}
@@ -1275,7 +1506,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Duration</p>
-                  {canEdit ? (
+                  {canEditOtherFields ? (
                     <input
                       type="text"
                       value={currentData.duration}
@@ -1292,7 +1523,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                  {canEdit ? (
+                  {canEditSchedule ? (
                     <input
                       type="date"
                       value={currentData.startDate}
@@ -1313,7 +1544,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">End Date</p>
-                  {canEdit ? (
+                  {canEditSchedule ? (
                     <input
                       type="date"
                       value={currentData.endDate}
@@ -1342,7 +1573,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <DollarSign className="w-4 h-4 text-[#C8102E]" /> Estimated
                   Budget by Source
                 </h3>
-                {canEdit && (
+                {canEditBudget && (
                   <button
                     onClick={handleAddBudgetItem}
                     className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
@@ -1456,34 +1687,54 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         </div>
 
         {/* --- FOOTER --- */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
-          <span className="text-xs text-slate-500 font-medium">
-            {isEditing ? "Editing Mode Active" : "Read-Only View"}
-          </span>
-          <div className="flex gap-3">
-            {isEditing ? (
-              <>
+        <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-3 flex-shrink-0">
+          {revisionError && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 text-xs text-red-700">
+                {revisionError}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-500 font-medium">
+              {isEditing ? (isInRevisionMode ? "Revision Edit Mode Active" : "Editing Mode Active") : "Read-Only View"}
+            </span>
+            <div className="flex gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleCancel}
+                    disabled={isSubmittingRevision}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSubmittingRevision || (isInRevisionMode && !newFile)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] border border-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmittingRevision ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" /> Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" /> {isInRevisionMode ? "Submit Revision" : "Submit Proposal"}
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handleCancel}
+                  onClick={onClose}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  Close
                 </button>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] border border-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" /> Submit Revision
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Close
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div >
