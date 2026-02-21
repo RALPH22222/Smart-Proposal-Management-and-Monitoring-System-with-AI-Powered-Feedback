@@ -242,7 +242,6 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
     if (result.isConfirmed) {
       onReassign(currentList);
-      onClose();
     }
   };
 
@@ -397,18 +396,22 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                 </div>
                               ) : (
                                 <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    onClick={() => initiateReplace(ev.id)}
-                                    className='flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs rounded-md font-medium transition-colors'
-                                  >
-                                    <RefreshCw className="w-3 h-3" /> Replace
-                                  </button>
-                                  <button
-                                    onClick={() => initiateRemove(ev)}
-                                    className='flex items-center gap-1 px-3 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-md font-medium transition-colors'
-                                  >
-                                    <Trash2 className="w-3 h-3" /> Remove
-                                  </button>
+                                  {ev.status !== 'Accepts' && (
+                                    <button
+                                      onClick={() => initiateReplace(ev.id)}
+                                      className='flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs rounded-md font-medium transition-colors'
+                                    >
+                                      <RefreshCw className="w-3 h-3" /> Replace
+                                    </button>
+                                  )}
+                                  {ev.status !== 'Accepts' && (
+                                    <button
+                                      onClick={() => initiateRemove(ev)}
+                                      className='flex items-center gap-1 px-3 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-md font-medium transition-colors'
+                                    >
+                                      <Trash2 className="w-3 h-3" /> Remove
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </td>

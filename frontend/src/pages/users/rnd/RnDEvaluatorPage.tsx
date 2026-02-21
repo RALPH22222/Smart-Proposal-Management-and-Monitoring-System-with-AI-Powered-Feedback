@@ -383,6 +383,15 @@ export const RnDEvaluatorPage: React.FC = () => {
       return;
     }
 
+    if (newIds.size < 2) {
+      Swal.fire({
+        icon: "warning",
+        title: "Minimum Evaluators Required",
+        text: "You must have at least 2 evaluators assigned to this proposal.",
+      });
+      return; // Do not close modal, let user fix it
+    }
+
     try {
       // 1. Handle Removals
       if (toRemove.length > 0) {

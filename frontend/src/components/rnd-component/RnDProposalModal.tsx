@@ -330,8 +330,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     if (!proposal) return;
 
     if (decision === 'Sent to Evaluators') {
-      if (assignedEvaluators.length === 0) {
-        alert("Please assign at least one evaluator.");
+      if (assignedEvaluators.length < 2) {
+        alert("Please assign at least 2 evaluators.");
         return;
       }
       handleForwardToEvaluators();
@@ -788,7 +788,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
               <button
                 type="button"
                 onClick={handleForwardToEvaluators}
-                disabled={assignedEvaluators.length === 0}
+                disabled={assignedEvaluators.length < 2}
                 className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
               >
                 <Send className="w-4 h-4" />
