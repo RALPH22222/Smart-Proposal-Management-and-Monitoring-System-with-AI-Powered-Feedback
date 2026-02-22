@@ -64,7 +64,6 @@ export type ProposalStatus =
 	| 'Revised Proposal'
 	| 'Assigned to RnD'
 	| 'Endorsed'
-	| 'Waiting for Funding'
 	| 'Funded'
 	| 'Unassigned'
 	| 'Under Review' // Keep for backward compatibility if needed

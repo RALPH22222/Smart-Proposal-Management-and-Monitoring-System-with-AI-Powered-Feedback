@@ -472,8 +472,9 @@ export type AssignmentTrackerItem = {
   date_forwarded: string;
 };
 
-export const getAssignmentTracker = async (proposalId: number): Promise<AssignmentTrackerItem[]> => {
-  const { data } = await api.get<AssignmentTrackerItem[]>(`/proposal/assignment-tracker?proposal_id=${proposalId}`, {
+export const getAssignmentTracker = async (proposalId?: number): Promise<AssignmentTrackerItem[]> => {
+  const query = proposalId ? `?proposal_id=${proposalId}` : "";
+  const { data } = await api.get<AssignmentTrackerItem[]>(`/proposal/assignment-tracker${query}`, {
     withCredentials: true,
   });
   return data;

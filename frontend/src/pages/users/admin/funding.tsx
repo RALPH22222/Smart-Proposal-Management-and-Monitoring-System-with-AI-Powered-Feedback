@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   CheckCircle,
   FileText,
-  Clock,
   DollarSign,
   User,
   Calendar,
@@ -13,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
-import { adminProposalApi } from '../../../services/admin/AdminProposalApi';
+import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 
 const AdminFundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
@@ -30,7 +29,7 @@ const AdminFundingPage: React.FC = () => {
       setLoading(true);
       const allProposals = await adminProposalApi.fetchProposals();
       // Filter proposals that are relevant to funding
-      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Waiting for Funding', 'Funded'];
+      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Funded'];
       const filtered = allProposals.filter(p => relevantStatuses.includes(p.status));
       setFundingProposals(filtered);
     } catch (error) {
@@ -77,8 +76,6 @@ const AdminFundingPage: React.FC = () => {
     switch (status) {
       case 'Endorsed':
         return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}>Endorsed</span>;
-      case 'Waiting for Funding':
-        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>Waiting for Funding</span>;
       case 'Funded':
         return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
       default:
@@ -159,17 +156,6 @@ const AdminFundingPage: React.FC = () => {
                 <FileText className="w-6 h-6 text-blue-500" />
               </div>
            </div>
-           <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4">
-             <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Waiting for Funding</p>
-                  <p className="text-xl font-bold text-amber-600 tabular-nums">
-                    {fundingProposals.filter((p) => p.status === 'Waiting for Funding').length}
-                  </p>
-                </div>
-                <Clock className="w-6 h-6 text-amber-500" />
-              </div>
-           </div>
            <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
              <div className="flex items-center justify-between">
                 <div>
@@ -241,19 +227,11 @@ const AdminFundingPage: React.FC = () => {
                          <div className="flex items-center gap-2">
                             {proposal.status === 'Endorsed' && (
                                <button
-                                 onClick={() => handleStatusChange(proposal.id, 'Waiting for Funding')}
+                                 onClick={() => handleStatusChange(proposal.id, 'Funded')}
                                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                                >
                                  Approve (Council)
                                </button>
-                            )}
-                            {proposal.status === 'Waiting for Funding' && (
-                                <button
-                                  onClick={() => handleStatusChange(proposal.id, 'Funded')}
-                                  className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-                                >
-                                  Mark as Funded
-                                </button>
                             )}
                             {/* Justification View Button */}
                              <button 

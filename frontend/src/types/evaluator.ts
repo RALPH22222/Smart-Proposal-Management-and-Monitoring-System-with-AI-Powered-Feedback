@@ -63,7 +63,7 @@ export interface EndorsementProposal {
 	title: string;
 	submittedBy: string;
 	evaluatorDecisions: EvaluatorDecision[];
-	overallRecommendation: 'Approve' | 'Revise' | 'Reject';
+	overallRecommendation: 'Approve' | 'Revise' | 'Reject' | 'Pending';
 	readyForEndorsement: boolean;
 	budget?: BudgetRow[];
 	projectType?: string;
@@ -72,7 +72,7 @@ export interface EndorsementProposal {
 export interface EvaluatorDecision {
 	evaluatorId: string;
 	evaluatorName: string;
-	decision: 'Approve' | 'Revise' | 'Reject';
+	decision: 'Approve' | 'Revise' | 'Reject' | 'Pending';
 	comments: string;
 	submittedDate: string;
 	ratings?: {

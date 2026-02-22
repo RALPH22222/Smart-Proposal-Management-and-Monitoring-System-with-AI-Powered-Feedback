@@ -13,6 +13,7 @@ import {
   requestRevision,
   rejectProposal
 } from '../../services/proposal.api';
+import { api } from '../../utils/axios';
 
 // Used for manual lookups if the join doesn't return the name
 import { fetchDepartments, type LookupItem } from '../../services/proposal.api';
@@ -95,11 +96,20 @@ export const adminProposalApi = {
     proposalId: string,
     status: ProposalStatus
   ): Promise<void> => {
-    // Calls the generic update status if available, or implies it was handled by the specific action
     console.log(`Admin updating proposal ${proposalId} status to ${status}`);
 
-    // If status is "Assigned to RnD", we might want to trigger `forwardProposalToRnd` if we knew real parameters.
-    // However, we lack the "rnd_id" here.
+    const backendStatusMap: Record<string, string> = {
+      'Funded': 'funded'
+    };
+
+    const backendStatus = backendStatusMap[status] || status;
+
+    await api.post("/proposal/update-status", {
+      proposal_id: parseInt(proposalId),
+      status: backendStatus
+    }, {
+      withCredentials: true
+    });
   },
 
   // Fetch Admin statistics
@@ -128,11 +138,6 @@ const mapStatus = (status: string): ProposalStatus => {
     case 'under_evaluation': return 'Under Evaluators Assessment';
     case 'endorsed_for_funding': return 'Endorsed';
     case 'funded': return 'Funded';
-    // 'revised_proposal' logic might be complex if backend doesn't have explicit status for it
-    // But let's check if 'revision_rnd' means "Revision Submitted" or "Revision Requested"
-    // Usually 'revision_rnd' = Revision Requested by RnD.
-    // If proponent submits revision, status might change back to 'review_rnd' or similar.
-    // Let's assume for now:
     case 'revised': return 'Revised Proposal'; // Hypothetical
     default: return 'Pending'; // Fallback
   }
@@ -244,6 +249,10 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     budgetSources: budgetSources,
     budgetTotal: `₱${budgetTotal}`,
     projectFile: data.proposal_version?.[0]?.file_url || undefined,
+    rdStaffReviewer: data.proposal_rnd?.[0]?.users
+      ? `${Array.isArray(data.proposal_rnd[0].users) ? data.proposal_rnd[0].users[0]?.first_name : data.proposal_rnd[0].users?.first_name} ${Array.isArray(data.proposal_rnd[0].users) ? data.proposal_rnd[0].users[0]?.last_name : data.proposal_rnd[0].users?.last_name}`
+      : undefined,
+    endorsementJustification: "",
     assignedRdStaff: (() => {
       // Debug R&D mapping
       if (data.status === 'review_rnd' || data.status === 'under_evaluation') {

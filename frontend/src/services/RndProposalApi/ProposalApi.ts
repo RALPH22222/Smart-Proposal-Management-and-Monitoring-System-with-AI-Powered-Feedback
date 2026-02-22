@@ -60,7 +60,7 @@ const transformProposal = (raw: any): Proposal => {
         budgetTotal: getBudgetTotal(),
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
         evaluatorInstruction: p.evaluator_instruction || "",
-        endorsementJustification: p.proposal_logs?.find((l: any) => l.action === 'endorsed_for_funding')?.remarks || ""
+        endorsementJustification: ""
     };
 };
 
@@ -103,18 +103,22 @@ export const proposalApi = {
         status: ProposalStatus
     ): Promise<void> => {
         const backendStatusMap: Record<string, string> = {
-            'Waiting for Funding': 'waiting_for_funding',
             'Funded': 'funded'
         };
 
         const backendStatus = backendStatusMap[status] || status;
 
-        await api.post("/proposal/update-status", {
-            proposal_id: parseInt(proposalId),
-            status: backendStatus
-        }, {
-            withCredentials: true
-        });
+        try {
+            await api.post("/proposal/update-status", {
+                proposal_id: parseInt(proposalId),
+                status: backendStatus
+            }, {
+                withCredentials: true
+            });
+        } catch (error: any) {
+            console.error("Failed to update status. Backend response:", error.response?.data);
+            throw error;
+        }
     },
 
     // Fetch statistics

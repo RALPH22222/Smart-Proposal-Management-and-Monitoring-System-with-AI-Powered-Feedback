@@ -16,11 +16,14 @@ import {
   type EvaluatorDecision,
   type BudgetRow
 } from '../../../types/evaluator';
-// Updated imports to use Admin-specific components
 import AdminEvaluatorDecisionModal from '../../../components/admin-component/AdminEvaluatorDecisionModal';
 import AdminEndorsementDecisionModal from '../../../components/admin-component/AdminEndorsementDecisionModal';
+import { endorseProposal, requestRevision, rejectProposal } from '../../../services/proposal.api';
+import { useAuthContext } from '../../../context/AuthContext';
+import Swal from 'sweetalert2';
 
 const AdminEndorsementPage: React.FC = () => {
+  const { user } = useAuthContext();
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,88 +44,6 @@ const AdminEndorsementPage: React.FC = () => {
 
   const itemsPerPage = 5;
 
-  // Mock data tailored for Admin view (can be fetched from AdminProposalApi if extended)
-  const mockEndorsementProposals: EndorsementProposal[] = [
-    {
-      id: 'PROP-2025-008',
-      title: 'Smart City Traffic Management System using IoT and Computer Vision',
-      submittedBy: 'Engr. David Lee',
-      budget: [
-        { source: "DOST-GIA", ps: 200000, mooe: 100000, co: 50000, total: 350000 },
-        { source: "City Government", ps: 0, mooe: 50000, co: 100000, total: 150000 }
-      ],
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-1',
-          evaluatorName: 'Dr. Sarah Johnson',
-          decision: 'Approve',
-          comments: 'High impact potential for urban development. Technical architecture is sound.',
-          submittedDate: '2025-01-22T14:30:00Z',
-          ratings: { objectives: 5, methodology: 4, budget: 4, timeline: 5 }
-        },
-        {
-          evaluatorId: 'eval-2',
-          evaluatorName: 'Dr. Michael Chen',
-          decision: 'Approve',
-          comments: 'Feasible implementation plan. Budget allocation needs slight review but acceptable.',
-          submittedDate: '2025-01-23T09:15:00Z',
-          ratings: { objectives: 4, methodology: 4, budget: 3, timeline: 4 }
-        }
-      ],
-      overallRecommendation: 'Approve',
-      readyForEndorsement: true,
-      projectType: 'ICT'
-    },
-    {
-      id: 'PROP-2025-012',
-      title: 'Renewable Energy Grid Optimization for Rural Communities',
-      submittedBy: 'Dr. James Wilson',
-      budget: [
-        { source: "Energy Dept", ps: 150000, mooe: 80000, co: 20000, total: 250000 },
-        { source: "NGO Partner", ps: 0, mooe: 20000, co: 0, total: 20000 }
-      ],
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-4',
-          evaluatorName: 'Dr. Robert Kim',
-          decision: 'Approve',
-          comments: 'Critical for sustainable development. Good community engagement plan.',
-          submittedDate: '2025-01-20T16:45:00Z',
-          ratings: { objectives: 5, methodology: 4, budget: 5, timeline: 4 }
-        },
-        {
-          evaluatorId: 'eval-3',
-          evaluatorName: 'Dr. Lisa Rodriguez',
-          decision: 'Revise',
-          comments: 'Technical specifications for the battery storage need more detail.',
-          submittedDate: '2025-01-21T11:20:00Z',
-          ratings: { objectives: 4, methodology: 3, budget: 4, timeline: 3 }
-        }
-      ],
-      overallRecommendation: 'Revise',
-      readyForEndorsement: true,
-      projectType: 'Energy'
-    },
-    {
-      id: 'PROP-2025-015',
-      title: 'Automated Agricultural Monitoring Drones with Multispectral Imaging',
-      submittedBy: 'Dr. Anna Chen',
-      evaluatorDecisions: [
-        {
-          evaluatorId: 'eval-5',
-          evaluatorName: 'Dr. Amanda Foster',
-          decision: 'Approve',
-          comments: 'Great application of drone tech for agriculture. Dataset plan is robust.',
-          submittedDate: '2025-01-19T13:00:00Z',
-          ratings: { objectives: 5, methodology: 5, budget: 4, timeline: 5 }
-        }
-      ],
-      overallRecommendation: 'Approve',
-      readyForEndorsement: false, // Missing second evaluator
-      projectType: 'Agriculture'
-    }
-  ];
-
   useEffect(() => {
     loadEndorsementProposals();
   }, []);
@@ -130,9 +51,102 @@ const AdminEndorsementPage: React.FC = () => {
   const loadEndorsementProposals = async () => {
     try {
       setLoading(true);
-      // Simulating fetch from Admin API
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setEndorsementProposals(mockEndorsementProposals);
+      
+      // 1. Fetch ALL proposals via existing Admin API
+      const { adminProposalApi } = await import('../../../services/AdminProposalApi/ProposalApi');
+      const { getAssignmentTracker } = await import('../../../services/proposal.api');
+      
+      const allProposals = await adminProposalApi.fetchProposals();
+
+      // 2. Map and fetch assignments for each
+      const mappedProposals: EndorsementProposal[] = [];
+
+      for (const p of allProposals) {
+        let evaluatorDecisions: EvaluatorDecision[] = [];
+        
+        try {
+          // getAssignmentTracker returns an array of assignment objects
+          const trackerData = await getAssignmentTracker(Number(p.id));
+          
+          if (trackerData && trackerData.length > 0) {
+            evaluatorDecisions = trackerData.map((d: unknown) => {
+              const typedD = d as any;
+              let decisionStatus: "Approve" | "Revise" | "Reject" | "Pending" = "Pending";
+              
+              if (typedD.status === "completed" || typedD.status === "done") {
+                decisionStatus = "Approve"; // Simplified for Admin view since scores aren't fully exposed
+              } else if (typedD.status === "decline") {
+                decisionStatus = "Reject";
+              }
+              
+              return {
+                evaluatorId: String(typedD.evaluator_id?.id),
+                evaluatorName: `${typedD.evaluator_id?.first_name || ''} ${typedD.evaluator_id?.last_name || ''}`.trim(),
+                decision: decisionStatus,
+                comments: typedD.remarks || "No detailed comment available in tracker.",
+                submittedDate: typedD.created_at || new Date().toISOString(),
+                ratings: { objectives: 0, methodology: 0, budget: 0, timeline: 0 }
+              };
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to fetch tracker for proposal ${p.id}`, err);
+        }
+
+        // De-duplicate evaluators just in case tracker returns multiples
+        const uniqueEvaluators: EvaluatorDecision[] = [];
+        const seen = new Set();
+        for (const ev of evaluatorDecisions) {
+          if (!seen.has(ev.evaluatorId)) {
+            seen.add(ev.evaluatorId);
+            uniqueEvaluators.push(ev);
+          }
+        }
+
+        let readyForEndorsement = true;
+        let overallRecommendation: 'Approve' | 'Revise' | 'Reject' | 'Pending' = 'Pending';
+        
+        if (uniqueEvaluators.length < 2) readyForEndorsement = false;
+        if (uniqueEvaluators.some(d => d.decision === 'Pending')) readyForEndorsement = false;
+
+        if (readyForEndorsement) {
+           if (uniqueEvaluators.every(d => d.decision === 'Approve')) overallRecommendation = 'Approve';
+           else if (uniqueEvaluators.some(d => d.decision === 'Reject')) overallRecommendation = 'Reject';
+           else overallRecommendation = 'Revise';
+        }
+
+        // Re-map BudgetSource to BudgetRow (just adapting the structure)
+        const budgetRows: BudgetRow[] = (p.budgetSources || []).map((bs: unknown) => {
+           const typedBs = bs as { source: string; ps: number | string; mooe: number | string; co: number | string; breakdown: unknown };
+           const psAmt = parseFloat(String(typedBs.ps).replace(/[^0-9.-]+/g, "")) || 0;
+           const mooeAmt = parseFloat(String(typedBs.mooe).replace(/[^0-9.-]+/g, "")) || 0;
+           const coAmt = parseFloat(String(typedBs.co).replace(/[^0-9.-]+/g, "")) || 0;
+           return {
+             source: typedBs.source,
+             ps: psAmt,
+             mooe: mooeAmt,
+             co: coAmt,
+             total: psAmt + mooeAmt + coAmt,
+             breakdown: typedBs.breakdown as BudgetRow['breakdown']
+           };
+        });
+
+        // Only include the proposal if there is at least 1 evaluator assigned
+        if (evaluatorDecisions.length > 0) {
+          mappedProposals.push({
+            id: p.id,
+            title: p.title,
+            submittedBy: p.submittedBy,
+            budget: budgetRows,
+            evaluatorDecisions: uniqueEvaluators,
+            overallRecommendation,
+            readyForEndorsement,
+            projectType: p.projectType || 'N/A'
+          });
+        }
+      }
+      
+      setEndorsementProposals(mappedProposals);
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
     } finally {
@@ -166,17 +180,57 @@ const AdminEndorsementPage: React.FC = () => {
     setIsDecisionModalOpen(false);
   };
 
-  const handleDecisionSubmit = (status: "endorsed" | "revised" | "rejected", remarks: string) => {
-    if (!selectedProposal) return;
+  const handleDecisionSubmit = async (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => {
+    if (!selectedProposal || !user?.id) return;
 
-    // Log the remarks and status
-    console.log(`Admin Decision: ${status.toUpperCase()} for ${selectedProposal.id}`);
-    console.log(`Remarks: ${remarks}`);
+    try {
+      Swal.fire({
+        title: 'Processing Decision...',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
 
-    // Update state to reflect action immediately
-    setEndorsementProposals((prev) =>
-        prev.filter((proposal) => proposal.id !== selectedProposal.id)
-    );
+      const proposalIdNum = parseInt(selectedProposal.id);
+
+      if (status === 'endorsed') {
+        await endorseProposal({
+          proposal_id: proposalIdNum,
+          rnd_id: user.id,
+          decision: "endorsed",
+          remarks
+        });
+      } else if (status === 'revised') {
+        let days = 14;
+        if (revisionDeadline) {
+          if (revisionDeadline.includes("1 Week")) days = 7;
+          else if (revisionDeadline.includes("3 Weeks")) days = 21;
+          else if (revisionDeadline.includes("1 Month")) days = 30;
+          else if (revisionDeadline.includes("6 Weeks")) days = 42;
+          else if (revisionDeadline.includes("2 Months")) days = 60;
+        }
+        const deadlineTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
+        
+        await requestRevision({
+          proposal_id: proposalIdNum,
+          deadline: deadlineTimestamp,
+          overall_comment: remarks
+        });
+      } else if (status === 'rejected') {
+        await rejectProposal({
+          proposal_id: proposalIdNum,
+          comment: remarks
+        });
+      }
+
+      await Swal.fire('Success', 'Decision processed successfully.', 'success');
+      loadEndorsementProposals();
+      
+    } catch (error: unknown) {
+      console.error("Action error:", error);
+      const err = error as { response?: { data?: { message?: string } } };
+      Swal.fire('Error', err.response?.data?.message || 'Failed to process decision.', 'error');
+    }
 
     handleCloseDecisionModal();
   };

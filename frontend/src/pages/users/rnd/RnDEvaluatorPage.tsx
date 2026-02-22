@@ -85,22 +85,24 @@ export const RnDEvaluatorPage: React.FC = () => {
       const proposals = await getRndProposals();
       console.log("RND Proposals:", proposals);
 
-      // 2. For each proposal, fetch its assignment tracker data
-      const trackerPromises = proposals.map((p: any) => {
+      // 2. For each proposal, fetch its assignment tracker data sequentially
+      // to avoid hitting Supabase connection limits (500 Internal Server Error)
+      const allAssignments: any[] = [];
+      for (const p of proposals) {
         if (!p?.proposal_id?.id) {
           console.warn("Invalid proposal record:", p);
-          return Promise.resolve([]);
+          continue;
         }
-        return getAssignmentTracker(p.proposal_id.id).catch(err => {
+        try {
+          const trackerData = await getAssignmentTracker(p.proposal_id.id);
+          if (trackerData && trackerData.length > 0) {
+            allAssignments.push(...trackerData);
+          }
+        } catch (err) {
           console.error(`Failed to fetch tracker for proposal ${p.proposal_id.id}`, err);
-          return []; // Return empty array on error to prevent total failure
-        });
-      });
-      const trackerResults = await Promise.all(trackerPromises);
-
-      // Flat list of all assignments
-      const allAssignments = trackerResults.flat();
-      console.log("Aggregated Assignment Data:", allAssignments);
+          // Continue to next proposal without breaking the page
+        }
+      }
 
       // Group by Proposal
       const groupedMap = new Map<number, GroupedAssignment>();

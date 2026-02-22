@@ -277,10 +277,6 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     if (!proposal) return;
 
     if (decision === 'Sent to Evaluators') {
-      if (assignedEvaluators.length === 0) {
-        alert("Please assign at least one evaluator.");
-        return;
-      }
       handleForwardToEvaluators();
       return;
     }
@@ -318,6 +314,14 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   };
 
   const handleForwardToEvaluators = () => {
+    if (assignedEvaluators.length < 2) {
+      Swal.fire({
+        icon: "warning",
+        title: "Minimum Evaluators Required",
+        text: "You must have at least 2 evaluators assigned before forwarding this proposal.",
+      });
+      return;
+    }
     setShowAnonymitySelection(true);
   };
 
