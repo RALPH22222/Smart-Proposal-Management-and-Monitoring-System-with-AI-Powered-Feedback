@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
-import { FileText, Eye, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, Filter } from "lucide-react";
+import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, ClipboardPenLine, ScanSearch} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 
 export default function EndorsedProposals() {
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
@@ -78,7 +77,7 @@ export default function EndorsedProposals() {
           title: p.project_title || "Untitled",
           reviewDeadline: item.deadline_at ? new Date(item.deadline_at).toLocaleDateString() : "N/A",
           proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
-          projectType: p.sector?.name || "N/A",
+          tags: (p.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           agency: p.agency?.name || "N/A",
           address: agencyAddress,
           implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
@@ -131,8 +130,7 @@ export default function EndorsedProposals() {
 
   const filtered = endorsedProposals.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === "All" || p.projectType === typeFilter;
-    return matchesSearch && matchesType;
+    return matchesSearch;
   });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
@@ -145,23 +143,26 @@ export default function EndorsedProposals() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case "ICT":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "Healthcare":
-        return "bg-pink-100 text-pink-700 border-pink-200";
-      case "Agriculture":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "Energy":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "Public Safety":
-        return "bg-purple-100 text-purple-700 border-purple-200";
-      case "Environment":
-        return "bg-teal-100 text-teal-700 border-teal-200";
-      default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+  const getTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-pink-50 text-pink-700 border-pink-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-emerald-50 text-emerald-700 border-emerald-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   const handleReviewClick = (proposalId: number) => {
@@ -229,26 +230,6 @@ export default function EndorsedProposals() {
                 aria-label="Search endorsed proposals"
               />
             </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Filter by project type"
-              >
-                <option value="All">All Types</option>
-                <option value="ICT">ICT</option>
-                <option value="Energy">Energy</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Agriculture">Agriculture</option>
-                <option value="Public Safety">Public Safety</option>
-                <option value="Environment">Environment</option>
-              </select>
-            </div>
           </div>
 
           <div className="mt-4 text-xs text-slate-600">
@@ -262,7 +243,7 @@ export default function EndorsedProposals() {
         <div className="p-4 border-b border-slate-200 bg-slate-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#C8102E]" />
+              <ClipboardPenLine className="w-5 h-5 text-[#C8102E]" />
               Review Proposals
             </h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -297,14 +278,15 @@ export default function EndorsedProposals() {
                             <Clock className="w-3 h-3" />
                             <span>Review by: {proposal.reviewDeadline}</span>
                           </div>
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${getProjectTypeColor(
-                              proposal.projectType,
-                            )}`}
-                          >
-                            <Tag className="w-3 h-3" />
-                            {proposal.projectType}
-                          </span>
+                          {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
+                            <span
+                              key={i}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
+                            >
+                              <Tag className="w-3 h-3" />
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                       </div>
 
@@ -313,7 +295,7 @@ export default function EndorsedProposals() {
                           onClick={() => handleReviewClick(proposal.id)}
                           className="inline-flex items-center justify-center gap-1 px-4 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 transition-all text-xs font-medium cursor-pointer"
                         >
-                          <Eye className="w-3 h-3" />
+                          <ScanSearch className="w-4 h-4" />
                           Review
                         </button>
                       </div>
