@@ -37,7 +37,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) { }
+  constructor(private db: SupabaseClient) {}
 
   private async resolveLookupId(args: {
     table: Table;
@@ -861,8 +861,6 @@ export class ProposalService {
       const p = item.proposal_id;
       if (!p) return item;
 
-
-
       const vis = item.proponent_info_visibility || p.proponent_info_visibility;
       if (item.proponent_info_visibility) {
         p.proponent_info_visibility = item.proponent_info_visibility;
@@ -892,7 +890,7 @@ export class ProposalService {
       if (shouldHideAgency) {
         if (p.agency) {
           // p.agency is { name: string } from the join
-          if (typeof p.agency === 'object') p.agency.name = "Confidential";
+          if (typeof p.agency === "object") p.agency.name = "Confidential";
         }
         if (p.agency_address) {
           p.agency_address.city = "Confidential";
@@ -1048,7 +1046,10 @@ export class ProposalService {
     // 4. Fetch users and departments in parallel
     const [usersResult, departmentsResult, scoresResult, budgetsResult] = await Promise.all([
       allUserIds.length > 0
-        ? this.db.from("users").select("id, first_name, last_name, email, department:department_id(name)").in("id", allUserIds)
+        ? this.db
+            .from("users")
+            .select("id, first_name, last_name, email, department:department_id(name)")
+            .in("id", allUserIds)
         : { data: [], error: null },
       departmentIds.length > 0
         ? this.db.from("departments").select("id, name").in("id", departmentIds)
@@ -1058,7 +1059,10 @@ export class ProposalService {
         .from("evaluation_scores")
         .select("proposal_id, evaluator_id, objective, methodology, budget, timeline, comment")
         .in("proposal_id", proposalIds),
-      this.db.from("estimated_budget").select("id, proposal_id, item, source, budget, amount").in("proposal_id", proposalIds),
+      this.db
+        .from("estimated_budget")
+        .select("id, proposal_id, item, source, budget, amount")
+        .in("proposal_id", proposalIds),
     ]);
 
     if (usersResult.error) return { data: null, error: usersResult.error };
@@ -1107,7 +1111,9 @@ export class ProposalService {
             ? `${evaluator.first_name || ""} ${evaluator.last_name || ""}`.trim() || "Unknown"
             : "Unknown",
           // Adding department and email
-          evaluatorDepartment: Array.isArray((evaluator as any)?.department) ? (evaluator as any)?.department[0]?.name : ((evaluator as any)?.department?.name || "N/A"),
+          evaluatorDepartment: Array.isArray((evaluator as any)?.department)
+            ? (evaluator as any)?.department[0]?.name
+            : (evaluator as any)?.department?.name || "N/A",
           evaluatorEmail: evaluator?.email || "N/A",
           decision,
           status: ev.status,
@@ -1283,7 +1289,8 @@ export class ProposalService {
   }
 
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
-    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } = input;
+    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } =
+      input;
 
     // 1. Verify proposal exists and belongs to proponent
     const { data: proposal, error: fetchError } = await this.db
@@ -1336,9 +1343,9 @@ export class ProposalService {
       return { error: versionError };
     }
 
-    // 6. Update proposal status to review_rnd and optionally update fields
+    // 6. Update proposal status to REVISED_PROPOSAL and optionally update fields
     const updatePayload: Record<string, any> = {
-      status: Status.REVIEW_RND,
+      status: Status.REVISED_PROPOSAL,
       updated_at: new Date().toISOString(),
     };
 
@@ -1354,10 +1361,7 @@ export class ProposalService {
 
     // 6b. Replace budget rows if provided
     if (Array.isArray(budget) && budget.length > 0) {
-      const { error: deleteError } = await this.db
-        .from("estimated_budget")
-        .delete()
-        .eq("proposal_id", proposal_id);
+      const { error: deleteError } = await this.db.from("estimated_budget").delete().eq("proposal_id", proposal_id);
 
       if (deleteError) {
         return { error: deleteError };
@@ -1398,7 +1402,7 @@ export class ProposalService {
         version_number: newVersionNumber,
         version_id: versionData.id,
         file_url: fileUrl,
-        status: Status.REVIEW_RND,
+        status: Status.REVISED_PROPOSAL,
       },
       error: null,
     };
@@ -1543,7 +1547,6 @@ export class ProposalService {
       return { data: null, error: null };
     }
 
-
     // 3. Fetch RND user name and role separately
     let rnd_name = "Unknown";
     let rejected_by_role = "rnd"; // default to rnd
@@ -1648,9 +1651,7 @@ export class ProposalService {
       const { data: allowedAssignments, error: authError } = await authQuery;
 
       if (!authError && allowedAssignments) {
-        const allowedSet = new Set(
-          allowedAssignments.map((a: any) => `${a.proposal_id}-${a.evaluator_id}`)
-        );
+        const allowedSet = new Set(allowedAssignments.map((a: any) => `${a.proposal_id}-${a.evaluator_id}`));
 
         filtered = filtered.filter((row: any) => {
           const pId = row.proposals?.id;

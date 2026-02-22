@@ -6,6 +6,7 @@ export enum Status {
   ENDORSED_FOR_FUNDING = "endorsed_for_funding",
   FUNDED = "funded",
   PENDING = "pending",
+  REVISED_PROPOSAL = "revised_proposal",
 }
 
 export enum ResearchClass {
@@ -100,10 +101,10 @@ export interface ImplementationSite {
 }
 
 export interface AgencyAddress {
-  id?: string;              // UUID from agency_address table (for existing addresses)
-  street?: string | null;   // Now optional
+  id?: string; // UUID from agency_address table (for existing addresses)
+  street?: string | null; // Now optional
   barangay?: string | null; // Now optional
-  city: string;             // Required (per DB schema)
+  city: string; // Required (per DB schema)
 }
 
 // Matches 'public.proposals' table
