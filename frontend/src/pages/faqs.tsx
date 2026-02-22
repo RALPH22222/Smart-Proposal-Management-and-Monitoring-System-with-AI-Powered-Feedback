@@ -258,8 +258,8 @@ const FAQ: React.FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-white">
-        <div ref={faqSection.ref} className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <section className="py-8 sm:py-12 md:py-16 bg-white">
+        <div ref={faqSection.ref} className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
           {/* Sidebar - Hidden on mobile */}
           <div className={`lg:col-span-1 hidden lg:block transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
             <div className="bg-white rounded-2xl p-6 border border-[#C8102E]/20 shadow-md sticky top-24 transform hover:scale-102 transition-all duration-300">
@@ -364,13 +364,13 @@ const FAQ: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300">
+            <div className="bg-white rounded-2xl p-3 sm:p-6 md:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300 overflow-x-auto">
               {/* Desktop Category Header */}
               <div className="hidden lg:flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300">
+                <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
                   {CategoryIcons[activeCategory as keyof typeof CategoryIcons]}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-2xl font-bold text-gray-900">
                     {categories.find(cat => cat.id === activeCategory)?.name}
                   </h2>
@@ -386,7 +386,7 @@ const FAQ: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   All Questions
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-gray-600 text-sm">
                   {allFaqItems.length} total questions available
                 </p>
               </div>
@@ -411,8 +411,7 @@ const FAQ: React.FC = () => {
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(index) ? "rotate-180" : ""
-                            }`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(index) ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -425,7 +424,6 @@ const FAQ: React.FC = () => {
                           />
                         </svg>
                       </button>
-
                       <div
                         className={`transition-all duration-500 overflow-hidden ${openItems.includes(index)
                           ? "max-h-96 opacity-100"
@@ -439,7 +437,6 @@ const FAQ: React.FC = () => {
                     </div>
                   ))}
                 </div>
-
                 {/* Mobile View - All Questions */}
                 <div className="lg:hidden space-y-4">
                   {allFaqItems.map((faq) => (
@@ -461,8 +458,7 @@ const FAQ: React.FC = () => {
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(faq.globalIndex) ? "rotate-180" : ""
-                            }`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(faq.globalIndex) ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -475,7 +471,6 @@ const FAQ: React.FC = () => {
                           />
                         </svg>
                       </button>
-
                       <div
                         className={`transition-all duration-500 overflow-hidden ${openItems.includes(faq.globalIndex)
                           ? "max-h-96 opacity-100"

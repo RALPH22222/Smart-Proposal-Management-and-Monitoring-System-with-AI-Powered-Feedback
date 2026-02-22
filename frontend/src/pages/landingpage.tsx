@@ -314,14 +314,14 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4 md:space-y-6 animate-fade-in-left">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   <img
-                    src="https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?q=80&auto=format&fit=crop&w=1200&h=600"
+                    src="https://lh3.googleusercontent.com/gps-cs-s/AHVAwerQQIHJtk7j-LPjHlOT4i7UKeE2P-XkTZXBbg73hMubbRW8Qu80gko3QHh-g1I1Wt7Q7aCie-n3-EfE-irNl_y7oL8WmvfqbRSEzEQNISnMuJ0Qs00BrErjjEJm0j4lJKFZHMKePthc3602=s1360-w1360-h1020-rw"
                     alt="Lecture hall with students"
                     className="w-full h-44 sm:h-48 lg:h-56 object-cover transition-transform duration-700 hover:scale-110"
                   />
                 </div>
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   <img
-                    src="https://naomidsouza.com/wp-content/uploads/2024/01/How-to-write-a-research-paper.webp"
+                    src="https://scontent.fceb2-1.fna.fbcdn.net/v/t39.30808-6/481292223_1149956580252343_5792440465378227982_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeFNXFI9YVu1NT5wgwy1QVknqsryBfvd5W-qyvIF-93lb_B88yAtidY9clAIOITNBV9lo_7eDcnuJ1nBdwHmuM5O&_nc_ohc=zUus1-C_4dIQ7kNvwFLbtOL&_nc_oc=AdnIFsFpDjZcmrSf66VymaF7Lr3TJpnSKEehYYnBA9YS-mBeb_X9yjBkjCLH8B3VWdQXnRENpQkVxa8QLbHBTHfD&_nc_zt=23&_nc_ht=scontent.fceb2-1.fna&_nc_gid=Uf86Z7P6ncrLZIPWLRtxdA&oh=00_Afs737HNbcUGtYLp9v0SDAsDGFsmYPJ1wauPR54EXkvNVQ&oe=69A0E307"
                     alt="Data research and analysis on computer screens"
                     className="w-full max-w-2xl object-cover rounded-xl transition-transform duration-700 hover:scale-110"
                   />
@@ -330,7 +330,7 @@ const LandingPage: React.FC = () => {
               <div className="pt-8 md:pt-12 animate-fade-in-right animation-delay-200">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:-rotate-1">
                   <img
-                    src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&auto=format&fit=crop&w=1600&h=600"
+                    src="https://lh3.googleusercontent.com/gps-cs-s/AHVAwerJ5DHzhyNJ2YS08iOAwkiRMsePZK4OoXhweyK_OJzJHK63dwCeL6ThXhmi7bF9DhLoCu5WEH6tDfVn649q31o9ngWaoUoDccqD3WRf1zxZWqZTOCdNy98vzZCdKFIJlu3DHgql=s1360-w1360-h1020-rw"
                     alt="University library interior"
                     className="w-full h-80 sm:h-72 lg:h-96 object-cover transition-transform duration-700 hover:scale-110"
                   />

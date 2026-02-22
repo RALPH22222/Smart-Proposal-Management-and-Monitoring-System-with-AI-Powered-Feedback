@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { GraduationCap, BookOpenText } from "lucide-react";
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 
@@ -84,12 +85,7 @@ const About: React.FC = () => {
   const processSection = useInView();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev === 2 ? 0 : prev + 1));
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
+    }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
@@ -287,38 +283,13 @@ const About: React.FC = () => {
               </p>
             </div>
 
-            {/* Carousel with zoom effect */}
-            <div className="w-full h-full animate-fade-in-right animation-delay-200">
-              <div className="relative h-96 lg:h-full w-full overflow-hidden rounded-lg shadow-lg group">
-                {[
-                  "https://wmsu.edu.ph/wp-content/uploads/2025/09/542810728_1254124280094134_3626675184462897497_n.jpg",
-                  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/640px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg",
-                  "https://wmsu.edu.ph/wp-content/uploads/2024/10/463327480_971931538313411_5392180422034756990_n-1024x576.jpg"
-                ].map((image, index) => (
-                  <div
-                    key={index}
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentImage ? 'opacity-100' : 'opacity-0'
-                      }`}
-                  >
-                    <img
-                      src={image}
-                      alt={`Carousel ${index + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Carousel Indicators with pulse effect */}
-              <div className="flex justify-center mt-4 space-x-2">
-                {[0, 1, 2].map((index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImage(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentImage ? 'bg-red-600 w-8' : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
-                  />
-                ))}
+            <div className="w-full h-full flex flex-col items-center justify-center animate-fade-in-right animation-delay-200">
+              <div className="relative h-96 w-full overflow-hidden rounded-lg shadow-lg group">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/en/c/c8/Western_Mindanao_State_University_Gym_%28RT_Lim_Boulevard%2C_Zamboanga_City%3B_10-06-2023%29.jpg"
+                  alt="Western Mindanao State University"
+                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
+                />
               </div>
             </div>
           </div>
@@ -331,10 +302,8 @@ const About: React.FC = () => {
           <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 transition-all duration-1000 ${missionSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             {/* Mission Card */}
             <div className="bg-white rounded-2xl shadow-xl p-8 transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] hover:-translate-y-2 transition-all duration-300 border border-gray-100 border-b-4 border-b-red-300 hover:border-b-red-600 animate-fade-in-left">
-              <div className="w-15 h-15 bg-red-100 m-auto rounded-2xl flex items-center justify-center mb-6 transform hover:rotate-12 transition-transform duration-300">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+              <div className="w-15 h-15 bg-red-100 m-auto rounded-2xl flex items-center justify-center mb-6 transform transition-transform duration-300">
+                <GraduationCap className="w-10 h-10 text-red-600 transition-transform duration-300 group-hover:scale-110" />
               </div>
               <h3 className="text-3xl font-bold flex items-center justify-center mb-4">
                 <span className="text-red-600">❝</span>
@@ -350,11 +319,8 @@ const About: React.FC = () => {
 
             {/* Vision Card */}
             <div className="bg-white rounded-2xl shadow-xl p-8 transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] hover:-translate-y-2 transition-all duration-300 border border-gray-100 border-b-4 border-b-red-300 hover:border-b-red-600 animate-fade-in-right animation-delay-200">
-              <div className="w-15 h-15 bg-red-100 m-auto rounded-2xl flex items-center justify-center mb-6 transform hover:rotate-12 transition-transform duration-300">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+              <div className="w-15 h-15 bg-red-100 m-auto rounded-2xl flex items-center justify-center mb-6 transform transition-transform duration-300">
+                <BookOpenText className="w-10 h-10 text-red-600 transition-transform duration-300 group-hover:scale-110" />
               </div>
               <h3 className="text-3xl font-bold flex items-center justify-center mb-4">
                 <span className="text-red-600">❝</span>
