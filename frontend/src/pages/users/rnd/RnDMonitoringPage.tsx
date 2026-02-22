@@ -17,11 +17,11 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  Ban 
+  Ban
 } from 'lucide-react';
 import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
-import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal'; 
+import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
 
 // --- UPDATED MOCK DATA ---
 const MOCK_PROJECTS: Project[] = [
@@ -41,14 +41,14 @@ const MOCK_PROJECTS: Project[] = [
     researchArea: 'Agriculture Technology',
     lastModified: '2025-02-01',
     fundRequests: [
-       { id: 'fr1', amount: 50000, reason: 'Additional GPU Server costs', dateRequested: '2025-06-01', status: 'Pending'}
+      { id: 'fr1', amount: 50000, reason: 'Additional GPU Server costs', dateRequested: '2025-06-01', status: 'Pending' }
     ],
     milestones: [
       { id: 'm1', name: 'Data Collection', dueDate: '2025-03-15', status: 'Completed', completed: true },
-      { 
-        id: 'm2', 
-        name: 'Model Training', 
-        dueDate: '2025-06-30', 
+      {
+        id: 'm2',
+        name: 'Model Training',
+        dueDate: '2025-06-30',
         status: 'Review Required',
         submissionDate: '2025-06-28',
         submissionProof: 'Training logs and accuracy report attached. Model reached 95% accuracy.',
@@ -72,8 +72,8 @@ const MOCK_PROJECTS: Project[] = [
     researchArea: 'Renewable Energy',
     lastModified: '2025-01-01',
     milestones: [
-       { id: 'p1', name: 'Site Survey', dueDate: '2025-05-15', status: 'Proposed', description: 'Ocular inspection of 5 schools.', completed: false },
-       { id: 'p2', name: 'System Design', dueDate: '2025-07-20', status: 'Proposed', description: 'Solar PV layout drafts.', completed: false }
+      { id: 'p1', name: 'Site Survey', dueDate: '2025-05-15', status: 'Proposed', description: 'Ocular inspection of 5 schools.', completed: false },
+      { id: 'p2', name: 'System Design', dueDate: '2025-07-20', status: 'Proposed', description: 'Solar PV layout drafts.', completed: false }
     ]
   },
   {
@@ -111,18 +111,18 @@ const MOCK_PROJECTS: Project[] = [
     researchArea: 'Marine Biology',
     lastModified: '2025-03-10',
     milestones: [
-       { 
-         id: 'd1', 
-         name: 'Equipment Procurement', 
-         dueDate: '2025-03-01', 
-         status: 'Delayed', 
-         completed: false,
-         extensionRequest: {
-           newDate: '2025-04-15',
-           reason: 'Supplier stocks unavailable due to shipping issues.',
-           status: 'Pending'
-         }
-       }
+      {
+        id: 'd1',
+        name: 'Equipment Procurement',
+        dueDate: '2025-03-01',
+        status: 'Delayed',
+        completed: false,
+        extensionRequest: {
+          newDate: '2025-04-15',
+          reason: 'Supplier stocks unavailable due to shipping issues.',
+          status: 'Pending'
+        }
+      }
     ]
   }
 ];
@@ -133,14 +133,14 @@ interface MonitoringPageProps {
 
 // Fixed: Removed unused 'onStatsUpdate' from destructuring
 const MonitoringPage: React.FC<MonitoringPageProps> = () => {
-  const [projects, setProjects] = useState<Project[]>([]);   
+  const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modals state
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  
+
   // Block Modal State
   const [projectToBlock, setProjectToBlock] = useState<Project | null>(null);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
@@ -290,7 +290,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
   const getStatusBadge = (status: ProjectStatus) => {
     const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-    
+
     switch (status) {
       case 'Active':
         return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
@@ -432,15 +432,13 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
           <div className="flex-1 overflow-y-auto">
             {filteredProjects.length === 0 ? (
-              <div className="text-center py-12 px-4">
+              <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
+                  <BarChart3 className="w-8 h-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No projects found</h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
-                  {searchTerm || statusFilter !== 'All'
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'No projects available.'}
+                  Projects will appear here once they are marked as active and ready for monitoring.
                 </p>
               </div>
             ) : (
@@ -448,7 +446,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                 {paginatedProjects.map((project) => {
                   const daysRemaining = getDaysRemaining(project.endDate);
                   const isOverdue = daysRemaining < 0 && project.status !== 'Completed';
-                  
+
                   return (
                     <article
                       key={project.id}
@@ -482,12 +480,11 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                           <div className="flex items-center gap-3 mb-2">
                             <div className="w-32 bg-slate-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  project.status === 'Completed' ? 'bg-blue-600' : 
+                                className={`h-2 rounded-full transition-all duration-500 ${project.status === 'Completed' ? 'bg-blue-600' :
                                   project.status === 'At Risk' ? 'bg-orange-500' :
-                                  project.status === 'Delayed' ? 'bg-yellow-500' :
-                                  'bg-green-600'
-                                }`}
+                                    project.status === 'Delayed' ? 'bg-yellow-500' :
+                                      'bg-green-600'
+                                  }`}
                                 style={{ width: project.status === 'Completed' ? '100%' : `${project.completionPercentage}%` }}
                               ></div>
                             </div>
@@ -577,7 +574,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
             </div>
           )}
         </main>
-        
+
         {/* Project Detail Modal */}
         <RnDProjectDetailModal
           project={selectedProject}
@@ -586,7 +583,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
         />
 
         {/* Block Project Modal */}
-        <BlockProjectModal 
+        <BlockProjectModal
           isOpen={isBlockModalOpen}
           project={projectToBlock}
           onClose={handleCloseBlockModal}

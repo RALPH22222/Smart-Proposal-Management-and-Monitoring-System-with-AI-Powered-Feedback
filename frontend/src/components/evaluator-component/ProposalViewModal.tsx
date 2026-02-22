@@ -223,14 +223,14 @@ export default function ProposalModal({
         label: "Extension Approved",
       };
 
-    // Red (Rejected)
+    // Red (Declined)
     if (["rejected", "decline", "disapproved", "extension_rejected"].includes(s))
       return {
         bg: "bg-red-100",
         border: "border-red-200",
         text: "text-red-800",
         icon: <XCircle className="w-4 h-4 text-red-600" />,
-        label: s.includes("extension") ? "Extension Rejected" : "Rejected",
+        label: s.includes("extension") ? "Extension Declined" : "Declined",
       };
 
     // Blue (Extension Req)

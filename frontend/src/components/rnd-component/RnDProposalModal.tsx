@@ -370,7 +370,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
-    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none', assignedEvaluators?: { id: string, visibility: string }[] } = {
+    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none', assignedEvaluators?: string[] } = {
       proposalId: proposal.id,
       decision: 'Sent to Evaluators',
       structuredComments,
@@ -379,8 +379,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: evaluationDeadline, // Send '14', '7', etc. directly
       proponentInfoVisibility: showProponentInfo,
-      // IMPORTANT: Map to objects with visibility here
-      assignedEvaluators: assignedEvaluators.map(ev => ({ id: ev.id!, visibility: showProponentInfo }))
+      // IMPORTANT: Map to IDs here
+      assignedEvaluators: assignedEvaluators.map(ev => ev.id!)
     };
 
     onSubmitDecision(decisionData);

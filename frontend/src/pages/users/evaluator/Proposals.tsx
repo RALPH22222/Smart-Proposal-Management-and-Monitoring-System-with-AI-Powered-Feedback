@@ -245,14 +245,14 @@ export default function Proposals() {
       return {
         bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
-        label: s === "decline" ? "Declined" : "Rejected",
+        label: "Declined",
       };
 
     if (s === "extension_rejected")
       return {
         bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
-        label: "Extension Rejected",
+        label: "Extension Declined",
       };
 
     if (["extension_requested", "extend"].includes(s))
@@ -432,10 +432,9 @@ export default function Proposals() {
                 <option value="pending">Pending Review</option>
                 <option value="extension_requested">Extension Requested</option>
                 <option value="extension_approved">Extension Approved</option>
-                <option value="extension_rejected">Extension Rejected</option>
+                <option value="extension_rejected">Extension Declined</option>
                 <option value="accepted">Reviewed</option>
-                <option value="rejected">Rejected</option>
-                <option value="decline">Declined</option>
+                <option value="declined">Declined</option>
                 <option value="for_review">Under Review</option>
               </select>
             </div>

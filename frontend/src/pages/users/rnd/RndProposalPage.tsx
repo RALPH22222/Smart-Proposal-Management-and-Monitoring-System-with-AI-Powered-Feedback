@@ -569,11 +569,14 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
           <div className="overflow-y-auto custom-scrollbar flex-1">
             {filteredProposals.length === 0 ? (
-              <div className="text-center py-12 px-4">
+              <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   <FileText className="w-8 h-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">
+                  Proposals will appear once the Admin submitted it to R&D.
+                </p>
               </div>
             ) : (
               <table className="min-w-full text-left align-middle">

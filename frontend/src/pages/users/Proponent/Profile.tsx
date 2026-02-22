@@ -596,6 +596,9 @@ const Profile: React.FC = () => {
         <Loader3D />
       ) : filteredProjects.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
+          <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <FileText className="w-8 h-8 text-slate-400" />
+          </div>
           <p>No projects found matching your criteria.</p>
         </div>
       ) : (
@@ -716,7 +719,10 @@ const Profile: React.FC = () => {
             </tr>
           ) : filteredProjects.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+              <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <FileText className="w-8 h-8 text-slate-400" />
+                </div>
                 No projects found.
               </td>
             </tr>

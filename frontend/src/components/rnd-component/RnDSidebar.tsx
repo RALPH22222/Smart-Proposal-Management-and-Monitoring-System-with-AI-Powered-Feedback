@@ -29,7 +29,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const accent = "#C10003";
 
-  const { logout } = useAuthContext();
+  const { logout, user } = useAuthContext();
+
+  const getFullName = () => {
+    if (!user) return "User";
+    const u: any = user;
+    if (!u.first_name && !u.last_name) return u.email || "User";
+    return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
+  };
+
+  const avatarUrl = user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`;
 
   const mainLinks = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -78,12 +87,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Collapsed Header */}
         <div className="flex justify-center mb-8 p-3 rounded-xl bg-gradient-to-r from-red-50 to-red-50/30 border border-red-100/50 shadow-sm">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md overflow-hidden"
             style={{
               backgroundColor: accent,
               background: `linear-gradient(135deg, ${accent} 0%, #A00E26 100%)`,
             }}
           >
+            <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -154,13 +164,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Enhanced Header with Animation */}
         <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-r from-red-50 to-red-50/30 border border-red-100/50 shadow-sm">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md transform transition-transform duration-300 hover:scale-110 hover:rotate-3"
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md transform transition-transform duration-300 hover:scale-110 hover:rotate-3 overflow-hidden"
             style={{
               backgroundColor: accent,
               background: `linear-gradient(135deg, ${accent} 0%, #A00E26 100%)`,
             }}
           >
-            A
+            <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
           <div>
             <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
