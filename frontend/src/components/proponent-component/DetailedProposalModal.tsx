@@ -345,7 +345,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       try {
         // Track what changed
         const changes: any = {};
-        
+
         if (editedProposal?.title !== proposal.title) {
           changes.projectTitle = { old: proposal.title, new: editedProposal?.title };
         }
@@ -384,13 +384,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           // Store the new file URL and changes for display
           setSubmittedRevisionFile(response.data?.file_url || null);
           setRevisionChanges(changes);
-          
+
           // Success - show toast or notification
           alert("Revision submitted successfully! Your proposal has been sent back to R&D for review.");
           setNewFile(null);
           setIsEditing(false);
           // onClose();  // Don't close, show summary
-          
+
           // Optionally refresh the parent component with backend status
           if (onUpdateProposal && proposal) {
             onUpdateProposal({
@@ -496,16 +496,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       };
     }
 
-    // Revised proposal submitted (under R&D review after revision)
-    if (["review_rnd"].includes(s)) {
-      return {
-        bg: "bg-yellow-100",
-        border: "border-yellow-300",
-        text: "text-yellow-900",
-        icon: <Edit className="w-5 h-5 text-yellow-700" />,
-        label: "Revised Proposal",
-      };
-    }
+
 
     if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s))
       return {
