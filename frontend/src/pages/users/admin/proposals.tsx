@@ -188,7 +188,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     }
 
     if (activeTab === 'Revised Proposal') {
-      return s.includes('revised');
+      return s.includes('revised') || s === 'revised_proposal';
     }
 
     if (activeTab === 'Revision Required') {
@@ -327,6 +327,10 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       s.includes('under r&d review')
     ) return 'Under R&D Review';
 
+    if (s.includes('revised_proposal') || s.includes('revised proposal')) {
+      return 'Revised Proposal';
+    }
+
     // Evaluator variations
     if (
       s.includes('evaluator') ||
@@ -361,14 +365,14 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     }
 
     // Revised Proposal
-    if (s.includes('revised') || s === 'revised proposal') {
+    if (s.includes('revised') || s === 'revised proposal' || s === 'revised_proposal') {
       if (proposal.assignedRdStaff) {
         return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`} title={`Assigned to: ${proposal.assignedRdStaff}`}>
           <Bot className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">RnD: {proposal.assignedRdStaff}</span>
         </span>;
       }
-      return <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}><GitBranch className="w-3 h-3 flex-shrink-0" />Revised Proposal</span>;
+      return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200 cursor-default`}><GitBranch className="w-3 h-3 flex-shrink-0 text-amber-600" />Revised Proposal</span>;
     }
 
     // Revision Required

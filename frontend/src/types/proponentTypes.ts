@@ -77,6 +77,7 @@ export interface Proposal {
   budgetSources: BudgetSource[];
   budgetTotal: string;
   uploadedFile: string;
+  versions?: string[];
   lastUpdated: string;
   deadline?: string;
 }

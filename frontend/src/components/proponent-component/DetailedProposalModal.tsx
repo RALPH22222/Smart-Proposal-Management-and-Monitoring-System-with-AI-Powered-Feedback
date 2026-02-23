@@ -85,7 +85,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isLoadingRejection, setIsLoadingRejection] = useState(false);
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
   const [revisionError, setRevisionError] = useState<string | null>(null);
-  const [submittedRevisionFile, setSubmittedRevisionFile] = useState<string | null>(null);
+
   const [revisionChanges, setRevisionChanges] = useState<{
     projectTitle?: { old: string; new: string };
     startDate?: { old: string; new: string };
@@ -150,8 +150,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   useEffect(() => {
     if (proposal) {
       setEditedProposal(proposal);
-      if (proposal.uploadedFile) {
+      if (proposal.versions && proposal.versions.length > 0) {
+        setSubmittedFiles(proposal.versions);
+      } else if (proposal.uploadedFile) {
         setSubmittedFiles([proposal.uploadedFile]);
+      } else {
+        setSubmittedFiles([]);
       }
     }
   }, [proposal]);
@@ -325,6 +329,86 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     });
   };
 
+  const handleBudgetSourceChange = (index: number, value: string) => {
+    if (!editedProposal) return;
+    const newSources = [...editedProposal.budgetSources];
+    newSources[index] = { ...newSources[index], source: value };
+    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+  };
+
+  const handleRemoveBudgetItem = (index: number) => {
+    if (!editedProposal) return;
+    const newSources = editedProposal.budgetSources.filter((_, i) => i !== index);
+    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+  };
+
+  const handleBudgetBreakdownChange = (
+    sourceIndex: number,
+    category: "ps" | "mooe" | "co",
+    itemIndex: number,
+    field: "item" | "amount",
+    value: string | number
+  ) => {
+    if (!editedProposal) return;
+    const newSources = [...editedProposal.budgetSources];
+    const source = { ...newSources[sourceIndex] };
+    const breakdown = { ...source.breakdown };
+    const categoryItems = [...breakdown[category]];
+
+    categoryItems[itemIndex] = { ...categoryItems[itemIndex], [field]: value };
+    breakdown[category] = categoryItems;
+    source.breakdown = breakdown;
+
+    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    source[category] = `₱${catTotal.toLocaleString()}`;
+
+    const total =
+      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
+      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
+      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    source.total = `₱${total.toLocaleString()}`;
+
+    newSources[sourceIndex] = source;
+    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+  };
+
+  const handleAddBudgetBreakdownItem = (sourceIndex: number, category: "ps" | "mooe" | "co") => {
+    if (!editedProposal) return;
+    const newSources = [...editedProposal.budgetSources];
+    const source = { ...newSources[sourceIndex] };
+    const breakdown = { ...source.breakdown };
+    const categoryItems = [...breakdown[category]];
+
+    categoryItems.push({ item: "", amount: 0 });
+    breakdown[category] = categoryItems;
+    source.breakdown = breakdown;
+    newSources[sourceIndex] = source;
+    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+  };
+
+  const handleRemoveBudgetBreakdownItem = (sourceIndex: number, category: "ps" | "mooe" | "co", itemIndex: number) => {
+    if (!editedProposal) return;
+    const newSources = [...editedProposal.budgetSources];
+    const source = { ...newSources[sourceIndex] };
+    const breakdown = { ...source.breakdown };
+    const categoryItems = breakdown[category].filter((_, i) => i !== itemIndex);
+
+    breakdown[category] = categoryItems;
+    source.breakdown = breakdown;
+
+    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    source[category] = `₱${catTotal.toLocaleString()}`;
+
+    const total =
+      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
+      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
+      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+    source.total = `₱${total.toLocaleString()}`;
+
+    newSources[sourceIndex] = source;
+    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -382,7 +466,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
         if (response.message) {
           // Store the new file URL and changes for display
-          setSubmittedRevisionFile(response.data?.file_url || null);
+          if (response.data?.file_url && !submittedFiles.includes(response.data.file_url)) {
+            setSubmittedFiles((prev) => [...prev, response.data!.file_url]);
+          }
           setRevisionChanges(changes);
 
           // Success - show toast or notification
@@ -400,8 +486,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             });
           }
         }
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Failed to submit revision. Please try again.";
+      } catch (error: any) {
+        const errorMsg = error?.response?.data?.message || error?.response?.data?.error || (error instanceof Error ? error.message : "Failed to submit revision. Please try again.");
         setRevisionError(errorMsg);
         console.error("Error submitting revision:", error);
       } finally {
@@ -449,7 +535,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   };
 
   const currentData = isEditing ? editedProposal : proposal;
-  const canEdit = isInRevisionMode && isEditing;
   // Only allow editing of specific fields in revision mode
   const canEditTitle = isInRevisionMode && isEditing;
   const canEditSchedule = isInRevisionMode && isEditing;
@@ -485,7 +570,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         label: "Project Funded",
       };
 
-    // Check for Revision statuses
     if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) {
       return {
         bg: "bg-orange-50",
@@ -493,6 +577,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         text: "text-orange-800",
         icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
         label: "Revision Required",
+      };
+    }
+
+    if (["revised_proposal"].includes(s)) {
+      return {
+        bg: "bg-amber-100",
+        border: "border-amber-300",
+        text: "text-amber-900",
+        icon: <Edit className="w-5 h-5 text-amber-700" />,
+        label: "Revised Proposal",
       };
     }
 
@@ -796,36 +890,45 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               )}
             </div>
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <FileCheck className="w-5 h-5 text-[#C8102E]" />
+              {submittedFiles.length > 0 ? (
+                submittedFiles.map((fileUrl, index) => (
+                  <div key={index} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'border-green-200' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
+                        <FileCheck className={`w-5 h-5 ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
+                          {getFileName(fileUrl)}
+                        </p>
+                        <p className={`text-xs ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                          {index === submittedFiles.length - 1 ? 'Latest version' : `Version ${index + 1}`}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                      title="Open/Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={submittedFiles.length > 0 ? getFileName(submittedFiles[submittedFiles.length - 1]) : "No file uploaded"}>
-                      {submittedFiles.length > 0
-                        ? getFileName(submittedFiles[submittedFiles.length - 1])
-                        : "No file uploaded"}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {submittedFiles.length > 0
-                        ? "Latest version"
-                        : "Pending upload"}
-                    </p>
+                ))
+              ) : (
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <FileCheck className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-400">No file uploaded</p>
+                    </div>
                   </div>
                 </div>
-                {submittedFiles.length > 0 && (
-                  <a
-                    href={submittedFiles[submittedFiles.length - 1]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
-                    title="Open/Download"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
+              )}
               {canEditFile && (
                 <div
                   className={`border-2 border-dashed rounded-lg p-4 transition-colors ${newFile
@@ -1595,12 +1698,27 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           </div>
                           <div>
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                            <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                            {canEditBudget ? (
+                              <input
+                                value={budget.source}
+                                onChange={(e) => handleBudgetSourceChange(index, e.target.value)}
+                                className={`font-bold text-slate-800 text-sm ${getInputClass(true)}`}
+                              />
+                            ) : (
+                              <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                          <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                        <div className="text-right flex items-center gap-4">
+                          <div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
+                            <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                          </div>
+                          {canEditBudget && (
+                            <button onClick={() => handleRemoveBudgetItem(index)} className="text-red-500 hover:text-red-700 p-1 bg-white rounded border border-red-200 shadow-sm transition-colors">
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -1610,14 +1728,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <div className="space-y-2 pt-2 md:pt-0">
                           <div className="flex justify-between items-center mb-2">
                             <h5 className="font-bold text-xs text-slate-600 uppercase">Personal Services (PS)</h5>
-                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
+                              {canEditBudget && (
+                                <button onClick={() => handleAddBudgetBreakdownItem(index, "ps")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="space-y-1">
                             {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
                               budget.breakdown.ps.map((item, i) => (
-                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                  <span>{item.item}</span>
-                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  {canEditBudget ? (
+                                    <>
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>{item.item}</span>
+                                      <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
+                                    </>
+                                  )}
                                 </div>
                               ))
                             ) : (
@@ -1630,14 +1765,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
                           <div className="flex justify-between items-center mb-2">
                             <h5 className="font-bold text-xs text-slate-600 uppercase">MOOE</h5>
-                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                              {canEditBudget && (
+                                <button onClick={() => handleAddBudgetBreakdownItem(index, "mooe")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="space-y-1">
                             {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
                               budget.breakdown.mooe.map((item, i) => (
-                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                  <span>{item.item}</span>
-                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  {canEditBudget ? (
+                                    <>
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>{item.item}</span>
+                                      <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
+                                    </>
+                                  )}
                                 </div>
                               ))
                             ) : (
@@ -1650,14 +1802,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
                           <div className="flex justify-between items-center mb-2">
                             <h5 className="font-bold text-xs text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                            <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                              {canEditBudget && (
+                                <button onClick={() => handleAddBudgetBreakdownItem(index, "co")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div className="space-y-1">
                             {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
                               budget.breakdown.co.map((item, i) => (
-                                <div key={i} className="flex justify-between text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                  <span>{item.item}</span>
-                                  <span className="font-medium text-slate-700">₱{item.amount.toLocaleString()}</span>
+                                <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  {canEditBudget ? (
+                                    <>
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>{item.item}</span>
+                                      <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
+                                    </>
+                                  )}
                                 </div>
                               ))
                             ) : (

@@ -60,9 +60,9 @@ export const submitRevisedProposal = async (
     body.budget = payload.budgetSources.map((source) => ({
       source: source.source,
       budget: {
-        ps: source.breakdown?.ps?.map((item) => ({ item: item.item, value: item.amount })) || [],
-        mooe: source.breakdown?.mooe?.map((item) => ({ item: item.item, value: item.amount })) || [],
-        co: source.breakdown?.co?.map((item) => ({ item: item.item, value: item.amount })) || [],
+        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+        co: source.breakdown?.co?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
       },
     }));
   }

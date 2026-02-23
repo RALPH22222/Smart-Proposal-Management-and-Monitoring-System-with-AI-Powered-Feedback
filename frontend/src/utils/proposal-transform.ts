@@ -112,6 +112,7 @@ export function transformProposalForModal(raw: any) {
     status: raw.status || "",
     proponentInfoVisibility: raw.proponent_info_visibility,
     projectFile: latestVersion?.file_url || "",
+    versions: versions.map((v: any) => v.file_url).filter(Boolean),
     submittedDate: raw.created_at || "",
     lastModified: raw.updated_at || raw.created_at || "",
     proponent,

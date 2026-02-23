@@ -37,7 +37,7 @@ function cleanName(v: IdOrName): string | null {
 }
 
 export class ProposalService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   private async resolveLookupId(args: {
     table: Table;
@@ -1047,9 +1047,9 @@ export class ProposalService {
     const [usersResult, departmentsResult, scoresResult, budgetsResult] = await Promise.all([
       allUserIds.length > 0
         ? this.db
-            .from("users")
-            .select("id, first_name, last_name, email, department:department_id(name)")
-            .in("id", allUserIds)
+          .from("users")
+          .select("id, first_name, last_name, email, department:department_id(name)")
+          .in("id", allUserIds)
         : { data: [], error: null },
       departmentIds.length > 0
         ? this.db.from("departments").select("id, name").in("id", departmentIds)

@@ -150,7 +150,9 @@ export default function Proposals() {
           endDate: proposalObj.plan_end_date || "N/A",
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
-          projectFile: proposalObj.proposal_version?.[0]?.file_url || null,
+          projectFile: (proposalObj.proposal_version && proposalObj.proposal_version.length > 0)
+            ? proposalObj.proposal_version[proposalObj.proposal_version.length - 1].file_url
+            : (proposalObj.file_url || null),
           extensionReason: p.remarks || null,
           proponentInfoVisibility: proposalObj.proponent_info_visibility,
           tags: (proposalObj.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),

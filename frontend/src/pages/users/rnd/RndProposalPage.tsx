@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
-  GitBranch, Users, X, MessageSquare, Clock, RefreshCw, CheckCircle
+  Users, X, MessageSquare, Clock, RefreshCw, CheckCircle, Edit
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -111,7 +111,9 @@ type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Endorsed';
 
 const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
   switch (status) {
+    case 'pending': return 'Pending';
     case 'review_rnd': return 'Pending';
+    case 'revised_proposal': return 'Revised Proposal';
     case 'under_evaluation': return 'Sent to Evaluators'; // Map to 'Under Evaluators Assessment' if preferred, but existing code uses this
     case 'revision_rnd': return 'Revision Required';
     case 'rejected_rnd': return 'Rejected Proposal';
@@ -196,7 +198,10 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       const s = proposal.status;
 
       if (activeTab === 'Pending') {
-        return s === 'Pending' || s === 'Under R&D Review' || s === 'review_rnd' as any;
+        return s === 'Pending' || s === 'Under R&D Review' || (s as any) === 'review_rnd';
+      }
+      if (activeTab === 'Revised Proposal') {
+        return s === 'Revised Proposal' || (s as any) === 'revised_proposal';
       }
 
       return s === activeTab;
@@ -215,7 +220,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     if (status === 'All') return proposals.length;
     // Mirrored logic from filter effect for consistency
     return proposals.filter((p) => {
-      if (status === 'Pending') return p.status === 'Pending' || p.status === 'Under R&D Review' || p.status === 'review_rnd' as any;
+      if (status === 'Pending') return p.status === 'Pending' || p.status === 'Under R&D Review' || (p.status as any) === 'review_rnd';
+      if (status === 'Revised Proposal') return p.status === 'Revised Proposal' || (p.status as any) === 'revised_proposal';
       return p.status === status;
     }).length;
   };
@@ -223,7 +229,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const tabs: { id: ExtendedProposalStatus | 'All'; label: string; icon: any }[] = [
     { id: 'All', label: 'All', icon: FileText },
     { id: 'Pending', label: 'Pending Review', icon: Clock },
-    { id: 'Revised Proposal', label: 'Revised', icon: GitBranch },
+    { id: 'Revised Proposal', label: 'Revised', icon: Edit },
     { id: 'Revision Required', label: 'To Revise', icon: RefreshCw },
     { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
     { id: 'Endorsed', label: 'Endorsed', icon: Gavel },
@@ -252,11 +258,15 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           return email ? `${name} (${email})` : name;
         });
 
+        const versions = raw.proposal_version || [];
+        const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+        const currentFileUrl = latestVersion?.file_url || raw.file_url || "";
+
         // Construct basic Proposal object
         const transformed: Proposal = {
           id: raw.id,
           title: raw.project_title || "Untitled",
-          documentUrl: raw.file_url || "",
+          documentUrl: currentFileUrl,
           status: backendToFrontendStatus(raw.status),
           submittedBy: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
           submittedDate: raw.created_at,
@@ -285,7 +295,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           rdStation: raw.rnd_station?.name || "N/A",
           assignedEvaluators: evaluatorNames,
           evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
-          projectFile: raw.file_url,
+          projectFile: currentFileUrl,
           tags: raw.proposal_tags?.map((t: any) => t.tags?.name) || [],
           raw: raw // Pass normalized data to modal
         } as any;
@@ -408,8 +418,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         );
       case 'Revised Proposal':
         return (
-          <span className={`${baseClasses} text-purple-600 bg-purple-50 border-purple-200 cursor-default`}>
-            <GitBranch className="w-3 h-3 flex-shrink-0" />
+          <span className={`${baseClasses} text-yellow-900 bg-yellow-100 border-yellow-300 cursor-default`}>
+            <Edit className="w-3 h-3 flex-shrink-0 text-yellow-700" />
             Revised Proposal
           </span>
         );

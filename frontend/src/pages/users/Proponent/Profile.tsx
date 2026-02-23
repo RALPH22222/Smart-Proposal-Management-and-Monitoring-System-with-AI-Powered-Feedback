@@ -3,7 +3,7 @@ import ShareModal from "../../../components/proponent-component/ShareModal";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import { FaListAlt, FaBell, FaTablet, FaShareAlt } from "react-icons/fa";
-import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Clock, CheckCircle, XCircle, FileCheck, CheckCircle2 } from "lucide-react";
+import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, CheckCircle2 } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
 import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
@@ -244,7 +244,7 @@ const Profile: React.FC = () => {
 
   // Compute counts based on rawStatus for accuracy
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
-  const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
+  const rdEvalCount = proposals.filter((p) => ["review_rnd", "revised_proposal", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
   const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
   const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision"].includes((p as any).rawStatus || "")).length;
   const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding").length;
@@ -257,14 +257,6 @@ const Profile: React.FC = () => {
     if (!raw) return [];
 
     const tags: string[] = [];
-
-    // 1. Classification - REMOVED per user request (only show actual tags)
-    // if (raw.classification_type === 'research_class' && raw.research_class) {
-    //   tags.push(raw.research_class);
-    // } else if (raw.classification_type === 'development_class' && raw.development_class) {
-    //   tags.push(raw.development_class);
-    // }
-
     // 2. Proposal Tags
     if (Array.isArray(raw.proposal_tags)) {
       raw.proposal_tags.forEach((pt: any) => {
@@ -282,6 +274,7 @@ const Profile: React.FC = () => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "Pending";
     if (["revise", "revision", "revision_rnd"].includes(s)) return "Revision Required";
+    if (["revised_proposal"].includes(s)) return "Revised Proposal";
     if (s === "review_rnd") return "Under R&D Evaluation";
     if (["r&d evaluation"].includes(s)) return "Under R&D Evaluation";
     if (["under_evaluation", "evaluators assessment"].includes(s)) return "Under Evaluators Assessment";
@@ -292,6 +285,7 @@ const Profile: React.FC = () => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
     if (["revise", "revision", "revision_rnd"].includes(s)) return "bg-orange-100 text-orange-800 border border-orange-300";
+    if (["revised_proposal"].includes(s)) return "bg-amber-100 text-amber-900 border border-amber-300";
     if (s === "review_rnd") return "bg-blue-100 text-blue-900 border border-blue-300";
     if (["endorsed"].includes(s)) return "bg-green-200 text-green-800 border border-green-200";
     if (["funded", "accepted", "approved", "endorsed_for_funding"].includes(s)) return "bg-emerald-50 text-emerald-800 border border-emerald-200";
@@ -304,6 +298,7 @@ const Profile: React.FC = () => {
   const getLocalStatusIcon = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) return <RefreshCw className="w-3 h-3" />;
+    if (["revised_proposal"].includes(s)) return <Edit className="w-3 h-3" />;
     if (["endorsed"].includes(s)) return <CheckCircle2 className="w-3 h-3" />;
     if (["funded", "accepted", "approved", "endorsed_for_funding"].includes(s)) return <CheckCircle className="w-3 h-3" />;
     if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s)) return <XCircle className="w-3 h-3" />;
@@ -318,6 +313,7 @@ const Profile: React.FC = () => {
     // Match the modal: if pending or revise, progress is 0% (or stalled)
     if (s === "pending") return 0;
     if (["revise", "revision", "revision_rnd"].includes(s)) return 0;
+    if (["revised_proposal"].includes(s)) return 10;
     return getProgressPercentageByIndex(project.currentIndex);
   };
 
@@ -528,6 +524,7 @@ const Profile: React.FC = () => {
         Array.isArray(raw.proposal_version) && raw.proposal_version.length > 0
           ? raw.proposal_version[raw.proposal_version.length - 1].file_url
           : "",
+      versions: Array.isArray(raw.proposal_version) ? raw.proposal_version.map((v: any) => v.file_url) : [],
       lastUpdated: val(raw.updated_at) || val(raw.created_at),
       deadline: getStatusFromIndex(project.currentIndex) === "revise" ? val(raw.evaluation_deadline_at) : undefined,
     };
