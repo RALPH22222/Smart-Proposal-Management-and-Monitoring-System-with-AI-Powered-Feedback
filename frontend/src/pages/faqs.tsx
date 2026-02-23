@@ -336,33 +336,7 @@ const FAQ: React.FC = () => {
 
           {/* FAQ Content */}
           <div className={`lg:col-span-3 transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            {/* Category Selector for Mobile */}
-            <div className="lg:hidden mb-6">
-              <div className="bg-white rounded-2xl p-4 border border-[#C8102E]/20 shadow-md">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">
-                  Filter by Category
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setActiveCategory(category.id)}
-                      className={`px-3 py-2 rounded-lg flex items-center gap-2 font-medium transition-all duration-300 text-sm transform ${activeCategory === category.id
-                        ? "text-white shadow-sm hover:scale-101"
-                        : "text-gray-700 hover:bg-gray-50 hover:text-[#C8102E] border border-gray-200 hover:scale-100"
-                        }`}
-                      style={{
-                        backgroundColor:
-                          activeCategory === category.id ? "#C8102E" : "white",
-                      }}
-                    >
-                      {category.icon}
-                      <span className="truncate">{category.name.split(' ')[0]}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+
 
             <div className="bg-white rounded-2xl p-3 sm:p-6 md:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300 overflow-x-auto">
               {/* Desktop Category Header */}

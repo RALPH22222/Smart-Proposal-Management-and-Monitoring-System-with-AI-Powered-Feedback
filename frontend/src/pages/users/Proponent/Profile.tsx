@@ -821,8 +821,24 @@ const Profile: React.FC = () => {
       <header className="mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#E03A52] flex items-center justify-center shadow-lg overflow-hidden border-2 border-[#C8102E]">
-              <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
+            <div className="relative group overflow-visible">
+              {/* Main square container with hover lift animation */}
+              <div className="relative w-20 h-20 bg-white rounded-xl p-[2px] shadow-md border border-gray-100 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:border-[#C8102E]/30">
+                {/* Thin inner gradient border */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#C8102E] to-[#E03A52] p-[2px]">
+                  <div className="h-full w-full bg-white rounded-[10px] overflow-hidden">
+                    <img
+                      src={avatarUrl}
+                      alt={getFullName()}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                </div>
+
+                {/* Decorative corner accents with hover animation */}
+                <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#C8102E] rounded-tl-md transition-all duration-300 group-hover:-top-2 group-hover:-left-2"></div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#C8102E] rounded-br-md transition-all duration-300 group-hover:-bottom-2 group-hover:-right-2"></div>
+              </div>
             </div>
 
             <div>
