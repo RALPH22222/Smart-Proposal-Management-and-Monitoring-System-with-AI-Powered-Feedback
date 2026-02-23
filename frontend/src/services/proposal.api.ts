@@ -1,6 +1,7 @@
 import axios from "axios";
 import { api } from "../utils/axios";
 import type { FormData } from "../types/proponent-form";
+import type { BudgetSource } from "../types/proponentTypes";
 
 export type LookupItem = {
   id: number;
@@ -156,6 +157,17 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
   return data;
 };
 
+export type SubmitRevisedProposalPayload = {
+  projectTitle?: string;
+  file: File;
+  implementingSchedule?: {
+    startDate?: string;
+    endDate?: string;
+  };
+  budgetSources?: BudgetSource[];
+  revisionResponse?: string;
+};
+
 export type SubmitRevisedProposalResponse = {
   message: string;
   data?: {
@@ -167,28 +179,54 @@ export type SubmitRevisedProposalResponse = {
   };
 };
 
+/**
+ * Submit a revised proposal with updated project title, file, schedule, and budget.
+ * Uses presigned S3 URL: browser uploads directly to S3, then sends JSON to backend.
+ */
 export const submitRevisedProposal = async (
   proposalId: number,
-  file: File,
-  projectTitle?: string,
-  revisionResponse?: string,
+  payload: SubmitRevisedProposalPayload,
 ): Promise<SubmitRevisedProposalResponse> => {
-  const fd = new FormData();
+  // Step 1: Get presigned URL from backend (backend enforces 10 MB limit)
+  const { uploadUrl, fileUrl } = await getProposalUploadUrl(payload.file.name, payload.file.type, payload.file.size);
 
-  // proponent_id is no longer sent — backend extracts it from the JWT
-  fd.append("proposal_id", String(proposalId));
-  fd.append("file_url", file);
+  // Step 2: Upload file directly to S3 (bypasses Lambda)
+  await uploadFileToS3(uploadUrl, payload.file);
 
-  if (projectTitle) {
-    fd.append("project_title", projectTitle);
+  // Step 3: Build JSON body and POST to backend
+  const body: Record<string, unknown> = {
+    proposal_id: proposalId,
+    file_url: fileUrl,
+  };
+
+  if (payload.projectTitle) {
+    body.project_title = payload.projectTitle;
   }
 
-  if (revisionResponse) {
-    fd.append("revision_response", revisionResponse);
+  if (payload.implementingSchedule?.startDate) {
+    body.plan_start_date = payload.implementingSchedule.startDate;
   }
 
-  const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
+  if (payload.implementingSchedule?.endDate) {
+    body.plan_end_date = payload.implementingSchedule.endDate;
+  }
+
+  if (payload.budgetSources && payload.budgetSources.length > 0) {
+    body.budget = payload.budgetSources.map((source) => ({
+      source: source.source,
+      budget: {
+        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+        co: source.breakdown?.co?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+      },
+    }));
+  }
+
+  if (payload.revisionResponse) {
+    body.revision_response = payload.revisionResponse;
+  }
+
+  const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", body, {
     withCredentials: true,
   });
 

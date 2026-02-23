@@ -77,15 +77,11 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
 };
 
 const About: React.FC = () => {
-  const [currentImage, setCurrentImage] = useState(0);
   const heroSection = useInView();
   const storySection = useInView();
   const missionSection = useInView();
   const statsSection = useInView();
   const processSection = useInView();
-
-  useEffect(() => {
-    }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">

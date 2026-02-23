@@ -36,8 +36,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
-import { submitRevisedProposal } from "../../services/submit-revised-proposal";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal } from "../../services/proposal.api";
 
 interface Site {
   site: string;
