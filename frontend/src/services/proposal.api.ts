@@ -121,7 +121,7 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
 
   // Step 3: Submit proposal metadata as JSON with the S3 file URL
   const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
-  const implementationMode = formData.implementation_site.length > 1 ? "multi_agency" : "single_agency";
+  const implementationMode = (formData.cooperating_agencies?.length || 0) > 0 ? "multi_agency" : "single_agency";
 
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", {
     department: String(formData.department ?? ""),

@@ -648,16 +648,20 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
       </div>
 
-      {/* COOPERATING AGENCIES */}
       <div className="space-y-2 cooperating-agency-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Users className="text-gray-400 w-4 h-4" />
-          Cooperating Agencies
-          <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
-        </label>
-        {selectedAgencies.length === 0 && (
-          <div className="text-sm text-gray-400 italic px-1 mb-2">None</div>
-        )}
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Users className="text-gray-400 w-4 h-4" />
+            Cooperating Agencies <span className="text-gray-400 font-normal italic text-xs ml-1">(Leave blank if 'None')</span>
+            <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
+          </label>
+
+          {/* Display Current Mode Badge */}
+          <span className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${(formData.cooperating_agencies?.length || 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+            <span className='font-bold'>Mode of Implementation:</span> {(formData.cooperating_agencies?.length || 0) > 0 ? 'Multiple Agency' : 'Single Agency'}
+          </span>
+        </div>
+
         {selectedAgencies.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {selectedAgencies.map((agency) => (
@@ -774,7 +778,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
       </div>
 
-    </div>
+    </div >
   );
 };
 

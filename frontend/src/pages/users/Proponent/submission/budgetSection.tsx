@@ -95,7 +95,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     updateBudgetStructure(itemId, category, newBreakdown);
   };
 
-  const handleUpdateBreakdownItem = (index: number, field: 'item' | 'value', value: string) => {
+  const handleDetailedUpdate = (index: number, desc: string, qty: number, price: number) => {
     if (!activeModal) return;
     const { itemId, category } = activeModal;
 
@@ -103,9 +103,17 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     const currentBreakdown = getBreakdown(item, category);
 
     const updatedBreakdown = [...currentBreakdown];
+
+    // Enforce non-negative values
+    const safeQty = Math.max(1, qty);
+    const safePrice = Math.max(0, price);
+
+    const finalItemString = safeQty > 1 ? `${desc.trim()} [${safeQty}x]` : desc.trim();
+    const finalTotalValue = safeQty * safePrice;
+
     updatedBreakdown[index] = {
-      ...updatedBreakdown[index],
-      [field]: field === 'value' ? Number(value) : value
+      item: finalItemString,
+      value: finalTotalValue
     };
 
     updateBudgetStructure(itemId, category, updatedBreakdown);
@@ -345,32 +353,70 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   No line items added yet. Click "Add Item" to start.
                 </div>
               ) : (
-                getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => (
-                  <div key={idx} className="flex gap-2 items-start animate-in slide-in-from-bottom-2">
-                    <span className="mt-3 text-xs text-gray-400 w-4">{idx + 1}.</span>
-                    <input
-                      type="text"
-                      placeholder="Description (e.g. Travel, Supplies)"
-                      value={item.item} // Changed from description to item based on type
-                      onChange={(e) => handleUpdateBreakdownItem(idx, 'item', e.target.value)}
-                      maxLength={100}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={item.value || ''} // Changed from amount to value based on type
-                      onChange={(e) => handleUpdateBreakdownItem(idx, 'value', e.target.value)}
-                      className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm text-right focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
-                    />
-                    <button
-                      onClick={() => handleRemoveBreakdownItem(idx)}
-                      className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <FaTrash className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
+                getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => {
+                  const itemStr = item.item || '';
+                  const qtyMatch = itemStr.match(/\s*\[(\d+)x\]$/);
+                  const displayDescription = qtyMatch ? itemStr.replace(/\s*\[\d+x\]$/, '').trim() : itemStr;
+                  const displayQuantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                  const unitPrice = displayQuantity > 0 ? (item.value || 0) / displayQuantity : (item.value || 0);
+
+                  return (
+                    <div key={idx} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm group animate-in slide-in-from-bottom-2">
+                      <div className="flex gap-3 items-center">
+                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                          {idx + 1}
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Item Description (e.g. Laptop, Travel)"
+                          value={displayDescription}
+                          onChange={(e) => handleDetailedUpdate(idx, e.target.value, displayQuantity, unitPrice)}
+                          className="flex-1 bg-transparent border-b border-gray-200 focus:border-[#C8102E] px-1 py-1 text-sm font-medium focus:outline-none transition-colors"
+                        />
+                        <button
+                          onClick={() => handleRemoveBreakdownItem(idx)}
+                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 pl-4 sm:pl-11">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Quantity</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={displayQuantity}
+                            onChange={(e) => handleDetailedUpdate(idx, displayDescription, Math.max(1, parseInt(e.target.value) || 1), unitPrice)}
+                            className="w-full sm:w-20 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none"
+                          />
+                        </div>
+
+                        <div className="flex-1 w-full space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit Price</label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-gray-400 text-xs">₱</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={unitPrice || ''}
+                              onChange={(e) => handleDetailedUpdate(idx, displayDescription, displayQuantity, Math.max(0, parseFloat(e.target.value) || 0))}
+                              className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="w-full sm:w-32 text-right space-y-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sub-total</label>
+                          <div className="text-sm font-black text-gray-900 font-mono py-2 bg-gray-50/50 px-2 rounded-lg">
+                            {formatCurrency(item.value || 0)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
 
