@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FaChartLine 
+import {
+  FaChartLine
 } from 'react-icons/fa';
-import { 
-  Search, Target, Clock, CheckCircle2, Play, Send, 
-  FileText, Calendar, AlertTriangle, UploadCloud, 
+import {
+  Search, Target, Clock, CheckCircle2, Play, Send,
+  FileText, Calendar, AlertTriangle, UploadCloud,
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
   Plus, Trash2, MessageSquare, User, ShieldAlert, Award,
-  Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck, 
+  Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
   CornerDownRight, ChevronUp, ChevronDown, DollarSign, Lock
 } from 'lucide-react';
+import TeamMembersSection from '../../../components/proponent-component/TeamMembersSection';
 
 // --- Types ---
 type ProjectStatus = 'active' | 'delayed' | 'completed';
@@ -766,6 +767,16 @@ const MonitoringPage: React.FC = () => {
                          </div>
                          <PieChart className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-200 opacity-50 z-0" />
                       </div>
+                  </div>
+                )}
+
+                {/* --- TEAM MEMBERS SECTION --- */}
+                {activeProject && (
+                  <div className="mb-6">
+                    <TeamMembersSection
+                      fundedProjectId={Number(activeProject.id)}
+                      isProjectLead={true}
+                    />
                   </div>
                 )}
 

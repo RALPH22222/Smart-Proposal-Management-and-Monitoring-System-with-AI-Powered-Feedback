@@ -20,6 +20,24 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
+  // Verify submitter is an active member (lead or co-lead) of the funded project
+  const { data: membership } = await supabase
+    .from("project_members")
+    .select("id")
+    .eq("funded_project_id", result.data.funded_project_id)
+    .eq("user_id", result.data.submitted_by_proponent_id)
+    .eq("status", "active")
+    .single();
+
+  if (!membership) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message: "You are not an active member of this project.",
+      }),
+    };
+  }
+
   const projectService = new ProjectService(supabase);
   const { data, error } = await projectService.submitQuarterlyReport(result.data);
 

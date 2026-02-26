@@ -10,7 +10,7 @@ export const reportStatusSchema = z.enum(["submitted", "verified", "overdue"]);
 // Get Funded Projects Schema
 export const getFundedProjectsSchema = z.object({
   user_id: z.string().uuid().optional(),
-  role: z.enum(["proponent", "rnd", "admin"]).optional(),
+  role: z.enum(["proponent", "rnd", "admin", "lead_proponent"]).optional(),
   status: projectStatusSchema.optional(),
   limit: z.number().int().positive().optional().default(20),
   offset: z.number().int().nonnegative().optional().default(0),
@@ -93,3 +93,28 @@ export const getProjectSchema = z.object({
 });
 
 export type GetProjectInput = z.infer<typeof getProjectSchema>;
+
+// Invite Member Schema
+export const inviteMemberSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  email: z.string().email(),
+  invited_by: z.string().uuid(),
+});
+
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+
+// Remove Member Schema
+export const removeMemberSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  member_id: z.number().int().positive(),
+  removed_by: z.string().uuid(),
+});
+
+export type RemoveMemberInput = z.infer<typeof removeMemberSchema>;
+
+// Get Project Members Schema
+export const getProjectMembersSchema = z.object({
+  funded_project_id: z.coerce.number().int().positive(),
+});
+
+export type GetProjectMembersInput = z.infer<typeof getProjectMembersSchema>;

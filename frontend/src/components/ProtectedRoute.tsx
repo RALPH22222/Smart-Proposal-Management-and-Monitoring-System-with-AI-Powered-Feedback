@@ -67,6 +67,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
 
           switch (role) {
             case Role.LEAD_PROPONENT:
+              // If user also has PROPONENT role, go to proponent dashboard
+              // Otherwise go to co-lead restricted dashboard
+              if (userRoles.includes(Role.PROPONENT)) {
+                navigate("/users/proponent/proponentMainLayout");
+              } else {
+                navigate("/users/co-lead/coLeadMainLayout");
+              }
+              break;
             case Role.PROPONENT:
               navigate("/users/proponent/proponentMainLayout");
               break;

@@ -98,6 +98,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
+    // Activate any pending project memberships for this user
+    await supabase
+      .from("project_members")
+      .update({ status: "active", accepted_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("status", "pending");
+
     return {
       statusCode: 200,
       body: JSON.stringify({

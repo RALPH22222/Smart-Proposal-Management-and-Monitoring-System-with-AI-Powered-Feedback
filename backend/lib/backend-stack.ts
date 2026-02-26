@@ -617,6 +617,42 @@ export class BackendStack extends Stack {
       },
     });
 
+    // PROJECT MEMBERS (CO-LEAD) LAMBDAS
+    const invite_member_lambda = new NodejsFunction(this, "pms-invite-member", {
+      functionName: "pms-invite-member",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "invite-member.ts"),
+      environment: {
+        SUPABASE_KEY,
+        SUPABASE_SERVICE_ROLE_KEY,
+        FRONTEND_URL: "https://wmsu-spmams.vercel.app",
+      },
+    });
+
+    const remove_member_lambda = new NodejsFunction(this, "pms-remove-member", {
+      functionName: "pms-remove-member",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "remove-member.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_project_members_lambda = new NodejsFunction(this, "pms-get-project-members", {
+      functionName: "pms-get-project-members",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-project-members.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const analyze_proposal_lambda = new NodejsFunction(this, "pms-analyze-proposal", {
       functionName: "pms-analyze-proposal",
       memorySize: 512, // Needed for PDF parsing + AI math (no TensorFlow, just JSON + for-loops)
@@ -1133,6 +1169,27 @@ export class BackendStack extends Stack {
     // /project/overdue-reports (protected) - GET overdue reports
     const overdue_reports = project.addResource("overdue-reports");
     overdue_reports.addMethod(HttpMethod.GET, new LambdaIntegration(get_overdue_reports_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/invite-member (protected) - POST invite a co-lead
+    const invite_member = project.addResource("invite-member");
+    invite_member.addMethod(HttpMethod.POST, new LambdaIntegration(invite_member_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/remove-member (protected) - POST remove a co-lead
+    const remove_member = project.addResource("remove-member");
+    remove_member.addMethod(HttpMethod.POST, new LambdaIntegration(remove_member_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/members (protected) - GET project members
+    const project_members = project.addResource("members");
+    project_members.addMethod(HttpMethod.GET, new LambdaIntegration(get_project_members_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

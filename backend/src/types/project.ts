@@ -101,7 +101,7 @@ export interface ProjectReportWithDetails extends ProjectReport {
 // Input types for service methods
 export interface GetFundedProjectsInput {
   user_id?: string;
-  role?: "proponent" | "rnd" | "admin";
+  role?: "proponent" | "rnd" | "admin" | "lead_proponent";
   status?: ProjectStatus;
   limit?: number;
   offset?: number;
@@ -137,4 +137,34 @@ export interface UpdateProjectStatusInput {
   project_id: number;
   status: ProjectStatus;
   updated_by_id: string;
+}
+
+// Project Members (Co-Lead) types
+export enum ProjectMemberRole {
+  LEAD = "lead",
+  CO_LEAD = "co_lead",
+}
+
+export enum ProjectMemberStatus {
+  PENDING = "pending",
+  ACTIVE = "active",
+  SUSPENDED = "suspended",
+  REMOVED = "removed",
+}
+
+export interface ProjectMember {
+  id: number;
+  funded_project_id: number;
+  user_id: string;
+  role: ProjectMemberRole;
+  status: ProjectMemberStatus;
+  invited_by: string;
+  invited_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMemberWithUser extends ProjectMember {
+  user: { id: string; first_name: string; last_name: string; email: string };
 }

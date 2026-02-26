@@ -10,8 +10,11 @@ import {
   GetReportCommentsInput,
   GetProjectExpensesInput,
   GetProjectInput,
+  InviteMemberInput,
+  RemoveMemberInput,
+  GetProjectMembersInput,
 } from "../schemas/project-schema";
-import { ReportStatus } from "../types/project";
+import { ReportStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 
 export class ProjectService {
   constructor(private db: SupabaseClient) {}
@@ -61,6 +64,21 @@ export class ProjectService {
     // Filter by proponent (user_id) if role is proponent
     if (input.role === "proponent" && input.user_id) {
       query = query.eq("project_lead_id", input.user_id);
+    }
+
+    // Filter for co-lead: find projects where user is an active member
+    if (input.role === "lead_proponent" && input.user_id) {
+      const { data: memberships } = await this.db
+        .from("project_members")
+        .select("funded_project_id")
+        .eq("user_id", input.user_id)
+        .eq("status", ProjectMemberStatus.ACTIVE);
+
+      const projectIds = memberships?.map((m) => m.funded_project_id) || [];
+      if (projectIds.length === 0) {
+        return { data: [], error: null };
+      }
+      query = query.in("id", projectIds);
     }
 
     // Apply pagination
@@ -304,8 +322,18 @@ export class ProjectService {
 
   /**
    * Update project status (RND/Admin action)
+   * Also handles co-lead suspension when project is blocked / restoration when unblocked
    */
   async updateProjectStatus(input: UpdateProjectStatusInput) {
+    // Fetch current status before updating
+    const { data: current } = await this.db
+      .from("funded_projects")
+      .select("status")
+      .eq("id", input.project_id)
+      .single();
+
+    const previousStatus = current?.status;
+
     const { data, error } = await this.db
       .from("funded_projects")
       .update({
@@ -314,6 +342,17 @@ export class ProjectService {
       .eq("id", input.project_id)
       .select()
       .single();
+
+    if (!error && data) {
+      // Suspend co-leads when project becomes blocked
+      if (input.status === "blocked" && previousStatus !== "blocked") {
+        await this.suspendCoLeadsForProject(input.project_id);
+      }
+      // Restore co-leads when project is unblocked
+      if (previousStatus === "blocked" && input.status !== "blocked") {
+        await this.restoreCoLeadsForProject(input.project_id);
+      }
+    }
 
     return { data, error };
   }
@@ -356,5 +395,290 @@ export class ProjectService {
     });
 
     return { data: overdueProjects, error: null };
+  }
+
+  // ===================== PROJECT MEMBERS (CO-LEAD) =====================
+
+  /**
+   * Invite a member (co-lead) to a funded project
+   * - Only the project lead can invite
+   * - Existing users are added directly as active
+   * - New users get a Supabase invite email and are added as pending
+   */
+  async inviteMember(
+    input: InviteMemberInput,
+    supabaseAdmin: SupabaseClient | null,
+    redirectTo: string
+  ) {
+    // Verify caller is the project lead
+    const { data: project, error: projectError } = await this.db
+      .from("funded_projects")
+      .select("id, project_lead_id")
+      .eq("id", input.funded_project_id)
+      .single();
+
+    if (projectError || !project) {
+      return { data: null, error: { message: "Funded project not found." } };
+    }
+
+    if (project.project_lead_id !== input.invited_by) {
+      return { data: null, error: { message: "Only the project lead can invite members." } };
+    }
+
+    // Self-invite prevention
+    const { data: inviter } = await this.db
+      .from("users")
+      .select("email")
+      .eq("id", input.invited_by)
+      .single();
+
+    if (inviter?.email === input.email) {
+      return { data: null, error: { message: "You cannot invite yourself." } };
+    }
+
+    // Check if user exists
+    const { data: existingUser } = await this.db
+      .from("users")
+      .select("id, roles")
+      .eq("email", input.email)
+      .single();
+
+    if (existingUser) {
+      // User exists — insert as active member
+      const { data: member, error: insertError } = await this.db
+        .from("project_members")
+        .insert({
+          funded_project_id: input.funded_project_id,
+          user_id: existingUser.id,
+          role: ProjectMemberRole.CO_LEAD,
+          status: ProjectMemberStatus.ACTIVE,
+          invited_by: input.invited_by,
+          accepted_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          return { data: null, error: { message: "This user is already a member of this project." } };
+        }
+        return { data: null, error: insertError };
+      }
+
+      // Append lead_proponent role if not present
+      const roles: string[] = existingUser.roles || [];
+      if (!roles.includes("lead_proponent")) {
+        await this.db
+          .from("users")
+          .update({ roles: [...roles, "lead_proponent"] })
+          .eq("id", existingUser.id);
+      }
+
+      // Send notification
+      await this.db.from("notifications").insert({
+        user_id: existingUser.id,
+        message: "You have been added as a co-lead to a funded project.",
+        is_read: false,
+      });
+
+      return { data: member, error: null };
+    } else {
+      // User doesn't exist — send Supabase invite email
+      if (!supabaseAdmin) {
+        return { data: null, error: { message: "Admin client not available. Cannot send invite." } };
+      }
+
+      const { data: inviteData, error: inviteError } =
+        await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
+          data: { roles: ["lead_proponent"] },
+          redirectTo,
+        });
+
+      if (inviteError) {
+        return { data: null, error: { message: inviteError.message } };
+      }
+
+      // Insert as pending member (will be activated on profile completion)
+      const newUserId = inviteData.user.id;
+      const { data: member, error: insertError } = await this.db
+        .from("project_members")
+        .insert({
+          funded_project_id: input.funded_project_id,
+          user_id: newUserId,
+          role: ProjectMemberRole.CO_LEAD,
+          status: ProjectMemberStatus.PENDING,
+          invited_by: input.invited_by,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { data: null, error: insertError };
+      }
+
+      return { data: member, error: null };
+    }
+  }
+
+  /**
+   * Remove a co-lead from a funded project
+   * - Only the project lead can remove
+   * - Cannot remove the lead themselves
+   * - Cleans up lead_proponent role if user has no other active memberships
+   */
+  async removeMember(input: RemoveMemberInput) {
+    // Verify caller is the project lead
+    const { data: project } = await this.db
+      .from("funded_projects")
+      .select("id, project_lead_id")
+      .eq("id", input.funded_project_id)
+      .single();
+
+    if (!project) {
+      return { data: null, error: { message: "Funded project not found." } };
+    }
+
+    if (project.project_lead_id !== input.removed_by) {
+      return { data: null, error: { message: "Only the project lead can remove members." } };
+    }
+
+    // Fetch the member
+    const { data: member } = await this.db
+      .from("project_members")
+      .select("id, user_id, role")
+      .eq("id", input.member_id)
+      .eq("funded_project_id", input.funded_project_id)
+      .single();
+
+    if (!member) {
+      return { data: null, error: { message: "Member not found." } };
+    }
+
+    if (member.role === ProjectMemberRole.LEAD) {
+      return { data: null, error: { message: "Cannot remove the project lead." } };
+    }
+
+    // Set status to removed
+    const { data: updated, error: updateError } = await this.db
+      .from("project_members")
+      .update({ status: ProjectMemberStatus.REMOVED, updated_at: new Date().toISOString() })
+      .eq("id", input.member_id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    // Check if user is co-lead on any other active project
+    const { data: otherMemberships } = await this.db
+      .from("project_members")
+      .select("id")
+      .eq("user_id", member.user_id)
+      .in("status", [ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING])
+      .neq("id", input.member_id);
+
+    if (!otherMemberships || otherMemberships.length === 0) {
+      // Remove lead_proponent role
+      const { data: user } = await this.db
+        .from("users")
+        .select("roles")
+        .eq("id", member.user_id)
+        .single();
+
+      if (user?.roles) {
+        const newRoles = (user.roles as string[]).filter((r) => r !== "lead_proponent");
+        await this.db.from("users").update({ roles: newRoles }).eq("id", member.user_id);
+      }
+    }
+
+    // Send notification
+    await this.db.from("notifications").insert({
+      user_id: member.user_id,
+      message: "You have been removed from a funded project.",
+      is_read: false,
+    });
+
+    return { data: updated, error: null };
+  }
+
+  /**
+   * Get all members (excluding removed) for a funded project
+   */
+  async getProjectMembers(input: GetProjectMembersInput) {
+    const { data, error } = await this.db
+      .from("project_members")
+      .select(
+        `
+        *,
+        user:users!user_id (id, first_name, last_name, email)
+      `
+      )
+      .eq("funded_project_id", input.funded_project_id)
+      .neq("status", ProjectMemberStatus.REMOVED)
+      .order("role", { ascending: true });
+
+    return { data, error };
+  }
+
+  /**
+   * Suspend all active co-leads for a project (called when project is blocked)
+   */
+  async suspendCoLeadsForProject(projectId: number) {
+    const { data: members } = await this.db
+      .from("project_members")
+      .select("id, user_id")
+      .eq("funded_project_id", projectId)
+      .eq("role", ProjectMemberRole.CO_LEAD)
+      .eq("status", ProjectMemberStatus.ACTIVE);
+
+    if (!members || members.length === 0) return;
+
+    await this.db
+      .from("project_members")
+      .update({ status: ProjectMemberStatus.SUSPENDED, updated_at: new Date().toISOString() })
+      .eq("funded_project_id", projectId)
+      .eq("role", ProjectMemberRole.CO_LEAD)
+      .eq("status", ProjectMemberStatus.ACTIVE);
+
+    // Notify each suspended co-lead
+    const notifications = members.map((m) => ({
+      user_id: m.user_id,
+      message: "Your co-lead access has been suspended because the project has been blocked.",
+      is_read: false,
+    }));
+
+    await this.db.from("notifications").insert(notifications);
+  }
+
+  /**
+   * Restore suspended co-leads for a project (called when project is unblocked)
+   * Does NOT restore removed members
+   */
+  async restoreCoLeadsForProject(projectId: number) {
+    const { data: members } = await this.db
+      .from("project_members")
+      .select("id, user_id")
+      .eq("funded_project_id", projectId)
+      .eq("role", ProjectMemberRole.CO_LEAD)
+      .eq("status", ProjectMemberStatus.SUSPENDED);
+
+    if (!members || members.length === 0) return;
+
+    await this.db
+      .from("project_members")
+      .update({ status: ProjectMemberStatus.ACTIVE, updated_at: new Date().toISOString() })
+      .eq("funded_project_id", projectId)
+      .eq("role", ProjectMemberRole.CO_LEAD)
+      .eq("status", ProjectMemberStatus.SUSPENDED);
+
+    // Notify each restored co-lead
+    const notifications = members.map((m) => ({
+      user_id: m.user_id,
+      message: "Your co-lead access has been restored. The project is no longer blocked.",
+      is_read: false,
+    }));
+
+    await this.db.from("notifications").insert(notifications);
   }
 }
