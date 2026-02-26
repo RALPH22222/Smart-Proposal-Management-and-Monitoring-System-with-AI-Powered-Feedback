@@ -1,7 +1,7 @@
 import { api } from "@utils/axios";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Swal from "sweetalert2";
-import { User, BookOpen, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
+import { User, LibraryBig, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
 import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
 import WmsuLogo from "../assets/IMAGES/WMSU.png";
 
@@ -15,7 +15,7 @@ interface Department {
 
 const STEPS = [
   { id: 1, title: "Account Info", icon: <User size={18} /> },
-  { id: 2, title: "Personal Info", icon: <BookOpen size={18} /> },
+  { id: 2, title: "Personal Info", icon: <LibraryBig size={18} /> },
   { id: 3, title: "Profile Photo", icon: <Camera size={18} /> },
 ];
 
@@ -491,7 +491,7 @@ export default function Register() {
                   <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Sign up</h2>
                   <p className="text-gray-500 text-sm mt-1">Complete all steps to create your account.</p>
                 </div>
-                <span className="text-xs font-bold text-[#C8102E] bg-red-50 border border-red-100 px-3 py-1.5 rounded-full uppercase tracking-wide">
+                <span className="text-xs font-bold text-[#C8102E] bg-red-50 border border-red-100 px-3 py-1.5 rounded-full tracking-wide">
                   Step {currentStep} of 3
                 </span>
               </div>
@@ -520,7 +520,7 @@ export default function Register() {
                           {isCompleted ? <Check size={18} strokeWidth={3} /> : step.icon}
                         </div>
                         <span
-                          className={`text-[10px] sm:text-xs mt-2 font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? "text-[#C8102E]" : "text-gray-400"
+                          className={`text-[10px] sm:text-xs mt-2 font-semibold tracking-wider transition-colors duration-300 ${isActive ? "text-[#C8102E]" : "text-gray-400"
                             }`}
                         >
                           {step.title}
