@@ -93,7 +93,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         if (response.ok) {
           const data = await response.json();
           let mapped = data.map((d: any) => {
-            let formattedName = d.name;
+            let formattedName = d.name.replace(/Ã±/g, "ñ").replace(/Ã‘/g, "Ñ");
             if (formattedName.startsWith("City of ")) {
               formattedName = formattedName.replace("City of ", "") + " City";
             }
@@ -342,10 +342,17 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       const resp = await fetch(`https://psgc.cloud/api/cities-municipalities/${cityCode}/barangays`);
       if (resp.ok) {
         const data = await resp.json();
+
+        // Fix encoding for ñ
+        const fixedData = data.map((b: any) => ({
+          ...b,
+          name: b.name.replace(/Ã±/g, "ñ").replace(/Ã‘/g, "Ñ")
+        }));
+
         // Sort alphabetically
-        data.sort((a: any, b: any) => a.name.localeCompare(b.name));
-        setPsgcBarangays(data);
-        setFilteredBarangays(data);
+        fixedData.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setPsgcBarangays(fixedData);
+        setFilteredBarangays(fixedData);
       } else {
         setPsgcBarangays([]);
         setFilteredBarangays([]);
@@ -686,8 +693,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 type="text"
                 value={citySearchTerm}
                 onChange={(e) => {
-                  setCitySearchTerm(e.target.value);
-                  handleAddressChange("city", e.target.value); // Let users type freely if desired
+                  const val = e.target.value;
+                  setCitySearchTerm(val);
+                  handleAddressChange("city", val);
+
+                  // Auto-select and fetch barangays if exact match
+                  const matchedCity = psgcCities.find(c => c.name.toLowerCase() === val.toLowerCase());
+                  if (matchedCity) {
+                    setBarangaySearchTerm("");
+                    handleAddressChange("barangay", "");
+                    fetchBarangays(matchedCity.code);
+                    setIsCityDropdownOpen(false);
+                  } else {
+                    // If they changed the city and it's not a match, clear the barangay list
+                    setPsgcBarangays([]);
+                    setFilteredBarangays([]);
+                  }
                 }}
                 onFocus={() => setIsCityDropdownOpen(true)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
@@ -729,9 +750,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   handleAddressChange("barangay", e.target.value);
                 }}
                 onFocus={() => setIsBarangayDropdownOpen(true)}
-                disabled={!formData.agencyAddress?.city}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder={psgcBarangays.length === 0 ? "Select City First" : "Search Barangay"}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                placeholder="Search or enter Barangay"
               />
               {isBarangayDropdownOpen && filteredBarangays.length > 0 && (
                 <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
