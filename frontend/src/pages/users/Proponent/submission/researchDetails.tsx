@@ -62,6 +62,10 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
   const [filteredDisciplines, setFilteredDisciplines] = useState<typeof disciplinesList>([]);
   const [filteredPriorities, setFilteredPriorities] = useState<typeof prioritiesList>([]);
 
+  // --- PSGC Cities ---
+  const [psgcCities, setPsgcCities] = useState<{ code: string; name: string; isZamboanga?: boolean }[]>([]);
+  const [activeCityDropdownIndex, setActiveCityDropdownIndex] = useState<number | null>(null);
+
   // --- Local Implementation Sites State (FIXED DEFAULT) ---
   const [implementationSites, setImplementationSites] = useState<{ site: string; city: string }[]>(() => {
     const existingSites = formData.implementation_site;
@@ -127,6 +131,48 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       }
     };
     loadData();
+
+    // --- LOAD PSGC CITIES ---
+    const loadCities = async () => {
+      try {
+        const response = await fetch("https://psgc.cloud/api/cities-municipalities");
+        if (response.ok) {
+          const data = await response.json();
+          let mapped = data.map((d: any) => {
+            let formattedName = d.name.replace(/Ã±/g, "ñ").replace(/Ã‘/g, "Ñ");
+            if (formattedName.startsWith("City of ")) {
+              formattedName = formattedName.replace("City of ", "") + " City";
+            }
+            return {
+              code: d.code,
+              name: formattedName,
+              isZamboanga: d.code === "0931700000" || d.name === "City of Zamboanga"
+            };
+          });
+
+          // Remove duplicates
+          const uniqueNames = new Set();
+          mapped = mapped.filter((city: any) => {
+            if (!uniqueNames.has(city.name)) {
+              uniqueNames.add(city.name);
+              return true;
+            }
+            return false;
+          });
+
+          mapped.sort((a: any, b: any) => {
+            if (a.isZamboanga) return -1;
+            if (b.isZamboanga) return 1;
+            return a.name.localeCompare(b.name);
+          });
+
+          setPsgcCities(mapped);
+        }
+      } catch (error) {
+        console.error("Error fetching PSGC cities:", error);
+      }
+    };
+    loadCities();
   }, []);
 
   // --- 2. RESTORE DATA FROM FORM DATA ---
@@ -343,6 +389,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       if (sectorRef.current && !sectorRef.current.contains(event.target as Node)) setIsSectorOpen(false);
       if (disciplineRef.current && !disciplineRef.current.contains(event.target as Node)) setIsDisciplineOpen(false);
       if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) setIsPriorityOpen(false);
+
+      const target = event.target as Element;
+      if (!target.closest('.city-input-container')) setActiveCityDropdownIndex(null);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -507,17 +556,38 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             </div>
 
             {/* City Input */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 city-input-container">
               <div className="relative flex-1">
                 <input
                   type="text"
                   value={item.city}
                   onChange={(e) => handleSiteChange(index, "city", e.target.value)}
+                  onFocus={() => setActiveCityDropdownIndex(index)}
                   maxLength={256}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
                   placeholder={`City/Municipality ${index + 1}`}
                 />
                 <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+
+                {activeCityDropdownIndex === index && (
+                  <div className="absolute z-30 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    {psgcCities
+                      .filter(c => c.name.toLowerCase().includes((item.city || "").toLowerCase()))
+                      .map((city) => (
+                        <div
+                          key={city.code}
+                          className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${item.city === city.name ? "bg-[#C8102E]/10" : ""}`}
+                          onClick={() => {
+                            handleSiteChange(index, "city", city.name);
+                            setActiveCityDropdownIndex(null);
+                          }}
+                        >
+                          <span className={`text-sm ${city.isZamboanga ? 'font-bold text-[#C8102E]' : 'text-gray-700'}`}>{city.name}</span>
+                          {city.isZamboanga && <MapPin className="w-3 h-3 text-[#C8102E]" />}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
               {/* Remove Button (Only if > 1 site) */}
               {implementationSites.length > 1 && (

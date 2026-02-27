@@ -12,6 +12,8 @@ import {
   Plus,
   Calendar,
   MapPin,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 import { fetchAgencies, fetchTags, fetchAgencyAddresses } from "../../../../services/proposal.api";
@@ -20,6 +22,7 @@ import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-f
 import Tooltip from "../../../../components/Tooltip";
 import type { FormData } from "../../../../types/proponent-form";
 import { useAuthContext } from "../../../../context/AuthContext";
+import Swal from "sweetalert2";
 
 interface BasicInformationProps {
   formData: FormData;
@@ -440,6 +443,17 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   };
 
   const handleTagSelect = (tag: { id: number; name: string }) => {
+    if (selectedTags.length >= 4) {
+      Swal.fire({
+        title: "Maximum Tags Reached",
+        text: "You can only select up to 4 tags for your project.",
+        icon: "warning",
+        confirmButtonColor: "#C8102E",
+      });
+      setIsTagsDropdownOpen(false);
+      return;
+    }
+
     if (!selectedTags.includes(tag.name)) {
       const newSelectedTags = [...selectedTags, tag.name];
       setSelectedTags(newSelectedTags);
@@ -461,6 +475,152 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       onUpdate("tags", newTagIds);
     }
   };
+
+  // --- AI TAG GENERATION ---
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+
+  const autoGenerateTags = async () => {
+    if (!formData.project_title || formData.project_title.trim().length === 0) {
+      alert("Please enter a Project Title first.");
+      return;
+    }
+
+    setIsGeneratingTags(true);
+    try {
+      const apiKey = "AIzaSyAqHh7ARPRqPZMpgAKOGqyfq_w4-q7k8Do";
+      const availableTagNames = tagsList.map(t => t.name);
+
+      const prompt = `You are a helpful assistant. You are given a project title: "${formData.project_title}". Identify 1 to 4 tags that best match the project from this exact list of available tags: ${JSON.stringify(availableTagNames)}. If none of the available tags fit well, strictly use the tag "Other". Return ONLY a valid JSON array of strings (e.g. ["Environment", "Renewable Energy"]). No markdown formatting, no explanation, no quotation marks outside the array.`;
+
+      const maxRetries = 3;
+      let attempt = 0;
+      let delay = 1000; // start with 1 second delay
+      let response: Response | null = null;
+      let success = false;
+
+      while (attempt < maxRetries && !success) {
+        try {
+          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: "application/json"
+              }
+            }),
+          });
+
+          if (response.status === 429) {
+            console.warn(`Rate limit reached. Retrying in ${delay}ms... (Attempt ${attempt + 1} of ${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            attempt++;
+            delay *= 2; // Exponential backoff (1s -> 2s -> 4s)
+          } else {
+            success = true;
+          }
+        } catch (fetchErr) {
+          console.warn(`Fetch error occurred. Retrying in ${delay}ms... (Attempt ${attempt + 1} of ${maxRetries})`, fetchErr);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          attempt++;
+          delay *= 2;
+        }
+      }
+
+      if (!response || response.status === 429 || !response.ok) {
+        if (response?.status === 429) {
+          Swal.fire({
+            title: "API Limit Reached",
+            text: "Too many requests to the AI service. The tag 'Other' has been automatically selected instead.",
+            icon: "info",
+            confirmButtonColor: "#C8102E",
+          });
+        }
+
+        // Fallback to "Other"
+        let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
+        if (!otherTag) {
+          otherTag = { id: Date.now(), name: "Other" };
+          setTagsList(prev => {
+            if (!prev.find(p => p.name === "Other")) return [...prev, otherTag as { id: number; name: string }];
+            return prev;
+          });
+        }
+        setSelectedTags([otherTag.name]);
+        onUpdate("tags", [otherTag.id]);
+        return;
+      }
+
+      const rawResult = await response.json();
+      let resultText = rawResult.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+      // Clean up markdown syntax if AI still outputs it
+      resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
+
+      try {
+        const generatedTags: string[] = JSON.parse(resultText);
+
+        let newSelectedTags: string[] = [];
+        let newTagIds: number[] = [];
+        let addedCount = 0;
+
+        for (const tg of generatedTags) {
+          if (addedCount >= 4) break;
+          const matchedTag = tagsList.find(t => t.name.toLowerCase() === tg.toLowerCase());
+          if (matchedTag && !newSelectedTags.includes(matchedTag.name)) {
+            newSelectedTags.push(matchedTag.name);
+            newTagIds.push(matchedTag.id);
+            addedCount++;
+          }
+        }
+
+        if (addedCount === 0) {
+          let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
+
+          if (!otherTag) {
+            otherTag = { id: Date.now(), name: "Other" };
+            setTagsList(prev => {
+              if (!prev.find(p => p.name === "Other")) {
+                return [...prev, otherTag as { id: number; name: string }];
+              }
+              return prev;
+            });
+          }
+
+          if (otherTag && !newSelectedTags.includes(otherTag.name)) {
+            newSelectedTags.push(otherTag.name);
+            newTagIds.push(otherTag.id);
+          }
+        }
+
+        setSelectedTags(newSelectedTags);
+        onUpdate("tags", newTagIds);
+
+      } catch (parseErr) {
+        console.error("Failed to parse LLM response format", resultText);
+      }
+
+    } catch (error) {
+      console.error("Error auto generating tags:", error);
+
+      // Safety Fallback on any error (like network down)
+      let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
+      if (!otherTag) {
+        otherTag = { id: Date.now(), name: "Other" };
+        setTagsList(prev => {
+          if (!prev.find(p => p.name === "Other")) return [...prev, otherTag as { id: number; name: string }];
+          return prev;
+        });
+      }
+      setSelectedTags([otherTag.name]);
+      onUpdate("tags", [otherTag.id]);
+
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
+
 
   // Click Outside Listener
   useEffect(() => {
@@ -904,11 +1064,29 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* Tags Input */}
       <div className="space-y-2 tags-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Tags className="text-gray-400 w-4 h-4" />
-          Tags *
-          <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Tags className="text-gray-400 w-4 h-4" />
+            Tags *
+            <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
+          </label>
+          <button
+            type="button"
+            onClick={autoGenerateTags}
+            disabled={isGeneratingTags || !formData.project_title}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isGeneratingTags || !formData.project_title
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-[#C8102E]/10 text-[#C8102E] hover:bg-[#C8102E]/20'
+              }`}
+          >
+            {isGeneratingTags ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            Auto-generate
+          </button>
+        </div>
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             {selectedTags.map((tag, index) => (
