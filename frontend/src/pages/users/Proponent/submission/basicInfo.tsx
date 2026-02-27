@@ -48,6 +48,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [cooperatingSearchTerm, setCooperatingSearchTerm] = useState("");
   const [tagsSearchTerm, setTagsSearchTerm] = useState("");
 
+  // PSGC Search Terms
+  const [citySearchTerm, setCitySearchTerm] = useState("");
+  const [barangaySearchTerm, setBarangaySearchTerm] = useState("");
+
   // Selected Items
   const [selectedAgencies, setSelectedAgencies] = useState<{ id: number; name: string }[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -57,9 +61,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState<AgencyItem[]>([]);
   const [filteredTags, setFilteredTags] = useState<{ id: number; name: string }[]>([]);
 
+  // PSGC Cloud API Data
+  const [psgcCities, setPsgcCities] = useState<{ code: string; name: string; isZamboanga?: boolean }[]>([]);
+  const [psgcBarangays, setPsgcBarangays] = useState<{ code: string; name: string }[]>([]);
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const [isBarangayDropdownOpen, setIsBarangayDropdownOpen] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<{ code: string; name: string; isZamboanga?: boolean }[]>([]);
+  const [filteredBarangays, setFilteredBarangays] = useState<{ code: string; name: string }[]>([]);
 
-
-  // --- 1. FETCH DATA ---
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -76,6 +85,49 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       }
     };
     loadData();
+
+    // Load PSGC Cities
+    const loadCities = async () => {
+      try {
+        const response = await fetch("https://psgc.cloud/api/cities-municipalities");
+        if (response.ok) {
+          const data = await response.json();
+          let mapped = data.map((d: any) => {
+            let formattedName = d.name;
+            if (formattedName.startsWith("City of ")) {
+              formattedName = formattedName.replace("City of ", "") + " City";
+            }
+            return {
+              code: d.code,
+              name: formattedName,
+              isZamboanga: d.code === "0931700000" || d.name === "City of Zamboanga"
+            };
+          });
+
+          // Remove duplicates
+          const uniqueNames = new Set();
+          mapped = mapped.filter((city: any) => {
+            if (!uniqueNames.has(city.name)) {
+              uniqueNames.add(city.name);
+              return true;
+            }
+            return false;
+          });
+
+          mapped.sort((a: any, b: any) => {
+            if (a.isZamboanga) return -1;
+            if (b.isZamboanga) return 1;
+            return a.name.localeCompare(b.name);
+          });
+
+          setPsgcCities(mapped);
+          setFilteredCities(mapped);
+        }
+      } catch (error) {
+        console.error("Error fetching PSGC cities:", error);
+      }
+    };
+    loadCities();
   }, []);
 
   // --- FILTERING ---
@@ -97,6 +149,23 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       }
     }
   }, [tagsSearchTerm, tagsList]);
+
+  // PSGC Filtering
+  useEffect(() => {
+    if (!citySearchTerm) {
+      setFilteredCities(psgcCities);
+    } else {
+      setFilteredCities(psgcCities.filter(c => c.name.toLowerCase().includes(citySearchTerm.toLowerCase())));
+    }
+  }, [citySearchTerm, psgcCities]);
+
+  useEffect(() => {
+    if (!barangaySearchTerm) {
+      setFilteredBarangays(psgcBarangays);
+    } else {
+      setFilteredBarangays(psgcBarangays.filter(b => b.name.toLowerCase().includes(barangaySearchTerm.toLowerCase())));
+    }
+  }, [barangaySearchTerm, psgcBarangays]);
 
   // --- 2. RESTORE SELECTIONS & DEFAULTS ---
   useEffect(() => {
@@ -129,8 +198,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           setAgencySearchTerm(String(formData.agency));
         }
       }
+
+      // Restore City and fetch its barangays if needed
+      if (formData.agencyAddress?.city) {
+        setCitySearchTerm(formData.agencyAddress.city);
+        // Find matching city to get code for barangays
+        const matchedCityRes = psgcCities.find(c => c.name === formData.agencyAddress?.city);
+        if (matchedCityRes && matchedCityRes.code) {
+          fetchBarangays(matchedCityRes.code);
+        }
+      }
+
+      if (formData.agencyAddress?.barangay) {
+        setBarangaySearchTerm(formData.agencyAddress.barangay);
+      }
     }
-  }, [isLoading, agenciesList, tagsList, formData.cooperating_agencies, formData.tags, formData.agency]);
+  }, [isLoading, agenciesList, tagsList, formData.cooperating_agencies, formData.tags, formData.agency, psgcCities]);
 
   // Default Email
   useEffect(() => {
@@ -254,6 +337,26 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("telephone", value);
   };
 
+  const fetchBarangays = async (cityCode: string) => {
+    try {
+      const resp = await fetch(`https://psgc.cloud/api/cities-municipalities/${cityCode}/barangays`);
+      if (resp.ok) {
+        const data = await resp.json();
+        // Sort alphabetically
+        data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setPsgcBarangays(data);
+        setFilteredBarangays(data);
+      } else {
+        setPsgcBarangays([]);
+        setFilteredBarangays([]);
+      }
+    } catch (e) {
+      console.error("Fetch barangays failed", e);
+      setPsgcBarangays([]);
+      setFilteredBarangays([]);
+    }
+  };
+
 
   // --- HANDLERS ---
   const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -359,6 +462,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       if (!target.closest(".agency-name-dropdown-container")) setIsAgencyDropdownOpen(false);
       if (!target.closest(".cooperating-agency-dropdown-container")) setIsCooperatingDropdownOpen(false);
       if (!target.closest(".tags-dropdown-container")) setIsTagsDropdownOpen(false);
+      if (!target.closest(".city-dropdown-container")) setIsCityDropdownOpen(false);
+      if (!target.closest(".barangay-dropdown-container")) setIsBarangayDropdownOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -574,30 +679,80 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-800 font-semibold">City *</label>
-            <input
-              type="text"
-              name="city"
-              value={formData.agencyAddress?.city || ""}
-              onChange={(e) => handleAddressChange("city", e.target.value)}
-              maxLength={256}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="City / Municipality"
-            />
+          <div className="space-y-2 city-dropdown-container">
+            <label className="block text-sm font-medium text-gray-800 font-semibold">City / Municipality *</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={citySearchTerm}
+                onChange={(e) => {
+                  setCitySearchTerm(e.target.value);
+                  handleAddressChange("city", e.target.value); // Let users type freely if desired
+                }}
+                onFocus={() => setIsCityDropdownOpen(true)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                placeholder="Search City / Municipality"
+              />
+              {isCityDropdownOpen && filteredCities.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {filteredCities.map((city) => (
+                    <div
+                      key={city.code}
+                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${citySearchTerm === city.name ? "bg-[#C8102E]/10" : ""}`}
+                      onClick={() => {
+                        setCitySearchTerm(city.name);
+                        handleAddressChange("city", city.name);
+                        // Reset Barangay
+                        setBarangaySearchTerm("");
+                        handleAddressChange("barangay", "");
+                        fetchBarangays(city.code);
+                        setIsCityDropdownOpen(false);
+                      }}
+                    >
+                      <span className={`text-sm ${city.isZamboanga ? 'font-bold text-[#C8102E]' : 'text-gray-700'}`}>{city.name}</span>
+                      {city.isZamboanga && <MapPin className="w-3 h-3 text-[#C8102E]" />}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
+
+          <div className="space-y-2 barangay-dropdown-container">
             <label className="block text-sm font-medium text-gray-500">Barangay</label>
-            <input
-              type="text"
-              name="barangay"
-              value={formData.agencyAddress?.barangay || ""}
-              onChange={(e) => handleAddressChange("barangay", e.target.value)}
-              maxLength={256}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="Barangay Name"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={barangaySearchTerm}
+                onChange={(e) => {
+                  setBarangaySearchTerm(e.target.value);
+                  handleAddressChange("barangay", e.target.value);
+                }}
+                onFocus={() => setIsBarangayDropdownOpen(true)}
+                disabled={!formData.agencyAddress?.city}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                placeholder={psgcBarangays.length === 0 ? "Select City First" : "Search Barangay"}
+              />
+              {isBarangayDropdownOpen && filteredBarangays.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {filteredBarangays.map((bg) => (
+                    <div
+                      key={bg.code}
+                      className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${barangaySearchTerm === bg.name ? "bg-[#C8102E]/10" : ""}`}
+                      onClick={() => {
+                        setBarangaySearchTerm(bg.name);
+                        handleAddressChange("barangay", bg.name);
+                        setIsBarangayDropdownOpen(false);
+                      }}
+                    >
+                      <span className="text-sm text-gray-700">{bg.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-500">Street</label>
             <input

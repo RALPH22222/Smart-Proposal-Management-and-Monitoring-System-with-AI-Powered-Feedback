@@ -471,7 +471,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           setRevisionChanges(changes);
 
           // Success - show toast or notification
-          alert("Revision submitted successfully! Your proposal has been sent back to R&D for review.");
+          Swal.fire({
+            title: 'Success!',
+            text: 'Revision submitted successfully! Your proposal has been sent back to R&D for review.',
+            icon: 'success',
+            confirmButtonColor: '#C8102E'
+          });
           setNewFile(null);
           setIsEditing(false);
           // onClose();  // Don't close, show summary
@@ -900,32 +905,38 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
               <div className="flex flex-col gap-3">
                 {submittedFiles.length > 0 ? (
-                  submittedFiles.map((fileUrl, index) => (
-                    <div key={index} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'border-green-200' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
-                          <FileCheck className={`w-5 h-5 ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
+                  <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
+                    {[...submittedFiles].reverse().map((fileUrl, reversedIndex) => {
+                      const isLatest = reversedIndex === 0;
+                      const originalIndex = submittedFiles.length - 1 - reversedIndex;
+                      return (
+                        <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border shrink-0 ${isLatest && submittedFiles.length > 1 ? 'border-green-200' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 ${isLatest && submittedFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
+                              <FileCheck className={`w-5 h-5 ${isLatest && submittedFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
+                                {getFileName(fileUrl)}
+                              </p>
+                              <p className={`text-xs ${isLatest && submittedFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                                {isLatest ? 'Latest version' : `Version ${originalIndex + 1}`}
+                              </p>
+                            </div>
+                          </div>
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                            title="Open/Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
-                            {getFileName(fileUrl)}
-                          </p>
-                          <p className={`text-xs ${index === submittedFiles.length - 1 && submittedFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                            {index === submittedFiles.length - 1 ? 'Latest version' : `Version ${index + 1}`}
-                          </p>
-                        </div>
-                      </div>
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
-                        title="Open/Download"
-                      >
-                        <Download className="w-4 h-4" />
-                      </a>
-                    </div>
-                  ))
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-3">

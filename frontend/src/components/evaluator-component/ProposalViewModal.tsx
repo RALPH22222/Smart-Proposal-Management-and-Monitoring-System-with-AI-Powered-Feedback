@@ -130,7 +130,7 @@ export default function ProposalModal({
     classification = map[rawP.classification_type] || rawP.classification_type;
   }
 
-  let classificationDetails = rawP.classificationDetails || rawP.class_input;
+  const classificationDetails = rawP.classificationDetails || rawP.class_input;
 
   // Normalize Budget
   let budgetSources = rawP.budgetSources;
