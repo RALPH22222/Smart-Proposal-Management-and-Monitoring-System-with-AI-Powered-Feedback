@@ -15,7 +15,7 @@ import { type Project } from '../../types/InterfaceProject';
 interface BlockProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   project: Project | null;
 }
 
@@ -32,11 +32,14 @@ const BlockProjectModal: React.FC<BlockProjectModalProps> = ({
 
   const handleBlock = async () => {
     setIsProcessing(true);
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsProcessing(false);
-    onConfirm();
-    setConfirmText(""); // Reset
+    try {
+      await onConfirm();
+      setConfirmText("");
+    } catch (error) {
+      console.error('Error blocking project:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const isConfirmDisabled = confirmText.toLowerCase() !== "block";

@@ -12,120 +12,19 @@ import {
   Eye,
   BarChart3,
   Target,
-  DollarSign,
   MapPin,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
-  Ban
+  Ban,
+  PauseCircle
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
+import { useAuthContext } from '../../../context/AuthContext';
+import { fetchFundedProjects, transformToProject, updateProjectStatus } from '../../../services/ProjectMonitoringApi';
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
 import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
-
-// --- UPDATED MOCK DATA ---
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    projectId: 'PROJ-2025-001',
-    title: 'AI-Based Crop Disease Detection System',
-    description: 'Developing a mobile application using computer vision to detect early signs of diseases in local crops.',
-    principalInvestigator: 'Dr. Maria Santos',
-    coProponent: 'Engr. John Doe',
-    department: 'College of Computer Studies',
-    status: 'Active',
-    startDate: '2025-01-15',
-    endDate: '2025-12-15',
-    budget: 500000,
-    completionPercentage: 35,
-    researchArea: 'Agriculture Technology',
-    lastModified: '2025-02-01',
-    fundRequests: [
-      { id: 'fr1', amount: 50000, reason: 'Additional GPU Server costs', dateRequested: '2025-06-01', status: 'Pending' }
-    ],
-    milestones: [
-      { id: 'm1', name: 'Data Collection', dueDate: '2025-03-15', status: 'Completed', completed: true },
-      {
-        id: 'm2',
-        name: 'Model Training',
-        dueDate: '2025-06-30',
-        status: 'Review Required',
-        submissionDate: '2025-06-28',
-        submissionProof: 'Training logs and accuracy report attached. Model reached 95% accuracy.',
-        completed: false
-      },
-      { id: 'm3', name: 'Beta Testing', dueDate: '2025-09-15', status: 'Pending', completed: false }
-    ],
-  },
-  {
-    id: '2',
-    projectId: 'PROJ-2025-002',
-    title: 'Renewable Energy Integration for Rural Schools',
-    description: 'Assessment and implementation of solar energy solutions.',
-    principalInvestigator: 'Engr. Robert Lee',
-    department: 'College of Engineering',
-    status: 'Active', // CHANGED FROM PLANNING TO ACTIVE
-    startDate: '2025-04-01',
-    endDate: '2026-03-31',
-    budget: 1200000,
-    completionPercentage: 10,
-    researchArea: 'Renewable Energy',
-    lastModified: '2025-01-01',
-    milestones: [
-      { id: 'p1', name: 'Site Survey', dueDate: '2025-05-15', status: 'Proposed', description: 'Ocular inspection of 5 schools.', completed: false },
-      { id: 'p2', name: 'System Design', dueDate: '2025-07-20', status: 'Proposed', description: 'Solar PV layout drafts.', completed: false }
-    ]
-  },
-  {
-    id: '4',
-    projectId: 'PROJ-2023-089',
-    title: 'Halal-Compliant Food Processing',
-    description: 'New preservation methods for seafood products.',
-    principalInvestigator: 'Prof. Abdul Malik',
-    department: 'College of Home Economics',
-    status: 'Completed',
-    startDate: '2023-01-10',
-    endDate: '2024-01-10',
-    budget: 350000,
-    completionPercentage: 100,
-    researchArea: 'Food Technology',
-    lastModified: '2024-01-10',
-    milestones: [
-      { id: 'c1', name: 'Literature Review', dueDate: '2023-02-28', status: 'Completed', completed: true },
-      { id: 'c2', name: 'Final Report', dueDate: '2024-01-10', status: 'Completed', completed: true }
-    ]
-  },
-  {
-    id: '5',
-    projectId: 'PROJ-2025-005',
-    title: 'Marine Biodiversity Assessment',
-    description: 'Comprehensive survey of coral reef health.',
-    principalInvestigator: 'Dr. James Reid',
-    coProponent: 'Marine Lab Inc.',
-    department: 'Forestry',
-    status: 'Delayed',
-    startDate: '2025-02-01',
-    endDate: '2026-02-01',
-    budget: 850000,
-    completionPercentage: 20,
-    researchArea: 'Marine Biology',
-    lastModified: '2025-03-10',
-    milestones: [
-      {
-        id: 'd1',
-        name: 'Equipment Procurement',
-        dueDate: '2025-03-01',
-        status: 'Delayed',
-        completed: false,
-        extensionRequest: {
-          newDate: '2025-04-15',
-          reason: 'Supplier stocks unavailable due to shipping issues.',
-          status: 'Pending'
-        }
-      }
-    ]
-  }
-];
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -133,6 +32,7 @@ interface MonitoringPageProps {
 
 // Fixed: Removed unused 'onStatsUpdate' from destructuring
 const MonitoringPage: React.FC<MonitoringPageProps> = () => {
+  const { user } = useAuthContext();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,8 +78,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setProjects(MOCK_PROJECTS as Project[]);
+      const data = await fetchFundedProjects("rnd");
+      setProjects(data.map(transformToProject));
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -208,22 +108,21 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     setProjectToBlock(null);
   };
 
-  const handleConfirmBlock = () => {
-    if (projectToBlock) {
-      const updatedProjects = projects.filter(p => p.id !== projectToBlock.id);
-      setProjects(updatedProjects);
-      handleCloseBlockModal();
-      alert(`Project ${projectToBlock.projectId} has been shut down and proponents blocked.`);
+  const handleConfirmBlock = async () => {
+    if (!projectToBlock || !user) return;
+    if (!projectToBlock.backendId) {
+      Swal.fire('Error', 'Unable to identify project.', 'error');
+      return;
     }
+    await updateProjectStatus(projectToBlock.backendId, 'blocked', user.id);
+    handleCloseBlockModal();
+    Swal.fire('Blocked', `Project ${projectToBlock.projectId} has been shut down and proponents blocked.`, 'success');
+    loadProjects();
   };
 
   // Statistics calculations
   const getStatusCount = (status: ProjectStatus) => {
     return projects.filter(p => p.status === status).length;
-  };
-
-  const getTotalBudget = () => {
-    return projects.reduce((sum, project) => sum + project.budget, 0);
   };
 
   const getAverageCompletion = () => {
@@ -271,12 +170,12 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       trend: '+2%',
     },
     {
-      title: 'Total Budget',
-      value: `₱${getTotalBudget().toLocaleString()}`,
-      icon: DollarSign,
+      title: 'On Hold',
+      value: getStatusCount('On Hold'),
+      icon: PauseCircle,
       color: 'text-purple-500',
       bgColor: 'bg-purple-50',
-      trend: '+20%',
+      trend: '',
     },
     {
       title: 'Avg. Completion',
@@ -296,8 +195,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
         return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
       case 'Completed':
         return `${baseClasses} text-blue-600 bg-blue-50 border-blue-200`;
-      case 'At Risk':
-        return `${baseClasses} text-orange-600 bg-orange-50 border-orange-200`;
+      case 'On Hold':
+        return `${baseClasses} text-purple-600 bg-purple-50 border-purple-200`;
       case 'Delayed':
         return `${baseClasses} text-yellow-600 bg-yellow-50 border-yellow-200`;
       default:
@@ -404,7 +303,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                   <option value="Active">Active ({getStatusCount('Active')})</option>
                   <option value="Completed">Completed ({getStatusCount('Completed')})</option>
                   <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
-                  <option value="At Risk">At Risk ({getStatusCount('At Risk')})</option>
+                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
                 </select>
               </div>
             </div>
@@ -481,7 +380,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                             <div className="w-32 bg-slate-200 rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full transition-all duration-500 ${project.status === 'Completed' ? 'bg-blue-600' :
-                                  project.status === 'At Risk' ? 'bg-orange-500' :
+                                  project.status === 'On Hold' ? 'bg-purple-500' :
                                     project.status === 'Delayed' ? 'bg-yellow-500' :
                                       'bg-green-600'
                                   }`}

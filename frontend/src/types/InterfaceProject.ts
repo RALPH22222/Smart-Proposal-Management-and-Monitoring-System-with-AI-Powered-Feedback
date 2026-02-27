@@ -46,6 +46,8 @@ export interface Project {
   budget: number;
   status: ProjectStatus;
   completionPercentage: number;
+  backendId?: number;
+  backendStatus?: string;
   collaborators?: string[];
   milestones?: Milestone[];
   fundRequests?: BudgetRequest[];
