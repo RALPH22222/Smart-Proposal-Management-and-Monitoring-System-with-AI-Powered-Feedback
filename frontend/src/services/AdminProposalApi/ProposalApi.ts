@@ -99,7 +99,9 @@ export const adminProposalApi = {
     console.log(`Admin updating proposal ${proposalId} status to ${status}`);
 
     const backendStatusMap: Record<string, string> = {
-      'Funded': 'funded'
+      'Funded': 'funded',
+      'Funding Rejected': 'rejected_funding',
+      'Funding Revision': 'revision_funding'
     };
 
     const backendStatus = backendStatusMap[status] || status;
@@ -138,6 +140,8 @@ const mapStatus = (status: string): ProposalStatus => {
     case 'under_evaluation': return 'Under Evaluators Assessment';
     case 'endorsed_for_funding': return 'Endorsed';
     case 'funded': return 'Funded';
+    case 'rejected_funding': return 'Funding Rejected';
+    case 'revision_funding': return 'Funding Revision';
     case 'revised': return 'Revised Proposal'; // Hypothetical
     default: return 'Pending'; // Fallback
   }

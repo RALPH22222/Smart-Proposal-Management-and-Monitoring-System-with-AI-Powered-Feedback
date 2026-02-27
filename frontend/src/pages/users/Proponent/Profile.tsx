@@ -137,22 +137,28 @@ const Profile: React.FC = () => {
           let index = 1;
           switch (p.status) {
             case "endorsed_for_funding":
-              index = 0;
+              index = 4; // Endorsed = Funded stage
+              break;
+            case "funded":
+              index = 4;
               break;
             case "review_rnd":
               index = 1;
               break;
             case "under_evaluation":
-              index = 1;
-              break; // Mapped to R&D Evaluation as requested
+              index = 2;
+              break;
             case "revision_rnd":
               index = 3;
               break;
-            case "funded":
-              index = 4;
-              break;
             case "rejected_rnd":
               index = 5;
+              break;
+            case "rejected_funding":
+              index = 5;
+              break;
+            case "revision_funding":
+              index = 3;
               break;
             default:
               index = 1;
@@ -263,15 +269,18 @@ const Profile: React.FC = () => {
     return tags;
   };
 
-  // Local Helpers for Status Display
   const getLocalStatusLabel = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "Pending";
     if (["revise", "revision", "revision_rnd"].includes(s)) return "Revision Required";
-    if (["revised_proposal"].includes(s)) return "Revised Proposal";
-    if (s === "review_rnd") return "Under R&D Evaluation";
-    if (["r&d evaluation"].includes(s)) return "Under R&D Evaluation";
+    if (s === "revised_proposal") return "Revised Proposal";
+    if (s === "review_rnd" || s === "r&d evaluation") return "Under R&D Evaluation";
     if (["under_evaluation", "evaluators assessment"].includes(s)) return "Under Evaluators Assessment";
+    if (s === "endorsed_for_funding") return "Endorsed for Funding";
+    if (s === "funded") return "Funded";
+    if (s === "rejected_rnd") return "Rejected";
+    if (s === "rejected_funding") return "Funding Rejected";
+    if (s === "revision_funding") return "Funding Revision";
     return getStatusLabelByIndex(project.currentIndex);
   };
 
@@ -279,24 +288,24 @@ const Profile: React.FC = () => {
     const s = ((project as any).rawStatus || "").toLowerCase();
     if (s === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
     if (["revise", "revision", "revision_rnd"].includes(s)) return "bg-orange-100 text-orange-800 border border-orange-300";
-    if (["revised_proposal"].includes(s)) return "bg-amber-100 text-amber-900 border border-amber-300";
-    if (s === "review_rnd") return "bg-blue-100 text-blue-900 border border-blue-300";
-    if (["endorsed"].includes(s)) return "bg-green-200 text-green-800 border border-green-200";
-    if (["funded", "accepted", "approved", "endorsed_for_funding"].includes(s)) return "bg-emerald-50 text-emerald-800 border border-emerald-200";
-    if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s)) return "bg-red-50 text-red-800 border border-red-200";
-    if (["r&d evaluation"].includes(s)) return "bg-blue-50 text-blue-800 border border-blue-200";
+    if (s === "revised_proposal") return "bg-amber-100 text-amber-900 border border-amber-300";
+    if (s === "review_rnd" || s === "r&d evaluation") return "bg-blue-100 text-blue-900 border border-blue-300";
     if (["under_evaluation", "evaluators assessment"].includes(s)) return "bg-purple-100 text-purple-800 border border-purple-300";
+    if (s === "endorsed_for_funding") return "bg-blue-50 text-blue-800 border border-blue-200";
+    if (s === "funded") return "bg-emerald-50 text-emerald-800 border border-emerald-200";
+    if (["rejected_rnd", "rejected_funding"].includes(s)) return "bg-red-50 text-red-800 border border-red-200";
+    if (s === "revision_funding") return "bg-orange-100 text-orange-800 border border-orange-300";
     return getStatusColorByIndex(project.currentIndex);
   };
 
   const getLocalStatusIcon = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
-    if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) return <RefreshCw className="w-3 h-3" />;
-    if (["revised_proposal"].includes(s)) return <Edit className="w-3 h-3" />;
-    if (["endorsed"].includes(s)) return <CheckCircle2 className="w-3 h-3" />;
-    if (["funded", "accepted", "approved", "endorsed_for_funding"].includes(s)) return <CheckCircle className="w-3 h-3" />;
-    if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s)) return <XCircle className="w-3 h-3" />;
-    if (["review_rnd", "r&d evaluation"].includes(s)) return <Microscope className="w-3 h-3" />;
+    if (["revise", "revision", "revision_rnd", "revision_funding"].includes(s)) return <RefreshCw className="w-3 h-3" />;
+    if (s === "revised_proposal") return <Edit className="w-3 h-3" />;
+    if (s === "review_rnd" || s === "r&d evaluation") return <Microscope className="w-3 h-3" />;
+    if (s === "endorsed_for_funding") return <CheckCircle2 className="w-3 h-3" />;
+    if (s === "funded") return <CheckCircle className="w-3 h-3" />;
+    if (["rejected_rnd", "rejected_funding"].includes(s)) return <XCircle className="w-3 h-3" />;
     if (["under_evaluation", "evaluators assessment"].includes(s)) return <FileCheck className="w-3 h-3" />;
     if (s === "pending") return <Clock className="w-3 h-3" />;
     return null;
@@ -304,10 +313,11 @@ const Profile: React.FC = () => {
 
   const getLocalProgress = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
-    // Match the modal: if pending or revise, progress is 0% (or stalled)
     if (s === "pending") return 0;
     if (["revise", "revision", "revision_rnd"].includes(s)) return 0;
-    if (["revised_proposal"].includes(s)) return 10;
+    if (s === "revised_proposal") return 10;
+    // Funding-stage statuses show same progress as endorsed_for_funding
+    if (["rejected_funding", "revision_funding"].includes(s)) return getProgressPercentageByIndex(4);
     return getProgressPercentageByIndex(project.currentIndex);
   };
 

@@ -66,6 +66,8 @@ export type ProposalStatus =
 	| 'Endorsed'
 	| 'Funded'
 	| 'Waiting for Funding'
+	| 'Funding Rejected'
+	| 'Funding Revision'
 	| 'Unassigned'
 	| 'Under Review' // Keep for backward compatibility if needed
 	| 'Sent to Evaluators'; // Keep for backward compatibility if needed

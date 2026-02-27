@@ -113,7 +113,6 @@ export default function EndorsementDecisionModal({
     }
   };
 
-  // Step 1: Validate and show confirmation
   const handleProceedToConfirm = () => {
     if (decision === "revised") {
       const hasContent = Object.values(structuredRemarks).some(val => val.trim().length > 0);
@@ -121,13 +120,9 @@ export default function EndorsementDecisionModal({
         setError("Please provide assessment comments in at least one section.");
         return;
       }
-    } else {
+    } else if (decision === "rejected") {
       if (!remarks.trim()) {
-        setError(
-          decision === "endorsed"
-            ? "Please provide a justification for this endorsement."
-            : "Please provide an explanation for this rejection."
-        );
+        setError("Please provide an explanation for this rejection.");
         return;
       }
     }
@@ -459,25 +454,23 @@ export default function EndorsementDecisionModal({
                 )}
 
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    {decision === "endorsed" ? "Endorsement Justification" : "Rejection Explanation"}
-                    <span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <textarea
-                    className="w-full h-32 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none resize-none text-sm transition-all shadow-sm"
-                    placeholder={
-                      decision === "endorsed"
-                        ? "Provide a clear explanation for endorsing this proposal..."
-                        : "Provide a clear explanation for rejecting this proposal..."
-                    }
-                    value={remarks}
-                    onChange={(e) => {
-                      setRemarks(e.target.value);
-                      if (error) setError("");
-                    }}
-                  />
-                </div>
+                {decision === "rejected" && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                      Rejection Explanation
+                      <span className="text-red-500 ml-1">*</span>
+                    </label>
+                    <textarea
+                      className="w-full h-32 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none resize-none text-sm transition-all shadow-sm"
+                      placeholder="Provide a clear explanation for rejecting this proposal..."
+                      value={remarks}
+                      onChange={(e) => {
+                        setRemarks(e.target.value);
+                        if (error) setError("");
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

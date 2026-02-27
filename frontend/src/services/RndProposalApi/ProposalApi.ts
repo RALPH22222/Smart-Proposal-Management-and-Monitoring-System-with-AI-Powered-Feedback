@@ -60,7 +60,12 @@ const transformProposal = (raw: any): Proposal => {
         budgetTotal: getBudgetTotal(),
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
         evaluatorInstruction: p.evaluator_instruction || "",
-        endorsementJustification: ""
+        endorsementJustification: "",
+        rdStaffReviewer: raw.users
+            ? `${raw.users.first_name} ${raw.users.last_name}`
+            : p.proposal_rnd?.[0]?.users
+                ? `${Array.isArray(p.proposal_rnd[0].users) ? p.proposal_rnd[0].users[0]?.first_name : p.proposal_rnd[0].users?.first_name} ${Array.isArray(p.proposal_rnd[0].users) ? p.proposal_rnd[0].users[0]?.last_name : p.proposal_rnd[0].users?.last_name}`
+                : undefined
     };
 };
 
@@ -72,6 +77,8 @@ const mapBackendStatusToFrontend = (status: string): ProposalStatus => {
         case 'rejected_rnd': return 'Rejected Proposal';
         case 'endorsed_for_funding': return 'Endorsed';
         case 'funded': return 'Funded';
+        case 'revision_funding': return 'Funding Revision';
+        case 'rejected_funding': return 'Funding Rejected';
         default: return 'Pending';
     }
 };
@@ -103,7 +110,9 @@ export const proposalApi = {
         status: ProposalStatus
     ): Promise<void> => {
         const backendStatusMap: Record<string, string> = {
-            'Funded': 'funded'
+            'Funded': 'funded',
+            'Funding Rejected': 'rejected_funding',
+            'Funding Revision': 'revision_funding'
         };
 
         const backendStatus = backendStatusMap[status] || status;

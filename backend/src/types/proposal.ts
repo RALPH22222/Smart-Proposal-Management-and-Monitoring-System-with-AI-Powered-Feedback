@@ -7,6 +7,8 @@ export enum Status {
   FUNDED = "funded",
   PENDING = "pending",
   REVISED_PROPOSAL = "revised_proposal",
+  REJECTED_FUNDING = "rejected_funding",
+  REVISION_FUNDING = "revision_funding",
 }
 
 export enum ResearchClass {

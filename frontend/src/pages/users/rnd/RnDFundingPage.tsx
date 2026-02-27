@@ -8,17 +8,24 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
-  X,
+  Gavel,
+  AlertTriangle,
+  XCircle,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
+import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
+import FundingActionModal from '../../../components/shared/FundingActionModal';
+import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
   useEffect(() => {
     loadFundingProposals();
@@ -29,7 +36,7 @@ const FundingPage: React.FC = () => {
       setLoading(true);
       const allProposals = await proposalApi.fetchProposals();
       // Filter proposals that are relevant to funding
-      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Funded'];
+      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Funded', 'Funding Rejected', 'Funding Revision'];
       const filtered = allProposals.filter(p => relevantStatuses.includes(p.status));
       setFundingProposals(filtered);
     } catch (error) {
@@ -39,13 +46,31 @@ const FundingPage: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (proposalId: string, newStatus: ProposalStatus) => {
+  const handleActionSubmit = async (data: FundingActionSubmitData) => {
+    if (!activeProposal) return;
     try {
-      await proposalApi.updateProposalStatus(proposalId, newStatus);
-      // Refresh list
+      if (data.decision === 'Approve') {
+        if (data.file) {
+          try {
+            const { uploadUrl } = await getProposalUploadUrl(data.file.name, data.file.type, data.file.size);
+            await uploadFileToS3(uploadUrl, data.file);
+          } catch (uploadError) {
+            console.error('File upload failed, but proceeding with status update.', uploadError);
+          }
+        }
+        await proposalApi.updateProposalStatus(activeProposal.id, 'Funded');
+      } else if (data.decision === 'Reject') {
+        await proposalApi.updateProposalStatus(activeProposal.id, 'Funding Rejected');
+      } else if (data.decision === 'Revise') {
+        await proposalApi.updateProposalStatus(activeProposal.id, 'Funding Revision');
+      }
+      
+      setIsActionModalOpen(false);
+      setActiveProposal(null);
       loadFundingProposals();
     } catch (error) {
-      console.error(`Error updating status to ${newStatus}:`, error);
+      console.error(`Error processing ${data.decision} action:`, error);
+      throw error; // Re-throw to be caught by the modal
     }
   };
 
@@ -78,6 +103,10 @@ const FundingPage: React.FC = () => {
         return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}>Endorsed</span>;
       case 'Funded':
         return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
+      case 'Funding Rejected':
+        return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}>Funding Rejected</span>;
+      case 'Funding Revision':
+        return <span className={`${baseClasses} text-amber-600 bg-amber-50 border-amber-200`}>Funding Revision</span>;
       default:
         return <span className={`${baseClasses} text-slate-600 bg-slate-50 border-slate-200`}>{status}</span>;
     }
@@ -89,33 +118,6 @@ const FundingPage: React.FC = () => {
   const totalPages = Math.ceil(fundingProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
-
-  const [justificationModal, setJustificationModal] = useState<{ isOpen: boolean; title: string; content: string }>({
-    isOpen: false,
-    title: '',
-    content: ''
-  });
-
-  const getRandomEndorser = (id: string) => {
-    const names = ["Dr. Michael Chen", "Dr. Sarah Connor", "Dr. James Reid", "Dr. Emily White", "Dr. Robert Kim", "Dr. Angela Rivera", "Dr. Amanda Foster"];
-    let sum = 0;
-    for (let i = 0; i < id.length; i++) {
-      sum += id.charCodeAt(i);
-    }
-    return names[sum % names.length];
-  };
-
-  const handleViewJustification = (proposal: Proposal) => {
-    setJustificationModal({
-      isOpen: true,
-      title: `Endorsement Justification - ${proposal.title}`,
-      content: proposal.endorsementJustification || "No justification provided."
-    });
-  };
-
-  const closeJustificationModal = () => {
-    setJustificationModal(prev => ({ ...prev, isOpen: false }));
-  };
 
   if (loading) {
     return (
@@ -146,7 +148,7 @@ const FundingPage: React.FC = () => {
         </header>
 
         {/* Stats Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -167,6 +169,28 @@ const FundingPage: React.FC = () => {
                 </p>
               </div>
               <CheckCircle className="w-6 h-6 text-emerald-500" />
+            </div>
+          </div>
+          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Funding Revision</p>
+                <p className="text-xl font-bold text-amber-600 tabular-nums">
+                  {fundingProposals.filter((p) => p.status === 'Funding Revision').length}
+                </p>
+              </div>
+              <AlertTriangle className="w-6 h-6 text-amber-500" />
+            </div>
+          </div>
+          <div className="bg-red-50 shadow-xl rounded-2xl border border-red-300 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-700 mb-2">Funding Rejected</p>
+                <p className="text-xl font-bold text-red-600 tabular-nums">
+                  {fundingProposals.filter((p) => p.status === 'Funding Rejected').length}
+                </p>
+              </div>
+              <XCircle className="w-6 h-6 text-red-500" />
             </div>
           </div>
         </section>
@@ -201,7 +225,6 @@ const FundingPage: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
-                          {getStatusBadge(proposal.status)}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-2">
@@ -217,11 +240,7 @@ const FundingPage: React.FC = () => {
                             <span>Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
                           </div>
 
-                          {/* Endorsed By */}
-                          <div className="flex items-center gap-1.5 text-slate-500">
-                            <span className="text-slate-400">Endorsed By:</span>
-                            <span className="font-medium text-slate-700">{proposal.rdStaffReviewer || getRandomEndorser(proposal.id)}</span>
-                          </div>
+
 
 
                           {/* Tags */}
@@ -235,22 +254,14 @@ const FundingPage: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        {proposal.status === 'Endorsed' && (
-                          <button
-                            onClick={() => handleStatusChange(proposal.id, 'Funded')}
-                            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            Approve (Council)
-                          </button>
-                        )}
-                        {/* Justification View Button */}
+                      <div className="flex items-center gap-3">
+                        {getStatusBadge(proposal.status)}
                         <button
-                          onClick={() => handleViewJustification(proposal)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
-                          title="View Endorsement Justification"
+                          onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
                         >
-                          <MessageSquare className="w-3 h-3" />
+                          <Gavel className="w-3.5 h-3.5" />
+                          Action
                         </button>
                       </div>
                     </div>
@@ -295,37 +306,12 @@ const FundingPage: React.FC = () => {
         </main>
       </div>
 
-      {/* Justification Modal */}
-      {justificationModal.isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50" onClick={closeJustificationModal}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-blue-500" />
-                Endorsement Justification
-              </h3>
-              <button onClick={closeJustificationModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                  {justificationModal.content}
-                </p>
-              </div>
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={closeJustificationModal}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <FundingActionModal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
+        onSubmit={handleActionSubmit}
+        proposalTitle={activeProposal?.title || ''}
+      />
     </div>
   );
 };
