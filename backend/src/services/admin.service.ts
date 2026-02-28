@@ -132,6 +132,125 @@ export class AdminService {
     return { data, error: null };
   }
 
+  async getAdminDashboardStats() {
+    try {
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [
+        totalUsersRes,
+        activeUsersRes,
+        proponentRes,
+        evaluatorRes,
+        rndRes,
+        adminRes,
+        totalProposalsRes,
+        reviewRndRes,
+        underEvalRes,
+        revisionRndRes,
+        rejectedRndRes,
+        endorsedRes,
+        fundedProposalRes,
+        totalProjectsRes,
+        onGoingRes,
+        completedRes,
+        onHoldRes,
+        blockedRes,
+        logs24hRes,
+        logs7dRes,
+        recentLogsRes,
+      ] = await Promise.all([
+        // User stats
+        this.db.from("users").select("*", { count: "exact", head: true }),
+        this.db.from("users").select("*", { count: "exact", head: true }).eq("is_disabled", false),
+        this.db.from("users").select("*", { count: "exact", head: true }).contains("roles", ["proponent"]),
+        this.db.from("users").select("*", { count: "exact", head: true }).contains("roles", ["evaluator"]),
+        this.db.from("users").select("*", { count: "exact", head: true }).contains("roles", ["rnd"]),
+        this.db.from("users").select("*", { count: "exact", head: true }).contains("roles", ["admin"]),
+
+        // Proposal stats
+        this.db.from("proposals").select("*", { count: "exact", head: true }),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "review_rnd"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "under_evaluation"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "revision_rnd"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "rejected_rnd"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "endorsed_for_funding"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
+
+        // Funded project stats
+        this.db.from("funded_projects").select("*", { count: "exact", head: true }),
+        this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "on_going"),
+        this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "completed"),
+        this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "on_hold"),
+        this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "blocked"),
+
+        // Activity stats
+        this.db.from("pms_logs").select("*", { count: "exact", head: true }).gte("created_at", oneDayAgo),
+        this.db.from("pms_logs").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+
+        // Recent activity (last 5)
+        this.db
+          .from("pms_logs")
+          .select(`id, user_id, action, category, target_id, target_type, details, created_at, users:users!user_id (first_name, last_name)`)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
+
+      const recentActivity = (recentLogsRes.data || []).map((log: any) => ({
+        id: log.id,
+        action: log.action,
+        category: log.category,
+        target_id: log.target_id,
+        target_type: log.target_type,
+        details: log.details,
+        created_at: log.created_at,
+        user_name: log.users
+          ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim()
+          : "Unknown",
+      }));
+
+      return {
+        data: {
+          users: {
+            total: totalUsersRes.count || 0,
+            active: activeUsersRes.count || 0,
+            by_role: {
+              proponent: proponentRes.count || 0,
+              evaluator: evaluatorRes.count || 0,
+              rnd: rndRes.count || 0,
+              admin: adminRes.count || 0,
+            },
+          },
+          proposals: {
+            total: totalProposalsRes.count || 0,
+            review_rnd: reviewRndRes.count || 0,
+            under_evaluation: underEvalRes.count || 0,
+            revision_rnd: revisionRndRes.count || 0,
+            rejected_rnd: rejectedRndRes.count || 0,
+            endorsed_for_funding: endorsedRes.count || 0,
+            funded: fundedProposalRes.count || 0,
+          },
+          projects: {
+            total: totalProjectsRes.count || 0,
+            on_going: onGoingRes.count || 0,
+            completed: completedRes.count || 0,
+            on_hold: onHoldRes.count || 0,
+            blocked: blockedRes.count || 0,
+          },
+          activity: {
+            last_24h: logs24hRes.count || 0,
+            last_7d: logs7dRes.count || 0,
+            recent: recentActivity,
+          },
+        },
+        error: null,
+      };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
   async getActivityLogs(filters?: {
     category?: string;
     action?: string;

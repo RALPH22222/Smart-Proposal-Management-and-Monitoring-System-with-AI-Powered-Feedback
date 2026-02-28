@@ -33,7 +33,57 @@ export interface ActivityLogsFilters {
   limit?: number;
 }
 
+export interface DashboardStats {
+  users: {
+    total: number;
+    active: number;
+    by_role: {
+      proponent: number;
+      evaluator: number;
+      rnd: number;
+      admin: number;
+    };
+  };
+  proposals: {
+    total: number;
+    review_rnd: number;
+    under_evaluation: number;
+    revision_rnd: number;
+    rejected_rnd: number;
+    endorsed_for_funding: number;
+    funded: number;
+  };
+  projects: {
+    total: number;
+    on_going: number;
+    completed: number;
+    on_hold: number;
+    blocked: number;
+  };
+  activity: {
+    last_24h: number;
+    last_7d: number;
+    recent: {
+      id: number;
+      action: string;
+      category: string;
+      target_id: string | null;
+      target_type: string | null;
+      details: Record<string, any>;
+      created_at: string;
+      user_name: string;
+    }[];
+  };
+}
+
 export const ActivityApi = {
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const { data } = await api.get<DashboardStats>("/admin/dashboard-stats", {
+      withCredentials: true,
+    });
+    return data;
+  },
+
   getLogs: async (filters?: ActivityLogsFilters): Promise<ActivityLogsResponse> => {
     const params = new URLSearchParams();
     if (filters?.category) params.append("category", filters.category);

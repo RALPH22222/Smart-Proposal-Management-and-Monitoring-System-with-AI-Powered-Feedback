@@ -19,6 +19,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   });
 
   useEffect(() => {
+    let cancelled = false;
+
     const verifyAuthentication = async () => {
       const hasVerified = sessionStorage.getItem('auth_verified');
 
@@ -28,6 +30,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
       }
 
       const user = await verifyToken();
+
+      if (cancelled) return;
 
       if (!user) {
         localStorage.removeItem("user");
@@ -39,6 +43,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
       // Check profile status and password change requirement
       try {
         const { data } = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>("/auth/profile-status");
+
+        if (cancelled) return;
 
         if (data.passwordChangeRequired && location.pathname !== "/change-password") {
           navigate("/change-password");
@@ -52,6 +58,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
       } catch (error) {
         console.error("Failed to check profile status", error);
       }
+
+      if (cancelled) return;
 
       if (roles && roles.length > 0) {
         // Normalize roles - handle both singular "role" and plural "roles" from JWT
@@ -109,7 +117,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
     };
 
     verifyAuthentication();
-  }, [roles, navigate, verifyToken, location]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roles, navigate, verifyToken]);
 
   // Show loading screen while verifying (only on first load)
   if (isVerifying) {

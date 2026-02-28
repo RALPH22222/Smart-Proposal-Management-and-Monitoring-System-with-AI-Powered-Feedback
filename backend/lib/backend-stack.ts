@@ -15,7 +15,7 @@ import {
 import path from "path";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Bucket, HttpMethods } from "aws-cdk-lib/aws-s3";
-import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
+import { PolicyStatement, Effect, Role, ServicePrincipal, ManagedPolicy } from "aws-cdk-lib/aws-iam";
 
 const ALLOWED_STAGE_NAMES = ["dev", "prod"];
 
@@ -699,12 +699,21 @@ export class BackendStack extends Stack {
 
     // ========== ADMIN ACCOUNT MANAGEMENT LAMBDAS ==========
 
+    // Shared IAM role for admin Lambdas to reduce CloudFormation resource count
+    const adminLambdaRole = new Role(this, "pms-admin-lambda-role", {
+      assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+      ],
+    });
+
     const admin_create_account_lambda = new NodejsFunction(this, "pms-admin-create-account", {
       functionName: "pms-admin-create-account",
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "create-account.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -716,6 +725,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "get-accounts.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -727,6 +737,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "update-account.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -738,6 +749,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "invite-user.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
         SUPABASE_SERVICE_ROLE_KEY,
@@ -764,6 +776,19 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "toggle-account-status.ts"),
+      role: adminLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const admin_get_dashboard_stats_lambda = new NodejsFunction(this, "pms-admin-get-dashboard-stats", {
+      functionName: "pms-admin-get-dashboard-stats",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "get-dashboard-stats.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -775,6 +800,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "admin", "get-activity-logs.ts"),
+      role: adminLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -1268,6 +1294,13 @@ export class BackendStack extends Stack {
     // /admin/activity-logs (protected) - GET activity logs
     const admin_activity_logs = admin.addResource("activity-logs");
     admin_activity_logs.addMethod(HttpMethod.GET, new LambdaIntegration(admin_get_activity_logs_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/dashboard-stats (protected) - GET dashboard statistics
+    const admin_dashboard_stats = admin.addResource("dashboard-stats");
+    admin_dashboard_stats.addMethod(HttpMethod.GET, new LambdaIntegration(admin_get_dashboard_stats_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
