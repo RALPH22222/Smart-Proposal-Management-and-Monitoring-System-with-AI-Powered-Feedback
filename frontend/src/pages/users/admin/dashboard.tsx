@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../../context/AuthContext';
-import { ActivityApi, DashboardStats } from '../../../services/admin/ActivityApi';
+import { ActivityApi } from '../../../services/admin/ActivityApi';
+import type { DashboardStats } from '../../../services/admin/ActivityApi';
 import {
   Users,
   FileText,

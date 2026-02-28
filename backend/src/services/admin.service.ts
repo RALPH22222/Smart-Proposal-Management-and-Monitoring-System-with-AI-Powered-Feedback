@@ -1,5 +1,10 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { CreateAccountInput, UpdateAccountInput, ToggleAccountStatusInput, InviteUserInput } from "../schemas/admin-schema";
+import {
+  CreateAccountInput,
+  UpdateAccountInput,
+  ToggleAccountStatusInput,
+  InviteUserInput,
+} from "../schemas/admin-schema";
 import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
@@ -33,10 +38,7 @@ export class AdminService {
 
     // Flag admin-created accounts so they must change password on first login
     if (data.user) {
-      await this.db
-        .from("users")
-        .update({ password_change_required: true })
-        .eq("id", data.user.id);
+      await this.db.from("users").update({ password_change_required: true }).eq("id", data.user.id);
     }
 
     return { data, error: null };
@@ -45,7 +47,9 @@ export class AdminService {
   async getAccounts(filters?: { role?: string; is_disabled?: boolean }) {
     let query = this.db
       .from("users")
-      .select("id, first_name, last_name, middle_ini, email, roles, is_disabled, department_id, photo_profile_url, profile_completed, departments(name)")
+      .select(
+        "id, first_name, last_name, middle_ini, email, roles, is_disabled, department_id, photo_profile_url, profile_completed, departments(name)",
+      )
       .order("created_at", { ascending: false });
 
     if (filters?.role) {
@@ -86,12 +90,7 @@ export class AdminService {
       return { data: null, error: { message: "No fields to update" } };
     }
 
-    const { data, error } = await this.db
-      .from("users")
-      .update(payload)
-      .eq("id", user_id)
-      .select()
-      .maybeSingle();
+    const { data, error } = await this.db.from("users").update(payload).eq("id", user_id).select().maybeSingle();
 
     if (error) {
       return { data: null, error };
@@ -192,7 +191,9 @@ export class AdminService {
         // Recent activity (last 5)
         this.db
           .from("pms_logs")
-          .select(`id, user_id, action, category, target_id, target_type, details, created_at, users:users!user_id (first_name, last_name)`)
+          .select(
+            `id, user_id, action, category, target_id, target_type, details, created_at, users:users!user_id (first_name, last_name)`,
+          )
           .order("created_at", { ascending: false })
           .limit(5),
       ]);
@@ -205,9 +206,7 @@ export class AdminService {
         target_type: log.target_type,
         details: log.details,
         created_at: log.created_at,
-        user_name: log.users
-          ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim()
-          : "Unknown",
+        user_name: log.users ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim() : "Unknown",
       }));
 
       return {
@@ -278,7 +277,7 @@ export class AdminService {
         created_at,
         users:users!user_id (id, first_name, last_name, roles)
       `,
-        { count: "exact" }
+        { count: "exact" },
       )
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
@@ -308,9 +307,7 @@ export class AdminService {
     // Flatten user join
     const logs = (data || []).map((log: any) => ({
       ...log,
-      user_name: log.users
-        ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim()
-        : "Unknown",
+      user_name: log.users ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim() : "Unknown",
       user_roles: log.users?.roles || [],
       users: undefined,
     }));
