@@ -8,7 +8,7 @@ interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (proposalId: string, newStaffName: string, newStaffId?: string) => void;
+  onConfirm: (_proposalId: string, _newStaffName: string, _newStaffId?: string) => void;
 }
 
 const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({

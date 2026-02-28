@@ -23,7 +23,7 @@ const transformProposal = (raw: any): Proposal => {
                     const total = budgetItems.reduce((acc: number, item: any) => acc + (parseFloat(item.total) || 0), 0);
                     return `₱${total.toLocaleString()}`;
                 }
-            } catch (e) { }
+            } catch { }
         }
         return '₱0.00';
     };

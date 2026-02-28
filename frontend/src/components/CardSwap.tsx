@@ -17,7 +17,7 @@ export interface CardSwapProps {
   verticalDistance?: number;
   delay?: number;
   pauseOnHover?: boolean;
-  onCardClick?: (idx: number) => void;
+  onCardClick?: (_idx: number) => void;
   skewAmount?: number;
   easing?: 'linear' | 'elastic';
   children: ReactNode;

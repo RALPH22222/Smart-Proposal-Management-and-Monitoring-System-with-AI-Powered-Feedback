@@ -11,7 +11,7 @@ interface DecisionModalProps {
   isOpen: boolean;
   onClose: () => void;
   proposalTitle: string;
-  onSubmit: (status: "accepted" | "rejected" | "extension", remarks: string, newDeadline?: string) => void;
+  onSubmit: (_status: "accepted" | "rejected" | "extension", _remarks: string, _newDeadline?: string) => void;
 }
 
 export default function DecisionModal({

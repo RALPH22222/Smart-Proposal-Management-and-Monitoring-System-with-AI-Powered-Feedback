@@ -39,7 +39,7 @@ const XIcon = () => (
 
 interface NavbarProps {
   currentPage: string;
-  onPageChange: (page: string) => void;
+  onPageChange: (_page: string) => void;
 }
 
 const CoLeadNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) => {

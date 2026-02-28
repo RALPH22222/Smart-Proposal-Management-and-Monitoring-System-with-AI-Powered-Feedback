@@ -31,7 +31,7 @@ interface AdminProposalModalProps {
   proposal: Proposal | null;
   isOpen: boolean;
   onClose: () => void;
-  onSubmitDecision: (decision: Decision) => void;
+  onSubmitDecision: (_decision: Decision) => void;
   currentUser: Reviewer;
 }
 

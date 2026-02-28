@@ -9,7 +9,7 @@ const ROLE_OPTIONS = [
 interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { email: string; roles: string[] }) => void;
+  onSubmit: (_data: { email: string; roles: string[] }) => void;
   isSubmitting?: boolean;
 }
 

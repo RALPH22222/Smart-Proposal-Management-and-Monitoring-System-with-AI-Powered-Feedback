@@ -24,7 +24,7 @@ interface AdminDecisionModalProps {
   onClose: () => void;
   proposalTitle: string;
   budgetData?: BudgetRow[]; // Added optional budget data
-  onSubmit: (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => void;
+  onSubmit: (_status: "endorsed" | "revised" | "rejected", _remarks: string, _revisionDeadline?: string) => void;
 }
 
 // Define the default structured sections
@@ -147,7 +147,7 @@ export default function AdminEndorsementDecisionModal({
 
     if (decision === "revised") {
       finalRemarks = Object.entries(structuredRemarks)
-        .filter(([_, value]) => value.trim().length > 0)
+        .filter(([_key, value]) => value.trim().length > 0)
         .map(([key, value]) => `[${key}]:\n${value}`)
         .join("\n\n");
     } else {

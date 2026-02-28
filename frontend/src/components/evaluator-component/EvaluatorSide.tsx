@@ -14,7 +14,7 @@ import { useAuthContext } from "../../context/AuthContext";
 
 interface SidebarProps {
   currentPage: string;
-  onPageChange: (page: string) => void;
+  onPageChange: (_page: string) => void;
 }
 
 const accent = "#C10003";

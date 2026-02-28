@@ -87,7 +87,7 @@ interface AdminViewModalProps {
   onClose: () => void;
   // Use 'any' for prop to accept parent data, then cast internally
   proposal: any;
-  onAction?: (action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject', proposalId: string) => void;
+  onAction?: (_action: 'sendToRnd' | 'forwardEval' | 'revision' | 'reject', _proposalId: string) => void;
   agencies?: LookupItem[];
   sectors?: LookupItem[];
   priorityAreas?: LookupItem[];
@@ -106,7 +106,7 @@ const formatDateForDisplay = (dateStr: string) => {
       month: '2-digit',
       day: '2-digit',
     }).format(date);
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 };
@@ -685,7 +685,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                       ).join(", ");
                     }
                     return p.priorityAreas;
-                  } catch (e) {
+                  } catch {
                     return p.priorityAreas;
                   }
                 })()}

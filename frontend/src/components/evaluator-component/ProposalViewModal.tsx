@@ -98,7 +98,7 @@ const formatDateForDisplay = (dateStr: string) => {
       month: '2-digit',
       day: '2-digit',
     }).format(date);
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 };

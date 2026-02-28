@@ -13,7 +13,7 @@ interface EditAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
-  onSubmit: (data: {
+  onSubmit: (_data: {
     user_id: string;
     first_name: string;
     middle_ini: string;

@@ -104,7 +104,7 @@ const formatDateForDisplay = (dateStr: string) => {
       month: '2-digit',
       day: '2-digit',
     }).format(date);
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 };
@@ -653,7 +653,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                       ).join(", ");
                     }
                     return p.priorityAreas;
-                  } catch (e) {
+                  } catch {
                     return p.priorityAreas;
                   }
                 })()}

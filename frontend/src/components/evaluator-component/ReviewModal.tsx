@@ -222,7 +222,7 @@ export default function ReviewModal({
         month: '2-digit',
         day: '2-digit',
       }).format(date);
-    } catch (e) {
+    } catch {
       return dateStr;
     }
   };
