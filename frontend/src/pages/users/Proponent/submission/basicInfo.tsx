@@ -487,7 +487,19 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
     setIsGeneratingTags(true);
     try {
-      const apiKey = "AIzaSyB1mUeQ_xXDzpdxfmb2N2RnyJ64pVJev_0";
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+      if (!apiKey) {
+        console.error("Gemini API key is not configured in .env");
+        Swal.fire({
+          title: "Configuration Error",
+          text: "AI features are currently unavailable. Please contact support.",
+          icon: "error",
+          confirmButtonColor: "#C8102E",
+        });
+        setIsGeneratingTags(false);
+        return;
+      }
+
       const availableTagNames = tagsList.map(t => t.name);
 
       const prompt = `You are a helpful assistant. You are given a project title: "${formData.project_title}". Identify 1 to 4 tags that best match the project from this exact list of available tags: ${JSON.stringify(availableTagNames)}. If none of the available tags fit well, strictly use the tag "Other". Return ONLY a valid JSON array of strings (e.g. ["Environment", "Renewable Energy"]). No markdown formatting, no explanation, no quotation marks outside the array.`;
