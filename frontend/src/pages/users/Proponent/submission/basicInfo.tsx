@@ -487,7 +487,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
     setIsGeneratingTags(true);
     try {
-      const apiKey = "AIzaSyAqHh7ARPRqPZMpgAKOGqyfq_w4-q7k8Do";
+      const apiKey = "AIzaSyB1mUeQ_xXDzpdxfmb2N2RnyJ64pVJev_0";
       const availableTagNames = tagsList.map(t => t.name);
 
       const prompt = `You are a helpful assistant. You are given a project title: "${formData.project_title}". Identify 1 to 4 tags that best match the project from this exact list of available tags: ${JSON.stringify(availableTagNames)}. If none of the available tags fit well, strictly use the tag "Other". Return ONLY a valid JSON array of strings (e.g. ["Environment", "Renewable Energy"]). No markdown formatting, no explanation, no quotation marks outside the array.`;
@@ -517,6 +517,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             await new Promise(resolve => setTimeout(resolve, delay));
             attempt++;
             delay *= 2; // Exponential backoff (1s -> 2s -> 4s)
+          } else if (response.status === 403) {
+            console.warn("API Key forbidden or invalid. Stopping retries.");
+            break; // Stop retrying on auth error
           } else {
             success = true;
           }
@@ -528,12 +531,26 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         }
       }
 
-      if (!response || response.status === 429 || !response.ok) {
+      if (!response || !response.ok) {
         if (response?.status === 429) {
           Swal.fire({
             title: "API Limit Reached",
             text: "Too many requests to the AI service. The tag 'Other' has been automatically selected instead.",
             icon: "info",
+            confirmButtonColor: "#C8102E",
+          });
+        } else if (response?.status === 403) {
+          Swal.fire({
+            title: "AI Access Forbidden",
+            text: "Your API key is invalid or doesn't have the correct permissions. The tag 'Other' has been automatically selected instead.",
+            icon: "error",
+            confirmButtonColor: "#C8102E",
+          });
+        } else {
+          Swal.fire({
+            title: "AI Generation Failed",
+            text: "There was a problem contacting the AI service. The tag 'Other' has been automatically selected instead.",
+            icon: "warning",
             confirmButtonColor: "#C8102E",
           });
         }
