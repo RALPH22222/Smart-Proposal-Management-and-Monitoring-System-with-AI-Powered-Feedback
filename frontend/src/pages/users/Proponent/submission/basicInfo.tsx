@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { fetchAgencies, fetchTags, fetchAgencyAddresses } from "../../../../services/proposal.api";
+import { fetchAgencies, fetchTags, fetchAgencyAddresses, generateTags } from "../../../../services/proposal.api";
 import type { AgencyItem } from "../../../../services/proposal.api";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Tooltip from "../../../../components/Tooltip";
@@ -487,153 +487,62 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
     setIsGeneratingTags(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
-      if (!apiKey) {
-        console.error("Gemini API key is not configured in .env");
-        Swal.fire({
-          title: "Configuration Error",
-          text: "AI features are currently unavailable. Please contact support.",
-          icon: "error",
-          confirmButtonColor: "#C8102E",
-        });
-        setIsGeneratingTags(false);
-        return;
-      }
-
       const availableTagNames = tagsList.map(t => t.name);
+      const generatedTagNames = await generateTags(formData.project_title, availableTagNames);
 
-      const prompt = `You are a helpful assistant. You are given a project title: "${formData.project_title}". Identify 1 to 4 tags that best match the project from this exact list of available tags: ${JSON.stringify(availableTagNames)}. If none of the available tags fit well, strictly use the tag "Other". Return ONLY a valid JSON array of strings (e.g. ["Environment", "Renewable Energy"]). No markdown formatting, no explanation, no quotation marks outside the array.`;
+      let newSelectedTags: string[] = [];
+      let newTagIds: number[] = [];
 
-      const maxRetries = 3;
-      let attempt = 0;
-      let delay = 1000; // start with 1 second delay
-      let response: Response | null = null;
-      let success = false;
-
-      while (attempt < maxRetries && !success) {
-        try {
-          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                temperature: 0.1,
-                responseMimeType: "application/json"
-              }
-            }),
-          });
-
-          if (response.status === 429) {
-            console.warn(`Rate limit reached. Retrying in ${delay}ms... (Attempt ${attempt + 1} of ${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            attempt++;
-            delay *= 2; // Exponential backoff (1s -> 2s -> 4s)
-          } else if (response.status === 403) {
-            console.warn("API Key forbidden or invalid. Stopping retries.");
-            break; // Stop retrying on auth error
-          } else {
-            success = true;
-          }
-        } catch (fetchErr) {
-          console.warn(`Fetch error occurred. Retrying in ${delay}ms... (Attempt ${attempt + 1} of ${maxRetries})`, fetchErr);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          attempt++;
-          delay *= 2;
+      for (const tg of generatedTagNames) {
+        if (newSelectedTags.length >= 4) break;
+        const matchedTag = tagsList.find(t => t.name.toLowerCase() === tg.toLowerCase());
+        if (matchedTag && !newSelectedTags.includes(matchedTag.name)) {
+          newSelectedTags.push(matchedTag.name);
+          newTagIds.push(matchedTag.id);
         }
       }
 
-      if (!response || !response.ok) {
-        if (response?.status === 429) {
-          Swal.fire({
-            title: "API Limit Reached",
-            text: "Too many requests to the AI service. The tag 'Other' has been automatically selected instead.",
-            icon: "info",
-            confirmButtonColor: "#C8102E",
-          });
-        } else if (response?.status === 403) {
-          Swal.fire({
-            title: "AI Access Forbidden",
-            text: "Your API key is invalid or doesn't have the correct permissions. The tag 'Other' has been automatically selected instead.",
-            icon: "error",
-            confirmButtonColor: "#C8102E",
-          });
-        } else {
-          Swal.fire({
-            title: "AI Generation Failed",
-            text: "There was a problem contacting the AI service. The tag 'Other' has been automatically selected instead.",
-            icon: "warning",
-            confirmButtonColor: "#C8102E",
-          });
-        }
-
-        // Fallback to "Other"
+      if (newSelectedTags.length === 0) {
         let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
         if (!otherTag) {
           otherTag = { id: Date.now(), name: "Other" };
           setTagsList(prev => {
-            if (!prev.find(p => p.name === "Other")) return [...prev, otherTag as { id: number; name: string }];
+            if (!prev.find(p => p.name === "Other")) {
+              return [...prev, otherTag as { id: number; name: string }];
+            }
             return prev;
           });
         }
-        setSelectedTags([otherTag.name]);
-        onUpdate("tags", [otherTag.id]);
-        return;
+        if (otherTag && !newSelectedTags.includes(otherTag.name)) {
+          newSelectedTags.push(otherTag.name);
+          newTagIds.push(otherTag.id);
+        }
       }
 
-      const rawResult = await response.json();
-      let resultText = rawResult.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+      setSelectedTags(newSelectedTags);
+      onUpdate("tags", newTagIds);
 
-      // Clean up markdown syntax if AI still outputs it
-      resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
-
-      try {
-        const generatedTags: string[] = JSON.parse(resultText);
-
-        let newSelectedTags: string[] = [];
-        let newTagIds: number[] = [];
-        let addedCount = 0;
-
-        for (const tg of generatedTags) {
-          if (addedCount >= 4) break;
-          const matchedTag = tagsList.find(t => t.name.toLowerCase() === tg.toLowerCase());
-          if (matchedTag && !newSelectedTags.includes(matchedTag.name)) {
-            newSelectedTags.push(matchedTag.name);
-            newTagIds.push(matchedTag.id);
-            addedCount++;
-          }
-        }
-
-        if (addedCount === 0) {
-          let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
-
-          if (!otherTag) {
-            otherTag = { id: Date.now(), name: "Other" };
-            setTagsList(prev => {
-              if (!prev.find(p => p.name === "Other")) {
-                return [...prev, otherTag as { id: number; name: string }];
-              }
-              return prev;
-            });
-          }
-
-          if (otherTag && !newSelectedTags.includes(otherTag.name)) {
-            newSelectedTags.push(otherTag.name);
-            newTagIds.push(otherTag.id);
-          }
-        }
-
-        setSelectedTags(newSelectedTags);
-        onUpdate("tags", newTagIds);
-
-      } catch (parseErr) {
-        console.error("Failed to parse LLM response format", resultText);
-      }
-
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error auto generating tags:", error);
 
-      // Safety Fallback on any error (like network down)
+      const status = error?.response?.status;
+      if (status === 429) {
+        Swal.fire({
+          title: "API Limit Reached",
+          text: "Too many requests to the AI service. The tag 'Other' has been automatically selected instead.",
+          icon: "info",
+          confirmButtonColor: "#C8102E",
+        });
+      } else {
+        Swal.fire({
+          title: "AI Generation Failed",
+          text: "There was a problem contacting the AI service. The tag 'Other' has been automatically selected instead.",
+          icon: "warning",
+          confirmButtonColor: "#C8102E",
+        });
+      }
+
+      // Fallback to "Other"
       let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
       if (!otherTag) {
         otherTag = { id: Date.now(), name: "Other" };

@@ -3,6 +3,7 @@
 *.d.ts
 node_modules
 README.md
+.env
 
 # CDK asset staging directory
 .cdk.staging

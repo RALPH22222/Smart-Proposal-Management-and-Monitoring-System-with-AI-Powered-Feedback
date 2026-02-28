@@ -289,6 +289,18 @@ export const fetchProposalVersions = async (proposalId: number): Promise<Proposa
   return data;
 };
 
+// ========== AI TAG GENERATION API ==========
+
+export const generateTags = async (projectTitle: string, availableTags: string[]): Promise<string[]> => {
+  const { data } = await api.post<{ tags: string[] }>("/proposal/generate-tags", {
+    project_title: projectTitle,
+    available_tags: availableTags,
+  }, {
+    withCredentials: true,
+  });
+  return data.tags;
+};
+
 // ========== AI ANALYSIS API ==========
 
 export type AIAnalysisResponse = {

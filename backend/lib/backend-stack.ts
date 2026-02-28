@@ -37,6 +37,7 @@ export class BackendStack extends Stack {
       this,
       "/pms/backend/SUPABASE_SERVICE_ROLE_KEY",
     );
+    const GEMINI_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/GEMINI_API_KEY");
 
     const FRONTEND_URL = stageName === "prod" ? "https://wmsu-spmams.vercel.app" : "http://localhost:5173";
 
@@ -684,6 +685,18 @@ export class BackendStack extends Stack {
       },
     });
 
+    const generate_tags_lambda = new NodejsFunction(this, "pms-generate-tags", {
+      functionName: "pms-generate-tags",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(30),
+      entry: path.resolve("src", "handlers", "proposal", "generate-tags.ts"),
+      environment: {
+        SUPABASE_KEY,
+        GEMINI_API_KEY,
+      },
+    });
+
     // ========== ADMIN ACCOUNT MANAGEMENT LAMBDAS ==========
 
     const admin_create_account_lambda = new NodejsFunction(this, "pms-admin-create-account", {
@@ -874,6 +887,13 @@ export class BackendStack extends Stack {
     // /proposal/analyze (protected) - AI proposal analysis
     const analyze_proposal = proposal.addResource("analyze");
     analyze_proposal.addMethod(HttpMethod.POST, new LambdaIntegration(analyze_proposal_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /proposal/generate-tags (protected) - AI tag generation via Gemini
+    const generate_tags = proposal.addResource("generate-tags");
+    generate_tags.addMethod(HttpMethod.POST, new LambdaIntegration(generate_tags_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
