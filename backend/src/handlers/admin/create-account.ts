@@ -3,6 +3,8 @@ import { supabase } from "../../lib/supabase";
 import { AdminService } from "../../services/admin.service";
 import { createAccountSchema } from "../../schemas/admin-schema";
 import { buildCorsHeaders } from "../../utils/cors";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   try {
@@ -25,6 +27,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         body: JSON.stringify({ message: (error as any).message || "Failed to create account" }),
       };
     }
+
+    const { userId } = getAuthContext(event);
+    await logActivity(supabase, {
+      user_id: userId,
+      action: "account_created",
+      category: "account",
+      target_id: data?.user?.id || undefined,
+      target_type: "user",
+      details: { email: parsed.data.email, roles: parsed.data.roles },
+    });
 
     return {
       statusCode: 201,

@@ -12,6 +12,7 @@ import Evaluators from "./evaluator";
 import Monitoring from "./monitoring";
 import Endorsements from "./endorsement";
 import Funding from "./funding";
+import Activity from "./activity";
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,6 +42,8 @@ const AdminLayout: React.FC = () => {
         return <Contents />;
       case "system":
         return <System />;
+      case "activity":
+        return <Activity />;
       case "settings":
         return <Settings />;
       default:

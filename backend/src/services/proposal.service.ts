@@ -12,6 +12,7 @@ import {
   Status,
   Table,
 } from "../types/proposal";
+import { logActivity } from "../utils/activity-logger";
 import {
   decisionEvaluatorToProposalInput,
   EndorseForFundingInput,
@@ -259,6 +260,15 @@ export class ProposalService {
       if (priorityJoin.error) throw new Error(`proposal_priorities insert failed: ${priorityJoin.error.message}`);
     }
 
+    await logActivity(this.db, {
+      user_id: proposal.proponent_id,
+      action: "proposal_created",
+      category: "proposal",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { project_title: proposal.project_title },
+    });
+
     return { data: insertRes.data, error: insertRes.error };
   }
 
@@ -328,6 +338,15 @@ export class ProposalService {
       return { error: insertv2Error, assignments: null };
     }
 
+    await logActivity(this.db, {
+      user_id: rnd_id,
+      action: "proposal_forwarded_to_evaluators",
+      category: "evaluation",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { evaluator_count: evaluators.length },
+    });
+
     return {
       error: null,
       assignments,
@@ -352,6 +371,15 @@ export class ProposalService {
       .eq("evaluator_id", evaluator_id);
 
     if (trackerError) return { error: trackerError };
+
+    await logActivity(this.db, {
+      user_id: evaluator_id,
+      action: "evaluator_removed",
+      category: "evaluation",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { evaluator_id },
+    });
 
     return { error: null };
   }
@@ -414,6 +442,22 @@ export class ProposalService {
         return { error: updateError };
       }
     }
+
+    const decisionMap: Record<string, string> = {
+      [AssignmentTracker.ACCEPT]: "evaluator_accepted",
+      [AssignmentTracker.DECLINE]: "evaluator_declined",
+      [AssignmentTracker.EXTEND]: "evaluator_extension_requested",
+    };
+
+    await logActivity(this.db, {
+      user_id: evaluator_id,
+      action: decisionMap[input.status] || `evaluator_decision_${input.status}`,
+      category: "evaluation",
+      target_id: String(input.proposal_id),
+      target_type: "proposal",
+      details: { decision: input.status },
+    });
+
     return { insertedData };
   }
 
@@ -447,6 +491,18 @@ export class ProposalService {
       return { rosStatus: null, rowErrorStatus };
     }
 
+    // Log for each assigned RND (use the first one as the actor)
+    for (const id of rnd_id) {
+      await logActivity(this.db, {
+        user_id: id,
+        action: "proposal_forwarded_to_rnd",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { rnd_count: rnd_id.length },
+      });
+    }
+
     return {
       error: null,
       assignments,
@@ -468,6 +524,14 @@ export class ProposalService {
       .eq("id", input.proposal_id);
 
     if (updateError) return { error: updateError };
+
+    await logActivity(this.db, {
+      user_id: rnd_id,
+      action: "proposal_revision_requested",
+      category: "proposal",
+      target_id: String(input.proposal_id),
+      target_type: "proposal",
+    });
 
     return { data };
   }
@@ -502,6 +566,14 @@ export class ProposalService {
       return { error: updateError };
     }
 
+    await logActivity(this.db, {
+      user_id: rnd_id,
+      action: "proposal_rejected",
+      category: "proposal",
+      target_id: String(input.proposal_id),
+      target_type: "proposal",
+    });
+
     return { data };
   }
 
@@ -534,6 +606,15 @@ export class ProposalService {
         return { data: null, error: updateError };
       }
     }
+
+    await logActivity(this.db, {
+      user_id: evaluator_id,
+      action: "evaluation_scores_submitted",
+      category: "evaluation",
+      target_id: String(input.proposal_id),
+      target_type: "proposal",
+      details: { decision: status },
+    });
 
     return { data, error: null };
   }
@@ -1229,11 +1310,13 @@ export class ProposalService {
       }
 
       // Log the endorsement action
-      await this.db.from("proposal_logs").insert({
-        proposal_id: proposal_id,
-        action: "endorsed_for_funding",
-        performed_by: rnd_id,
-        remarks: remarks || "Proposal endorsed for funding",
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "proposal_endorsed_for_funding",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Proposal endorsed for funding" },
       });
 
       return { data: { proposal_id, funded_project: fundedProject }, error: null };
@@ -1252,11 +1335,13 @@ export class ProposalService {
       }
 
       // Log the revision request
-      await this.db.from("proposal_logs").insert({
-        proposal_id: proposal_id,
-        action: "revision_requested_after_evaluation",
-        performed_by: rnd_id,
-        remarks: remarks || "Revision requested after evaluation review",
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "proposal_revision_after_evaluation",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Revision requested after evaluation review" },
       });
 
       return { data: { proposal_id, status: Status.REVISION_RND }, error: null };
@@ -1275,11 +1360,13 @@ export class ProposalService {
       }
 
       // Log the rejection
-      await this.db.from("proposal_logs").insert({
-        proposal_id: proposal_id,
-        action: "rejected_after_evaluation",
-        performed_by: rnd_id,
-        remarks: remarks || "Proposal rejected after evaluation review",
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "proposal_rejected_after_evaluation",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Proposal rejected after evaluation review" },
       });
 
       return { data: { proposal_id, status: Status.REJECTED_RND }, error: null };
@@ -1388,12 +1475,14 @@ export class ProposalService {
       }
     }
 
-    // 7. Log the action to proposal_logs
-    await this.db.from("proposal_logs").insert({
-      proposal_id: proposal_id,
-      action: "revision_submitted",
-      performed_by: proponent_id,
-      remarks: revision_response || `Submitted revision (version ${newVersionNumber})`,
+    // 7. Log the action
+    await logActivity(this.db, {
+      user_id: proponent_id,
+      action: "proposal_revision_submitted",
+      category: "proposal",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { version_number: newVersionNumber, revision_response },
     });
 
     return {
@@ -1728,12 +1817,14 @@ export class ProposalService {
         message: `Your extension request for proposal #${proposal_id} has been approved.`,
       });
 
-      // 4. Insert proposal log
-      await this.db.from("proposal_logs").insert({
-        proposal_id,
-        action: "extension_approved",
-        performed_by: rnd_id,
-        remarks: remarks || "Extension request approved",
+      // 4. Insert log
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "evaluator_extension_approved",
+        category: "evaluation",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { evaluator_id, remarks: remarks || "Extension request approved" },
       });
 
       return { data: { proposal_id, evaluator_id, action }, error: null };
@@ -1755,12 +1846,14 @@ export class ProposalService {
         message: `Your extension request for proposal #${proposal_id} has been denied. You may accept with the original deadline or decline.`,
       });
 
-      // 4. Insert proposal log
-      await this.db.from("proposal_logs").insert({
-        proposal_id,
-        action: "extension_denied",
-        performed_by: rnd_id,
-        remarks: remarks || "Extension request denied",
+      // 4. Insert log
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "evaluator_extension_denied",
+        category: "evaluation",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { evaluator_id, remarks: remarks || "Extension request denied" },
       });
 
       return { data: { proposal_id, evaluator_id, action }, error: null };

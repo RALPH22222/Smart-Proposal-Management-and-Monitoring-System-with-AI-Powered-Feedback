@@ -769,6 +769,17 @@ export class BackendStack extends Stack {
       },
     });
 
+    const admin_get_activity_logs_lambda = new NodejsFunction(this, "pms-admin-get-activity-logs", {
+      functionName: "pms-admin-get-activity-logs",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "get-activity-logs.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const verify_token_lambda = new NodejsFunction(this, "pms-verify-token", {
       functionName: "pms-verify-token",
       memorySize: 128,
@@ -1250,6 +1261,13 @@ export class BackendStack extends Stack {
     // /admin/toggle-account-status (protected) - POST toggle disable/enable
     const admin_toggle_account_status = admin.addResource("toggle-account-status");
     admin_toggle_account_status.addMethod(HttpMethod.POST, new LambdaIntegration(admin_toggle_account_status_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/activity-logs (protected) - GET activity logs
+    const admin_activity_logs = admin.addResource("activity-logs");
+    admin_activity_logs.addMethod(HttpMethod.GET, new LambdaIntegration(admin_get_activity_logs_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

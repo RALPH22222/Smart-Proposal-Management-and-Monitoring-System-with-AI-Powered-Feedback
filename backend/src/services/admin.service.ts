@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { CreateAccountInput, UpdateAccountInput, ToggleAccountStatusInput, InviteUserInput } from "../schemas/admin-schema";
+import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
   constructor(private db: SupabaseClient) {}
@@ -129,5 +130,72 @@ export class AdminService {
     }
 
     return { data, error: null };
+  }
+
+  async getActivityLogs(filters?: {
+    category?: string;
+    action?: string;
+    user_id?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 50;
+    const offset = (page - 1) * limit;
+
+    let query = this.db
+      .from("pms_logs")
+      .select(
+        `
+        id,
+        user_id,
+        action,
+        category,
+        target_id,
+        target_type,
+        details,
+        created_at,
+        users:users!user_id (id, first_name, last_name, roles)
+      `,
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (filters?.category) {
+      query = query.eq("category", filters.category);
+    }
+    if (filters?.action) {
+      query = query.eq("action", filters.action);
+    }
+    if (filters?.user_id) {
+      query = query.eq("user_id", filters.user_id);
+    }
+    if (filters?.from) {
+      query = query.gte("created_at", filters.from);
+    }
+    if (filters?.to) {
+      query = query.lte("created_at", filters.to);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      return { data: null, error, count: 0 };
+    }
+
+    // Flatten user join
+    const logs = (data || []).map((log: any) => ({
+      ...log,
+      user_name: log.users
+        ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim()
+        : "Unknown",
+      user_roles: log.users?.roles || [],
+      users: undefined,
+    }));
+
+    return { data: logs, error: null, count: count || 0 };
   }
 }

@@ -2,6 +2,8 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 import { z } from "zod";
 
 const updateStatusSchema = z.object({
@@ -43,6 +45,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "proposal_status_updated",
+    category: "proposal",
+    target_id: String(proposal_id),
+    target_type: "proposal",
+    details: { new_status: status },
+  });
 
   return {
     statusCode: 200,

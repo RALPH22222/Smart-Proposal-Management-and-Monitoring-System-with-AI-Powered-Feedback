@@ -15,6 +15,7 @@ import {
   GetProjectMembersInput,
 } from "../schemas/project-schema";
 import { ReportStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
+import { logActivity } from "../utils/activity-logger";
 
 export class ProjectService {
   constructor(private db: SupabaseClient) {}
@@ -195,6 +196,17 @@ export class ProjectService {
       .select()
       .single();
 
+    if (!error && data) {
+      await logActivity(this.db, {
+        user_id: input.submitted_by_proponent_id,
+        action: "quarterly_report_submitted",
+        category: "project",
+        target_id: String(input.funded_project_id),
+        target_type: "funded_project",
+        details: { quarter: input.quarterly_report, report_id: data.id },
+      });
+    }
+
     return { data, error };
   }
 
@@ -246,6 +258,17 @@ export class ProjectService {
       .select()
       .single();
 
+    if (!error && data) {
+      await logActivity(this.db, {
+        user_id: input.verified_by_id,
+        action: "quarterly_report_verified",
+        category: "project",
+        target_id: String(input.report_id),
+        target_type: "report",
+        details: { funded_project_id: data.funded_project_id },
+      });
+    }
+
     return { data, error };
   }
 
@@ -267,6 +290,16 @@ export class ProjectService {
       `
       )
       .single();
+
+    if (!error && data) {
+      await logActivity(this.db, {
+        user_id: input.users_id,
+        action: "project_comment_added",
+        category: "project",
+        target_id: String(input.project_reports_id),
+        target_type: "report",
+      });
+    }
 
     return { data, error };
   }
@@ -352,6 +385,15 @@ export class ProjectService {
       if (previousStatus === "blocked" && input.status !== "blocked") {
         await this.restoreCoLeadsForProject(input.project_id);
       }
+
+      await logActivity(this.db, {
+        user_id: input.updated_by_id,
+        action: "project_status_updated",
+        category: "project",
+        target_id: String(input.project_id),
+        target_type: "funded_project",
+        details: { previous_status: previousStatus, new_status: input.status },
+      });
     }
 
     return { data, error };
@@ -481,6 +523,15 @@ export class ProjectService {
         is_read: false,
       });
 
+      await logActivity(this.db, {
+        user_id: input.invited_by,
+        action: "project_member_invited",
+        category: "project",
+        target_id: String(input.funded_project_id),
+        target_type: "funded_project",
+        details: { invited_email: input.email, member_id: member?.id },
+      });
+
       return { data: member, error: null };
     } else {
       // User doesn't exist — send Supabase invite email
@@ -515,6 +566,15 @@ export class ProjectService {
       if (insertError) {
         return { data: null, error: insertError };
       }
+
+      await logActivity(this.db, {
+        user_id: input.invited_by,
+        action: "project_member_invited",
+        category: "project",
+        target_id: String(input.funded_project_id),
+        target_type: "funded_project",
+        details: { invited_email: input.email, member_id: member?.id, is_new_user: true },
+      });
 
       return { data: member, error: null };
     }
@@ -597,6 +657,15 @@ export class ProjectService {
       user_id: member.user_id,
       message: "You have been removed from a funded project.",
       is_read: false,
+    });
+
+    await logActivity(this.db, {
+      user_id: input.removed_by,
+      action: "project_member_removed",
+      category: "project",
+      target_id: String(input.funded_project_id),
+      target_type: "funded_project",
+      details: { removed_user_id: member.user_id, member_id: input.member_id },
     });
 
     return { data: updated, error: null };

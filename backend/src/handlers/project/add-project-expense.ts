@@ -2,6 +2,8 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 import { addExpenseSchema } from "../../schemas/project-schema";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
@@ -32,6 +34,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "project_expense_added",
+    category: "project",
+    target_id: String(result.data.project_reports_id),
+    target_type: "report",
+    details: { amount: result.data.expenses },
+  });
 
   return {
     statusCode: 201,
