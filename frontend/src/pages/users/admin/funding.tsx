@@ -13,8 +13,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
-import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
+import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
+import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 
@@ -49,22 +50,28 @@ const AdminFundingPage: React.FC = () => {
   const handleActionSubmit = async (data: FundingActionSubmitData) => {
     if (!activeProposal) return;
     try {
-      if (data.decision === 'Approve') {
-        if (data.file) {
-          try {
-            const { uploadUrl } = await getProposalUploadUrl(data.file.name, data.file.type, data.file.size);
-            await uploadFileToS3(uploadUrl, data.file);
-          } catch (uploadError) {
-            console.error('File upload failed, but proceeding with status update.', uploadError);
-          }
-        }
-        await adminProposalApi.updateProposalStatus(activeProposal.id, 'Funded');
-      } else if (data.decision === 'Reject') {
-        await adminProposalApi.updateProposalStatus(activeProposal.id, 'Funding Rejected');
-      } else if (data.decision === 'Revise') {
-        await adminProposalApi.updateProposalStatus(activeProposal.id, 'Funding Revision');
+      let fileUrl: string | undefined;
+
+      // Upload file if provided
+      if (data.file) {
+        const { uploadUrl, fileUrl: s3FileUrl } = await getProposalUploadUrl(data.file.name, data.file.type, data.file.size);
+        await uploadFileToS3(uploadUrl, data.file);
+        fileUrl = s3FileUrl;
       }
-      
+
+      // Map frontend decisions to backend enum values
+      const decisionMap: Record<string, string> = {
+        Approve: 'funded',
+        Revise: 'revision_funding',
+        Reject: 'rejected_funding',
+      };
+
+      await api.post('/proposal/endorse-for-funding', {
+        proposal_id: activeProposal.id,
+        decision: decisionMap[data.decision],
+        file_url: fileUrl,
+      });
+
       setIsActionModalOpen(false);
       setActiveProposal(null);
       loadFundingProposals();

@@ -16,6 +16,13 @@ interface FundingActionModalProps {
   proposalTitle: string;
 }
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+
 const UPLOAD_CONFIG: Record<FundingDecision, { label: string; border: string; bg: string; hover: string; text: string; icon: string }> = {
   Approve: {
     label: 'Upload Funding Document',
@@ -26,7 +33,7 @@ const UPLOAD_CONFIG: Record<FundingDecision, { label: string; border: string; bg
     icon: 'text-emerald-500',
   },
   Revise: {
-    label: 'Upload Revision Document',
+    label: 'Upload Revision Document (optional)',
     border: 'border-amber-300',
     bg: 'bg-amber-50/50',
     hover: 'hover:bg-amber-50',
@@ -34,7 +41,7 @@ const UPLOAD_CONFIG: Record<FundingDecision, { label: string; border: string; bg
     icon: 'text-amber-500',
   },
   Reject: {
-    label: 'Upload Rejection Document',
+    label: 'Upload Rejection Document (optional)',
     border: 'border-red-300',
     bg: 'bg-red-50/50',
     hover: 'hover:bg-red-50',
@@ -42,6 +49,26 @@ const UPLOAD_CONFIG: Record<FundingDecision, { label: string; border: string; bg
     icon: 'text-red-500',
   },
 };
+
+function validateFile(file: File): boolean {
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid File Type',
+      text: 'Only PDF, DOC, and DOCX files are allowed.',
+    });
+    return false;
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    Swal.fire({
+      icon: 'error',
+      title: 'File Too Large',
+      text: 'File size must not exceed 10MB.',
+    });
+    return false;
+  }
+  return true;
+}
 
 const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose, onSubmit, proposalTitle }) => {
   const [decision, setDecision] = useState<FundingDecision | null>(null);
@@ -53,7 +80,12 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selected = e.target.files[0];
+      if (validateFile(selected)) {
+        setFile(selected);
+      } else {
+        e.target.value = '';
+      }
     }
   };
 
@@ -62,7 +94,10 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
+      const dropped = e.dataTransfer.files[0];
+      if (validateFile(dropped)) {
+        setFile(dropped);
+      }
     }
   };
 
@@ -72,14 +107,15 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
       Swal.fire({ icon: 'warning', title: 'Action Required', text: 'Please select a decision.' });
       return;
     }
-    if (!file) {
-      Swal.fire({ icon: 'warning', title: 'File Required', text: `Please upload a document for your ${decision.toLowerCase()} decision.` });
+    // File is required only for Approve
+    if (decision === 'Approve' && !file) {
+      Swal.fire({ icon: 'warning', title: 'File Required', text: 'Please upload a funding document to approve.' });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ decision, file });
+      await onSubmit({ decision, file: file || undefined });
       onClose();
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Submission Failed', text: error?.response?.data?.message || 'Something went wrong.' });
@@ -121,7 +157,7 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
                   className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${decision === 'Approve' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : 'border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30 text-slate-500'}`}
                 >
                   <CheckCircle className="w-6 h-6 mb-1" />
-                  <span className="font-bold text-sm">Approve</span>
+                  <span className="font-bold text-sm">Submit</span>
                 </button>
                 <button
                   type="button"
@@ -146,7 +182,7 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
             {decision && uploadConfig && (
               <div className="animate-in fade-in slide-in-from-top-2">
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  {uploadConfig.label} <span className="text-red-500">*</span>
+                  {uploadConfig.label} {decision === 'Approve' && <span className="text-red-500">*</span>}
                 </label>
                 <div
                   className={`border-2 border-dashed ${uploadConfig.border} ${uploadConfig.bg} rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer ${uploadConfig.hover} transition-colors`}

@@ -247,6 +247,24 @@ export type createEvaluationScoresToProposaltInput = z.infer<typeof createEvalua
 export type EndorseForFundingInput = z.infer<typeof endorseForFundingSchema>;
 export type SubmitRevisedProposalInput = z.infer<typeof submitRevisedProposalSchema>;
 
+export enum FundingDecisionType {
+  FUNDED = "funded",
+  REVISION_FUNDING = "revision_funding",
+  REJECTED_FUNDING = "rejected_funding",
+}
+
+export const fundingDecisionSchema = z.object({
+  proposal_id: z.coerce.number().min(1),
+  decision: z.nativeEnum(FundingDecisionType),
+  file_url: z.string().url().optional(),
+  remarks: z.string().max(2000).optional(),
+}).refine(
+  (data) => !(data.decision === FundingDecisionType.FUNDED && !data.file_url),
+  { message: "Funding document URL is required when approving", path: ["file_url"] },
+);
+
+export type FundingDecisionInput = z.infer<typeof fundingDecisionSchema>;
+
 export const removeEvaluatorSchema = z.object({
   proposal_id: z.number(),
   evaluator_id: z.string(),

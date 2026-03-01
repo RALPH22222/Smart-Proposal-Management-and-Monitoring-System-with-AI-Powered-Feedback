@@ -18,6 +18,8 @@ import {
   EndorseForFundingInput,
   ForwardToEvaluatorsInput,
   ForwardToRndInput,
+  FundingDecisionInput,
+  FundingDecisionType,
   HandleExtensionRequestInput,
   ProposalInput,
   ProposalVersionInput,
@@ -1293,22 +1295,6 @@ export class ProposalService {
         return { error: updateError };
       }
 
-      // Create funded_projects record
-      const { data: fundedProject, error: insertError } = await this.db
-        .from("funded_projects")
-        .insert({
-          proposal_id: proposal_id,
-          project_lead_id: proposal.proponent_id,
-          status: ProjectsStatus.ON_GOING,
-          funded_date: new Date().toISOString().split("T")[0], // Date only
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        return { error: insertError };
-      }
-
       // Log the endorsement action
       await logActivity(this.db, {
         user_id: rnd_id,
@@ -1319,7 +1305,7 @@ export class ProposalService {
         details: { remarks: remarks || "Proposal endorsed for funding" },
       });
 
-      return { data: { proposal_id, funded_project: fundedProject }, error: null };
+      return { data: { proposal_id, status: "endorsed_for_funding" }, error: null };
     } else if (decision === EndorsementDecision.REVISED) {
       // Use existing revision logic - update status to revision_rnd
       const { error: updateError } = await this.db
@@ -1375,6 +1361,122 @@ export class ProposalService {
     return { error: new Error("Invalid decision type") };
   }
 
+  async fundingDecision(input: FundingDecisionInput, userId: string) {
+    const { proposal_id, decision, file_url, remarks } = input;
+
+    // 1. Fetch proposal
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id, status")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found") };
+    }
+
+    // 2. Verify proposal is in endorsed_for_funding status
+    if (proposal.status !== Status.ENDORSED_FOR_FUNDING) {
+      return {
+        error: new Error(
+          `Proposal must be in 'endorsed_for_funding' status. Current status: ${proposal.status}`,
+        ),
+      };
+    }
+
+    // 3. Handle based on decision type
+    if (decision === FundingDecisionType.FUNDED) {
+      // Update proposal status to funded
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.FUNDED,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      // Create funded_projects record
+      const { data: fundedProject, error: insertError } = await this.db
+        .from("funded_projects")
+        .insert({
+          proposal_id: proposal_id,
+          project_lead_id: proposal.proponent_id,
+          status: ProjectsStatus.ON_GOING,
+          funded_date: new Date().toISOString().split("T")[0],
+          funding_document_url: file_url || null,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { error: insertError };
+      }
+
+      await logActivity(this.db, {
+        user_id: userId,
+        action: "proposal_funded",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Proposal approved for funding" },
+      });
+
+      return { data: { proposal_id, funded_project: fundedProject, status: Status.FUNDED }, error: null };
+    } else if (decision === FundingDecisionType.REVISION_FUNDING) {
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.REVISION_FUNDING,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      await logActivity(this.db, {
+        user_id: userId,
+        action: "proposal_revision_funding",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Revision requested at funding stage" },
+      });
+
+      return { data: { proposal_id, status: Status.REVISION_FUNDING }, error: null };
+    } else if (decision === FundingDecisionType.REJECTED_FUNDING) {
+      const { error: updateError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.REJECTED_FUNDING,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateError) {
+        return { error: updateError };
+      }
+
+      await logActivity(this.db, {
+        user_id: userId,
+        action: "proposal_rejected_funding",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { remarks: remarks || "Proposal rejected at funding stage" },
+      });
+
+      return { data: { proposal_id, status: Status.REJECTED_FUNDING }, error: null };
+    }
+
+    return { error: new Error("Invalid funding decision type") };
+  }
+
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
     const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } =
       input;
@@ -1395,11 +1497,11 @@ export class ProposalService {
       return { error: new Error("You do not have permission to revise this proposal") };
     }
 
-    // 3. Verify status is revision_rnd
-    if (proposal.status !== Status.REVISION_RND) {
+    // 3. Verify status is revision_rnd or revision_funding
+    if (proposal.status !== Status.REVISION_RND && proposal.status !== Status.REVISION_FUNDING) {
       return {
         error: new Error(
-          `Proposal must be in 'revision_rnd' status to submit revision. Current status: ${proposal.status}`,
+          `Proposal must be in 'revision_rnd' or 'revision_funding' status to submit revision. Current status: ${proposal.status}`,
         ),
       };
     }
@@ -1430,9 +1532,13 @@ export class ProposalService {
       return { error: versionError };
     }
 
-    // 6. Update proposal status to REVISED_PROPOSAL and optionally update fields
+    // 6. Update proposal status based on which revision flow it came from
+    const targetStatus = proposal.status === Status.REVISION_FUNDING
+      ? Status.ENDORSED_FOR_FUNDING  // Back to Funding page
+      : Status.REVISED_PROPOSAL;     // Back to RND review
+
     const updatePayload: Record<string, any> = {
-      status: Status.REVISED_PROPOSAL,
+      status: targetStatus,
       updated_at: new Date().toISOString(),
     };
 
@@ -1491,7 +1597,7 @@ export class ProposalService {
         version_number: newVersionNumber,
         version_id: versionData.id,
         file_url: fileUrl,
-        status: Status.REVISED_PROPOSAL,
+        status: targetStatus,
       },
       error: null,
     };
