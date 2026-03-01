@@ -421,7 +421,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       <div className="space-y-2" ref={researchStationRef}>
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <University className="text-gray-400 w-4 h-4" />
-          Research & Development Station *
+          Research & Development Station <span className="text-red-500">*</span>
           <Tooltip content="The research institution or facility that will conduct the research or development activities" />
         </label>
         <div className="relative">
@@ -457,7 +457,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="space-y-2" ref={sectorRef}>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <Tag className="text-gray-400 w-4 h-4" />
-            Sector/Commodity *
+            Sector/Commodity <span className="text-red-500">*</span>
             <Tooltip content="The agricultural or economic sector that the project will address (e.g., Crops, Livestock, Fisheries, Agribusiness)" />
           </label>
           <div className="relative">
@@ -492,7 +492,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="space-y-2" ref={disciplineRef}>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <GraduationCap className="text-gray-400 w-4 h-4" />
-            Discipline *
+            Discipline <span className="text-red-500">*</span>
             <Tooltip content="The scientific or technical field or specialization relevant to the project (e.g., Agricultural Engineering, Biotechnology, Horticulture)" />
           </label>
           <div className="relative">
@@ -528,7 +528,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <MapPin className="text-gray-400 w-4 h-4" />
-            Implementation Sites *
+            Implementation Sites <span className="text-red-500">*</span>
             <Tooltip content="The specific locations or cities where the project will be implemented. Add multiple sites if the project spans different areas." />
           </label>
 
@@ -621,7 +621,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         <div className="space-y-4">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
             <FolderOpen className="text-gray-400 w-4 h-4" />
-            Classification Type *
+            Classification Type <span className="text-red-500">*</span>
             <Tooltip content="Choose whether the project is primarily focused on Research (generating new knowledge) or Development (implementing/commercializing technologies)" />
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -653,7 +653,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
               <Search className="text-gray-400 w-4 h-4" />
-              Research Classification *
+              Research Classification <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div
@@ -718,7 +718,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
               <Rocket className="text-gray-400 w-4 h-4" />
-              Development Classification *
+              Development Classification <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div
@@ -786,7 +786,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       <div className="space-y-4" ref={priorityRef}>
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
           <Star className="text-gray-400 w-4 h-4" />
-          Priority Areas *
+          Priority Areas <span className="text-red-500">*</span>
           <Tooltip content="The Sustainable Development Goals (SDGs) or strategic priority areas that the project contributes to or addresses" />
         </label>
 

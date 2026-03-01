@@ -205,7 +205,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 {/* Source Field */}
                 <div className="lg:col-span-4 space-y-2">
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
-                    Source of Funds
+                    Source of Funds <span className="text-red-500">*</span>
                     <Tooltip content="The origin of the funding (e.g., General Appropriations Act, Local Government Units, Private Industry, etc.)" />
                   </label>
                   <input
@@ -221,7 +221,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 {/* PS Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
-                    PS
+                    PS <span className="text-red-500">*</span>
                     <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
                   </label>
                   <div
@@ -236,7 +236,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 {/* MOOE Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
-                    MOOE
+                    MOOE <span className="text-red-500">*</span>
                     <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
                   </label>
                   <div
@@ -251,7 +251,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 {/* CO Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-500 tracking-wide">
-                    CO
+                    CO <span className="text-red-500">*</span>
                     <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
                   </label>
                   <div

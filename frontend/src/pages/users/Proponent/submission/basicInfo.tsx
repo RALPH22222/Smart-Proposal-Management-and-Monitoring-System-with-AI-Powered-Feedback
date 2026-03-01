@@ -413,6 +413,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("agencyAddress", newAddress);
   };
 
+  const handleAddressUpdate = (updates: Partial<{ street: string; barangay: string; city: string }>) => {
+    const newAddress = { ...formData.agencyAddress, ...updates };
+    if (newAddress.id) delete newAddress.id;
+    onUpdate("agencyAddress", newAddress);
+  };
+
   const handleAgencySelect = (agency: AgencyItem) => {
     const isSelected = selectedAgencies.some((a) => a.id === agency.id);
     let newSelectedAgencies;
@@ -597,7 +603,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            Program Title *
+            Program Title <span className="text-red-500">*</span>
             <Tooltip content="The name of the program or strategic initiative that this project falls under" />
           </label>
           <input
@@ -612,7 +618,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            Project Title *
+            Project Title <span className="text-red-500">*</span>
             <Tooltip content="A specific and concise title for your research or development project" />
           </label>
           <input
@@ -627,7 +633,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            School Year *
+            School Year <span className="text-red-500">*</span>
             <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
           </label>
           <div className="flex items-center gap-3">
@@ -663,7 +669,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Calendar className="text-gray-400 w-4 h-4" />
-            Planned Start Date *
+            Planned Start Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will begin" />
           </label>
           <input
@@ -678,7 +684,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Calendar className="text-gray-400 w-4 h-4" />
-            Planned End Date *
+            Planned End Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will be completed" />
           </label>
           <input
@@ -693,7 +699,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Clock className="text-gray-400 w-4 h-4" />
-            Duration *
+            Duration <span className="text-red-500">*</span>
             <Tooltip content="The total length of the project implementation period in months or years" />
           </label>
           <div className="relative">
@@ -726,7 +732,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="space-y-2 agency-name-dropdown-container">
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Building2 className="text-gray-400 w-4 h-4" />
-          Agency *
+          Agency <span className="text-red-500">*</span>
           <Tooltip content="The government agency, institution, or organization implementing the project" />
         </label>
         <div className="relative">
@@ -785,7 +791,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2 city-dropdown-container">
-            <label className="block text-sm font-medium text-gray-800 font-semibold">City / Municipality *</label>
+            <label className="block text-sm font-medium text-gray-800 font-semibold">City / Municipality <span className="text-red-500">*</span></label>
             <div className="relative">
               <input
                 type="text"
@@ -793,16 +799,16 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 onChange={(e) => {
                   const val = e.target.value;
                   setCitySearchTerm(val);
-                  handleAddressChange("city", val);
 
                   // Auto-select and fetch barangays if exact match
                   const matchedCity = psgcCities.find(c => c.name.toLowerCase() === val.toLowerCase());
                   if (matchedCity) {
                     setBarangaySearchTerm("");
-                    handleAddressChange("barangay", "");
+                    handleAddressUpdate({ city: matchedCity.name, barangay: "" });
                     fetchBarangays(matchedCity.code);
                     setIsCityDropdownOpen(false);
                   } else {
+                    handleAddressChange("city", val);
                     // If they changed the city and it's not a match, clear the barangay list
                     setPsgcBarangays([]);
                     setFilteredBarangays([]);
@@ -820,10 +826,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                       className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${citySearchTerm === city.name ? "bg-[#C8102E]/10" : ""}`}
                       onClick={() => {
                         setCitySearchTerm(city.name);
-                        handleAddressChange("city", city.name);
                         // Reset Barangay
                         setBarangaySearchTerm("");
-                        handleAddressChange("barangay", "");
+                        handleAddressUpdate({ city: city.name, barangay: "" });
                         fetchBarangays(city.code);
                         setIsCityDropdownOpen(false);
                       }}
@@ -891,7 +896,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Phone className="text-gray-400 w-4 h-4" />
-            Telephone *
+            Telephone <span className="text-red-500">*</span>
             <Tooltip content="The contact phone number of the project implementing agency or principal proposer" />
           </label>
           <input
@@ -907,7 +912,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Mail className="text-gray-400 w-4 h-4" />
-            Email *
+            Email <span className="text-red-500">*</span>
             <Tooltip content="Your registered email address (from your account)" />
           </label>
           <input
@@ -1005,7 +1010,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
             <Tags className="text-gray-400 w-4 h-4" />
-            Tags *
+            Tags <span className="text-red-500">*</span>
             <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
           </label>
           <button
