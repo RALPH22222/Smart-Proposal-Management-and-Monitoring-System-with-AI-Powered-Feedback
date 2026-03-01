@@ -85,23 +85,24 @@ export const RnDEvaluatorPage: React.FC = () => {
       const proposals = await getRndProposals();
       console.log("RND Proposals:", proposals);
 
-      // 2. For each proposal, fetch its assignment tracker data sequentially
-      // to avoid hitting Supabase connection limits (500 Internal Server Error)
+      // 2. For each proposal, fetch its assignment tracker data in parallel batches
+      // Batch size of 5 to avoid hitting Supabase connection limits
+      const validProposals = proposals.filter((p: any) => p?.proposal_id?.id);
       const allAssignments: any[] = [];
-      for (const p of proposals) {
-        if (!p?.proposal_id?.id) {
-          console.warn("Invalid proposal record:", p);
-          continue;
-        }
-        try {
-          const trackerData = await getAssignmentTracker(p.proposal_id.id);
-          if (trackerData && trackerData.length > 0) {
-            allAssignments.push(...trackerData);
+      const BATCH_SIZE = 5;
+
+      for (let i = 0; i < validProposals.length; i += BATCH_SIZE) {
+        const batch = validProposals.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map((p: any) => getAssignmentTracker(p.proposal_id.id))
+        );
+        results.forEach((result, idx) => {
+          if (result.status === 'fulfilled' && result.value?.length > 0) {
+            allAssignments.push(...result.value);
+          } else if (result.status === 'rejected') {
+            console.error(`Failed to fetch tracker for proposal ${batch[idx].proposal_id.id}`, result.reason);
           }
-        } catch (err) {
-          console.error(`Failed to fetch tracker for proposal ${p.proposal_id.id}`, err);
-          // Continue to next proposal without breaking the page
-        }
+        });
       }
 
       // Group by Proposal

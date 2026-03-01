@@ -44,11 +44,7 @@ const MainLayout: React.FC = () => {
 
 	const loadData = async () => {
 		try {
-			// Don't set loading here to avoid conflict, or managing it via the effect is enough
-			const [statsData, activityData] = await Promise.all([
-				proposalApi.fetchStatistics(),
-				proposalApi.fetchRecentActivity()
-			]);
+			const { statistics: statsData, recentActivity: activityData } = await proposalApi.fetchDashboardData();
 			setStatistics(statsData);
 			setRecentActivity(activityData);
 		} catch (error) {

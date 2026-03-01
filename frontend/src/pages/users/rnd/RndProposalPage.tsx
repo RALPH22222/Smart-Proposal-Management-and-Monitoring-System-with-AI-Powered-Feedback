@@ -154,17 +154,10 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [sectors, setSectors] = useState<LookupItem[]>([]);
   const [priorityAreas, setPriorityAreas] = useState<LookupItem[]>([]);
 
-  // Load proposals on component mount and set up polling
+  // Load proposals on component mount
   useEffect(() => {
     loadProposals(false);
     loadLookups();
-
-    // Poll every 3 seconds to keep table in sync with Admin reassignments
-    const interval = setInterval(() => {
-      loadProposals(true);
-    }, 3000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const loadLookups = async () => {

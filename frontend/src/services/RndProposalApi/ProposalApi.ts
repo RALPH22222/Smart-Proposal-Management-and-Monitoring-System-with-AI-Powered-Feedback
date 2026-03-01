@@ -130,15 +130,16 @@ export const proposalApi = {
         }
     },
 
-    // Fetch statistics
-    fetchStatistics: async (): Promise<Statistics> => {
+    // Fetch both statistics and recent activity in a single API call
+    fetchDashboardData: async (): Promise<{ statistics: Statistics; recentActivity: Activity[] }> => {
         try {
             const rawProposals = await getRndProposals();
 
+            // --- Derive Statistics ---
             const stats: Statistics = {
                 totalProposals: rawProposals.length,
                 pendingProposals: 0,
-                acceptedProposals: 0, // Maps to 'under_evaluation' (Forwarded)
+                acceptedProposals: 0,
                 rejectedProposals: 0,
                 revisionRequiredProposals: 0,
                 monthlySubmissions: []
@@ -147,61 +148,36 @@ export const proposalApi = {
             const monthCounts: Record<string, number> = {};
 
             rawProposals.forEach(raw => {
-                // Normalize using the same logic as transformProposal
                 const p = (raw.proposal_id && (raw.proposal_id.project_title || raw.proposal_id.title)) ? raw.proposal_id : raw;
                 const status = p.status;
-
-                console.log(`[Stats Debug] Proposal: ${p.id}, Status: ${status}`);
 
                 if (status === 'review_rnd' || status === 'under_rnd_review') stats.pendingProposals++;
                 else if (status === 'under_evaluation' || status === 'under_evaluator_assessment') stats.acceptedProposals++;
                 else if (status === 'rejected_rnd') stats.rejectedProposals++;
                 else if (status === 'revision_rnd') stats.revisionRequiredProposals++;
 
-                // Monthly Submissions
                 const date = new Date(p.created_at);
                 const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
             });
 
-            // Convert monthCounts to array and sort
             stats.monthlySubmissions = Object.entries(monthCounts)
                 .map(([month, count]) => ({ month, count }))
                 .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
-            // If empty, provide default
             if (stats.monthlySubmissions.length === 0) {
                 const today = new Date();
                 const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                 stats.monthlySubmissions.push({ month: monthYear, count: 0 });
             }
 
-            return stats;
-
-        } catch (error) {
-            console.error("Failed to fetch statistics", error);
-            return {
-                totalProposals: 0,
-                pendingProposals: 0,
-                acceptedProposals: 0,
-                rejectedProposals: 0,
-                revisionRequiredProposals: 0,
-                monthlySubmissions: []
-            };
-        }
-    },
-
-    // Fetch recent activity
-    fetchRecentActivity: async (): Promise<Activity[]> => {
-        try {
-            const rawProposals = await getRndProposals();
+            // --- Derive Recent Activity ---
             const activities: Activity[] = [];
 
             rawProposals.forEach(p => {
                 const proposal = transformProposal(p);
                 const userName = proposal.submittedBy;
 
-                // 1. Submission Activity
                 activities.push({
                     id: `sub-${p.id}`,
                     type: 'submission',
@@ -212,15 +188,12 @@ export const proposalApi = {
                     user: userName
                 });
 
-                // 2. Status Change Activities (Approximation based on status and updated_at)
-                // In a real event-sourced system, we'd query an events table. 
-                // Here we infer from current status if updated_at > created_at
                 const created = new Date(proposal.submittedDate).getTime();
                 const updated = new Date(proposal.lastModified).getTime();
 
-                if (updated > created + 60000) { // If updated more than 1 min after creation
+                if (updated > created + 60000) {
                     let action = '';
-                    let type: Activity['type'] = 'review'; // Default
+                    let type: Activity['type'] = 'review';
 
                     if (p.status === 'under_evaluation') {
                         action = 'Forwarded to Evaluators';
@@ -241,18 +214,31 @@ export const proposalApi = {
                             proposalTitle: proposal.title,
                             action: action,
                             timestamp: proposal.lastModified,
-                            user: 'R&D Staff' // We don't have the actor ID easily here without more data
+                            user: 'R&D Staff'
                         });
                     }
                 }
             });
 
-            // Sort by timestamp descending and take top 10
-            return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10);
+            const recentActivity = activities
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 10);
+
+            return { statistics: stats, recentActivity };
 
         } catch (error) {
-            console.error("Failed to fetch recent activities", error);
-            return [];
+            console.error("Failed to fetch dashboard data", error);
+            return {
+                statistics: {
+                    totalProposals: 0,
+                    pendingProposals: 0,
+                    acceptedProposals: 0,
+                    rejectedProposals: 0,
+                    revisionRequiredProposals: 0,
+                    monthlySubmissions: []
+                },
+                recentActivity: []
+            };
         }
     }
 };

@@ -27,23 +27,52 @@ export type CreateProposalResponse = {
   // ... any other fields
 };
 
+// --- Lookup cache: avoids re-fetching static data on every page navigation ---
+const LOOKUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const lookupCache: Record<string, { data: any; timestamp: number }> = {};
+
+function getCached<T>(key: string): T | null {
+  const entry = lookupCache[key];
+  if (entry && Date.now() - entry.timestamp < LOOKUP_CACHE_TTL) {
+    return entry.data as T;
+  }
+  return null;
+}
+
+function setCache(key: string, data: any): void {
+  lookupCache[key] = { data, timestamp: Date.now() };
+}
+
 export const fetchAgencies = async (): Promise<AgencyItem[]> => {
+  const cached = getCached<AgencyItem[]>('agencies');
+  if (cached) return cached;
   const { data } = await api.get<AgencyItem[]>("/proposal/lookup/agency");
+  setCache('agencies', data);
   return data;
 };
 
 export const fetchAgencyAddresses = async (agencyId: number): Promise<AddressItem[]> => {
+  const key = `agency-addresses-${agencyId}`;
+  const cached = getCached<AddressItem[]>(key);
+  if (cached) return cached;
   const { data } = await api.get<AddressItem[]>(`/proposal/lookup/agency-addresses?agency_id=${agencyId}`);
+  setCache(key, data);
   return data;
 };
 
 export const fetchCooperatingAgencies = async (): Promise<AgencyItem[]> => {
+  const cached = getCached<AgencyItem[]>('cooperating-agencies');
+  if (cached) return cached;
   const { data } = await api.get<AgencyItem[]>("/proposal/lookup/cooperating-agency");
+  setCache('cooperating-agencies', data);
   return data;
 };
 
 export const fetchDepartments = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('departments');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/department");
+  setCache('departments', data);
   return data;
 };
 
@@ -53,32 +82,50 @@ export const getDepartmentById = async (id: number): Promise<LookupItem | undefi
 };
 
 export const fetchDisciplines = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('disciplines');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/discipline");
+  setCache('disciplines', data);
   return data;
 };
 
 export const fetchSectors = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('sectors');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/sector");
+  setCache('sectors', data);
   return data;
 };
 
 export const fetchTags = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('tags');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/tag");
+  setCache('tags', data);
   return data;
 };
 
 export const fetchPriorities = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('priorities');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/priority");
+  setCache('priorities', data);
   return data;
 };
 
 export const fetchStations = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('stations');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/station");
+  setCache('stations', data);
   return data;
 };
 
 export const fetchCommodities = async (): Promise<LookupItem[]> => {
+  const cached = getCached<LookupItem[]>('commodities');
+  if (cached) return cached;
   const { data } = await api.get<LookupItem[]>("/proposal/lookup/commodity");
+  setCache('commodities', data);
   return data;
 };
 
