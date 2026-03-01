@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, CheckCircle2 } from "lucide-react";
+import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
 import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
@@ -82,6 +82,14 @@ const Profile: React.FC = () => {
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const cardsPerPage = 12;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, projectTab]);
 
   // Modal states
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -244,10 +252,10 @@ const Profile: React.FC = () => {
 
   // Compute counts based on rawStatus for accuracy
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
-  const rdEvalCount = proposals.filter((p) => ["review_rnd", "revised_proposal", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
+  const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
   const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
   const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision"].includes((p as any).rawStatus || "")).length;
-  const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding").length;
+  const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding" || (p as any).rawStatus === "funded").length;
 
 
   // Helper to generate tags based on raw data
@@ -568,8 +576,8 @@ const Profile: React.FC = () => {
           <p>No projects found matching your criteria.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-          {filteredProjects.map((project) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
+          {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project) => {
             const progress = getLocalProgress(project);
             const statusLabel = getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
@@ -680,7 +688,7 @@ const Profile: React.FC = () => {
               </td>
             </tr>
           ) : (
-            filteredProjects.map((project) => {
+            filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project) => {
               const progress = getProgressPercentageByIndex(project.currentIndex);
               const statusLabel = getLocalStatusLabel(project);
               const tags = getProjectTags(project.id);
@@ -855,7 +863,7 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
             {/* Total Projects Card */}
             <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
               <div className="flex items-center justify-between">
@@ -888,9 +896,6 @@ const Profile: React.FC = () => {
                 <Microscope className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
-
-            {/* R&D Evaluation Card */}
-            {/* Duplicate removed */}
 
             {/* Evaluators Assessment Card */}
             <div className="bg-purple-50 shadow-xl rounded-2xl border border-purple-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
@@ -1011,6 +1016,38 @@ const Profile: React.FC = () => {
 
             {/* Project Portfolio View */}
             {viewMode === "grid" ? renderGridView() : renderListView()}
+
+            {/* Universal Pagination Footer */}
+            {filteredProjects.length > cardsPerPage && (
+              <div className="p-4 bg-slate-50 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                  <span>
+                    Showing {(currentPage - 1) * cardsPerPage + 1}-{Math.min(currentPage * cardsPerPage, filteredProjects.length)} of {filteredProjects.length} proposals
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      Previous
+                    </button>
+                    <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                      Page {currentPage} of {Math.ceil(filteredProjects.length / cardsPerPage)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredProjects.length / cardsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(filteredProjects.length / cardsPerPage)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Next
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
