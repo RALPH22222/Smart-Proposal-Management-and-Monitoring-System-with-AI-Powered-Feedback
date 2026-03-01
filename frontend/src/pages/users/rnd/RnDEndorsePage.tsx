@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Gavel,
-  Tag,
   Building2
 } from 'lucide-react';
 import {
