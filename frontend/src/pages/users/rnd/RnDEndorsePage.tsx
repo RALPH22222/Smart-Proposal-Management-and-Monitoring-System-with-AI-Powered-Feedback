@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Gavel,
-  Tag
+  Tag,
+  Building2
 } from 'lucide-react';
 import {
   type EndorsementProposal,
@@ -23,7 +24,8 @@ import {
   getProposalsForEndorsement,
   endorseProposal,
   requestRevision,
-  rejectProposal
+  rejectProposal,
+  fetchDepartments
 } from '../../../services/proposal.api';
 import Swal from 'sweetalert2';
 import { useAuthContext } from '../../../context/AuthContext';
@@ -102,40 +104,54 @@ const EndorsePage: React.FC = () => {
   const loadEndorsementProposals = async () => {
     try {
       setLoading(true);
-      const data = await getProposalsForEndorsement();
+      const [data, depts] = await Promise.all([
+        getProposalsForEndorsement(),
+        fetchDepartments()
+      ]);
       console.log('Fetched endorsement proposals:', data);
 
-      const mapped: EndorsementProposal[] = data.map((p: any) => ({
-        id: p.id,
-        title: p.title,
-        submittedBy: p.submittedBy,
-        budget: transformEstimatedBudget(p.estimated_budget || []),
-        evaluatorDecisions: Object.values(
-          p.evaluatorDecisions.reduce((acc: Record<string, any>, d: any) => {
-            if (!acc[d.evaluatorId] || (acc[d.evaluatorId].decision === 'Pending' && d.decision !== 'Pending')) {
-              acc[d.evaluatorId] = d;
-            }
-            return acc;
-          }, {})
-        ).map((d: any) => ({
-          evaluatorId: String(d.evaluatorId),
-          evaluatorName: d.evaluatorName,
-          evaluatorDepartment: d.evaluatorDepartment, // Assuming API provides this
-          evaluatorEmail: d.evaluatorEmail, // Assuming API provides this
-          decision: d.decision,
-          comments: d.comment || "No comment provided",
-          submittedDate: d.submittedDate,
-          ratings: d.ratings ? {
-            objectives: d.ratings.objective || 0,
-            methodology: d.ratings.methodology || 0,
-            budget: d.ratings.budget || 0,
-            timeline: d.ratings.timeline || 0
-          } : undefined
-        })),
-        overallRecommendation: p.overallRecommendation,
-        readyForEndorsement: p.readyForEndorsement,
-        projectType: p.department
-      }));
+      const mapped: EndorsementProposal[] = data.map((p: any) => {
+        let deptName = "";
+        if (p.department?.name) {
+          deptName = p.department.name;
+        } else if (p.department) {
+          deptName = typeof p.department === 'string' ? p.department : String(p.department);
+        } else if (p.department_id) {
+          deptName = depts.find((d: any) => Number(d.id) === Number(p.department_id))?.name || "";
+        }
+
+        return {
+          id: p.id,
+          title: p.title,
+          submittedBy: p.submittedBy,
+          budget: transformEstimatedBudget(p.estimated_budget || []),
+          evaluatorDecisions: Object.values(
+            p.evaluatorDecisions.reduce((acc: Record<string, any>, d: any) => {
+              if (!acc[d.evaluatorId] || (acc[d.evaluatorId].decision === 'Pending' && d.decision !== 'Pending')) {
+                acc[d.evaluatorId] = d;
+              }
+              return acc;
+            }, {})
+          ).map((d: any) => ({
+            evaluatorId: String(d.evaluatorId),
+            evaluatorName: d.evaluatorName,
+            evaluatorDepartment: d.evaluatorDepartment, // Assuming API provides this
+            evaluatorEmail: d.evaluatorEmail, // Assuming API provides this
+            decision: d.decision,
+            comments: d.comment || "No comment provided",
+            submittedDate: d.submittedDate,
+            ratings: d.ratings ? {
+              objectives: d.ratings.objective || 0,
+              methodology: d.ratings.methodology || 0,
+              budget: d.ratings.budget || 0,
+              timeline: d.ratings.timeline || 0
+            } : undefined
+          })),
+          overallRecommendation: p.overallRecommendation,
+          readyForEndorsement: p.readyForEndorsement,
+          department: deptName || "N/A"
+        };
+      });
 
       setEndorsementProposals(mapped);
     } catch (error) {
@@ -380,16 +396,25 @@ const EndorsePage: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
 
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case 'ICT': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Healthcare': return 'bg-pink-100 text-pink-700 border-pink-200';
-      case 'Agriculture': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Energy': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Public Safety': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Education': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  // Helper for Random Department Colors
+  const getDepartmentColor = (departmentName: string) => {
+    let hash = 0;
+    for (let i = 0; i < departmentName.length; i++) {
+      hash = departmentName.charCodeAt(i) + ((hash << 5) - hash);
     }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   if (loading) {
@@ -553,11 +578,11 @@ const EndorsePage: React.FC = () => {
                             <FileText className="w-3 h-3" aria-hidden="true" />
                             <span>ID: {proposal.id}</span>
                           </div>
-                          {/* Project Type Badge */}
-                          {proposal.projectType && (
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(proposal.projectType)}`}>
-                              <Tag className="w-3 h-3" />
-                              {proposal.projectType}
+                          {/* Department Badge */}
+                          {proposal.department && proposal.department !== "N/A" && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getDepartmentColor(proposal.department)}`}>
+                              <Building2 className="w-3 h-3" />
+                              {proposal.department}
                             </span>
                           )}
                         </div>
