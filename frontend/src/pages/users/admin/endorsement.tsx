@@ -141,7 +141,7 @@ const AdminEndorsementPage: React.FC = () => {
             evaluatorDecisions: uniqueEvaluators,
             overallRecommendation,
             readyForEndorsement,
-            projectType: p.projectType || 'N/A'
+            department: p.department || 'N/A'
           });
         }
       }
@@ -280,17 +280,6 @@ const AdminEndorsementPage: React.FC = () => {
   const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
-
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case 'ICT': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Healthcare': return 'bg-pink-100 text-pink-700 border-pink-200';
-      case 'Agriculture': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Energy': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Public Safety': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
-    }
-  };
 
   if (loading) {
     return (
@@ -450,10 +439,10 @@ const AdminEndorsementPage: React.FC = () => {
                             <span>ID: {proposal.id}</span>
                           </div>
                           {/* Project Type Badge */}
-                          {proposal.projectType && (
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(proposal.projectType)}`}>
+                          {proposal.department && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
                               <Tag className="w-3 h-3" />
-                              {proposal.projectType}
+                              {proposal.department}
                             </span>
                           )}
                         </div>
