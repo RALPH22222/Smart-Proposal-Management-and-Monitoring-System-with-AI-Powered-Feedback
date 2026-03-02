@@ -150,6 +150,8 @@ export class AdminService {
         revisionRndRes,
         rejectedRndRes,
         endorsedRes,
+        revisionFundingRes,
+        rejectedFundingRes,
         fundedProposalRes,
         totalProjectsRes,
         onGoingRes,
@@ -175,6 +177,8 @@ export class AdminService {
         this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "revision_rnd"),
         this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "rejected_rnd"),
         this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "endorsed_for_funding"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "revision_funding"),
+        this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "rejected_funding"),
         this.db.from("proposals").select("*", { count: "exact", head: true }).eq("status", "funded"),
 
         // Funded project stats
@@ -228,6 +232,8 @@ export class AdminService {
             revision_rnd: revisionRndRes.count || 0,
             rejected_rnd: rejectedRndRes.count || 0,
             endorsed_for_funding: endorsedRes.count || 0,
+            revision_funding: revisionFundingRes.count || 0,
+            rejected_funding: rejectedFundingRes.count || 0,
             funded: fundedProposalRes.count || 0,
           },
           projects: {

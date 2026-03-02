@@ -51,6 +51,8 @@ export interface DashboardStats {
     revision_rnd: number;
     rejected_rnd: number;
     endorsed_for_funding: number;
+    revision_funding: number;
+    rejected_funding: number;
     funded: number;
   };
   projects: {

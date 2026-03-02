@@ -84,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			borderColor: 'border-amber-200',
 		},
 		{
-			title: 'Forward to Evaluators',
+			title: 'Under Evaluation',
 			value: statistics.acceptedProposals,
 			icon: Send,
 			color: 'text-emerald-500',

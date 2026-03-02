@@ -1,6 +1,6 @@
 // types/InterfaceProject.ts
 
-export type ProjectStatus = 'Active' | 'Completed' | 'On Hold' | 'At Risk' | 'Planning' | 'Delayed';
+export type ProjectStatus = 'Active' | 'Completed' | 'On Hold' | 'At Risk' | 'Planning' | 'Delayed' | 'Blocked';
 
 export interface BudgetRequest {
   id: string;

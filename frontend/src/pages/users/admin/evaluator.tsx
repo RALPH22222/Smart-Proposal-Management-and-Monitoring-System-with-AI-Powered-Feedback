@@ -80,19 +80,13 @@ export const EvaluatorPage: React.FC = () => {
     setLoading(true);
     try {
       // 1. Fetch all proposals visible to Admin
-      // getProposals returns raw objects where ID is simply `p.id`
       const proposals = await getProposals();
-      console.log("Admin Proposals:", proposals);
 
-      // 2. For each proposal, fetch its assignment tracker data sequentially
-      // to avoid hitting Supabase connection limits (500 Internal Server Error)
+      // 2. Fetch tracker data sequentially to avoid hitting Supabase connection limits
       const allAssignments: any[] = [];
       for (const p of proposals) {
         const typedP = p as { id?: string | number };
-        if (!typedP?.id) {
-          console.warn("Invalid proposal record:", p);
-          continue;
-        }
+        if (!typedP?.id) continue;
         try {
           const trackerData = await getAssignmentTracker(Number(typedP.id));
           if (trackerData && trackerData.length > 0) {
@@ -100,7 +94,6 @@ export const EvaluatorPage: React.FC = () => {
           }
         } catch (err) {
           console.error(`Failed to fetch tracker for proposal ${typedP.id}`, err);
-          // Continue to next proposal without breaking the page
         }
       }
 
@@ -170,7 +163,7 @@ export const EvaluatorPage: React.FC = () => {
           aggregateStatus = "Pending";
         } else if (statusSet.has("completed") || statusSet.has("done")) {
           if (group.evaluators.every((e) => e.status === "completed" || e.status === "done")) aggregateStatus = "Completed";
-          else aggregateStatus = "Pending"; 
+          else aggregateStatus = "Pending";
         } else if (statusSet.has("accept") || statusSet.has("accepted")) {
           aggregateStatus = "Accepts";
         }
@@ -386,14 +379,17 @@ export const EvaluatorPage: React.FC = () => {
         await forwardProposalToEvaluators(payload);
       }
 
+      // Close modal immediately so the user isn't blocked while data refreshes
+      setShowModal(false);
+
       Swal.fire({
         icon: "success",
         title: "Success!",
         text: `Assignments updated successfully.`,
       });
 
-      await fetchData();
-      setShowModal(false);
+      // Refresh data in the background after modal is closed
+      fetchData();
     } catch (error: unknown) {
       console.error("Failed to update assignments:", error);
       const err = error as { response?: { data?: { message?: string, error?: string } } };

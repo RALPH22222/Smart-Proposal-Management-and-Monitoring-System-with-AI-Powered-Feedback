@@ -84,7 +84,9 @@ export default function DashboardAdmin() {
         { label: "Under Evaluation", count: stats.proposals.under_evaluation, color: "bg-blue-100 text-blue-700 border-blue-200" },
         { label: "Revision", count: stats.proposals.revision_rnd, color: "bg-orange-100 text-orange-700 border-orange-200" },
         { label: "Rejected", count: stats.proposals.rejected_rnd, color: "bg-red-100 text-red-700 border-red-200" },
-        { label: "Endorsed", count: stats.proposals.endorsed_for_funding, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+        { label: "Endorsed for Funding", count: stats.proposals.endorsed_for_funding, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+        { label: "Funding Revision", count: stats.proposals.revision_funding ?? 0, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+        { label: "Funding Rejected", count: stats.proposals.rejected_funding ?? 0, color: "bg-rose-100 text-rose-700 border-rose-200" },
         { label: "Funded", count: stats.proposals.funded, color: "bg-green-100 text-green-700 border-green-200" },
       ]
     : [];
