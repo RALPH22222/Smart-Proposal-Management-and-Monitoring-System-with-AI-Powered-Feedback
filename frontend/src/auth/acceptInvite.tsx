@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { supabase } from '../config/supabaseClient';
 import { api } from '../utils/axios';
 import RdecLogo from '../assets/IMAGES/RDEC-WMSU.png';
+import AuthBackground from '../assets/IMAGES/Auth-Background.jpg';
 
 interface Department {
   id: number;
@@ -220,12 +221,21 @@ export default function AcceptInvite() {
         <div
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg')`,
+            backgroundImage: `url('${AuthBackground}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         >
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
+          {/* Image Attribution */}
+          <div className="absolute bottom-4 right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-right max-w-[200px] md:max-w-none">
+            <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              via Wikimedia Commons
+            </a>, licensed under{" "}
+            <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              CC BY-SA 4.0
+            </a>.
+          </div>
         </div>
         <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 p-8 text-center">
           <img src={RdecLogo} alt="RDEC Logo" className="w-20 h-20 object-contain mx-auto mb-4" />
@@ -494,12 +504,21 @@ export default function AcceptInvite() {
         <div
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg')`,
+            backgroundImage: `url('${AuthBackground}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         >
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
+          {/* Image Attribution */}
+          <div className="absolute bottom-4 left-4 md:left-auto md:right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-left md:text-right max-w-[200px] md:max-w-none">
+            <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              via Wikimedia Commons
+            </a>, licensed under{" "}
+            <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              CC BY-SA 4.0
+            </a>.
+          </div>
         </div>
 
         {/* Stepper Card */}

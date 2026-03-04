@@ -2,26 +2,42 @@ import React, { useState, useEffect } from 'react';
 import {
 	TrendingUp,
 	FileText,
-	Clock,
-	Send,
 	XCircle,
 	CheckCircle,
 	RotateCcw,
-	User
+	User,
+	BarChart as BarChartIcon,
+	Search,
+	RefreshCw
 } from 'lucide-react';
 import { type Statistics, type Activity } from '../../../types/InterfaceProposal';
+import {
+	ResponsiveContainer,
+	LineChart,
+	Line,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip as RechartsTooltip,
+	BarChart,
+	Bar,
+	Cell
+} from 'recharts';
 import { useAuthContext } from '../../../context/AuthContext';
 
 interface DashboardProps {
 	statistics: Statistics;
 	recentActivity: Activity[];
+	onRefresh?: () => Promise<void> | void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
 	statistics,
-	recentActivity
+	recentActivity,
+	onRefresh
 }) => {
 	const { user } = useAuthContext();
+	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [displayedText, setDisplayedText] = useState({ prefix: '', name: '', suffix: '' });
 
 	useEffect(() => {
@@ -34,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			localStorage.setItem('rnd_welcome_seen', 'true');
 		}
 
-		const firstName = user.first_name || 'User';
+		const firstName = user.first_name || 'R&D Staff';
 		const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
 		const targetName = firstName;
 		const targetSuffix = !isNewUser ? '!' : '';
@@ -42,7 +58,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 		const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
 		let charIndex = 0;
 
-		// Clear initial
 		setDisplayedText({ prefix: '', name: '', suffix: '' });
 
 		const typeInterval = setInterval(() => {
@@ -66,46 +81,64 @@ const Dashboard: React.FC<DashboardProps> = ({
 		return () => clearInterval(typeInterval);
 	}, [user?.first_name]);
 
+	const handleRefresh = async () => {
+		if (onRefresh) {
+			setIsRefreshing(true);
+			await onRefresh();
+			setIsRefreshing(false);
+		}
+	};
+
+	const calculateRate = (value: number) => {
+		if (statistics.totalProposals === 0) return '0%';
+		return ((value / statistics.totalProposals) * 100).toFixed(1) + '%';
+	};
+
 	const statCards = [
 		{
 			title: 'Total Proposals',
 			value: statistics.totalProposals,
 			icon: FileText,
-			color: 'text-blue-500',
+			color: 'text-slate-600',
+			bgColor: 'bg-slate-50',
+			borderColor: 'border-slate-200',
+			rate: null
+		},
+		{
+			title: 'Under R&D Review',
+			value: statistics.pendingProposals,
+			icon: Search,
+			color: 'text-blue-600',
 			bgColor: 'bg-blue-50',
 			borderColor: 'border-blue-200',
+			rate: calculateRate(statistics.pendingProposals)
 		},
 		{
-			title: 'Pending Review',
-			value: statistics.pendingProposals,
-			icon: Clock,
-			color: 'text-amber-500',
-			bgColor: 'bg-amber-50',
-			borderColor: 'border-amber-200',
-		},
-		{
-			title: 'Under Evaluation',
+			title: 'Under Evaluators Assessment',
 			value: statistics.acceptedProposals,
-			icon: Send,
-			color: 'text-emerald-500',
-			bgColor: 'bg-emerald-50',
-			borderColor: 'border-emerald-200',
+			icon: FileText,
+			color: 'text-purple-700',
+			bgColor: 'bg-purple-50',
+			borderColor: 'border-purple-200',
+			rate: calculateRate(statistics.acceptedProposals)
 		},
 		{
 			title: 'Rejected',
 			value: statistics.rejectedProposals,
 			icon: XCircle,
-			color: 'text-red-500',
+			color: 'text-red-600',
 			bgColor: 'bg-red-50',
 			borderColor: 'border-red-200',
+			rate: calculateRate(statistics.rejectedProposals)
 		},
 		{
 			title: 'Need Revision',
 			value: statistics.revisionRequiredProposals,
 			icon: RotateCcw,
-			color: 'text-orange-500',
+			color: 'text-orange-600',
 			bgColor: 'bg-orange-50',
 			borderColor: 'border-orange-200',
+			rate: calculateRate(statistics.revisionRequiredProposals)
 		}
 	];
 
@@ -135,21 +168,39 @@ const Dashboard: React.FC<DashboardProps> = ({
 		}
 	};
 
+	const pipelineData = [
+		{ name: 'Under R&D Review', value: statistics.pendingProposals, color: '#2563eb' },
+		{ name: 'Under Evaluators Assessment', value: statistics.acceptedProposals, color: '#7e22ce' },
+		{ name: 'Needs Revision', value: statistics.revisionRequiredProposals, color: '#ea580c' },
+		{ name: 'Rejected', value: statistics.rejectedProposals, color: '#dc2626' }
+	];
+
 	return (
 		<div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-slate-100">
 			{/* Header */}
 			<header className="pb-4 sm:pb-6">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div>
-						<h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px]">
-							{displayedText.prefix}
+						<h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px] flex items-center gap-2">
+							<span className="text-[#C8102E]">{displayedText.prefix}</span>
 							<span className="text-black">{displayedText.name}</span>
-							{displayedText.suffix}
+							<span className="text-[#C8102E]">{displayedText.suffix}</span>
 						</h1>
 						<p className="text-slate-600 mt-2 text-sm leading-relaxed">
 							Overview of proposal management activities
 						</p>
 					</div>
+					{onRefresh && (
+						<button
+							onClick={handleRefresh}
+							disabled={isRefreshing}
+							className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E] text-slate-700 text-sm font-medium rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+							title="Refresh Dashboard Data"
+						>
+							<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+							{isRefreshing ? 'Refreshing...' : 'Refresh'}
+						</button>
+					)}
 				</div>
 			</header>
 
@@ -173,6 +224,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 									<IconComponent
 										className={`${stat.color} w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform duration-300`}
 									/>
+									{stat.rate && (
+										<span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/50 ${stat.color} border ${stat.borderColor}`}>
+											{stat.rate}
+										</span>
+									)}
 								</div>
 								<h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 leading-tight">{stat.title}</h3>
 								<p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums">{stat.value.toLocaleString()}</p>
@@ -209,46 +265,41 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 					{/* Chart Area - Responsive Wrapper */}
 					<div className="p-4 sm:p-6 flex-1 flex flex-col min-h-[300px]">
-						<div className="overflow-x-auto pb-2 -mx-4 px-4 sm:overflow-visible sm:mx-0 sm:px-0 scrollbar-hide flex-1 flex flex-col">
-							<div className="flex items-end justify-between gap-3 h-64 sm:h-72 xl:h-auto xl:flex-1 w-full min-w-[600px] relative pt-8">
-
-								{/* Background Grid Lines */}
-								<div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 w-full">
-									{[...Array(4)].map((_, i) => (
-										<div key={i} className="w-full border-t border-dashed border-slate-100 h-0"></div>
-									))}
-								</div>
-
-								{statistics.monthlySubmissions.map((month) => {
-									const maxVal = Math.max(...statistics.monthlySubmissions.map((m) => m.count));
-									const heightPercentage = maxVal > 0 ? (month.count / maxVal) * 100 : 0;
-
-									return (
-										<div key={month.month} className="group flex flex-col items-center flex-1 h-full justify-end relative z-10">
-
-											{/* Tooltip */}
-											<div className="opacity-0 group-hover:opacity-100 absolute -top-10 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 bg-slate-800 text-white text-xs py-1 px-2 rounded shadow-lg pointer-events-none whitespace-nowrap z-20">
-												{month.count} Proposals
-												<div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800"></div>
-											</div>
-
-											{/* The Bar */}
-											<div
-												className="w-full max-w-[40px] bg-gradient-to-t from-slate-200 to-slate-300 group-hover:from-[#C8102E] group-hover:to-red-500 rounded-t-lg transition-all duration-500 relative cursor-pointer"
-												style={{ height: `${heightPercentage}%` }}
-											>
-												{/* Highlight Glow */}
-												<div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-lg"></div>
-											</div>
-
-											{/* X-Axis Label */}
-											<span className="mt-3 text-xs font-medium text-slate-500 group-hover:text-slate-800 transition-colors truncate w-full text-center">
-												{month.month.substring(0, 3)}
-											</span>
-										</div>
-									);
-								})}
-							</div>
+						<div className="w-full h-64 sm:h-72 xl:flex-1 relative pt-4">
+							<ResponsiveContainer width="100%" height="100%">
+								<LineChart
+									data={statistics.monthlySubmissions}
+									margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+								>
+									<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+									<XAxis
+										dataKey="month"
+										tickFormatter={(val) => val.substring(0, 3)}
+										axisLine={false}
+										tickLine={false}
+										tick={{ fill: '#64748b', fontSize: 12 }}
+										dy={10}
+									/>
+									<YAxis
+										axisLine={false}
+										tickLine={false}
+										tick={{ fill: '#64748b', fontSize: 12 }}
+										dx={-10}
+									/>
+									<RechartsTooltip
+										contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+										formatter={(value: any) => [`${value} Proposals`, 'Volume']}
+									/>
+									<Line
+										type="monotone"
+										dataKey="count"
+										stroke="#C8102E"
+										strokeWidth={3}
+										dot={{ r: 4, fill: '#C8102E', strokeWidth: 2, stroke: '#fff' }}
+										activeDot={{ r: 6 }}
+									/>
+								</LineChart>
+							</ResponsiveContainer>
 						</div>
 					</div>
 
@@ -351,6 +402,51 @@ const Dashboard: React.FC<DashboardProps> = ({
 								<span>{recentActivity.filter(a => a.type === 'revision').length} revisions requested</span>
 							</div>
 						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Analytics by Distribution Section */}
+			<section className="mt-6 flex flex-col xl:flex-row gap-6">
+				<div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full flex-1">
+					<h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+						<BarChartIcon className="w-5 h-5 text-[#C8102E]" />
+						Current Proposal Pipeline
+					</h3>
+					<div className="h-64 sm:h-80 w-full relative">
+						<ResponsiveContainer width="100%" height="100%">
+							<BarChart
+								data={pipelineData}
+								margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+								barSize={45}
+							>
+								<CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+								<XAxis
+									dataKey="name"
+									axisLine={false}
+									tickLine={false}
+									tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }}
+									dy={10}
+								/>
+								<YAxis
+									axisLine={false}
+									tickLine={false}
+									tick={{ fill: '#64748b', fontSize: 12 }}
+									dx={-10}
+									allowDecimals={false}
+								/>
+								<RechartsTooltip
+									cursor={{ fill: 'transparent' }}
+									contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+									formatter={(value: any) => [`${value} Proposals`, 'Count']}
+								/>
+								<Bar dataKey="value" radius={[6, 6, 0, 0]}>
+									{pipelineData.map((entry, index) => (
+										<Cell key={`cell-${index}`} fill={entry.color} />
+									))}
+								</Bar>
+							</BarChart>
+						</ResponsiveContainer>
 					</div>
 				</div>
 			</section>

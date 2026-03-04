@@ -60,7 +60,7 @@ const MainLayout: React.FC = () => {
 		switch (currentPage) {
 			case 'dashboard':
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} />
+					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} />
 				);
 			case 'proposals':
 				return <ReviewPage />;
@@ -71,12 +71,12 @@ const MainLayout: React.FC = () => {
 			case 'funding':
 				return <FundingPage />;
 			case 'monitoring':
-				return <Monitoring onStatsUpdate={loadData} />;
+				return <Monitoring onStatsUpdate={loadData} />
 			case 'settings':
 				return <Settings />;
 			default:
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} />
+					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} />
 				);
 		}
 	};

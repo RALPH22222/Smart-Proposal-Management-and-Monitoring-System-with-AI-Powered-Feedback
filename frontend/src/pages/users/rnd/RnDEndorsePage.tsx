@@ -375,21 +375,6 @@ const EndorsePage: React.FC = () => {
     }
   };
 
-  const getOverallRecommendationBadge = (recommendation: string) => {
-    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-
-    switch (recommendation) {
-      case 'Approve':
-        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
-      case 'Revise':
-        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
-      case 'Reject':
-        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
-      default:
-        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
-    }
-  };
-
   // Pagination
   const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -558,12 +543,9 @@ const EndorsePage: React.FC = () => {
                           >
                             {proposal.title}
                           </h2>
-                          <span className={getOverallRecommendationBadge(proposal.overallRecommendation)}>
-                            {proposal.overallRecommendation}
-                          </span>
-                          {!proposal.readyForEndorsement && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50">
-                              Pending Evaluators
+                          {!proposal.readyForEndorsement && proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
+                              {proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length} Pending Evaluator{proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length !== 1 ? 's' : ''}
                             </span>
                           )}
                         </div>

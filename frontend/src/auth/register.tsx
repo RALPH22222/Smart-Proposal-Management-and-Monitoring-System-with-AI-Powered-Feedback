@@ -4,9 +4,7 @@ import Swal from "sweetalert2";
 import { User, LibraryBig, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
 import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
 import WmsuLogo from "../assets/IMAGES/WMSU.png";
-
-const BACKGROUND_IMAGE_URL =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg/2560px-Western_Mindanao_State_University_College_of_Teacher_Education_%28Normal_Road%2C_Baliwasan%2C_Zamboanga_City%3B_10-06-2023%29.jpg";
+import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
 
 interface Department {
   id: number;
@@ -448,7 +446,7 @@ export default function Register() {
         <div
           className="order-1 md:order-1 w-full md:w-1/2 flex items-center justify-center relative p-8 text-white min-h-[40vh] md:min-h-screen"
           style={{
-            backgroundImage: `url('${BACKGROUND_IMAGE_URL}')`,
+            backgroundImage: `url('${AuthBackground}')`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -465,6 +463,16 @@ export default function Register() {
             <p className="text-sm opacity-90 px-4 md:px-0 hover:opacity-100 transition-opacity duration-300">
               Create, submit and track project proposals — fast, simple, and secure.
             </p>
+          </div>
+
+          {/* Image Attribution */}
+          <div className="absolute bottom-4 left-4 md:left-auto md:right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-left md:text-right max-w-[200px] md:max-w-none">
+            <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              via Wikimedia Commons
+            </a>, licensed under{" "}
+            <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              CC BY-SA 4.0
+            </a>.
           </div>
         </div>
 
