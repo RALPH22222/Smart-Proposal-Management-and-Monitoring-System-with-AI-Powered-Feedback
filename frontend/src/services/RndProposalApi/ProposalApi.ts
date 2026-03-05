@@ -44,6 +44,7 @@ const transformProposal = (raw: any): Proposal => {
         projectType: p.sector?.name || "N/A",
         agency: p.agency?.name || "WMSU",
         address: "N/A",
+        department: typeof p.department === 'string' ? p.department : (p.department?.name || p.department_id || ""),
         cooperatingAgencies: p.cooperating_agencies ? JSON.stringify(p.cooperating_agencies) : "",
         rdStation: p.rnd_station?.name || "N/A",
         classification: p.classification_type || "Research",
@@ -61,6 +62,7 @@ const transformProposal = (raw: any): Proposal => {
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
         evaluatorInstruction: p.evaluator_instruction || "",
         endorsementJustification: "",
+        tags: p.proposal_tags?.map((t: any) => t.tags?.name) || [],
         rdStaffReviewer: raw.users
             ? `${raw.users.first_name} ${raw.users.last_name}`
             : p.proposal_rnd?.[0]?.users

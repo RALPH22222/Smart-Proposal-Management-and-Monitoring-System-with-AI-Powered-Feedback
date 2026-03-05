@@ -6,7 +6,6 @@ import Dashboard from "./dashboard";
 import Accounts from "./accounts";
 import Contents from "./contents";
 import Settings from "./settings";
-import System from "./system";
 import Proposals from "./proposals";
 import Evaluators from "./evaluator";
 import Monitoring from "./monitoring";
@@ -40,8 +39,6 @@ const AdminLayout: React.FC = () => {
         return <Monitoring />;
       case "contents":
         return <Contents />;
-      case "system":
-        return <System />;
       case "activity":
         return <Activity />;
       case "settings":

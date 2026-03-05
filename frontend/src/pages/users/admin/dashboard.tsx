@@ -7,11 +7,9 @@ import {
   FileText,
   CheckCircle,
   Clock,
-  BarChart3,
   Shield,
   Activity,
-  FolderOpen,
-  Loader2,
+  FolderOpen
 } from "lucide-react";
 
 export default function DashboardAdmin() {
@@ -43,53 +41,62 @@ export default function DashboardAdmin() {
 
   const topCards = stats
     ? [
-        {
-          icon: Users,
-          label: "Total Users",
-          value: stats.users.total,
-          color: "text-blue-500",
-          bgColor: "bg-blue-50",
-          borderColor: "border-blue-200",
-        },
-        {
-          icon: FileText,
-          label: "Total Proposals",
-          value: stats.proposals.total,
-          color: "text-purple-500",
-          bgColor: "bg-purple-50",
-          borderColor: "border-purple-200",
-        },
-        {
-          icon: FolderOpen,
-          label: "Funded Projects",
-          value: stats.projects.total,
-          color: "text-emerald-500",
-          bgColor: "bg-emerald-50",
-          borderColor: "border-emerald-200",
-        },
-        {
-          icon: Clock,
-          label: "Pending Review",
-          value: stats.proposals.review_rnd,
-          color: "text-amber-500",
-          bgColor: "bg-amber-50",
-          borderColor: "border-amber-200",
-        },
-      ]
+      {
+        icon: Users,
+        label: "Total Users",
+        value: stats.users.total,
+        color: "text-blue-500",
+        bgColor: "bg-blue-50",
+        borderColor: "border-blue-200",
+      },
+      {
+        icon: FileText,
+        label: "Total Proposals",
+        value: stats.proposals.total,
+        color: "text-purple-500",
+        bgColor: "bg-purple-50",
+        borderColor: "border-purple-200",
+      },
+      {
+        icon: FolderOpen,
+        label: "Funded Projects",
+        value: stats.projects.total,
+        color: "text-emerald-500",
+        bgColor: "bg-emerald-50",
+        borderColor: "border-emerald-200",
+      },
+      {
+        icon: Clock,
+        label: "Pending Review",
+        value: stats.proposals.review_rnd,
+        color: "text-amber-500",
+        bgColor: "bg-amber-50",
+        borderColor: "border-amber-200",
+      },
+    ]
     : [];
 
   const pipelineRows = stats
     ? [
-        { label: "R&D Review", count: stats.proposals.review_rnd, color: "bg-amber-100 text-amber-700 border-amber-200" },
-        { label: "Under Evaluation", count: stats.proposals.under_evaluation, color: "bg-blue-100 text-blue-700 border-blue-200" },
-        { label: "Revision", count: stats.proposals.revision_rnd, color: "bg-orange-100 text-orange-700 border-orange-200" },
-        { label: "Rejected", count: stats.proposals.rejected_rnd, color: "bg-red-100 text-red-700 border-red-200" },
-        { label: "Endorsed for Funding", count: stats.proposals.endorsed_for_funding, color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-        { label: "Funding Revision", count: stats.proposals.revision_funding ?? 0, color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-        { label: "Funding Rejected", count: stats.proposals.rejected_funding ?? 0, color: "bg-rose-100 text-rose-700 border-rose-200" },
-        { label: "Funded", count: stats.proposals.funded, color: "bg-green-100 text-green-700 border-green-200" },
-      ]
+      { label: "R&D Review", count: stats.proposals.review_rnd, color: "bg-amber-100 text-amber-700 border-amber-200", hex: "#f59e0b" },
+      { label: "Under Evaluation", count: stats.proposals.under_evaluation, color: "bg-blue-100 text-blue-700 border-blue-200", hex: "#3b82f6" },
+      { label: "Revision", count: stats.proposals.revision_rnd, color: "bg-orange-100 text-orange-700 border-orange-200", hex: "#f97316" },
+      { label: "Rejected", count: stats.proposals.rejected_rnd, color: "bg-red-100 text-red-700 border-red-200", hex: "#ef4444" },
+      { label: "Endorsed for Funding", count: stats.proposals.endorsed_for_funding, color: "bg-emerald-100 text-emerald-700 border-emerald-200", hex: "#10b981" },
+      { label: "Funding Revision", count: stats.proposals.revision_funding ?? 0, color: "bg-yellow-100 text-yellow-700 border-yellow-200", hex: "#eab308" },
+      { label: "Funding Rejected", count: stats.proposals.rejected_funding ?? 0, color: "bg-rose-100 text-rose-700 border-rose-200", hex: "#f43f5e" },
+      { label: "Funded", count: stats.proposals.funded, color: "bg-green-100 text-green-700 border-green-200", hex: "#22c55e" },
+    ]
     : [];
+
+  // const rolesData = stats
+  //   ? [
+  //     { name: "Proponents", value: stats.users.by_role.proponent, color: "#3b82f6" },
+  //     { name: "Evaluators", value: stats.users.by_role.evaluator, color: "#8b5cf6" },
+  //     { name: "R&D Staff", value: stats.users.by_role.rnd, color: "#f59e0b" },
+  //     { name: "Admin", value: stats.users.by_role.admin, color: "#ef4444" }
+  //   ].filter(r => r.value > 0)
+  //   : [];
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -104,8 +111,11 @@ export default function DashboardAdmin() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -119,7 +129,7 @@ export default function DashboardAdmin() {
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden">
+    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 min-h-screen overflow-y-auto pb-10 bg-slate-50">
       {/* Header */}
       <header className="flex-shrink-0 pt-10 sm:pt-0 pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -128,8 +138,8 @@ export default function DashboardAdmin() {
               {isReturningUser ? 'Welcome back, ' : 'Welcome to RDEC, '}
               <span className="text-black">{user?.first_name || 'Admin'}</span>!
             </h1>
-            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-              System overview and real-time statistics
+            <p className="text-slate-600 mt-2 text-sm font-semibold leading-relaxed">
+              Admin Dashboard & System Overview
             </p>
           </div>
         </div>
@@ -167,25 +177,16 @@ export default function DashboardAdmin() {
       </section>
 
       {/* Main Content Section */}
-      <section className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 overflow-hidden">
-        {/* Proposal Pipeline Table */}
-        <div
-          className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col"
-          aria-labelledby="pipeline-heading"
-        >
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+      <section className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-[500px]">
+        {/* Main Charts and Table Container */}
+        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col custom-scrollbar overflow-y-auto">
+
+          <div className="p-4 border-b border-slate-200 bg-slate-50 mt-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3
-                id="pipeline-heading"
-                className="text-lg font-bold text-slate-800 flex items-center gap-2"
-              >
+              <h3 id="pipeline-heading" className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-[#C8102E]" />
-                Proposal Pipeline
+                Proposal Pipeline Breakdown
               </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <BarChart3 className="w-4 h-4" />
-                <span>Status breakdown</span>
-              </div>
             </div>
           </div>
 
@@ -259,13 +260,13 @@ export default function DashboardAdmin() {
         </div>
 
         {/* System Status Box */}
-        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full lg:w-80 flex flex-col">
-          <h3 className="text-lg font-bold text-slate-800 mb-8 flex items-center gap-2">
+        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-5 w-full lg:w-80 xl:w-96 flex flex-col max-h-[850px] overflow-y-auto custom-scrollbar">
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 sticky top-0 bg-white z-10 py-1">
             <Shield className="w-5 h-5 text-[#C8102E]" />
             System Status
           </h3>
 
-          <div className="space-y-6 flex-1 flex flex-col justify-center">
+          <div className="space-y-4">
             {/* Active Users */}
             <div className="flex items-center justify-between p-5 bg-blue-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow duration-200">
               <div className="flex items-center gap-4">
@@ -297,7 +298,7 @@ export default function DashboardAdmin() {
           </div>
 
           {/* User Breakdown by Role */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
+          <div className="mt-8 pt-6 border-t border-slate-200">
             <h4 className="text-sm font-semibold text-slate-700 mb-3">Users by Role</h4>
             <div className="space-y-3 text-xs text-slate-600">
               {[

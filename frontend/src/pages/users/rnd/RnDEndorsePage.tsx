@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Gavel,
-  Building2
+  Building2,
+  Signature
 } from 'lucide-react';
 import {
   type EndorsementProposal,
@@ -457,7 +458,7 @@ const EndorsePage: React.FC = () => {
                   {endorsementProposals.filter((p) => p.readyForEndorsement).length}
                 </p>
               </div>
-              <CheckCircle className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              <Signature className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </div>
 

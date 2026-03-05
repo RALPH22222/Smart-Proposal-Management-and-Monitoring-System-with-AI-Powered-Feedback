@@ -181,7 +181,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       const matchesSearch =
         proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        proposal.id.toLowerCase().includes(searchTerm.toLowerCase());
+        String(proposal.id).toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
