@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Mail } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -9,13 +9,20 @@ const ROLE_OPTIONS = [
 interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (_data: { email: string; roles: string[] }) => void;
+  onSubmit: (_data: { email: string; roles: string[] }) => Promise<void> | void;
   isSubmitting?: boolean;
 }
 
 const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   const [email, setEmail] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail("");
+      setSelectedRoles([]);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -29,8 +36,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
     e.preventDefault();
     if (selectedRoles.length === 0) return;
     onSubmit({ email, roles: selectedRoles });
-    setEmail("");
-    setSelectedRoles([]);
   };
 
   return (
