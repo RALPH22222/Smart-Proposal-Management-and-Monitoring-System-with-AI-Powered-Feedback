@@ -83,7 +83,7 @@ export class AdminService {
     const payload: Record<string, any> = {};
     if (updates.first_name !== undefined) payload.first_name = updates.first_name;
     if (updates.last_name !== undefined) payload.last_name = updates.last_name;
-    if (updates.middle_ini !== undefined) payload.middle_ini = updates.middle_ini;
+    if (updates.middle_ini !== undefined) payload.middle_ini = updates.middle_ini || null;
     if (updates.roles !== undefined) payload.roles = updates.roles;
 
     if (Object.keys(payload).length === 0) {
