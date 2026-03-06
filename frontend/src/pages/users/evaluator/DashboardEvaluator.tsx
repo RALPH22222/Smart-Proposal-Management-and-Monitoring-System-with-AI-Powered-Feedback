@@ -5,7 +5,18 @@ import {
   Clock,
   Users,
   AlertCircle,
+  RefreshCw,
+  TrendingUp,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
 import { useState, useEffect } from "react";
 import { getEvaluatorProposals } from "../../../services/proposal.api";
 import { useAuthContext } from "../../../context/AuthContext";
@@ -62,7 +73,8 @@ export default function DashboardRdec() {
     approve: 0,
     for_review: 0,
     revise: 0,
-    decline: 0
+    decline: 0,
+    total: 0
   });
   const [proposals, setProposals] = useState<any[]>([]);
 
@@ -75,128 +87,169 @@ export default function DashboardRdec() {
     today: 0
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // We only need getEvaluatorProposals to calculate everything accurately
-        // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
-        const [allProposals] = await Promise.all([
-          getEvaluatorProposals()
-        ]);
+  const [monthlyReviews, setMonthlyReviews] = useState<{ month: string, count: number }[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-        // 1. Robust Mapping (same as Proposals.tsx)
-        const mappedAll = (allProposals || []).map((p: any) => {
-          const proposalObj = p.proposal_id || p;
+  const fetchData = async (isManualRefresh = false) => {
+    if (isManualRefresh) setIsRefreshing(true);
+    try {
+      // We only need getEvaluatorProposals to calculate everything accurately
+      // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
+      const [allProposals] = await Promise.all([
+        getEvaluatorProposals()
+      ]);
 
-          let proponentName = 'Unknown';
-          if (proposalObj.proponent_id) {
-            if (typeof proposalObj.proponent_id === "object") {
-              proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
-            } else if (typeof proposalObj.proponent_id === "string") {
-              proponentName = proposalObj.proponent_id;
-            }
+      // 1. Robust Mapping (same as Proposals.tsx)
+      const mappedAll = (allProposals || []).map((p: any) => {
+        const proposalObj = p.proposal_id || p;
+
+        let proponentName = 'Unknown';
+        if (proposalObj.proponent_id) {
+          if (typeof proposalObj.proponent_id === "object") {
+            proponentName = `${proposalObj.proponent_id.first_name || ""} ${proposalObj.proponent_id.last_name || ""}`;
+          } else if (typeof proposalObj.proponent_id === "string") {
+            proponentName = proposalObj.proponent_id;
           }
+        }
 
-          // Handle status normalization
-          let displayStatus = p.status || proposalObj.status || "pending";
+        // Handle status normalization
+        let displayStatus = p.status || proposalObj.status || "pending";
 
-          if (displayStatus === 'extend') {
-            displayStatus = 'extension_requested';
-          }
-          // If status is pending but we have a request_deadline_at, it's an extension request
-          if (displayStatus === 'pending' && p.request_deadline_at) {
-            displayStatus = 'extension_requested';
-          }
+        if (displayStatus === 'extend') {
+          displayStatus = 'extension_requested';
+        }
+        // If status is pending but we have a request_deadline_at, it's an extension request
+        if (displayStatus === 'pending' && p.request_deadline_at) {
+          displayStatus = 'extension_requested';
+        }
 
-          return {
-            id: proposalObj.id,
-            title: proposalObj.project_title || "Untitled",
-            proponent: proponentName.trim(),
-            status: displayStatus,
-            created_at: new Date(p.created_at || proposalObj.created_at),
-            updated_at: new Date(p.updated_at || proposalObj.updated_at),
-            date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
-            updatedAt: new Date(p.updated_at || proposalObj.updated_at)
-          };
-        });
-
-        // 2. Deduplication
-        const uniqueProposalsMap = new Map();
-        mappedAll.forEach((p: any) => {
-          if (!uniqueProposalsMap.has(p.id)) {
-            uniqueProposalsMap.set(p.id, p);
-          }
-        });
-        const uniqueProposals = Array.from(uniqueProposalsMap.values());
-
-        // 3. Calculate Stats from Unique Proposals
-        const newStats = {
-          pending: 0,
-          reject: 0,
-          approve: 0,
-          for_review: 0,
-          revise: 0,
-          decline: 0
+        return {
+          id: proposalObj.id,
+          title: proposalObj.project_title || "Untitled",
+          proponent: proponentName.trim(),
+          status: displayStatus,
+          created_at: new Date(p.created_at || proposalObj.created_at),
+          updated_at: new Date(p.updated_at || proposalObj.updated_at),
+          date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
+          updatedAt: new Date(p.updated_at || proposalObj.updated_at)
         };
+      });
 
-        uniqueProposals.forEach((p: any) => {
-          const s = p.status;
-          if (s === 'pending') newStats.pending++;
-          else if (s === 'accepted' || s === 'approve') newStats.approve++; // normalize 'accepted' to 'approve' bucket
-          else if (s === 'rejected' || s === 'reject') newStats.reject++;   // normalize 'rejected' to 'reject' bucket
-          else if (s === 'for_review') newStats.for_review++;
-          else if (s === 'revise' || s === 'revision') newStats.revise++;
-          else if (s === 'decline') newStats.decline++;
-          else if (s === 'extension_requested' || s === 'extension_approved' || s === 'extension_rejected') newStats.pending++; // Treat extension flows as pending action
-        });
+      // 2. Deduplication
+      const uniqueProposalsMap = new Map();
+      mappedAll.forEach((p: any) => {
+        if (!uniqueProposalsMap.has(p.id)) {
+          uniqueProposalsMap.set(p.id, p);
+        }
+      });
+      const uniqueProposals = Array.from(uniqueProposalsMap.values());
 
-        setStatsData(newStats);
+      // 3. Calculate Stats from Unique Proposals
+      const newStats = {
+        pending: 0,
+        reject: 0,
+        approve: 0,
+        for_review: 0,
+        revise: 0,
+        decline: 0,
+        total: uniqueProposals.length
+      };
 
-        // 4. Filter for "Recent Reviewed" Table
-        // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
-        const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
+      uniqueProposals.forEach((p: any) => {
+        const s = p.status;
+        if (s === 'pending') newStats.pending++;
+        else if (s === 'accepted' || s === 'approve') newStats.approve++; // normalize 'accepted' to 'approve' bucket
+        else if (s === 'rejected' || s === 'reject') newStats.reject++;   // normalize 'rejected' to 'reject' bucket
+        else if (s === 'for_review') newStats.for_review++;
+        else if (s === 'revise' || s === 'revision') newStats.revise++;
+        else if (s === 'decline') newStats.decline++;
+        else if (s === 'extension_requested' || s === 'extension_approved' || s === 'extension_rejected') newStats.pending++; // Treat extension flows as pending action
+      });
 
-        const reviewedProposals = uniqueProposals
-          .filter((item: any) => reviewedStatuses.includes(item.status));
+      setStatsData(newStats);
 
-        // Sort by review date desc
-        reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
+      // 4. Filter for "Recent Reviewed" Table
+      // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
+      const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
 
-        // 5. Calculate derived stats (Activity)
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const reviewedProposals = uniqueProposals
+        .filter((item: any) => reviewedStatuses.includes(item.status));
 
-        const todayCount = uniqueProposals.filter((p: any) => p.created_at >= startOfDay).length;
-        const weekCount = uniqueProposals.filter((p: any) => p.created_at >= startOfWeek).length;
-        const monthCount = uniqueProposals.filter((p: any) => p.created_at >= startOfMonth).length;
+      // Sort by review date desc
+      reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
 
-        const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
-        const underReviewCount = newStats.for_review;
-        // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
-        // we can just use the pending count
-        const pendingCount = newStats.pending;
+      // 4b. Monthly Review Chart logic
+      const monthCounts: Record<string, number> = {};
+      reviewedProposals.forEach((p: any) => {
+        if (p.updated_at) {
+          const date = new Date(p.updated_at);
+          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+        }
+      });
 
-        setDerivedStats({
-          reviewedToday,
-          underReview: underReviewCount,
-          pending: pendingCount,
-          thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
-          thisWeek: weekCount,
-          today: todayCount
-        });
+      const mReviews = Object.entries(monthCounts)
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
+      if (mReviews.length === 0) {
+        const todayDate = new Date();
+        const mY = todayDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        mReviews.push({ month: mY, count: 0 });
       }
-    };
+      setMonthlyReviews(mReviews);
 
+      // 5. Calculate derived stats (Activity)
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const todayCount = uniqueProposals.filter((p: any) => p.created_at >= startOfDay).length;
+      const weekCount = uniqueProposals.filter((p: any) => p.created_at >= startOfWeek).length;
+      const monthCount = uniqueProposals.filter((p: any) => p.created_at >= startOfMonth).length;
+
+      const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
+      const underReviewCount = newStats.for_review;
+      // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
+      // we can just use the pending count
+      const pendingCount = newStats.pending;
+
+      setDerivedStats({
+        reviewedToday,
+        underReview: underReviewCount,
+        pending: pendingCount,
+        thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
+        thisWeek: weekCount,
+        today: todayCount
+      });
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+    } finally {
+      if (isManualRefresh) setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
+  const handleRefresh = async () => {
+    await fetchData(true);
+  };
+
   const stats = [
+    {
+      icon: FileText,
+      label: "Total Proposals",
+      value: statsData.total,
+      color: "text-slate-600",
+      bgColor: "bg-slate-50",
+      borderColor: "border-slate-200",
+      description: "Total assigned proposals"
+    },
     {
       icon: Clock,
       label: "Pending Proposals",
@@ -242,6 +295,15 @@ export default function DashboardRdec() {
                 Overview of your assigned proposals.
               </p>
             </div>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E] text-slate-700 text-sm font-medium rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh Dashboard Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
         </header>
 
@@ -251,9 +313,9 @@ export default function DashboardRdec() {
             Proposal Statistics
           </h2>
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-            {/* First two stats cards */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {stats.slice(0, 2).map((stat, index) => {
+            {/* First three stats cards */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {stats.slice(0, 3).map((stat, index) => {
                 const IconComponent = stat.icon;
                 return (
                   <div
@@ -279,10 +341,10 @@ export default function DashboardRdec() {
               })}
             </div>
 
-            {/* Third stats card aligned with endorsed proposals status box */}
+            {/* Fourth stats card aligned with endorsed proposals status box */}
             <div className="w-full lg:w-80">
               {(() => {
-                const stat = stats[2];
+                const stat = stats[3];
                 const IconComponent = stat.icon;
                 return (
                   <div
@@ -308,6 +370,107 @@ export default function DashboardRdec() {
             </div>
           </div>
         </section>
+
+        {/* Monthly Reviewed Submissions Section */}
+        {monthlyReviews.length > 0 && (
+          <section className="flex flex-col xl:flex-row gap-6 mb-4 sm:mb-6">
+            <div
+              className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
+              aria-labelledby="submissions-heading"
+            >
+              {/* Header */}
+              <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 id="submissions-heading" className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-[#C8102E]" />
+                    Monthly Reviewed Proposals
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Trends for the last {monthlyReviews.length} months
+                  </p>
+                </div>
+
+                {/* Legend */}
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                  <div className="w-2 h-2 rounded-full bg-[#C8102E]"></div>
+                  <span className="text-xs font-medium text-slate-600">Volume</span>
+                </div>
+              </div>
+
+              {/* Chart Area - Responsive Wrapper */}
+              <div className="p-4 sm:p-6 flex-1 flex flex-col min-h-[300px]">
+                <div className="w-full h-64 sm:h-72 xl:flex-1 relative pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={monthlyReviews}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="month"
+                        tickFormatter={(val) => val.substring(0, 3)}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 12 }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#64748b', fontSize: 12 }}
+                        dx={-10}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                        formatter={(value: any) => [`${value} Proposals`, 'Volume']}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#C8102E"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#C8102E', strokeWidth: 2, stroke: '#fff' }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Summary Stats Footer */}
+              <div className="px-4 py-4 sm:px-6 sm:py-5 bg-slate-50 border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0 md:divide-x divide-slate-200">
+                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4 md:first:pl-0">
+                    <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Total Reviewed</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                        {monthlyReviews.reduce((sum: number, m: any) => sum + m.count, 0)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                    <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Peak Month</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                        {Math.max(...monthlyReviews.map((m: any) => m.count))}
+                      </span>
+                      <span className="text-xs text-slate-400">proposals</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                    <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Monthly Average</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                        {Math.round(monthlyReviews.reduce((sum: number, m: any) => sum + m.count, 0) / monthlyReviews.length) || 0}
+                      </span>
+                      <span className="text-xs text-slate-400">/ mo</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Table Section */}
         <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">

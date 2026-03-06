@@ -181,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			<header className="pb-4 sm:pb-6">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 					<div>
-						<h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px] flex items-center gap-2">
+						<h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px]">
 							<span className="text-[#C8102E]">{displayedText.prefix}</span>
 							<span className="text-black">{displayedText.name}</span>
 							<span className="text-[#C8102E]">{displayedText.suffix}</span>

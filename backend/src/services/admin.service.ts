@@ -8,7 +8,7 @@ import {
 import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   async createAccount(input: CreateAccountInput) {
     const { email, password, roles, first_name, last_name, middle_ini } = input;

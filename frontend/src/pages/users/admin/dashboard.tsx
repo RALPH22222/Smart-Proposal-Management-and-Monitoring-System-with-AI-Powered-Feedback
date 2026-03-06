@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../../context/AuthContext';
 import { ActivityApi } from '../../../services/admin/ActivityApi';
 import type { DashboardStats } from '../../../services/admin/ActivityApi';
+
+type ExtendedDashboardStats = DashboardStats & {
+  proposals: DashboardStats['proposals'] & {
+    monthly_submissions?: { month: string; count: number }[];
+  }
+};
 import {
   Users,
   FileText,
@@ -9,15 +15,28 @@ import {
   Clock,
   Shield,
   Activity,
-  FolderOpen
+  FolderOpen,
+  TrendingUp,
+  RefreshCw
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
+import { getProposals } from '../../../services/proposal.api';
 
 export default function DashboardAdmin() {
   const { user } = useAuthContext();
   const [isReturningUser] = useState(() => localStorage.getItem('admin_welcome_seen') === 'true');
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<ExtendedDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isReturningUser) {
@@ -25,19 +44,56 @@ export default function DashboardAdmin() {
     }
   }, [isReturningUser]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await ActivityApi.getDashboardStats();
-        setStats(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load dashboard stats');
-      } finally {
-        setLoading(false);
+  const fetchStats = async (isManualRefresh = false) => {
+    if (isManualRefresh) setIsRefreshing(true);
+    try {
+      const [statsData, proposalsData] = await Promise.all([
+        ActivityApi.getDashboardStats(),
+        getProposals()
+      ]);
+
+      const monthCounts: Record<string, number> = {};
+      proposalsData.forEach((p: any) => {
+        const dateStr = p.created_at || (p.proposal_id && p.proposal_id.created_at);
+        if (dateStr) {
+          const date = new Date(dateStr);
+          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+        }
+      });
+
+      const monthly_submissions = Object.entries(monthCounts)
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+      if (monthly_submissions.length === 0) {
+        const today = new Date();
+        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        monthly_submissions.push({ month: monthYear, count: 0 });
       }
-    };
+
+      const statsWithMonthly = {
+        ...statsData,
+        proposals: { ...statsData.proposals, monthly_submissions }
+      };
+
+      setStats(statsWithMonthly as any);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard stats');
+    } finally {
+      setLoading(false);
+      if (isManualRefresh) setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
   }, []);
+
+  const handleRefresh = async () => {
+    await fetchStats(true);
+  };
 
   const topCards = stats
     ? [
@@ -138,10 +194,19 @@ export default function DashboardAdmin() {
               {isReturningUser ? 'Welcome back, ' : 'Welcome to RDEC, '}
               <span className="text-black">{user?.first_name || 'Admin'}</span>!
             </h1>
-            <p className="text-slate-600 mt-2 text-sm font-semibold leading-relaxed">
+            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
               Admin Dashboard & System Overview
             </p>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E] text-slate-700 text-sm font-medium rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh Dashboard Data"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
       </header>
 
@@ -175,6 +240,107 @@ export default function DashboardAdmin() {
           })}
         </div>
       </section>
+
+      {/* Monthly Submissions */}
+      {stats && stats.proposals.monthly_submissions && stats.proposals.monthly_submissions.length > 0 && (
+        <section className="flex flex-col xl:flex-row gap-6 mb-2">
+          <div
+            className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
+            aria-labelledby="submissions-heading"
+          >
+            {/* Header */}
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 id="submissions-heading" className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#C8102E]" />
+                  Monthly Submissions
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Trends for the last {stats.proposals.monthly_submissions.length} months
+                </p>
+              </div>
+
+              {/* Legend */}
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+                <div className="w-2 h-2 rounded-full bg-[#C8102E]"></div>
+                <span className="text-xs font-medium text-slate-600">Volume</span>
+              </div>
+            </div>
+
+            {/* Chart Area - Responsive Wrapper */}
+            <div className="p-4 sm:p-6 flex-1 flex flex-col min-h-[300px]">
+              <div className="w-full h-64 sm:h-72 xl:flex-1 relative pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={stats.proposals.monthly_submissions}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="month"
+                      tickFormatter={(val) => val.substring(0, 3)}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      dx={-10}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: any) => [`${value} Proposals`, 'Volume']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#C8102E"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#C8102E', strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Summary Stats Footer */}
+            <div className="px-4 py-4 sm:px-6 sm:py-5 bg-slate-50 border-t border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-0 md:divide-x divide-slate-200">
+                <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4 md:first:pl-0">
+                  <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Total Submissions</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                      {stats.proposals.monthly_submissions.reduce((sum: number, m: any) => sum + m.count, 0)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                  <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Peak Month</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                      {Math.max(...stats.proposals.monthly_submissions.map((m: any) => m.count))}
+                    </span>
+                    <span className="text-xs text-slate-400">proposals</span>
+                  </div>
+                </div>
+                <div className="flex flex-row md:flex-col items-center justify-between md:justify-center px-2 md:px-4">
+                  <p className="text-xs font-semibold text-slate-500 tracking-wider md:mb-1">Monthly Average</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg sm:text-2xl font-bold text-slate-800">
+                      {Math.round(stats.proposals.monthly_submissions.reduce((sum: number, m: any) => sum + m.count, 0) / stats.proposals.monthly_submissions.length) || 0}
+                    </span>
+                    <span className="text-xs text-slate-400">/ mo</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Main Content Section */}
       <section className="flex flex-col lg:flex-row gap-4 lg:gap-6 flex-1 min-h-[500px]">

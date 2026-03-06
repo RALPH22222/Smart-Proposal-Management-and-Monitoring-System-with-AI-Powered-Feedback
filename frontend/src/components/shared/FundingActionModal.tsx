@@ -178,6 +178,19 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
               </div>
             </div>
 
+            {/* Approval Description Notice */}
+            {decision === 'Approve' && (
+              <div className="animate-in fade-in slide-in-from-top-2 bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-800 text-sm">
+                <div className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-slate-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <span className="font-bold">Approval Context: </span>
+                    Proceeding with this action indicates approval that this project has been officially funded by the RDEC committee.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* File Upload — shown for all decisions */}
             {decision && uploadConfig && (
               <div className="animate-in fade-in slide-in-from-top-2">
@@ -221,12 +234,11 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
             form="funding-action-form"
             type="submit"
             disabled={!decision || isSubmitting}
-            className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-md ${
-              !decision ? 'bg-slate-300 cursor-not-allowed' :
+            className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-md ${!decision ? 'bg-slate-300 cursor-not-allowed' :
               decision === 'Approve' ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg' :
-              decision === 'Revise' ? 'bg-amber-600 hover:bg-amber-700 hover:shadow-lg' :
-              'bg-red-600 hover:bg-red-700 hover:shadow-lg'
-            }`}
+                decision === 'Revise' ? 'bg-amber-600 hover:bg-amber-700 hover:shadow-lg' :
+                  'bg-red-600 hover:bg-red-700 hover:shadow-lg'
+              }`}
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
