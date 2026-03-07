@@ -39,7 +39,7 @@ export class BackendStack extends Stack {
     );
     const GEMINI_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/GEMINI_API_KEY");
 
-    const FRONTEND_URL = stageName === "prod" ? "https://wmsu-spmams.vercel.app" : "http://localhost:5173";
+    const FRONTEND_URL = "https://wmsu-spmams.vercel.app";
 
     // S3 Bucket
     const proposal_attachments_bucket = new Bucket(this, `pms-proposal-attachments-bucket-${stageName}`, {
