@@ -183,11 +183,11 @@ const Accounts: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
-            <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full xs:w-auto bg-white min-w-[140px]"
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
               >
                 <option value="All">All Statuses</option>
                 <option value="Active">Active</option>
@@ -197,7 +197,7 @@ const Accounts: React.FC = () => {
               <select
                 value={roleFilter}
                 onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full xs:w-auto bg-white min-w-[140px]"
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
               >
                 <option value="All">All Roles</option>
                 {uniqueRoles.map(role => <option key={role} value={role}>{ROLE_DISPLAY[role] || role}</option>)}
@@ -260,13 +260,13 @@ const Accounts: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
-                        <div className="flex flex-col xs:flex-row gap-1 xs:gap-2">
-                          <button onClick={() => handleEditClick(user)} disabled={isDisabled} className="flex items-center gap-1 text-[#C8102E] hover:text-[#A00D26] font-medium text-xs xs:text-sm p-1 rounded hover:bg-gray-200 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                            <Edit2 className="w-3 h-3 xs:w-4 xs:h-4 flex-shrink-0" />
+                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+                          <button onClick={() => handleEditClick(user)} disabled={isDisabled} className="flex items-center gap-1 text-[#C8102E] hover:text-[#A00D26] font-medium text-xs sm:text-sm p-1 rounded hover:bg-gray-200 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
+                            <Edit2 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>Edit</span>
                           </button>
-                          <button onClick={() => handleDisableClick(user)} className="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium text-xs xs:text-sm p-1 rounded hover:bg-gray-100 transition-colors whitespace-nowrap">
-                            <Power className="w-3 h-3 xs:w-4 xs:h-4 flex-shrink-0" />
+                          <button onClick={() => handleDisableClick(user)} className="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium text-xs sm:text-sm p-1 rounded hover:bg-gray-100 transition-colors whitespace-nowrap">
+                            <Power className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>{isDisabled ? "Enable" : "Disable"}</span>
                           </button>
                         </div>
