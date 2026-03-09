@@ -74,6 +74,32 @@ export class BackendStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    // ========== SHARED IAM ROLES ==========
+    // Shared roles reduce CloudFormation resource count (500 resource limit).
+    // Lambdas that only need basic execution + SUPABASE_KEY share a role per group.
+    // Lambdas with special permissions (S3, SES, etc.) keep their own auto-generated roles.
+
+    const authLambdaRole = new Role(this, "pms-auth-lambda-role", {
+      assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+      ],
+    });
+
+    const proposalLambdaRole = new Role(this, "pms-proposal-lambda-role", {
+      assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+      ],
+    });
+
+    const projectLambdaRole = new Role(this, "pms-project-lambda-role", {
+      assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole"),
+      ],
+    });
+
     // Lambdas (All Lambda definitions remain the same)
     // ... (authorizer_lambda, cors_lambda, login_lambda, signup_lambda, create_proposal_lambda, etc. all remain unchanged)
 
@@ -95,6 +121,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "cors.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -106,6 +133,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "login.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -141,6 +169,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "confirm-email.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
         FRONTEND_URL,
@@ -166,6 +195,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "verify-otp.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -177,6 +207,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "change-password.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -188,6 +219,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "profile-status.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -199,6 +231,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "create-proposal.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -213,6 +246,7 @@ export class BackendStack extends Stack {
         runtime: Runtime.NODEJS_22_X,
         timeout: Duration.seconds(10),
         entry: path.resolve("src", "handlers", "proposal", "forward-proposal-to-evaluators.ts"),
+        role: proposalLambdaRole,
         environment: {
           SUPABASE_KEY,
         },
@@ -225,6 +259,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "remove-evaluator.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -236,6 +271,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "forward-proposal-to-rnd.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -247,6 +283,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "revision-proposal-to-proponent.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -258,6 +295,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "reject-proposal-to-proponent.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -269,6 +307,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "decision-evaluator-to-proposal.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -280,6 +319,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "update-proposal-status.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -294,6 +334,7 @@ export class BackendStack extends Stack {
         runtime: Runtime.NODEJS_22_X,
         timeout: Duration.seconds(10),
         entry: path.resolve("src", "handlers", "proposal", "create-evaluation-scores-to-proposal.ts"),
+        role: proposalLambdaRole,
         environment: {
           SUPABASE_KEY,
         },
@@ -309,6 +350,7 @@ export class BackendStack extends Stack {
         runtime: Runtime.NODEJS_22_X,
         timeout: Duration.seconds(10),
         entry: path.resolve("src", "handlers", "proposal", "get-evaluation-scores-from-proposal.ts"),
+        role: proposalLambdaRole,
         environment: {
           SUPABASE_KEY,
         },
@@ -321,6 +363,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-users-by-role.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -332,6 +375,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -343,6 +387,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proponent-proposal-stats.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -354,6 +399,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-rnd-proposal-stats.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -365,6 +411,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-evaluator-proposal-stats.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -376,6 +423,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal-rnd.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -387,6 +435,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal-evaluator.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -400,6 +449,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-lookup.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -411,6 +461,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "endorse-for-funding.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -422,6 +473,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposals-for-endorsement.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -433,6 +485,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "submit-revised-proposal.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -457,6 +510,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-revision-summary.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -468,6 +522,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-rejection-summary.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -479,6 +534,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-proposal-versions.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -490,6 +546,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "handle-extension-request.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -501,6 +558,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "proposal", "get-assignment-tracker.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -514,6 +572,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-funded-projects.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -525,6 +584,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-project.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -536,6 +596,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "submit-quarterly-report.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -547,6 +608,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-project-reports.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -558,6 +620,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "verify-project-report.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -569,6 +632,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "add-report-comment.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -580,6 +644,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-report-comments.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -591,6 +656,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "add-project-expense.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -602,6 +668,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-project-expenses.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -613,6 +680,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "update-project-status.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -624,6 +692,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-overdue-reports.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -649,6 +718,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "remove-member.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -660,6 +730,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "project", "get-project-members.ts"),
+      role: projectLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -671,6 +742,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(60), // PDF text extraction + ~200 lines of matrix math can take time
       entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
       },
@@ -702,6 +774,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(30),
       entry: path.resolve("src", "handlers", "proposal", "generate-tags.ts"),
+      role: proposalLambdaRole,
       environment: {
         SUPABASE_KEY,
         GEMINI_API_KEY,
@@ -823,6 +896,7 @@ export class BackendStack extends Stack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
       entry: path.resolve("src", "handlers", "auth", "verify-token.ts"),
+      role: authLambdaRole,
       environment: {
         SUPABASE_KEY,
         SUPABASE_SECRET_JWT,
@@ -892,6 +966,10 @@ export class BackendStack extends Stack {
     // /auth/departments (PUBLIC — for sign-up form to fetch R&D stations without auth)
     const auth_departments = auth.addResource("departments");
     auth_departments.addMethod(HttpMethod.GET, new LambdaIntegration(get_lookup_lambda));
+
+    // /auth/verify-otp (public — user verifies OTP from signup)
+    const verify_otp = auth.addResource("verify-otp");
+    verify_otp.addMethod(HttpMethod.POST, new LambdaIntegration(verify_otp_lambda));
 
     // /auth/complete-invite (protected — user has session from invite link)
     const complete_invite = auth.addResource("complete-invite");
