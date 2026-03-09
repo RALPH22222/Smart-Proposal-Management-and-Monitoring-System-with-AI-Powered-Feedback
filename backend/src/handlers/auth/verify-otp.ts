@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const verifyOtpSchema = z.object({
     email: z.string().email(),
-    token: z.string().min(6).max(6), // OTP usually 6 digits
+    token: z.string().max(8),
 });
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
