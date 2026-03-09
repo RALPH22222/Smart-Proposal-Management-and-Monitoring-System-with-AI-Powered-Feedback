@@ -964,9 +964,8 @@ export class BackendStack extends Stack {
 
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
       handler: authorizer_lambda,
-      identitySources: [
-        IdentitySource.header("Cookie"), // tell API Gateway to pass Cookie header
-      ],
+      identitySources: [], // allow both Cookie (web) and Authorization Bearer (mobile)
+      resultsCacheTtl: Duration.seconds(0),
     });
 
     // /auth
