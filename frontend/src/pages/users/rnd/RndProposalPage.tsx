@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
-  Users, X, MessageSquare, Clock, RefreshCw, CheckCircle, Edit
+  Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -24,6 +24,7 @@ import {
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
 import { transformProposalForModal } from "../../../utils/proposal-transform";
+import PageLoader from '../../../components/shared/PageLoader';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -225,7 +226,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     { id: 'Revised Proposal', label: 'Revised', icon: Edit },
     { id: 'Revision Required', label: 'To Revise', icon: RefreshCw },
     { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
-    { id: 'Endorsed', label: 'Endorsed', icon: Gavel },
+    { id: 'Endorsed', label: 'Endorsed', icon: Signature },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
 
@@ -438,8 +439,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         );
       case 'Endorsed':
         return (
-          <span className={`${baseClasses} text-green-600 bg-green-50 border-green-200 cursor-default`}>
-            <CheckCircle className="w-3 h-3 flex-shrink-0" />
+          <span className={`${baseClasses} text-blue-800 bg-blue-100 border-blue-200 cursor-default`}>
+            <Signature className="w-3 h-3 flex-shrink-0" />
             Endorsed for Funding
           </span>
         );
@@ -486,11 +487,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading proposals...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading proposals..." />
       </div>
     );
   }

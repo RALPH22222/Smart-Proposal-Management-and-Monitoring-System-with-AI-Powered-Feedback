@@ -24,17 +24,20 @@ import {
 	Cell
 } from 'recharts';
 import { useAuthContext } from '../../../context/AuthContext';
+import PageLoader from '../../../components/shared/PageLoader';
 
 interface DashboardProps {
 	statistics: Statistics;
 	recentActivity: Activity[];
 	onRefresh?: () => Promise<void> | void;
+	isLoading?: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
 	statistics,
 	recentActivity,
-	onRefresh
+	onRefresh,
+	isLoading = false
 }) => {
 	const { user } = useAuthContext();
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -174,6 +177,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 		{ name: 'Needs Revision', value: statistics.revisionRequiredProposals, color: '#ea580c' },
 		{ name: 'Rejected', value: statistics.rejectedProposals, color: '#dc2626' }
 	];
+
+	if (isLoading) {
+		return (
+			<div className="min-h-screen">
+				<PageLoader text="Loading dashboard..." />
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-slate-100">

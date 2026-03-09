@@ -8,12 +8,16 @@ import {
 	Clock,
 	Calendar,
 	X,
-	User
+	User,
+	Mail,
+	Building2
 } from 'lucide-react';
 
 interface EvaluatorDecision {
 	evaluatorId: string;
 	evaluatorName: string;
+	evaluatorDepartment?: string;
+	evaluatorEmail?: string;
 	decision: string;
 	comments: string;
 	submittedDate: string;
@@ -93,6 +97,8 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			case 'Reject':
 				return 'text-red-600 bg-red-50 border-red-200';
+			case 'Pending':
+				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			default:
 				return 'text-slate-600 bg-slate-50 border-slate-200';
 		}
@@ -106,6 +112,8 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 				return <RotateCcw className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
 			case 'Reject':
 				return <XCircle className='w-4 h-4 sm:w-5 sm:h-5 text-red-600' />;
+			case 'Pending':
+				return <Clock className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
 			default:
 				return <FileText className='w-4 h-4 sm:w-5 sm:h-5 text-slate-600' />;
 		}
@@ -125,7 +133,7 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 					<div className="flex items-center gap-2 sm:gap-3">
 						{getDecisionIcon(decision.decision)}
 						<div>
-							<h2 className="text-lg sm:text-xl font-bold text-slate-800">Evaluator Assessment (Admin View)</h2>
+							<h2 className="text-lg sm:text-xl font-bold text-slate-800">Evaluator Assessment</h2>
 							<p className="text-xs sm:text-sm text-slate-600">Detailed review and comments</p>
 						</div>
 					</div>
@@ -157,16 +165,34 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										<label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
 											Evaluator
 										</label>
-										<div className="flex items-center gap-2 mt-1">
-											<User className="w-4 h-4 text-slate-400" />
-											<p className="text-sm font-medium text-slate-800">
-												{decision.evaluatorName}
-											</p>
+										<div className="flex flex-col mt-1">
+											<div className="flex items-center gap-2">
+												<User className="w-4 h-4 text-slate-400" />
+												<p className="text-sm font-medium text-slate-800">
+													{decision.evaluatorName}
+												</p>
+											</div>
+											{decision.evaluatorDepartment && (
+												<div className="flex items-center gap-2 ml-6 mt-0.5">
+													<Building2 className="w-3.5 h-3.5 text-slate-400" />
+													<p className="text-xs text-slate-500">
+														{decision.evaluatorDepartment}
+													</p>
+												</div>
+											)}
+											{decision.evaluatorEmail && (
+												<div className="flex items-center gap-2 ml-6 mt-0.5">
+													<Mail className="w-3.5 h-3.5 text-slate-400" />
+													<p className="text-xs text-slate-400">
+														{decision.evaluatorEmail}
+													</p>
+												</div>
+											)}
 										</div>
 									</div>
 								</div>
 							</div>
-							
+
 							{/* Proposal ID and Date/Time */}
 							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 								<div>
@@ -177,7 +203,7 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 								</div>
 								<div>
 									<label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-										Evaluation Date & Time
+										Evaluation Date &amp; Time
 									</label>
 									<div className="flex items-center gap-3 mt-1 text-sm text-slate-600">
 										<div className="flex items-center gap-2">
@@ -215,16 +241,14 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                      className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.timeline}/5
-                                                                                     </span>											
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.objectives}/5
+												</span>
 											</span>
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.objectives)}`}>
-										{(RATING_CRITERIA.objectives.descriptions as any)[decision.ratings.objectives]}
+										{(RATING_CRITERIA.objectives.descriptions as Record<number, string>)[decision.ratings.objectives]}
 									</div>
 								</div>
 
@@ -236,16 +260,14 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                      className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.timeline}/5
-                                                                                     </span>											
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.methodology}/5
+												</span>
 											</span>
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.methodology)}`}>
-										{(RATING_CRITERIA.methodology.descriptions as any)[decision.ratings.methodology]}
+										{(RATING_CRITERIA.methodology.descriptions as Record<number, string>)[decision.ratings.methodology]}
 									</div>
 								</div>
 
@@ -257,15 +279,14 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                      className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.timeline}/5
-                                                                             </span>											</span>
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.budget}/5
+												</span>
+											</span>
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
-										{(RATING_CRITERIA.budget.descriptions as any)[decision.ratings.budget]}
+										{(RATING_CRITERIA.budget.descriptions as Record<number, string>)[decision.ratings.budget]}
 									</div>
 								</div>
 
@@ -277,30 +298,28 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
-												 <span
-                                                                                      className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold"
-                                                                                     >
-                                                                                       {decision.ratings.timeline}/5
-                                                                                     </span>
+												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+													{decision.ratings.timeline}/5
+												</span>
 											</span>
 										</div>
 									</div>
 									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.timeline)}`}>
-										{(RATING_CRITERIA.timeline.descriptions as any)[decision.ratings.timeline]}
+										{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[decision.ratings.timeline]}
 									</div>
 								</div>
 							</div>
 						)}
 
 						{/* Comments */}
-                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                       <label className="block text-sm font-bold text-slate-900 mb-2">
-                                         Comments
-                                       </label>
-                                       <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
-                                         {decision.comments}
-                                       </div>
-                                     </div>
+						<div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+							<label className="block text-sm font-bold text-slate-900 mb-2">
+								Comments
+							</label>
+							<div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
+								{decision.comments}
+							</div>
+						</div>
 					</div>
 				</div>
 

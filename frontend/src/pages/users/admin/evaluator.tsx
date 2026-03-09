@@ -8,7 +8,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  ClipboardCheck,
+  Users,
   Tag
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -16,6 +16,7 @@ import Swal from 'sweetalert2';
 import EvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import { getProposals, getAssignmentTracker, handleExtensionRequest, forwardProposalToEvaluators, removeEvaluator } from '../../../services/proposal.api';
+import PageLoader from '../../../components/shared/PageLoader';
 
 // --- INTERFACES ---
 
@@ -74,6 +75,7 @@ export const EvaluatorPage: React.FC = () => {
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   // --- DATA FETCHING ---
   const fetchData = async () => {
@@ -251,6 +253,7 @@ export const EvaluatorPage: React.FC = () => {
 
   const handleEdit = async (id: string) => {
     setShowModal(true);
+    setEditLoading(true);
     setCurrentEvaluators([]);
 
     try {
@@ -266,6 +269,7 @@ export const EvaluatorPage: React.FC = () => {
       const relevantItems = data;
 
       if (relevantItems.length === 0) {
+        setEditLoading(false);
         return;
       }
 
@@ -319,6 +323,7 @@ export const EvaluatorPage: React.FC = () => {
       }
 
       setCurrentEvaluators(modalEvaluators);
+      setEditLoading(false);
 
     } catch (e) {
       console.error("Failed to load details", e);
@@ -328,6 +333,7 @@ export const EvaluatorPage: React.FC = () => {
         text: 'Failed to load evaluator details.'
       });
       setShowModal(false);
+      setEditLoading(false);
     }
   };
 
@@ -426,11 +432,8 @@ export const EvaluatorPage: React.FC = () => {
 
   if (loading && assignments.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading assignments...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading assignments..." />
       </div>
     );
   }
@@ -462,7 +465,7 @@ export const EvaluatorPage: React.FC = () => {
                 </p>
              </div>
              <div className="p-2 rounded-xl">
-               <ClipboardCheck className="w-6 h-6 text-purple-600" />
+               <Users className="w-6 h-6 text-purple-600" />
              </div>
            </div>
 
@@ -603,6 +606,7 @@ export const EvaluatorPage: React.FC = () => {
         onReassign={handleReassignEvaluators}
         onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
+        isLoading={editLoading}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { ActivityApi, type ActivityLog, type ActivityLogsFilters } from "../../../services/admin/ActivityApi";
+import PageLoader from "../../../components/shared/PageLoader";
 
 const ACTION_LABELS: Record<string, string> = {
   // Proposal
@@ -136,6 +137,14 @@ export default function Activity() {
       )
     : logs;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <PageLoader text="Loading logs..." />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
       {/* Header */}
@@ -219,12 +228,7 @@ export default function Activity() {
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
-            <span className="ml-3 text-gray-500">Loading logs...</span>
-          </div>
-        ) : filteredLogs.length === 0 ? (
+        {filteredLogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
             <ScrollText className="w-10 h-10 mb-3" />
             <p className="text-sm">No activity logs found</p>

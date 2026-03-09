@@ -8,7 +8,9 @@ import {
 	Clock,
 	Calendar,
 	X,
-	User
+	User,
+	Building2,
+	Mail
 } from 'lucide-react';
 
 interface EvaluatorDecision {
@@ -171,14 +173,20 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 												</p>
 											</div>
 											{decision.evaluatorDepartment && (
-												<p className="text-xs text-slate-500 ml-6">
-													{decision.evaluatorDepartment}
-												</p>
+												<div className="flex items-center gap-2 ml-6 mt-0.5">
+													<Building2 className="w-3.5 h-3.5 text-slate-400" />
+													<p className="text-xs text-slate-500">
+														{decision.evaluatorDepartment}
+													</p>
+												</div>
 											)}
 											{decision.evaluatorEmail && (
-												<p className="text-xs text-slate-400 ml-6">
-													{decision.evaluatorEmail}
-												</p>
+												<div className="flex items-center gap-2 ml-6 mt-0.5">
+													<Mail className="w-3.5 h-3.5 text-slate-400" />
+													<p className="text-xs text-slate-400">
+														{decision.evaluatorEmail}
+													</p>
+												</div>
 											)}
 										</div>
 									</div>

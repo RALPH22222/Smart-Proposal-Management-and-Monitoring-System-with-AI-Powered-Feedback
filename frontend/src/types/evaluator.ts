@@ -62,6 +62,7 @@ export interface EndorsementProposal {
 	id: string;
 	title: string;
 	submittedBy: string;
+	proponentEmail?: string;
 	evaluatorDecisions: EvaluatorDecision[];
 	overallRecommendation: 'Approve' | 'Revise' | 'Reject' | 'Pending';
 	readyForEndorsement: boolean;
@@ -72,6 +73,8 @@ export interface EndorsementProposal {
 export interface EvaluatorDecision {
 	evaluatorId: string;
 	evaluatorName: string;
+	evaluatorDepartment?: string;
+	evaluatorEmail?: string;
 	decision: 'Approve' | 'Revise' | 'Reject' | 'Pending';
 	comments: string;
 	submittedDate: string;

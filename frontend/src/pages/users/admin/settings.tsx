@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useLoading } from '../../../contexts/LoadingContext';
+import React, { useState } from 'react';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -35,16 +34,8 @@ const Card: React.FC<{ title?: string } & { children?: React.ReactNode }> = ({
 );
 
 const AdminSettings: React.FC = () => {
-  const { setLoading } = useLoading();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]['id']>('profile');
-
-  // Simulate page-loading animation on mount and tab switch
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => setLoading(false), 350);
-    return () => clearTimeout(t);
-  }, [activeTab, setLoading]);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden">

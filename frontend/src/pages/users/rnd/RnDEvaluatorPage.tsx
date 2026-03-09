@@ -8,7 +8,6 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  ClipboardCheck,
   Tag,
   Users,
 } from "lucide-react";
@@ -17,6 +16,7 @@ import Swal from "sweetalert2";
 import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
+import PageLoader from '../../../components/shared/PageLoader';
 
 // --- INTERFACES ---
 
@@ -74,8 +74,8 @@ export const RnDEvaluatorPage: React.FC = () => {
   const itemsPerPage = 5;
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [editLoading, setEditLoading] = useState(false); // separate flag for modal-open action
+  const [loading, setLoading] = useState(true);
+  const [editLoading, setEditLoading] = useState(false);
 
   // --- DATA FETCHING ---
   const fetchData = async () => {
@@ -270,10 +270,10 @@ export const RnDEvaluatorPage: React.FC = () => {
   };
 
   const handleEdit = async (id: string) => {
-    // Immediate feedback: Open modal and show loading state
+    // Open modal immediately, show spinner only inside the table
     setShowModal(true);
     setEditLoading(true);
-    setCurrentEvaluators([]); // Clear previous data to show loader effectively
+    setCurrentEvaluators([]);
 
     try {
       const proposalIdNumeric = parseInt(id);
@@ -290,7 +290,6 @@ export const RnDEvaluatorPage: React.FC = () => {
       const relevantItems = data; // Data is already filtered by API now!
 
       if (relevantItems.length === 0) {
-        // If no data, stop loading but keep modal open (empty state)
         setEditLoading(false);
         return;
       }
@@ -352,12 +351,8 @@ export const RnDEvaluatorPage: React.FC = () => {
 
     } catch (e) {
       console.error("Failed to load details", e);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to load evaluator details.'
-      });
-      setShowModal(false); // Close if error
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load evaluator details.' });
+      setShowModal(false);
     } finally {
       setEditLoading(false);
     }
@@ -476,6 +471,10 @@ export const RnDEvaluatorPage: React.FC = () => {
     return colors[index];
   };
 
+  if (loading) {
+    return <PageLoader text="Loading assignments..." />;
+  }
+
   return (
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
@@ -503,7 +502,7 @@ export const RnDEvaluatorPage: React.FC = () => {
               </p>
             </div>
             <div className="p-2 rounded-xl">
-              <ClipboardCheck className="w-6 h-6 text-purple-600" />
+              <Users className="w-6 h-6 text-purple-600" />
             </div>
           </div>
 
@@ -567,12 +566,8 @@ export const RnDEvaluatorPage: React.FC = () => {
             </h3>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex justify-center items-center h-48">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700"></div>
-              </div>
-            ) : (
-              paginatedAssignments.map((assignment) => (
+            <>
+              {paginatedAssignments.map((assignment) => (
                 <article
                   key={assignment.id}
                   className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100"
@@ -615,21 +610,21 @@ export const RnDEvaluatorPage: React.FC = () => {
                     </div>
                   </div>
                 </article>
-              ))
-            )}
-            {!loading && paginatedAssignments.length === 0 && (
-              <div className="text-center py-12 px-4 mt-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="w-8 h-8 text-slate-400" />
+              ))}
+              {paginatedAssignments.length === 0 && (
+                <div className="text-center py-12 px-4 mt-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                    No assignments found
+                  </h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">
+                    Evaluator assignments will appear here once proposals are forwarded for evaluation.
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No assignments found
-                </h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  Evaluator assignments will appear here once proposals are forwarded for evaluation.
-                </p>
-              </div>
-            )}
+              )}
+            </>
           </div>
 
           {/* Pagination Footer */}
@@ -678,3 +673,4 @@ export const RnDEvaluatorPage: React.FC = () => {
 };
 
 export default RnDEvaluatorPage;
+

@@ -5,11 +5,14 @@ import {
   RotateCcw,
   FileText,
   User,
+  Users,
   MessageSquare,
   ChevronLeft,
   ChevronRight,
   Gavel,
-  Tag
+  Building2,
+  Signature,
+  Clock
 } from 'lucide-react';
 import { 
   type EndorsementProposal, 
@@ -18,9 +21,10 @@ import {
 } from '../../../types/evaluator';
 import AdminEvaluatorDecisionModal from '../../../components/admin-component/AdminEvaluatorDecisionModal';
 import AdminEndorsementDecisionModal from '../../../components/admin-component/AdminEndorsementDecisionModal';
-import { endorseProposal, requestRevision, rejectProposal } from '../../../services/proposal.api';
+import { endorseProposal, requestRevision, rejectProposal, fetchUsersByRole } from '../../../services/proposal.api';
 import { useAuthContext } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
+import PageLoader from '../../../components/shared/PageLoader';
 
 const AdminEndorsementPage: React.FC = () => {
   const { user } = useAuthContext();
@@ -40,6 +44,9 @@ const AdminEndorsementPage: React.FC = () => {
     title: string;
     id: string;
     budget?: BudgetRow[];
+    department?: string;
+    email?: string;
+    submittedBy?: string;
   } | null>(null);
 
   const itemsPerPage = 5;
@@ -58,7 +65,21 @@ const AdminEndorsementPage: React.FC = () => {
       
       const allProposals = await adminProposalApi.fetchProposals();
 
-      // 2. Map and fetch assignments for each
+      // 2. Fetch all evaluator users once (already deployed endpoint) for email lookup
+      let evaluatorUsersMap: Map<string, { email: string; department: string }> = new Map();
+      try {
+        const evaluatorUsers = await fetchUsersByRole('evaluator');
+        evaluatorUsers.forEach((u) => {
+          evaluatorUsersMap.set(String(u.id), {
+            email: u.email || '',
+            department: u.departments?.[0]?.name || ''
+          });
+        });
+      } catch (e) {
+        console.warn('Could not fetch evaluator users for email lookup', e);
+      }
+
+      // 3. Map and fetch assignments for each
       const mappedProposals: EndorsementProposal[] = [];
 
       for (const p of allProposals) {
@@ -79,9 +100,13 @@ const AdminEndorsementPage: React.FC = () => {
                 decisionStatus = "Reject";
               }
               
+              const evalId = String(typedD.evaluator_id?.id);
+              const userInfo = evaluatorUsersMap.get(evalId);
               return {
-                evaluatorId: String(typedD.evaluator_id?.id),
+                evaluatorId: evalId,
                 evaluatorName: `${typedD.evaluator_id?.first_name || ''} ${typedD.evaluator_id?.last_name || ''}`.trim(),
+                evaluatorDepartment: userInfo?.department || typedD.evaluator_id?.department_id?.name || "N/A",
+                evaluatorEmail: userInfo?.email || typedD.evaluator_id?.email || "N/A",
                 decision: decisionStatus,
                 comments: typedD.remarks || "No detailed comment available in tracker.",
                 submittedDate: typedD.created_at || new Date().toISOString(),
@@ -137,11 +162,12 @@ const AdminEndorsementPage: React.FC = () => {
             id: p.id,
             title: p.title,
             submittedBy: p.submittedBy,
+            proponentEmail: p.email || '',
             budget: budgetRows,
             evaluatorDecisions: uniqueEvaluators,
             overallRecommendation,
             readyForEndorsement,
-            department: p.department || 'N/A'
+            department: p.rdStation || 'N/A'
           });
         }
       }
@@ -155,9 +181,15 @@ const AdminEndorsementPage: React.FC = () => {
   };
 
   // --- Handlers for Evaluator Modal ---
-  const handleOpenEvaluatorModal = (decision: EvaluatorDecision, proposalTitle: string, proposalId: string) => {
+  const handleOpenEvaluatorModal = (decision: EvaluatorDecision, proposalTitle: string, proposalId: string, department?: string, email?: string, submittedBy?: string) => {
     setSelectedDecision(decision);
-    setSelectedProposal({ title: proposalTitle, id: proposalId });
+    setSelectedProposal({ 
+      title: proposalTitle, 
+      id: proposalId, 
+      department: department, 
+      email: email, 
+      submittedBy: submittedBy 
+    });
     setIsEvaluatorModalOpen(true);
   };
 
@@ -167,11 +199,13 @@ const AdminEndorsementPage: React.FC = () => {
   };
 
   // --- Handlers for Decision Modal ---
-  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[]) => {
+  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[], department?: string, email?: string) => {
     setSelectedProposal({ 
       title: proposalTitle, 
       id: proposalId,
-      budget: budgetData
+      budget: budgetData,
+      department: department,
+      email: email
     });
     setIsDecisionModalOpen(true);
   };
@@ -237,57 +271,70 @@ const AdminEndorsementPage: React.FC = () => {
 
   // --- UI Helpers ---
   const getDecisionIcon = (decision: string) => {
-    switch (decision) {
-      case 'Approve':
+    switch (decision?.trim().toLowerCase()) {
+      case 'approve':
+      case 'approved':
         return <CheckCircle className='w-4 h-4 text-emerald-600' />;
-      case 'Revise':
+      case 'revise':
+      case 'revised':
         return <RotateCcw className='w-4 h-4 text-amber-600' />;
-      case 'Reject':
+      case 'reject':
+      case 'rejected':
         return <XCircle className='w-4 h-4 text-red-600' />;
+      case 'pending':
+        return <Clock className='w-4 h-4 text-yellow-600' />;
       default:
         return <FileText className='w-4 h-4 text-slate-600' />;
     }
   };
 
   const getDecisionColor = (decision: string) => {
-    switch (decision) {
-      case 'Approve':
+    switch (decision?.trim().toLowerCase()) {
+      case 'approve':
+      case 'approved':
         return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      case 'Revise':
+      case 'revise':
+      case 'revised':
         return 'text-amber-600 bg-amber-50 border-amber-200';
-      case 'Reject':
+      case 'reject':
+      case 'rejected':
         return 'text-red-600 bg-red-50 border-red-200';
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       default:
         return 'text-slate-600 bg-slate-50 border-slate-200';
     }
   };
-
-  const getOverallRecommendationBadge = (recommendation: string) => {
-    const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
-    switch (recommendation) {
-      case 'Approve':
-        return `${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`;
-      case 'Revise':
-        return `${baseClasses} text-amber-600 bg-amber-50 border-amber-200`;
-      case 'Reject':
-        return `${baseClasses} text-red-600 bg-red-50 border-red-200`;
-      default:
-        return `${baseClasses} text-slate-600 bg-slate-50 border-slate-200`;
-    }
-  };
-
   // Pagination
   const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
 
+  // Helper for Random Department Colors
+  const getDepartmentColor = (departmentName: string) => {
+    let hash = 0;
+    for (let i = 0; i < departmentName.length; i++) {
+      hash = departmentName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading admin endorsements...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading admin endorsements..." />
       </div>
     );
   }
@@ -307,7 +354,9 @@ const AdminEndorsementPage: React.FC = () => {
       <AdminEndorsementDecisionModal
         isOpen={isDecisionModalOpen}
         onClose={handleCloseDecisionModal}
-        proposalTitle={selectedProposal?.title || ''}
+        proposalTitle={selectedProposal?.title || ""}
+        department={selectedProposal?.department}
+        email={selectedProposal?.email}
         budgetData={selectedProposal?.budget}
         onSubmit={handleDecisionSubmit}
       />
@@ -327,21 +376,21 @@ const AdminEndorsementPage: React.FC = () => {
           </div>
         </header>
 
-         {/* Stats Cards - STRICTLY MATCHING R&D LAYOUT */}
+        {/* Stats Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-400 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Ready for Endorsement</p>
-                <p className="text-xl font-bold text-blue-600 tabular-nums">
+                <p className="text-xl font-bold text-blue-800 tabular-nums">
                   {endorsementProposals.filter((p) => p.readyForEndorsement).length}
                 </p>
               </div>
-              <CheckCircle className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              <Signature className="w-6 h-6 text-blue-800" />
             </div>
           </div>
 
-          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Pending Evaluators</p>
@@ -349,11 +398,11 @@ const AdminEndorsementPage: React.FC = () => {
                   {endorsementProposals.filter((p) => !p.readyForEndorsement).length}
                 </p>
               </div>
-              <User className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform duration-300" />
+              <Users className="w-6 h-6 text-amber-500" />
             </div>
           </div>
 
-          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Approved</p>
@@ -361,11 +410,11 @@ const AdminEndorsementPage: React.FC = () => {
                   {endorsementProposals.filter((p) => p.overallRecommendation === 'Approve').length}
                 </p>
               </div>
-              <CheckCircle className="w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform duration-300" />
+              <CheckCircle className="w-6 h-6 text-emerald-500" />
             </div>
           </div>
 
-          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Need Revision</p>
@@ -373,7 +422,7 @@ const AdminEndorsementPage: React.FC = () => {
                   {endorsementProposals.filter((p) => p.overallRecommendation === 'Revise').length}
                 </p>
               </div>
-              <RotateCcw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+              <RotateCcw className="w-6 h-6 text-orange-500" />
             </div>
           </div>
         </section>
@@ -397,7 +446,7 @@ const AdminEndorsementPage: React.FC = () => {
             {endorsementProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
+                  <Gavel className="w-8 h-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">
                   No proposals ready for endorsement
@@ -412,36 +461,37 @@ const AdminEndorsementPage: React.FC = () => {
                   <article
                     key={proposal.id}
                     className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
+                    aria-labelledby={`proposal-title-${proposal.id}`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3 mb-3">
-                          <h2 className="text-base font-semibold text-slate-800 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
+                          <h2
+                            id={`proposal-title-${proposal.id}`}
+                            className="text-base font-semibold text-slate-800 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
+                          >
                             {proposal.title}
                           </h2>
-                          <span className={getOverallRecommendationBadge(proposal.overallRecommendation)}>
-                            {proposal.overallRecommendation}
-                          </span>
-                          {!proposal.readyForEndorsement && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50">
-                              Pending Evaluators
+                          {!proposal.readyForEndorsement && proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
+                              {proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length} Pending Evaluator{proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length !== 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
                           <div className="flex items-center gap-1.5">
-                            <User className="w-3 h-3" />
+                            <User className="w-3 h-3" aria-hidden="true" />
                             <span>By: {proposal.submittedBy}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <FileText className="w-3 h-3" />
+                            <FileText className="w-3 h-3" aria-hidden="true" />
                             <span>ID: {proposal.id}</span>
                           </div>
-                          {/* Project Type Badge */}
-                          {proposal.department && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-slate-100 text-slate-700 border-slate-200">
-                              <Tag className="w-3 h-3" />
+                          {/* Department Badge */}
+                          {proposal.department && proposal.department !== "N/A" && (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getDepartmentColor(proposal.department)}`}>
+                              <Building2 className="w-3 h-3" />
                               {proposal.department}
                             </span>
                           )}
@@ -457,7 +507,7 @@ const AdminEndorsementPage: React.FC = () => {
                               <div
                                 key={decision.evaluatorId}
                                 className={`border rounded-lg p-3 ${getDecisionColor(decision.decision)} cursor-pointer hover:shadow-md transition-all duration-200`}
-                                onClick={() => handleOpenEvaluatorModal(decision, proposal.title, proposal.id)}
+                                onClick={() => handleOpenEvaluatorModal(decision, proposal.title, proposal.id, proposal.department, proposal.proponentEmail, proposal.submittedBy)}
                               >
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center">
@@ -511,7 +561,7 @@ const AdminEndorsementPage: React.FC = () => {
                       {proposal.readyForEndorsement && (
                         <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget)}
+                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail)}
                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3 h-3" />

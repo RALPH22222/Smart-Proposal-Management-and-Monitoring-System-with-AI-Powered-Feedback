@@ -4,8 +4,8 @@ import {
   X,
   LayoutDashboard,
   FileText,
-  CheckCircle,
-  RefreshCw,
+  FileCheck,
+  FileClock,
   Settings,
   LogOut,
   Bell,
@@ -43,17 +43,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
     {
       id: "proposals",
       label: "Proposals",
-      icon: FileText
+      icon: FileText,
     },
     {
       id: "review",
       label: "Under Review",
-      icon: RefreshCw
+      icon: FileClock,
     },
     {
       id: "reviewed",
       label: "Completed Reviews",
-      icon: CheckCircle,
+      icon: FileCheck,
     },
     {
       id: "notifications",

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
 import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
@@ -311,7 +311,7 @@ const Profile: React.FC = () => {
     if (["revise", "revision", "revision_rnd", "revision_funding"].includes(s)) return <RefreshCw className="w-3 h-3" />;
     if (s === "revised_proposal") return <Edit className="w-3 h-3" />;
     if (s === "review_rnd" || s === "r&d evaluation") return <Microscope className="w-3 h-3" />;
-    if (s === "endorsed_for_funding") return <CheckCircle2 className="w-3 h-3" />;
+    if (s === "endorsed_for_funding") return <Signature className="w-3 h-3" />;
     if (s === "funded") return <CheckCircle className="w-3 h-3" />;
     if (["rejected_rnd", "rejected_funding"].includes(s)) return <XCircle className="w-3 h-3" />;
     if (["under_evaluation", "evaluators assessment"].includes(s)) return <FileCheck className="w-3 h-3" />;
@@ -1005,10 +1005,11 @@ const Profile: React.FC = () => {
                     <option value="Pending">Pending</option>
                     <option value="Under R&D Evaluation">Under R&D Evaluation</option>
                     <option value="Under Evaluators Assessment">Under Evaluators Assessment</option>
-                    <option value="Revision Required">Revision Required</option>
                     <option value="Endorsed for Funding">Endorsed for Funding</option>
                     <option value="Funded">Funded</option>
+                    <option value="Revision Required">Revision Required</option>
                     <option value="Rejected">Rejected</option>
+                    <option value="Revised Proposal">Revised Proposal</option>
                   </select>
                 </div>
               </div>

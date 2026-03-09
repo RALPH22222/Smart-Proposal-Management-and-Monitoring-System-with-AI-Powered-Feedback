@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
-import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, ClipboardPenLine, ScanSearch} from "lucide-react";
+import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, FileClock, ScanSearch} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
+import PageLoader from "../../../components/shared/PageLoader";
 
 export default function EndorsedProposals() {
   const [search, setSearch] = useState("");
@@ -199,6 +200,8 @@ export default function EndorsedProposals() {
 
   const proposal = endorsedProposals.find((p) => p.id === selectedProposal);
 
+  if (loading) return <PageLoader text="Loading under review proposals..." />;
+
   return (
     <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
       {/* Header */}
@@ -243,8 +246,8 @@ export default function EndorsedProposals() {
         <div className="p-4 border-b border-slate-200 bg-slate-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <ClipboardPenLine className="w-5 h-5 text-[#C8102E]" />
-              Review Proposals
+              <FileClock className="w-5 h-5 text-[#C8102E]" />
+              Under Review Proposals
             </h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle className="w-4 h-4" />
@@ -254,11 +257,7 @@ export default function EndorsedProposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
-            </div>
-          ) : paginatedProposals.length > 0 ? (
+          {paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 group">

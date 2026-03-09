@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCw,
   Clock,
+  Signature,
   Briefcase,
   FileCheck,
   Timer,
@@ -233,11 +234,11 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
     // Green
     if (["endorsed", "endorsed_for_funding", "endorsed for funding"].includes(s))
       return {
-        bg: "bg-green-100",
-        border: "border-green-200",
-        text: "text-green-800",
-        icon: <CheckCircle className="w-4 h-4 text-green-600" />,
-        label: "Endorsed for funding",
+        bg: "bg-blue-100",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: <Signature className="w-4 h-4 text-blue-800" />,
+        label: "Endorsed for Funding",
       };
 
     // Emerald

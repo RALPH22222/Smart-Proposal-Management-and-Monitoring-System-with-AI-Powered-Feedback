@@ -14,7 +14,6 @@ import {
   User,
   Microscope,
   Tags,
-  CheckCheckIcon,
   BookOpen,
   Upload,
   Download,
@@ -33,6 +32,7 @@ import {
   Globe,
   AlertCircle,
   Loader,
+  Signature,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
@@ -557,13 +557,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
   const getStatusTheme = (status: string | undefined) => {
     const s = (status || "").toLowerCase();
-    if (["endorsed"].includes(s))
+    if (["endorsed_for_funding", "endorsed"].includes(s))
       return {
-        bg: "bg-green-200",
-        border: "border-green-200",
-        text: "text-green-800",
-        icon: <CheckCheckIcon className="w-5 h-5 text-green-600" />,
-        label: "Endorsed for funding",
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-800",
+        icon: <Signature className="w-5 h-5 text-blue-600" />,
+        label: "Endorsed for Funding",
       };
     if (["funded", "accepted", "approved"].includes(s))
       return {
@@ -811,6 +811,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </div>
                 </div>
                 <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-40 pointer-events-none" />
+              </div>
+            )}
+
+            {(['endorsed_for_funding', 'endorsed'].includes(proposal.status?.toLowerCase() || '')) && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-800 mb-1">
+                      Awaiting Committee Decision
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Your project proposal has been successfully endorsed for funding. It is now awaiting the final funding approval decision from the RDEC Committee.
+                    </p>
+                  </div>
+                </div>
+                <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0" />
               </div>
             )}
 

@@ -63,11 +63,18 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
   return (
     <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Edit2 className="w-5 h-5 text-[#C8102E]" />
-            Edit Account
-          </h2>
+        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-[#C8102E]" />
+              Edit Account
+            </h2>
+            {user.created_at && (
+              <p className="text-sm text-gray-500 mt-1 pl-7">
+                Created on: {new Date(user.created_at).toLocaleDateString()} at {new Date(user.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-5 h-5 text-gray-500" />
           </button>

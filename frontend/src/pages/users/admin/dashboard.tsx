@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuthContext } from '../../../context/AuthContext';
-import { ActivityApi } from '../../../services/admin/ActivityApi';
 import type { DashboardStats } from '../../../services/admin/ActivityApi';
 
-type ExtendedDashboardStats = DashboardStats & {
-  proposals: DashboardStats['proposals'] & {
-    monthly_submissions?: { month: string; count: number }[];
-  }
-};
+
 import {
   Users,
   FileText,
@@ -28,14 +23,24 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
 } from 'recharts';
-import { getProposals } from '../../../services/proposal.api';
+import PageLoader from '../../../components/shared/PageLoader';
 
-export default function DashboardAdmin() {
+type ExtendedDashboardStats = DashboardStats & {
+  proposals: DashboardStats['proposals'] & {
+    monthly_submissions?: { month: string; count: number }[];
+  }
+};
+
+interface DashboardProps {
+  stats: ExtendedDashboardStats | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => Promise<void>;
+}
+
+export default function DashboardAdmin({ stats, loading, error, onRefresh }: DashboardProps) {
   const { user } = useAuthContext();
   const [isReturningUser] = useState(() => localStorage.getItem('admin_welcome_seen') === 'true');
-  const [stats, setStats] = useState<ExtendedDashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
@@ -44,55 +49,10 @@ export default function DashboardAdmin() {
     }
   }, [isReturningUser]);
 
-  const fetchStats = async (isManualRefresh = false) => {
-    if (isManualRefresh) setIsRefreshing(true);
-    try {
-      const [statsData, proposalsData] = await Promise.all([
-        ActivityApi.getDashboardStats(),
-        getProposals()
-      ]);
-
-      const monthCounts: Record<string, number> = {};
-      proposalsData.forEach((p: any) => {
-        const dateStr = p.created_at || (p.proposal_id && p.proposal_id.created_at);
-        if (dateStr) {
-          const date = new Date(dateStr);
-          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-          monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
-        }
-      });
-
-      const monthly_submissions = Object.entries(monthCounts)
-        .map(([month, count]) => ({ month, count }))
-        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
-
-      if (monthly_submissions.length === 0) {
-        const today = new Date();
-        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        monthly_submissions.push({ month: monthYear, count: 0 });
-      }
-
-      const statsWithMonthly = {
-        ...statsData,
-        proposals: { ...statsData.proposals, monthly_submissions }
-      };
-
-      setStats(statsWithMonthly as any);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard stats');
-    } finally {
-      setLoading(false);
-      if (isManualRefresh) setIsRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
   const handleRefresh = async () => {
-    await fetchStats(true);
+    setIsRefreshing(true);
+    await onRefresh();
+    setIsRefreshing(false);
   };
 
   const topCards = stats
@@ -167,11 +127,8 @@ export default function DashboardAdmin() {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading dashboard..." />
       </div>
     );
   }

@@ -8,10 +8,11 @@ import {
   ChevronRight,
   CheckCircle,
   User,
-  ClipboardCheck,
+  FileCheck,
   Tag,
 } from "lucide-react";
 import ProposalDetailsModal from "../../../components/evaluator-component/ProposalDetailsModal";
+import PageLoader from "../../../components/shared/PageLoader";
 
 export default function ReviewedProposals() {
   const [search, setSearch] = useState("");
@@ -202,6 +203,8 @@ export default function ReviewedProposals() {
 
   const proposal = reviewedProposals.find((p) => p.id === selectedProposal);
 
+  if (loading) return <PageLoader text="Loading reviewed proposals..." />;
+
   return (
     <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
       {/* Header */}
@@ -250,8 +253,8 @@ export default function ReviewedProposals() {
         <div className="p-4 border-b border-slate-200 bg-slate-50">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <ClipboardCheck className="w-5 h-5 text-[#C8102E]" />
-              Reviewed Proposals
+              <FileCheck className="w-5 h-5 text-[#C8102E]" />
+              Completed Reviews Proposal
             </h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <CheckCircle className="w-4 h-4" />
@@ -261,11 +264,7 @@ export default function ReviewedProposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
-            </div>
-          ) : paginatedProposals.length > 0 ? (
+          {paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article

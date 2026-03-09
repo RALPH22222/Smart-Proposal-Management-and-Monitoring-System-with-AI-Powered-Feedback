@@ -8,7 +8,7 @@ import {
 import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
-  constructor(private db: SupabaseClient) { }
+  constructor(private db: SupabaseClient) {}
 
   async createAccount(input: CreateAccountInput) {
     const { email, password, roles, first_name, last_name, middle_ini } = input;
@@ -48,7 +48,7 @@ export class AdminService {
     let query = this.db
       .from("users")
       .select(
-        "id, first_name, last_name, middle_ini, email, roles, is_disabled, department_id, photo_profile_url, profile_completed, departments(name)",
+        "id, first_name, last_name, middle_ini, email, roles, is_disabled, department_id, photo_profile_url, profile_completed, created_at, departments(name)",
       )
       .order("created_at", { ascending: false });
 

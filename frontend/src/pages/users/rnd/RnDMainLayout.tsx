@@ -4,7 +4,7 @@ import Sidebar from '../../../components/rnd-component/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndProposalPage';
 import Monitoring from './RnDMonitoringPage';
-import Settings from './RndSettings'
+import Settings from './RndSettings';
 import {
 	type Statistics,
 	type Activity
@@ -28,27 +28,22 @@ const MainLayout: React.FC = () => {
 	});
 
 	const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		setLoading(true);
-		const timer = setTimeout(() => {
-			setLoading(false);
-		}, 1000);
-		return () => clearTimeout(timer);
-	}, [currentPage]);
+	const [dashboardLoading, setDashboardLoading] = useState(true);
 
 	useEffect(() => {
 		loadData();
 	}, []);
 
 	const loadData = async () => {
+		setDashboardLoading(true);
 		try {
 			const { statistics: statsData, recentActivity: activityData } = await proposalApi.fetchDashboardData();
 			setStatistics(statsData);
 			setRecentActivity(activityData);
 		} catch (error) {
 			console.error('Error loading data:', error);
+		} finally {
+			setDashboardLoading(false);
 		}
 	};
 
@@ -60,7 +55,7 @@ const MainLayout: React.FC = () => {
 		switch (currentPage) {
 			case 'dashboard':
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} />
+					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} isLoading={dashboardLoading} />
 				);
 			case 'proposals':
 				return <ReviewPage />;
@@ -76,7 +71,7 @@ const MainLayout: React.FC = () => {
 				return <Settings />;
 			default:
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} />
+					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} isLoading={dashboardLoading} />
 				);
 		}
 	};
@@ -94,16 +89,7 @@ const MainLayout: React.FC = () => {
 
 			{/* Main Content */}
 			<div className='flex-1 bg-gray-50 overflow-y-auto'>
-				{loading ? (
-					<div className="flex h-full items-center justify-center">
-						<div className="text-center">
-							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-							<p className="mt-4 text-gray-600">Loading {currentPage.replace('-', ' ')}...</p>
-						</div>
-					</div>
-				) : (
-					renderCurrentPage()
-				)}
+				{renderCurrentPage()}
 			</div>
 		</div>
 	);

@@ -20,6 +20,7 @@ import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../ser
 import Swal from "sweetalert2";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
+import PageLoader from "../../../components/shared/PageLoader";
 
 export default function Proposals() {
   const [search, setSearch] = useState("");
@@ -390,6 +391,8 @@ export default function Proposals() {
   const proposal = proposals.find((p) => p.id === selectedProposal);
   const evaluationProposal = proposals.find((p) => p.id === proposalToEvaluate);
 
+  if (loading) return <PageLoader text="Loading proposals..." />;
+
   return (
     <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
       {/* Header */}
@@ -466,11 +469,7 @@ export default function Proposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
-            </div>
-          ) : paginatedProposals.length > 0 ? (
+          {paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article

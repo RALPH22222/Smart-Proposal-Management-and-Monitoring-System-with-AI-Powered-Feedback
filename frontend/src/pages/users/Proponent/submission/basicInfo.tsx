@@ -496,8 +496,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       const availableTagNames = tagsList.map(t => t.name);
       const generatedTagNames = await generateTags(formData.project_title, availableTagNames);
 
-      let newSelectedTags: string[] = [];
-      let newTagIds: number[] = [];
+      const newSelectedTags: string[] = [];
+      const newTagIds: number[] = [];
 
       for (const tg of generatedTagNames) {
         if (newSelectedTags.length >= 4) break;

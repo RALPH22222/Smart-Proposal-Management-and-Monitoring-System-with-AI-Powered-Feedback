@@ -7,7 +7,9 @@ import {
   RotateCcw,
   Plus,
   Trash2,
-  AlertTriangle // Added for confirmation warning
+  AlertTriangle, // Added for confirmation warning
+  Building2,
+  Mail
 } from "lucide-react";
 import type { BudgetRow } from "../../types/evaluator";
 
@@ -17,6 +19,8 @@ interface DecisionModalProps {
   isOpen: boolean;
   onClose: () => void;
   proposalTitle: string;
+  department?: string;
+  email?: string;
   budgetData?: BudgetRow[]; // Added optional budget data
   onSubmit: (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => void;
 }
@@ -56,6 +60,8 @@ export default function EndorsementDecisionModal({
   isOpen,
   onClose,
   proposalTitle,
+  department,
+  email,
   budgetData = [], // Default to empty array if not provided
   onSubmit,
 }: DecisionModalProps) {
@@ -202,10 +208,24 @@ export default function EndorsementDecisionModal({
             <ClipboardEdit className="w-5 h-5 text-[#C8102E]" />
             Manage Proposal
           </h3>
-          <div className="flex justify-between items-end mt-1">
-            <p className="text-sm text-slate-500 line-clamp-1 max-w-[70%]">
-              {proposalTitle}
-            </p>
+          <div className="flex flex-col mt-2 gap-2 text-sm text-slate-500">
+             <p className="line-clamp-2 text-slate-700 font-medium">
+               {proposalTitle}
+             </p>
+             <div className="flex flex-wrap items-center gap-4 mt-1">
+               {department && department !== "N/A" && (
+                 <div className="flex items-center gap-1.5">
+                   <Building2 className="w-4 h-4 text-slate-400" />
+                   <span>{department}</span>
+                 </div>
+               )}
+               {email && (
+                 <div className="flex items-center gap-1.5">
+                   <Mail className="w-4 h-4 text-slate-400" />
+                   <span>{email}</span>
+                 </div>
+               )}
+             </div>
           </div>
         </div>
 

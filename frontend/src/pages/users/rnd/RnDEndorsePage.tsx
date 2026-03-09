@@ -4,6 +4,7 @@ import {
   XCircle,
   RotateCcw,
   FileText,
+  Users,
   User,
   Clock,
   MessageSquare,
@@ -29,6 +30,7 @@ import {
 } from '../../../services/proposal.api';
 import Swal from 'sweetalert2';
 import { useAuthContext } from '../../../context/AuthContext';
+import PageLoader from '../../../components/shared/PageLoader';
 
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
@@ -49,6 +51,8 @@ const EndorsePage: React.FC = () => {
     title: string;
     id: string;
     budget?: BudgetRow[];
+    department?: string;
+    email?: string;
   } | null>(null);
 
   // --- Budget transformer: raw estimated_budget items → grouped BudgetRow[] with breakdowns ---
@@ -149,7 +153,8 @@ const EndorsePage: React.FC = () => {
           })),
           overallRecommendation: p.overallRecommendation,
           readyForEndorsement: p.readyForEndorsement,
-          department: deptName || "N/A"
+          department: deptName || p.proponent_id?.department?.name || "N/A",
+          proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || ''
         };
       });
 
@@ -175,11 +180,13 @@ const EndorsePage: React.FC = () => {
   };
 
   // --- Handlers for Decision Modal ---
-  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[]) => {
+  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[], department?: string, email?: string) => {
     setSelectedProposal({
       title: proposalTitle,
       id: proposalId,
-      budget: budgetData
+      budget: budgetData,
+      department: department,
+      email: email
     });
     setIsDecisionModalOpen(true);
   };
@@ -347,14 +354,17 @@ const EndorsePage: React.FC = () => {
 
   // --- UI Helpers ---
   const getDecisionIcon = (decision: string) => {
-    switch (decision) {
-      case 'Approve':
+    switch (decision?.trim().toLowerCase()) {
+      case 'approve':
+      case 'approved':
         return <CheckCircle className='w-4 h-4 text-emerald-600' />;
-      case 'Revise':
+      case 'revise':
+      case 'revised':
         return <RotateCcw className='w-4 h-4 text-amber-600' />;
-      case 'Reject':
+      case 'reject':
+      case 'rejected':
         return <XCircle className='w-4 h-4 text-red-600' />;
-      case 'Pending':
+      case 'pending':
         return <Clock className='w-4 h-4 text-yellow-600' />;
       default:
         return <FileText className='w-4 h-4 text-slate-600' />;
@@ -362,14 +372,17 @@ const EndorsePage: React.FC = () => {
   };
 
   const getDecisionColor = (decision: string) => {
-    switch (decision) {
-      case 'Approve':
+    switch (decision?.trim().toLowerCase()) {
+      case 'approve':
+      case 'approved':
         return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      case 'Revise':
+      case 'revise':
+      case 'revised':
         return 'text-amber-600 bg-amber-50 border-amber-200';
-      case 'Reject':
+      case 'reject':
+      case 'rejected':
         return 'text-red-600 bg-red-50 border-red-200';
-      case 'Pending':
+      case 'pending':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       default:
         return 'text-slate-600 bg-slate-50 border-slate-200';
@@ -403,14 +416,7 @@ const EndorsePage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading endorsement proposals...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading endorsement proposals..." />;
   }
 
   return (
@@ -429,6 +435,8 @@ const EndorsePage: React.FC = () => {
         isOpen={isDecisionModalOpen}
         onClose={handleCloseDecisionModal}
         proposalTitle={selectedProposal?.title || ''}
+        department={selectedProposal?.department}
+        email={selectedProposal?.email}
         budgetData={selectedProposal?.budget}
         onSubmit={handleDecisionSubmit}
       />
@@ -450,19 +458,19 @@ const EndorsePage: React.FC = () => {
 
         {/* Stats Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-400 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Ready for Endorsement</p>
-                <p className="text-xl font-bold text-blue-600 tabular-nums">
+                <p className="text-xl font-bold text-blue-800 tabular-nums">
                   {endorsementProposals.filter((p) => p.readyForEndorsement).length}
                 </p>
               </div>
-              <Signature className="w-6 h-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              <Signature className="w-6 h-6 text-blue-800" />
             </div>
           </div>
 
-          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Pending Evaluators</p>
@@ -470,11 +478,11 @@ const EndorsePage: React.FC = () => {
                   {endorsementProposals.filter((p) => !p.readyForEndorsement).length}
                 </p>
               </div>
-              <User className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform duration-300" />
+              <Users className="w-6 h-6 text-amber-500" />
             </div>
           </div>
 
-          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Approved</p>
@@ -482,11 +490,11 @@ const EndorsePage: React.FC = () => {
                   {endorsementProposals.filter((p) => p.overallRecommendation === 'Approve').length}
                 </p>
               </div>
-              <CheckCircle className="w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform duration-300" />
+              <CheckCircle className="w-6 h-6 text-emerald-500" />
             </div>
           </div>
 
-          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+          <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Need Revision</p>
@@ -494,7 +502,7 @@ const EndorsePage: React.FC = () => {
                   {endorsementProposals.filter((p) => p.overallRecommendation === 'Revise').length}
                 </p>
               </div>
-              <RotateCcw className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+              <RotateCcw className="w-6 h-6 text-orange-500" />
             </div>
           </div>
         </section>
@@ -633,7 +641,7 @@ const EndorsePage: React.FC = () => {
                       {proposal.readyForEndorsement && (
                         <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget)}
+                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail)}
                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3 h-3" />

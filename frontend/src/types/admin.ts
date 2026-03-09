@@ -10,4 +10,5 @@ export type User = {
   department_name?: string;
   photo_profile_url?: string;
   profile_completed?: boolean;
+  created_at?: string;
 };

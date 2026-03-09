@@ -25,6 +25,7 @@ import { useAuthContext } from '../../../context/AuthContext';
 import { fetchFundedProjects, transformToProject, updateProjectStatus } from '../../../services/ProjectMonitoringApi';
 import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectDetailModal';
 import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
+import PageLoader from '../../../components/shared/PageLoader';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -213,14 +214,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   };
 
   if (loading) {
-    return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading projects...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading projects..." />;
   }
 
   return (

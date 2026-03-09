@@ -20,6 +20,17 @@ import {
 import { useState, useEffect } from "react";
 import { getEvaluatorProposals } from "../../../services/proposal.api";
 import { useAuthContext } from "../../../context/AuthContext";
+import PageLoader from "../../../components/shared/PageLoader";
+
+// --- Module-level cache: survives navigation, cleared on page refresh ---
+type DashboardCache = {
+  statsData: { pending: number; reject: number; approve: number; for_review: number; revise: number; decline: number; total: number };
+  proposals: any[];
+  derivedStats: { reviewedToday: number; underReview: number; pending: number; thisMonth: number; thisWeek: number; today: number };
+  monthlyReviews: { month: string; count: number }[];
+} | null;
+
+let dashboardCache: DashboardCache = null;
 
 export default function DashboardRdec() {
   const { user } = useAuthContext();
@@ -67,7 +78,7 @@ export default function DashboardRdec() {
     return () => clearInterval(typeInterval);
   }, [user?.first_name]);
 
-  const [statsData, setStatsData] = useState({
+  const [statsData, setStatsData] = useState(dashboardCache?.statsData ?? {
     pending: 0,
     reject: 0,
     approve: 0,
@@ -76,9 +87,9 @@ export default function DashboardRdec() {
     decline: 0,
     total: 0
   });
-  const [proposals, setProposals] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<any[]>(dashboardCache?.proposals ?? []);
 
-  const [derivedStats, setDerivedStats] = useState({
+  const [derivedStats, setDerivedStats] = useState(dashboardCache?.derivedStats ?? {
     reviewedToday: 0,
     underReview: 0,
     pending: 0,
@@ -87,11 +98,13 @@ export default function DashboardRdec() {
     today: 0
   });
 
-  const [monthlyReviews, setMonthlyReviews] = useState<{ month: string, count: number }[]>([]);
+  const [monthlyReviews, setMonthlyReviews] = useState<{ month: string, count: number }[]>(dashboardCache?.monthlyReviews ?? []);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(!dashboardCache); // only show loader on first visit
 
   const fetchData = async (isManualRefresh = false) => {
     if (isManualRefresh) setIsRefreshing(true);
+    else if (!dashboardCache) setIsLoading(true);
     try {
       // We only need getEvaluatorProposals to calculate everything accurately
       // getEvaluatorProposalStats() might be returning stale or non-deduplicated counts
@@ -169,15 +182,14 @@ export default function DashboardRdec() {
       setStatsData(newStats);
 
       // 4. Filter for "Recent Reviewed" Table
-      // We only want finished reviews: approve, reject, revise, decline, accepted, rejected
       const reviewedStatuses = ['approve', 'reject', 'revise', 'decline', 'accepted', 'rejected'];
 
       const reviewedProposals = uniqueProposals
         .filter((item: any) => reviewedStatuses.includes(item.status));
 
-      // Sort by review date desc
       reviewedProposals.sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
-      setProposals(reviewedProposals.slice(0, 5)); // Take top 5 recent reviewed
+      const topProposals = reviewedProposals.slice(0, 5);
+      setProposals(topProposals);
 
       // 4b. Monthly Review Chart logic
       const monthCounts: Record<string, number> = {};
@@ -200,7 +212,7 @@ export default function DashboardRdec() {
       }
       setMonthlyReviews(mReviews);
 
-      // 5. Calculate derived stats (Activity)
+      // 5. Calculate derived stats
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
@@ -212,23 +224,31 @@ export default function DashboardRdec() {
 
       const reviewedToday = uniqueProposals.filter((p: any) => reviewedStatuses.includes(p.status) && p.updated_at >= startOfDay).length;
       const underReviewCount = newStats.for_review;
-      // statsData.pending accounts for pending + extension_requested roughly, but specifically for the UI text "pending assignment"
-      // we can just use the pending count
       const pendingCount = newStats.pending;
 
-      setDerivedStats({
+      const newDerived = {
         reviewedToday,
         underReview: underReviewCount,
         pending: pendingCount,
-        thisMonth: monthCount, // Note: this calculates new proposals this month based on created_at
+        thisMonth: monthCount,
         thisWeek: weekCount,
         today: todayCount
-      });
+      };
+      setDerivedStats(newDerived);
+
+      // Save to module-level cache
+      dashboardCache = {
+        statsData: newStats,
+        proposals: topProposals,
+        derivedStats: newDerived,
+        monthlyReviews: mReviews,
+      };
 
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
     } finally {
       if (isManualRefresh) setIsRefreshing(false);
+      setIsLoading(false);
     }
   };
 
@@ -237,8 +257,13 @@ export default function DashboardRdec() {
   }, []);
 
   const handleRefresh = async () => {
+    dashboardCache = null; // clear cache on manual refresh
     await fetchData(true);
   };
+
+  if (isLoading) {
+    return <PageLoader text="Loading dashboard..." />;
+  }
 
   const stats = [
     {
@@ -260,15 +285,6 @@ export default function DashboardRdec() {
       description: "Awaiting review"
     },
     {
-      icon: XCircle,
-      label: "Rejected Proposals",
-      value: statsData.reject + statsData.decline,
-      color: "text-red-500",
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200",
-      description: "Declined or rejected"
-    },
-    {
       icon: CheckCircle,
       label: "Reviewed Proposals",
       value: statsData.approve + statsData.revise,
@@ -276,6 +292,15 @@ export default function DashboardRdec() {
       bgColor: "bg-emerald-50",
       borderColor: "border-emerald-200",
       description: "Approved or revised"
+    },
+    {
+      icon: XCircle,
+      label: "Declined Proposals",
+      value: statsData.reject + statsData.decline,
+      color: "text-red-500",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
+      description: "Declined or rejected"
     },
   ];
 

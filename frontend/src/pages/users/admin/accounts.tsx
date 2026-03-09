@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 // import { useLoading } from "../../../contexts/LoadingContext";
-import { Mail, Edit2, Power, Search } from "lucide-react";
+import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown } from "lucide-react";
 
 import type { User } from "../../../types/admin";
 import { AccountApi } from "../../../services/admin/AccountApi";
 import AddAccountModal from "../../../components/admin-component/addAccountModal";
 import EditAccountModal from "../../../components/admin-component/editAccountModal";
 import DisableAccountModal from "../../../components/admin-component/disableAccountModal";
+import PageLoader from "../../../components/shared/PageLoader";
 
 const ROLE_DISPLAY: Record<string, string> = {
   admin: "Admin",
@@ -31,8 +32,15 @@ const Accounts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [roleFilter, setRoleFilter] = useState<string>("All");
+  const [sortField, setSortField] = useState<"created_at" | "name">("created_at");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const getFullName = useCallback((user: User) => {
+    if (!user.first_name && !user.last_name) return user.email;
+    return `${user.first_name || ''} ${user.middle_ini ? user.middle_ini + ' ' : ''}${user.last_name || ''}`.trim();
+  }, []);
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -58,8 +66,8 @@ const Accounts: React.FC = () => {
   }, [users]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const fullName = `${user.first_name} ${user.middle_ini || ''} ${user.last_name}`.toLowerCase();
+    const result = users.filter(user => {
+      const fullName = getFullName(user).toLowerCase();
       const matchesSearch =
         fullName.includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,7 +82,21 @@ const Accounts: React.FC = () => {
 
       return matchesSearch && matchesStatus && matchesRole;
     });
-  }, [searchTerm, statusFilter, roleFilter, users]);
+
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === "name") {
+        comparison = getFullName(a).localeCompare(getFullName(b));
+      } else if (sortField === "created_at") {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        comparison = timeA - timeB; // ascending by default
+      }
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [searchTerm, statusFilter, roleFilter, sortField, sortDirection, users, getFullName]);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const currentUsers = useMemo(() => {
@@ -153,12 +175,24 @@ const Accounts: React.FC = () => {
     setSelectedUser(null);
   };
 
-  const getFullName = (user: User) => {
-    if (!user.first_name && !user.last_name) return user.email;
-    return `${user.first_name || ''} ${user.middle_ini ? user.middle_ini + ' ' : ''}${user.last_name || ''}`.trim();
+  const handleSort = (field: "created_at" | "name") => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection(field === "name" ? "asc" : "desc");
+    }
   };
 
   const getRoleDisplay = (roles: string[]) => (roles || []).map(r => ROLE_DISPLAY[r] || r).join(", ");
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <PageLoader text="Loading accounts..." />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 h-full">
@@ -217,7 +251,18 @@ const Accounts: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Name</th>
+                <th
+                  onClick={() => handleSort("name")}
+                  className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-200 group transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    Name
+                    <div className="flex flex-col -space-y-1">
+                      <ChevronUp className={`w-3 h-3 ${sortField === "name" && sortDirection === "asc" ? "text-[#C8102E]" : "text-gray-400"}`} />
+                      <ChevronDown className={`w-3 h-3 ${sortField === "name" && sortDirection === "desc" ? "text-[#C8102E]" : "text-gray-400"}`} />
+                    </div>
+                  </div>
+                </th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell min-w-[160px]">Email</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Role</th>
                 <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell min-w-[120px]">Department</th>
@@ -226,16 +271,7 @@ const Accounts: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#C8102E]"></div>
-                      <p className="mt-2 text-sm text-gray-500">Loading accounts...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : currentUsers.length > 0 ? (
+              {currentUsers.length > 0 ? (
                 currentUsers.map((user) => {
                   const avatarUrl = user.photo_profile_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`;
                   const isDisabled = user.is_disabled;

@@ -18,6 +18,7 @@ import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
+import PageLoader from '../../../components/shared/PageLoader';
 
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
@@ -106,7 +107,7 @@ const FundingPage: React.FC = () => {
     const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
     switch (status) {
       case 'Endorsed':
-        return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}><Signature className="w-3.5 h-3.5" /> Endorsed</span>;
+        return <span className={`${baseClasses} text-blue-800 bg-blue-50 border-blue-200`}><Signature className="w-3.5 h-3.5" /> Endorsed</span>;
       case 'Funded':
         return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
       case 'Funding Rejected':
@@ -126,14 +127,7 @@ const FundingPage: React.FC = () => {
   const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
-    return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading funding data...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading funding data..." />;
   }
 
   return (
@@ -155,15 +149,15 @@ const FundingPage: React.FC = () => {
 
         {/* Stats Cards */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4">
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-400 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-700 mb-2">Endorsed (New)</p>
-                <p className="text-xl font-bold text-blue-600 tabular-nums">
+                <p className="text-xs font-semibold text-slate-700 mb-2">Endorsed for Funding</p>
+                <p className="text-xl font-bold text-blue-800 tabular-nums">
                   {fundingProposals.filter((p) => p.status === 'Endorsed').length}
                 </p>
               </div>
-              <Signature className="w-6 h-6 text-blue-500" />
+              <Signature className="w-6 h-6 text-blue-800" />
             </div>
           </div>
           <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
@@ -323,3 +317,4 @@ const FundingPage: React.FC = () => {
 };
 
 export default FundingPage;
+

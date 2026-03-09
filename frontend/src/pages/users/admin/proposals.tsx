@@ -16,6 +16,7 @@ import ProposalModal from '../../../components/admin-component/AdminProposalModa
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
 import { forwardProposalToRnd, fetchAgencies, type LookupItem } from '../../../services/proposal.api';
+import PageLoader from '../../../components/shared/PageLoader';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -462,11 +463,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading proposals...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading proposals..." />
       </div>
     );
   }

@@ -232,9 +232,9 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     // Fallback: use proponent's department ID if available 
     department: data.proponent_id?.department_id?.toString() || undefined,
     address: data.agency_address ? `${data.agency_address.street || ''} ${data.agency_address.city || ''}` : '',
-    telephone: data.phone || '', // Backend uses 'phone' field
+    telephone: data.phone || data.proponent_id?.phone || '', // Backend uses 'phone' field
     fax: data.fax || '',
-    email: data.email || '',
+    email: data.email || data.proponent_id?.email || '',
     modeOfImplementation: data.implementation_mode || '',
     implementationSites: Array.isArray(data.implementation_site)
       ? data.implementation_site.map((s: any) => ({ site: s.site_name, city: s.city }))

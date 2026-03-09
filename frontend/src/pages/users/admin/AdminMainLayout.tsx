@@ -12,10 +12,68 @@ import Monitoring from "./monitoring";
 import Endorsements from "./endorsement";
 import Funding from "./funding";
 import Activity from "./activity";
+import { ActivityApi } from "../../../services/admin/ActivityApi";
+import { getProposals } from "../../../services/proposal.api";
+import type { DashboardStats } from "../../../services/admin/ActivityApi";
+
+type ExtendedDashboardStats = DashboardStats & {
+  proposals: DashboardStats['proposals'] & {
+    monthly_submissions?: { month: string; count: number }[];
+  }
+};
 
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "dashboard";
+
+  const [stats, setStats] = React.useState<ExtendedDashboardStats | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const fetchStats = async () => {
+    try {
+      const [statsData, proposalsData] = await Promise.all([
+        ActivityApi.getDashboardStats(),
+        getProposals()
+      ]);
+
+      const monthCounts: Record<string, number> = {};
+      proposalsData.forEach((p: any) => {
+        const dateStr = p.created_at || (p.proposal_id && p.proposal_id.created_at);
+        if (dateStr) {
+          const date = new Date(dateStr);
+          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+        }
+      });
+
+      const monthly_submissions = Object.entries(monthCounts)
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+      if (monthly_submissions.length === 0) {
+        const today = new Date();
+        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        monthly_submissions.push({ month: monthYear, count: 0 });
+      }
+
+      const statsWithMonthly = {
+        ...statsData,
+        proposals: { ...statsData.proposals, monthly_submissions }
+      };
+
+      setStats(statsWithMonthly as any);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard stats');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchStats();
+  }, []);
 
   const handlePageChange = (page: string) => {
     setSearchParams({ tab: page });
@@ -24,7 +82,7 @@ const AdminLayout: React.FC = () => {
   const renderContent = () => {
     switch (currentTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard stats={stats} loading={loading} error={error} onRefresh={fetchStats} />;
       case "accounts":
         return <Accounts />;
       case "proposals":
@@ -44,7 +102,7 @@ const AdminLayout: React.FC = () => {
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <Dashboard stats={stats} loading={loading} error={error} onRefresh={fetchStats} />;
     }
   };
 

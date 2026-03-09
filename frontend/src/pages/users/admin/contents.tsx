@@ -1,16 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useLoading } from '../../../contexts/LoadingContext';
+import React, { useState } from 'react';
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
-  const { setLoading } = useLoading();
   const [activeTab, setActiveTab] = useState('guidelines');
-
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [activeTab, setLoading]);
 
   const tabs = [
     { id: 'guidelines', label: 'Guidelines & Resources', icon: '📋' },

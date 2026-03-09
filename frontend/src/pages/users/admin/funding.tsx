@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   CheckCircle,
-  FileText,
   DollarSign,
   User,
   Calendar,
@@ -11,6 +10,7 @@ import {
   Gavel,
   AlertTriangle,
   XCircle,
+  Signature,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
@@ -18,6 +18,7 @@ import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
+import PageLoader from '../../../components/shared/PageLoader';
 
 const AdminFundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
@@ -81,33 +82,31 @@ const AdminFundingPage: React.FC = () => {
     }
   };
 
-  const getSectorColor = (sector: string) => {
-    switch (sector.toLowerCase()) {
-      case 'ict':
-      case 'information technology':
-        return 'bg-blue-50 text-blue-700 border-blue-100';
-      case 'public safety':
-        return 'bg-purple-50 text-purple-700 border-purple-100';
-      case 'energy':
-        return 'bg-amber-50 text-amber-700 border-amber-100';
-      case 'healthcare':
-      case 'health':
-        return 'bg-pink-50 text-pink-700 border-pink-100';
-      case 'agriculture':
-      case 'environment':
-        return 'bg-green-50 text-green-700 border-green-100';
-      case 'education':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-100';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-100';
+  const getTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   const getStatusBadge = (status: ProposalStatus) => {
     const baseClasses = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20';
     switch (status) {
       case 'Endorsed':
-        return <span className={`${baseClasses} text-blue-600 bg-blue-50 border-blue-200`}>Endorsed</span>;
+        return <span className={`${baseClasses} text-blue-800 bg-blue-50 border-blue-400`}><Signature className="w-3.5 h-3.5" /> Endorsed</span>;
       case 'Funded':
         return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
       case 'Funding Rejected':
@@ -126,11 +125,8 @@ const AdminFundingPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E] mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading admin funding data...</p>
-        </div>
+      <div className="min-h-screen">
+        <PageLoader text="Loading admin funding data..." />
       </div>
     );
   }
@@ -157,12 +153,12 @@ const AdminFundingPage: React.FC = () => {
            <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-700 mb-2">Endorsed (New)</p>
-                  <p className="text-xl font-bold text-blue-600 tabular-nums">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Endorsed for Funding</p>
+                  <p className="text-xl font-bold text-blue-800 tabular-nums">
                     {fundingProposals.filter((p) => p.status === 'Endorsed').length}
                   </p>
                 </div>
-                <FileText className="w-6 h-6 text-blue-500" />
+                <Signature className="w-6 h-6 text-blue-800" />
               </div>
            </div>
            <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4">
@@ -240,12 +236,15 @@ const AdminFundingPage: React.FC = () => {
 
 
                               {/* Tags */}
-                              {proposal.sector && (
-                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${getSectorColor(proposal.sector)}`}>
+                              {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag, i) => (
+                                <span
+                                  key={i}
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getTagColor(tag)}`}
+                                >
                                   <Tag className="w-3 h-3" />
-                                  <span className="font-medium">{proposal.sector}</span>
-                                </div>
-                              )}
+                                  {tag}
+                                </span>
+                              ))}
                             </div>
                          </div>
                          
