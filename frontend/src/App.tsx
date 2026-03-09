@@ -21,7 +21,7 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
 
 // Co-Lead
 import CoLeadMainLayout from "./pages/users/co-lead/CoLeadMainLayout";
