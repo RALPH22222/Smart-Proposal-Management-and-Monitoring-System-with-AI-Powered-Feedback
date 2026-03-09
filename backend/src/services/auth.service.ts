@@ -51,7 +51,7 @@ export class AuthService {
     return { data: { ...data, roles, password_change_required }, error: null };
   }
 
-  async signup({ email, password, roles, first_name, last_name, middle_ini }: SignUpInput) {
+  async signup({ email, password, roles, first_name, last_name, middle_ini, platform }: SignUpInput) {
     const { data, error } = await this.db!.auth.signUp({
       email: email,
       password: password,
@@ -61,6 +61,7 @@ export class AuthService {
           first_name,
           last_name,
           middle_ini,
+          platform: platform || 'web'
         },
       },
     });
@@ -91,14 +92,14 @@ export class AuthService {
     input: Omit<SignUpWithProfileInput, "photo_profile_url">,
     photoUrl: string | null,
   ) {
-    const { email, password, roles, first_name, last_name, middle_ini, birth_date, sex, department_id } = input;
+    const { email, password, roles, first_name, last_name, middle_ini, birth_date, sex, department_id, platform } = input;
 
     // 1. Create auth account (trigger auto-creates users row)
     const { data, error } = await this.db!.auth.signUp({
       email,
       password,
       options: {
-        data: { roles, first_name, last_name, middle_ini },
+        data: { roles, first_name, last_name, middle_ini, platform: platform || 'web' },
       },
     });
 

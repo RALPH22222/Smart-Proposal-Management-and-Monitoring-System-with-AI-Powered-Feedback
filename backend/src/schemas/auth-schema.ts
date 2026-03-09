@@ -46,6 +46,7 @@ export const signUpSchema = z.object({
     z.string().max(1, "Middle initial must be 1 character").optional(),
   ),
   roles: z.array(RoleEnum).min(1, "At least one role is required"),
+  platform: z.enum(["web", "app"]).optional(),
 });
 
 export const profileSetupSchema = z.object({
@@ -70,6 +71,7 @@ export const signUpWithProfileSchema = z.object({
   birth_date: z.coerce.date(),
   sex: z.preprocess(parseJsonIfString, z.nativeEnum(Sex)),
   department_id: z.string().min(1, "Department is required"),
+  platform: z.enum(["web", "app"]).optional(),
   photo_profile_url: photoProfileSchema.optional(),
 });
 

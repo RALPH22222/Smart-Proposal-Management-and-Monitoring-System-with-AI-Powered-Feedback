@@ -165,6 +165,7 @@ export default function Register() {
       data.append("birth_date", birthdate);
       data.append("sex", sex);
       data.append("department_id", rdStation);
+      data.append("platform", "web"); 
 
       if (profilePicture) {
         data.append("photo_profile_url", profilePicture);
