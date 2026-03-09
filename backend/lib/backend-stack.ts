@@ -160,6 +160,17 @@ export class BackendStack extends Stack {
     });
     profile_setup_bucket.grantPut(profile_setup_lambda);
 
+    const verify_otp_lambda = new NodejsFunction(this, "pms-verify-otp", {
+      functionName: "pms-verify-otp",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "auth", "verify-otp.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
     const change_password_lambda = new NodejsFunction(this, "pms-change-password", {
       functionName: "pms-change-password",
       memorySize: 128,
