@@ -47,6 +47,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         roles: user_roles,
         password_change_required,
       },
+      access_token: data.session!.access_token,
+      refresh_token: data.session!.refresh_token,
     }),
     headers: {
       "Set-Cookie": setCookieString("tk", data.session!.access_token),
