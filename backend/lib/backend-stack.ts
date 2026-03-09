@@ -791,6 +791,31 @@ export class BackendStack extends Stack {
       ],
     });
 
+
+    const get_contacts_lambda = new NodejsFunction(this, "pms-get-contacts", {
+      functionName: "pms-get-contacts",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "public", "get-contacts.ts"),
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const update_contacts_lambda = new NodejsFunction(this, "pms-update-contacts", {
+      functionName: "pms-update-contacts",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "admin", "update-contacts.ts"),
+      role: adminLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+        SUPABASE_SECRET_JWT,
+      },
+    });
+
     const admin_create_account_lambda = new NodejsFunction(this, "pms-admin-create-account", {
       functionName: "pms-admin-create-account",
       memorySize: 128,
@@ -998,6 +1023,14 @@ export class BackendStack extends Stack {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
+
+    // ========== PUBLIC CONFIGURATION ROUTES ==========
+    // /public
+    const publicResource = api.root.addResource("public");
+    
+    // /public/contacts
+    const contactsPublicResource = publicResource.addResource("contacts");
+    contactsPublicResource.addMethod(HttpMethod.GET, new LambdaIntegration(get_contacts_lambda));
 
     // ========== PROPOSAL ROUTES ==========
     // /proposal
@@ -1390,6 +1423,13 @@ export class BackendStack extends Stack {
     // /admin/dashboard-stats (protected) - GET dashboard statistics
     const admin_dashboard_stats = admin.addResource("dashboard-stats");
     admin_dashboard_stats.addMethod(HttpMethod.GET, new LambdaIntegration(admin_get_dashboard_stats_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /admin/update-contacts (protected) - PUT update contacts
+    const admin_update_contacts = admin.addResource("update-contacts");
+    admin_update_contacts.addMethod(HttpMethod.PUT, new LambdaIntegration(update_contacts_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });

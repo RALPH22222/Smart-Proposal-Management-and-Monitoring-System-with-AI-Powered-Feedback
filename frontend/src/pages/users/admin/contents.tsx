@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ContactsSection } from './components/ContactsSection';
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
@@ -8,6 +9,7 @@ const ContentManagement: React.FC = () => {
     { id: 'guidelines', label: 'Guidelines & Resources', icon: '📋' },
     { id: 'templates', label: 'Proposal Templates', icon: '📄' },
     { id: 'static', label: 'Static Pages', icon: '📝' },
+    { id: 'contacts', label: 'Contact Info', icon: '📞' },
     { id: 'media', label: 'Media Library', icon: '🖼️' }
   ];
 
@@ -53,6 +55,7 @@ const ContentManagement: React.FC = () => {
         {activeTab === 'guidelines' && <GuidelinesSection />}
         {activeTab === 'templates' && <TemplatesSection />}
         {activeTab === 'static' && <StaticPagesSection />}
+        {activeTab === 'contacts' && <ContactsSection />}
         {activeTab === 'media' && <MediaLibrarySection />}
       </div>
     </div>
