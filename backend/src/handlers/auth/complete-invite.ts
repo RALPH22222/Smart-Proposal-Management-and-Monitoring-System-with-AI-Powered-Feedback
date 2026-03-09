@@ -6,6 +6,7 @@ import { profileSetupSchema } from "../../schemas/auth-schema";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import multipart from "lambda-multipart-parser";
+import { logActivity } from "../../utils/activity-logger";
 
 const s3Client = new S3Client({});
 
@@ -104,6 +105,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       .update({ status: "active", accepted_at: new Date().toISOString() })
       .eq("user_id", userId)
       .eq("status", "pending");
+
+    await logActivity(supabase, {
+      user_id: userId,
+      action: "invite_profile_completed",
+      category: "account",
+      target_id: userId,
+      target_type: "user",
+      details: { first_name, last_name },
+    });
 
     return {
       statusCode: 200,

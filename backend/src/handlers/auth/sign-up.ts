@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { signUpSchema, signUpWithProfileSchema } from "../../schemas/auth-schema";
 import multipart from "lambda-multipart-parser";
+import { logActivity } from "../../utils/activity-logger";
 
 const s3Client = new S3Client({});
 
@@ -111,6 +112,17 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }
     }
 
+    if (data?.user) {
+      await logActivity(supabase, {
+        user_id: data.user.id,
+        action: "account_self_registered",
+        category: "account",
+        target_id: data.user.id,
+        target_type: "user",
+        details: { email: profileData.email },
+      });
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({ message: "Account created successfully." }),
@@ -154,6 +166,17 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       statusCode: 409,
       body: JSON.stringify({ message: "Email already exists." }),
     };
+  }
+
+  if (data?.user) {
+    await logActivity(supabase, {
+      user_id: data.user.id,
+      action: "account_self_registered",
+      category: "account",
+      target_id: data.user.id,
+      target_type: "user",
+      details: { email: result.data.email },
+    });
   }
 
   return {

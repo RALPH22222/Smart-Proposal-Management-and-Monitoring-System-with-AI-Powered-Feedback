@@ -3,6 +3,7 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { forwardToEvaluatorsSchema } from "../../schemas/proposal-schema";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -33,6 +34,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  await logActivity(supabase, {
+    user_id: user_sub,
+    action: "proposal_forwarded_to_evaluators",
+    category: "proposal",
+    target_id: String(result.data.proposal_id),
+    target_type: "proposal",
+    details: { evaluator_count: result.data.evaluators.length },
+  });
 
   return {
     statusCode: 200,

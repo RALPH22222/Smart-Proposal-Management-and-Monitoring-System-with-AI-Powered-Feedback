@@ -3,6 +3,7 @@ import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { submitReportSchema } from "../../schemas/project-schema";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -61,6 +62,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  await logActivity(supabase, {
+    user_id: result.data.submitted_by_proponent_id,
+    action: "quarterly_report_submitted",
+    category: "project",
+    target_id: String(result.data.funded_project_id),
+    target_type: "funded_project",
+    details: { quarterly_report: result.data.quarterly_report },
+  });
 
   return {
     statusCode: 201,

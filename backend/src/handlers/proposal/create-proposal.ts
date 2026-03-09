@@ -3,6 +3,7 @@ import { ProposalService } from "../../services/proposal.service";
 import { proposalSchema, proposalVersionSchema } from "../../schemas/proposal-schema";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event) => {
   // Extract proponent identity from JWT
@@ -66,6 +67,15 @@ export const handler = buildCorsHeaders(async (event) => {
 
   // Create Proposal Version
   await proposalService.createVersion(validation_version.data);
+
+  await logActivity(supabase, {
+    user_id: auth.userId,
+    action: "proposal_created",
+    category: "proposal",
+    target_id: String(proposal.id),
+    target_type: "proposal",
+    details: { project_title: data.project_title },
+  });
 
   return {
     statusCode: 200,

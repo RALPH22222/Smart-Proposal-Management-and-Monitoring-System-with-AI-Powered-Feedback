@@ -3,6 +3,7 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { removeEvaluatorSchema } from "../../schemas/proposal-schema";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     const payload = JSON.parse(event.body || "{}");
@@ -32,6 +33,18 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
                 error: error.message
             }),
         };
+    }
+
+    const user_sub = event.requestContext.authorizer?.user_sub as string;
+    if (user_sub) {
+        await logActivity(supabase, {
+            user_id: user_sub,
+            action: "evaluator_removed",
+            category: "evaluation",
+            target_id: String(result.data.proposal_id),
+            target_type: "proposal",
+            details: { evaluator_id: result.data.evaluator_id },
+        });
     }
 
     return {

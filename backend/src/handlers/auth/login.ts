@@ -3,6 +3,7 @@ import { AuthService } from "../../services/auth.service";
 import { supabase } from "../../lib/supabase";
 import { setCookieString } from "../../utils/cookies";
 import { buildCorsHeaders } from "../../utils/cors";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const authService = new AuthService(supabase);
@@ -24,6 +25,17 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   const user_roles = (data as any)?.roles ?? [];
   const password_change_required = (data as any)?.password_change_required === true;
+
+  if (data.user) {
+    await logActivity(supabase, {
+      user_id: data.user.id,
+      action: "user_logged_in",
+      category: "account",
+      target_id: data.user.id,
+      target_type: "user",
+      details: { email: data.user.email },
+    });
+  }
 
   return {
     statusCode: 200,

@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { removeMemberSchema } from "../../schemas/project-schema";
 import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { userId } = getAuthContext(event);
@@ -37,6 +38,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "project_member_removed",
+    category: "project",
+    target_id: String(result.data.funded_project_id),
+    target_type: "funded_project",
+    details: { member_id: result.data.member_id },
+  });
 
   return {
     statusCode: 200,

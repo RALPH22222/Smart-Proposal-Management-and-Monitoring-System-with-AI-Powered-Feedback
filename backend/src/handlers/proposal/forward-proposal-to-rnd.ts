@@ -3,6 +3,8 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { forwardToRndSchema } from "../../schemas/proposal-schema";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -32,6 +34,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "proposal_forwarded_to_rnd",
+    category: "proposal",
+    target_id: String(result.data.proposal_id),
+    target_type: "proposal",
+    details: { rnd_id: result.data.rnd_id },
+  });
 
   return {
     statusCode: 200,

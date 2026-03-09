@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { endorseForFundingSchema, fundingDecisionSchema, FundingDecisionType } from "../../schemas/proposal-schema";
 import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 // Funding decision values used to distinguish funding-decision requests from endorsement requests
 const FUNDING_DECISIONS = new Set<string>(Object.values(FundingDecisionType));
@@ -39,6 +40,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
+    await logActivity(supabase, {
+      user_id: userId,
+      action: "funding_decision_made",
+      category: "proposal",
+      target_id: String(result.data.proposal_id),
+      target_type: "proposal",
+      details: { decision: result.data.decision },
+    });
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -72,6 +82,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId: endorserId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: endorserId,
+    action: "proposal_endorsed_for_funding",
+    category: "proposal",
+    target_id: String(result.data.proposal_id),
+    target_type: "proposal",
+    details: { decision: result.data.decision },
+  });
 
   return {
     statusCode: 200,

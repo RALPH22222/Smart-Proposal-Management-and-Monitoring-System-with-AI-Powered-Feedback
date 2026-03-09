@@ -3,6 +3,8 @@ import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { verifyReportSchema } from "../../schemas/project-schema";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -32,6 +34,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "project_report_verified",
+    category: "project",
+    target_id: String(result.data.report_id),
+    target_type: "report",
+  });
 
   return {
     statusCode: 200,

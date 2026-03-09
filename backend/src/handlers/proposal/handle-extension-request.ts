@@ -3,6 +3,7 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { handleExtensionRequestSchema } from "../../schemas/proposal-schema";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const user_sub = event.requestContext.authorizer?.user_sub as string;
@@ -41,6 +42,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  await logActivity(supabase, {
+    user_id: user_sub,
+    action: "extension_request_handled",
+    category: "evaluation",
+    target_id: String(result.data.proposal_id),
+    target_type: "proposal",
+    details: { action: result.data.action, evaluator_id: result.data.evaluator_id },
+  });
 
   return {
     statusCode: 200,

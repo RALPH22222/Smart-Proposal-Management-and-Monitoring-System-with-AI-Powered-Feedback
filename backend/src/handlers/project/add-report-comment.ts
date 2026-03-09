@@ -3,6 +3,8 @@ import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { addCommentSchema } from "../../schemas/project-schema";
+import { getAuthContext } from "../../utils/auth-context";
+import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -32,6 +34,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       }),
     };
   }
+
+  const { userId } = getAuthContext(event);
+  await logActivity(supabase, {
+    user_id: userId,
+    action: "report_comment_added",
+    category: "project",
+    target_id: String(result.data.project_reports_id),
+    target_type: "funded_project",
+  });
 
   return {
     statusCode: 201,
