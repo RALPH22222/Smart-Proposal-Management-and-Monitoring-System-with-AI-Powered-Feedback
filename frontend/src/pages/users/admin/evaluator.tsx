@@ -419,15 +419,23 @@ export const EvaluatorPage: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
 
-  const getProjectTypeColor = (type: string) => {
-    switch (type) {
-      case 'ICT': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Healthcare': return 'bg-pink-100 text-pink-700 border-pink-200';
-      case 'Agriculture': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Energy': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Public Safety': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  const getTagColor = (tag: string) => {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
     }
+    const colors = [
+      "bg-blue-50 text-blue-700 border-blue-200",
+      "bg-green-50 text-green-700 border-green-200",
+      "bg-yellow-50 text-yellow-700 border-yellow-200",
+      "bg-rose-50 text-rose-700 border-rose-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
+      "bg-indigo-50 text-indigo-700 border-indigo-200",
+      "bg-orange-50 text-orange-700 border-orange-200",
+      "bg-cyan-50 text-cyan-700 border-cyan-200",
+      "bg-teal-50 text-teal-700 border-teal-200",
+    ];
+    return colors[Math.abs(hash) % colors.length];
   };
 
   if (loading && assignments.length === 0) {
@@ -544,16 +552,21 @@ export const EvaluatorPage: React.FC = () => {
                                  <User className="w-3 h-3" />
                                  <span>{assignment.evaluatorNames.join(', ') || 'No known names'}</span>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 font-semibold">
                                  <Clock className="w-3 h-3" />
                                  <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
                               </div>
-                              {/* Project Type Badge */}
-                              {assignment.projectType && assignment.projectType !== "N/A" && (
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getProjectTypeColor(assignment.projectType)}`}>
-                                  <Tag className="w-3 h-3" />
-                                  {assignment.projectType}
-                                </span>
+                              {/* Tags */}
+                              {assignment.tags && assignment.tags.length > 0 && (
+                                assignment.tags.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagColor(tag)}`}
+                                  >
+                                    <Tag className="w-2.5 h-2.5" />
+                                    {tag}
+                                  </span>
+                                ))
                               )}
                            </div>
                          </div>

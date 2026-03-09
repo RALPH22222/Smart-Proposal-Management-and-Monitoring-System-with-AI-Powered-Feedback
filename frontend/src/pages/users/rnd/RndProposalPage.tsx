@@ -599,10 +599,10 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                               <User className="w-3.5 h-3.5 text-slate-400" />
                               <span>{proposal.submittedBy}</span>
                             </div>
-                            <div className={'flex items-center gap-1.5'}>
-                              <Calendar className={'w-3.5 h-3.5 text-slate-400'} />
+                            <div className={'flex items-center gap-1.5 font-semibold'}>
+                              <Calendar className={'w-3.5 h-3.5'} />
                               <span>
-                                Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
                               </span>
                             </div>
 

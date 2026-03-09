@@ -235,9 +235,9 @@ const FundingPage: React.FC = () => {
                           </div>
 
                           {/* Date Submitted */}
-                          <div className="flex items-center gap-1.5 text-slate-500">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Date Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <Calendar className="w-3.5 h-3.5"/>
+                            <span>Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
                           </div>
 
                           {/* Tags */}
