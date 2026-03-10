@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, ClipboardCheck, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature } from "lucide-react";
+import { Microscope, FileText, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature } from "lucide-react";
 
 import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
 import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
@@ -180,7 +180,7 @@ const Profile: React.FC = () => {
             id: String(p.id),
             title: p.project_title,
             currentIndex: index,
-            rawStatus: p.status, // IMPORTANT: Store raw status
+            rawStatus: p.status, 
             submissionDate: new Date(p.created_at).toISOString().split("T")[0],
             lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split("T")[0],
             budget: budgetStr,
@@ -324,8 +324,10 @@ const Profile: React.FC = () => {
     if (s === "pending") return 0;
     if (["revise", "revision", "revision_rnd"].includes(s)) return 0;
     if (s === "revised_proposal") return 10;
+    if (s === "endorsed_for_funding") return 75;
+    if (s === "funded") return 100;
     // Funding-stage statuses show same progress as endorsed_for_funding
-    if (["rejected_funding", "revision_funding"].includes(s)) return getProgressPercentageByIndex(4);
+    if (["rejected_funding", "revision_funding"].includes(s)) return 75;
     return getProgressPercentageByIndex(project.currentIndex);
   };
 
@@ -594,7 +596,6 @@ const Profile: React.FC = () => {
                       {project.title}
                     </h4>
                   </div>
-                  {/* Removed Priority Badge */}
                 </div>
 
                 {/* --- TAGS SECTION (Above Budget) --- */}
@@ -904,7 +905,7 @@ const Profile: React.FC = () => {
                   <p className="text-xs font-semibold text-slate-700 mb-2">Evaluators Assessment</p>
                   <p className="text-xl font-bold text-purple-600 tabular-nums">{evaluatorsAssessmentCount}</p>
                 </div>
-                <ClipboardCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
+                <FileCheck className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
 

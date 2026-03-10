@@ -135,7 +135,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
         {/* Header */}
         <div className="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
@@ -151,13 +151,13 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form id="change-rnd-form" onSubmit={handleSubmit} className="space-y-5">
 
               {/* Context: From -> To */}
               <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm">
@@ -298,27 +298,29 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  Confirm Change
-                </button>
-              </div>
-
             </form>
           )}
         </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="change-rnd-form"
+            className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] flex items-center gap-2"
+          >
+            <Check className="w-4 h-4" />
+            Confirm Change
+          </button>
+        </div>
+
       </div>
     </div>
   );

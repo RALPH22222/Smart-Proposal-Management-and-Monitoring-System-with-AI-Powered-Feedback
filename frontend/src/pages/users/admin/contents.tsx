@@ -21,7 +21,7 @@ const ContentManagement: React.FC = () => {
           Content Management System
         </h1>
         <p className='text-gray-600 text-sm sm:text-base'>
-          Manage all REOC System content, announcements, and resources
+          Manage all RDEC System content, announcements, and resources
         </p>
       </header>
 

@@ -30,6 +30,7 @@ import {
   Users,
   ShieldCheck,
   Globe,
+  CalendarX2,
   AlertCircle,
   Loader,
   Signature,
@@ -93,6 +94,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     file?: { old: string; new: string };
   } | null>(null);
   const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal?.status || '').toLowerCase());
+
+  const getOrdinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -738,14 +745,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {isInRevisionMode && (
             <>
-              <div className="flex items-center gap-2 text-sm font-medium text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-                <RefreshCw className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
-                Deadline for Revision: {
-                  isLoadingRevision ? "Loading..." :
+              <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
+                <CalendarX2 className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+                <span>Deadline for Revision:</span>
+                <span className="font-bold">
+                  {isLoadingRevision ? "Loading..." :
                     (revisionData?.created_at && revisionData?.deadline) ?
-                      new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString() :
-                      (proposal.deadline ? new Date(proposal.deadline).toLocaleDateString() : "No deadline set")
-                }
+                      new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) :
+                      (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "No deadline set")}
+                </span>
               </div>
             </>
           )}
@@ -814,11 +822,27 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             )}
 
-            {(['endorsed_for_funding', 'endorsed'].includes(proposal.status?.toLowerCase() || '')) && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+            {(proposal.status?.toLowerCase() === 'pending') && (
+              <div className="bg-slate-50 border border-amber-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
                 <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                   <div>
-                    <h3 className="text-lg font-bold text-blue-800 mb-1">
+                    <h3 className="text-lg font-bold text-amber-700 mb-1 flex items-center gap-2">
+                      Proposal is awaiting Admin assignment
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Your proposal has been successfully submitted and is now in the Admin's queue. The Admin will review and assign it to a specific R&D staff for evaluation. Please wait for the next decision.
+                    </p>
+                  </div>
+                </div>
+                <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
+              </div>
+            )}
+
+            {(['endorsed_for_funding', 'endorsed'].includes(proposal.status?.toLowerCase() || '')) && (
+              <div className="bg-slate-50 border border-blue-300 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-800 mb-1 flex items-center gap-2">
                       Awaiting Committee Decision
                     </h3>
                     <p className="text-sm text-slate-600 leading-relaxed">
@@ -826,82 +850,137 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     </p>
                   </div>
                 </div>
-                <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0" />
+                <Signature className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0" />
               </div>
             )}
 
-            {(['revise', 'revision', 'revision_rnd', 'revision required'].includes(proposal.status?.toLowerCase() || '') || ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(proposal.status?.toLowerCase())) && (
-              <div
-                className={`rounded-xl p-5 border ${theme.bg} ${theme.border}`}
-              >
-                <h3
-                  className={`text-sm font-bold ${theme.text} mb-3 flex items-center gap-2`}
-                >
-                  {theme.icon} R&D Staff Feedback
-                </h3>
-                <div className="grid gap-3">
+            {(['review_rnd', 'r&d evaluation'].includes(proposal.status?.toLowerCase() || '')) && (
+              <div className="bg-slate-50 border border-blue-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-800 mb-1 flex items-center gap-2">
+                      Proposal is undergoing R&D evaluation
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Your proposal is currently being reviewed by the R&D staff. They are assessing the project title, timeline, budget, and overall feasibility of your project. The evaluation may take some time, so please wait for the next decision.
+                    </p>
+                  </div>
+                </div>
+                <Microscope className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
+              </div>
+            )}
+
+            {(['under_evaluation', 'evaluators assessment'].includes(proposal.status?.toLowerCase() || '')) && (
+              <div className="bg-slate-50 border border-purple-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-purple-800 mb-1 flex items-center gap-2">
+                      Proposal is currently being assessed by the Evaluators
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Your proposal has passed the R&D review and is now being assessed by a panel of Evaluators. They will provide scores and feedback based on defined evaluation criteria. Please wait for the evaluators’ decision, which will be reviewed by the R&D staff.
+                    </p>
+                  </div>
+                </div>
+                <FileCheck className="absolute -right-6 -bottom-6 w-32 h-32 text-purple-200 opacity-40 z-0 pointer-events-none" />
+              </div>
+            )}
+
+            {(['revised_proposal'].includes(proposal.status?.toLowerCase() || '')) && (() => {
+              const revisionNumber = submittedFiles.length || 1;
+              return (
+                <div className="bg-slate-50 border border-amber-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                  <div className="relative z-10">
+                    <h3 className="text-lg font-bold text-amber-700 mb-1 flex items-center gap-2">
+                      Revised Proposal Submitted
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed mt-2">
+                      This is your <span className="font-bold text-amber-700">{getOrdinal(revisionNumber)}</span> revised version.
+                      Your revised proposal has been sent back to the R&D staff for re-evaluation. Please wait while they review the changes you have made.
+                    </p>
+                  </div>
+                  <Edit className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
+                </div>
+              );
+            })()}
+
+            {['revise', 'revision', 'revision_rnd', 'revision required'].includes(proposal.status?.toLowerCase() || '') && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10">
+                  <h3 className="text-lg font-bold text-orange-800 mb-2 flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-orange-600" /> R&D Staff Feedback
+                  </h3>
+
                   {isLoadingRevision ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-gray-500 animate-pulse">
-                      <RefreshCw className="w-6 h-6 animate-spin mb-2" />
-                      <p className="text-sm">Fetching detailed feedback...</p>
+                    <div className="p-4 rounded-lg border bg-white/100 border-orange-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
+                      <RefreshCw className="w-5 h-5 animate-spin text-orange-600 mb-2" />
+                      <p className="text-xs text-orange-400">Loading feedback details...</p>
                     </div>
                   ) : (
-                    activeComments.map((c, i) => {
-                      const isRevision = ['revise', 'revision', 'revision_rnd', 'revision required'].includes(proposal.status?.toLowerCase() || '');
-                      const isOverall = c.section === "Overall Comments";
-                      const isRejection = c.section === "Reason for Rejection";
-                      const cardBg =
-                        isRevision && !isOverall
-                          ? "bg-white border-white/50"
-                          : "bg-white/60 border-white/50";
-                      const textStyle = isRevision && isOverall ? "italic" : "";
-
-                      if (isRejection && isLoadingRejection) {
+                    <div className="grid gap-3 mt-4">
+                      {activeComments.map((c, i) => {
+                        const isOverall = c.section === "Overall Comments";
+                        const textStyle = isOverall ? "italic" : "";
                         return (
-                          <div key={i} className="p-4 rounded-lg border bg-red-50/50 border-red-100 shadow-sm flex flex-col items-center justify-center py-6">
-                            <RefreshCw className="w-5 h-5 animate-spin text-red-400 mb-2" />
-                            <p className="text-xs text-red-400">Loading rejection details...</p>
+                          <div key={i} className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm">
+                            <h4 className="text-sm font-bold tracking-wider text-orange-700 mb-2 flex items-center gap-2">
+                              {c.section}:
+                            </h4>
+                            <div className={`text-sm leading-relaxed ${textStyle} text-gray-700 whitespace-pre-wrap`}>
+                              {c.comment}
+                            </div>
                           </div>
                         );
-                      }
+                      })}
 
-                      return (
-                        <div
-                          key={i}
-                          className={`p-4 rounded-lg border ${c.section === "Reason for Rejection" ? "bg-red-50/50 border-red-100" : cardBg} shadow-sm`}
-                        >
-                          <h4
-                            className={`text-xs uppercase font-bold tracking-wider mb-2 ${c.section === "Reason for Rejection" ? "text-red-700" : "text-gray-500"
-                              } flex items-center gap-2`}
-                          >
-                            {c.section === "Reason for Rejection" ? (
-                              <ShieldCheck className="w-3.5 h-3.5" />
-                            ) : (
-                              <BookOpen className="w-3.5 h-3.5" />
-                            )}
-                            {c.section}
-                          </h4>
-                          <div className={`text-sm leading-relaxed ${textStyle} ${c.section === "Reason for Rejection" ? "text-gray-700 whitespace-pre-wrap" : "text-gray-600"}`}>
-                            {c.comment}
-                          </div>
-
-                          {c.section === "Reason for Rejection" && (
-                            <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
-                              <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
-                                {rejectedBy === "Admin" ? "Admin Feedback" : "R&D Staff Feedback"}
-                              </span>
-                              {rejectionDate && (
-                                <span className="text-xs text-slate-500 italic">
-                                  Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                      <div className="bg-orange-100 p-4 rounded-lg border border-orange-200 shadow-sm flex items-start gap-3 mt-1">
+                        <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-orange-800 leading-relaxed">
+                          <span className="font-bold">Recommendation:</span> Please consider submitting your revised project proposal <span className="font-semibold underline">at least 3-5 days earlier</span> than the set deadline. This gives the R&D staff ample time to review your modifications and provide follow-up feedback if there are still areas needing improvement.
                         </div>
-                      );
-                    })
+                      </div>
+                    </div>
                   )}
                 </div>
+                <RefreshCw className="absolute -right-6 -bottom-6 w-32 h-32 text-orange-200 opacity-40 z-0 pointer-events-none" />
+              </div>
+            )}
+
+            {['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(proposal.status?.toLowerCase() || '') && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10">
+                  <h3 className="text-lg font-bold text-red-800 mb-2 flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" /> R&D Staff Feedback
+                  </h3>
+
+                  {isLoadingRejection ? (
+                    <div className="p-4 rounded-lg border bg-white/100 border-red-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
+                      <RefreshCw className="w-5 h-5 animate-spin text-red-600 mb-2" />
+                      <p className="text-xs text-red-400">Loading rejection details...</p>
+                    </div>
+                  ) : (
+                    <div className="bg-white/100 p-5 rounded-lg border border-red-100 shadow-sm mt-4">
+                      <h4 className="text-xs font-bold tracking-wider text-red-700 mb-2 flex items-center gap-2">
+                        Reason for Rejection:
+                      </h4>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {rejectionComment || "Loading details..."}
+                      </p>
+
+                      <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+                        <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
+                          {rejectedBy === "Admin" ? "Admin Feedback" : "R&D Staff Feedback"}
+                        </span>
+                        {rejectionDate && (
+                          <span className="text-xs text-slate-500 italic">
+                            Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <XCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-red-200 opacity-40 z-0 pointer-events-none" />
               </div>
             )}
 
@@ -1122,7 +1201,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4 text-[#C8102E]" />
-                  <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  <label className="text-sm font-bold text-slate-900">
                     Project Title
                   </label>
                 </div>
@@ -1137,485 +1216,487 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             )}
 
             {/* 4. LEADER & AGENCY (Updated Layout & Gray Background) */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency
-                Information
-              </h3>
+            {!isEditing && (<>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency
+                  Information
+                </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                {/* Row 1: Leader & Gender */}
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Leader / Proponent
-                  </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  {/* Row 1: Leader & Gender */}
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Leader / Proponent
+                    </label>
+                    {canEditOtherFields ? (
+                      <input
+                        type="text"
+                        value={currentData.proponent}
+                        onChange={(e) =>
+                          handleInputChange("proponent", e.target.value)
+                        }
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                          true
+                        )}`}
+                      />
+                    ) : (
+                      renderFundedField(
+                        <p className="text-sm font-bold text-slate-900">
+                          {currentData.proponent}
+                        </p>
+                      )
+                    )}
+                  </div>
+                  {/* Gender Key Removed */}
+
+                  {/* Row 2: Agency & Address */}
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Agency
+                    </label>
+                    {canEditOtherFields ? (
+                      <select
+                        value={currentData.agency}
+                        onChange={(e) => handleInputChange("agency", e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                      >
+                        <option value="">Select Agency</option>
+                        {agencies.map((agency) => (
+                          <option key={agency.id} value={agency.name}>{agency.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      renderFundedField(
+                        <div className="flex items-start gap-2">
+                          <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm font-medium text-slate-900">
+                            {currentData.agency}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  {/* Department (Added) */}
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Department
+                    </label>
+                    {canEditOtherFields ? (
+                      <select
+                        value={currentData.department || ""}
+                        onChange={(e) => handleInputChange("department" as any, e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dep) => (
+                          <option key={dep.id} value={dep.name}>{dep.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      renderFundedField(
+                        <p className="text-sm font-medium text-slate-900">
+                          {(currentData as any).department || "N/A"}
+                        </p>
+                      )
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Address
+                    </label>
+                    {canEditOtherFields ? (
+                      <div className="space-y-2">
+                        {agencyAddresses.length > 0 && (
+                          <select
+                            onChange={(e) => handleAddressSelect(e.target.value)}
+                            className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                            defaultValue=""
+                          >
+                            <option value="" disabled>Select from Agency Addresses</option>
+                            {agencyAddresses.map(addr => (
+                              <option key={addr.id} value={addr.id}>
+                                {[addr.street, addr.barangay, addr.city].filter(Boolean).join(", ")}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <textarea
+                          value={currentData.address}
+                          onChange={(e) =>
+                            handleInputChange("address", e.target.value)
+                          }
+                          rows={2}
+                          className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                            true
+                          )}`}
+                          placeholder="Or enter address manually"
+                        />
+                      </div>
+                    ) : (
+                      renderFundedField(
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-slate-900">
+                            {(() => {
+                              const addrString = currentData.address;
+                              if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
+                                return addrString;
+                              }
+                              // Fallback to first agency address if available
+                              if (agencyAddresses.length > 0) {
+                                const a = agencyAddresses[0];
+                                const parts = [a.street, a.barangay, a.city].filter(Boolean);
+                                return parts.length > 0 ? parts.join(", ") : "N/A";
+                              }
+                              return "N/A";
+                            })()}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  {/* Row 3: Telephone & Email (SIDE BY SIDE NOW) */}
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Telephone
+                    </label>
+                    {canEditOtherFields ? (
+                      <input
+                        type="text"
+                        value={currentData.telephone}
+                        onChange={(e) =>
+                          handleInputChange("telephone", e.target.value)
+                        }
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                          true
+                        )}`}
+                      />
+                    ) : (
+                      renderFundedField(
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
+                          <p className="text-sm text-slate-900">
+                            {currentData.telephone}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
+                      Email
+                    </label>
+                    {canEditOtherFields ? (
+                      <input
+                        type="email"
+                        value={currentData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                          true
+                        )}`}
+                      />
+                    ) : (
+                      renderFundedField(
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5 text-slate-400" />
+                          <p className="text-sm text-slate-900">
+                            {currentData.email}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. IMPLEMENTATION SITES (Gray Background) */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
+                <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation
+                    Sites ({sites.length})
+                  </h3>
+                  {canEditOtherFields && (
+                    <button
+                      onClick={handleAddSite}
+                      className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
+                    >
+                      <Plus className="w-3 h-3" /> Add Site
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {sites.map((site, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        {canEditOtherFields ? (
+                          <>
+                            <input
+                              type="text"
+                              value={site.site}
+                              onChange={(e) =>
+                                handleSiteChange(index, "site", e.target.value)
+                              }
+                              placeholder="Site Name"
+                              className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
+                                true
+                              )}`}
+                            />
+                            <input
+                              type="text"
+                              value={site.city}
+                              onChange={(e) =>
+                                handleSiteChange(index, "city", e.target.value)
+                              }
+                              placeholder="City/Municipality"
+                              className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
+                                true
+                              )}`}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-bold text-slate-900 leading-tight">
+                              {site.site}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {site.city}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      {canEditOtherFields && (
+                        <button
+                          onClick={() => handleRemoveSite(index)}
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. INDIVIDUAL DETAIL CARDS GRID (Gray Backgrounds) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cooperating Agencies */}
+                <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Users className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Cooperating Agencies
+                    </h4>
+                  </div>
                   {canEditOtherFields ? (
                     <input
                       type="text"
-                      value={currentData.proponent}
+                      value={currentData.cooperatingAgencies}
                       onChange={(e) =>
-                        handleInputChange("proponent", e.target.value)
+                        handleInputChange("cooperatingAgencies", e.target.value)
                       }
                       className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
                         true
                       )}`}
                     />
                   ) : (
-                    renderFundedField(
-                      <p className="text-sm font-bold text-slate-900">
-                        {currentData.proponent}
-                      </p>
-                    )
+                    <p className="text-sm font-medium text-slate-900">
+                      {(() => {
+                        const ca = currentData.cooperatingAgencies;
+                        if (!ca || (Array.isArray(ca) && ca.length === 0)) return "None";
+                        if (Array.isArray(ca)) {
+                          return ca.map((c: any) => c.name || c).join(", ");
+                        }
+                        return ca;
+                      })()}
+                    </p>
                   )}
                 </div>
-                {/* Gender Key Removed */}
 
-                {/* Row 2: Agency & Address */}
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Agency
-                  </label>
+                {/* Mode of Implementation */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FileText className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Mode of Implementation
+                    </h4>
+                  </div>
                   {canEditOtherFields ? (
-                    <select
-                      value={currentData.agency}
-                      onChange={(e) => handleInputChange("agency", e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                    >
-                      <option value="">Select Agency</option>
-                      {agencies.map((agency) => (
-                        <option key={agency.id} value={agency.name}>{agency.name}</option>
-                      ))}
-                    </select>
+                    <input
+                      type="text"
+                      value={currentData.modeOfImplementation}
+                      onChange={(e) =>
+                        handleInputChange("modeOfImplementation", e.target.value)
+                      }
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                        true
+                      )}`}
+                    />
                   ) : (
-                    renderFundedField(
-                      <div className="flex items-start gap-2">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm font-medium text-slate-900">
-                          {currentData.agency}
-                        </p>
-                      </div>
-                    )
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.modeOfImplementation}
+                    </p>
                   )}
                 </div>
 
-                {/* Department (Added) */}
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Department
-                  </label>
-                  {canEditOtherFields ? (
-                    <select
-                      value={currentData.department || ""}
-                      onChange={(e) => handleInputChange("department" as any, e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                    >
-                      <option value="">Select Department</option>
-                      {departments.map((dep) => (
-                        <option key={dep.id} value={dep.name}>{dep.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    renderFundedField(
-                      <p className="text-sm font-medium text-slate-900">
-                        {(currentData as any).department || "N/A"}
-                      </p>
-                    )
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Address
-                  </label>
+                {/* Classification */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                    <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
+                  </h4>
                   {canEditOtherFields ? (
                     <div className="space-y-2">
-                      {agencyAddresses.length > 0 && (
-                        <select
-                          onChange={(e) => handleAddressSelect(e.target.value)}
-                          className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>Select from Agency Addresses</option>
-                          {agencyAddresses.map(addr => (
-                            <option key={addr.id} value={addr.id}>
-                              {[addr.street, addr.barangay, addr.city].filter(Boolean).join(", ")}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <textarea
-                        value={currentData.address}
+                      <input
+                        type="text"
+                        value={currentData.classification}
                         onChange={(e) =>
-                          handleInputChange("address", e.target.value)
+                          handleInputChange("classification", e.target.value)
                         }
+                        placeholder="Type"
+                        className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
+                          true
+                        )}`}
+                      />
+                      <textarea
+                        value={currentData.classificationDetails || ""}
+                        onChange={(e) =>
+                          handleInputChange("classificationDetails", e.target.value)
+                        }
+                        placeholder="Details"
                         rows={2}
                         className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
                           true
                         )}`}
-                        placeholder="Or enter address manually"
                       />
                     </div>
                   ) : (
-                    renderFundedField(
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-slate-900">
-                          {(() => {
-                            const addrString = currentData.address;
-                            if (addrString && addrString !== "N/A" && addrString.trim() !== "") {
-                              return addrString;
-                            }
-                            // Fallback to first agency address if available
-                            if (agencyAddresses.length > 0) {
-                              const a = agencyAddresses[0];
-                              const parts = [a.street, a.barangay, a.city].filter(Boolean);
-                              return parts.length > 0 ? parts.join(", ") : "N/A";
-                            }
-                            return "N/A";
-                          })()}
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {formatClassificationType(currentData.classification || (currentData as any).classification_type || "")}
+                      </p>
+                      {(currentData.classificationDetails || (currentData as any).class_input) && (
+                        <p className="text-xs text-slate-600 mt-1">
+                          {formatClassInput(currentData.classificationDetails || (currentData as any).class_input || "")}
                         </p>
-                      </div>
-                    )
-                  )}
-                </div>
-
-                {/* Row 3: Telephone & Email (SIDE BY SIDE NOW) */}
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Telephone
-                  </label>
-                  {canEditOtherFields ? (
-                    <input
-                      type="text"
-                      value={currentData.telephone}
-                      onChange={(e) =>
-                        handleInputChange("telephone", e.target.value)
-                      }
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                        true
-                      )}`}
-                    />
-                  ) : (
-                    renderFundedField(
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <p className="text-sm text-slate-900">
-                          {currentData.telephone}
-                        </p>
-                      </div>
-                    )
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
-                    Email
-                  </label>
-                  {canEditOtherFields ? (
-                    <input
-                      type="email"
-                      value={currentData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                        true
-                      )}`}
-                    />
-                  ) : (
-                    renderFundedField(
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <p className="text-sm text-slate-900">
-                          {currentData.email}
-                        </p>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 5. IMPLEMENTATION SITES (Gray Background) */}
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation
-                  Sites ({sites.length})
-                </h3>
-                {canEditOtherFields && (
-                  <button
-                    onClick={handleAddSite}
-                    className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
-                  >
-                    <Plus className="w-3 h-3" /> Add Site
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {sites.map((site, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      {canEditOtherFields ? (
-                        <>
-                          <input
-                            type="text"
-                            value={site.site}
-                            onChange={(e) =>
-                              handleSiteChange(index, "site", e.target.value)
-                            }
-                            placeholder="Site Name"
-                            className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
-                              true
-                            )}`}
-                          />
-                          <input
-                            type="text"
-                            value={site.city}
-                            onChange={(e) =>
-                              handleSiteChange(index, "city", e.target.value)
-                            }
-                            placeholder="City/Municipality"
-                            className={`w-full px-2 py-1 text-xs border rounded ${getInputClass(
-                              true
-                            )}`}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm font-bold text-slate-900 leading-tight">
-                            {site.site}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {site.city}
-                          </p>
-                        </>
                       )}
                     </div>
-                    {canEditOtherFields && (
-                      <button
-                        onClick={() => handleRemoveSite(index)}
-                        className="text-slate-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 6. INDIVIDUAL DETAIL CARDS GRID (Gray Backgrounds) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Cooperating Agencies */}
-              <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Users className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Cooperating Agencies
-                  </h4>
+                  )}
                 </div>
-                {canEditOtherFields ? (
-                  <input
-                    type="text"
-                    value={currentData.cooperatingAgencies}
-                    onChange={(e) =>
-                      handleInputChange("cooperatingAgencies", e.target.value)
-                    }
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                      true
-                    )}`}
-                  />
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {(() => {
-                      const ca = currentData.cooperatingAgencies;
-                      if (!ca || (Array.isArray(ca) && ca.length === 0)) return "None";
-                      if (Array.isArray(ca)) {
-                        return ca.map((c: any) => c.name || c).join(", ");
-                      }
-                      return ca;
-                    })()}
-                  </p>
-                )}
-              </div>
 
-              {/* Mode of Implementation */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <FileText className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Mode of Implementation
-                  </h4>
-                </div>
-                {canEditOtherFields ? (
-                  <input
-                    type="text"
-                    value={currentData.modeOfImplementation}
-                    onChange={(e) =>
-                      handleInputChange("modeOfImplementation", e.target.value)
-                    }
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                      true
-                    )}`}
-                  />
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {currentData.modeOfImplementation}
-                  </p>
-                )}
-              </div>
-
-              {/* Classification */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                  <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
-                </h4>
-                {canEditOtherFields ? (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={currentData.classification}
-                      onChange={(e) =>
-                        handleInputChange("classification", e.target.value)
-                      }
-                      placeholder="Type"
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                        true
-                      )}`}
-                    />
-                    <textarea
-                      value={currentData.classificationDetails || ""}
-                      onChange={(e) =>
-                        handleInputChange("classificationDetails", e.target.value)
-                      }
-                      placeholder="Details"
-                      rows={2}
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(
-                        true
-                      )}`}
-                    />
+                {/* R&D Station */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Microscope className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      R&D Station
+                    </h4>
                   </div>
-                ) : (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {formatClassificationType(currentData.classification || (currentData as any).classification_type || "")}
+                  {canEditOtherFields ? (
+                    <select
+                      value={currentData.rdStation}
+                      onChange={(e) => handleInputChange("rdStation", e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                    >
+                      <option value="">Select Station</option>
+                      {stations.map((s) => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.rdStation}
                     </p>
-                    {(currentData.classificationDetails || (currentData as any).class_input) && (
-                      <p className="text-xs text-slate-600 mt-1">
-                        {formatClassInput(currentData.classificationDetails || (currentData as any).class_input || "")}
-                      </p>
-                    )}
+                  )}
+                </div>
+
+                {/* Priority Areas */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Target className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Priority Areas
+                    </h4>
                   </div>
-                )}
-              </div>
+                  {canEditOtherFields ? (
+                    <select
+                      value={currentData.priorityAreas}
+                      onChange={(e) => handleInputChange("priorityAreas", e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                    >
+                      <option value="">Select Priority</option>
+                      {priorities.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.priorityAreas}
+                    </p>
+                  )}
+                </div>
 
-              {/* R&D Station */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Microscope className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    R&D Station
-                  </h4>
+                {/* Discipline */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <BookOpen className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Discipline
+                    </h4>
+                  </div>
+                  {canEditOtherFields ? (
+                    <select
+                      value={currentData.discipline}
+                      onChange={(e) => handleInputChange("discipline", e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                    >
+                      <option value="">Select Discipline</option>
+                      {disciplines.map((d) => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.discipline}
+                    </p>
+                  )}
                 </div>
-                {canEditOtherFields ? (
-                  <select
-                    value={currentData.rdStation}
-                    onChange={(e) => handleInputChange("rdStation", e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                  >
-                    <option value="">Select Station</option>
-                    {stations.map((s) => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {currentData.rdStation}
-                  </p>
-                )}
-              </div>
-
-              {/* Priority Areas */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Target className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Priority Areas
-                  </h4>
+                {/* Sector (Added) */}
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Target className="w-4 h-4 text-[#C8102E]" />
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Sector
+                    </h4>
+                  </div>
+                  {canEditOtherFields ? (
+                    <select
+                      value={currentData.sector}
+                      onChange={(e) => handleInputChange("sector", e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
+                    >
+                      <option value="">Select Sector</option>
+                      {sectors.map((s) => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-900">
+                      {currentData.sector}
+                    </p>
+                  )}
                 </div>
-                {canEditOtherFields ? (
-                  <select
-                    value={currentData.priorityAreas}
-                    onChange={(e) => handleInputChange("priorityAreas", e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                  >
-                    <option value="">Select Priority</option>
-                    {priorities.map((p) => (
-                      <option key={p.id} value={p.name}>{p.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {currentData.priorityAreas}
-                  </p>
-                )}
               </div>
-
-              {/* Discipline */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <BookOpen className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Discipline
-                  </h4>
-                </div>
-                {canEditOtherFields ? (
-                  <select
-                    value={currentData.discipline}
-                    onChange={(e) => handleInputChange("discipline", e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                  >
-                    <option value="">Select Discipline</option>
-                    {disciplines.map((d) => (
-                      <option key={d.id} value={d.name}>{d.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {currentData.discipline}
-                  </p>
-                )}
-              </div>
-              {/* Sector (Added) */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Target className="w-4 h-4 text-[#C8102E]" />
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Sector
-                  </h4>
-                </div>
-                {canEditOtherFields ? (
-                  <select
-                    value={currentData.sector}
-                    onChange={(e) => handleInputChange("sector", e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                  >
-                    <option value="">Select Sector</option>
-                    {sectors.map((s) => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-sm font-medium text-slate-900">
-                    {currentData.sector}
-                  </p>
-                )}
-              </div>
-            </div>
+            </>) /* end !isEditing */}
 
             {/* 7. Schedule & Budget (Gray Background) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1716,7 +1797,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       onClick={handleAddBudgetItem}
                       className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
                     >
-                      <Plus className="w-3 h-3" /> Add Item
+                      <Plus className="w-3 h-3" /> Add Source of Funds
                     </button>
                   )}
                 </div>
@@ -1752,7 +1833,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             </div>
                             {canEditBudget && (
                               <button onClick={() => handleRemoveBudgetItem(index)} className="text-red-500 hover:text-red-700 p-1 bg-white rounded border border-red-200 shadow-sm transition-colors">
-                                <X className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             )}
                           </div>
@@ -1781,7 +1862,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <>
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
                                       </>
                                     ) : (
                                       <>
@@ -1818,7 +1899,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <>
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
                                       </>
                                     ) : (
                                       <>
@@ -1855,7 +1936,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <>
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><X className="w-3 h-3" /></button>
+                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
                                       </>
                                     ) : (
                                       <>
