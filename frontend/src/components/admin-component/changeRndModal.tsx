@@ -3,6 +3,7 @@ import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter, Search } from
 import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
 import Swal from 'sweetalert2';
+import SecureImage from '../shared/SecureImage';
 
 interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
@@ -247,17 +248,12 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
                         >
                           {/* Profile Picture */}
                           <div className="relative shrink-0">
-                            {staff.profile_picture ? (
-                              <img
-                                src={staff.profile_picture}
-                                alt={staff.name}
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
-                                <User className="w-5 h-5" />
-                              </div>
-                            )}
+                            <SecureImage
+                              src={staff.profile_picture}
+                              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name)}&background=C8102E&color=fff&size=128`}
+                              alt={staff.name}
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                            />
                             {selectedStaffId === staff.id && (
                               <div className="absolute -right-1 -bottom-1 bg-blue-600 text-white rounded-full p-0.5">
                                 <Check className="w-3 h-3" />

@@ -346,11 +346,39 @@ export function buildDisplayReports(
   return { reports, totalBudget };
 }
 
+// ─── Cache ──────────────────────────────────────────────────────────
+
+const PROJECT_CACHE_TTL = 30 * 1000; // 30 seconds
+const projectCache: Record<string, { data: any; timestamp: number }> = {};
+
+function getCached<T>(key: string): T | null {
+  const entry = projectCache[key];
+  if (entry && Date.now() - entry.timestamp < PROJECT_CACHE_TTL) {
+    return entry.data as T;
+  }
+  return null;
+}
+
+function setCache(key: string, data: any): void {
+  projectCache[key] = { data, timestamp: Date.now() };
+}
+
+/** Clear cached project data after mutations */
+export function invalidateProjectCache(): void {
+  for (const key of Object.keys(projectCache)) {
+    delete projectCache[key];
+  }
+}
+
 // ─── API Functions ──────────────────────────────────────────────────
 
 export async function fetchFundedProjects(
   role?: string
 ): Promise<ApiFundedProject[]> {
+  const cacheKey = `funded:${role || "all"}`;
+  const cached = getCached<ApiFundedProject[]>(cacheKey);
+  if (cached) return cached;
+
   const params: Record<string, string> = {};
   if (role) params.role = role;
 
@@ -358,16 +386,22 @@ export async function fetchFundedProjects(
     "/project/funded",
     { params, withCredentials: true }
   );
+  setCache(cacheKey, data.data);
   return data.data;
 }
 
 export async function fetchProjectDetail(
   projectId: number
 ): Promise<ApiProjectDetail> {
+  const cacheKey = `detail:${projectId}`;
+  const cached = getCached<ApiProjectDetail>(cacheKey);
+  if (cached) return cached;
+
   const { data } = await api.get<{ data: ApiProjectDetail }>(
     "/project/view",
     { params: { project_id: projectId }, withCredentials: true }
   );
+  setCache(cacheKey, data.data);
   return data.data;
 }
 
@@ -379,6 +413,7 @@ export async function verifyReport(
     { report_id: reportId },
     { withCredentials: true }
   );
+  invalidateProjectCache();
 }
 
 export async function addReportComment(
@@ -403,6 +438,7 @@ export async function updateProjectStatus(
     { project_id: projectId, status, updated_by_id: updatedById },
     { withCredentials: true }
   );
+  invalidateProjectCache();
 }
 
 // ─── Budget Summary Types ───────────────────────────────────────────
@@ -455,10 +491,15 @@ export interface ApiFundRequestsResponse {
 export async function fetchBudgetSummary(
   fundedProjectId: number
 ): Promise<ApiBudgetSummary> {
+  const cacheKey = `budget:${fundedProjectId}`;
+  const cached = getCached<ApiBudgetSummary>(cacheKey);
+  if (cached) return cached;
+
   const { data } = await api.get<{ data: ApiBudgetSummary }>(
     "/project/budget-summary",
     { params: { funded_project_id: fundedProjectId }, withCredentials: true }
   );
+  setCache(cacheKey, data.data);
   return data.data;
 }
 
@@ -478,6 +519,7 @@ export async function createFundRequest(
     },
     { withCredentials: true }
   );
+  invalidateProjectCache();
   return { fund_request: data.data, budget_summary: data.data.budget_summary };
 }
 
@@ -485,6 +527,10 @@ export async function fetchFundRequests(
   fundedProjectId: number,
   status?: "pending" | "approved" | "rejected"
 ): Promise<ApiFundRequestsResponse> {
+  const cacheKey = `fund-requests:${fundedProjectId}:${status || "all"}`;
+  const cached = getCached<ApiFundRequestsResponse>(cacheKey);
+  if (cached) return cached;
+
   const params: Record<string, string | number> = { funded_project_id: fundedProjectId };
   if (status) params.status = status;
 
@@ -492,6 +538,7 @@ export async function fetchFundRequests(
     "/project/fund-requests",
     { params, withCredentials: true }
   );
+  setCache(cacheKey, data.data);
   return data.data;
 }
 
@@ -509,6 +556,7 @@ export async function reviewFundRequest(
     },
     { withCredentials: true }
   );
+  invalidateProjectCache();
   return data.data;
 }
 
@@ -524,6 +572,7 @@ export async function generateCertificate(
     },
     { withCredentials: true }
   );
+  invalidateProjectCache();
   return data;
 }
 
@@ -545,5 +594,6 @@ export async function submitQuarterlyReport(
     },
     { withCredentials: true }
   );
+  invalidateProjectCache();
   return data;
 }

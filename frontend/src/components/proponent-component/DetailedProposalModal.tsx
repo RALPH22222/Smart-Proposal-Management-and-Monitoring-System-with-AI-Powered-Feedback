@@ -36,6 +36,7 @@ import {
   Signature,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import { openSignedUrl } from "../../utils/signed-url";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal } from "../../services/proposal.api";
 
@@ -1019,9 +1020,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             </div>
                           </div>
                           <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); openSignedUrl(fileUrl); }}
                             className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
                             title="Open/Download"
                           >

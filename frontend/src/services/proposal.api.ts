@@ -27,8 +27,9 @@ export type CreateProposalResponse = {
   // ... any other fields
 };
 
-// --- Lookup cache: avoids re-fetching static data on every page navigation ---
-const LOOKUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// --- Cache: avoids re-fetching data on every page navigation ---
+const LOOKUP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (static lookups)
+const DATA_CACHE_TTL = 30 * 1000; // 30 seconds (proposal data)
 const lookupCache: Record<string, { data: any; timestamp: number }> = {};
 
 function getCached<T>(key: string): T | null {
@@ -41,6 +42,23 @@ function getCached<T>(key: string): T | null {
 
 function setCache(key: string, data: any): void {
   lookupCache[key] = { data, timestamp: Date.now() };
+}
+
+function getCachedWithTtl<T>(key: string, ttl: number): T | null {
+  const entry = lookupCache[key];
+  if (entry && Date.now() - entry.timestamp < ttl) {
+    return entry.data as T;
+  }
+  return null;
+}
+
+/** Clear cached proposal data (call after mutations like status updates, forwarding, etc.) */
+export function invalidateProposalCache(): void {
+  for (const key of Object.keys(lookupCache)) {
+    if (key.startsWith("proposals:") || key.startsWith("tracker:")) {
+      delete lookupCache[key];
+    }
+  }
 }
 
 export const fetchAgencies = async (): Promise<AgencyItem[]> => {
@@ -373,23 +391,36 @@ export const analyzeProposalWithAI = async (file: File): Promise<AIAnalysisRespo
 };
 
 export const getProposals = async (search?: string, status?: string): Promise<any[]> => {
+  const cacheKey = `proposals:view:${search || ""}:${status || ""}`;
+  const cached = getCachedWithTtl<any[]>(cacheKey, DATA_CACHE_TTL);
+  if (cached) return cached;
+
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (status) params.append("status", status);
   const { data } = await api.get<any[]>(`/proposal/view?${params.toString()}`, {
     withCredentials: true,
   });
+  setCache(cacheKey, data);
   return data;
 };
 
 export const getRndProposals = async (): Promise<any[]> => {
+  const cached = getCachedWithTtl<any[]>("proposals:rnd", DATA_CACHE_TTL);
+  if (cached) return cached;
+
   const { data } = await api.get<any[]>(`/proposal/view-rnd`, {
     withCredentials: true,
   });
+  setCache("proposals:rnd", data);
   return data;
 };
 
 export const getEvaluatorProposals = async (search?: string, status?: string): Promise<any[]> => {
+  const cacheKey = `proposals:evaluator:${search || ""}:${status || ""}`;
+  const cached = getCachedWithTtl<any[]>(cacheKey, DATA_CACHE_TTL);
+  if (cached) return cached;
+
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (status) params.append("status", status);
@@ -397,6 +428,7 @@ export const getEvaluatorProposals = async (search?: string, status?: string): P
   const { data } = await api.get<any[]>(`/proposal/view-evaluator?${params.toString()}`, {
     withCredentials: true,
   });
+  setCache(cacheKey, data);
   return data;
 };
 
@@ -418,6 +450,7 @@ export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput)
   const { data } = await api.post("/proposal/decision-evaluator-to-proposal", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -479,6 +512,7 @@ export const forwardProposalToRnd = async (proposalId: number, rndIds: string[])
     { proposal_id: proposalId, rnd_id: rndIds },
     { withCredentials: true },
   );
+  invalidateProposalCache();
   return data;
 };
 
@@ -493,6 +527,7 @@ export const forwardProposalToEvaluators = async (input: ForwardToEvaluatorsPayl
   const { data } = await api.post("/proposal/forward-proposal-to-evaluators", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -509,6 +544,7 @@ export const requestRevision = async (input: RequestRevisionPayload): Promise<an
   const { data } = await api.post("/proposal/revision-proposal-to-proponent", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -521,6 +557,7 @@ export const rejectProposal = async (input: RejectProposalPayload): Promise<any>
   const { data } = await api.post("/proposal/reject-proposal-to-proponent", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -535,6 +572,7 @@ export const endorseProposal = async (input: EndorseProposalPayload): Promise<an
   const { data } = await api.post("/proposal/endorse-for-funding", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -568,10 +606,15 @@ export type AssignmentTrackerItem = {
 };
 
 export const getAssignmentTracker = async (proposalId?: number): Promise<AssignmentTrackerItem[]> => {
+  const cacheKey = `tracker:${proposalId || "all"}`;
+  const cached = getCachedWithTtl<AssignmentTrackerItem[]>(cacheKey, DATA_CACHE_TTL);
+  if (cached) return cached;
+
   const query = proposalId ? `?proposal_id=${proposalId}` : "";
   const { data } = await api.get<AssignmentTrackerItem[]>(`/proposal/assignment-tracker${query}`, {
     withCredentials: true,
   });
+  setCache(cacheKey, data);
   return data;
 };
 
@@ -585,6 +628,7 @@ export const handleExtensionRequest = async (input: HandleExtensionPayload): Pro
   const { data } = await api.post("/proposal/handle-extension-request", input, {
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };
 
@@ -594,5 +638,6 @@ export const removeEvaluator = async (proposalId: number, evaluatorId: string): 
     data: { proposal_id: proposalId, evaluator_id: evaluatorId },
     withCredentials: true,
   });
+  invalidateProposalCache();
   return data;
 };

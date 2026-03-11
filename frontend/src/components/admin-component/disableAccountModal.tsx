@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Power } from "lucide-react";
 import type { User } from "../../types/admin";
+import SecureImage from "../shared/SecureImage";
 
 interface DisableAccountModalProps {
   isOpen: boolean;
@@ -64,8 +65,9 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({ isOpen, onClo
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* User info */}
           <div className="flex items-center gap-3">
-            <img
-              src={user.photo_profile_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`}
+            <SecureImage
+              src={user.photo_profile_url}
+              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`}
               alt={getFullName(user)}
               className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
             />

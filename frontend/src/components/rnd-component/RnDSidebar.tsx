@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { type Statistics } from '../../types/InterfaceProposal';
 import { useAuthContext } from "../../context/AuthContext";
+import SecureImage from "../shared/SecureImage";
 
 interface SidebarProps {
   currentPage: string;
@@ -37,8 +38,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!u.first_name && !u.last_name) return u.email || "User";
     return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
   };
-
-  const avatarUrl = user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`;
 
   const mainLinks = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -93,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               background: `linear-gradient(135deg, ${accent} 0%, #A00E26 100%)`,
             }}
           >
-            <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
+            <SecureImage src={user?.profile_photo_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -170,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               background: `linear-gradient(135deg, ${accent} 0%, #A00E26 100%)`,
             }}
           >
-            <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
+            <SecureImage src={user?.profile_photo_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
           <div>
             <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">

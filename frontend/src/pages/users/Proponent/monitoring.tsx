@@ -11,6 +11,7 @@ import {
   CornerDownRight, ChevronUp, ChevronDown, DollarSign, Lock, Loader2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { openSignedUrl } from '../../../utils/signed-url';
 import TeamMembersSection from '../../../components/proponent-component/TeamMembersSection';
 import { useAuthContext } from '../../../context/AuthContext';
 import {
@@ -1065,7 +1066,7 @@ const MonitoringPage: React.FC = () => {
                             <p className="text-xs font-bold text-gray-500 uppercase mb-2">Proof of Accomplishment</p>
                             <div className="flex flex-wrap gap-2">
                               {currentReport.proofFiles.map((file, i) => (
-                                <a key={i} href={file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                                <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
                                   <FileText className="w-3 h-3" /> File {i + 1}
                                 </a>
                               ))}

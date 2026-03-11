@@ -9,6 +9,7 @@ import AddAccountModal from "../../../components/admin-component/addAccountModal
 import EditAccountModal from "../../../components/admin-component/editAccountModal";
 import DisableAccountModal from "../../../components/admin-component/disableAccountModal";
 import PageLoader from "../../../components/shared/PageLoader";
+import SecureImage from "../../../components/shared/SecureImage";
 
 const ROLE_DISPLAY: Record<string, string> = {
   admin: "Admin",
@@ -273,13 +274,12 @@ const Accounts: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {currentUsers.length > 0 ? (
                 currentUsers.map((user) => {
-                  const avatarUrl = user.photo_profile_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`;
                   const isDisabled = user.is_disabled;
                   return (
                     <tr key={user.id} className={`transition-colors ${isDisabled ? 'bg-gray-100 opacity-75' : 'hover:bg-gray-50'}`}>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center min-w-0">
-                          <img src={avatarUrl} alt={getFullName(user)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-3 object-cover flex-shrink-0 ${isDisabled ? 'grayscale' : ''}`} />
+                          <SecureImage src={user.photo_profile_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`} alt={getFullName(user)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-3 object-cover flex-shrink-0 ${isDisabled ? 'grayscale' : ''}`} />
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-gray-900 truncate">{getFullName(user)}</div>
                             <div className="text-xs text-gray-500 sm:hidden truncate">{user.email}</div>

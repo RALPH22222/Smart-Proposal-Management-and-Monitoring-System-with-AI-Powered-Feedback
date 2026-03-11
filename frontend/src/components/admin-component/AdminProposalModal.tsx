@@ -26,6 +26,7 @@ import {
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
 import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserItem, type RejectionSummary } from '../../services/proposal.api';
+import SecureImage from '../shared/SecureImage';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -580,17 +581,12 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                               className="mt-2 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                             />
                             <div className="ml-3 flex items-center gap-3 flex-1">
-                              {staff.avatar ? (
-                                <img
-                                  src={staff.avatar}
-                                  alt={staff.name}
-                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-sm font-bold flex-shrink-0 border border-slate-200 shadow-sm">
-                                  {staff.name?.charAt(0) || '?'}
-                                </div>
-                              )}
+                              <SecureImage
+                                src={staff.avatar}
+                                fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name || '?')}&background=C8102E&color=fff&size=128`}
+                                alt={staff.name}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm"
+                              />
                               <div>
                                 <p className={`text-sm font-bold ${selectedRnDStaff?.id === staff.id ? 'text-blue-800' : 'text-slate-800'}`}>{staff.name}</p>
                                 <p className="text-xs text-slate-500">{staff.email}</p>

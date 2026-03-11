@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
+import SecureImage from "../shared/SecureImage";
 
 interface SidebarProps {
   currentPage: string;
@@ -20,8 +21,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     if (!u.first_name && !u.last_name) return u.email || "User";
     return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
   };
-
-  const avatarUrl = user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`;
 
   const mainLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -78,7 +77,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
               background: `linear-gradient(135deg, ${accent} 0%, #A00002 100%)`,
             }}
           >
-            <img src={avatarUrl} alt={getFullName()} className="w-full h-full object-cover" />
+            <SecureImage src={user?.profile_photo_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
           <div>
             <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">

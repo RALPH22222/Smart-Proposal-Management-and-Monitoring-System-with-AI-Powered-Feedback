@@ -12,7 +12,10 @@ import {
   RestApi,
 } from "aws-cdk-lib/aws-apigateway";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import { Bucket, HttpMethods } from "aws-cdk-lib/aws-s3";
+import { Bucket, BlockPublicAccess, HttpMethods } from "aws-cdk-lib/aws-s3";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
+import path from "path";
 import { Role, ServicePrincipal, ManagedPolicy, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 import { AuthLambdas } from "./nested/auth-lambdas";
@@ -50,13 +53,7 @@ export class BackendStack extends Stack {
     // ========== S3 BUCKETS ==========
     const proposal_attachments_bucket = new Bucket(this, `pms-proposal-attachments-bucket-${stageName}`, {
       bucketName: `pms-proposal-attachments-bucket-${stageName}`,
-      publicReadAccess: true,
-      blockPublicAccess: {
-        blockPublicAcls: false,
-        blockPublicPolicy: false,
-        ignorePublicAcls: false,
-        restrictPublicBuckets: false,
-      },
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       removalPolicy: RemovalPolicy.RETAIN,
       cors: [
         {
@@ -70,13 +67,7 @@ export class BackendStack extends Stack {
 
     const profile_setup_bucket = new Bucket(this, `pms-profile-setup-bucket-${stageName}`, {
       bucketName: `pms-profile-setup-bucket-${stageName}`,
-      publicReadAccess: true,
-      blockPublicAccess: {
-        blockPublicAcls: false,
-        blockPublicPolicy: false,
-        ignorePublicAcls: false,
-        restrictPublicBuckets: false,
-      },
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
@@ -145,10 +136,30 @@ export class BackendStack extends Stack {
       frontendUrl: FRONTEND_URL,
     });
 
+    // ========== SHARED LAMBDAS (not in nested stacks) ==========
+    const getSignedUrl = new NodejsFunction(this, "get-signed-url", {
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      functionName: "pms-get-signed-url",
+      entry: path.resolve("src", "handlers", "files", "get-signed-url.ts"),
+      environment: {
+        SUPABASE_KEY: SUPABASE_KEY,
+        PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
+        PROFILE_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+      },
+    });
+    proposal_attachments_bucket.grantRead(getSignedUrl);
+    profile_setup_bucket.grantRead(getSignedUrl);
+
     // ========== API GATEWAY ==========
     const api = new RestApi(this, "pms-api-gateway", {
       restApiName: "pms-api-gateway",
-      deployOptions: { stageName: "api" },
+      deployOptions: {
+        stageName: "api",
+        throttlingRateLimit: 50,   // 50 requests per second (steady state)
+        throttlingBurstLimit: 100, // burst up to 100 requests
+      },
       binaryMediaTypes: ["multipart/form-data"],
       defaultCorsPreflightOptions: {
         allowOrigins: ["http://localhost:5173", "https://wmsu-spmams.vercel.app"],
@@ -199,10 +210,20 @@ export class BackendStack extends Stack {
       responseHeaders: corsResponseHeaders,
     });
 
+    new GatewayResponse(this, "GatewayResponseThrottle", {
+      restApi: api,
+      type: ResponseType.THROTTLED,
+      statusCode: "429",
+      responseHeaders: corsResponseHeaders,
+      templates: {
+        "application/json": '{"message": "Too many requests. Please try again later."}',
+      },
+    });
+
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
       handler: auth.authorizer,
-      identitySources: [],
-      resultsCacheTtl: Duration.seconds(0),
+      identitySources: [IdentitySource.header("Cookie")],
+      resultsCacheTtl: Duration.seconds(300),
       assumeRole: apiRole,
     });
 
@@ -210,6 +231,12 @@ export class BackendStack extends Stack {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     };
+
+    // ========== FILES ROUTES ==========
+    const files = api.root.addResource("files");
+    files
+      .addResource("signed-url")
+      .addMethod(HttpMethod.GET, integrate(getSignedUrl), protectedRoute);
 
     // ========== AUTH ROUTES ==========
     const authResource = api.root.addResource("auth");

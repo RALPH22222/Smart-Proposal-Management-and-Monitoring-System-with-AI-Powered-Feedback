@@ -26,6 +26,7 @@ import {
 } from "../../../services/proposal.api";
 
 import { useAuthContext } from "../../../context/AuthContext";
+import SecureImage from "../../../components/shared/SecureImage";
 
 const Loader3D = () => (
   <div className="flex flex-col items-center justify-center py-12 w-full">
@@ -785,8 +786,6 @@ const Profile: React.FC = () => {
     return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
   };
 
-  const avatarUrl = user?.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`;
-
   return (
     <>
       <style>{`
@@ -807,8 +806,9 @@ const Profile: React.FC = () => {
                   {/* Thin inner gradient border */}
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#C8102E] to-[#E03A52] p-[2px]">
                     <div className="h-full w-full bg-white rounded-[10px] overflow-hidden">
-                      <img
-                        src={avatarUrl}
+                      <SecureImage
+                        src={user?.profile_photo_url}
+                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`}
                         alt={getFullName()}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />

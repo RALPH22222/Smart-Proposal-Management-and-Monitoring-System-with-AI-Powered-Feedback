@@ -5,7 +5,7 @@ import {
     type Statistics,
     type Activity
 } from '../../types/InterfaceProposal';
-import { getRndProposals } from '../../services/proposal.api';
+import { getRndProposals, invalidateProposalCache } from '../../services/proposal.api';
 import { api } from '../../utils/axios';
 
 // Create Proposal object from raw API data
@@ -126,6 +126,7 @@ export const proposalApi = {
             }, {
                 withCredentials: true
             });
+            invalidateProposalCache();
         } catch (error: any) {
             console.error("Failed to update status. Backend response:", error.response?.data);
             throw error;

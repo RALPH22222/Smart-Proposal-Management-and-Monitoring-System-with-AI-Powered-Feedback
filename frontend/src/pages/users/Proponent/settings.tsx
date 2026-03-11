@@ -6,9 +6,10 @@ import {
   changeMyPassword,
   getMyProfile,
   updateMyAvatar,
-  updateMyName, 
+  updateMyName,
   type UserProfile
 } from '../../../services/user/userService';
+import SecureImage from '../../../components/shared/SecureImage';
 
 // --- Constants from Profile Setup ---
 const DEPARTMENTS = [
@@ -227,8 +228,9 @@ const Settings: React.FC = () => {
          <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
             <div className="relative group">
                 <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm">
-                    <img
-                        src={profile?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName || 'User')}&background=E5E7EB&color=111827`}
+                    <SecureImage
+                        src={profile?.avatarUrl}
+                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName || 'User')}&background=E5E7EB&color=111827`}
                         alt='Avatar'
                         className='h-full w-full object-cover'
                     />

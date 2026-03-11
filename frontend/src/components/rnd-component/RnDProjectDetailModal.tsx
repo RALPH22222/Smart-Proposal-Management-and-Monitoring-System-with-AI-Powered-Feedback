@@ -6,6 +6,7 @@ import {
   Users, MessageSquare, CheckSquare, Lock, Loader2, Award
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { openSignedUrl } from '../../utils/signed-url';
 import { type Project } from '../../types/InterfaceProject';
 import { useAuthContext } from '../../context/AuthContext';
 import {
@@ -497,7 +498,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                       <p className="text-xs font-bold text-slate-500 uppercase mb-2">Proof of Accomplishment</p>
                       <div className="flex flex-wrap gap-2">
                          {report.proofs.map((file, i) => (
-                            <a key={i} href={file} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
+                            <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
                                <Paperclip className="w-4 h-4"/>
                                <span className="font-medium">File {i + 1}</span>
                                <Download className="w-4 h-4 ml-1 opacity-70 group-hover:opacity-100"/>
