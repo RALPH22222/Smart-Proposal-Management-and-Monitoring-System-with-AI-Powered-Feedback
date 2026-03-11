@@ -86,6 +86,20 @@ export class ProjectService {
       query = query.in("id", projectIds);
     }
 
+    // Filter for RND: only show projects assigned to this RND user via proposal_rnd
+    if (input.role === "rnd" && input.user_id) {
+      const { data: rndAssignments } = await this.db
+        .from("proposal_rnd")
+        .select("proposal_id")
+        .eq("rnd_id", input.user_id);
+
+      const proposalIds = rndAssignments?.map((a) => a.proposal_id) || [];
+      if (proposalIds.length === 0) {
+        return { data: [], error: null };
+      }
+      query = query.in("proposal_id", proposalIds);
+    }
+
     // Apply pagination
     if (input.limit) {
       query = query.limit(input.limit);

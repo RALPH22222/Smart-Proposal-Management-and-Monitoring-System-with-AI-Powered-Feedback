@@ -3,14 +3,33 @@ import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getFundedProjectsSchema } from "../../schemas/project-schema";
+import { getAuthContext } from "../../utils/auth-context";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  // Parse query parameters
+  // Extract identity from JWT - never trust query params for user identity
+  const auth = getAuthContext(event);
+  if (!auth.userId) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "Unauthorized" }),
+    };
+  }
+
+  // Determine role from JWT (priority: rnd > admin > proponent)
+  const roleFromJwt = auth.roles.includes("admin")
+    ? "admin"
+    : auth.roles.includes("rnd")
+    ? "rnd"
+    : auth.roles.includes("proponent")
+    ? "proponent"
+    : undefined;
+
+  // Parse query parameters (only non-identity fields)
   const queryParams = event.queryStringParameters || {};
 
   const input = {
-    user_id: queryParams.user_id,
-    role: queryParams.role as "proponent" | "rnd" | "admin" | undefined,
+    user_id: auth.userId,
+    role: roleFromJwt as "proponent" | "rnd" | "admin" | undefined,
     status: queryParams.status as any,
     limit: queryParams.limit ? parseInt(queryParams.limit) : undefined,
     offset: queryParams.offset ? parseInt(queryParams.offset) : undefined,
