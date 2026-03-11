@@ -19,16 +19,19 @@ export const getFundedProjectsSchema = z.object({
 export type GetFundedProjectsInput = z.infer<typeof getFundedProjectsSchema>;
 
 // Submit Quarterly Report Schema
+// Note: submitted_by_proponent_id is injected by handler from JWT, not from request body
 export const submitReportSchema = z.object({
   funded_project_id: z.number().int().positive(),
   quarterly_report: quarterlyReportSchema,
   progress: z.number().int().min(0).max(100),
   comment: z.string().optional(),
   report_file_url: z.array(z.string().url()).optional(),
-  submitted_by_proponent_id: z.string().uuid(),
 });
 
-export type SubmitReportInput = z.infer<typeof submitReportSchema>;
+// Full input including server-injected fields
+export type SubmitReportInput = z.infer<typeof submitReportSchema> & {
+  submitted_by_proponent_id: string;
+};
 
 // Get Project Reports Schema
 export const getProjectReportsSchema = z.object({
@@ -118,3 +121,60 @@ export const getProjectMembersSchema = z.object({
 });
 
 export type GetProjectMembersInput = z.infer<typeof getProjectMembersSchema>;
+
+// ===================== FUND REQUESTS =====================
+
+export const fundRequestStatusSchema = z.enum(["pending", "approved", "rejected"]);
+
+export const budgetCategorySchema = z.enum(["ps", "mooe", "co"]);
+
+// Create Fund Request Schema
+// Note: requested_by is injected by handler from JWT, not from request body
+export const createFundRequestSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  quarterly_report: quarterlyReportSchema,
+  items: z
+    .array(
+      z.object({
+        item_name: z.string().min(1).max(500),
+        amount: z.number().positive(),
+        description: z.string().max(1000).optional(),
+        category: budgetCategorySchema,
+      })
+    )
+    .min(1, "At least one item is required"),
+});
+
+export type CreateFundRequestInput = z.infer<typeof createFundRequestSchema> & {
+  requested_by: string;
+};
+
+// Get Fund Requests Schema
+export const getFundRequestsSchema = z.object({
+  funded_project_id: z.coerce.number().int().positive(),
+  status: fundRequestStatusSchema.optional(),
+});
+
+export type GetFundRequestsInput = z.infer<typeof getFundRequestsSchema>;
+
+// Review (Approve/Reject) Fund Request Schema
+// Note: reviewed_by is injected by handler from JWT, not from request body
+export const reviewFundRequestSchema = z.object({
+  fund_request_id: z.number().int().positive(),
+  status: z.enum(["approved", "rejected"]),
+  review_note: z.string().max(2000).optional(),
+});
+
+export type ReviewFundRequestInput = z.infer<typeof reviewFundRequestSchema> & {
+  reviewed_by: string;
+};
+
+// Generate Certificate Schema
+// Note: issued_by is injected by handler from JWT, not from request body
+export const generateCertificateSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+});
+
+export type GenerateCertificateInput = z.infer<typeof generateCertificateSchema> & {
+  issued_by: string;
+};

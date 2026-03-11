@@ -2,14 +2,10 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
+import { generateCertificateSchema } from "../../schemas/project-schema";
 import { getAuthContext } from "../../utils/auth-context";
-import { logActivity } from "../../utils/activity-logger";
-import { z } from "zod";
 
-const addCommentBodySchema = z.object({
-  project_reports_id: z.number().int().positive(),
-  comments: z.string().min(1).max(2000),
-});
+const ALLOWED_ROLES = ["rnd", "admin"];
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   // Extract authenticated user from JWT
@@ -21,8 +17,19 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
+  // Role check: only rnd or admin can issue certificates
+  const hasRole = auth.roles.some((r) => ALLOWED_ROLES.includes(r));
+  if (!hasRole) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message: "Forbidden: Only R&D staff or admins can issue certificates.",
+      }),
+    };
+  }
+
   const payload = JSON.parse(event.body || "{}");
-  const result = addCommentBodySchema.safeParse(payload);
+  const result = generateCertificateSchema.safeParse(payload);
 
   if (result.error) {
     return {
@@ -35,34 +42,30 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const projectService = new ProjectService(supabase);
-  const { data, error } = await projectService.addComment({
-    project_reports_id: result.data.project_reports_id,
-    users_id: auth.userId,
-    comments: result.data.comments,
+  const { data, error } = await projectService.generateCertificate({
+    ...result.data,
+    issued_by: auth.userId,
   });
 
   if (error) {
-    console.error("Supabase error: ", JSON.stringify(error, null, 2));
+    const statusCode =
+      (error as any).code === "INCOMPLETE_REPORTS" || (error as any).code === "CERTIFICATE_ALREADY_ISSUED"
+        ? 400
+        : 500;
+    console.error("Error: ", JSON.stringify(error, null, 2));
     return {
-      statusCode: 500,
+      statusCode,
       body: JSON.stringify({
         message: error.message || "Internal server error.",
+        code: (error as any).code,
       }),
     };
   }
 
-  await logActivity(supabase, {
-    user_id: auth.userId,
-    action: "report_comment_added",
-    category: "project",
-    target_id: String(result.data.project_reports_id),
-    target_type: "funded_project",
-  });
-
   return {
-    statusCode: 201,
+    statusCode: 200,
     body: JSON.stringify({
-      message: "Comment added successfully.",
+      message: "Certificate issued successfully. Project marked as completed.",
       data,
     }),
   };

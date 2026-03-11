@@ -168,3 +168,71 @@ export interface ProjectMember {
 export interface ProjectMemberWithUser extends ProjectMember {
   user: { id: string; first_name: string; last_name: string; email: string };
 }
+
+// Fund Request types
+export enum FundRequestStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+}
+
+export interface FundRequest {
+  id: number;
+  funded_project_id: number;
+  quarterly_report: QuarterlyReport;
+  status: FundRequestStatus;
+  requested_by: string; // UUID
+  reviewed_by: string | null; // UUID
+  review_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface FundRequestItem {
+  id: number;
+  fund_request_id: number;
+  item_name: string;
+  amount: number;
+  description: string | null;
+  category: "ps" | "mooe" | "co";
+  created_at: string;
+}
+
+export interface FundRequestWithItems extends FundRequest {
+  items: FundRequestItem[];
+  requested_by_user?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export interface CreateFundRequestInput {
+  funded_project_id: number;
+  quarterly_report: QuarterlyReport;
+  requested_by: string;
+  items: {
+    item_name: string;
+    amount: number;
+    description?: string;
+    category: "ps" | "mooe" | "co";
+  }[];
+}
+
+export interface GetFundRequestsInput {
+  funded_project_id: number;
+  status?: FundRequestStatus;
+}
+
+export interface ReviewFundRequestInput {
+  fund_request_id: number;
+  status: "approved" | "rejected";
+  reviewed_by: string;
+  review_note?: string;
+}
+
+export interface GenerateCertificateInput {
+  funded_project_id: number;
+  issued_by: string;
+}

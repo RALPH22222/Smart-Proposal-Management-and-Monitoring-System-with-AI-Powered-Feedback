@@ -1,5 +1,60 @@
+import axios from "axios";
 import { api } from "../utils/axios";
 import { type Project, type ProjectStatus } from "../types/InterfaceProject";
+
+// ─── Report File Upload Constants ────────────────────────────────────
+export const REPORT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+export const REPORT_ALLOWED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
+export const REPORT_ALLOWED_EXTENSIONS = ".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp";
+
+export function validateReportFile(file: File): string | null {
+  if (file.size > REPORT_MAX_FILE_SIZE) {
+    return `File "${file.name}" exceeds the 5 MB limit (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
+  }
+  if (!REPORT_ALLOWED_TYPES.includes(file.type)) {
+    return `File "${file.name}" has an unsupported type. Allowed: PDF, DOC, DOCX, PNG, JPG, WEBP.`;
+  }
+  return null;
+}
+
+export async function getReportUploadUrl(
+  filename: string,
+  contentType: string,
+  fileSize: number
+): Promise<{ uploadUrl: string; fileUrl: string }> {
+  const { data } = await api.get("/project/report-upload-url", {
+    params: { filename, contentType, fileSize },
+    withCredentials: true,
+  });
+  return data as { uploadUrl: string; fileUrl: string };
+}
+
+export async function uploadReportFileToS3(uploadUrl: string, file: File): Promise<void> {
+  await axios.put(uploadUrl, file, {
+    headers: { "Content-Type": file.type },
+  });
+}
+
+/**
+ * Upload a single report file and return its public URL.
+ * Validates size (5 MB) and type before uploading.
+ */
+export async function uploadReportFile(file: File): Promise<string> {
+  const error = validateReportFile(file);
+  if (error) throw new Error(error);
+
+  const { uploadUrl, fileUrl } = await getReportUploadUrl(file.name, file.type, file.size);
+  await uploadReportFileToS3(uploadUrl, file);
+  return fileUrl;
+}
 
 // ─── Backend Response Interfaces ────────────────────────────────────
 
@@ -317,24 +372,22 @@ export async function fetchProjectDetail(
 }
 
 export async function verifyReport(
-  reportId: number,
-  verifiedById: string
+  reportId: number
 ): Promise<void> {
   await api.post(
     "/project/verify-report",
-    { report_id: reportId, verified_by_id: verifiedById },
+    { report_id: reportId },
     { withCredentials: true }
   );
 }
 
 export async function addReportComment(
   reportId: number,
-  userId: string,
   text: string
 ): Promise<ApiProjectComment> {
   const { data } = await api.post<{ data: ApiProjectComment }>(
     "/project/add-comment",
-    { project_reports_id: reportId, users_id: userId, comments: text },
+    { project_reports_id: reportId, comments: text },
     { withCredentials: true }
   );
   return data.data;
@@ -350,4 +403,147 @@ export async function updateProjectStatus(
     { project_id: projectId, status, updated_by_id: updatedById },
     { withCredentials: true }
   );
+}
+
+// ─── Budget Summary Types ───────────────────────────────────────────
+
+export interface ApiBudgetSummary {
+  total_budget: number;
+  total_approved: number;
+  total_pending: number;
+  remaining: number;
+  budget_by_category: { ps: number; mooe: number; co: number };
+  approved_by_category: { ps: number; mooe: number; co: number };
+  pending_by_category: { ps: number; mooe: number; co: number };
+}
+
+// ─── Fund Request Types ─────────────────────────────────────────────
+
+export interface ApiFundRequestItem {
+  id: number;
+  fund_request_id: number;
+  item_name: string;
+  amount: number;
+  description: string | null;
+  category: "ps" | "mooe" | "co";
+  created_at: string;
+}
+
+export interface ApiFundRequest {
+  id: number;
+  funded_project_id: number;
+  quarterly_report: string;
+  status: "pending" | "approved" | "rejected";
+  requested_by: string;
+  reviewed_by: string | null;
+  review_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  requested_by_user: { id: string; first_name: string; last_name: string } | null;
+  reviewed_by_user: { id: string; first_name: string; last_name: string } | null;
+  fund_request_items: ApiFundRequestItem[];
+}
+
+export interface ApiFundRequestsResponse {
+  fund_requests: ApiFundRequest[];
+  budget_summary: ApiBudgetSummary | null;
+}
+
+// ─── Budget Summary API ─────────────────────────────────────────────
+
+export async function fetchBudgetSummary(
+  fundedProjectId: number
+): Promise<ApiBudgetSummary> {
+  const { data } = await api.get<{ data: ApiBudgetSummary }>(
+    "/project/budget-summary",
+    { params: { funded_project_id: fundedProjectId }, withCredentials: true }
+  );
+  return data.data;
+}
+
+// ─── Fund Request API Functions ─────────────────────────────────────
+
+export async function createFundRequest(
+  fundedProjectId: number,
+  quarterlyReport: string,
+  items: { item_name: string; amount: number; description?: string; category: "ps" | "mooe" | "co" }[]
+): Promise<{ fund_request: ApiFundRequest; budget_summary: ApiBudgetSummary }> {
+  const { data } = await api.post<{ data: { items: ApiFundRequestItem[]; budget_summary: ApiBudgetSummary } & ApiFundRequest }>(
+    "/project/create-fund-request",
+    {
+      funded_project_id: fundedProjectId,
+      quarterly_report: quarterlyReport,
+      items,
+    },
+    { withCredentials: true }
+  );
+  return { fund_request: data.data, budget_summary: data.data.budget_summary };
+}
+
+export async function fetchFundRequests(
+  fundedProjectId: number,
+  status?: "pending" | "approved" | "rejected"
+): Promise<ApiFundRequestsResponse> {
+  const params: Record<string, string | number> = { funded_project_id: fundedProjectId };
+  if (status) params.status = status;
+
+  const { data } = await api.get<{ data: ApiFundRequestsResponse }>(
+    "/project/fund-requests",
+    { params, withCredentials: true }
+  );
+  return data.data;
+}
+
+export async function reviewFundRequest(
+  fundRequestId: number,
+  status: "approved" | "rejected",
+  reviewNote?: string
+): Promise<ApiFundRequest> {
+  const { data } = await api.post<{ data: ApiFundRequest }>(
+    "/project/review-fund-request",
+    {
+      fund_request_id: fundRequestId,
+      status,
+      review_note: reviewNote,
+    },
+    { withCredentials: true }
+  );
+  return data.data;
+}
+
+// ─── Certificate API Functions ──────────────────────────────────────
+
+export async function generateCertificate(
+  fundedProjectId: number
+): Promise<any> {
+  const { data } = await api.post(
+    "/project/generate-certificate",
+    {
+      funded_project_id: fundedProjectId,
+    },
+    { withCredentials: true }
+  );
+  return data;
+}
+
+export async function submitQuarterlyReport(
+  fundedProjectId: number,
+  quarterlyReport: string,
+  progress: number,
+  comment?: string,
+  reportFileUrl?: string[]
+): Promise<any> {
+  const { data } = await api.post(
+    "/project/submit-report",
+    {
+      funded_project_id: fundedProjectId,
+      quarterly_report: quarterlyReport,
+      progress,
+      comment,
+      report_file_url: reportFileUrl,
+    },
+    { withCredentials: true }
+  );
+  return data;
 }

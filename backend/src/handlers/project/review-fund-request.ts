@@ -2,14 +2,10 @@ import { APIGatewayProxyEvent } from "aws-lambda";
 import { ProjectService } from "../../services/project.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
+import { reviewFundRequestSchema } from "../../schemas/project-schema";
 import { getAuthContext } from "../../utils/auth-context";
-import { logActivity } from "../../utils/activity-logger";
-import { z } from "zod";
 
-const addCommentBodySchema = z.object({
-  project_reports_id: z.number().int().positive(),
-  comments: z.string().min(1).max(2000),
-});
+const ALLOWED_ROLES = ["rnd", "admin"];
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   // Extract authenticated user from JWT
@@ -21,8 +17,19 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
+  // Role check: only rnd or admin can review fund requests
+  const hasRole = auth.roles.some((r) => ALLOWED_ROLES.includes(r));
+  if (!hasRole) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message: "Forbidden: Only R&D staff or admins can review fund requests.",
+      }),
+    };
+  }
+
   const payload = JSON.parse(event.body || "{}");
-  const result = addCommentBodySchema.safeParse(payload);
+  const result = reviewFundRequestSchema.safeParse(payload);
 
   if (result.error) {
     return {
@@ -35,10 +42,9 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const projectService = new ProjectService(supabase);
-  const { data, error } = await projectService.addComment({
-    project_reports_id: result.data.project_reports_id,
-    users_id: auth.userId,
-    comments: result.data.comments,
+  const { data, error } = await projectService.reviewFundRequest({
+    ...result.data,
+    reviewed_by: auth.userId,
   });
 
   if (error) {
@@ -51,18 +57,10 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  await logActivity(supabase, {
-    user_id: auth.userId,
-    action: "report_comment_added",
-    category: "project",
-    target_id: String(result.data.project_reports_id),
-    target_type: "funded_project",
-  });
-
   return {
-    statusCode: 201,
+    statusCode: 200,
     body: JSON.stringify({
-      message: "Comment added successfully.",
+      message: `Fund request ${result.data.status} successfully.`,
       data,
     }),
   };

@@ -12,9 +12,15 @@ import {
   fetchProjectDetail,
   verifyReport,
   addReportComment,
+  fetchFundRequests,
+  reviewFundRequest,
+  fetchBudgetSummary,
+  generateCertificate,
   buildDisplayReports,
   type DisplayReport,
   type ProjectDetailData,
+  type ApiFundRequest,
+  type ApiBudgetSummary,
 } from '../../services/ProjectMonitoringApi';
 
 interface RnDProjectDetailModalProps {
@@ -35,19 +41,40 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const [chatInputs, setChatInputs] = useState<{[key:string]: string}>({});
   const [verifyingReportId, setVerifyingReportId] = useState<string | null>(null);
 
+  // Fund request state
+  const [fundRequests, setFundRequests] = useState<ApiFundRequest[]>([]);
+  const [budgetSummary, setBudgetSummary] = useState<ApiBudgetSummary | null>(null);
+  const [reviewingFrId, setReviewingFrId] = useState<number | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
+  const [showReviewNoteFor, setShowReviewNoteFor] = useState<number | null>(null);
+
+  // Certificate state
+  const [issuingCertificate, setIssuingCertificate] = useState(false);
+
+  const loadDetails = async () => {
+    if (!project?.backendId) return;
+    setDetailLoading(true);
+    try {
+      const [data, frResponse, bs] = await Promise.all([
+        fetchProjectDetail(project.backendId),
+        fetchFundRequests(project.backendId),
+        fetchBudgetSummary(project.backendId).catch(() => null),
+      ]);
+      const detailData = buildDisplayReports(data, user?.id || '');
+      setDetails(detailData);
+      setFundRequests(frResponse.fund_requests);
+      setBudgetSummary(frResponse.budget_summary || bs);
+    } catch (err) {
+      console.error('Error loading project details:', err);
+      setDetails({ reports: [], totalBudget: 0 });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (project && isOpen && project.backendId) {
-      setDetailLoading(true);
-      fetchProjectDetail(project.backendId)
-        .then((data) => {
-          const detailData = buildDisplayReports(data, user?.id || '');
-          setDetails(detailData);
-        })
-        .catch((err) => {
-          console.error('Error loading project details:', err);
-          setDetails({ reports: [], totalBudget: 0 });
-        })
-        .finally(() => setDetailLoading(false));
+      loadDetails();
     }
   }, [project, isOpen, user?.id]);
 
@@ -65,12 +92,13 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   }
 
   // --- CALCULATE FINANCIALS ---
-  const totalBudget = details.totalBudget;
+  const totalBudget = budgetSummary?.total_budget || details.totalBudget;
   const isCompleted = project.status === 'Completed';
   const totalUsed = isCompleted
     ? totalBudget
-    : details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
-  const remainingBudget = totalBudget - totalUsed;
+    : budgetSummary?.total_approved || details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
+  const remainingBudget = budgetSummary?.remaining ?? (totalBudget - totalUsed);
+  const totalPending = budgetSummary?.total_pending || 0;
 
   const toggleReport = (id: string) => setExpandedReportId(expandedReportId === id ? null : id);
 
@@ -87,7 +115,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     if (!report?.backendReportId) return;
 
     try {
-      await addReportComment(report.backendReportId, user.id, text.trim());
+      await addReportComment(report.backendReportId, text.trim());
       // Append to local state
       setDetails(prev => {
         if (!prev) return null;
@@ -124,7 +152,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
     setVerifyingReportId(report.id);
     try {
-      await verifyReport(report.backendReportId, user.id);
+      await verifyReport(report.backendReportId);
       // Update local state
       setDetails(prev => {
         if (!prev) return null;
@@ -146,6 +174,62 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       setVerifyingReportId(null);
     }
   };
+
+  // --- Fund Request Review ---
+  const handleReviewFundRequest = async (frId: number, status: 'approved' | 'rejected') => {
+    if (!user) return;
+    setReviewingFrId(frId);
+    try {
+      await reviewFundRequest(frId, status, reviewNote || undefined);
+      Swal.fire(
+        status === 'approved' ? 'Approved' : 'Rejected',
+        `Fund request has been ${status}.`,
+        status === 'approved' ? 'success' : 'info'
+      );
+      setReviewNote('');
+      setShowReviewNoteFor(null);
+      await loadDetails();
+    } catch (err) {
+      console.error('Error reviewing fund request:', err);
+      Swal.fire('Error', 'Failed to review fund request.', 'error');
+    } finally {
+      setReviewingFrId(null);
+    }
+  };
+
+  // --- Certificate ---
+  const handleGenerateCertificate = async () => {
+    if (!project?.backendId || !user) return;
+    const result = await Swal.fire({
+      title: 'Issue Certificate?',
+      text: 'This will mark the project as completed and issue a certificate of completion.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Issue Certificate',
+      confirmButtonColor: '#059669',
+    });
+    if (!result.isConfirmed) return;
+
+    setIssuingCertificate(true);
+    try {
+      await generateCertificate(project.backendId);
+      Swal.fire('Certificate Issued!', 'The project has been marked as completed.', 'success');
+      await loadDetails();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to generate certificate.';
+      Swal.fire('Error', msg, 'error');
+    } finally {
+      setIssuingCertificate(false);
+    }
+  };
+
+  // Check if all 4 quarters are verified
+  const allQuartersVerified = details?.reports
+    ? details.reports.filter(r => r.status === 'Verified').length === 4
+    : false;
+
+  // Pending fund requests
+  const pendingFundRequests = fundRequests.filter(fr => fr.status === 'pending');
 
   // --- RENDERERS ---
 
@@ -488,6 +572,92 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
               {project.status === 'Completed' ? renderCompletedView() : (
                  <>
+                    {/* Pending Fund Requests */}
+                    {pendingFundRequests.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
+                          <DollarSign className="w-5 h-5 text-amber-600" /> Pending Fund Requests
+                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingFundRequests.length}</span>
+                        </h3>
+                        <div className="space-y-4">
+                          {pendingFundRequests.map(fr => {
+                            const totalAmount = fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0;
+                            const quarterLabel = fr.quarterly_report.replace('_report', '').toUpperCase();
+                            const requestedBy = fr.requested_by_user
+                              ? `${fr.requested_by_user.first_name} ${fr.requested_by_user.last_name}`
+                              : 'Unknown';
+                            return (
+                              <div key={fr.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
+                                <div className="bg-amber-50 px-5 py-3 flex justify-between items-center border-b border-amber-200">
+                                  <div>
+                                    <span className="font-bold text-amber-800">{quarterLabel} Fund Request</span>
+                                    <p className="text-xs text-amber-600 mt-0.5">By {requestedBy} &middot; {new Date(fr.created_at).toLocaleDateString()}</p>
+                                  </div>
+                                  <span className="text-lg font-bold text-amber-800">₱{totalAmount.toLocaleString()}</span>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                  {fr.fund_request_items?.map(item => (
+                                    <div key={item.id} className="flex justify-between text-sm border-b border-slate-100 last:border-0 pb-1">
+                                      <span className="text-slate-700">{item.item_name} <span className="text-xs text-slate-400 uppercase">({item.category})</span></span>
+                                      <span className="font-mono font-medium text-slate-900">₱{item.amount.toLocaleString()}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {showReviewNoteFor === fr.id && (
+                                  <div className="px-4 pb-2">
+                                    <textarea
+                                      value={reviewNote}
+                                      onChange={(e) => setReviewNote(e.target.value)}
+                                      placeholder="Add a note (optional)..."
+                                      className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none h-16"
+                                    />
+                                  </div>
+                                )}
+                                <div className="px-4 pb-4 flex gap-3">
+                                  {showReviewNoteFor !== fr.id ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleReviewFundRequest(fr.id, 'approved')}
+                                        disabled={reviewingFrId === fr.id}
+                                        className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                      >
+                                        {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => setShowReviewNoteFor(fr.id)}
+                                        className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                                      >
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() => handleReviewFundRequest(fr.id, 'rejected')}
+                                        disabled={reviewingFrId === fr.id}
+                                        className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                      >
+                                        {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
+                                      </button>
+                                      <button
+                                        onClick={() => { setShowReviewNoteFor(null); setReviewNote(''); }}
+                                        className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quarterly Reports */}
                     <div>
                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
                           <FileText className="w-5 h-5 text-blue-600"/> Quarterly Reports
@@ -496,6 +666,22 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           {details.reports.map(renderReportItem)}
                        </div>
                     </div>
+
+                    {/* Certificate Generation Button */}
+                    {allQuartersVerified && (
+                      <div className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center">
+                        <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                        <h3 className="text-lg font-bold text-emerald-800 mb-2">All Quarters Verified!</h3>
+                        <p className="text-sm text-emerald-600 mb-4">All 4 quarterly reports have been verified. You can now issue the certificate of completion.</p>
+                        <button
+                          onClick={handleGenerateCertificate}
+                          disabled={issuingCertificate}
+                          className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
+                        >
+                          {issuingCertificate ? <><Loader2 className="w-5 h-5 animate-spin" /> Issuing...</> : <><Award className="w-5 h-5" /> Issue Certificate of Completion</>}
+                        </button>
+                      </div>
+                    )}
                  </>
               )}
            </div>
@@ -535,6 +721,18 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${totalBudget > 0 ? (remainingBudget / totalBudget) * 100 : 0}%` }}></div>
                           </div>
                       </div>
+
+                      {totalPending > 0 && (
+                        <div>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-slate-500 font-medium">Pending</span>
+                            <span className="font-bold text-amber-600">₱{totalPending.toLocaleString()}</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${totalBudget > 0 ? (totalPending / totalBudget) * 100 : 0}%` }}></div>
+                          </div>
+                        </div>
+                      )}
                    </div>
                  )}
               </div>

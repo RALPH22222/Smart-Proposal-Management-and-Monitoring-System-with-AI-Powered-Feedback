@@ -5,7 +5,7 @@ export interface LogEntry {
   action: string;
   category: "proposal" | "evaluation" | "project" | "account";
   target_id?: string;
-  target_type?: "proposal" | "funded_project" | "user" | "report";
+  target_type?: "proposal" | "funded_project" | "user" | "report" | "fund_request";
   details?: Record<string, any>;
 }
 

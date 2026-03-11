@@ -736,6 +736,81 @@ export class BackendStack extends Stack {
       },
     });
 
+    // ========== FUND REQUEST + CERTIFICATE LAMBDAS ==========
+
+    const create_fund_request_lambda = new NodejsFunction(this, "pms-create-fund-request", {
+      functionName: "pms-create-fund-request",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "create-fund-request.ts"),
+      role: projectLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_fund_requests_lambda = new NodejsFunction(this, "pms-get-fund-requests", {
+      functionName: "pms-get-fund-requests",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-fund-requests.ts"),
+      role: projectLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const review_fund_request_lambda = new NodejsFunction(this, "pms-review-fund-request", {
+      functionName: "pms-review-fund-request",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "review-fund-request.ts"),
+      role: projectLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const generate_certificate_lambda = new NodejsFunction(this, "pms-generate-certificate", {
+      functionName: "pms-generate-certificate",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "generate-certificate.ts"),
+      role: projectLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_budget_summary_lambda = new NodejsFunction(this, "pms-get-budget-summary", {
+      functionName: "pms-get-budget-summary",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-budget-summary.ts"),
+      role: projectLambdaRole,
+      environment: {
+        SUPABASE_KEY,
+      },
+    });
+
+    const get_report_upload_url_lambda = new NodejsFunction(this, "pms-get-report-upload-url", {
+      functionName: "pms-get-report-upload-url",
+      memorySize: 128,
+      runtime: Runtime.NODEJS_22_X,
+      timeout: Duration.seconds(10),
+      entry: path.resolve("src", "handlers", "project", "get-report-upload-url.ts"),
+      environment: {
+        SUPABASE_KEY,
+        PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
+      },
+    });
+    proposal_attachments_bucket.grantPut(get_report_upload_url_lambda);
+
     const analyze_proposal_lambda = new NodejsFunction(this, "pms-analyze-proposal", {
       functionName: "pms-analyze-proposal",
       memorySize: 512, // Needed for PDF parsing + AI math (no TensorFlow, just JSON + for-loops)
@@ -1368,6 +1443,48 @@ export class BackendStack extends Stack {
     // /project/members (protected) - GET project members
     const project_members = project.addResource("members");
     project_members.addMethod(HttpMethod.GET, new LambdaIntegration(get_project_members_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/create-fund-request (protected) - POST create fund request
+    const create_fund_request = project.addResource("create-fund-request");
+    create_fund_request.addMethod(HttpMethod.POST, new LambdaIntegration(create_fund_request_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/fund-requests (protected) - GET fund requests for a project
+    const fund_requests = project.addResource("fund-requests");
+    fund_requests.addMethod(HttpMethod.GET, new LambdaIntegration(get_fund_requests_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/review-fund-request (protected) - POST approve/reject fund request
+    const review_fund_request = project.addResource("review-fund-request");
+    review_fund_request.addMethod(HttpMethod.POST, new LambdaIntegration(review_fund_request_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/generate-certificate (protected) - POST issue completion certificate
+    const generate_certificate = project.addResource("generate-certificate");
+    generate_certificate.addMethod(HttpMethod.POST, new LambdaIntegration(generate_certificate_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/budget-summary (protected) - GET budget summary for a project
+    const budget_summary = project.addResource("budget-summary");
+    budget_summary.addMethod(HttpMethod.GET, new LambdaIntegration(get_budget_summary_lambda), {
+      authorizer: requestAuthorizer,
+      authorizationType: AuthorizationType.CUSTOM,
+    });
+
+    // /project/report-upload-url (protected) - GET presigned URL for report file upload
+    const report_upload_url = project.addResource("report-upload-url");
+    report_upload_url.addMethod(HttpMethod.GET, new LambdaIntegration(get_report_upload_url_lambda), {
       authorizer: requestAuthorizer,
       authorizationType: AuthorizationType.CUSTOM,
     });
