@@ -20,6 +20,7 @@ import {
 } from "../schemas/project-schema";
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
+import { EmailService } from "./email.service";
 
 export class ProjectService {
   constructor(private db: SupabaseClient) {}
@@ -1137,6 +1138,27 @@ export class ProjectService {
       is_read: false,
     });
 
+    // Send email notification (fire-and-forget)
+    try {
+      const { data: proponent } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", data.requested_by)
+        .single();
+
+      if (proponent?.email && process.env.SMTP_USER) {
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          proponent.email,
+          proponent.first_name || "Proponent",
+          `Fund Request ${input.status === "approved" ? "Approved" : "Rejected"}`,
+          `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Please log in to SPMAMS for details.`,
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
+
     return { data, error: null };
   }
 
@@ -1242,6 +1264,27 @@ export class ProjectService {
       message: "Congratulations! A completion certificate has been issued for your project.",
       is_read: false,
     });
+
+    // Send email notification (fire-and-forget)
+    try {
+      const { data: lead } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", project.project_lead_id)
+        .single();
+
+      if (lead?.email && process.env.SMTP_USER) {
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          lead.email,
+          lead.first_name || "Proponent",
+          "Completion Certificate Issued",
+          "Congratulations! A completion certificate has been issued for your project. Please log in to SPMAMS to view it.",
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
 
     return { data: updated, error: null };
   }

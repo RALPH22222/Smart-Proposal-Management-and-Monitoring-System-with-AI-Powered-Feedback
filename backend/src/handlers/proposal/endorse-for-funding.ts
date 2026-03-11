@@ -5,6 +5,7 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { endorseForFundingSchema, fundingDecisionSchema, FundingDecisionType } from "../../schemas/proposal-schema";
 import { getAuthContext } from "../../utils/auth-context";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 
 // Funding decision values used to distinguish funding-decision requests from endorsement requests
 const FUNDING_DECISIONS = new Set<string>(Object.values(FundingDecisionType));
@@ -92,6 +93,45 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     target_type: "proposal",
     details: { decision: result.data.decision },
   });
+
+  // Send notification + email to proponent on endorsement (fire-and-forget)
+  if (result.data.decision === "endorsed") {
+    try {
+      const { data: proposal } = await supabase
+        .from("proposals")
+        .select("proponent_id, project_title")
+        .eq("id", result.data.proposal_id)
+        .single();
+
+      if (proposal?.proponent_id) {
+        await supabase.from("notifications").insert({
+          user_id: proposal.proponent_id,
+          message: `Your proposal "${proposal.project_title}" has been endorsed for funding!`,
+          is_read: false,
+        });
+
+        if (process.env.SMTP_USER) {
+          const { data: proponent } = await supabase
+            .from("users")
+            .select("email, first_name")
+            .eq("id", proposal.proponent_id)
+            .single();
+
+          if (proponent?.email) {
+            const emailService = new EmailService();
+            await emailService.sendNotificationEmail(
+              proponent.email,
+              proponent.first_name || "Proponent",
+              "Proposal Endorsed for Funding",
+              `Great news! Your proposal "${proposal.project_title}" has been endorsed for funding. Please log in to SPMAMS for details.`,
+            );
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification/email failed (non-blocking):", notifErr);
+    }
+  }
 
   return {
     statusCode: 200,

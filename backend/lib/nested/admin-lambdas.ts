@@ -23,6 +23,10 @@ export class AdminLambdas extends NestedStack {
   public readonly toggleAccountStatus: NodejsFunction;
   public readonly getDashboardStats: NodejsFunction;
   public readonly getActivityLogs: NodejsFunction;
+  public readonly getLateSubmissionPolicy: NodejsFunction;
+  public readonly updateLateSubmissionPolicy: NodejsFunction;
+  public readonly getNotifications: NodejsFunction;
+  public readonly markNotificationRead: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
@@ -107,6 +111,38 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-admin-get-activity-logs",
       entry: path.resolve("src", "handlers", "admin", "get-activity-logs.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getLateSubmissionPolicy = new NodejsFunction(this, "get-late-submission-policy", {
+      ...defaults,
+      functionName: "pms-get-late-submission-policy",
+      entry: path.resolve("src", "handlers", "admin", "get-late-submission-policy.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.updateLateSubmissionPolicy = new NodejsFunction(this, "update-late-submission-policy", {
+      ...defaults,
+      functionName: "pms-update-late-submission-policy",
+      entry: path.resolve("src", "handlers", "admin", "update-late-submission-policy.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getNotifications = new NodejsFunction(this, "get-notifications", {
+      ...defaults,
+      functionName: "pms-get-notifications",
+      entry: path.resolve("src", "handlers", "admin", "get-notifications.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.markNotificationRead = new NodejsFunction(this, "mark-notification-read", {
+      ...defaults,
+      functionName: "pms-mark-notification-read",
+      entry: path.resolve("src", "handlers", "admin", "mark-notification-read.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });

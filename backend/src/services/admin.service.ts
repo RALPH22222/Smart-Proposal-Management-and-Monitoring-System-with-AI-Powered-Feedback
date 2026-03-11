@@ -5,6 +5,7 @@ import {
   ToggleAccountStatusInput,
   InviteUserInput,
 } from "../schemas/admin-schema";
+import { LateSubmissionPolicy } from "../schemas/settings-schema";
 import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
@@ -254,6 +255,67 @@ export class AdminService {
     } catch (error) {
       return { data: null, error };
     }
+  }
+
+  // ===================== SYSTEM SETTINGS =====================
+
+  async getSystemSettings() {
+    const { data, error } = await this.db
+      .from("system_settings")
+      .select("key, value");
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Convert array of { key, value } into a keyed object
+    const settings: Record<string, any> = {};
+    for (const row of data || []) {
+      settings[row.key] = row.value;
+    }
+
+    return { data: settings, error: null };
+  }
+
+  async getLateSubmissionPolicy() {
+    const { data, error } = await this.db
+      .from("system_settings")
+      .select("value")
+      .eq("key", "late_submission_policy")
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Default to disabled if not found
+    const policy: LateSubmissionPolicy = data?.value || { enabled: false };
+    return { data: policy, error: null };
+  }
+
+  async updateLateSubmissionPolicy(policy: LateSubmissionPolicy, updatedBy: string) {
+    const { data, error } = await this.db
+      .from("system_settings")
+      .upsert(
+        { key: "late_submission_policy", value: policy },
+        { onConflict: "key" }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    await logActivity(this.db, {
+      user_id: updatedBy,
+      action: "late_submission_policy_updated",
+      category: "settings",
+      target_type: "system_settings",
+      details: policy,
+    });
+
+    return { data: data.value, error: null };
   }
 
   async getActivityLogs(filters?: {

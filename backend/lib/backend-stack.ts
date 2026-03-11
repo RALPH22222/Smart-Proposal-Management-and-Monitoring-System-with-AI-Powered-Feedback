@@ -36,7 +36,9 @@ export class BackendStack extends Stack {
     // ========== PARAMETERS ==========
     const SUPABASE_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_KEY");
     const SUPABASE_SECRET_JWT = StringParameter.valueForStringParameter(this, "/pms/backend/SUPABASE_SECRET_JWT");
-    const SES_SENDER_EMAIL = StringParameter.valueForStringParameter(this, "/pms/backend/SES_SENDER_EMAIL");
+    const SMTP_HOST = StringParameter.valueForStringParameter(this, "/pms/backend/SMTP_HOST");
+    const SMTP_USER = StringParameter.valueForStringParameter(this, "/pms/backend/SMTP_USER");
+    const SMTP_PASS = StringParameter.valueForStringParameter(this, "/pms/backend/SMTP_PASS");
     const SUPABASE_SERVICE_ROLE_KEY = StringParameter.valueForStringParameter(
       this,
       "/pms/backend/SUPABASE_SERVICE_ROLE_KEY",
@@ -105,7 +107,9 @@ export class BackendStack extends Stack {
       profileSetupBucket: profile_setup_bucket,
       supabaseKey: SUPABASE_KEY,
       supabaseSecretJwt: SUPABASE_SECRET_JWT,
-      sesSenderEmail: SES_SENDER_EMAIL,
+      smtpHost: SMTP_HOST,
+      smtpUser: SMTP_USER,
+      smtpPass: SMTP_PASS,
       frontendUrl: FRONTEND_URL,
       stageName,
     });
@@ -115,6 +119,9 @@ export class BackendStack extends Stack {
       proposalBucket: proposal_attachments_bucket,
       supabaseKey: SUPABASE_KEY,
       geminiApiKey: GEMINI_API_KEY,
+      smtpHost: SMTP_HOST,
+      smtpUser: SMTP_USER,
+      smtpPass: SMTP_PASS,
       stageName,
     });
 
@@ -124,6 +131,9 @@ export class BackendStack extends Stack {
       supabaseKey: SUPABASE_KEY,
       supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
       frontendUrl: FRONTEND_URL,
+      smtpHost: SMTP_HOST,
+      smtpUser: SMTP_USER,
+      smtpPass: SMTP_PASS,
       stageName,
     });
 
@@ -409,6 +419,18 @@ export class BackendStack extends Stack {
     admin
       .addResource("update-contacts")
       .addMethod(HttpMethod.PUT, integrate(adminL.updateContacts), protectedRoute);
+    admin
+      .addResource("late-submission-policy")
+      .addMethod(HttpMethod.GET, integrate(adminL.getLateSubmissionPolicy), protectedRoute);
+    admin
+      .addResource("update-late-submission-policy")
+      .addMethod(HttpMethod.POST, integrate(adminL.updateLateSubmissionPolicy), protectedRoute);
+    admin
+      .addResource("notifications")
+      .addMethod(HttpMethod.GET, integrate(adminL.getNotifications), protectedRoute);
+    admin
+      .addResource("mark-notification-read")
+      .addMethod(HttpMethod.POST, integrate(adminL.markNotificationRead), protectedRoute);
 
   }
 }

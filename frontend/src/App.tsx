@@ -32,11 +32,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { Role } from "./types/auth";
 import RedirectAuthenticated from "./components/RedirectAuthenticated";
 import { AuthProvider } from "./context/AuthProvider";
+import { NotificationProvider } from "./context/NotificationContext";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificationProvider>
         <LoadingProvider>
           <LocationWatcher />
           <Routes>
@@ -86,6 +88,7 @@ function App() {
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

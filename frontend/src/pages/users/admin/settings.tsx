@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
+import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
   { id: 'security', label: 'Security' },
   { id: 'notifications', label: 'Notifications' },
-  { id: 'preferences', label: 'Preferences' }
+  { id: 'preferences', label: 'Preferences' },
+  { id: 'system', label: 'System' }
 ] as const;
 
 const STATUS = [
@@ -72,6 +75,7 @@ const AdminSettings: React.FC = () => {
         {activeTab === 'security' && <SecuritySection />}
         {activeTab === 'notifications' && <NotificationsSection />}
         {activeTab === 'preferences' && <PreferencesSection />}
+        {activeTab === 'system' && <SystemSection />}
       </div>
     </div>
   );
@@ -390,6 +394,190 @@ const PreferencesSection: React.FC = () => {
           >
             Sign out of all devices
           </button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const SystemSection: React.FC = () => {
+  const [policy, setPolicy] = useState<LateSubmissionPolicy>({ enabled: false });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [lateType, setLateType] = useState<'until_date' | 'indefinite'>('until_date');
+  const [deadline, setDeadline] = useState('');
+
+  useEffect(() => {
+    loadPolicy();
+  }, []);
+
+  const loadPolicy = async () => {
+    try {
+      const data = await SettingsApi.getLateSubmissionPolicy();
+      setPolicy(data);
+      if (data.enabled) {
+        setLateType(data.type);
+        if (data.type === 'until_date') {
+          setDeadline(data.deadline.slice(0, 16));
+        }
+      }
+    } catch {
+      // Default to disabled if fetch fails
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    let newPolicy: LateSubmissionPolicy;
+
+    if (!policy.enabled) {
+      newPolicy = { enabled: false };
+    } else if (lateType === 'until_date') {
+      if (!deadline) {
+        Swal.fire('Validation Error', 'Please select a deadline date.', 'warning');
+        return;
+      }
+      newPolicy = { enabled: true, type: 'until_date', deadline: new Date(deadline).toISOString() };
+    } else {
+      newPolicy = { enabled: true, type: 'indefinite' };
+    }
+
+    setSaving(true);
+    try {
+      const updated = await SettingsApi.updateLateSubmissionPolicy(newPolicy);
+      setPolicy(updated);
+      Swal.fire('Saved', 'Late submission policy updated successfully.', 'success');
+    } catch {
+      Swal.fire('Error', 'Failed to update late submission policy.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
+      <Card title='Late Submission Policy'>
+        <p className='text-sm text-gray-500 mb-4'>
+          Allow proponents to submit proposals after the regular submission deadline.
+        </p>
+
+        {/* Enable/Disable toggle */}
+        <div className='flex items-center justify-between mb-4'>
+          <span className='text-sm text-gray-700'>Allow late submissions</span>
+          <label className='inline-flex items-center cursor-pointer'>
+            <input
+              type='checkbox'
+              className='sr-only'
+              checked={policy.enabled}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setPolicy({ enabled: true, type: lateType, ...(lateType === 'until_date' ? { deadline: deadline ? new Date(deadline).toISOString() : '' } : {}) } as LateSubmissionPolicy);
+                } else {
+                  setPolicy({ enabled: false });
+                }
+              }}
+            />
+            <span
+              className={`w-10 h-6 flex items-center rounded-full p-1 transition ${
+                policy.enabled ? 'bg-red-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`bg-white w-4 h-4 rounded-full transform transition ${
+                  policy.enabled ? 'translate-x-4' : ''
+                }`}
+              />
+            </span>
+          </label>
+        </div>
+
+        {/* Options when enabled */}
+        {policy.enabled && (
+          <div className='space-y-4 border-t border-gray-100 pt-4'>
+            <div className='space-y-2'>
+              <label className='flex items-center gap-2 text-sm cursor-pointer'>
+                <input
+                  type='radio'
+                  name='lateType'
+                  value='until_date'
+                  checked={lateType === 'until_date'}
+                  onChange={() => setLateType('until_date')}
+                  className='accent-red-600'
+                />
+                <span className='text-gray-700'>Until a specific date</span>
+              </label>
+
+              {lateType === 'until_date' && (
+                <div className='ml-6'>
+                  <input
+                    type='datetime-local'
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
+                  />
+                </div>
+              )}
+
+              <label className='flex items-center gap-2 text-sm cursor-pointer'>
+                <input
+                  type='radio'
+                  name='lateType'
+                  value='indefinite'
+                  checked={lateType === 'indefinite'}
+                  onChange={() => setLateType('indefinite')}
+                  className='accent-red-600'
+                />
+                <span className='text-gray-700'>Indefinite (no deadline)</span>
+              </label>
+            </div>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className='px-4 py-2 rounded-lg text-white text-sm disabled:opacity-50 w-full sm:w-auto'
+              style={{ background: PRIMARY }}
+            >
+              {saving ? 'Saving...' : 'Save Policy'}
+            </button>
+          </div>
+        )}
+
+        {/* Save when disabling */}
+        {!policy.enabled && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className='px-4 py-2 rounded-lg text-white text-sm disabled:opacity-50 w-full sm:w-auto'
+            style={{ background: PRIMARY }}
+          >
+            {saving ? 'Saving...' : 'Save Policy'}
+          </button>
+        )}
+
+        {/* Current status */}
+        <div className='mt-4 p-3 bg-gray-50 rounded-md'>
+          <p className='text-xs text-gray-500 font-medium mb-1'>Current Status</p>
+          {!policy.enabled && (
+            <p className='text-sm text-gray-700'>Late submissions are <span className='font-semibold text-red-600'>disabled</span>.</p>
+          )}
+          {policy.enabled && policy.type === 'indefinite' && (
+            <p className='text-sm text-gray-700'>Late submissions are <span className='font-semibold text-green-600'>allowed indefinitely</span>.</p>
+          )}
+          {policy.enabled && policy.type === 'until_date' && (
+            <p className='text-sm text-gray-700'>
+              Late submissions are <span className='font-semibold text-green-600'>allowed</span> until{' '}
+              <span className='font-semibold'>{new Date(policy.deadline).toLocaleString()}</span>.
+            </p>
+          )}
         </div>
       </Card>
     </div>

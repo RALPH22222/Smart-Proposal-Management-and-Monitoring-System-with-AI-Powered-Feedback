@@ -12,6 +12,9 @@ interface ProjectLambdasProps {
   supabaseKey: string;
   supabaseServiceRoleKey: string;
   frontendUrl: string;
+  smtpHost: string;
+  smtpUser: string;
+  smtpPass: string;
   stageName: string;
 }
 
@@ -39,14 +42,14 @@ export class ProjectLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, supabaseServiceRoleKey, frontendUrl, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, supabaseServiceRoleKey, frontendUrl, smtpHost, smtpUser, smtpPass, stageName } = props;
 
     const defaults = {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass };
 
     const simple = (id: string, fnName: string, handler: string) =>
       new NodejsFunction(this, id, {

@@ -11,6 +11,9 @@ interface ProposalLambdasProps {
   proposalBucket: IBucket;
   supabaseKey: string;
   geminiApiKey: string;
+  smtpHost: string;
+  smtpUser: string;
+  smtpPass: string;
   stageName: string;
 }
 
@@ -47,14 +50,14 @@ export class ProposalLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
 
     const defaults = {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass };
 
     // Helper for the common case: shared role + SUPABASE_KEY only
     const simple = (id: string, fnName: string, handler: string) =>

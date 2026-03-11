@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { revisionProposalToProponentSchema } from "../../schemas/proposal-schema";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -42,6 +43,43 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     target_id: String(result.data.proposal_id),
     target_type: "proposal",
   });
+
+  // Send notification + email to proponent (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("proponent_id, project_title")
+      .eq("id", result.data.proposal_id)
+      .single();
+
+    if (proposal?.proponent_id) {
+      await supabase.from("notifications").insert({
+        user_id: proposal.proponent_id,
+        message: `Your proposal "${proposal.project_title}" requires revision. Please review the feedback and resubmit.`,
+        is_read: false,
+      });
+
+      if (process.env.SMTP_USER) {
+        const { data: proponent } = await supabase
+          .from("users")
+          .select("email, first_name")
+          .eq("id", proposal.proponent_id)
+          .single();
+
+        if (proponent?.email) {
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            proponent.email,
+            proponent.first_name || "Proponent",
+            "Proposal Revision Required",
+            `Your proposal "${proposal.project_title}" has been sent back for revision. Please log in to SPMAMS to review the feedback and resubmit your proposal.`,
+          );
+        }
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification/email failed (non-blocking):", notifErr);
+  }
 
   return {
     statusCode: 200,

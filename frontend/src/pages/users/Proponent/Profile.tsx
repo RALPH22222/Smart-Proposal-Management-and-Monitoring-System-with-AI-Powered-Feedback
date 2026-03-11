@@ -4,8 +4,9 @@ import DetailedProposalModal from "../../../components/proponent-component/Detai
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
 import { Microscope, FileText, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature } from "lucide-react";
 
-import type { Project, Proposal, Notification } from "../../../types/proponentTypes";
-import { initialNotifications, getStatusFromIndex } from "../../../types/mockData";
+import type { Project, Proposal } from "../../../types/proponentTypes";
+import { getStatusFromIndex } from "../../../types/mockData";
+import { useNotifications } from "../../../context/NotificationContext";
 import {
   getStatusColorByIndex,
   getStageIcon,
@@ -75,7 +76,7 @@ const Loader3D = () => (
 const Profile: React.FC = () => {
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [projectTab, setProjectTab] = useState<"all" | "budget">("all");
+  const [projectTab, setProjectTab] = useState<"all" | "review" | "revision" | "endorsed" | "rejected">("all");
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
 
@@ -91,9 +92,9 @@ const Profile: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, typeFilter, projectTab]);
 
-  // Modal states
+  // Notifications from Realtime context
+  const { notifications: rawNotifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
 
   const [proposals, setProposals] = useState<Project[]>([]);
   const [rawProposals, setRawProposals] = useState<any[]>([]);
@@ -254,8 +255,10 @@ const Profile: React.FC = () => {
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
   const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
   const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
-  const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision"].includes((p as any).rawStatus || "")).length;
+  const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision", "revision_funding"].includes((p as any).rawStatus || "")).length;
   const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding" || (p as any).rawStatus === "funded").length;
+  const rejectedCount = proposals.filter((p) => ["rejected_rnd", "rejected_funding"].includes((p as any).rawStatus || "")).length;
+  const reviewCount = proposals.filter((p) => ["review_rnd", "r&d evaluation", "under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
 
 
   // Helper to generate tags based on raw data
@@ -543,19 +546,39 @@ const Profile: React.FC = () => {
     setNotificationsOpen((v) => !v);
   };
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  // Transform real notifications to dropdown format
+  const dropdownNotifications = rawNotifs.map((n) => ({
+    id: String(n.id),
+    title: n.message,
+    time: new Date(n.created_at).toLocaleString(),
+    read: n.is_read,
+  }));
+
+  const handleMarkAllRead = () => {
+    markAllAsRead();
   };
 
-  const markRead = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const handleMarkRead = (id: string) => {
+    markAsRead([parseInt(id)]);
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Filtering Logic - Tab-based + search
+  const getTabFilteredProjects = () => {
+    switch (projectTab) {
+      case "review":
+        return proposals.filter((p) => ["review_rnd", "r&d evaluation", "under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || ""));
+      case "revision":
+        return proposals.filter((p) => ["revision_rnd", "revise", "revision", "revision_funding", "revised_proposal"].includes((p as any).rawStatus || ""));
+      case "endorsed":
+        return proposals.filter((p) => ["endorsed_for_funding", "funded"].includes((p as any).rawStatus || ""));
+      case "rejected":
+        return proposals.filter((p) => ["rejected_rnd", "rejected_funding"].includes((p as any).rawStatus || ""));
+      default:
+        return proposals;
+    }
+  };
 
-  // Filtering Logic
-  const fundedProjects = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding");
-  const baseProjects = projectTab === "all" ? proposals : fundedProjects;
+  const baseProjects = getTabFilteredProjects();
 
   const filteredProjects = baseProjects.filter((project: Project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -666,9 +689,6 @@ const Profile: React.FC = () => {
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm hidden md:table-cell">
               Duration
             </th>
-            {projectTab === "budget" && (
-              <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Approved Amount</th>
-            )}
             <th className="text-left font-semibold text-gray-700 px-4 lg:px-6 py-3 text-sm">Progress</th>
           </tr>
         </thead>
@@ -736,9 +756,6 @@ const Profile: React.FC = () => {
                   </td>
                   <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">{project.budget}</td>
                   <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">{project.duration}</td>
-                  {projectTab === "budget" && (
-                    <td className="px-4 lg:px-6 py-4 text-green-700 font-semibold">{project.budget}</td>
-                  )}
                   <td className="px-4 lg:px-6 py-4">
                     <div className="flex items-center gap-2 justify-between">
                       <div className="flex items-center gap-2">
@@ -834,11 +851,11 @@ const Profile: React.FC = () => {
 
                 <NotificationsDropdown
                   isOpen={notificationsOpen}
-                  notifications={notifications}
+                  notifications={dropdownNotifications}
                   unreadCount={unreadCount}
                   onClose={() => setNotificationsOpen(false)}
-                  onMarkAllRead={markAllRead}
-                  onMarkRead={markRead}
+                  onMarkAllRead={handleMarkAllRead}
+                  onMarkRead={handleMarkRead}
                   onViewAll={() => setNotificationsOpen(false)}
                 />
               </div>
@@ -961,21 +978,31 @@ const Profile: React.FC = () => {
 
             {/* Tabs & Search Filter Row */}
             <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setProjectTab("all")}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "all" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {([
+                  { id: "all" as const, label: "All", count: proposals.length },
+                  { id: "review" as const, label: "Under Review", count: reviewCount },
+                  { id: "revision" as const, label: "Needs Revision", count: revisionCount },
+                  { id: "endorsed" as const, label: "Endorsed / Funded", count: fundedCount },
+                  { id: "rejected" as const, label: "Rejected", count: rejectedCount },
+                ]).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setProjectTab(tab.id); setCurrentPage(1); }}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                      projectTab === tab.id ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
                     }`}
-                >
-                  All Projects
-                </button>
-                <button
-                  onClick={() => setProjectTab("budget")}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${projectTab === "budget" ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                >
-                  Funded Project ({fundedProjects.length})
-                </button>
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        projectTab === tab.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
 
               {/* SEARCH & FILTER CONTROLS */}

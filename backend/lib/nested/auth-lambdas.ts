@@ -4,7 +4,6 @@ import { Construct } from "constructs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { IRole } from "aws-cdk-lib/aws-iam";
 import { IBucket } from "aws-cdk-lib/aws-s3";
-import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import path from "path";
 
 interface AuthLambdasProps {
@@ -12,7 +11,9 @@ interface AuthLambdasProps {
   profileSetupBucket: IBucket;
   supabaseKey: string;
   supabaseSecretJwt: string;
-  sesSenderEmail: string;
+  smtpHost: string;
+  smtpUser: string;
+  smtpPass: string;
   frontendUrl: string;
   stageName: string;
 }
@@ -32,7 +33,7 @@ export class AuthLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: AuthLambdasProps) {
     super(scope, id);
-    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, sesSenderEmail, frontendUrl, stageName } =
+    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, smtpHost, smtpUser, smtpPass, frontendUrl, stageName } =
       props;
 
     const defaults = {
@@ -71,15 +72,14 @@ export class AuthLambdas extends NestedStack {
       entry: path.resolve("src", "handlers", "auth", "sign-up.ts"),
       environment: {
         SUPABASE_KEY: supabaseKey,
-        SES_SENDER_EMAIL: sesSenderEmail,
+        SMTP_HOST: smtpHost,
+        SMTP_USER: smtpUser,
+        SMTP_PASS: smtpPass,
         FRONTEND_URL: frontendUrl,
         PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
       },
     });
     profileSetupBucket.grantPut(this.signup);
-    this.signup.addToRolePolicy(
-      new PolicyStatement({ effect: Effect.ALLOW, actions: ["ses:SendEmail"], resources: ["*"] }),
-    );
 
     this.confirmEmail = new NodejsFunction(this, "confirm-email", {
       ...defaults,
