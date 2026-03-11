@@ -1137,10 +1137,10 @@ export class ProposalService {
       departmentIds.length > 0
         ? this.db.from("departments").select("id, name").in("id", departmentIds)
         : { data: [], error: null },
-      // Updated to use new column structure: objective, methodology, budget, timeline, comment
+      // Updated to use new column structure: title, budget, timeline, comment
       this.db
         .from("evaluation_scores")
-        .select("proposal_id, evaluator_id, objective, methodology, budget, timeline, comment")
+        .select("proposal_id, evaluator_id, title, budget, timeline, comment")
         .in("proposal_id", proposalIds),
       this.db
         .from("estimated_budget")
@@ -1173,8 +1173,7 @@ export class ProposalService {
 
         // Build ratings from the new column structure
         const ratings = {
-          objective: evaluatorScore?.objective ?? 0,
-          methodology: evaluatorScore?.methodology ?? 0,
+          title: evaluatorScore?.title ?? 0,
           budget: evaluatorScore?.budget ?? 0,
           timeline: evaluatorScore?.timeline ?? 0,
         };
@@ -1676,8 +1675,7 @@ export class ProposalService {
         proposal_id: data.proposal_id,
         rnd_id: data.rnd_id,
         rnd_name,
-        objective_comment: data.objective_comment,
-        methodology_comment: data.methodology_comment,
+        title_comment: data.title_comment,
         budget_comment: data.budget_comment,
         timeline_comment: data.timeline_comment,
         overall_comment: data.overall_comment,

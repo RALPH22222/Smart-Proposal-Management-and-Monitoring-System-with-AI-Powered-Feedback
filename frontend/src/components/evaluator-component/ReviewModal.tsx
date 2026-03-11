@@ -26,24 +26,14 @@ import {
 } from "lucide-react";
 
 const RATING_CRITERIA = {
-  objectives: {
-    label: "Objectives Assessment",
+  title: {
+    label: "Title Assessment",
     descriptions: {
-      5: "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
-      4: "Objectives are clear and relevant with well-defined metrics and good alignment",
-      3: "Objectives are understandable but lack specificity in some areas or could be more significant",
-      2: "Objectives are vague, poorly justified, or lack clear connection to project scope",
-      1: "Objectives are unclear, not measurable, or insignificant to the research field",
-    },
-  },
-  methodology: {
-    label: "Methodology Assessment",
-    descriptions: {
-      5: "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
-      4: "Methodology is sound with appropriate methods, tools, and realistic timeline",
-      3: "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
-      2: "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
-      1: "Methodology is inadequate, not clearly described, or fundamentally flawed",
+      5: "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
+      4: "Title is clear, relevant, and provides a good indication of the project's focus and goals",
+      3: "Title is acceptable but could be more specific or better aligned with the project scope",
+      2: "Title is vague, overly broad, or does not clearly convey the project's purpose",
+      1: "Title is unclear, misleading, or irrelevant to the proposed research",
     },
   },
   budget: {
@@ -137,8 +127,7 @@ export default function ReviewModal({
   >(null);
 
   const [ratings, setRatings] = useState({
-    objectives: 0,
-    methodology: 0,
+    title: 0,
     budget: 0,
     timeline: 0,
   });
@@ -149,8 +138,7 @@ export default function ReviewModal({
     if (isOpen) {
       setDecision(null);
       setRatings({
-        objectives: 0,
-        methodology: 0,
+        title: 0,
         budget: 0,
         timeline: 0,
       });
@@ -161,8 +149,7 @@ export default function ReviewModal({
   // Validation Check: All ratings must be > 0 and a decision must be made.
   const isFormValid =
     decision !== null &&
-    ratings.objectives > 0 &&
-    ratings.methodology > 0 &&
+    ratings.title > 0 &&
     ratings.budget > 0 &&
     ratings.timeline > 0;
 
@@ -546,11 +533,11 @@ export default function ReviewModal({
               </h3>
 
               <div className="space-y-6">
-                {/* 1. Objectives Rating */}
+                {/* 1. Title Rating */}
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                     <label className="block text-sm font-bold text-slate-900">
-                      {RATING_CRITERIA.objectives.label}{" "}
+                      {RATING_CRITERIA.title.label}{" "}
                       <span className="text-red-500">*</span>
                     </label>
                   </div>
@@ -558,8 +545,8 @@ export default function ReviewModal({
                     {[5, 4, 3, 2, 1].map((num) => (
                       <button
                         key={num}
-                        onClick={() => handleRatingChange("objectives", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).objectives === num
+                        onClick={() => handleRatingChange("title", num)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).title === num
                           ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
                           : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
                           }`}
@@ -569,56 +556,20 @@ export default function ReviewModal({
                     ))}
                   </div>
                   <div
-                    className={`text-xs p-3 rounded-lg border ${(ratings as any).objectives > 0
-                      ? getRatingColor((ratings as any).objectives)
+                    className={`text-xs p-3 rounded-lg border ${(ratings as any).title > 0
+                      ? getRatingColor((ratings as any).title)
                       : "bg-slate-100 text-slate-500 border-slate-200 italic"
                       }`}
                   >
-                    {(ratings as any).objectives > 0
-                      ? (RATING_CRITERIA.objectives.descriptions as any)[
-                      (ratings as any).objectives
+                    {(ratings as any).title > 0
+                      ? (RATING_CRITERIA.title.descriptions as any)[
+                      (ratings as any).title
                       ]
                       : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
 
-                {/* 2. Methodology Rating */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
-                    <label className="block text-sm font-bold text-slate-900">
-                      {RATING_CRITERIA.methodology.label}{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                  </div>
-                  <div className="flex gap-2 mb-3">
-                    {[5, 4, 3, 2, 1].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => handleRatingChange("methodology", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).methodology === num
-                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                          }`}
-                      >
-                        {num}
-                      </button>
-                    ))}
-                  </div>
-                  <div
-                    className={`text-xs p-3 rounded-lg border ${(ratings as any).methodology > 0
-                      ? getRatingColor((ratings as any).methodology)
-                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                      }`}
-                  >
-                    {(ratings as any).methodology > 0
-                      ? (RATING_CRITERIA.methodology.descriptions as any)[
-                      (ratings as any).methodology
-                      ]
-                      : "Select a rating (1-5) to view description."}
-                  </div>
-                </div>
-
-                {/* 3. Budget Rating */}
+                {/* 2. Budget Rating */}
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                     <label className="block text-sm font-bold text-slate-900">

@@ -22,8 +22,7 @@ interface EvaluatorDecision {
 	comments: string;
 	submittedDate: string;
 	ratings?: {
-		objectives: number;
-		methodology: number;
+		title: number;
 		budget: number;
 		timeline: number;
 	};
@@ -38,24 +37,14 @@ interface AdminEvaluatorDecisionModalProps {
 }
 
 const RATING_CRITERIA = {
-	objectives: {
-		label: "Objectives Assessment",
+	title: {
+		label: "Title Assessment",
 		descriptions: {
-			5: "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
-			4: "Objectives are clear and relevant with well-defined metrics and good alignment",
-			3: "Objectives are understandable but lack specificity in some areas or could be more significant",
-			2: "Objectives are vague, poorly justified, or lack clear connection to project scope",
-			1: "Objectives are unclear, not measurable, or insignificant to the research field",
-		},
-	},
-	methodology: {
-		label: "Methodology Assessment",
-		descriptions: {
-			5: "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
-			4: "Methodology is sound with appropriate methods, tools, and realistic timeline",
-			3: "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
-			2: "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
-			1: "Methodology is inadequate, not clearly described, or fundamentally flawed",
+			5: "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
+			4: "Title is clear, relevant, and provides a good indication of the project's focus and goals",
+			3: "Title is acceptable but could be more specific or better aligned with the project scope",
+			2: "Title is vague, overly broad, or does not clearly convey the project's purpose",
+			1: "Title is unclear, misleading, or irrelevant to the proposed research",
 		},
 	},
 	budget: {
@@ -233,41 +222,22 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 									Evaluator Ratings
 								</h3>
 
-								{/* Objectives Rating */}
+								{/* Title Rating */}
 								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
 									<div className="flex items-center justify-between mb-3">
 										<label className="text-sm font-semibold text-slate-900">
-											{RATING_CRITERIA.objectives.label}
+											{RATING_CRITERIA.title.label}
 										</label>
 										<div className="flex items-center gap-2">
 											<span className="text-sm font-bold text-slate-700">
 												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.objectives}/5
+													{decision.ratings.title}/5
 												</span>
 											</span>
 										</div>
 									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.objectives)}`}>
-										{(RATING_CRITERIA.objectives.descriptions as Record<number, string>)[decision.ratings.objectives]}
-									</div>
-								</div>
-
-								{/* Methodology Rating */}
-								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-									<div className="flex items-center justify-between mb-3">
-										<label className="text-sm font-semibold text-slate-900">
-											{RATING_CRITERIA.methodology.label}
-										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.methodology}/5
-												</span>
-											</span>
-										</div>
-									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.methodology)}`}>
-										{(RATING_CRITERIA.methodology.descriptions as Record<number, string>)[decision.ratings.methodology]}
+									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.title)}`}>
+										{(RATING_CRITERIA.title.descriptions as Record<number, string>)[decision.ratings.title]}
 									</div>
 								</div>
 

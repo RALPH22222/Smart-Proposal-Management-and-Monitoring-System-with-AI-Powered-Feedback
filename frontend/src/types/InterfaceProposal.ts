@@ -87,8 +87,7 @@ export interface CommentSection {
 }
 
 export interface StructuredComments {
-	objectives: CommentSection;
-	methodology: CommentSection;
+	title: CommentSection;
 	budget: CommentSection;
 	timeline: CommentSection;
 	overall: CommentSection;

@@ -345,15 +345,14 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             typeof e === 'string' ? { id: e, visibility: 'both' } : e
           ),
           deadline_at: decision.evaluationDeadline ? parseInt(decision.evaluationDeadline, 10) : 14,
-          commentsForEvaluators: decision.structuredComments?.objectives?.content // Use available comment field
+          commentsForEvaluators: decision.structuredComments?.title?.content // Use available comment field
         });
       } else if (decision.decision === 'Revision Required') {
         await requestRevision({
           proposal_id: proposalIdNumber,
           deadline: decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : Date.now() + 14 * 24 * 60 * 60 * 1000,
           // Map comments
-          objective_comment: decision.structuredComments?.objectives?.content,
-          methodology_comment: decision.structuredComments?.methodology?.content,
+          title_comment: decision.structuredComments?.title?.content,
           budget_comment: decision.structuredComments?.budget?.content,
           timeline_comment: decision.structuredComments?.timeline?.content,
           overall_comment: decision.structuredComments?.overall?.content,
@@ -361,8 +360,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       } else if (decision.decision === 'Rejected Proposal') {
         await rejectProposal({
           proposal_id: proposalIdNumber,
-          // FIX: Read from objectives.content because RndProposalModal binds it there for Rejection
-          comment: decision.structuredComments?.objectives?.content || decision.structuredComments?.overall?.content || "No comment provided."
+          // FIX: Read from title.content because RndProposalModal binds it there for Rejection
+          comment: decision.structuredComments?.title?.content || decision.structuredComments?.overall?.content || "No comment provided."
         });
       }
 

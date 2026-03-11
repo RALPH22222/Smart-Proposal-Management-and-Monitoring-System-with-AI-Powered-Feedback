@@ -414,8 +414,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               ) : (
                 <div className="space-y-4">
                   {[
-                    { section: "Objectives Assessment", comment: revisionData?.objective_comment },
-                    { section: "Methodology Assessment", comment: revisionData?.methodology_comment },
+                    { section: "Title Assessment", comment: revisionData?.title_comment },
                     { section: "Budget Assessment", comment: revisionData?.budget_comment },
                     { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
                     { section: "Overall Comments", comment: revisionData?.overall_comment },
@@ -435,8 +434,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                   ))}
 
                   {(!revisionData || ![
-                    revisionData.objective_comment,
-                    revisionData.methodology_comment,
+                    revisionData.title_comment,
                     revisionData.budget_comment,
                     revisionData.timeline_comment,
                     revisionData.overall_comment

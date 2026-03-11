@@ -10,81 +10,42 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
 
   const rubrics = [
     {
-      category: "Objectives Assessment",
+      category: "Title Assessment",
       description:
-        "Evaluate the clarity, measurability, and significance of project goals",
+        "Evaluate the clarity, relevance, and appropriateness of the project title",
       criteria: [
         {
           score: 5,
           description:
-            "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
+            "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
         },
         {
           score: 4,
           description:
-            "Objectives are clear and relevant with well-defined metrics and good alignment",
+            "Title is clear, relevant, and provides a good indication of the project's focus and goals",
         },
         {
           score: 3,
           description:
-            "Objectives are understandable but lack specificity in some areas or could be more significant",
+            "Title is acceptable but could be more specific or better aligned with the project scope",
         },
         {
           score: 2,
           description:
-            "Objectives are vague, poorly justified, or lack clear connection to project scope",
+            "Title is vague, overly broad, or does not clearly convey the project's purpose",
         },
         {
           score: 1,
           description:
-            "Objectives are unclear, not measurable, or insignificant to the research field",
+            "Title is unclear, misleading, or irrelevant to the proposed research",
         },
       ],
       evaluatorGuide: [
-        "Are the objectives SMART (Specific, Measurable, Achievable, Relevant, Time-bound)?",
-        "Do the objectives align with national research priorities?",
-        "Is there a clear distinction between general and specific objectives?",
-        "Are the outcomes clearly defined?",
-        "Does the proposal address relevant social or economic needs?",
-      ],
-    },
-    {
-      category: "Methodology Assessment",
-      description:
-        "Evaluate the research approach, methods, and feasibility of implementation",
-      criteria: [
-        {
-          score: 5,
-          description:
-            "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
-        },
-        {
-          score: 4,
-          description:
-            "Methodology is sound with appropriate methods, tools, and realistic timeline",
-        },
-        {
-          score: 3,
-          description:
-            "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
-        },
-        {
-          score: 2,
-          description:
-            "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
-        },
-        {
-          score: 1,
-          description:
-            "Methodology is inadequate, not clearly described, or fundamentally flawed",
-        },
-      ],
-      evaluatorGuide: [
-        "Are the research methods appropriate for achieving the objectives?",
-        "Is there sufficient detail on data collection/analysis procedures?",
-        "Are the team's capabilities adequate to execute this methodology?",
-        "Have potential challenges and mitigation strategies been identified?",
-        "Is the implementation timeline realistic and achievable?",
+        "Does the title clearly convey the main topic or focus of the research?",
+        "Is the title concise yet descriptive enough?",
+        "Does the title accurately reflect the scope and objectives of the proposal?",
+        "Is the title appropriate for the target audience and research field?",
+        "Does the title avoid unnecessary jargon or ambiguity?",
       ],
     },
     {

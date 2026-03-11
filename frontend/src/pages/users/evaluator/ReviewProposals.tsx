@@ -182,8 +182,7 @@ export default function EndorsedProposals() {
       await submitEvaluation({
         proposal_id: selectedProposal,
         status: data.decision.toLowerCase(),
-        objective: data.ratings.objectives,
-        methodology: data.ratings.methodology,
+        title: data.ratings.title,
         budget: data.ratings.budget,
         timeline: data.ratings.timeline,
         comment: data.comments,

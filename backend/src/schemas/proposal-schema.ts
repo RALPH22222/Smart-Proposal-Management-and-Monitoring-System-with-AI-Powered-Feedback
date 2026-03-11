@@ -173,8 +173,7 @@ export const forwardToEvaluatorsSchema = z.object({
 
 export const revisionProposalToProponentSchema = z.object({
   proposal_id: z.coerce.number(),
-  objective_comment: z.string().max(2000, "Comments are too long").optional(),
-  methodology_comment: z.string().max(2000, "Comments are too long").optional(),
+  title_comment: z.string().max(2000, "Comments are too long").optional(),
   budget_comment: z.string().max(2000, "Comments are too long").optional(),
   timeline_comment: z.string().max(2000, "Comments are too long").optional(),
   overall_comment: z.string().max(2000, "Comments are too long").optional(),
@@ -189,8 +188,7 @@ export const rejectProposalToProponentSchema = z.object({
 export const createEvaluationScoresToProposaltSchema = z.object({
   proposal_id: z.number(),
   status: z.preprocess(parseJsonIfString, z.nativeEnum(EvaluatorFinalDecision)),
-  objective: z.number(),
-  methodology: z.number(),
+  title: z.number(),
   budget: z.number(),
   timeline: z.number(),
   comment: z.string().max(2000, "Comments are too long").optional(),

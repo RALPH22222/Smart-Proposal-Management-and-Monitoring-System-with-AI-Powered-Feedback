@@ -111,11 +111,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [decision, setDecision] = useState<DecisionType>('Sent to Evaluators');
   const [evaluationDeadline, setEvaluationDeadline] = useState('14');
   const [structuredComments, setStructuredComments] = useState<StructuredComments>({
-    objectives: { id: '1', title: 'Objectives', content: '', lastModified: '', author: currentUser.name },
-    methodology: { id: '2', title: 'Methodology', content: '', lastModified: '', author: currentUser.name },
-    budget: { id: '3', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
-    timeline: { id: '4', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
-    overall: { id: '5', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
+    title: { id: '1', title: 'Title', content: '', lastModified: '', author: currentUser.name },
+    budget: { id: '2', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
+    timeline: { id: '3', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
+    overall: { id: '4', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
     additional: []
   });
 
@@ -135,7 +134,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   const [showAnonymitySelection, setShowAnonymitySelection] = useState(false);
   const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both' | 'none'>('both');
 
-  const [activeSection, setActiveSection] = useState<string>('objectives');
+  const [activeSection, setActiveSection] = useState<string>('title');
   const [typingSection, setTypingSection] = useState<string>('');
   const [revisionSummary, setRevisionSummary] = useState<RevisionSummary | null>(null);
   const [isLoadingRevision, setIsLoadingRevision] = useState(false);
@@ -206,14 +205,13 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       setDecision('Sent to Evaluators');
       setEvaluationDeadline('14');
       setStructuredComments({
-        objectives: { id: '1', title: 'Objectives', content: '', lastModified: '', author: currentUser.name },
-        methodology: { id: '2', title: 'Methodology', content: '', lastModified: '', author: currentUser.name },
-        budget: { id: '3', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
-        timeline: { id: '4', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
-        overall: { id: '5', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
+        title: { id: '1', title: 'Title', content: '', lastModified: '', author: currentUser.name },
+        budget: { id: '2', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
+        timeline: { id: '3', title: 'Timeline', content: '', lastModified: '', author: currentUser.name },
+        overall: { id: '4', title: 'Overall', content: '', lastModified: '', author: currentUser.name },
         additional: []
       });
-      setActiveSection('objectives');
+      setActiveSection('title');
       setShowAnonymitySelection(false);
       setShowProponentInfo(proposal.proponentInfoVisibility || 'both');
 
@@ -232,9 +230,9 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     if (decision === 'Rejected Proposal') {
       setStructuredComments((prev) => ({
         ...prev,
-        objectives: {
-          ...prev.objectives,
-          content: prev.objectives.content || 'After careful review of this proposal, we have determined that it does not meet the required standards for approval. The following concerns have been identified:\n\n1. [Specify main concern]\n2. [Additional concerns if any]\n\nWe recommend that the proponent address these issues before resubmission.',
+        title: {
+          ...prev.title,
+          content: prev.title.content || 'After careful review of this proposal, we have determined that it does not meet the required standards for approval. The following concerns have been identified:\n\n1. [Specify main concern]\n2. [Additional concerns if any]\n\nWe recommend that the proponent address these issues before resubmission.',
           lastModified: new Date().toISOString()
         }
       }));
@@ -393,11 +391,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   if (!isOpen || !proposal) return null;
 
   const sections = [
-    { key: 'objectives', title: 'Objectives Assessment', data: structuredComments.objectives },
-    { key: 'methodology', title: 'Methodology Assessment', data: structuredComments.methodology },
+    { key: 'title', title: 'Title Assessment', data: structuredComments.title },
     { key: 'budget', title: 'Budget Assessment', data: structuredComments.budget },
     { key: 'timeline', title: 'Timeline Assessment', data: structuredComments.timeline },
-    { key: 'overall', title: 'Overall Asessment', data: structuredComments.overall }
+    { key: 'overall', title: 'Overall Assessment', data: structuredComments.overall }
   ];
 
   // Derive Departments for Filter
@@ -495,8 +492,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
                         <div className="grid gap-3">
                           {[
-                            { title: "Objectives", content: revisionSummary.objective_comment },
-                            { title: "Methodology", content: revisionSummary.methodology_comment },
+                            { title: "Title", content: revisionSummary.title_comment },
                             { title: "Budget", content: revisionSummary.budget_comment },
                             { title: "Timeline", content: revisionSummary.timeline_comment },
                             { title: "Overall", content: revisionSummary.overall_comment }
@@ -763,8 +759,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       {decision === 'Sent to Evaluators' ? 'Instructions for Evaluators' : 'Reason for Rejection'} <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      value={structuredComments.objectives.content}
-                      onChange={(e) => handleCommentChange('objectives', e.target.value)}
+                      value={structuredComments.title.content}
+                      onChange={(e) => handleCommentChange('title', e.target.value)}
                       className="w-full h-32 p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#C8102E] focus:border-transparent outline-none resize-none text-sm shadow-sm placeholder:text-slate-400"
                       placeholder={decision === 'Sent to Evaluators' ? 'Add any specific instructions or focus areas for the evaluators...' : 'Please provide a detailed explanation for why this proposal is being rejected...'}
                     />

@@ -115,8 +115,7 @@ export default function ReviewedProposals() {
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: p.proposal_version?.[0]?.file_url || null,
           ratings: evaluationScore ? {
-            objectives: evaluationScore.objective,
-            methodology: evaluationScore.methodology,
+            title: evaluationScore.title,
             budget: evaluationScore.budget,
             timeline: evaluationScore.timeline
           } : {},

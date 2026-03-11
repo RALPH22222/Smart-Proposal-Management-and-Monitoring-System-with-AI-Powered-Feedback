@@ -110,7 +110,7 @@ const AdminEndorsementPage: React.FC = () => {
                 decision: decisionStatus,
                 comments: typedD.remarks || "No detailed comment available in tracker.",
                 submittedDate: typedD.created_at || new Date().toISOString(),
-                ratings: { objectives: 0, methodology: 0, budget: 0, timeline: 0 }
+                ratings: { title: 0, budget: 0, timeline: 0 }
               };
             });
           }

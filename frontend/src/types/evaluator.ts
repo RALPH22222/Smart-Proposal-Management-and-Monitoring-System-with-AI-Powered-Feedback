@@ -79,8 +79,7 @@ export interface EvaluatorDecision {
 	comments: string;
 	submittedDate: string;
 	ratings?: {
-		objectives: number;
-		methodology: number;
+		title: number;
 		budget: number;
 		timeline: number;
 	};

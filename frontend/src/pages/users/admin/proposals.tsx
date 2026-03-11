@@ -270,7 +270,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       // Determine new status based on decision
       let newStatus: ProposalStatus;
       let newAssignedEvaluators: string[] | undefined = undefined;
-      const instructionMessage = decision.structuredComments?.objectives?.content || "";
+      const instructionMessage = decision.structuredComments?.title?.content || "";
 
       if (decision.decision === 'Sent to Evaluators') {
         newStatus = 'Under Evaluators Assessment';

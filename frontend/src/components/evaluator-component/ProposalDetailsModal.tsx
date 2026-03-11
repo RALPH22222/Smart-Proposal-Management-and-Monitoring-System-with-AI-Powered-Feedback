@@ -25,24 +25,14 @@ import {
 
 // --- Data Constants ---
 const RATING_CRITERIA = {
-  objectives: {
-    label: "Objectives Assessment",
+  title: {
+    label: "Title Assessment",
     descriptions: {
-      5: "Objectives are crystal clear, highly measurable, and very significant to the field with clear alignment to national priorities",
-      4: "Objectives are clear and relevant with well-defined metrics and good alignment",
-      3: "Objectives are understandable but lack specificity in some areas or could be more significant",
-      2: "Objectives are vague, poorly justified, or lack clear connection to project scope",
-      1: "Objectives are unclear, not measurable, or insignificant to the research field",
-    },
-  },
-  methodology: {
-    label: "Methodology Assessment",
-    descriptions: {
-      5: "Methodology is rigorous, innovative, well-designed, and highly feasible with detailed implementation plan",
-      4: "Methodology is sound with appropriate methods, tools, and realistic timeline",
-      3: "Methodology is acceptable but has some gaps in detail or minor feasibility concerns",
-      2: "Methodology has significant flaws, questionable feasibility, or unclear implementation steps",
-      1: "Methodology is inadequate, not clearly described, or fundamentally flawed",
+      5: "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
+      4: "Title is clear, relevant, and provides a good indication of the project's focus and goals",
+      3: "Title is acceptable but could be more specific or better aligned with the project scope",
+      2: "Title is vague, overly broad, or does not clearly convey the project's purpose",
+      1: "Title is unclear, misleading, or irrelevant to the proposed research",
     },
   },
   budget: {
@@ -113,8 +103,7 @@ interface Proposal {
   budgetTotal: string;
   projectFile: string;
   ratings?: {
-    objectives: number;
-    methodology: number;
+    title: number;
     budget: number;
     timeline: number;
   };
@@ -488,7 +477,7 @@ export default function ProposalDetailsModal({
 
               <div className="space-y-6">
                 {/* Loop for the 4 main rated sections */}
-                {["objectives", "methodology", "budget", "timeline"].map(
+                {["title", "budget", "timeline"].map(
                   (key) => {
                     const field = key as keyof typeof RATING_CRITERIA;
                     // Safe access with fallback 0

@@ -27,8 +27,7 @@ interface DecisionModalProps {
 
 // Define the default structured sections
 const DEFAULT_SECTIONS = [
-  "Objectives Assessment",
-  "Methodology Assessment",
+  "Title Assessment",
   "Budget Assessment",
   "Timeline Assessment",
   "Overall Assessment"

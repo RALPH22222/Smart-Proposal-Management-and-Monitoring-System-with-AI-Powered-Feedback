@@ -299,16 +299,14 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
   // Mock Assessment Data
   const mockAssessment = {
-    objectives:
-      "The specific objectives are generally clear but need more measurable indicators (SMART criteria).",
-    methodology:
-      "The proposed statistical analysis method (ANOVA) needs further justification.",
+    title:
+      "The project title is generally clear but could be more specific to reflect the scope of the study.",
     budget:
       "The travel expenses listed for Q3 seem excessive relative to the project scope.",
     timeline:
       "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
     overall:
-      "The proposal is promising but requires adjustments in the methodology and budget allocation.",
+      "The proposal is promising but requires adjustments in the title and budget allocation.",
   };
 
   const mockRevisionDeadline = "November 30, 2025 | 5:00 PM";
@@ -496,8 +494,8 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               </div>
               <div className="space-y-3">
                 <div className="bg-white p-3 rounded border border-orange-100">
-                  <p className="text-xs font-bold text-orange-700 mb-1">Objectives Assessment</p>
-                  <p className="text-sm text-slate-700">{mockAssessment.objectives}</p>
+                  <p className="text-xs font-bold text-orange-700 mb-1">Title Assessment</p>
+                  <p className="text-sm text-slate-700">{mockAssessment.title}</p>
                 </div>
               </div>
             </div>

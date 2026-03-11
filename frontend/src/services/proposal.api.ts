@@ -286,8 +286,7 @@ export type RevisionSummary = {
   proposal_id: number;
   rnd_id: string;
   rnd_name: string;
-  objective_comment: string | null;
-  methodology_comment: string | null;
+  title_comment: string | null;
   budget_comment: string | null;
   timeline_comment: string | null;
   overall_comment: string | null;
@@ -425,8 +424,7 @@ export const decisionEvaluatorToProposal = async (input: DecisionEvaluatorInput)
 export type SubmitEvaluationInput = {
   proposal_id: number;
   status: string;
-  objective: number;
-  methodology: number;
+  title: number;
   budget: number;
   timeline: number;
   comment?: string;
@@ -500,8 +498,7 @@ export const forwardProposalToEvaluators = async (input: ForwardToEvaluatorsPayl
 
 export type RequestRevisionPayload = {
   proposal_id: number;
-  objective_comment?: string;
-  methodology_comment?: string;
+  title_comment?: string;
   budget_comment?: string;
   timeline_comment?: string;
   overall_comment?: string;

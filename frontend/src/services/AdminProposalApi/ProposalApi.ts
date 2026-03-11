@@ -65,7 +65,7 @@ export const adminProposalApi = {
               typeof e === 'string' ? { id: e, visibility: 'both' } : e
             ),
             deadline_at: daysUntilDeadline,
-            commentsForEvaluators: decision.structuredComments?.objectives?.content // Using 'objectives' content field as general comment container from Modal
+            commentsForEvaluators: decision.structuredComments?.title?.content // Using 'title' content field as general comment container from Modal
           });
         }
       } else if (decision.decision === 'Rejected Proposal') {
@@ -77,8 +77,7 @@ export const adminProposalApi = {
         await requestRevision({
           proposal_id: proposalId,
           deadline: deadlineTimestamp,
-          objective_comment: decision.structuredComments?.objectives?.content,
-          methodology_comment: decision.structuredComments?.methodology?.content,
+          title_comment: decision.structuredComments?.title?.content,
           budget_comment: decision.structuredComments?.budget?.content,
           timeline_comment: decision.structuredComments?.timeline?.content,
           overall_comment: decision.structuredComments?.overall?.content

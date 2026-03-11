@@ -145,8 +145,7 @@ const EndorsePage: React.FC = () => {
             comments: d.comment || "No comment provided",
             submittedDate: d.submittedDate,
             ratings: d.ratings ? {
-              objectives: d.ratings.objective || 0,
-              methodology: d.ratings.methodology || 0,
+              title: d.ratings.title || 0,
               budget: d.ratings.budget || 0,
               timeline: d.ratings.timeline || 0
             } : undefined
@@ -274,16 +273,14 @@ const EndorsePage: React.FC = () => {
       const deadlineTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
 
       // 2. Parse Structured Remarks
-      let objective_comment: string | undefined,
-        methodology_comment: string | undefined,
+      let title_comment: string | undefined,
         budget_comment: string | undefined,
         timeline_comment: string | undefined,
         overall_comment: string | undefined;
 
       const parts = remarks.split(/\n\n(?=\[)/);
       parts.forEach(part => {
-        if (part.startsWith("[Objectives Assessment]:")) objective_comment = part.replace("[Objectives Assessment]:\n", "").trim();
-        else if (part.startsWith("[Methodology Assessment]:")) methodology_comment = part.replace("[Methodology Assessment]:\n", "").trim();
+        if (part.startsWith("[Title Assessment]:")) title_comment = part.replace("[Title Assessment]:\n", "").trim();
         else if (part.startsWith("[Budget Assessment]:")) budget_comment = part.replace("[Budget Assessment]:\n", "").trim();
         else if (part.startsWith("[Timeline Assessment]:")) timeline_comment = part.replace("[Timeline Assessment]:\n", "").trim();
         else if (part.startsWith("[Overall Assessment]:")) overall_comment = part.replace("[Overall Assessment]:\n", "").trim();
@@ -297,8 +294,7 @@ const EndorsePage: React.FC = () => {
       await requestRevision({
         proposal_id: parseInt(proposalId),
         deadline: deadlineTimestamp,
-        objective_comment,
-        methodology_comment,
+        title_comment,
         budget_comment,
         timeline_comment,
         overall_comment,
