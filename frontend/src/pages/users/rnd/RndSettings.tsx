@@ -2,6 +2,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import Swal from 'sweetalert2';
 import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
+import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 
 const PRIMARY = "#C8102E";
 
@@ -213,47 +214,15 @@ const SecuritySection: React.FC = () => (
 
 // === Notifications Section ===
 const NotificationsSection: React.FC = () => (
-  <div className="grid gap-6 md:grid-cols-2">
-    <Card title="Email Notifications">
-      <form className="space-y-3">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> Account Updates
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> System Alerts
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" /> Marketing Messages
-        </label>
-        <button
-          type="submit"
-          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          Save
-        </button>
-      </form>
-    </Card>
-
-    <Card title="Push Notifications">
-      <form className="space-y-3">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> New Messages
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" /> Event Reminders
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> Security Alerts
-        </label>
-        <button
-          type="submit"
-          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          Save
-        </button>
-      </form>
-    </Card>
-  </div>
+  <NotificationPreferencesCard
+    visibleEvents={[
+      'proposal_endorsed',
+      'proposal_revision',
+      'fund_request_reviewed',
+      'certificate_issued',
+      'evaluator_assigned',
+    ]}
+  />
 );
 
 // === Preferences Section ===
@@ -277,32 +246,55 @@ const PreferencesSection: React.FC = () => (
   </div>
 );
 
-// === System Section (Late Submission Policy) ===
+// === System Section (Late Submission Policy + Evaluation Deadline) ===
 const SystemSection: React.FC = () => {
   const [policy, setPolicy] = useState<LateSubmissionPolicy>({ enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [lateType, setLateType] = useState<'until_date' | 'indefinite'>('until_date');
   const [deadline, setDeadline] = useState('');
+  const [evalDays, setEvalDays] = useState(14);
+  const [savingDeadline, setSavingDeadline] = useState(false);
 
   useEffect(() => {
-    loadPolicy();
+    loadAll();
   }, []);
 
-  const loadPolicy = async () => {
+  const loadAll = async () => {
     try {
-      const data = await SettingsApi.getLateSubmissionPolicy();
-      setPolicy(data);
-      if (data.enabled) {
-        setLateType(data.type);
-        if (data.type === 'until_date') {
-          setDeadline(data.deadline.slice(0, 16));
+      const [policyData, deadlineData] = await Promise.all([
+        SettingsApi.getLateSubmissionPolicy(),
+        SettingsApi.getEvaluationDeadline(),
+      ]);
+      setPolicy(policyData);
+      if (policyData.enabled) {
+        setLateType(policyData.type);
+        if (policyData.type === 'until_date') {
+          setDeadline(policyData.deadline.slice(0, 16));
         }
       }
+      setEvalDays(deadlineData.days);
     } catch {
-      // Default to disabled
+      // Default values already set
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveDeadline = async () => {
+    if (evalDays < 1 || evalDays > 90) {
+      Swal.fire('Validation Error', 'Deadline must be between 1 and 90 days.', 'warning');
+      return;
+    }
+    setSavingDeadline(true);
+    try {
+      const updated = await SettingsApi.updateEvaluationDeadline(evalDays);
+      setEvalDays(updated.days);
+      Swal.fire('Saved', 'Default evaluation deadline updated.', 'success');
+    } catch {
+      Swal.fire('Error', 'Failed to update evaluation deadline.', 'error');
+    } finally {
+      setSavingDeadline(false);
     }
   };
 
@@ -455,6 +447,31 @@ const SystemSection: React.FC = () => {
             </p>
           )}
         </div>
+      </Card>
+
+      <Card title="Default Evaluation Deadline">
+        <p className="text-sm text-slate-500 mb-4">
+          Set the default number of days evaluators have to complete their review.
+          RND staff can override this when assigning evaluators.
+        </p>
+        <div className="flex items-center gap-3 mb-4">
+          <input
+            type="number"
+            min={1}
+            max={90}
+            value={evalDays}
+            onChange={(e) => setEvalDays(Number(e.target.value))}
+            className="w-24 px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+          />
+          <span className="text-sm text-slate-600">days</span>
+        </div>
+        <button
+          onClick={handleSaveDeadline}
+          disabled={savingDeadline}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+        >
+          {savingDeadline ? 'Saving...' : 'Save Deadline'}
+        </button>
       </Card>
     </div>
   );

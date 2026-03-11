@@ -27,6 +27,11 @@ export class AdminLambdas extends NestedStack {
   public readonly updateLateSubmissionPolicy: NodejsFunction;
   public readonly getNotifications: NodejsFunction;
   public readonly markNotificationRead: NodejsFunction;
+  public readonly getNotificationPreferences: NodejsFunction;
+  public readonly updateNotificationPreferences: NodejsFunction;
+  public readonly updateAvailability: NodejsFunction;
+  public readonly getEvaluationDeadline: NodejsFunction;
+  public readonly updateEvaluationDeadline: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
@@ -143,6 +148,46 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-mark-notification-read",
       entry: path.resolve("src", "handlers", "admin", "mark-notification-read.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getNotificationPreferences = new NodejsFunction(this, "get-notification-preferences", {
+      ...defaults,
+      functionName: "pms-get-notification-preferences",
+      entry: path.resolve("src", "handlers", "admin", "get-notification-preferences.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.updateNotificationPreferences = new NodejsFunction(this, "update-notification-preferences", {
+      ...defaults,
+      functionName: "pms-update-notification-preferences",
+      entry: path.resolve("src", "handlers", "admin", "update-notification-preferences.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.updateAvailability = new NodejsFunction(this, "update-availability", {
+      ...defaults,
+      functionName: "pms-update-availability",
+      entry: path.resolve("src", "handlers", "admin", "update-availability.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getEvaluationDeadline = new NodejsFunction(this, "get-evaluation-deadline", {
+      ...defaults,
+      functionName: "pms-get-evaluation-deadline",
+      entry: path.resolve("src", "handlers", "admin", "get-evaluation-deadline.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.updateEvaluationDeadline = new NodejsFunction(this, "update-evaluation-deadline", {
+      ...defaults,
+      functionName: "pms-update-evaluation-deadline",
+      entry: path.resolve("src", "handlers", "admin", "update-evaluation-deadline.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });

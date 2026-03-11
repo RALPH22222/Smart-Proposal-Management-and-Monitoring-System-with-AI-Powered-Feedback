@@ -22,3 +22,33 @@ export type LateSubmissionPolicy = z.infer<typeof lateSubmissionPolicySchema>;
 export const updateLateSubmissionSchema = lateSubmissionPolicySchema;
 
 export type UpdateLateSubmissionInput = LateSubmissionPolicy;
+
+// Notification Preferences Schema
+export const notificationChannelSchema = z.object({
+  proposal_endorsed: z.boolean(),
+  proposal_revision: z.boolean(),
+  fund_request_reviewed: z.boolean(),
+  certificate_issued: z.boolean(),
+  evaluator_assigned: z.boolean(),
+});
+
+export const notificationPreferencesSchema = z.object({
+  email: notificationChannelSchema,
+  in_app: notificationChannelSchema,
+});
+
+export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
+
+// Evaluator Availability Schema
+export const updateAvailabilitySchema = z.object({
+  is_available: z.boolean(),
+});
+
+export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
+
+// Default Evaluation Deadline Schema
+export const evaluationDeadlineSchema = z.object({
+  days: z.number().int().min(1).max(90),
+});
+
+export type EvaluationDeadlineInput = z.infer<typeof evaluationDeadlineSchema>;

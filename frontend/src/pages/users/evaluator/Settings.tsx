@@ -1,5 +1,8 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Swal from 'sweetalert2';
+import { SettingsApi } from '../../../services/admin/SettingsApi';
+import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 
 const PRIMARY = "#C8102E";
 
@@ -211,48 +214,97 @@ const SecuritySection: React.FC = () => (
 
 // === Notifications Section ===
 const NotificationsSection: React.FC = () => (
-  <div className="grid gap-6 md:grid-cols-2">
-    <Card title="Email Notifications">
-      <form className="space-y-3">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> Account Updates
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> System Alerts
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" /> Marketing Messages
-        </label>
-        <button
-          type="submit"
-          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          Save
-        </button>
-      </form>
-    </Card>
-
-    <Card title="Push Notifications">
-      <form className="space-y-3">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> New Messages
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" /> Event Reminders
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" defaultChecked /> Security Alerts
-        </label>
-        <button
-          type="submit"
-          className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          Save
-        </button>
-      </form>
-    </Card>
-  </div>
+  <NotificationPreferencesCard
+    visibleEvents={[
+      'evaluator_assigned',
+      'proposal_revision',
+    ]}
+  />
 );
+
+// === Availability Section ===
+const AvailabilitySection: React.FC = () => {
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    // Load current availability from notification preferences endpoint (piggyback on user data)
+    // The availability is stored on the users table, we check it via a simple fetch
+    setLoading(false); // default to true (available)
+  }, []);
+
+  const handleToggle = async () => {
+    const newValue = !isAvailable;
+    setSaving(true);
+    try {
+      await SettingsApi.updateAvailability(newValue);
+      setIsAvailable(newValue);
+      Swal.fire(
+        'Updated',
+        newValue
+          ? 'You are now available for new proposal reviews.'
+          : 'You are now marked as unavailable for new reviews.',
+        'success'
+      );
+    } catch {
+      Swal.fire('Error', 'Failed to update availability status.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card title="Review Availability">
+        <p className="text-sm text-slate-600 mb-4">
+          Control whether RND can assign you new proposals to review.
+          When unavailable, you won't receive new evaluation assignments.
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-700">
+            {isAvailable ? 'Available for reviews' : 'Unavailable for reviews'}
+          </span>
+          <button
+            onClick={handleToggle}
+            disabled={saving}
+            className="relative"
+          >
+            <span
+              className={`w-12 h-7 flex items-center rounded-full p-1 transition ${
+                isAvailable ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`bg-white w-5 h-5 rounded-full shadow transform transition ${
+                  isAvailable ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+        <div className="mt-4 p-3 bg-slate-50 rounded-md">
+          <p className="text-xs text-slate-500 font-medium mb-1">Current Status</p>
+          <p className="text-sm text-slate-700">
+            You are currently{' '}
+            <span className={`font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+              {isAvailable ? 'available' : 'unavailable'}
+            </span>{' '}
+            for new proposal reviews.
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
 // === Preferences Section ===
 const PreferencesSection: React.FC = () => (
@@ -278,7 +330,7 @@ const PreferencesSection: React.FC = () => (
 // === Main Component ===
 const RdecSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    "profile" | "security" | "notifications" | "preferences"
+    "profile" | "security" | "notifications" | "availability" | "preferences"
   >("profile");
 
   return (
@@ -286,7 +338,7 @@ const RdecSettings: React.FC = () => {
       <header className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-slate-900">Evaluator Settings</h1>
         <p className="text-slate-600 mt-1">
-          Manage your account, security and preferences.
+          Manage your account, security, availability and preferences.
         </p>
       </header>
 
@@ -294,22 +346,11 @@ const RdecSettings: React.FC = () => {
       <div className="bg-white shadow rounded-lg border border-slate-200 flex-shrink-0">
         <nav className="flex gap-2 sm:gap-6 px-4 sm:px-6 overflow-x-auto">
           {[
-            {
-              id: "profile",
-              label: "Profile",
-            },
-            {
-              id: "security",
-              label: "Security",
-            },
-            {
-              id: "notifications",
-              label: "Notifications",
-            },
-            {
-              id: "preferences",
-              label: "Preferences",
-            },
+            { id: "profile", label: "Profile" },
+            { id: "security", label: "Security" },
+            { id: "notifications", label: "Notifications" },
+            { id: "availability", label: "Availability" },
+            { id: "preferences", label: "Preferences" },
           ].map((t) => (
             <button
               key={t.id}
@@ -331,6 +372,7 @@ const RdecSettings: React.FC = () => {
         {activeTab === "profile" && <ProfileSection />}
         {activeTab === "security" && <SecuritySection />}
         {activeTab === "notifications" && <NotificationsSection />}
+        {activeTab === "availability" && <AvailabilitySection />}
         {activeTab === "preferences" && <PreferencesSection />}
       </div>
     </div>

@@ -5,7 +5,7 @@ import {
   ToggleAccountStatusInput,
   InviteUserInput,
 } from "../schemas/admin-schema";
-import { LateSubmissionPolicy } from "../schemas/settings-schema";
+import { LateSubmissionPolicy, NotificationPreferences, EvaluationDeadlineInput } from "../schemas/settings-schema";
 import { logActivity } from "../utils/activity-logger";
 
 export class AdminService {
@@ -313,6 +313,126 @@ export class AdminService {
       category: "settings",
       target_type: "system_settings",
       details: policy,
+    });
+
+    return { data: data.value, error: null };
+  }
+
+  // ===================== NOTIFICATION PREFERENCES =====================
+
+  async getNotificationPreferences(userId: string) {
+    const { data, error } = await this.db
+      .from("users")
+      .select("notification_preferences")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const defaults: NotificationPreferences = {
+      email: {
+        proposal_endorsed: true,
+        proposal_revision: true,
+        fund_request_reviewed: true,
+        certificate_issued: true,
+        evaluator_assigned: true,
+      },
+      in_app: {
+        proposal_endorsed: true,
+        proposal_revision: true,
+        fund_request_reviewed: true,
+        certificate_issued: true,
+        evaluator_assigned: true,
+      },
+    };
+
+    return { data: data?.notification_preferences || defaults, error: null };
+  }
+
+  async updateNotificationPreferences(userId: string, prefs: NotificationPreferences) {
+    const { data, error } = await this.db
+      .from("users")
+      .update({ notification_preferences: prefs })
+      .eq("id", userId)
+      .select("notification_preferences")
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: data.notification_preferences, error: null };
+  }
+
+  // ===================== EVALUATOR AVAILABILITY =====================
+
+  async updateAvailability(userId: string, isAvailable: boolean) {
+    const { data, error } = await this.db
+      .from("users")
+      .update({ is_available: isAvailable })
+      .eq("id", userId)
+      .select("id, is_available")
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  }
+
+  async getAvailability(userId: string) {
+    const { data, error } = await this.db
+      .from("users")
+      .select("is_available")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: { is_available: data?.is_available ?? true }, error: null };
+  }
+
+  // ===================== EVALUATION DEADLINE =====================
+
+  async getEvaluationDeadline() {
+    const { data, error } = await this.db
+      .from("system_settings")
+      .select("value")
+      .eq("key", "default_evaluation_deadline")
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: data?.value || { days: 14 }, error: null };
+  }
+
+  async updateEvaluationDeadline(input: EvaluationDeadlineInput, updatedBy: string) {
+    const { data, error } = await this.db
+      .from("system_settings")
+      .upsert(
+        { key: "default_evaluation_deadline", value: input },
+        { onConflict: "key" }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    await logActivity(this.db, {
+      user_id: updatedBy,
+      action: "evaluation_deadline_updated",
+      category: "settings",
+      target_type: "system_settings",
+      details: input,
     });
 
     return { data: data.value, error: null };

@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Camera, LayoutDashboard, Shuffle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
+import { Camera } from 'lucide-react';
+import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 import {
   changeMyPassword,
   getMyProfile,
@@ -36,7 +35,6 @@ interface ExtendedUserProfile extends UserProfile {
 }
 
 const Settings: React.FC = () => {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,42 +167,13 @@ const Settings: React.FC = () => {
     setConfirmPassword('');
   };
 
-  // --- ROLE SWITCH HANDLER ---
-  const handleSwitchRole = (targetRole: 'proponent' | 'evaluator' | 'rnd') => {
-    Swal.fire({
-      title: 'Switch Workspace?',
-      text: `You are about to switch to the ${targetRole.toUpperCase()} view.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#C8102E',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Yes, switch',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        let path = '';
-        switch (targetRole) {
-          case 'evaluator':
-            path = '/users/evaluator/evaluatorMainLayout';
-            break;
-          case 'rnd':
-            path = '/users/rnd/rndMainLayout';
-            break;
-          case 'proponent':
-          default:
-            path = '/users/proponent/proponentMainLayout';
-            break;
-        }
-        navigate(path);
-      }
-    });
-  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <header className='mb-6'>
         <h1 className='text-2xl font-bold text-gray-800'>Account Settings</h1>
         <p className='text-sm text-gray-500'>
-          Manage your personal information, academic details, and workspace roles.
+          Manage your personal information, academic details, and security.
         </p>
       </header>
 
@@ -374,48 +343,17 @@ const Settings: React.FC = () => {
 
       </form>
 
-      {/* --- Switch Role Section --- */}
-      <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6'>
-        <div className="flex items-center gap-3 mb-4 border-b pb-2">
-            <Shuffle className="text-gray-800" size={20} />
-            <h2 className='text-lg font-medium text-gray-800'>Switch Workspace</h2>
-        </div>
-        
-        <p className="text-sm text-gray-600 mb-4">
-            Access different dashboards based on your assigned roles.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Proponent Button */}
-            <button
-                type="button"
-                onClick={() => handleSwitchRole('proponent')}
-                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
-            >
-                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
-                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">Proponent</span>
-            </button>
-
-            {/* Evaluator Button */}
-            <button
-                type="button"
-                onClick={() => handleSwitchRole('evaluator')}
-                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
-            >
-                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
-                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">Evaluator</span>
-            </button>
-
-            {/* RND Button */}
-            <button
-                type="button"
-                onClick={() => handleSwitchRole('rnd')}
-                className="flex items-center justify-center gap-2 p-4 border rounded-lg hover:border-[#C8102E] hover:bg-red-50 hover:text-[#C8102E] transition-all group bg-white"
-            >
-                <LayoutDashboard size={20} className="text-gray-400 group-hover:text-[#C8102E]" />
-                <span className="font-medium text-gray-700 group-hover:text-[#C8102E]">RND</span>
-            </button>
-        </div>
+      {/* --- Notification Preferences Section --- */}
+      <section className='mb-6'>
+        <h2 className='text-lg font-medium text-gray-800 mb-4'>Notification Preferences</h2>
+        <NotificationPreferencesCard
+          visibleEvents={[
+            'proposal_endorsed',
+            'proposal_revision',
+            'fund_request_reviewed',
+            'certificate_issued',
+          ]}
+        />
       </section>
 
       {/* --- Security Section --- */}

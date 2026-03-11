@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
+import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
+import { ContactsSection } from './components/ContactsSection';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -10,18 +12,7 @@ const TABS = [
   { id: 'system', label: 'System' }
 ] as const;
 
-const STATUS = [
-  {
-    key: 'proposalSubmitted',
-    label: 'When a new proposal is submitted'
-  },
-  { key: 'proposalReviewed', label: 'When my proposal is reviewed' },
-  {
-    key: 'proposalApproved',
-    label: 'When a proposal is approved/rejected'
-  },
-  { key: 'weeklyDigest', label: 'Weekly activity digest' }
-] as const;
+
 const PRIMARY = '#C8102E';
 
 const Card: React.FC<{ title?: string } & { children?: React.ReactNode }> = ({
@@ -303,56 +294,17 @@ const SecuritySection: React.FC = () => {
   );
 };
 
-const NotificationsSection: React.FC = () => {
-  const [prefs, setPrefs] = useState<{
-      proposalSubmitted: boolean;
-      proposalReviewed: boolean;
-      proposalApproved: boolean;
-      weeklyDigest: boolean;
-      smsAlerts: boolean;
-  }>({
-    proposalSubmitted: true,
-    proposalReviewed: true,
-    proposalApproved: true,
-    weeklyDigest: false,
-    smsAlerts: false
-  });
-
-  const toggle = (k: keyof typeof prefs) =>
-    setPrefs((p) => ({ ...p, [k]: !p[k] }));
-
-  return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-      <Card title='Email Notifications'>
-        <div className='space-y-3'>
-          {STATUS.map((row) => (
-            <label key={row.key} className='flex items-center gap-3 text-sm'>
-              <input
-                type='checkbox'
-                checked={prefs[row.key as keyof typeof prefs]}
-                onChange={() => toggle(row.key as keyof typeof prefs)}
-              />
-              <span className='text-gray-700'>{row.label}</span>
-            </label>
-          ))}
-        </div>
-      </Card>
-      <Card title='SMS Alerts'>
-        <div className='space-y-3 text-sm'>
-          <label className='flex items-center gap-3'>
-            <input
-              type='checkbox'
-              checked={prefs.smsAlerts}
-              onChange={() => toggle('smsAlerts')}
-            />
-            <span className='text-gray-700'>Enable important SMS alerts</span>
-          </label>
-          <p className='text-gray-500'>Carrier rates may apply.</p>
-        </div>
-      </Card>
-    </div>
-  );
-};
+const NotificationsSection: React.FC = () => (
+  <NotificationPreferencesCard
+    visibleEvents={[
+      'proposal_endorsed',
+      'proposal_revision',
+      'fund_request_reviewed',
+      'certificate_issued',
+      'evaluator_assigned',
+    ]}
+  />
+);
 
 const PreferencesSection: React.FC = () => {
   const [pref, setPref] = useState({ density: 'comfortable', theme: 'light' });
@@ -464,6 +416,7 @@ const SystemSection: React.FC = () => {
   }
 
   return (
+    <div className='space-y-6'>
     <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
       <Card title='Late Submission Policy'>
         <p className='text-sm text-gray-500 mb-4'>
@@ -580,6 +533,8 @@ const SystemSection: React.FC = () => {
           )}
         </div>
       </Card>
+    </div>
+    <ContactsSection />
     </div>
   );
 };

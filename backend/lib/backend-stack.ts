@@ -458,6 +458,21 @@ export class BackendStack extends Stack {
     admin
       .addResource("mark-notification-read")
       .addMethod(HttpMethod.POST, integrate(adminL.markNotificationRead), protectedRoute);
+    admin
+      .addResource("notification-preferences")
+      .addMethod(HttpMethod.GET, integrate(adminL.getNotificationPreferences), protectedRoute);
+    admin
+      .addResource("update-notification-preferences")
+      .addMethod(HttpMethod.POST, integrate(adminL.updateNotificationPreferences), protectedRoute);
+    admin
+      .addResource("update-availability")
+      .addMethod(HttpMethod.POST, integrate(adminL.updateAvailability), protectedRoute);
+    admin
+      .addResource("evaluation-deadline")
+      .addMethod(HttpMethod.GET, integrate(adminL.getEvaluationDeadline), protectedRoute);
+    admin
+      .addResource("update-evaluation-deadline")
+      .addMethod(HttpMethod.POST, integrate(adminL.updateEvaluationDeadline), protectedRoute);
 
   }
 }
