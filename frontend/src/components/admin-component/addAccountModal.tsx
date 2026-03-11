@@ -15,27 +15,21 @@ interface AddAccountModalProps {
 
 const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   const [email, setEmail] = useState("");
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedRole, setSelectedRole] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
       setEmail("");
-      setSelectedRoles([]);
+      setSelectedRole("");
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleRoleToggle = (roleValue: string) => {
-    setSelectedRoles(prev =>
-      prev.includes(roleValue) ? prev.filter(r => r !== roleValue) : [...prev, roleValue]
-    );
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedRoles.length === 0) return;
-    onSubmit({ email, roles: selectedRoles });
+    if (!selectedRole) return;
+    onSubmit({ email, roles: [selectedRole] });
   };
 
   return (
@@ -79,31 +73,32 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
 
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">
-              Role(s) <span className="text-red-500">*</span>
+              Role <span className="text-red-500">*</span>
             </label>
-            <p className="text-xs text-slate-500 mb-2">Select one or both roles for the invited user.</p>
+            <p className="text-xs text-slate-500 mb-2">Select a role for the invited user.</p>
             <div className="space-y-2">
               {ROLE_OPTIONS.map(role => (
                 <label
                   key={role.value}
                   className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                    selectedRoles.includes(role.value)
+                    selectedRole === role.value
                       ? "border-[#C8102E] bg-red-50"
                       : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   <input
-                    type="checkbox"
-                    checked={selectedRoles.includes(role.value)}
-                    onChange={() => handleRoleToggle(role.value)}
-                    className="w-4 h-4 text-[#C8102E] border-slate-300 rounded focus:ring-[#C8102E]"
+                    type="radio"
+                    name="invite-role"
+                    checked={selectedRole === role.value}
+                    onChange={() => setSelectedRole(role.value)}
+                    className="w-4 h-4 text-[#C8102E] border-slate-300 focus:ring-[#C8102E]"
                   />
                   <span className="text-sm font-medium text-slate-700">{role.label}</span>
                 </label>
               ))}
             </div>
-            {selectedRoles.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">Please select at least one role.</p>
+            {!selectedRole && (
+              <p className="text-xs text-red-500 mt-1">Please select a role.</p>
             )}
           </div>
 
@@ -124,7 +119,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
           <button
             type="submit"
             form="add-account-form"
-            disabled={isSubmitting || selectedRoles.length === 0}
+            disabled={isSubmitting || !selectedRole}
             className="px-6 py-2.5 text-sm font-bold text-white bg-[#C8102E] hover:bg-[#A00D26] rounded-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
           >
             <Mail className="w-4 h-4" />

@@ -26,8 +26,7 @@ export const inviteUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   roles: z
     .array(z.enum(["rnd", "evaluator"]))
-    .min(1, "At least one role is required")
-    .max(2, "Maximum two roles allowed"),
+    .length(1, "Exactly one role is required"),
 });
 
 export const completeInviteSchema = z.object({
