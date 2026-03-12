@@ -19,7 +19,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return {
         statusCode: 500,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ message: "Internal server error" }),
+        body: JSON.stringify({ message: "Supabase error", detail: error.message, code: error.code }),
       };
     }
 
@@ -41,7 +41,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     return {
       statusCode: 500,
       headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ message: "Internal server error" }),
+      body: JSON.stringify({ message: "Unexpected crash", detail: err?.message, stack: err?.stack?.split("\n").slice(0, 3).join(" | ") }),
     };
   }
 };
