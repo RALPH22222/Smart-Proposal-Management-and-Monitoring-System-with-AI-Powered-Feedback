@@ -1,10 +1,5 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL || "https://wzcdvmdwdfmbpaxohswb.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "../../lib/supabase";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {

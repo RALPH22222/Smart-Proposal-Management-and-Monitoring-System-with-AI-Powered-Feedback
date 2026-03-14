@@ -1,14 +1,10 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import { createClient } from "@supabase/supabase-js";
 import { ContactInfoSchema } from "../../schemas/contact-schema";
 import { logActivity } from "../../utils/activity-logger";
+import { supabase } from "../../lib/supabase";
 import jwt from "jsonwebtoken";
 
-const supabaseUrl = process.env.SUPABASE_URL || "https://wzcdvmdwdfmbpaxohswb.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY!;
 const jwtSecret = process.env.SUPABASE_SECRET_JWT!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
