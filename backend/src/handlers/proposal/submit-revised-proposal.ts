@@ -4,6 +4,7 @@ import { submitRevisedProposalSchema } from "../../schemas/proposal-schema";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 
 export const handler = buildCorsHeaders(async (event) => {
   // Extract proponent identity from JWT
@@ -81,6 +82,51 @@ export const handler = buildCorsHeaders(async (event) => {
     target_type: "proposal",
     details: { project_title },
   });
+
+  // Notify assigned RND that a revised proposal has been resubmitted (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("project_title")
+      .eq("id", proposal_id)
+      .single();
+
+    const title = proposal?.project_title || "a proposal";
+
+    const { data: rndAssignment } = await supabase
+      .from("proposal_rnd")
+      .select("rnd_id")
+      .eq("proposal_id", proposal_id)
+      .single();
+
+    if (rndAssignment) {
+      await supabase.from("notifications").insert({
+        user_id: rndAssignment.rnd_id,
+        message: `A revised proposal "${title}" has been resubmitted by the proponent. Please review.`,
+        is_read: false,
+      });
+
+      if (process.env.SMTP_USER) {
+        const { data: rndUser } = await supabase
+          .from("users")
+          .select("email, first_name")
+          .eq("id", rndAssignment.rnd_id)
+          .single();
+
+        if (rndUser?.email) {
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            rndUser.email,
+            rndUser.first_name || "R&D Staff",
+            "Revised Proposal Resubmitted",
+            `A revised proposal "${title}" has been resubmitted by the proponent. Please log in to SPMAMS to review it.`,
+          );
+        }
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
 
   return {
     statusCode: 200,

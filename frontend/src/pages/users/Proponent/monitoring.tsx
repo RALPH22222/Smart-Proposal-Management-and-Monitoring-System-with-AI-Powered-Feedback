@@ -6,9 +6,9 @@ import {
   Search, Target, Clock, CheckCircle2, Play, Send,
   FileText, Calendar, AlertTriangle, UploadCloud,
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
-  Plus, Trash2, MessageSquare, User, ShieldAlert, Award,
+  Plus, Trash2, User, ShieldAlert, Award,
   Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
-  CornerDownRight, ChevronUp, ChevronDown, DollarSign, Lock, Loader2
+  ChevronUp, ChevronDown, DollarSign, Lock, Loader2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../../utils/signed-url';
@@ -21,7 +21,6 @@ import {
   fetchBudgetSummary,
   createFundRequest,
   submitQuarterlyReport,
-  addReportComment,
   transformToProject,
   buildDisplayReports,
   uploadReportFile,
@@ -60,7 +59,6 @@ interface QuarterData {
   submittedBy?: string;
   dateSubmitted?: string;
   expenses: { id: string; description: string; amount: number }[];
-  messages: { id: string; sender: 'R&D' | 'Proponent'; text: string; timestamp: string }[];
 }
 
 interface ProjectData {
@@ -115,9 +113,6 @@ const MonitoringPage: React.FC = () => {
   const [extensionReason, setExtensionReason] = useState('');
   const [extensionDate, setExtensionDate] = useState('');
   const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
-
-  // Chat
-  const [replyText, setReplyText] = useState('');
 
   // --- Load Projects ---
   useEffect(() => {
@@ -215,7 +210,6 @@ const MonitoringPage: React.FC = () => {
           submittedBy: dr.submittedBy,
           dateSubmitted: dr.dateSubmitted,
           expenses: dr.expenses,
-          messages: dr.messages,
         };
       });
 
@@ -422,18 +416,6 @@ const MonitoringPage: React.FC = () => {
     }
   };
 
-  // --- Chat ---
-  const postReply = async () => {
-    if (!replyText.trim() || !currentReport?.backendReportId || !user) return;
-    try {
-      await addReportComment(currentReport.backendReportId, replyText.trim());
-      setReplyText('');
-      await loadProjectDetail();
-    } catch (error) {
-      console.error('Error posting reply:', error);
-    }
-  };
-
   // --- Breakdown item handlers ---
   const addBreakdownItem = () => {
     setBreakdownItems(prev => [...prev, { id: Date.now().toString(), description: '', amount: 0, category: 'mooe' }]);
@@ -450,82 +432,6 @@ const MonitoringPage: React.FC = () => {
     (filterStatus === 'all' || p.status.toLowerCase() === filterStatus) &&
     p.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // --- Chat Section Renderer ---
-  const renderChatSection = () => {
-    if (!currentReport) return null;
-    if (currentReport.status === 'locked' && currentReport.messages.length === 0) return null;
-
-    return (
-      <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-inner mt-6">
-        <div className="bg-slate-100 px-4 py-3 flex items-center gap-2 border-b border-slate-200">
-          <MessageSquare className="w-4 h-4 text-slate-500" />
-          <h5 className="text-xs font-bold text-slate-700 uppercase">Feedback & Communication</h5>
-        </div>
-
-        <div className="p-4 bg-slate-50/50 max-h-64 overflow-y-auto space-y-4">
-          {currentReport.messages.length === 0 && (
-            <p className="text-center text-xs text-slate-400 italic py-2">No messages yet.</p>
-          )}
-          {currentReport.messages.map(msg => {
-            const isRD = msg.sender === 'R&D';
-            return (
-              <div key={msg.id} className={`flex gap-3 ${isRD ? 'justify-start' : 'justify-end'}`}>
-                {isRD && (
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 border border-amber-200 shadow-sm">
-                    <User className="w-4 h-4 text-amber-700" />
-                  </div>
-                )}
-                <div className="max-w-[85%]">
-                  <div className={`flex items-center gap-2 mb-1 ${isRD ? 'justify-start' : 'justify-end'}`}>
-                    <span className={`text-[10px] font-bold ${isRD ? 'text-amber-700' : 'text-blue-700'}`}>
-                      {isRD ? 'R&D Officer' : 'You (Proponent)'}
-                    </span>
-                    {msg.timestamp && <span className="text-[10px] text-gray-400">{msg.timestamp}</span>}
-                  </div>
-                  <div className={`p-3 rounded-2xl text-xs leading-relaxed shadow-sm ${
-                    isRD
-                      ? 'bg-white border border-amber-200 text-slate-700 rounded-tl-none'
-                      : 'bg-blue-600 text-white rounded-tr-none'
-                  }`}>
-                    <p>{msg.text}</p>
-                  </div>
-                </div>
-                {!isRD && (
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border border-blue-200 shadow-sm">
-                    <UserCheck className="w-4 h-4 text-blue-700" />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {(isEditable || currentReport.status === 'submitted') && currentReport.backendReportId && (
-          <div className="p-3 bg-white border-t border-slate-200 flex gap-2 items-center">
-            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-400 flex-shrink-0">
-              <CornerDownRight className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Type your reply to R&D..."
-              className="flex-1 text-xs p-2.5 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all"
-              onKeyDown={(e) => e.key === 'Enter' && postReply()}
-            />
-            <button
-              onClick={postReply}
-              disabled={!replyText.trim()}
-              className="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // --- Loading ---
   if (loading) {
@@ -986,9 +892,6 @@ const MonitoringPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Chat */}
-                        {(currentReport.messages.length > 0 || isOverdue) && renderChatSection()}
-
                         {/* Submit Report Button */}
                         <button
                           onClick={handleSubmitReport}
@@ -1025,7 +928,6 @@ const MonitoringPage: React.FC = () => {
                             <span className="text-sm font-bold text-gray-700">{currentReport.progressPercentage}%</span>
                           </div>
                         </div>
-                        {renderChatSection()}
                       </div>
                     )}
 
@@ -1081,7 +983,6 @@ const MonitoringPage: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        {currentReport.messages.length > 0 && renderChatSection()}
                       </div>
                     )}
                   </div>

@@ -132,14 +132,7 @@ export interface ApiProjectReport {
   report_file_url: string[] | null;
   submitted_by_proponent_id: string;
   created_at: string;
-  project_comments: ApiProjectComment[];
   project_expenses: ApiProjectExpense[];
-}
-
-export interface ApiProjectComment {
-  id: number;
-  comments: string;
-  users: { id: string; first_name: string; last_name: string };
 }
 
 export interface ApiProjectExpense {
@@ -215,7 +208,6 @@ export interface DisplayReport {
   proofs: string[];
   submittedBy?: string;
   dateSubmitted?: string;
-  messages: { id: string; sender: "R&D" | "Proponent"; text: string; timestamp: string }[];
 }
 
 export interface ProjectDetailData {
@@ -267,13 +259,6 @@ export function buildDisplayReports(
         overdue: "Overdue",
       };
 
-      const messages = (apiReport.project_comments || []).map((c, idx) => ({
-        id: String(c.id || idx),
-        sender: (c.users?.id === currentUserId ? "R&D" : "Proponent") as "R&D" | "Proponent",
-        text: c.comments,
-        timestamp: "",
-      }));
-
       const expenses = (apiReport.project_expenses || []).map((e) => ({
         id: String(e.id),
         description: e.desription || "Expense", // handle DB typo
@@ -296,7 +281,6 @@ export function buildDisplayReports(
         dateSubmitted: apiReport.created_at
           ? new Date(apiReport.created_at).toLocaleDateString()
           : undefined,
-        messages,
       };
     }
 
@@ -318,7 +302,6 @@ export function buildDisplayReports(
         expenses: [],
         totalExpense: 0,
         proofs: [],
-        messages: [],
       };
     }
 
@@ -414,18 +397,6 @@ export async function verifyReport(
     { withCredentials: true }
   );
   invalidateProjectCache();
-}
-
-export async function addReportComment(
-  reportId: number,
-  text: string
-): Promise<ApiProjectComment> {
-  const { data } = await api.post<{ data: ApiProjectComment }>(
-    "/project/add-comment",
-    { project_reports_id: reportId, comments: text },
-    { withCredentials: true }
-  );
-  return data.data;
 }
 
 export async function updateProjectStatus(

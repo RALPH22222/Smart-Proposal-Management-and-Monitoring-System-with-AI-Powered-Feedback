@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Calendar, User, DollarSign, X, CheckCircle, TrendingUp,
   AlertTriangle, Clock, ChevronDown, ChevronUp,
-  FileText, Send, Paperclip, Download,
-  Users, MessageSquare, CheckSquare, Lock, Loader2, Award
+  FileText, Paperclip, Download,
+  Users, CheckSquare, Lock, Loader2, Award
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../utils/signed-url';
@@ -12,7 +12,6 @@ import { useAuthContext } from '../../context/AuthContext';
 import {
   fetchProjectDetail,
   verifyReport,
-  addReportComment,
   fetchFundRequests,
   reviewFundRequest,
   fetchBudgetSummary,
@@ -39,7 +38,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const [details, setDetails] = useState<ProjectDetailData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
-  const [chatInputs, setChatInputs] = useState<{[key:string]: string}>({});
   const [verifyingReportId, setVerifyingReportId] = useState<string | null>(null);
 
   // Fund request state
@@ -102,51 +100,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const totalPending = budgetSummary?.total_pending || 0;
 
   const toggleReport = (id: string) => setExpandedReportId(expandedReportId === id ? null : id);
-
-  const handleChatInput = (reportId: string, val: string) => {
-    setChatInputs(prev => ({...prev, [reportId]: val}));
-  };
-
-  const handleSendMessage = async (reportId: string) => {
-    const text = chatInputs[reportId];
-    if (!text?.trim() || !user) return;
-
-    // Find the backend report ID
-    const report = details.reports.find(r => r.id === reportId);
-    if (!report?.backendReportId) return;
-
-    try {
-      await addReportComment(report.backendReportId, text.trim());
-      // Append to local state
-      setDetails(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          reports: prev.reports.map(r => {
-            if (r.id === reportId) {
-              return {
-                ...r,
-                messages: [
-                  ...r.messages,
-                  {
-                    id: Date.now().toString(),
-                    sender: 'R&D' as const,
-                    text: text.trim(),
-                    timestamp: 'Just now'
-                  }
-                ]
-              };
-            }
-            return r;
-          })
-        };
-      });
-      setChatInputs(prev => ({...prev, [reportId]: ''}));
-    } catch (err) {
-      console.error('Error sending comment:', err);
-      Swal.fire('Error', 'Failed to send comment.', 'error');
-    }
-  };
 
   const handleVerifyReport = async (report: DisplayReport) => {
     if (!report.backendReportId || !user) return;
@@ -341,77 +294,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     </div>
     );
 
-  // 2. CHAT SECTION
-  const renderChatSection = (report: DisplayReport) => {
-    if (report.status === 'Verified' || report.status === 'Locked') return null;
-    if (!report.backendReportId) return null;
-
-    return (
-      <div className="mt-6 border-t border-slate-200 pt-4">
-        <h5 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-blue-500" />
-          {report.status === 'Overdue' ? 'Delay Notices & Communication' : 'R&D Feedback'}
-        </h5>
-
-        <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-2">
-          {report.messages.length === 0 && (
-             <p className="text-xs text-slate-400 italic">No comments yet.</p>
-          )}
-          {report.messages.map(msg => (
-            <div key={msg.id} className={`flex ${msg.sender === 'R&D' ? 'justify-end' : 'justify-start'}`}>
-
-              {msg.sender === 'Proponent' && (
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center mr-2 flex-shrink-0">
-                  <User className="w-4 h-4 text-slate-600" />
-                </div>
-              )}
-
-              <div className={`max-w-[85%]`}>
-                <div className={`text-[10px] font-bold mb-1 ${msg.sender === 'R&D' ? 'text-right text-blue-600' : 'text-left text-slate-600'}`}>
-                    {msg.sender === 'R&D' ? 'You (R&D Officer)' : 'Proponent'}
-                    {msg.timestamp && <span className="text-slate-400 font-normal ml-1">• {msg.timestamp}</span>}
-                </div>
-
-                <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm leading-relaxed ${
-                    msg.sender === 'R&D'
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'
-                }`}>
-                  <p>{msg.text}</p>
-                </div>
-              </div>
-
-              {msg.sender === 'R&D' && (
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center ml-2 flex-shrink-0 border border-blue-200">
-                  <User className="w-4 h-4 text-blue-600" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2 items-center bg-slate-100 p-2 rounded-xl">
-          <input
-            type="text"
-            placeholder={report.status === 'Overdue' ? "Send notice..." : "Write a comment..."}
-            className="flex-1 text-sm bg-transparent border-none focus:ring-0 px-2 py-1 text-slate-700 placeholder-slate-400 outline-none"
-            value={chatInputs[report.id] || ''}
-            onChange={(e) => handleChatInput(report.id, e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(report.id)}
-          />
-          <button
-            onClick={() => handleSendMessage(report.id)}
-            disabled={!chatInputs[report.id]}
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. REPORT LIST ITEM
+  // 2. REPORT LIST ITEM
   const renderReportItem = (report: DisplayReport) => {
     const isExpanded = expandedReportId === report.id;
 
@@ -511,8 +394,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                       No proof files attached.
                   </div>
                )}
-
-               {renderChatSection(report)}
 
                {report.status === 'Submitted' && (
                   <div className="flex gap-3 pt-4 border-t border-slate-200">

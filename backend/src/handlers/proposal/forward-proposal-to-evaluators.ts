@@ -44,6 +44,27 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     details: { evaluator_count: result.data.evaluators.length },
   });
 
+  // Notify each evaluator (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("project_title")
+      .eq("id", result.data.proposal_id)
+      .single();
+
+    const title = proposal?.project_title || "a proposal";
+
+    const notifications = result.data.evaluators.map((ev) => ({
+      user_id: ev.id,
+      message: `You have been assigned to evaluate the proposal "${title}". Please review and respond.`,
+      is_read: false,
+    }));
+
+    await supabase.from("notifications").insert(notifications);
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({

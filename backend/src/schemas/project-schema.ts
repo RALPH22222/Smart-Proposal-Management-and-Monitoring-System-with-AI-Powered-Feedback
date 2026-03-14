@@ -49,22 +49,6 @@ export const verifyReportSchema = z.object({
 
 export type VerifyReportInput = z.infer<typeof verifyReportSchema>;
 
-// Add Comment Schema
-export const addCommentSchema = z.object({
-  project_reports_id: z.number().int().positive(),
-  users_id: z.string().uuid(),
-  comments: z.string().min(1).max(2000),
-});
-
-export type AddCommentInput = z.infer<typeof addCommentSchema>;
-
-// Get Report Comments Schema
-export const getReportCommentsSchema = z.object({
-  project_reports_id: z.number().int().positive(),
-});
-
-export type GetReportCommentsInput = z.infer<typeof getReportCommentsSchema>;
-
 // Add Expense Schema
 export const addExpenseSchema = z.object({
   project_reports_id: z.number().int().positive(),

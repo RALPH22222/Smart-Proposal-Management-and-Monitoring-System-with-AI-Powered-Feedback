@@ -5,6 +5,7 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { submitReportSchema } from "../../schemas/project-schema";
 import { getAuthContext } from "../../utils/auth-context";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   // Extract authenticated user from JWT (not from request body)
@@ -87,6 +88,59 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     target_type: "funded_project",
     details: { quarterly_report: result.data.quarterly_report },
   });
+
+  // Notify assigned RND about the submitted report (fire-and-forget)
+  try {
+    const quarterLabel = result.data.quarterly_report.replace("_report", "").toUpperCase();
+
+    // Get proposal_id for this funded project
+    const { data: project } = await supabase
+      .from("funded_projects")
+      .select("proposal_id, proposal:proposals(project_title)")
+      .eq("id", result.data.funded_project_id)
+      .single();
+
+    if (project) {
+      const projectTitle = (project as any).proposal?.project_title || "a project";
+
+      // Find assigned RND
+      const { data: rndAssignment } = await supabase
+        .from("proposal_rnd")
+        .select("rnd_id")
+        .eq("proposal_id", project.proposal_id)
+        .single();
+
+      if (rndAssignment) {
+        // In-app notification
+        await supabase.from("notifications").insert({
+          user_id: rndAssignment.rnd_id,
+          message: `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Please review and verify.`,
+          is_read: false,
+        });
+
+        // Email notification
+        if (process.env.SMTP_USER) {
+          const { data: rndUser } = await supabase
+            .from("users")
+            .select("email, first_name")
+            .eq("id", rndAssignment.rnd_id)
+            .single();
+
+          if (rndUser?.email) {
+            const emailService = new EmailService();
+            await emailService.sendNotificationEmail(
+              rndUser.email,
+              rndUser.first_name || "R&D Staff",
+              `Quarterly Report Submitted – ${quarterLabel}`,
+              `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Please log in to SPMAMS to review and verify the report.`,
+            );
+          }
+        }
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
 
   return {
     statusCode: 201,

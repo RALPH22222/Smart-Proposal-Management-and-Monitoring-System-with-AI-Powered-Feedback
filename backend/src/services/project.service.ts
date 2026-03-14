@@ -3,11 +3,9 @@ import {
   GetFundedProjectsInput,
   SubmitReportInput,
   VerifyReportInput,
-  AddCommentInput,
   AddExpenseInput,
   UpdateProjectStatusInput,
   GetProjectReportsInput,
-  GetReportCommentsInput,
   GetProjectExpensesInput,
   GetProjectInput,
   InviteMemberInput,
@@ -163,11 +161,6 @@ export class ProjectService {
         ),
         project_reports (
           *,
-          project_comments (
-            id,
-            comments,
-            users:users!users_id (id, first_name, last_name)
-          ),
           project_expenses (id, expenses, desription, created_at)
         )
       `
@@ -284,11 +277,6 @@ export class ProjectService {
           first_name,
           last_name
         ),
-        project_comments (
-          id,
-          comments,
-          users:users!users_id (id, first_name, last_name)
-        ),
         project_expenses (id, expenses, desription, created_at)
       `
       )
@@ -328,56 +316,6 @@ export class ProjectService {
         details: { funded_project_id: data.funded_project_id },
       });
     }
-
-    return { data, error };
-  }
-
-  /**
-   * Add a comment to a project report
-   */
-  async addComment(input: AddCommentInput) {
-    const { data, error } = await this.db
-      .from("project_comments")
-      .insert({
-        project_reports_id: input.project_reports_id,
-        users_id: input.users_id,
-        comments: input.comments,
-      })
-      .select(
-        `
-        *,
-        users:users!users_id (id, first_name, last_name)
-      `
-      )
-      .single();
-
-    if (!error && data) {
-      await logActivity(this.db, {
-        user_id: input.users_id,
-        action: "project_comment_added",
-        category: "project",
-        target_id: String(input.project_reports_id),
-        target_type: "report",
-      });
-    }
-
-    return { data, error };
-  }
-
-  /**
-   * Get comments for a project report
-   */
-  async getReportComments(input: GetReportCommentsInput) {
-    const { data, error } = await this.db
-      .from("project_comments")
-      .select(
-        `
-        *,
-        users:users!users_id (id, first_name, last_name)
-      `
-      )
-      .eq("project_reports_id", input.project_reports_id)
-      .order("id", { ascending: true });
 
     return { data, error };
   }

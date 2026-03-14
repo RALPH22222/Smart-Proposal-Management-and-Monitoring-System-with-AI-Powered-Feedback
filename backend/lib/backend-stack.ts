@@ -374,12 +374,6 @@ export class BackendStack extends Stack {
       .addResource("verify-report")
       .addMethod(HttpMethod.POST, integrate(projectL.verifyProjectReport), protectedRoute);
     project
-      .addResource("add-comment")
-      .addMethod(HttpMethod.POST, integrate(projectL.addReportComment), protectedRoute);
-    project
-      .addResource("comments")
-      .addMethod(HttpMethod.GET, integrate(projectL.getReportComments), protectedRoute);
-    project
       .addResource("add-expense")
       .addMethod(HttpMethod.POST, integrate(projectL.addProjectExpense), protectedRoute);
     project

@@ -77,6 +77,25 @@ export const handler = buildCorsHeaders(async (event) => {
     details: { project_title: data.project_title },
   });
 
+  // Notify admin users about new proposal submission (fire-and-forget)
+  try {
+    const { data: admins } = await supabase
+      .from("users")
+      .select("id")
+      .contains("roles", ["admin"]);
+
+    if (admins && admins.length > 0) {
+      const notifications = admins.map((admin) => ({
+        user_id: admin.id,
+        message: `A new proposal "${data.project_title}" has been submitted and is awaiting routing to R&D.`,
+        is_read: false,
+      }));
+      await supabase.from("notifications").insert(notifications);
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({

@@ -55,6 +55,32 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     details: { decision: data.status },
   });
 
+  // Notify assigned RND that an evaluator submitted a decision (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("project_title")
+      .eq("id", data.proposal_id)
+      .single();
+
+    const { data: rndAssignment } = await supabase
+      .from("proposal_rnd")
+      .select("rnd_id")
+      .eq("proposal_id", data.proposal_id)
+      .single();
+
+    if (rndAssignment) {
+      const title = proposal?.project_title || "a proposal";
+      await supabase.from("notifications").insert({
+        user_id: rndAssignment.rnd_id,
+        message: `An evaluator has submitted their decision (${data.status}) for proposal "${title}".`,
+        is_read: false,
+      });
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({

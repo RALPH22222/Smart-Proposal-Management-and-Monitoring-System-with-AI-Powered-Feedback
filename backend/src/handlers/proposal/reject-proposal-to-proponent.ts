@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { rejectProposalToProponentSchema } from "../../schemas/proposal-schema";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const payload = JSON.parse(event.body || "{}");
@@ -43,6 +44,43 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     target_id: String(result.data.proposal_id),
     target_type: "proposal",
   });
+
+  // Notify proponent about rejection (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("proponent_id, project_title")
+      .eq("id", result.data.proposal_id)
+      .single();
+
+    if (proposal?.proponent_id) {
+      await supabase.from("notifications").insert({
+        user_id: proposal.proponent_id,
+        message: `Your proposal "${proposal.project_title}" has been rejected. Please check the rejection summary for details.`,
+        is_read: false,
+      });
+
+      if (process.env.SMTP_USER) {
+        const { data: proponent } = await supabase
+          .from("users")
+          .select("email, first_name")
+          .eq("id", proposal.proponent_id)
+          .single();
+
+        if (proponent?.email) {
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            proponent.email,
+            proponent.first_name || "Proponent",
+            "Proposal Rejected",
+            `Your proposal "${proposal.project_title}" has been rejected. Please log in to SPMAMS to view the rejection summary.`,
+          );
+        }
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
 
   return {
     statusCode: 200,

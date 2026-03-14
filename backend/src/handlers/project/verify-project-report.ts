@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { logActivity } from "../../utils/activity-logger";
+import { EmailService } from "../../services/email.service";
 import { z } from "zod";
 
 const verifyReportBodySchema = z.object({
@@ -69,6 +70,50 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     target_id: String(result.data.report_id),
     target_type: "report",
   });
+
+  // Notify lead proponent that report has been verified (fire-and-forget)
+  try {
+    const quarterLabel = data.quarterly_report?.replace("_report", "").toUpperCase() || "Quarterly";
+
+    // Get project lead and title
+    const { data: project } = await supabase
+      .from("funded_projects")
+      .select("project_lead_id, proposal:proposals(project_title)")
+      .eq("id", data.funded_project_id)
+      .single();
+
+    if (project?.project_lead_id) {
+      const projectTitle = (project as any).proposal?.project_title || "your project";
+
+      // In-app notification
+      await supabase.from("notifications").insert({
+        user_id: project.project_lead_id,
+        message: `Your ${quarterLabel} quarterly report for "${projectTitle}" has been verified and approved by R&D.`,
+        is_read: false,
+      });
+
+      // Email notification
+      if (process.env.SMTP_USER) {
+        const { data: lead } = await supabase
+          .from("users")
+          .select("email, first_name")
+          .eq("id", project.project_lead_id)
+          .single();
+
+        if (lead?.email) {
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            lead.email,
+            lead.first_name || "Proponent",
+            `Quarterly Report Verified – ${quarterLabel}`,
+            `Your ${quarterLabel} quarterly report for "${projectTitle}" has been verified and approved by R&D. Please log in to SPMAMS for details.`,
+          );
+        }
+      }
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
 
   return {
     statusCode: 200,

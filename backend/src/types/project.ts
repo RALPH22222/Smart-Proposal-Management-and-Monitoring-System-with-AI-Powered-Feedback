@@ -48,14 +48,6 @@ export interface ProjectReport {
   status: ReportStatus;
 }
 
-// Matches 'public.project_comments' table
-export interface ProjectComment {
-  id: number;
-  project_reports_id: number;
-  users_id: string; // UUID
-  comments: string;
-}
-
 // Matches 'public.project_expenses' table
 export interface ProjectExpense {
   id: number;
@@ -89,7 +81,6 @@ export interface FundedProjectWithDetails extends FundedProject {
 
 export interface ProjectReportWithDetails extends ProjectReport {
   funded_project?: FundedProject;
-  comments?: ProjectComment[];
   expenses?: ProjectExpense[];
   submitted_by?: {
     id: string;
@@ -119,12 +110,6 @@ export interface SubmitReportInput {
 export interface VerifyReportInput {
   report_id: number;
   verified_by_id: string;
-}
-
-export interface AddCommentInput {
-  project_reports_id: number;
-  users_id: string;
-  comments: string;
 }
 
 export interface AddExpenseInput {

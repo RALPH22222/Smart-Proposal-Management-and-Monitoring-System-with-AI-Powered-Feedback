@@ -24,8 +24,6 @@ export class ProjectLambdas extends NestedStack {
   public readonly submitQuarterlyReport: NodejsFunction;
   public readonly getProjectReports: NodejsFunction;
   public readonly verifyProjectReport: NodejsFunction;
-  public readonly addReportComment: NodejsFunction;
-  public readonly getReportComments: NodejsFunction;
   public readonly addProjectExpense: NodejsFunction;
   public readonly getProjectExpenses: NodejsFunction;
   public readonly updateProjectStatus: NodejsFunction;
@@ -65,8 +63,6 @@ export class ProjectLambdas extends NestedStack {
     this.submitQuarterlyReport = simple("submit-quarterly-report", "pms-submit-quarterly-report", "submit-quarterly-report.ts");
     this.getProjectReports = simple("get-project-reports", "pms-get-project-reports", "get-project-reports.ts");
     this.verifyProjectReport = simple("verify-project-report", "pms-verify-project-report", "verify-project-report.ts");
-    this.addReportComment = simple("add-report-comment", "pms-add-report-comment", "add-report-comment.ts");
-    this.getReportComments = simple("get-report-comments", "pms-get-report-comments", "get-report-comments.ts");
     this.addProjectExpense = simple("add-project-expense", "pms-add-project-expense", "add-project-expense.ts");
     this.getProjectExpenses = simple("get-project-expenses", "pms-get-project-expenses", "get-project-expenses.ts");
     this.updateProjectStatus = simple("update-project-status", "pms-update-project-status", "update-project-status.ts");

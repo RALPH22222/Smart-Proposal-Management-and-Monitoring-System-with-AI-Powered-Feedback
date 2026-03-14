@@ -50,6 +50,64 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       details: { decision: result.data.decision },
     });
 
+    // Notify proponent about funding decision (fire-and-forget)
+    try {
+      const { data: proposal } = await supabase
+        .from("proposals")
+        .select("proponent_id, project_title")
+        .eq("id", result.data.proposal_id)
+        .single();
+
+      if (proposal?.proponent_id) {
+        const decision = result.data.decision;
+        let notifMessage = "";
+        let emailSubject = "";
+        let emailBody = "";
+
+        if (decision === FundingDecisionType.FUNDED) {
+          notifMessage = `Your proposal "${proposal.project_title}" has been approved for funding! A funded project has been created.`;
+          emailSubject = "Proposal Approved for Funding";
+          emailBody = `Great news! Your proposal "${proposal.project_title}" has been approved for funding. A funded project has been created. Please log in to SPMAMS for details.`;
+        } else if (decision === FundingDecisionType.REVISION_FUNDING) {
+          notifMessage = `Your proposal "${proposal.project_title}" requires revision before funding can proceed. Please review the feedback and resubmit.`;
+          emailSubject = "Proposal Revision Required (Funding Stage)";
+          emailBody = `Your proposal "${proposal.project_title}" requires revision before funding can proceed. Please log in to SPMAMS to review the feedback and resubmit.`;
+        } else if (decision === FundingDecisionType.REJECTED_FUNDING) {
+          notifMessage = `Your proposal "${proposal.project_title}" has been rejected at the funding stage.${result.data.remarks ? ` Reason: ${result.data.remarks}` : ""}`;
+          emailSubject = "Proposal Rejected (Funding Stage)";
+          emailBody = `Your proposal "${proposal.project_title}" has been rejected at the funding stage.${result.data.remarks ? ` Reason: ${result.data.remarks}` : ""} Please log in to SPMAMS for details.`;
+        }
+
+        if (notifMessage) {
+          await supabase.from("notifications").insert({
+            user_id: proposal.proponent_id,
+            message: notifMessage,
+            is_read: false,
+          });
+
+          if (process.env.SMTP_USER && emailSubject) {
+            const { data: proponent } = await supabase
+              .from("users")
+              .select("email, first_name")
+              .eq("id", proposal.proponent_id)
+              .single();
+
+            if (proponent?.email) {
+              const emailService = new EmailService();
+              await emailService.sendNotificationEmail(
+                proponent.email,
+                proponent.first_name || "Proponent",
+                emailSubject,
+                emailBody,
+              );
+            }
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error("Notification failed (non-blocking):", notifErr);
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({

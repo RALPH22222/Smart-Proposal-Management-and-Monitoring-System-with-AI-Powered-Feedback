@@ -45,6 +45,27 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     details: { rnd_id: result.data.rnd_id },
   });
 
+  // Notify assigned RND staff (fire-and-forget)
+  try {
+    const { data: proposal } = await supabase
+      .from("proposals")
+      .select("project_title")
+      .eq("id", result.data.proposal_id)
+      .single();
+
+    const title = proposal?.project_title || "a proposal";
+
+    for (const rndId of result.data.rnd_id) {
+      await supabase.from("notifications").insert({
+        user_id: rndId,
+        message: `A new proposal "${title}" has been assigned to you for quality review.`,
+        is_read: false,
+      });
+    }
+  } catch (notifErr) {
+    console.error("Notification failed (non-blocking):", notifErr);
+  }
+
   return {
     statusCode: 200,
     body: JSON.stringify({
