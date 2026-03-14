@@ -53,6 +53,7 @@ export interface Proposal {
 	evaluatorInstruction?: string;
 	tags?: string[];
 	proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
+	versions?: string[];
 }
 
 export type ProposalStatus =

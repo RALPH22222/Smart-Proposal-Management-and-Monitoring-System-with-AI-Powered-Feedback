@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, Award, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature } from "lucide-react";
+import { Microscope, FileText, RefreshCw, PhilippinePeso, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Calendar1 } from "lucide-react";
 
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
@@ -68,8 +68,8 @@ const Loader3D = () => (
       </div>
     </div>
     <div className="mt-4 flex flex-col items-center gap-1">
-      <span className="text-[#C8102E] font-bold text-lg tracking-[0.2em] animate-pulse">LOADING</span>
-      <span className="text-gray-400 text-xs uppercase tracking-widest font-medium">Fetching Proposals</span>
+      <span className="text-[#C8102E] font-bold text-lg tracking-wider animate-pulse">Loading...</span>
+      <span className="text-gray-400 text-xs tracking-wide font-medium">Fetching proposals</span>
     </div>
   </div>
 );
@@ -77,13 +77,14 @@ const Loader3D = () => (
 const Profile: React.FC = () => {
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [projectTab, setProjectTab] = useState<"all" | "review" | "revision" | "endorsed" | "rejected">("all");
+
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
 
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "a-z" | "z-a">("newest");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,7 +92,7 @@ const Profile: React.FC = () => {
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, typeFilter, projectTab]);
+  }, [searchTerm, typeFilter, sortOrder]);
 
   // Notifications from Realtime context
   const { notifications: rawNotifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -136,8 +137,8 @@ const Profile: React.FC = () => {
             // Sort by creation date descending
             if (dateB !== dateA) return dateB - dateA;
 
-            // Fallback to ID descending if dates are equal (assuming auto-increment ID)
-            return (Number(b.id) || 0) - (Number(a.id) || 0);
+            // Fallback to ID descending if dates are equal (assuming auto-increment ID or UUID)
+            return String(b.id).localeCompare(String(a.id));
           });
 
         setRawProposals(myProposals);
@@ -182,9 +183,10 @@ const Profile: React.FC = () => {
             id: String(p.id),
             title: p.project_title,
             currentIndex: index,
-            rawStatus: p.status, 
+            rawStatus: p.status,
             submissionDate: new Date(p.created_at).toISOString().split("T")[0],
             lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split("T")[0],
+            rawCreatedAt: p.created_at,
             budget: budgetStr,
             duration: p.duration || "N/A",
             priority: "medium",
@@ -258,8 +260,7 @@ const Profile: React.FC = () => {
   const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
   const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision", "revision_funding"].includes((p as any).rawStatus || "")).length;
   const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding" || (p as any).rawStatus === "funded").length;
-  const rejectedCount = proposals.filter((p) => ["rejected_rnd", "rejected_funding"].includes((p as any).rawStatus || "")).length;
-  const reviewCount = proposals.filter((p) => ["review_rnd", "r&d evaluation", "under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
+
 
 
   // Helper to generate tags based on raw data
@@ -563,31 +564,33 @@ const Profile: React.FC = () => {
     markAsRead([parseInt(id)]);
   };
 
-  // Filtering Logic - Tab-based + search
-  const getTabFilteredProjects = () => {
-    switch (projectTab) {
-      case "review":
-        return proposals.filter((p) => ["review_rnd", "r&d evaluation", "under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || ""));
-      case "revision":
-        return proposals.filter((p) => ["revision_rnd", "revise", "revision", "revision_funding", "revised_proposal"].includes((p as any).rawStatus || ""));
-      case "endorsed":
-        return proposals.filter((p) => ["endorsed_for_funding", "funded"].includes((p as any).rawStatus || ""));
-      case "rejected":
-        return proposals.filter((p) => ["rejected_rnd", "rejected_funding"].includes((p as any).rawStatus || ""));
-      default:
-        return proposals;
-    }
-  };
+  const filteredProjects = proposals
+    .filter((project: Project) => {
+      const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const status = getLocalStatusLabel(project);
+      const matchesStatus = typeFilter === "All" || status === typeFilter;
 
-  const baseProjects = getTabFilteredProjects();
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+      if (sortOrder === "z-a") return b.title.localeCompare(a.title);
 
-  const filteredProjects = baseProjects.filter((project: Project) => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const status = getLocalStatusLabel(project);
-    const matchesStatus = typeFilter === "All" || status === typeFilter;
+      const rawA = rawProposals.find((p) => String(p.id) === String(a.id));
+      const rawB = rawProposals.find((p) => String(p.id) === String(b.id));
 
-    return matchesSearch && matchesStatus;
-  });
+      const dateA = new Date(rawA?.created_at || 0).getTime();
+      const dateB = new Date(rawB?.created_at || 0).getTime();
+
+      if (sortOrder === "oldest") {
+        if (dateA !== dateB) return dateA - dateB;
+        return String(a.id).localeCompare(String(b.id));
+      }
+
+      // newest is default
+      if (dateA !== dateB) return dateB - dateA;
+      return String(b.id).localeCompare(String(a.id));
+    });
 
   // Project Portfolio rendering functions
   const renderGridView = () => (
@@ -644,6 +647,10 @@ const Profile: React.FC = () => {
                     <span>Duration:</span>
                     <span className="font-semibold">{project.duration}</span>
                   </div>
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <span className="flex items-center gap-1"><Calendar1 className="w-3 h-3 text-slate-500" />Date Created:</span>
+                    <span className="font-semibold">{project.submissionDate}</span>
+                  </div>
                 </div>
 
                 <div className="mb-3">
@@ -660,7 +667,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getLocalStatusColor(project)}`}
                     >
@@ -944,7 +951,7 @@ const Profile: React.FC = () => {
                   <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
                   <p className="text-xl font-bold text-green-600 tabular-nums">{fundedCount}</p>
                 </div>
-                <Award className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                <PhilippinePeso className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
@@ -976,58 +983,30 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Tabs & Search Filter Row */}
-            <div className="px-4 lg:px-6 py-3 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-2 overflow-x-auto">
-                {([
-                  { id: "all" as const, label: "All", count: proposals.length },
-                  { id: "review" as const, label: "Under Review", count: reviewCount },
-                  { id: "revision" as const, label: "Needs Revision", count: revisionCount },
-                  { id: "endorsed" as const, label: "Endorsed / Funded", count: fundedCount },
-                  { id: "rejected" as const, label: "Rejected", count: rejectedCount },
-                ]).map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => { setProjectTab(tab.id); setCurrentPage(1); }}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                      projectTab === tab.id ? "bg-[#C8102E] text-white" : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {tab.label}
-                    {tab.count > 0 && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        projectTab === tab.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
+            {/* SEARCH & FILTER CONTROLS */}
+            <div className="px-4 lg:px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Search Control on Left */}
+              <div className="relative flex-1 group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[#C8102E] transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search projects by title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] focus:bg-white transition-all"
+                />
               </div>
 
-              {/* SEARCH & FILTER CONTROLS */}
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-colors"
-                  />
-                </div>
-
+              {/* Filter Controls on Right */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Status Filter */}
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                    <Filter className="h-3 w-3 text-slate-400" />
-                  </div>
                   <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="appearance-none bg-white pl-8 pr-8 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] cursor-pointer"
+                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[160px] hover:border-slate-300 transition-colors"
                   >
                     <option value="All">All Statuses</option>
                     <option value="Pending">Pending</option>
@@ -1039,6 +1018,32 @@ const Profile: React.FC = () => {
                     <option value="Rejected">Rejected</option>
                     <option value="Revised Proposal">Revised Proposal</option>
                   </select>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  </div>
+                </div>
+
+                {/* Sort Order Filter */}
+                <div className="relative">
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as any)}
+                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[180px] hover:border-slate-300 transition-colors"
+                  >
+                    <option value="newest">Newest to Oldest</option>
+                    <option value="oldest">Oldest to Newest</option>
+                    <option value="a-z">Title: A - Z</option>
+                    <option value="z-a">Title: Z - A</option>
+                  </select>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Clock className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  </div>
                 </div>
               </div>
             </div>

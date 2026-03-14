@@ -27,7 +27,7 @@ import {
   Target,
   Edit,
 } from "lucide-react";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -78,6 +78,8 @@ export interface ModalProposalData {
   evaluators?: { name: string; department?: string; status: string }[];
   assignedBy?: string;
   versions?: string[];
+  /** When status is revised_proposal, date the proponent submitted the revision (latest proposal_version.created_at) */
+  revisedSubmittedAt?: string;
 }
 
 interface RndViewModalProps {
@@ -108,6 +110,12 @@ const formatDateForDisplay = (dateStr: string) => {
   } catch {
     return dateStr;
   }
+};
+
+const getOrdinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
 // Format string (e.g. "research_class" -> "Research Class")
@@ -142,6 +150,8 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
   const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
   const [isLoadingRevision, setIsLoadingRevision] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'revision' | 'reject' | null, id: string | number | null }>({ type: null, id: null });
+  const [evaluators, setEvaluators] = useState<{ name: string; department?: string; status: string }[]>([]);
+  const [isLoadingEvaluators, setIsLoadingEvaluators] = useState(false);
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -218,6 +228,64 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
     if (isOpen && p?.id) {
       fetchRevision();
     }
+  }, [isOpen, p?.id, p?.status]);
+
+  // Load assigned evaluators from the assignment tracker so this view
+  // always reflects the latest evaluator list from the R&D tracker.
+  useEffect(() => {
+    // If modal is closed or proposal not yet ready, clear and exit early.
+    if (!isOpen || !p || !p.id) {
+      setEvaluators([]);
+      setIsLoadingEvaluators(false);
+      return;
+    }
+
+    const shouldShowEvaluators =
+      ['under_evaluation', 'evaluators assessment', 'under evaluators assessment'].includes(
+        (p.status || '').toLowerCase()
+      );
+
+    if (!shouldShowEvaluators) {
+      setEvaluators([]);
+      setIsLoadingEvaluators(false);
+      return;
+    }
+
+    const loadEvaluators = async () => {
+      setIsLoadingEvaluators(true);
+      try {
+        const data = await getAssignmentTracker(Number(p.id));
+
+        // Deduplicate by evaluator_id.id and map to simple display structure
+        const seen = new Set<string>();
+        const mapped: { name: string; department?: string; status: string }[] = [];
+
+        (data || []).forEach((item: any) => {
+          if (!item || !item.evaluator_id) return;
+
+          const evalId = item.evaluator_id.id;
+          if (!evalId || seen.has(evalId)) return;
+          seen.add(evalId);
+
+          const firstName = item.evaluator_id.first_name || 'Unknown';
+          const lastName = item.evaluator_id.last_name || '';
+          const name = `${firstName} ${lastName}`.trim();
+          const department = item.evaluator_id.department_id?.name || 'N/A';
+          const status = String(item.status || 'pending');
+
+          mapped.push({ name, department, status });
+        });
+
+        setEvaluators(mapped);
+      } catch (error) {
+        console.error('Failed to load evaluators for proposal', p.id, error);
+        setEvaluators([]);
+      } finally {
+        setIsLoadingEvaluators(false);
+      }
+    };
+
+    loadEvaluators();
   }, [isOpen, p?.id, p?.status]);
 
   if (!isOpen || !proposal) return null;
@@ -353,98 +421,190 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
 
-          {/* Assigned By (if available) */}
-          {p.assignedBy && (
-            <div className="bg-slate-50/50 px-4 py-2 rounded-lg border border-slate-100 flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <p className="text-xs text-slate-600">
-                Forwarded by Admin: <span className="font-semibold text-slate-800">{p.assignedBy}</span>
-              </p>
+          {/* Under R&D Review / Pending Status Block */}
+          {['pending', 'review_rnd', 'under r&d evaluation'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-blue-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-blue-700 mb-1 flex items-center gap-2">
+                    Assigned to you for Review
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal is currently assigned to you for review. Assess the project's viability, budget, and timeline to determine the next appropriate steps (Forward to Evaluators, Request Revision, or Reject).
+                  </p>
+                </div>
+              </div>
+              <Search className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
 
           {/* Evaluators Section (Only for Under Evaluation) */}
+          {['under_evaluation', 'evaluators assessment', 'under evaluators assessment'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-purple-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-purple-800 mb-1 flex items-center gap-2">
+                    Evaluators assigned to review this proposal
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal has been forwarded to the evaluator panel for detailed assessment. Below is a summary of how many and who the evaluators are that this proposal was assigned to.
+                  </p>
+                </div>
 
+                <div className="bg-white border border-purple-100 rounded-lg p-4 shadow-sm">
+                  <p className="text-sm text-slate-700 mb-3">
+                    {isLoadingEvaluators ? (
+                      <span className="text-sm text-slate-500">Loading assigned evaluators...</span>
+                    ) : evaluators && evaluators.length > 0 ? (
+                      <>You have assigned this proposal to <span className="font-semibold text-purple-700">{evaluators.length}</span> evaluator{evaluators.length > 1 ? 's' : ''}.</>
+                    ) : (
+                      <span className="italic text-slate-400">No evaluators are currently assigned to this proposal.</span>
+                    )}
+                  </p>
+
+                  {evaluators && evaluators.length > 0 && !isLoadingEvaluators && (
+                    <div className="flex flex-wrap gap-2">
+                      {evaluators.map((ev, idx) => (
+                        <div
+                          key={idx}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-xs text-purple-900"
+                        >
+                          <User className="w-3.5 h-3.5 text-purple-500" />
+                          <span className="font-semibold truncate max-w-[160px]" title={ev.name}>
+                            {ev.name}
+                          </span>
+                          {ev.department && (
+                            <span className="text-[11px] text-slate-500 truncate max-w-[140px]" title={ev.department}>
+                              {ev.department}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <FileText className="absolute -right-6 -bottom-6 w-32 h-32 text-purple-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Endorsed for Funding — awaiting funding decision */}
+          {['endorsed', 'endorsed_for_funding', 'endorsed for funding'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-blue-300 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-blue-800 mb-1 flex items-center gap-2">
+                    Awaiting Funding Decision
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal has been endorsed for funding and is now waiting for the final decision to fund from the RDEC Committee.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Endorsed on <span className="font-semibold">{formatDateForDisplay(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Signature className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0 pointer-events-none" />
+            </div>
+          )}
 
           {/* Status Feedback Blocks */}
 
-          {['revise', 'revision', 'revision_rnd', 'revision required'].includes((p.status || '').toLowerCase()) && (
-            <div className="bg-gradient-to-br from-orange-50 to-white rounded-xl p-6 border border-orange-200 shadow-sm transition-all animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-orange-100">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Revision Requirements
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Please review the feedback below and submit your revised proposal.</p>
-                </div>
-              </div>
-
-              <div className="mb-6 bg-white rounded-xl border border-orange-100 p-4 flex items-center gap-4 shadow-sm">
-                <div className="p-3 bg-red-50 rounded-full">
-                  <Timer className="w-6 h-6 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-500 tracking-wider mb-1">
-                    Submission Deadline
-                  </p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {isLoadingRevision ? (
-                      <span className="text-gray-400 text-sm font-normal">Loading...</span>
-                    ) : (revisionData?.created_at && revisionData?.deadline) ? (
-                      new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
-                    ) : (
-                      <span className="text-gray-400 text-sm font-normal italic">No specific deadline set</span>
+          {['revised_proposal', 'revised proposal'].includes((p.status || '').toLowerCase()) && (() => {
+            const revisionNumber = Math.max(1, (p.versions?.length || 2) - 1);
+            const submittedDate = p.revisedSubmittedAt ? formatDateForDisplay(p.revisedSubmittedAt) : null;
+            return (
+              <div className="bg-slate-50 border border-amber-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="w-full">
+                    <h3 className="text-lg font-bold text-amber-700 mb-1 flex items-center gap-2">
+                      Revised Proposal Submitted
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed max-w-3xl text-justify">
+                      The proponent has submitted their <span className="font-bold text-amber-700">{getOrdinal(revisionNumber)}</span> revised version. Review the modifications they made based on your feedback and determine the next appropriate steps.
+                    </p>
+                    {submittedDate && (
+                      <p className="text-xs text-amber-700/90 mt-2 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Submitted on <span className="font-semibold">{submittedDate}</span>
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
+                <Edit className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
               </div>
+            );
+          })()}
 
-              {isLoadingRevision ? (
-                <div className="flex flex-col items-center justify-center py-8 text-orange-600 gap-2">
-                  <RefreshCw className="w-6 h-6 animate-spin" />
-                  <p className="text-sm font-medium">Loading feedback details...</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {[
-                    { section: "Title Assessment", comment: revisionData?.title_comment },
-                    { section: "Budget Assessment", comment: revisionData?.budget_comment },
-                    { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
-                    { section: "Overall Comments", comment: revisionData?.overall_comment },
-                  ].filter(item => item.comment).map((item, idx) => (
-                    <div key={idx} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-2 mb-3">
-                        <h4 className="text-sm font-bold text-gray-800">
-                          {item.section}
-                        </h4>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                          {item.comment}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+          {['revise', 'revision', 'revision_rnd', 'revision required'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-orange-800 mb-2 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-orange-600" /> Revision Requirements
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5 mb-4">Feedback you provided to the proponent. They must submit a revised proposal by the deadline.</p>
 
-                  {(!revisionData || ![
-                    revisionData.title_comment,
-                    revisionData.budget_comment,
-                    revisionData.timeline_comment,
-                    revisionData.overall_comment
-                  ].some(Boolean)) && (
-                      <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                {isLoadingRevision ? (
+                  <div className="p-4 rounded-lg border bg-white/100 border-orange-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
+                    <RefreshCw className="w-5 h-5 animate-spin text-orange-600 mb-2" />
+                    <p className="text-xs text-orange-400">Loading feedback details...</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 mt-4">
+                    {[
+                      { section: "Title Assessment", comment: revisionData?.title_comment },
+                      { section: "Budget Assessment", comment: revisionData?.budget_comment },
+                      { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
+                      { section: "Overall Comments", comment: revisionData?.overall_comment },
+                    ].filter(item => item.comment).map((c, i) => {
+                      const isOverall = c.section === "Overall Comments";
+                      const textStyle = isOverall ? "italic" : "";
+                      return (
+                        <div key={i} className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm">
+                          <h4 className="text-sm font-bold tracking-wider text-orange-700 mb-2 flex items-center gap-2">
+                            {c.section}:
+                          </h4>
+                          <div className={`text-sm leading-relaxed ${textStyle} text-gray-700 whitespace-pre-wrap`}>
+                            {c.comment}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {(!revisionData || ![
+                      revisionData?.title_comment,
+                      revisionData?.budget_comment,
+                      revisionData?.timeline_comment,
+                      revisionData?.overall_comment,
+                    ].some(Boolean)) && (
+                      <div className="text-center py-8 bg-white/80 rounded-xl border border-dashed border-orange-200">
                         <p className="text-sm text-gray-500 italic">No specific feedback comments provided.</p>
                       </div>
                     )}
-                </div>
-              )}
+
+                    {revisionData?.created_at != null && revisionData?.deadline != null && (
+                      <div className="bg-orange-100 p-4 rounded-lg border border-orange-200 shadow-sm flex items-center gap-3 mt-1">
+                        <Timer className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        <div className="text-xs text-orange-800">
+                          <span className="font-bold">Submission deadline for proponent:</span>{" "}
+                          {new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <RefreshCw className="absolute -right-6 -bottom-6 w-32 h-32 text-orange-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
 

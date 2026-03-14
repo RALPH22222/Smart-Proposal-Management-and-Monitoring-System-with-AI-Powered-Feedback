@@ -88,9 +88,9 @@ export function transformProposalForModal(raw: any) {
 
   const budgetGrandTotal = Object.values(budgetMap).reduce((sum, v) => sum + v.ps.total + v.mooe.total + v.co.total, 0);
 
-  // Latest file version
   const versions = raw.proposal_version || [];
   const latestVersion = versions.length > 0 ? versions[versions.length - 1] : null;
+  const revisedSubmittedAt = latestVersion?.created_at || null;
 
   // Classification display
   const classificationMap: Record<string, string> = {
@@ -113,6 +113,7 @@ export function transformProposalForModal(raw: any) {
     proponentInfoVisibility: raw.proponent_info_visibility,
     projectFile: latestVersion?.file_url || "",
     versions: versions.map((v: any) => v.file_url).filter(Boolean),
+    revisedSubmittedAt: revisedSubmittedAt || undefined,
     submittedDate: raw.created_at || "",
     lastModified: raw.updated_at || raw.created_at || "",
     proponent,

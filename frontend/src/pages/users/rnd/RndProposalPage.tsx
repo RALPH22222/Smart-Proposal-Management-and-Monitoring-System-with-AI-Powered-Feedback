@@ -290,6 +290,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           assignedEvaluators: evaluatorNames,
           evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
           projectFile: currentFileUrl,
+          versions: versions.map((v: any) => v.file_url),
           tags: raw.proposal_tags?.map((t: any) => t.tags?.name) || [],
           raw: raw // Pass normalized data to modal
         } as any;
@@ -348,9 +349,10 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           commentsForEvaluators: decision.structuredComments?.title?.content // Use available comment field
         });
       } else if (decision.decision === 'Revision Required') {
+        const revisionDays = decision.evaluationDeadline ? parseInt(String(decision.evaluationDeadline), 10) : 14;
         await requestRevision({
           proposal_id: proposalIdNumber,
-          deadline: decision.evaluationDeadline ? new Date(decision.evaluationDeadline).getTime() : Date.now() + 14 * 24 * 60 * 60 * 1000,
+          deadline: Number.isFinite(revisionDays) && revisionDays > 0 ? revisionDays : 14,
           // Map comments
           title_comment: decision.structuredComments?.title?.content,
           budget_comment: decision.structuredComments?.budget?.content,

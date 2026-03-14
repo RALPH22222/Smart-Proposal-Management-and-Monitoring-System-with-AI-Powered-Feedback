@@ -66,7 +66,7 @@ const AdminEndorsementPage: React.FC = () => {
       const allProposals = await adminProposalApi.fetchProposals();
 
       // 2. Fetch all evaluator users once (already deployed endpoint) for email lookup
-      let evaluatorUsersMap: Map<string, { email: string; department: string }> = new Map();
+      const evaluatorUsersMap: Map<string, { email: string; department: string }> = new Map();
       try {
         const evaluatorUsers = await fetchUsersByRole('evaluator');
         evaluatorUsers.forEach((u) => {

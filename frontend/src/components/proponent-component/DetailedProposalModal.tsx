@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   Globe,
   CalendarX2,
+  CalendarSync,
   AlertCircle,
   Loader,
   Signature,
@@ -80,7 +81,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
-  const [rejectedBy, setRejectedBy] = useState<string | null>(null); // Store who rejected it
   const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
   const [isLoadingRevision, setIsLoadingRevision] = useState(false);
   const [isLoadingRejection, setIsLoadingRejection] = useState(false);
@@ -95,6 +95,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     file?: { old: string; new: string };
   } | null>(null);
   const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal?.status || '').toLowerCase());
+  const isRejectedMode = ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes((proposal?.status || '').toLowerCase());
 
   const getOrdinal = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
@@ -112,19 +113,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           const summary = await fetchRejectionSummary(Number(proposal?.id));
           setRejectionComment(summary?.comment || "No specific comment provided.");
           setRejectionDate(summary?.created_at || null);
-          // Use the rejected_by_role field to determine if it's admin or R&D
-          setRejectedBy(summary?.rejected_by_role === "admin" ? "Admin" : "R&D");
+
         } catch (error) {
           console.error("Failed to fetch rejection summary:", error);
           setRejectionComment("Failed to load rejection details.");
           setRejectionDate(null);
-          setRejectedBy(null);
+
         } finally {
           setIsLoadingRejection(false);
         }
       } else {
         setRejectionComment(null);
-        setRejectedBy(null);
+
         setIsLoadingRejection(false);
       }
     };
@@ -746,13 +746,26 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           {isInRevisionMode && (
             <>
               <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-                <CalendarX2 className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+                <CalendarSync className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
                 <span>Deadline for Revision:</span>
                 <span className="font-bold">
                   {isLoadingRevision ? "Loading..." :
                     (revisionData?.created_at && revisionData?.deadline) ?
                       new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) :
                       (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "No deadline set")}
+                </span>
+              </div>
+            </>
+          )}
+
+          {isRejectedMode && rejectionDate && (
+            <>
+              <div className="flex items-center gap-2 text-sm text-red-800 bg-red-100/50 px-3 py-2 border border-red-200">
+                <CalendarX2 className={`w-4 h-4 ${isLoadingRejection ? "animate-spin" : ""}`} />
+                <span>Rejected on:</span>
+                <span className="font-bold">
+                  {isLoadingRejection ? "Loading..." :
+                    new Date(rejectionDate).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                 </span>
               </div>
             </>
@@ -887,7 +900,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             )}
 
             {(['revised_proposal'].includes(proposal.status?.toLowerCase() || '')) && (() => {
-              const revisionNumber = submittedFiles.length || 1;
+              const revisionCount = Math.max(1, (submittedFiles.length || 2) - 1);
               return (
                 <div className="bg-slate-50 border border-amber-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
                   <div className="relative z-10">
@@ -895,7 +908,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       Revised Proposal Submitted
                     </h3>
                     <p className="text-sm text-slate-600 leading-relaxed mt-2">
-                      This is your <span className="font-bold text-amber-700">{getOrdinal(revisionNumber)}</span> revised version.
+                      This is your <span className="font-bold text-amber-700">{getOrdinal(revisionCount)}</span> revised version.
                       Your revised proposal has been sent back to the R&D staff for re-evaluation. Please wait while they review the changes you have made.
                     </p>
                   </div>
@@ -966,17 +979,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                         {rejectionComment || "Loading details..."}
                       </p>
-
-                      <div className="mt-4 border-t border-red-100 pt-3 flex flex-col sm:flex-row items-center justify-between gap-2">
-                        <span className="text-xs text-red-500 font-medium italic flex items-center gap-1">
-                          {rejectedBy === "Admin" ? "Admin Feedback" : "R&D Staff Feedback"}
-                        </span>
-                        {rejectionDate && (
-                          <span className="text-xs text-slate-500 italic">
-                            Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
