@@ -1,19 +1,18 @@
-import { APIGatewayProxyHandler } from "aws-lambda";
 import { ContactInfoSchema } from "../../schemas/contact-schema";
 import { logActivity } from "../../utils/activity-logger";
 import { supabase } from "../../lib/supabase";
 import jwt from "jsonwebtoken";
+import { buildCorsHeaders } from "../../utils/cors";
 
 const jwtSecret = process.env.SUPABASE_SECRET_JWT!;
 
-export const handler: APIGatewayProxyHandler = async (event) => {
+export const handler = buildCorsHeaders(async (event) => {
   try {
     // 1. Verify Authorization Header
     const authHeader = event.headers.Authorization || event.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
       return {
         statusCode: 401,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Missing or invalid authorization token" }),
       };
     }
@@ -25,7 +24,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     } catch (err) {
       return {
         statusCode: 401,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Invalid or expired token" }),
       };
     }
@@ -36,7 +34,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     if (!roles.includes("admin")) {
       return {
         statusCode: 403,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Forbidden: Admin access only" }),
       };
     }
@@ -45,7 +42,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     if (!event.body) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Missing request body" }),
       };
     }
@@ -56,7 +52,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     if (!parsedData.success) {
       return {
         statusCode: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({
           message: "Validation failed",
           errors: parsedData.error.flatten(),
@@ -78,7 +73,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       console.error("Upsert failed:", upsertError);
       return {
         statusCode: 500,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Failed to update contact info" }),
       };
     }
@@ -94,7 +88,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
         message: "Contact information updated successfully",
         data: updatedSettings.value,
@@ -104,8 +97,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     console.error("Unexpected error:", err);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ message: "Internal server error" }),
     };
   }
-};
+});

@@ -1,7 +1,7 @@
-import { APIGatewayProxyHandler } from "aws-lambda";
+import { buildCorsHeaders } from "../../utils/cors";
 import { supabase } from "../../lib/supabase";
 
-export const handler: APIGatewayProxyHandler = async (event) => {
+export const handler = buildCorsHeaders(async (event) => {
   try {
     const { data, error } = await supabase
       .from("system_settings")
@@ -13,7 +13,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       console.error("Error fetching contact info:", error);
       return {
         statusCode: 500,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Supabase error", detail: error.message, code: error.code }),
       };
     }
@@ -21,22 +20,19 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     if (!data || !data.value) {
       return {
         statusCode: 404,
-        headers: { "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ message: "Contact information not found" }),
       };
     }
 
     return {
       statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify(data.value),
     };
   } catch (err: any) {
     console.error("Unexpected error:", err);
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ message: "Unexpected crash", detail: err?.message, stack: err?.stack?.split("\n").slice(0, 3).join(" | ") }),
     };
   }
-};
+});
