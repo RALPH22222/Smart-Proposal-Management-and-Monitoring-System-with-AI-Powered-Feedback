@@ -1,37 +1,15 @@
 import { ContactInfoSchema } from "../../schemas/contact-schema";
 import { logActivity } from "../../utils/activity-logger";
 import { supabase } from "../../lib/supabase";
-import jwt from "jsonwebtoken";
 import { buildCorsHeaders } from "../../utils/cors";
-
-const jwtSecret = process.env.SUPABASE_SECRET_JWT!;
+import { getAuthContext } from "../../utils/auth-context";
 
 export const handler = buildCorsHeaders(async (event) => {
   try {
-    // 1. Verify Authorization Header
-    const authHeader = event.headers.Authorization || event.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: "Missing or invalid authorization token" }),
-      };
-    }
-
-    const token = authHeader.split(" ")[1];
-    let decodedToken: any;
-    try {
-      decodedToken = jwt.verify(token, jwtSecret);
-    } catch (err) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: "Invalid or expired token" }),
-      };
-    }
-
-    // 2. Authorization Verification (Must be Admin)
-    const { user_metadata, sub: userId } = decodedToken;
-    const roles = user_metadata?.roles || [];
-    if (!roles.includes("admin")) {
+    // 1. Authorization Verification (Must be Admin)
+    const { userId, roles } = getAuthContext(event);
+    
+    if (!userId || !roles.includes("admin")) {
       return {
         statusCode: 403,
         body: JSON.stringify({ message: "Forbidden: Admin access only" }),
