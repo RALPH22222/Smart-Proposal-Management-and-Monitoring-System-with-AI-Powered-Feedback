@@ -263,7 +263,11 @@ export default function ReviewedProposals() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {paginatedProposals.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+            </div>
+          ) : paginatedProposals.length > 0 ? (
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article

@@ -240,6 +240,12 @@ export default function ReviewModal({
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <Briefcase className="w-3 h-3" />
+                {proposal.sector || "No Sector"}
+              </span>
+            </div>
             <h2 className="text-xl font-bold text-slate-900">
               {proposal.title}
             </h2>

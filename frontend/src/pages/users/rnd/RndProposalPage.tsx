@@ -108,7 +108,7 @@ interface RndProposalPageProps {
 }
 
 // Extended Status type to include Revised Proposal locally for this view
-type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Endorsed';
+type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Endorsed' | 'Not Submitted';
 
 const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
   switch (status) {
@@ -120,7 +120,7 @@ const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
     case 'rejected_rnd': return 'Rejected Proposal';
     case 'endorsed_for_funding': return 'Endorsed';
     case 'funded': return 'Funded';
-    case 'not_submitted': return 'Deadline Expired';
+    case 'not_submitted': return 'Not Submitted';
     default: return 'Pending';
   }
 };

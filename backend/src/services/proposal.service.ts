@@ -515,8 +515,11 @@ export class ProposalService {
   }
 
   async revisionProposalToProponent(input: revisionProposalToProponentInput, rnd_id: string) {
-    // Include rnd_id in the insert payload so we know which RND submitted this revision
-    const { data, error: insertError } = await this.db.from("proposal_revision_summary").insert({ ...input, rnd_id });
+    // Store created_at in UTC so "deadline = created_at + N days" is exactly 24*N hours everywhere
+    const created_at = new Date().toISOString();
+    const { data, error: insertError } = await this.db
+      .from("proposal_revision_summary")
+      .insert({ ...input, rnd_id, created_at });
 
     if (insertError) return { error: insertError };
 

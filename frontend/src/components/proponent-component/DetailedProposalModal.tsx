@@ -452,6 +452,17 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const handleSave = async () => {
     // Check if in revision mode and submit revision
     if (isInRevisionMode && proposal && newFile) {
+      // Frontend guard: prevent submissions when the revision deadline (or approved extension) has expired.
+      // Backend already enforces this, but this avoids confusing attempts that will be rejected.
+      if (!canSubmitRevision) {
+        await Swal.fire({
+          icon: "error",
+          title: "Revision deadline expired",
+          text: "Your revision deadline has already expired. Please request an extension from R&D if you still need to submit changes.",
+          confirmButtonColor: "#C8102E",
+        });
+        return;
+      }
       setIsSubmittingRevision(true);
       setRevisionError(null);
       try {
@@ -2163,7 +2174,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     </button>
                     <button
                       onClick={handleSave}
-                      disabled={isSubmittingRevision || (isInRevisionMode && !newFile)}
+                      disabled={isSubmittingRevision || (isInRevisionMode && (!newFile || !canSubmitRevision))}
                       className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] border border-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmittingRevision ? (
