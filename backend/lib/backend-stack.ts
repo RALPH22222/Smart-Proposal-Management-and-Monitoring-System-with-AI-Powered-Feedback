@@ -354,6 +354,15 @@ export class BackendStack extends Stack {
     proposal
       .addResource("assignment-tracker")
       .addMethod(HttpMethod.GET, integrate(proposalL.getAssignmentTracker), protectedRoute);
+    proposal
+      .addResource("request-proponent-extension")
+      .addMethod(HttpMethod.POST, integrate(proposalL.requestProponentExtension), protectedRoute);
+    proposal
+      .addResource("review-proponent-extension")
+      .addMethod(HttpMethod.POST, integrate(proposalL.reviewProponentExtension), protectedRoute);
+    proposal
+      .addResource("proponent-extension-requests")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getProponentExtensionRequests), protectedRoute);
 
     // ========== PROJECT MONITORING ROUTES ==========
     const project = api.root.addResource("project");

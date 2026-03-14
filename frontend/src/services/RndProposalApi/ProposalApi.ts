@@ -81,6 +81,7 @@ const mapBackendStatusToFrontend = (status: string): ProposalStatus => {
         case 'funded': return 'Funded';
         case 'revision_funding': return 'Funding Revision';
         case 'rejected_funding': return 'Funding Rejected';
+        case 'not_submitted': return 'Deadline Expired';
         default: return 'Pending';
     }
 };

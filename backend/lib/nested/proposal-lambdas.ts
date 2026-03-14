@@ -47,6 +47,9 @@ export class ProposalLambdas extends NestedStack {
   public readonly getAssignmentTracker: NodejsFunction;
   public readonly analyzeProposal: NodejsFunction;
   public readonly generateTags: NodejsFunction;
+  public readonly requestProponentExtension: NodejsFunction;
+  public readonly reviewProponentExtension: NodejsFunction;
+  public readonly getProponentExtensionRequests: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
@@ -95,6 +98,9 @@ export class ProposalLambdas extends NestedStack {
     this.getProposalVersions = simple("get-proposal-versions", "pms-get-proposal-versions", "get-proposal-versions.ts");
     this.handleExtensionRequest = simple("handle-extension-request", "pms-handle-extension-request", "handle-extension-request.ts");
     this.getAssignmentTracker = simple("get-assignment-tracker", "pms-get-assignment-tracker", "get-assignment-tracker.ts");
+    this.requestProponentExtension = simple("request-proponent-extension", "pms-request-proponent-extension", "request-proponent-extension.ts");
+    this.reviewProponentExtension = simple("review-proponent-extension", "pms-review-proponent-extension", "review-proponent-extension.ts");
+    this.getProponentExtensionRequests = simple("get-proponent-extension-requests", "pms-get-proponent-extension-requests", "get-proponent-extension-requests.ts");
 
     // Special: needs S3 access, own role
     this.getUploadUrl = new NodejsFunction(this, "get-upload-url", {

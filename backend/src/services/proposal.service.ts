@@ -11,6 +11,7 @@ import {
   ProjectsStatus,
   Status,
   Table,
+  ProponentExtensionStatus,
 } from "../types/proposal";
 import { logActivity } from "../utils/activity-logger";
 import {
@@ -27,6 +28,8 @@ import {
   revisionProposalToProponentInput,
   createEvaluationScoresToProposaltInput,
   SubmitRevisedProposalInput,
+  RequestProponentExtensionInput,
+  ReviewProponentExtensionInput,
 } from "../schemas/proposal-schema";
 
 function isId(v: IdOrName): v is number {
@@ -1505,6 +1508,43 @@ export class ProposalService {
       };
     }
 
+    // 3b. Deadline enforcement
+    const { data: revisionSummary } = await this.db
+      .from("proposal_revision_summary")
+      .select("created_at, deadline")
+      .eq("proposal_id", proposal_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (revisionSummary?.created_at && revisionSummary?.deadline) {
+      const deadlineMs = new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000;
+      const now = Date.now();
+
+      if (now > deadlineMs) {
+        // Check if there's an approved extension giving a new deadline
+        const { data: approvedExtension } = await this.db
+          .from("proposal_extension_requests")
+          .select("new_deadline_days, reviewed_at")
+          .eq("proposal_id", proposal_id)
+          .eq("status", ProponentExtensionStatus.APPROVED)
+          .order("reviewed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (approvedExtension?.reviewed_at && approvedExtension?.new_deadline_days) {
+          const extendedDeadlineMs = new Date(approvedExtension.reviewed_at).getTime()
+            + approvedExtension.new_deadline_days * 86400000;
+          if (now > extendedDeadlineMs) {
+            return { error: new Error("Your extended revision deadline has expired. Please request another extension from R&D.") };
+          }
+          // Within extended deadline — allow submission
+        } else {
+          return { error: new Error("Your revision deadline has expired. Please request an extension from R&D.") };
+        }
+      }
+    }
+
     // 4. Get current version count for numbering
     const { count: versionCount, error: countError } = await this.db
       .from("proposal_version")
@@ -1964,5 +2004,267 @@ export class ProposalService {
     }
 
     return { error: new Error("Invalid decision") };
+  }
+
+  // --- Proponent Extension Request Methods ---
+
+  async requestProponentExtension(input: RequestProponentExtensionInput, proponentId: string) {
+    const { proposal_id, reason } = input;
+
+    // 1. Verify proposal exists and belongs to proponent
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("id, proponent_id, status, project_title")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found") };
+    }
+
+    if (proposal.proponent_id !== proponentId) {
+      return { error: new Error("You do not have permission for this proposal") };
+    }
+
+    // 2. Verify status allows extension request
+    const allowedStatuses = [Status.REVISION_RND, Status.REVISION_FUNDING, Status.NOT_SUBMITTED];
+    if (!allowedStatuses.includes(proposal.status)) {
+      return { error: new Error("Extension can only be requested for proposals pending revision") };
+    }
+
+    // 3. Check late_submission_policy
+    const { data: policySetting } = await this.db
+      .from("system_settings")
+      .select("value")
+      .eq("key", "late_submission_policy")
+      .maybeSingle();
+
+    if (policySetting?.value) {
+      const policy = policySetting.value;
+      if (policy.enabled === false) {
+        return { error: new Error("Extension requests are not allowed. Late submission policy is disabled.") };
+      }
+      if (policy.type === "until_date" && new Date() > new Date(policy.deadline)) {
+        return { error: new Error("Extension requests are no longer accepted. The late submission window has closed.") };
+      }
+    }
+
+    // 4. Check that the deadline has actually expired
+    const { data: revisionSummary } = await this.db
+      .from("proposal_revision_summary")
+      .select("created_at, deadline")
+      .eq("proposal_id", proposal_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (revisionSummary?.created_at && revisionSummary?.deadline) {
+      const deadlineMs = new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000;
+      if (Date.now() <= deadlineMs) {
+        return { error: new Error("Your revision deadline has not expired yet. Please submit your revision directly.") };
+      }
+    }
+
+    // 5. Check no pending extension request already exists
+    const { data: existingRequest } = await this.db
+      .from("proposal_extension_requests")
+      .select("id")
+      .eq("proposal_id", proposal_id)
+      .eq("status", ProponentExtensionStatus.PENDING)
+      .maybeSingle();
+
+    if (existingRequest) {
+      return { error: new Error("You already have a pending extension request for this proposal") };
+    }
+
+    // 6. Insert extension request
+    const { data: extensionRequest, error: insertError } = await this.db
+      .from("proposal_extension_requests")
+      .insert({
+        proposal_id,
+        proponent_id: proponentId,
+        reason,
+      })
+      .select()
+      .single();
+
+    if (insertError) return { error: insertError };
+
+    // 7. Update proposal status to not_submitted if not already
+    if (proposal.status !== Status.NOT_SUBMITTED) {
+      await this.db
+        .from("proposals")
+        .update({ status: Status.NOT_SUBMITTED, updated_at: new Date().toISOString() })
+        .eq("id", proposal_id);
+    }
+
+    // 8. Notify assigned RND user(s)
+    const { data: rndAssignments } = await this.db
+      .from("proposal_rnd")
+      .select("rnd_id")
+      .eq("proposal_id", proposal_id);
+
+    if (rndAssignments?.length) {
+      const notifications = rndAssignments.map((a: { rnd_id: string }) => ({
+        user_id: a.rnd_id,
+        message: `Proponent has requested a deadline extension for proposal "${proposal.project_title}" (#${proposal_id}).`,
+      }));
+      await this.db.from("notifications").insert(notifications);
+    }
+
+    // 9. Log activity
+    await logActivity(this.db, {
+      user_id: proponentId,
+      action: "proponent_extension_requested",
+      category: "proposal",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { reason },
+    });
+
+    return { data: extensionRequest, error: null };
+  }
+
+  async reviewProponentExtension(input: ReviewProponentExtensionInput, rndId: string) {
+    const { extension_request_id, proposal_id, action, review_note, new_deadline_days } = input;
+
+    // 1. Fetch the extension request
+    const { data: extRequest, error: fetchError } = await this.db
+      .from("proposal_extension_requests")
+      .select("*")
+      .eq("id", extension_request_id)
+      .single();
+
+    if (fetchError || !extRequest) {
+      return { error: fetchError || new Error("Extension request not found") };
+    }
+
+    if (extRequest.status !== ProponentExtensionStatus.PENDING) {
+      return { error: new Error("This extension request has already been reviewed") };
+    }
+
+    if (extRequest.proposal_id !== proposal_id) {
+      return { error: new Error("Extension request does not match the specified proposal") };
+    }
+
+    // 2. Fetch proposal for context
+    const { data: proposal } = await this.db
+      .from("proposals")
+      .select("id, status, project_title, proponent_id")
+      .eq("id", proposal_id)
+      .single();
+
+    if (!proposal) {
+      return { error: new Error("Proposal not found") };
+    }
+
+    if (action === "approved") {
+      // 3a. Approve: update extension request
+      const { error: updateExtError } = await this.db
+        .from("proposal_extension_requests")
+        .update({
+          status: ProponentExtensionStatus.APPROVED,
+          reviewed_by: rndId,
+          reviewed_at: new Date().toISOString(),
+          review_note: review_note || null,
+          new_deadline_days: new_deadline_days,
+        })
+        .eq("id", extension_request_id);
+
+      if (updateExtError) return { error: updateExtError };
+
+      // 3b. Update proposal: status back to revision, flag as late submission
+      const targetStatus = proposal.status === Status.NOT_SUBMITTED
+        ? Status.REVISION_RND
+        : proposal.status;
+
+      const { error: updateProposalError } = await this.db
+        .from("proposals")
+        .update({
+          status: targetStatus,
+          is_late_submission: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateProposalError) return { error: updateProposalError };
+
+      // 3c. Notify proponent
+      await this.db.from("notifications").insert({
+        user_id: proposal.proponent_id,
+        message: `Your extension request for proposal "${proposal.project_title}" has been approved. You have ${new_deadline_days} day(s) to submit your revision.`,
+      });
+
+      // 3d. Log
+      await logActivity(this.db, {
+        user_id: rndId,
+        action: "proponent_extension_approved",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { extension_request_id, new_deadline_days, review_note },
+      });
+
+      return { data: { proposal_id, action, new_deadline_days }, error: null };
+
+    } else if (action === "rejected") {
+      // 4a. Reject: update extension request
+      const { error: updateExtError } = await this.db
+        .from("proposal_extension_requests")
+        .update({
+          status: ProponentExtensionStatus.REJECTED,
+          reviewed_by: rndId,
+          reviewed_at: new Date().toISOString(),
+          review_note: review_note || null,
+        })
+        .eq("id", extension_request_id);
+
+      if (updateExtError) return { error: updateExtError };
+
+      // 4b. Update proposal status to rejected_rnd
+      const { error: updateProposalError } = await this.db
+        .from("proposals")
+        .update({
+          status: Status.REJECTED_RND,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", proposal_id);
+
+      if (updateProposalError) return { error: updateProposalError };
+
+      // 4c. Notify proponent
+      await this.db.from("notifications").insert({
+        user_id: proposal.proponent_id,
+        message: `Your extension request for proposal "${proposal.project_title}" has been rejected. The proposal has been closed.`,
+      });
+
+      // 4d. Log
+      await logActivity(this.db, {
+        user_id: rndId,
+        action: "proponent_extension_rejected",
+        category: "proposal",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: { extension_request_id, review_note },
+      });
+
+      return { data: { proposal_id, action }, error: null };
+    }
+
+    return { error: new Error("Invalid action") };
+  }
+
+  async getProponentExtensionRequests(proposalId?: number) {
+    let query = this.db
+      .from("proposal_extension_requests")
+      .select("*, proponent:users!proposal_extension_requests_proponent_id_fkey(id, first_name, last_name, email), proposal:proposals!proposal_extension_requests_proposal_id_fkey(id, project_title, status)")
+      .order("created_at", { ascending: false });
+
+    if (proposalId) {
+      query = query.eq("proposal_id", proposalId);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
   }
 }

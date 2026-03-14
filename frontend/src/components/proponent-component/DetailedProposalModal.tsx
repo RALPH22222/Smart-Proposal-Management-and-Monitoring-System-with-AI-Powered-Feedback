@@ -39,7 +39,7 @@ import {
 import Swal from "sweetalert2";
 import { openSignedUrl } from "../../utils/signed-url";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 
 interface Site {
   site: string;
@@ -87,6 +87,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
   const [revisionError, setRevisionError] = useState<string | null>(null);
 
+  // Extension request state
+  const [extensionRequest, setExtensionRequest] = useState<ProponentExtensionRequest | null>(null);
+  const [showExtensionForm, setShowExtensionForm] = useState(false);
+  const [extensionReason, setExtensionReason] = useState("");
+  const [isSubmittingExtension, setIsSubmittingExtension] = useState(false);
+
   const [revisionChanges, setRevisionChanges] = useState<{
     projectTitle?: { old: string; new: string };
     startDate?: { old: string; new: string };
@@ -94,7 +100,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     budget?: { changed: boolean };
     file?: { old: string; new: string };
   } | null>(null);
-  const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required'].includes((proposal?.status || '').toLowerCase());
+  const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted'].includes((proposal?.status || '').toLowerCase());
+  const isNotSubmittedMode = (proposal?.status || '').toLowerCase() === 'not_submitted';
   const isRejectedMode = ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes((proposal?.status || '').toLowerCase());
 
   const getOrdinal = (n: number) => {
@@ -131,7 +138,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
     const fetchRevision = async () => {
       const pStatus = (proposal?.status || '').toLowerCase();
-      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes(pStatus)) {
+      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review', 'not_submitted'].includes(pStatus)) {
         setIsLoadingRevision(true);
         try {
           const data = await fetchRevisionSummary(Number(proposal?.id));
@@ -148,9 +155,23 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       }
     };
 
+    const fetchExtensionRequest = async () => {
+      if (!proposal?.id) return;
+      try {
+        const requests = await getProponentExtensionRequests(Number(proposal.id));
+        // Get the most recent extension request
+        const latest = requests.length > 0 ? requests[0] : null;
+        setExtensionRequest(latest);
+      } catch (error) {
+        console.error("Failed to fetch extension requests:", error);
+        setExtensionRequest(null);
+      }
+    };
+
     if (isOpen && proposal) {
       fetchRejection();
       fetchRevision();
+      fetchExtensionRequest();
     }
   }, [isOpen, proposal?.status, proposal?.id]);
 
@@ -555,6 +576,49 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   // Restrict other fields in revision mode
   const canEditOtherFields = !isInRevisionMode && isEditing;
   const isFunded = proposal.status === "funded";
+
+  // Deadline expiry computation
+  const deadlineDate = (revisionData?.created_at && revisionData?.deadline)
+    ? new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000)
+    : null;
+  const isDeadlineExpired = deadlineDate ? new Date() > deadlineDate : false;
+
+  // Check if extension was approved (proponent can edit again with new deadline)
+  const hasApprovedExtension = extensionRequest?.status === "approved";
+  const extendedDeadlineDate = (hasApprovedExtension && extensionRequest?.reviewed_at && extensionRequest?.new_deadline_days)
+    ? new Date(new Date(extensionRequest.reviewed_at).getTime() + extensionRequest.new_deadline_days * 86400000)
+    : null;
+  const isExtendedDeadlineExpired = extendedDeadlineDate ? new Date() > extendedDeadlineDate : false;
+
+  // Can the proponent currently edit? (in revision mode AND deadline not expired, OR extension approved and within new deadline)
+  const canSubmitRevision = isInRevisionMode && !isNotSubmittedMode && (
+    !isDeadlineExpired || (hasApprovedExtension && !isExtendedDeadlineExpired)
+  );
+
+  const handleRequestExtension = async () => {
+    if (!proposal?.id || extensionReason.trim().length < 10) return;
+    setIsSubmittingExtension(true);
+    try {
+      await requestProponentExtension(Number(proposal.id), extensionReason.trim());
+      await Swal.fire({
+        icon: "success",
+        title: "Extension Requested",
+        text: "Your extension request has been submitted. R&D will review it shortly.",
+        confirmButtonColor: "#C8102E",
+      });
+      setShowExtensionForm(false);
+      setExtensionReason("");
+      // Refresh extension request status
+      const requests = await getProponentExtensionRequests(Number(proposal.id));
+      setExtensionRequest(requests.length > 0 ? requests[0] : null);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Failed to submit extension request.";
+      await Swal.fire({ icon: "error", title: "Error", text: msg, confirmButtonColor: "#C8102E" });
+    } finally {
+      setIsSubmittingExtension(false);
+    }
+  };
+
   const sites = (currentData.implementationSites as Site[]) || [];
   const coProponentsList = proposal.coProponent
     ? proposal.coProponent
@@ -611,6 +675,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         text: "text-red-800",
         icon: <XCircle className="w-5 h-5 text-red-600" />,
         label: "Proposal Rejected",
+      };
+
+    if (s === "not_submitted")
+      return {
+        bg: "bg-red-100",
+        border: "border-red-300",
+        text: "text-red-800",
+        icon: <XCircle className="w-5 h-5 text-red-600" />,
+        label: "Deadline Expired",
       };
 
     if (["review_rnd", "r&d evaluation"].includes(s))
@@ -672,7 +745,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   };
 
   const activeComments =
-    ["revise", "revision", "revision_rnd", "revision required", "under r&d review"].includes((proposal.status || "").toLowerCase())
+    ["revise", "revision", "revision_rnd", "revision required", "under r&d review", "not_submitted"].includes((proposal.status || "").toLowerCase())
       ? [
         { section: "Title Assessment", comment: revisionData?.title_comment },
         { section: "Budget Assessment", comment: revisionData?.budget_comment },
@@ -718,7 +791,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              {isInRevisionMode && !revisionChanges && (
+              {isInRevisionMode && !revisionChanges && canSubmitRevision && (
                 <button
                   onClick={() => setIsEditing(!isEditing)}
                   className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${isEditing
@@ -745,16 +818,108 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {isInRevisionMode && (
             <>
-              <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-                <CalendarSync className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
-                <span>Deadline for Revision:</span>
-                <span className="font-bold">
-                  {isLoadingRevision ? "Loading..." :
-                    (revisionData?.created_at && revisionData?.deadline) ?
-                      new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) :
-                      (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "No deadline set")}
-                </span>
-              </div>
+              {/* Late Submission badge */}
+              {(proposal as any).is_late_submission && (
+                <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 px-3 py-1.5 border border-amber-200">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span className="font-semibold">Late Submission</span>
+                  <span>— This revision was submitted after the original deadline via an approved extension.</span>
+                </div>
+              )}
+
+              {/* Deadline expired + Extension request pending */}
+              {isNotSubmittedMode && extensionRequest?.status === "pending" && (
+                <div className="flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 px-3 py-2 border border-yellow-200">
+                  <Clock className="w-4 h-4" />
+                  <span>Extension request is <span className="font-bold">pending review</span> by R&D. Submitted on{" "}
+                    {new Date(extensionRequest.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+                  </span>
+                </div>
+              )}
+
+              {/* Deadline expired + No extension request yet → Show request button/form */}
+              {isNotSubmittedMode && (!extensionRequest || extensionRequest.status === "rejected") && !showExtensionForm && (
+                <div className="flex items-center justify-between text-sm text-red-800 bg-red-50 px-3 py-2 border border-red-200">
+                  <div className="flex items-center gap-2">
+                    <CalendarX2 className="w-4 h-4" />
+                    <span>
+                      Your revision deadline has <span className="font-bold">expired</span>.
+                      {deadlineDate && (
+                        <> (was {deadlineDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })})</>
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowExtensionForm(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#C8102E] text-white rounded-lg hover:bg-[#a00c24] transition-colors"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Request Extension
+                  </button>
+                </div>
+              )}
+
+              {/* Extension request form */}
+              {isNotSubmittedMode && showExtensionForm && (
+                <div className="bg-orange-50 border border-orange-200 px-4 py-3 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
+                    <RefreshCw className="w-4 h-4" />
+                    Request Deadline Extension
+                  </div>
+                  <textarea
+                    value={extensionReason}
+                    onChange={(e) => setExtensionReason(e.target.value)}
+                    placeholder="Explain why you need more time to submit your revised proposal (min 10 characters)..."
+                    className="w-full border border-orange-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] resize-none"
+                    rows={3}
+                    maxLength={2000}
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-orange-600">{extensionReason.length}/2000 characters</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowExtensionForm(false); setExtensionReason(""); }}
+                        className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRequestExtension}
+                        disabled={isSubmittingExtension || extensionReason.trim().length < 10}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        {isSubmittingExtension && <Loader className="w-3 h-3 animate-spin" />}
+                        Submit Request
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Extension approved → Show new deadline */}
+              {hasApprovedExtension && extendedDeadlineDate && !isNotSubmittedMode && (
+                <div className="flex items-center gap-2 text-sm text-green-800 bg-green-50 px-3 py-2 border border-green-200">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Extension Approved — New Deadline:</span>
+                  <span className="font-bold">
+                    {extendedDeadlineDate.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}
+                  </span>
+                </div>
+              )}
+
+              {/* Normal deadline banner (when not expired and no extension context) */}
+              {!isNotSubmittedMode && !hasApprovedExtension && (
+                <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
+                  <CalendarSync className={`w-4 h-4 ${isLoadingRevision ? "animate-spin" : ""}`} />
+                  <span>Deadline for Revision:</span>
+                  <span className="font-bold">
+                    {isLoadingRevision ? "Loading..." :
+                      (revisionData?.created_at && revisionData?.deadline) ?
+                        new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) :
+                        (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "No deadline set")}
+                  </span>
+                </div>
+              )}
             </>
           )}
 

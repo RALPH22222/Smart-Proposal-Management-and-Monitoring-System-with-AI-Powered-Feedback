@@ -9,6 +9,7 @@ export enum Status {
   REVISED_PROPOSAL = "revised_proposal",
   REJECTED_FUNDING = "rejected_funding",
   REVISION_FUNDING = "revision_funding",
+  NOT_SUBMITTED = "not_submitted",
 }
 
 export enum ResearchClass {
@@ -86,6 +87,12 @@ export enum ProjectsStatus {
 export enum ExtensionDecision {
   APPROVED = "approved",
   DENIED = "denied",
+}
+
+export enum ProponentExtensionStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
 }
 
 export enum EndorsementDecision {

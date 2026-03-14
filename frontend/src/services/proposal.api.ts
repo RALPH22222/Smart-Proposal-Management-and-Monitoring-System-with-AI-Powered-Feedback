@@ -641,3 +641,57 @@ export const removeEvaluator = async (proposalId: number, evaluatorId: string): 
   invalidateProposalCache();
   return data;
 };
+
+// --- Proponent Extension Requests ---
+
+export type ProponentExtensionRequest = {
+  id: number;
+  proposal_id: number;
+  proponent_id: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  reviewed_by: string | null;
+  review_note: string | null;
+  new_deadline_days: number | null;
+  created_at: string;
+  reviewed_at: string | null;
+  proponent?: { id: string; first_name: string; last_name: string; email: string };
+  proposal?: { id: number; project_title: string; status: string };
+};
+
+export const requestProponentExtension = async (
+  proposalId: number,
+  reason: string,
+): Promise<any> => {
+  const { data } = await api.post(
+    "/proposal/request-proponent-extension",
+    { proposal_id: proposalId, reason },
+    { withCredentials: true },
+  );
+  invalidateProposalCache();
+  return data;
+};
+
+export const reviewProponentExtension = async (input: {
+  extension_request_id: number;
+  proposal_id: number;
+  action: "approved" | "rejected";
+  review_note?: string;
+  new_deadline_days?: number;
+}): Promise<any> => {
+  const { data } = await api.post("/proposal/review-proponent-extension", input, {
+    withCredentials: true,
+  });
+  invalidateProposalCache();
+  return data;
+};
+
+export const getProponentExtensionRequests = async (
+  proposalId?: number,
+): Promise<ProponentExtensionRequest[]> => {
+  const query = proposalId ? `?proposal_id=${proposalId}` : "";
+  const { data } = await api.get(`/proposal/proponent-extension-requests${query}`, {
+    withCredentials: true,
+  });
+  return (data as any).data ?? data;
+};

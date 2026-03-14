@@ -294,6 +294,7 @@ const Profile: React.FC = () => {
     if (s === "rejected_rnd") return "Rejected";
     if (s === "rejected_funding") return "Funding Rejected";
     if (s === "revision_funding") return "Funding Revision";
+    if (s === "not_submitted") return "Deadline Expired";
     return getStatusLabelByIndex(project.currentIndex);
   };
 
@@ -308,6 +309,7 @@ const Profile: React.FC = () => {
     if (s === "funded") return "bg-emerald-50 text-emerald-800 border border-emerald-200";
     if (["rejected_rnd", "rejected_funding"].includes(s)) return "bg-red-50 text-red-800 border border-red-200";
     if (s === "revision_funding") return "bg-orange-100 text-orange-800 border border-orange-300";
+    if (s === "not_submitted") return "bg-red-100 text-red-800 border border-red-300";
     return getStatusColorByIndex(project.currentIndex);
   };
 
@@ -321,6 +323,7 @@ const Profile: React.FC = () => {
     if (["rejected_rnd", "rejected_funding"].includes(s)) return <XCircle className="w-3 h-3" />;
     if (["under_evaluation", "evaluators assessment"].includes(s)) return <FileCheck className="w-3 h-3" />;
     if (s === "pending") return <Clock className="w-3 h-3" />;
+    if (s === "not_submitted") return <XCircle className="w-3 h-3" />;
     return null;
   };
 
@@ -333,6 +336,7 @@ const Profile: React.FC = () => {
     if (s === "funded") return 100;
     // Funding-stage statuses show same progress as endorsed_for_funding
     if (["rejected_funding", "revision_funding"].includes(s)) return 75;
+    if (s === "not_submitted") return 0;
     return getProgressPercentageByIndex(project.currentIndex);
   };
 

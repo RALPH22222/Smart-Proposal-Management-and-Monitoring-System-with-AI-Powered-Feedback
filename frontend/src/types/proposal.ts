@@ -5,6 +5,7 @@ export enum Status {
   UNDER_EVALUATION = "under_evaluation",
   ENDORSED_FOR_FUNDING = "endorsed_for_funding",
   FUNDED = "funded",
+  NOT_SUBMITTED = "not_submitted",
 }
 
 export enum ResearchClass {

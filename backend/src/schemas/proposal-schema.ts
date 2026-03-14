@@ -8,6 +8,7 @@ import {
   Status,
   AssignmentTracker,
   EndorsementDecision,
+  ProponentExtensionStatus,
 } from "../types/proposal";
 
 const parseJsonIfString = (val: unknown) => {
@@ -269,3 +270,24 @@ export const removeEvaluatorSchema = z.object({
 });
 
 export type RemoveEvaluatorInput = z.infer<typeof removeEvaluatorSchema>;
+
+// --- Proponent Extension Request Schemas ---
+
+export const requestProponentExtensionSchema = z.object({
+  proposal_id: z.coerce.number().min(1, "Proposal ID is required"),
+  reason: z.string().min(10, "Please provide a detailed reason (at least 10 characters)").max(2000, "Reason is too long"),
+});
+
+export const reviewProponentExtensionSchema = z.object({
+  extension_request_id: z.coerce.number().min(1),
+  proposal_id: z.coerce.number().min(1),
+  action: z.enum(["approved", "rejected"]),
+  review_note: z.string().max(2000, "Note is too long").optional(),
+  new_deadline_days: z.coerce.number().int().positive().max(90, "Deadline cannot exceed 90 days").optional(),
+}).refine(
+  (data) => !(data.action === "approved" && !data.new_deadline_days),
+  { message: "New deadline (days) is required when approving", path: ["new_deadline_days"] },
+);
+
+export type RequestProponentExtensionInput = z.infer<typeof requestProponentExtensionSchema>;
+export type ReviewProponentExtensionInput = z.infer<typeof reviewProponentExtensionSchema>;
