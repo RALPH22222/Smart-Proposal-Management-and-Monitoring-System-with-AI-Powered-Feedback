@@ -843,7 +843,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <div className="flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 px-3 py-2 border border-yellow-200">
                   <Clock className="w-4 h-4" />
                   <span>Extension request is <span className="font-bold">pending review</span> by R&D. Submitted on{" "}
-                    {new Date(extensionRequest.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+                    {new Date(extensionRequest.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}.
                   </span>
                 </div>
               )}
@@ -856,7 +856,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <span>
                       Your revision deadline has <span className="font-bold">expired</span>.
                       {deadlineDate && (
-                        <> (was {deadlineDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })})</>
+                        <> (was {deadlineDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })})</>
                       )}
                     </span>
                   </div>
@@ -913,7 +913,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <CheckCircle className="w-4 h-4" />
                   <span>Extension Approved — New Deadline:</span>
                   <span className="font-bold">
-                    {extendedDeadlineDate.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}
+                    {extendedDeadlineDate.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}
                   </span>
                 </div>
               )}
@@ -926,8 +926,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <span className="font-bold">
                     {isLoadingRevision ? "Loading..." :
                       (revisionData?.created_at && revisionData?.deadline) ?
-                        new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) :
-                        (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "No deadline set")}
+                        new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) :
+                        (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) : "No deadline set")}
                   </span>
                 </div>
               )}
@@ -941,7 +941,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <span>Rejected on:</span>
                 <span className="font-bold">
                   {isLoadingRejection ? "Loading..." :
-                    new Date(rejectionDate).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                    new Date(rejectionDate).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' })}
                 </span>
               </div>
             </>

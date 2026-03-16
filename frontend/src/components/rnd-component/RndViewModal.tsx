@@ -590,13 +590,14 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                         <Timer className="w-5 h-5 text-orange-600 flex-shrink-0" />
                         <div className="text-xs text-orange-800">
                           <span className="font-bold">Submission deadline for proponent:</span>{" "}
-                          {new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString(undefined, {
+                          {new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString("en-US", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
                             hour: "numeric",
                             minute: "2-digit",
                             hour12: true,
+                            timeZone: "Asia/Manila",
                           })}
                         </div>
                       </div>

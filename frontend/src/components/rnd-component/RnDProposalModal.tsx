@@ -554,8 +554,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                           <Clock className="w-3.5 h-3.5" />
                           Deadline: {
                             (revisionSummary.created_at && revisionSummary.deadline) ?
-                              new Date(new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000).toLocaleDateString() :
-                              (proposal && proposal.evaluationDeadline ? new Date(proposal.evaluationDeadline).toLocaleDateString() : "No deadline set")
+                              new Date(new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) :
+                              (proposal && proposal.evaluationDeadline ? new Date(proposal.evaluationDeadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) : "No deadline set")
                           }
                         </div>
 
@@ -592,7 +592,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                           {pendingExtension.proponent?.first_name} {pendingExtension.proponent?.last_name}
                         </span>
                       </span>
-                      <span>{new Date(pendingExtension.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}</span>
+                      <span>{new Date(pendingExtension.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}</span>
                     </div>
                     <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-xs font-bold text-slate-500 uppercase block mb-1">Reason</span>
