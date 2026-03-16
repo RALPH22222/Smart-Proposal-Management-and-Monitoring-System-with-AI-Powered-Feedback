@@ -45,8 +45,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
   // Search term state controls filtering
   const [researchStationSearch, setResearchStationSearch] = useState(formData.researchStation || "");
-  const [sectorSearch, setSectorSearch] = useState(formData.sector || "");
-  const [disciplineSearch, setDisciplineSearch] = useState(formData.discipline || "");
+  const [sectorSearch, setSectorSearch] = useState(formData.sectorCommodity || "");
+  const [disciplineSearch, setDisciplineSearch] = useState(formData.disciplineName || "");
 
   // Local State for Inputs
   const [priorityInput, setPriorityInput] = useState("");
@@ -209,9 +209,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
     }
 
     // D. Sync Search State with form Data (using display name fields)
-    if (formData.researchStation && !researchStationSearch) setResearchStationSearch(formData.researchStation);
-    if (formData.sectorCommodity && !sectorSearch) setSectorSearch(formData.sectorCommodity);
-    if (formData.disciplineName && !disciplineSearch) setDisciplineSearch(formData.disciplineName);
+    if (formData.researchStation) setResearchStationSearch(formData.researchStation);
+    if (formData.sectorCommodity) setSectorSearch(formData.sectorCommodity);
+    if (formData.disciplineName) setDisciplineSearch(formData.disciplineName);
   }, [formData, prioritiesList]);
 
   // --- 3. FILTERING EFFECTS ---

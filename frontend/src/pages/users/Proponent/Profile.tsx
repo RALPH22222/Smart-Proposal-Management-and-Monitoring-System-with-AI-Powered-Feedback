@@ -300,7 +300,7 @@ const Profile: React.FC = () => {
 
   const getLocalStatusColor = (project: any) => {
     const s = ((project as any).rawStatus || "").toLowerCase();
-    if (s === "pending") return "bg-orange-100 text-orange-800 border border-orange-300";
+    if (s === "pending") return "bg-amber-100 text-amber-800 border border-amber-300";
     if (["revise", "revision", "revision_rnd"].includes(s)) return "bg-orange-100 text-orange-800 border border-orange-300";
     if (s === "revised_proposal") return "bg-amber-100 text-amber-900 border border-amber-300";
     if (s === "review_rnd" || s === "r&d evaluation") return "bg-blue-100 text-blue-900 border border-blue-300";
@@ -905,13 +905,13 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Pending Card */}
-            <div className="bg-orange-50 shadow-xl rounded-2xl border border-orange-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
+            <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-slate-700 mb-2">Pending</p>
-                  <p className="text-xl font-bold text-orange-600 tabular-nums">{pendingCount}</p>
+                  <p className="text-xl font-bold text-amber-600 tabular-nums">{pendingCount}</p>
                 </div>
-                <Clock className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+                <Clock className="w-6 h-6 text-amber-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
 
