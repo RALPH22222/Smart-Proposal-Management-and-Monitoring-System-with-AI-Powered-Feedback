@@ -1,6 +1,6 @@
 import { ContactInfoSchema } from "../../schemas/contact-schema";
 import { logActivity } from "../../utils/activity-logger";
-import { supabase } from "../../lib/supabase";
+import { supabase, supabaseAdmin } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 
@@ -15,6 +15,9 @@ export const handler = buildCorsHeaders(async (event) => {
         body: JSON.stringify({ message: "Forbidden: Admin access only" }),
       };
     }
+
+    // 2. Client Selection (Use Admin client to bypass RLS for system settings)
+    const db = supabaseAdmin || supabase;
 
     // 3. Request Validation
     if (!event.body) {
@@ -38,7 +41,7 @@ export const handler = buildCorsHeaders(async (event) => {
     }
 
     // 4. Update the Database
-    const { data: updatedSettings, error: upsertError } = await supabase
+    const { data: updatedSettings, error: upsertError } = await db
       .from("system_settings")
       .upsert(
         { key: "contact_info", value: parsedData.data },
@@ -55,8 +58,8 @@ export const handler = buildCorsHeaders(async (event) => {
       };
     }
 
-    // 5. Log Activity (assuming logActivity util handles writing to logs table)
-    await logActivity(supabase, {
+    // 5. Log Activity
+    await logActivity(db, {
       user_id: userId,
       action: "updated_contacts",
       category: "account",

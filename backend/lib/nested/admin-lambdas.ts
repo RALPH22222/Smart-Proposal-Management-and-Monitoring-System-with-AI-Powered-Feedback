@@ -57,7 +57,11 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-update-contacts",
       entry: path.resolve("src", "handlers", "admin", "update-contacts.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt },
+      environment: { 
+        SUPABASE_KEY: supabaseKey, 
+        SUPABASE_SECRET_JWT: supabaseSecretJwt,
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey
+      },
     });
 
     this.createAccount = new NodejsFunction(this, "create-account", {
