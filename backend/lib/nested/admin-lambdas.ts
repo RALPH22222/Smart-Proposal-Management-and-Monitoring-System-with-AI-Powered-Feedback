@@ -16,6 +16,8 @@ interface AdminLambdasProps {
 export class AdminLambdas extends NestedStack {
   public readonly getContacts: NodejsFunction;
   public readonly updateContacts: NodejsFunction;
+  public readonly getAbout: NodejsFunction;
+  public readonly updateAbout: NodejsFunction;
   public readonly createAccount: NodejsFunction;
   public readonly getAccounts: NodejsFunction;
   public readonly updateAccount: NodejsFunction;
@@ -56,6 +58,25 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-update-contacts",
       entry: path.resolve("src", "handlers", "admin", "update-contacts.ts"),
+      role: sharedRole,
+      environment: { 
+        SUPABASE_KEY: supabaseKey, 
+        SUPABASE_SECRET_JWT: supabaseSecretJwt,
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey
+      },
+    });
+
+    this.getAbout = new NodejsFunction(this, "get-about", {
+      ...defaults,
+      functionName: "pms-get-about",
+      entry: path.resolve("src", "handlers", "public", "get-about.ts"),
+      environment: sharedEnv,
+    });
+
+    this.updateAbout = new NodejsFunction(this, "update-about", {
+      ...defaults,
+      functionName: "pms-update-about",
+      entry: path.resolve("src", "handlers", "admin", "update-about.ts"),
       role: sharedRole,
       environment: { 
         SUPABASE_KEY: supabaseKey, 

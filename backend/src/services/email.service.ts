@@ -78,16 +78,21 @@ export class EmailService {
       "If you did not create an account, please ignore this email.",
     ].join("\n");
 
-    const info = await transporter.sendMail({
-      from: `"WMSU SPMAMS" <${this.senderEmail}>`,
-      to: recipientEmail,
-      subject: "Verify Your Email - WMSU SPMAMS",
-      text: textBody,
-      html: htmlBody,
-    });
+    try {
+      const info = await transporter.sendMail({
+        from: `"WMSU SPMAMS" <${this.senderEmail}>`,
+        to: recipientEmail,
+        subject: "Verify Your Email - WMSU SPMAMS",
+        text: textBody,
+        html: htmlBody,
+      });
 
-    console.log("Verification email sent successfully:", info.messageId);
-    return { success: true, messageId: info.messageId };
+      console.log("Verification email sent successfully:", info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
+      return { success: false };
+    }
   }
 
   /**
