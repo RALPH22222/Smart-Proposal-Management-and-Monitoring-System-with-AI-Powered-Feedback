@@ -5,6 +5,12 @@ import {
   ToggleAccountStatusInput,
   InviteUserInput,
 } from "../schemas/admin-schema";
+import {
+  RequestLeaveInput,
+  ReviewLeaveInput,
+  EndLeaveInput,
+  GetLeaveRequestsInput,
+} from "../schemas/leave-schema";
 import { LateSubmissionPolicy, NotificationPreferences, EvaluationDeadlineInput } from "../schemas/settings-schema";
 import { logActivity } from "../utils/activity-logger";
 
@@ -501,5 +507,142 @@ export class AdminService {
     }));
 
     return { data: logs, error: null, count: count || 0 };
+  }
+
+  // ===================== LEAVE REQUESTS =====================
+
+  async requestLeave(userId: string, input: RequestLeaveInput) {
+    const { data, error } = await this.db
+      .from("leave_requests")
+      .insert({
+        user_id: userId,
+        reason: input.reason,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) return { data: null, error };
+
+    await logActivity(this.db, {
+      user_id: userId,
+      action: "leave_requested",
+      category: "admin",
+      target_id: String(data.id),
+      target_type: "leave_request",
+    });
+
+    return { data, error: null };
+  }
+
+  async reviewLeave(input: ReviewLeaveInput & { reviewer_id: string }) {
+    const { leave_id, status, review_note, reviewer_id } = input;
+
+    // Fetch the leave request
+    const { data: leave, error: fetchErr } = await this.db
+      .from("leave_requests")
+      .select("*")
+      .eq("id", leave_id)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (fetchErr) return { data: null, error: fetchErr };
+    if (!leave) return { data: null, error: { message: "Leave request not found or already reviewed" } };
+
+    // Update leave request
+    const { data: updated, error: updateErr } = await this.db
+      .from("leave_requests")
+      .update({
+        status,
+        reviewed_by: reviewer_id,
+        review_note: review_note || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", leave_id)
+      .select()
+      .single();
+
+    if (updateErr) return { data: null, error: updateErr };
+
+    // If approved, set user as unavailable
+    if (status === "approved") {
+      await this.db.from("users").update({ is_available: false }).eq("id", leave.user_id);
+    }
+
+    await logActivity(this.db, {
+      user_id: reviewer_id,
+      action: `leave_${status}`,
+      category: "admin",
+      target_id: String(leave_id),
+      target_type: "leave_request",
+      details: { user_id: leave.user_id },
+    });
+
+    return { data: updated, error: null };
+  }
+
+  async endLeave(leaveId: number, userId: string) {
+    // Fetch the leave request
+    const { data: leave, error: fetchErr } = await this.db
+      .from("leave_requests")
+      .select("*")
+      .eq("id", leaveId)
+      .eq("status", "approved")
+      .maybeSingle();
+
+    if (fetchErr) return { data: null, error: fetchErr };
+    if (!leave) return { data: null, error: { message: "Active leave request not found" } };
+
+    // Only the leave owner or an admin can end a leave
+    if (leave.user_id !== userId) {
+      // Caller must be admin — handler checks this
+    }
+
+    const { data: updated, error: updateErr } = await this.db
+      .from("leave_requests")
+      .update({
+        status: "ended",
+        ended_at: new Date().toISOString(),
+      })
+      .eq("id", leaveId)
+      .select()
+      .single();
+
+    if (updateErr) return { data: null, error: updateErr };
+
+    // Set user as available again
+    await this.db.from("users").update({ is_available: true }).eq("id", leave.user_id);
+
+    await logActivity(this.db, {
+      user_id: userId,
+      action: "leave_ended",
+      category: "admin",
+      target_id: String(leaveId),
+      target_type: "leave_request",
+      details: { user_id: leave.user_id },
+    });
+
+    return { data: updated, error: null };
+  }
+
+  async getLeaveRequests(filters?: GetLeaveRequestsInput) {
+    let query = this.db
+      .from("leave_requests")
+      .select(`
+        *,
+        user:users!leave_requests_user_id_fkey(id, first_name, last_name, email, roles),
+        reviewer:users!leave_requests_reviewed_by_fkey(id, first_name, last_name)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+    if (filters?.user_id) {
+      query = query.eq("user_id", filters.user_id);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
   }
 }

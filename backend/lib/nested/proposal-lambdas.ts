@@ -51,6 +51,10 @@ export class ProposalLambdas extends NestedStack {
   public readonly requestProponentExtension: NodejsFunction;
   public readonly reviewProponentExtension: NodejsFunction;
   public readonly getProponentExtensionRequests: NodejsFunction;
+  public readonly requestRndTransfer: NodejsFunction;
+  public readonly respondRndTransfer: NodejsFunction;
+  public readonly approveRndTransfer: NodejsFunction;
+  public readonly getRndTransfers: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
@@ -103,6 +107,10 @@ export class ProposalLambdas extends NestedStack {
     this.requestProponentExtension = simple("request-proponent-extension", "pms-request-proponent-extension", "request-proponent-extension.ts");
     this.reviewProponentExtension = simple("review-proponent-extension", "pms-review-proponent-extension", "review-proponent-extension.ts");
     this.getProponentExtensionRequests = simple("get-proponent-extension-requests", "pms-get-proponent-extension-requests", "get-proponent-extension-requests.ts");
+    this.requestRndTransfer = simple("request-rnd-transfer", "pms-request-rnd-transfer", "request-rnd-transfer.ts");
+    this.respondRndTransfer = simple("respond-rnd-transfer", "pms-respond-rnd-transfer", "respond-rnd-transfer.ts");
+    this.approveRndTransfer = simple("approve-rnd-transfer", "pms-approve-rnd-transfer", "approve-rnd-transfer.ts");
+    this.getRndTransfers = simple("get-rnd-transfers", "pms-get-rnd-transfers", "get-rnd-transfers.ts");
 
     // Special: needs S3 access, own role
     this.getUploadUrl = new NodejsFunction(this, "get-upload-url", {

@@ -30,6 +30,9 @@ import {
   SubmitRevisedProposalInput,
   RequestProponentExtensionInput,
   ReviewProponentExtensionInput,
+  RequestRndTransferInput,
+  RespondRndTransferInput,
+  ApproveRndTransferInput,
 } from "../schemas/proposal-schema";
 
 function isId(v: IdOrName): v is number {
@@ -514,6 +517,222 @@ export class ProposalService {
     };
   }
 
+  /**
+   * Find the least-loaded available RND user in the given department.
+   * "Load" = number of active proposals (status review_rnd or under_evaluation) in proposal_rnd.
+   */
+  async getLeastLoadedRnd(departmentId: number) {
+    // 1. Get eligible RND users (not disabled, available, matching department)
+    const { data: rndUsers, error: rndError } = await this.db
+      .from("users")
+      .select("id")
+      .contains("roles", ["rnd"])
+      .eq("is_disabled", false)
+      .eq("is_available", true)
+      .eq("department_id", departmentId);
+
+    if (rndError) return { data: null, error: rndError };
+    if (!rndUsers || rndUsers.length === 0) return { data: null, error: null };
+
+    // 2. For each candidate, count active proposals
+    const candidates: { id: string; load: number }[] = [];
+    for (const rnd of rndUsers) {
+      const { count, error: countError } = await this.db
+        .from("proposal_rnd")
+        .select("proposals!inner(id, status)", { count: "exact", head: true })
+        .eq("rnd_id", rnd.id)
+        .in("proposals.status", ["review_rnd", "under_evaluation"]);
+
+      if (countError) continue;
+      candidates.push({ id: rnd.id, load: count || 0 });
+    }
+
+    if (candidates.length === 0) return { data: null, error: null };
+
+    // 3. Pick the one with fewest. If tied, random among tied.
+    const minLoad = Math.min(...candidates.map((c) => c.load));
+    const tied = candidates.filter((c) => c.load === minLoad);
+    const selected = tied[Math.floor(Math.random() * tied.length)];
+
+    return { data: { id: selected.id, load: selected.load }, error: null };
+  }
+
+  /**
+   * Request a transfer of a proposal from one RND to another.
+   * If the proposal has already been transferred once, escalate to admin.
+   */
+  async requestRndTransfer(input: RequestRndTransferInput & { from_rnd_id: string }) {
+    const { proposal_id, to_rnd_id, reason, from_rnd_id } = input;
+
+    // Validate from_rnd is current assignee
+    const { data: assignment, error: assignErr } = await this.db
+      .from("proposal_rnd")
+      .select("rnd_id")
+      .eq("proposal_id", proposal_id)
+      .eq("rnd_id", from_rnd_id)
+      .maybeSingle();
+
+    if (assignErr) return { data: null, error: assignErr };
+    if (!assignment) return { data: null, error: { message: "You are not the current RND assignee for this proposal" } };
+
+    // Validate target RND is not disabled/unavailable
+    const { data: targetUser, error: targetErr } = await this.db
+      .from("users")
+      .select("id, is_disabled, is_available, department_id")
+      .eq("id", to_rnd_id)
+      .maybeSingle();
+
+    if (targetErr) return { data: null, error: targetErr };
+    if (!targetUser) return { data: null, error: { message: "Target RND user not found" } };
+    if (targetUser.is_disabled) return { data: null, error: { message: "Target RND user is disabled" } };
+    if (!targetUser.is_available) return { data: null, error: { message: "Target RND user is currently unavailable" } };
+
+    // Check proposal department matches target RND department
+    const { data: proposal, error: propErr } = await this.db
+      .from("proposals")
+      .select("department_id")
+      .eq("id", proposal_id)
+      .maybeSingle();
+
+    if (propErr) return { data: null, error: propErr };
+    if (!proposal) return { data: null, error: { message: "Proposal not found" } };
+    if (proposal.department_id !== targetUser.department_id) {
+      return { data: null, error: { message: "Target RND must be in the same department as the proposal" } };
+    }
+
+    // Count accepted transfers for this proposal — if >= 1, escalate to admin
+    const { count: acceptedCount, error: countErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .select("*", { count: "exact", head: true })
+      .eq("proposal_id", proposal_id)
+      .eq("status", "accepted");
+
+    if (countErr) return { data: null, error: countErr };
+
+    const status = (acceptedCount || 0) >= 1 ? "admin_required" : "pending";
+
+    const { data: transfer, error: insertErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .insert({
+        proposal_id,
+        from_rnd_id,
+        to_rnd_id,
+        reason,
+        status,
+      })
+      .select()
+      .single();
+
+    if (insertErr) return { data: null, error: insertErr };
+
+    return { data: transfer, error: null };
+  }
+
+  /**
+   * Target RND responds to a transfer request (accept/decline).
+   */
+  async respondRndTransfer(input: RespondRndTransferInput & { responder_id: string }) {
+    const { transfer_id, status, responder_id } = input;
+
+    // Fetch transfer
+    const { data: transfer, error: fetchErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .select("*")
+      .eq("id", transfer_id)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (fetchErr) return { data: null, error: fetchErr };
+    if (!transfer) return { data: null, error: { message: "Transfer request not found or already processed" } };
+    if (transfer.to_rnd_id !== responder_id) {
+      return { data: null, error: { message: "Only the target RND can respond to this transfer" } };
+    }
+
+    if (status === "accepted") {
+      // Reassign the proposal
+      await this.forwardToRnd({ proposal_id: transfer.proposal_id, rnd_id: [transfer.to_rnd_id] });
+    }
+
+    const { data: updated, error: updateErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .update({
+        status,
+        responded_at: new Date().toISOString(),
+      })
+      .eq("id", transfer_id)
+      .select()
+      .single();
+
+    if (updateErr) return { data: null, error: updateErr };
+
+    return { data: updated, error: null };
+  }
+
+  /**
+   * Admin approves/declines an escalated transfer (status = admin_required).
+   */
+  async approveRndTransfer(input: ApproveRndTransferInput & { admin_id: string }) {
+    const { transfer_id, status, review_note, admin_id } = input;
+
+    const { data: transfer, error: fetchErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .select("*")
+      .eq("id", transfer_id)
+      .eq("status", "admin_required")
+      .maybeSingle();
+
+    if (fetchErr) return { data: null, error: fetchErr };
+    if (!transfer) return { data: null, error: { message: "Transfer request not found or not escalated to admin" } };
+
+    if (status === "accepted") {
+      await this.forwardToRnd({ proposal_id: transfer.proposal_id, rnd_id: [transfer.to_rnd_id] });
+    }
+
+    const { data: updated, error: updateErr } = await this.db
+      .from("proposal_rnd_transfers")
+      .update({
+        status,
+        reviewed_by: admin_id,
+        review_note: review_note || null,
+        responded_at: new Date().toISOString(),
+      })
+      .eq("id", transfer_id)
+      .select()
+      .single();
+
+    if (updateErr) return { data: null, error: updateErr };
+
+    return { data: updated, error: null };
+  }
+
+  /**
+   * Get transfer requests, optionally filtered by proposal or RND user.
+   */
+  async getRndTransfers(filters?: { proposal_id?: number; rnd_id?: string; status?: string }) {
+    let query = this.db
+      .from("proposal_rnd_transfers")
+      .select(`
+        *,
+        from_rnd:users!proposal_rnd_transfers_from_rnd_id_fkey(id, first_name, last_name, email),
+        to_rnd:users!proposal_rnd_transfers_to_rnd_id_fkey(id, first_name, last_name, email),
+        proposals(id, project_title)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (filters?.proposal_id) {
+      query = query.eq("proposal_id", filters.proposal_id);
+    }
+    if (filters?.rnd_id) {
+      query = query.or(`from_rnd_id.eq.${filters.rnd_id},to_rnd_id.eq.${filters.rnd_id}`);
+    }
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  }
+
   async revisionProposalToProponent(input: revisionProposalToProponentInput, rnd_id: string) {
     // Store created_at in UTC so "deadline = created_at + N days" is exactly 24*N hours everywhere
     const created_at = new Date().toISOString();
@@ -636,16 +855,24 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getUsersByRole(role: string, departmentId?: number) {
+  async getUsersByRole(role: string, departmentId?: number, opts?: { includeUnavailable?: boolean }) {
     // Use users.department_id as the primary department association.
     // This works for all roles (rnd, evaluator, etc.) without needing
     // a separate junction table. The department name is joined via FK.
     let query = this.db
       .from("users")
-      .select("id, first_name, last_name, email, photo_profile_url, department_id, departments(id, name)");
+      .select("id, first_name, last_name, email, photo_profile_url, department_id, is_available, departments(id, name)");
 
     // Filter by role using the roles array column (contains operator)
     query = query.contains("roles", [role]);
+
+    // Always exclude disabled users
+    query = query.eq("is_disabled", false);
+
+    // Exclude unavailable users unless explicitly requested
+    if (!opts?.includeUnavailable) {
+      query = query.eq("is_available", true);
+    }
 
     // Filter by department if provided
     if (departmentId) {
@@ -686,6 +913,7 @@ export class ProposalService {
           email: u.email,
           profile_picture: u.photo_profile_url, // map to frontend expected key
           department_id: u.department_id, // Pass raw ID for frontend lookup
+          is_available: u.is_available ?? true,
           departments: depts,
         };
       }),

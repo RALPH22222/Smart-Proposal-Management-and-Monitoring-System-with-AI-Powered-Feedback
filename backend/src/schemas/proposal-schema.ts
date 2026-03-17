@@ -291,3 +291,26 @@ export const reviewProponentExtensionSchema = z.object({
 
 export type RequestProponentExtensionInput = z.infer<typeof requestProponentExtensionSchema>;
 export type ReviewProponentExtensionInput = z.infer<typeof reviewProponentExtensionSchema>;
+
+// --- RND Transfer Schemas ---
+
+export const requestRndTransferSchema = z.object({
+  proposal_id: z.coerce.number().min(1, "Proposal ID is required"),
+  to_rnd_id: z.string().uuid("Invalid target RND user ID"),
+  reason: z.string().min(1, "Reason is required").max(2000, "Reason is too long"),
+});
+
+export const respondRndTransferSchema = z.object({
+  transfer_id: z.coerce.number().min(1, "Transfer ID is required"),
+  status: z.enum(["accepted", "declined"]),
+});
+
+export const approveRndTransferSchema = z.object({
+  transfer_id: z.coerce.number().min(1, "Transfer ID is required"),
+  status: z.enum(["accepted", "declined"]),
+  review_note: z.string().max(2000, "Note is too long").optional(),
+});
+
+export type RequestRndTransferInput = z.infer<typeof requestRndTransferSchema>;
+export type RespondRndTransferInput = z.infer<typeof respondRndTransferSchema>;
+export type ApproveRndTransferInput = z.infer<typeof approveRndTransferSchema>;

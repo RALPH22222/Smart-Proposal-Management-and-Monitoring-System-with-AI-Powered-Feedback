@@ -3,9 +3,9 @@ import { SupabaseClient } from "@supabase/supabase-js";
 export interface LogEntry {
   user_id: string;
   action: string;
-  category: "proposal" | "evaluation" | "project" | "account" | "settings";
+  category: "proposal" | "evaluation" | "project" | "account" | "settings" | "admin";
   target_id?: string;
-  target_type?: "proposal" | "funded_project" | "user" | "report" | "fund_request" | "system_settings";
+  target_type?: "proposal" | "funded_project" | "user" | "report" | "fund_request" | "system_settings" | "leave_request" | "proposal_rnd_transfer";
   details?: Record<string, any>;
 }
 

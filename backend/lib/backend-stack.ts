@@ -366,6 +366,18 @@ export class BackendStack extends Stack {
     proposal
       .addResource("proponent-extension-requests")
       .addMethod(HttpMethod.GET, integrate(proposalL.getProponentExtensionRequests), protectedRoute);
+    proposal
+      .addResource("request-rnd-transfer")
+      .addMethod(HttpMethod.POST, integrate(proposalL.requestRndTransfer), protectedRoute);
+    proposal
+      .addResource("respond-rnd-transfer")
+      .addMethod(HttpMethod.POST, integrate(proposalL.respondRndTransfer), protectedRoute);
+    proposal
+      .addResource("approve-rnd-transfer")
+      .addMethod(HttpMethod.POST, integrate(proposalL.approveRndTransfer), protectedRoute);
+    proposal
+      .addResource("rnd-transfers")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getRndTransfers), protectedRoute);
 
     // ========== PROJECT MONITORING ROUTES ==========
     const project = api.root.addResource("project");
@@ -485,6 +497,18 @@ export class BackendStack extends Stack {
     admin
       .addResource("update-evaluation-deadline")
       .addMethod(HttpMethod.POST, integrate(adminL.updateEvaluationDeadline), protectedRoute);
+    admin
+      .addResource("request-leave")
+      .addMethod(HttpMethod.POST, integrate(adminL.requestLeave), protectedRoute);
+    admin
+      .addResource("review-leave")
+      .addMethod(HttpMethod.POST, integrate(adminL.reviewLeave), protectedRoute);
+    admin
+      .addResource("end-leave")
+      .addMethod(HttpMethod.POST, integrate(adminL.endLeave), protectedRoute);
+    admin
+      .addResource("leave-requests")
+      .addMethod(HttpMethod.GET, integrate(adminL.getLeaveRequests), protectedRoute);
 
   }
 }

@@ -36,6 +36,10 @@ export class AdminLambdas extends NestedStack {
   public readonly updateAvailability: NodejsFunction;
   public readonly getEvaluationDeadline: NodejsFunction;
   public readonly updateEvaluationDeadline: NodejsFunction;
+  public readonly requestLeave: NodejsFunction;
+  public readonly reviewLeave: NodejsFunction;
+  public readonly endLeave: NodejsFunction;
+  public readonly getLeaveRequests: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
@@ -238,6 +242,38 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-update-evaluation-deadline",
       entry: path.resolve("src", "handlers", "admin", "update-evaluation-deadline.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.requestLeave = new NodejsFunction(this, "request-leave", {
+      ...defaults,
+      functionName: "pms-request-leave",
+      entry: path.resolve("src", "handlers", "admin", "request-leave.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.reviewLeave = new NodejsFunction(this, "review-leave", {
+      ...defaults,
+      functionName: "pms-review-leave",
+      entry: path.resolve("src", "handlers", "admin", "review-leave.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.endLeave = new NodejsFunction(this, "end-leave", {
+      ...defaults,
+      functionName: "pms-end-leave",
+      entry: path.resolve("src", "handlers", "admin", "end-leave.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getLeaveRequests = new NodejsFunction(this, "get-leave-requests", {
+      ...defaults,
+      functionName: "pms-get-leave-requests",
+      entry: path.resolve("src", "handlers", "admin", "get-leave-requests.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });
