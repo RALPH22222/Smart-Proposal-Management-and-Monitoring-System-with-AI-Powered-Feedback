@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, FileText, PiggyBank, Wrench, Mail, Phone } from "lucide-react";
+import { Search, FileText, PiggyBank, Wrench, Mail, Phone, Loader2 } from "lucide-react";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
+import { FaqApi } from "../services/FaqApi";
+import { type FaqInfo } from "../schemas/faq-schema";
 
 const useInView = (options?: IntersectionObserverInit) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -29,16 +31,38 @@ const useInView = (options?: IntersectionObserverInit) => {
 };
 
 const FAQ: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState("general");
-  const [openItems, setOpenItems] = useState<number[]>([]);
+  const [faqData, setFaqData] = useState<FaqInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Set default active category once data loads
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [openItems, setOpenItems] = useState<string[]>([]);
+  
   const heroSection = useInView();
   const faqSection = useInView();
 
-  const toggleItem = (index: number) => {
+  useEffect(() => {
+    const fetchFaq = async () => {
+      try {
+        const data = await FaqApi.getFaqInfo();
+        setFaqData(data);
+        if (data.categories.length > 0) {
+          setActiveCategory(data.categories[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to load FAQ data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchFaq();
+  }, []);
+
+  const toggleItem = (itemId: string) => {
     setOpenItems((prev) =>
-      prev.includes(index)
-        ? prev.filter((item) => item !== index)
-        : [...prev, index]
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
     );
   };
 
@@ -55,74 +79,40 @@ const FAQ: React.FC = () => {
     phone: <Phone className="w-4 h-4" />
   };
 
-  const faqData = {
-    general: [
-      {
-        question: "What are the proposal submission deadlines?",
-        answer:
-          "Proposal deadlines vary by funding source. Regular internal reviews occur monthly on the last Friday of each month, while external funding opportunities have specific timelines announced on our portal.",
-      },
-      {
-        question: "How long does the proposal review process take?",
-        answer:
-          "Standard review takes 2-3 weeks. Complex proposals or those requiring ethics clearance may take 4-6 weeks.",
-      },
-      {
-        question: "Who can submit research proposals?",
-        answer:
-          "All WMSU faculty members, graduate students, and research staff are eligible to submit proposals.",
-      },
-    ],
-    submission: [
-      {
-        question: "What documents are required for proposal submission?",
-        answer:
-          "Required documents include: completed DOST Form 1B, project timeline, budget breakdown, and endorsement from department head.",
-      },
-      {
-        question: "Can I submit proposals electronically?",
-        answer:
-          "Yes! All proposals must be submitted through our online portal. The system accepts PDF documents and provides confirmation.",
-      },
-    ],
-    funding: [
-      {
-        question: "What funding sources are available through WMSU?",
-        answer:
-          "We support funding avenues including internal WMSU grants, DOST, CHED, and international collaborations.",
-      },
-      {
-        question: "Can I get help with budget preparation?",
-        answer:
-          "Yes! Our research support team provides budget consultation to align with funding requirements.",
-      },
-    ],
-    technical: [
-      {
-        question: "What if I encounter technical issues with the portal?",
-        answer:
-          "For technical support, email research.support@wmsu.edu.ph or call +63 (62) 991-4569.",
-      },
-    ],
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-[#C8102E]" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!faqData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center text-red-500 font-medium text-lg">
+          Failed to load FAQ information. Please try again later.
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   // Get all FAQ items for mobile view
-  const allFaqItems = Object.entries(faqData).flatMap(([category, items]) =>
-    items.map((item, index) => ({
+  const allFaqItems = faqData.categories.flatMap((category) =>
+    category.items.map((item) => ({
       ...item,
-      category,
-      globalIndex: Object.keys(faqData)
-        .slice(0, Object.keys(faqData).indexOf(category))
-        .reduce((acc, key) => acc + faqData[key as keyof typeof faqData].length, 0) + index
+      categoryName: category.name,
+      categoryIcon: category.icon,
     }))
   );
 
-  const categories = [
-    { id: "general", name: "General Questions", icon: CategoryIcons.general },
-    { id: "submission", name: "Submission Process", icon: CategoryIcons.submission },
-    { id: "funding", name: "Funding & Budget", icon: CategoryIcons.funding },
-    { id: "technical", name: "Technical Support", icon: CategoryIcons.technical },
-  ];
+  const activeCategoryData = faqData.categories.find(cat => cat.id === activeCategory);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
@@ -140,18 +130,17 @@ const FAQ: React.FC = () => {
           <div className={`transition-all duration-1000 ${heroSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="mb-2 animate-fade-in-down">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-[#C8102E] border border-[#C8102E]/20">
-                Support Center
+                {faqData.hero.badge}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 animate-fade-in-up animation-delay-100">
-              <span className="text-gray-800">Frequently Asked </span>
+              <span className="text-gray-800">{faqData.hero.titlePrefix} </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-[#C8102E]">
-                Questions
+                {faqData.hero.titleHighlight}
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
-              Find quick answers to questions about proposals, submission,
-              funding, and technical help.
+              {faqData.hero.description}
             </p>
           </div>
         </div>
@@ -167,7 +156,7 @@ const FAQ: React.FC = () => {
                 Categories
               </h3>
               <div className="space-y-2">
-                {categories.map((category, index) => (
+                {faqData.categories.map((category, index) => (
                   <button
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}
@@ -189,7 +178,7 @@ const FAQ: React.FC = () => {
                         e.currentTarget.style.backgroundColor = "white";
                     }}
                   >
-                    {category.icon}
+                    {CategoryIcons[category.icon]}
                     {category.name}
                   </button>
                 ))}
@@ -198,37 +187,41 @@ const FAQ: React.FC = () => {
               {/* Contact Box */}
               <div className="mt-8 pt-6 border-t border-[#C8102E]/30">
                 <h4 className="font-semibold text-gray-900 mb-3">
-                  Need More Help?
+                  {faqData.support.title}
                 </h4>
                 <div className="space-y-3">
-                  <a
-                    href="mailto:research@wmsu.edu.ph"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md"
-                    style={{ color: "#C8102E" }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#FEECEC")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
-                  >
-                    {ContactIcons.email}
-                    Email Support
-                  </a>
-                  <a
-                    href="tel:+63629914569"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md"
-                    style={{ color: "#C8102E" }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#FEECEC")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
-                  >
-                    {ContactIcons.phone}
-                    Call Support
-                  </a>
+                  {faqData.support.email && (
+                    <a
+                      href={`mailto:${faqData.support.email}`}
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md break-all"
+                      style={{ color: "#C8102E" }}
+                      onMouseOver={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#FEECEC")
+                      }
+                      onMouseOut={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <span className="flex-shrink-0">{ContactIcons.email}</span>
+                      Email Support
+                    </a>
+                  )}
+                  {faqData.support.phone && (
+                    <a
+                      href={`tel:${faqData.support.phone}`}
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm transform hover:scale-100 hover:shadow-md"
+                      style={{ color: "#C8102E" }}
+                      onMouseOver={(e) =>
+                        (e.currentTarget.style.backgroundColor = "#FEECEC")
+                      }
+                      onMouseOut={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <span className="flex-shrink-0">{ContactIcons.phone}</span>
+                      Call Support
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -237,23 +230,27 @@ const FAQ: React.FC = () => {
           {/* FAQ Content */}
           <div className={`lg:col-span-3 transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
 
-
             <div className="bg-white rounded-2xl p-3 sm:p-6 md:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300 overflow-x-auto">
-              {/* Desktop Category Header */}
-              <div className="hidden lg:flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
-                  {CategoryIcons[activeCategory as keyof typeof CategoryIcons]}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {categories.find(cat => cat.id === activeCategory)?.name}
-                  </h2>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    {faqData[activeCategory as keyof typeof faqData].length}{" "}
-                    questions in this category
-                  </p>
-                </div>
-              </div>
+              
+              {activeCategoryData && (
+                 <>
+                   {/* Desktop Category Header */}
+                   <div className="hidden lg:flex items-center gap-4 mb-6">
+                     <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
+                       {CategoryIcons[activeCategoryData.icon]}
+                     </div>
+                     <div className="min-w-0">
+                       <h2 className="text-2xl font-bold text-gray-900">
+                         {activeCategoryData.name}
+                       </h2>
+                       <p className="text-gray-600 text-sm sm:text-base">
+                         {activeCategoryData.items.length}{" "}
+                         questions in this category
+                       </p>
+                     </div>
+                   </div>
+                 </>
+              )}
 
               {/* Mobile All Questions Header */}
               <div className="lg:hidden mb-6">
@@ -269,23 +266,21 @@ const FAQ: React.FC = () => {
               <div className="space-y-4">
                 {/* Desktop View - Filtered by Category */}
                 <div className="hidden lg:block">
-                  {faqData[
-                    activeCategory as keyof typeof faqData
-                  ].map((faq, index) => (
+                  {activeCategoryData?.items.map((faq, index) => (
                     <div
-                      key={index}
+                      key={faq.id}
                       className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-100 mb-4"
                       style={{ transitionDelay: `${index * 50}ms` }}
                     >
                       <button
-                        onClick={() => toggleItem(index)}
+                        onClick={() => toggleItem(faq.id)}
                         className="w-full text-left p-6 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors"
                       >
                         <h3 className="font-semibold text-gray-900 text-lg flex-1">
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(index) ? "rotate-180" : ""}`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(faq.id) ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -299,7 +294,7 @@ const FAQ: React.FC = () => {
                         </svg>
                       </button>
                       <div
-                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(index)
+                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(faq.id)
                           ? "max-h-96 opacity-100"
                           : "max-h-0 opacity-0"
                           }`}
@@ -310,29 +305,32 @@ const FAQ: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                  {activeCategoryData?.items.length === 0 && (
+                     <div className="text-center py-8 text-gray-500 text-lg">No questions in this category.</div>
+                  )}
                 </div>
                 {/* Mobile View - All Questions */}
                 <div className="lg:hidden space-y-4">
                   {allFaqItems.map((faq) => (
                     <div
-                      key={faq.globalIndex}
+                      key={`mob_${faq.id}`}
                       className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg"
                     >
                       <div className="flex items-center gap-2 px-6 pt-4 pb-2">
                         <div className="flex items-center gap-2 text-xs text-[#C8102E] font-medium bg-[#C8102E]/10 px-2 py-1 rounded-full">
-                          {CategoryIcons[faq.category as keyof typeof CategoryIcons]}
-                          <span className="capitalize">{faq.category}</span>
+                          {CategoryIcons[faq.categoryIcon]}
+                          <span className="capitalize">{faq.categoryName}</span>
                         </div>
                       </div>
                       <button
-                        onClick={() => toggleItem(faq.globalIndex)}
+                        onClick={() => toggleItem(`mob_${faq.id}`)}
                         className="w-full text-left p-6 pt-2 flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors"
                       >
                         <h3 className="font-semibold text-gray-900 text-lg flex-1">
                           {faq.question}
                         </h3>
                         <svg
-                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(faq.globalIndex) ? "rotate-180" : ""}`}
+                          className={`w-5 h-5 text-[#C8102E] transition-transform duration-300 ${openItems.includes(`mob_${faq.id}`) ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -346,7 +344,7 @@ const FAQ: React.FC = () => {
                         </svg>
                       </button>
                       <div
-                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(faq.globalIndex)
+                        className={`transition-all duration-500 overflow-hidden ${openItems.includes(`mob_${faq.id}`)
                           ? "max-h-96 opacity-100"
                           : "max-h-0 opacity-0"
                           }`}
@@ -372,26 +370,30 @@ const FAQ: React.FC = () => {
                 }
               >
                 <h3 className="text-xl font-bold mb-2">
-                  Still have questions?
+                  {faqData.support.title}
                 </h3>
                 <p className="text-red-100 mb-4">
-                  Please reach out to our support team for further help.
+                  {faqData.support.description}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <a
-                    href="mailto:research@wmsu.edu.ph"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2 transform hover:scale-100"
-                  >
-                    {ContactIcons.email}
-                    Email Support
-                  </a>
-                  <a
-                    href="tel:+63629914569"
-                    className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2 transform hover:scale-100"
-                  >
-                    {ContactIcons.phone}
-                    Call Now
-                  </a>
+                  {faqData.support.email && (
+                     <a
+                       href={`mailto:${faqData.support.email}`}
+                       className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2 transform hover:scale-100"
+                     >
+                       {ContactIcons.email}
+                       Email Support
+                     </a>
+                  )}
+                  {faqData.support.phone && (
+                     <a
+                       href={`tel:${faqData.support.phone}`}
+                       className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2 transform hover:scale-100"
+                     >
+                       {ContactIcons.phone}
+                       Call Now
+                     </a>
+                  )}
                 </div>
               </div>
             </div>

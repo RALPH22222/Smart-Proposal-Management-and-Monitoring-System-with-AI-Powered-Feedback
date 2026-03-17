@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ContactsSection } from './components/ContactsSection';
 import { AboutSection } from "./components/AboutSection";
+import { FaqSection } from "./components/FaqSection";
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
@@ -9,9 +10,9 @@ const ContentManagement: React.FC = () => {
   const tabs = [
     { id: 'guidelines', label: 'Guidelines & Resources', icon: '📋' },
     { id: 'templates', label: 'Proposal Templates', icon: '📄' },
-    { id: 'static', label: 'Static Pages', icon: '📝' },
     { id: 'about', label: 'About Page', icon: 'ℹ️' },
     { id: 'contacts', label: 'Contact Info', icon: '📞' },
+    { id: 'faq', label: 'FAQ Page', icon: '❓' },
     { id: 'media', label: 'Media Library', icon: '🖼️' }
   ];
 
@@ -52,13 +53,12 @@ const ContentManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab Content */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-1 overflow-y-auto'>
         {activeTab === 'guidelines' && <GuidelinesSection />}
         {activeTab === 'templates' && <TemplatesSection />}
-        {activeTab === 'static' && <StaticPagesSection />}
         {activeTab === 'about' && <AboutSection />}
         {activeTab === 'contacts' && <ContactsSection />}
+        {activeTab === 'faq' && <FaqSection />}
         {activeTab === 'media' && <MediaLibrarySection />}
       </div>
     </div>
@@ -88,24 +88,7 @@ const GuidelinesSection: React.FC = () => {
     }
   ]);
 
-  const [faqs, setFaqs] = useState([
-    {
-      id: 1,
-      question: 'How do I submit a proposal?',
-      answer:
-        "Navigate to the proposals section and click 'New Proposal' to start the submission process."
-    },
-    {
-      id: 2,
-      question: 'What is the deadline for submissions?',
-      answer:
-        'The deadline varies by quarter. Check the announcements section for current deadlines.'
-    }
-  ]);
-
   const [showUpload, setShowUpload] = useState(false);
-  const [showFaqEditor, setShowFaqEditor] = useState(false);
-  const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
 
   return (
     <div className='p-4 sm:p-6'>
@@ -201,85 +184,6 @@ const GuidelinesSection: React.FC = () => {
                   Delete
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* FAQ Section */}
-      <div>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4'>
-          <h3 className='text-base sm:text-lg font-medium text-gray-900'>
-            Frequently Asked Questions
-          </h3>
-          <button
-            onClick={() => setShowFaqEditor(true)}
-            className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto text-sm sm:text-base'
-          >
-            + Add FAQ
-          </button>
-        </div>
-
-        {showFaqEditor && (
-          <div className='mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50'>
-            <h4 className='text-base sm:text-lg font-medium mb-4'>Add New FAQ</h4>
-            <div className='space-y-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Question
-                </label>
-                <input
-                  type='text'
-                  value={newFaq.question}
-                  onChange={(e) =>
-                    setNewFaq({ ...newFaq, question: e.target.value })
-                  }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base'
-                  placeholder='Enter question'
-                />
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Answer
-                </label>
-                <textarea
-                  value={newFaq.answer}
-                  onChange={(e) =>
-                    setNewFaq({ ...newFaq, answer: e.target.value })
-                  }
-                  rows={3}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base'
-                  placeholder='Enter answer'
-                />
-              </div>
-              <div className='flex gap-2 flex-wrap'>
-                <button
-                  onClick={() => {
-                    const faq = { id: Date.now(), ...newFaq };
-                    setFaqs([...faqs, faq]);
-                    setNewFaq({ question: '', answer: '' });
-                    setShowFaqEditor(false);
-                  }}
-                  className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base'
-                >
-                  Add FAQ
-                </button>
-                <button
-                  onClick={() => setShowFaqEditor(false)}
-                  className='bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base'
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className='space-y-4'>
-          {faqs.map((faq) => (
-            <div key={faq.id} className='border border-gray-200 rounded-lg p-4'>
-              <h4 className='font-medium text-gray-900 mb-2 text-sm sm:text-base'>{faq.question}</h4>
-              <p className='text-gray-600 text-sm sm:text-base'>{faq.answer}</p>
             </div>
           ))}
         </div>
@@ -407,179 +311,6 @@ const TemplatesSection: React.FC = () => {
           </div>
         ))}
       </div>
-    </div>
-  );
-};
-
-// Static Pages Section
-const StaticPagesSection: React.FC = () => {
-  const [pages] = useState([
-    {
-      id: 1,
-      title: 'About the System',
-      slug: 'about',
-      lastModified: '2024-02-15',
-      status: 'published'
-    },
-    {
-      id: 2,
-      title: 'Mission & Vision',
-      slug: 'mission-vision',
-      lastModified: '2024-02-10',
-      status: 'published'
-    },
-    {
-      id: 3,
-      title: 'Contact Information',
-      slug: 'contact',
-      lastModified: '2024-02-08',
-      status: 'draft'
-    },
-    {
-      id: 4,
-      title: 'Privacy Policy',
-      slug: 'privacy',
-      lastModified: '2024-01-20',
-      status: 'published'
-    }
-  ]);
-
-  const [showEditor, setShowEditor] = useState(false);
-  const [editingPage, setEditingPage] = useState<(typeof pages)[number] | null>(
-    null
-  );
-
-  const handleEditPage = (page: (typeof pages)[number]) => {
-    setEditingPage(page);
-    setShowEditor(true);
-  };
-
-  return (
-    <div className='p-4 sm:p-6'>
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6'>
-        <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>
-          Static Pages & Content
-        </h2>
-        <button
-          onClick={() => setShowEditor(true)}
-          className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto text-sm sm:text-base'
-        >
-          + New Page
-        </button>
-      </div>
-
-      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6'>
-        {pages.map((page) => (
-          <div
-            key={page.id}
-            className='border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow'
-          >
-            <div className='flex justify-between items-start mb-4'>
-              <div className="min-w-0 flex-1">
-                <h3 className='text-base sm:text-lg font-semibold text-gray-900 truncate'>
-                  {page.title}
-                </h3>
-                <p className='text-xs sm:text-sm text-gray-500 truncate'>/{page.slug}</p>
-              </div>
-              <span
-                className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ml-2 ${
-                  page.status === 'published'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}
-              >
-                {page.status}
-              </span>
-            </div>
-
-            <div className='text-xs sm:text-sm text-gray-600 mb-4'>
-              Last modified: {page.lastModified}
-            </div>
-
-            <div className='flex gap-2 flex-wrap'>
-              <button
-                onClick={() => handleEditPage(page)}
-                className='flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm'
-              >
-                Edit
-              </button>
-              <button className='px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs sm:text-sm'>
-                Preview
-              </button>
-              <button className='px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs sm:text-sm'>
-                {page.status === 'published' ? 'Unpublish' : 'Publish'}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showEditor && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4'>
-          <div className='bg-white rounded-lg p-4 sm:p-6 w-full max-w-2xl sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
-            <div className='flex justify-between items-center mb-4'>
-              <h3 className='text-lg font-semibold'>
-                {editingPage ? `Edit ${editingPage.title}` : 'Create New Page'}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowEditor(false);
-                  setEditingPage(null);
-                }}
-                className='text-gray-500 hover:text-gray-700 text-xl'
-              >
-                ✕
-              </button>
-            </div>
-            <div className='space-y-4'>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Page Title
-                </label>
-                <input
-                  type='text'
-                  defaultValue={editingPage?.title || ''}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base'
-                />
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Slug
-                </label>
-                <input
-                  type='text'
-                  defaultValue={editingPage?.slug || ''}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base'
-                />
-              </div>
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  Content
-                </label>
-                <textarea
-                  rows={8}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base'
-                  placeholder='Enter page content...'
-                />
-              </div>
-              <div className='flex gap-2 flex-wrap'>
-                <button className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base'>
-                  Save Page
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEditor(false);
-                    setEditingPage(null);
-                  }}
-                  className='bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base'
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
