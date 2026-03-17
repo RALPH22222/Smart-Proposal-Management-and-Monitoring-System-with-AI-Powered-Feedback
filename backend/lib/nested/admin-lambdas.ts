@@ -179,7 +179,11 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-update-late-submission-policy",
       entry: path.resolve("src", "handlers", "admin", "update-late-submission-policy.ts"),
       role: sharedRole,
-      environment: sharedEnv,
+      environment: {
+        SUPABASE_KEY: supabaseKey,
+        SUPABASE_SECRET_JWT: supabaseSecretJwt,
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+      },
     });
 
     this.getNotifications = new NodejsFunction(this, "get-notifications", {

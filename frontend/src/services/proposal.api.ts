@@ -61,6 +61,33 @@ export function invalidateProposalCache(): void {
   }
 }
 
+// --- Batch lookup: fetches all lookup types in a single API call ---
+export type AllLookups = {
+  agencies: AgencyItem[];
+  departments: LookupItem[];
+  disciplines: LookupItem[];
+  sectors: LookupItem[];
+  tags: LookupItem[];
+  priorities: LookupItem[];
+  stations: LookupItem[];
+};
+
+export const fetchAllLookups = async (): Promise<AllLookups> => {
+  const cached = getCached<AllLookups>("all-lookups");
+  if (cached) return cached;
+  const { data } = await api.get<AllLookups>("/proposal/lookup");
+  setCache("all-lookups", data);
+  // Also populate individual caches so existing fetch* calls won't re-fetch
+  setCache("agencies", data.agencies);
+  setCache("departments", data.departments);
+  setCache("disciplines", data.disciplines);
+  setCache("sectors", data.sectors);
+  setCache("tags", data.tags);
+  setCache("priorities", data.priorities);
+  setCache("stations", data.stations);
+  return data;
+};
+
 export const fetchAgencies = async (): Promise<AgencyItem[]> => {
   const cached = getCached<AgencyItem[]>('agencies');
   if (cached) return cached;

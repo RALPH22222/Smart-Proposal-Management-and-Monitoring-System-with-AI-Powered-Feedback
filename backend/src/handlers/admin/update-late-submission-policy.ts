@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { supabase } from "../../lib/supabase";
+import { supabase, supabaseAdmin } from "../../lib/supabase";
 import { AdminService } from "../../services/admin.service";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
@@ -35,7 +35,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
-    const service = new AdminService(supabase);
+    const db = supabaseAdmin || supabase;
+    const service = new AdminService(db);
     const { data, error } = await service.updateLateSubmissionPolicy(result.data, auth.userId);
 
     if (error) {

@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
+import { LookupProvider } from "../../../context/LookupContext";
 
 // Import Page Components
 import Submission from "./submission";
@@ -32,13 +33,15 @@ const ProponentMainLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Navbar controls the URL params */}
-      <ProponentNavbar currentPage={currentTab} onPageChange={handlePageChange} />
+    <LookupProvider>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Navbar controls the URL params */}
+        <ProponentNavbar currentPage={currentTab} onPageChange={handlePageChange} />
 
-      {/* Main Content Area */}
-      <main className="flex-1 w-full h-full pt-20">{renderContent()}</main>
-    </div>
+        {/* Main Content Area */}
+        <main className="flex-1 w-full h-full pt-20">{renderContent()}</main>
+      </div>
+    </LookupProvider>
   );
 };
 

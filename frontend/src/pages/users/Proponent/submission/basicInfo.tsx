@@ -16,8 +16,9 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { fetchAgencies, fetchTags, fetchAgencyAddresses, generateTags } from "../../../../services/proposal.api";
+import { fetchAgencyAddresses, generateTags } from "../../../../services/proposal.api";
 import type { AgencyItem } from "../../../../services/proposal.api";
+import { useLookups } from "../../../../context/LookupContext";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Tooltip from "../../../../components/Tooltip";
 import type { FormData } from "../../../../types/proponent-form";
@@ -32,6 +33,7 @@ interface BasicInformationProps {
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate }) => {
   const { user } = useAuthContext();
+  const lookups = useLookups();
 
   // --- STATE ---
   const [agenciesList, setAgenciesList] = useState<AgencyItem[]>([]);
@@ -73,22 +75,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [filteredBarangays, setFilteredBarangays] = useState<{ code: string; name: string }[]>([]);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [agenciesData, tagsData] = await Promise.all([
-          fetchAgencies().catch(() => []),
-          fetchTags().catch(() => []),
-        ]);
-        setAgenciesList(agenciesData || []);
-        setTagsList(tagsData || []);
-      } catch (error) {
-        console.error("Error loading basic info data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    if (!lookups.loading) {
+      setAgenciesList(lookups.agencies);
+      setTagsList(lookups.tags);
+      setIsLoading(false);
+    }
+  }, [lookups.loading]);
 
+  useEffect(() => {
     // Load PSGC Cities
     const loadCities = async () => {
       try {

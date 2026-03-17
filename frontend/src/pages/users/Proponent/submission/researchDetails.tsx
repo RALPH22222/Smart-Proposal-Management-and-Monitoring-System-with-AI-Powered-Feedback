@@ -19,8 +19,8 @@ import {
 import type { FormData } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
 
-// --- IMPORT API SERVICES ---
-import { fetchStations, fetchSectors, fetchDisciplines, fetchPriorities } from "../../../../services/proposal.api";
+// --- IMPORT LOOKUP CONTEXT ---
+import { useLookups } from "../../../../context/LookupContext";
 
 
 interface ResearchDetailsProps {
@@ -30,6 +30,8 @@ interface ResearchDetailsProps {
 
 // Fixed: Removed unused 'onInputChange' from destructuring
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate }) => {
+  const lookups = useLookups();
+
   // --- Data Source State ---
   const [stationsList, setStationsList] = useState<{ id: number; name: string }[]>([]);
   const [sectorsList, setSectorsList] = useState<{ id: number; name: string }[]>([]);
@@ -83,54 +85,18 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
 
 
-  // --- 1. FETCH DATA ON MOUNT ---
+  // --- 1. LOAD LOOKUP DATA FROM CONTEXT ---
   useEffect(() => {
-    const loadData = async () => {
-      // 1. Prepare Static Data (SDGs) immediately
-      // const sdgItems = SDG_GOALS.map((name, index) => ({
-      //   id: 9000 + index,
-      //   name: name,
-      // }));
+    if (!lookups.loading) {
+      if (lookups.stations.length > 0) setStationsList(lookups.stations);
+      if (lookups.sectors.length > 0) setSectorsList(lookups.sectors);
+      if (lookups.disciplines.length > 0) setDisciplinesList(lookups.disciplines);
+      if (lookups.priorities.length > 0) setPrioritiesList([...lookups.priorities]);
+      setIsLoading(false);
+    }
+  }, [lookups.loading]);
 
-      // Initialize with SDGs so they appear even if API fails
-      // setPrioritiesList(sdgItems);
-
-      try {
-        // 2. Fetch API Data with Fallbacks
-        const [stations, sectors, disciplines, priorities] = await Promise.all([
-          fetchStations().catch((err) => {
-            console.warn("Stations fetch failed", err);
-            return [];
-          }),
-          fetchSectors().catch((err) => {
-            console.warn("Sectors fetch failed", err);
-            return [];
-          }),
-          fetchDisciplines().catch((err) => {
-            console.warn("Disciplines fetch failed", err);
-            return [];
-          }),
-          fetchPriorities().catch((err) => {
-            console.warn("Priorities fetch failed", err);
-            return [];
-          }),
-        ]);
-
-        if (stations && stations.length > 0) setStationsList(stations);
-        if (sectors && sectors.length > 0) setSectorsList(sectors);
-        if (disciplines && disciplines.length > 0) setDisciplinesList(disciplines);
-
-        // Merge API priorities with SDG list
-        if (priorities && priorities.length > 0) {
-          setPrioritiesList([...priorities]);
-        }
-      } catch (error) {
-        console.error("Critical error loading research details options", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+  useEffect(() => {
 
     // --- LOAD PSGC CITIES ---
     const loadCities = async () => {

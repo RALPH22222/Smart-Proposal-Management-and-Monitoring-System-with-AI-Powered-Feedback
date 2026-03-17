@@ -13,17 +13,8 @@ import {
   getProgressPercentageByIndex,
   getStatusLabelByIndex,
 } from "../../../types/helpers";
-import {
-  getProposals,
-  fetchAgencies,
-  fetchSectors,
-  fetchDisciplines,
-  fetchPriorities,
-  fetchStations,
-  fetchTags,
-  fetchDepartments,
-  type LookupItem,
-} from "../../../services/proposal.api";
+import { getProposals } from "../../../services/proposal.api";
+import { useLookups } from "../../../context/LookupContext";
 
 import { useAuthContext } from "../../../context/AuthContext";
 import SecureImage from "../../../components/shared/SecureImage";
@@ -102,14 +93,8 @@ const Profile: React.FC = () => {
   const [rawProposals, setRawProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Lookup Data States
-  const [agencies, setAgencies] = useState<LookupItem[]>([]);
-  const [sectors, setSectors] = useState<LookupItem[]>([]);
-  const [disciplines, setDisciplines] = useState<LookupItem[]>([]);
-  const [priorities, setPriorities] = useState<LookupItem[]>([]);
-  const [stations, setStations] = useState<LookupItem[]>([]);
-  const [tags, setTags] = useState<LookupItem[]>([]);
-  const [departments, setDepartments] = useState<LookupItem[]>([]);
+  // Lookup data from context (fetched once at layout level)
+  const { agencies, sectors, disciplines, priorities, stations, tags, departments } = useLookups();
 
   const notifRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -209,34 +194,6 @@ const Profile: React.FC = () => {
     fetchProposals();
   }, [user]);
 
-  // Fetch Lookups
-  React.useEffect(() => {
-    const loadLookups = async () => {
-      try {
-        const [agenciesData, sectorsData, disciplinesData, prioritiesData, stationsData, tagsData, departmentsData] =
-          await Promise.all([
-            fetchAgencies(),
-            fetchSectors(),
-            fetchDisciplines(),
-            fetchPriorities(),
-            fetchStations(),
-            fetchTags(),
-            fetchDepartments(),
-          ]);
-
-        setAgencies(agenciesData);
-        setSectors(sectorsData);
-        setDisciplines(disciplinesData);
-        setPriorities(prioritiesData);
-        setStations(stationsData);
-        setTags(tagsData);
-        setDepartments(departmentsData);
-      } catch (error) {
-        console.error("Failed to fetch lookup data:", error);
-      }
-    };
-    loadLookups();
-  }, []);
 
   // Close notifications when clicking outside
   React.useEffect(() => {

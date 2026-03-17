@@ -324,6 +324,7 @@ export class BackendStack extends Stack {
       .addMethod(HttpMethod.GET, integrate(proposalL.getEvaluatorStats), protectedRoute);
 
     const lookup = proposal.addResource("lookup");
+    lookup.addMethod(HttpMethod.GET, integrate(proposalL.getAllLookups), protectedRoute);
     lookup.addResource("{type}").addMethod(HttpMethod.GET, integrate(proposalL.getLookup), protectedRoute);
 
     proposal

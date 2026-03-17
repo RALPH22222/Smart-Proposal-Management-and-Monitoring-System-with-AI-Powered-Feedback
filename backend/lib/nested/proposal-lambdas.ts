@@ -36,6 +36,7 @@ export class ProposalLambdas extends NestedStack {
   public readonly getProposalRnd: NodejsFunction;
   public readonly getProposalEvaluator: NodejsFunction;
   public readonly getLookup: NodejsFunction;
+  public readonly getAllLookups: NodejsFunction;
   public readonly endorseForFunding: NodejsFunction;
   public readonly getProposalsForEndorsement: NodejsFunction;
   public readonly submitRevised: NodejsFunction;
@@ -90,6 +91,7 @@ export class ProposalLambdas extends NestedStack {
     this.getProposalRnd = simple("get-proposal-rnd", "pms-get-proposal-rnd", "get-proposal-rnd.ts");
     this.getProposalEvaluator = simple("get-proposal-evaluator", "pms-get-proposal-evaluator", "get-proposal-evaluator.ts");
     this.getLookup = simple("get-lookup", "pms-get-lookup", "get-lookup.ts");
+    this.getAllLookups = simple("get-all-lookups", "pms-get-all-lookups", "get-all-lookups.ts");
     this.endorseForFunding = simple("endorse-for-funding", "pms-endorse-for-funding", "endorse-for-funding.ts");
     this.getProposalsForEndorsement = simple("get-proposals-for-endorsement", "pms-get-proposals-for-endorsement", "get-proposals-for-endorsement.ts");
     this.submitRevised = simple("submit-revised", "pms-submit-revised-proposal", "submit-revised-proposal.ts");

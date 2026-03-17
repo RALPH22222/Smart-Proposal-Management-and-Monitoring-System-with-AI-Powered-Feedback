@@ -100,12 +100,15 @@ export function setCookieString(
 }
 
 export function parseCookie(cookie_str: string) {
-  const cookie_arr = cookie_str.split(";");
   const cookies: Record<string, string> = {};
+  if (!cookie_str) return cookies;
 
-  cookie_arr.forEach((data) => {
-    const [key, value] = data.split("=");
-    cookies[key] = value;
+  cookie_str.split(";").forEach((data) => {
+    const idx = data.indexOf("=");
+    if (idx === -1) return;
+    const key = data.substring(0, idx).trim();
+    const value = data.substring(idx + 1).trim();
+    if (key) cookies[key] = value;
   });
 
   return cookies;
