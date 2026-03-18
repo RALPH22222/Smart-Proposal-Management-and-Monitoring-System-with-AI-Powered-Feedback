@@ -25,6 +25,7 @@ import { endorseProposal, requestRevision, rejectProposal, fetchUsersByRole } fr
 import { useAuthContext } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 const AdminEndorsementPage: React.FC = () => {
   const { user } = useAuthContext();
@@ -517,7 +518,7 @@ const AdminEndorsementPage: React.FC = () => {
                                     </span>
                                   </div>
                                   <span className="text-xs text-slate-500">
-                                    {new Date(decision.submittedDate).toLocaleDateString()}
+                                    {formatDate(decision.submittedDate)}
                                   </span>
                                 </div>
 

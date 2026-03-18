@@ -19,6 +19,7 @@ import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
@@ -237,7 +238,7 @@ const FundingPage: React.FC = () => {
                           {/* Date Submitted */}
                           <div className="flex items-center gap-1.5 font-semibold">
                             <Calendar className="w-3.5 h-3.5"/>
-                            <span>Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
+                            <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                           </div>
 
                           {/* Tags */}

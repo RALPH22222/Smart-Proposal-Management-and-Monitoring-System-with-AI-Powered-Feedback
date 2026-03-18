@@ -16,6 +16,7 @@ import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProp
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
 import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 import { api } from '../../../utils/axios';
+import { formatDate } from '../../../utils/date-formatter';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 import PageLoader from '../../../components/shared/PageLoader';
@@ -230,7 +231,7 @@ const AdminFundingPage: React.FC = () => {
                               {/* Date Submitted */}
                               <div className="flex items-center gap-1.5 font-semibold">
                                 <Calendar className="w-3.5 h-3.5"/>
-                                <span>Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}</span>
+                                <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                               </div>
 
 

@@ -161,7 +161,7 @@ export const proposalApi = {
                 else if (status === 'revision_rnd') stats.revisionRequiredProposals++;
 
                 const date = new Date(p.created_at);
-                const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                const monthYear = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' }).format(date);
                 monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
             });
 
@@ -171,7 +171,7 @@ export const proposalApi = {
 
             if (stats.monthlySubmissions.length === 0) {
                 const today = new Date();
-                const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                const monthYear = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' }).format(today);
                 stats.monthlySubmissions.push({ month: monthYear, count: 0 });
             }
 

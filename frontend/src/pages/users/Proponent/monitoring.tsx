@@ -34,6 +34,7 @@ import {
   type DisplayReport,
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
+import { formatDate } from '../../../utils/date-formatter';
 
 // --- Types ---
 type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked';
@@ -546,7 +547,7 @@ const MonitoringPage: React.FC = () => {
                     <div className="inline-flex items-center gap-3 bg-blue-950/50 rounded-full px-6 py-2 border border-blue-500/30">
                       <CalendarCheck className="w-5 h-5 text-yellow-400" />
                       <span className="font-medium text-blue-100 text-sm">
-                        {new Date(activeProject.startDate).toLocaleDateString()} to {new Date(activeProject.endDate).toLocaleDateString()}
+                        {formatDate(activeProject.startDate)} to {formatDate(activeProject.endDate)}
                       </span>
                     </div>
                   </div>
@@ -563,7 +564,7 @@ const MonitoringPage: React.FC = () => {
                       </div>
                       <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{activeProject.title}</h2>
                       <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                        <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Ends: {new Date(activeProject.endDate).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Ends: {formatDate(activeProject.endDate)}</span>
                       </div>
                     </div>
                     <button

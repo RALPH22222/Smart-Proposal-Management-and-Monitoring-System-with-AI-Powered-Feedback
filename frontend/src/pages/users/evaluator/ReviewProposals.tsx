@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
+import { formatDate } from "../../../utils/date-formatter";
 import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, FileClock, ScanSearch} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 import PageLoader from "../../../components/shared/PageLoader";
@@ -76,7 +77,7 @@ export default function EndorsedProposals() {
         return {
           id: p.id,
           title: p.project_title || "Untitled",
-          reviewDeadline: item.deadline_at ? new Date(item.deadline_at).toLocaleDateString() : "N/A",
+          reviewDeadline: item.deadline_at ? formatDate(item.deadline_at) : "N/A",
           proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
           tags: (p.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           agency: p.agency?.name || "N/A",

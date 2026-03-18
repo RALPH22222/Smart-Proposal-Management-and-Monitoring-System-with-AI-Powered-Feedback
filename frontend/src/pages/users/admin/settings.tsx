@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
+import { formatDateTime } from '../../../utils/date-formatter';
 import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 import { ContactsSection } from './components/ContactsSection';
 
@@ -528,7 +529,7 @@ const SystemSection: React.FC = () => {
           {policy.enabled && policy.type === 'until_date' && (
             <p className='text-sm text-gray-700'>
               Late submissions are <span className='font-semibold text-green-600'>allowed</span> until{' '}
-              <span className='font-semibold'>{new Date(policy.deadline).toLocaleString()}</span>.
+              <span className='font-semibold'>{formatDateTime(policy.deadline)}</span>.
             </p>
           )}
         </div>

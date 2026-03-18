@@ -42,7 +42,7 @@ const AdminLayout: React.FC = () => {
         const dateStr = p.created_at || (p.proposal_id && p.proposal_id.created_at);
         if (dateStr) {
           const date = new Date(dateStr);
-          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
           monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
         }
       });
@@ -53,7 +53,7 @@ const AdminLayout: React.FC = () => {
 
       if (monthly_submissions.length === 0) {
         const today = new Date();
-        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
         monthly_submissions.push({ month: monthYear, count: 0 });
       }
 

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { api } from "../utils/axios";
+import { formatDate } from "../utils/date-formatter";
 import { type Project, type ProjectStatus } from "../types/InterfaceProject";
 
 // ─── Report File Upload Constants ────────────────────────────────────
@@ -279,7 +280,7 @@ export function buildDisplayReports(
         proofs: apiReport.report_file_url || [],
         submittedBy: undefined, // Could fetch from submitted_by_proponent_id if needed
         dateSubmitted: apiReport.created_at
-          ? new Date(apiReport.created_at).toLocaleDateString()
+          ? formatDate(apiReport.created_at)
           : undefined,
       };
     }

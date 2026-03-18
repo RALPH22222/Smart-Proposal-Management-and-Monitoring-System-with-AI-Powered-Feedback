@@ -27,6 +27,7 @@ import {
 
 } from "lucide-react";
 import { fetchAgencyAddresses, fetchDepartments, fetchRejectionSummary, type AddressItem, type LookupItem } from "../../services/proposal.api";
+import { formatDateShort, formatDate } from "../../utils/date-formatter";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -94,22 +95,6 @@ interface AdminViewModalProps {
 }
 
 // --- HELPER FUNCTIONS ---
-
-// Format YYYY-MM-DD to MM/DD/YYYY for display
-const formatDateForDisplay = (dateStr: string) => {
-  if (!dateStr) return "N/A";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
-  } catch {
-    return dateStr;
-  }
-};
 
 // Format classification type - remove "_class" suffix first
 const formatClassificationType = (str: string) => {
@@ -517,7 +502,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 </p>
                 {rejectionDate && (
                   <p className="text-xs text-slate-500 mt-2 text-right italic">
-                    Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                    Rejected on: {formatDate(rejectionDate)}
                   </p>
                 )}
               </div>
@@ -563,7 +548,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                     {p.projectFile || "Full Project Proposal.pdf"}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {p.submittedDate ? `Submitted: ${formatDateForDisplay(p.submittedDate)}` : "Current Version"}
+                    {p.submittedDate ? `Submitted: ${formatDateShort(p.submittedDate)}` : "Current Version"}
                   </p>
                 </div>
               </div>
@@ -745,11 +730,11 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.startDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.startDate)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">End Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.endDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.endDate)}</p>
               </div>
             </div>
           </div>

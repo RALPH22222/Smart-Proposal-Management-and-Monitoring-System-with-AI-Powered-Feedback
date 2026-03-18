@@ -41,12 +41,13 @@ export class AuthLambdas extends NestedStack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
+    const TZ = "Asia/Manila";
 
     this.authorizer = new NodejsFunction(this, "authorizer", {
       ...defaults,
       functionName: "pms-authorizer",
       entry: path.resolve("src", "handlers", "auth", "authorizer.ts"),
-      environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt },
+      environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt, TZ },
     });
 
     this.cors = new NodejsFunction(this, "cors", {
@@ -54,7 +55,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-cors",
       entry: path.resolve("src", "handlers", "cors.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey },
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
 
     this.login = new NodejsFunction(this, "login", {
@@ -62,7 +63,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-login",
       entry: path.resolve("src", "handlers", "auth", "login.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey },
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
 
     this.signup = new NodejsFunction(this, "sign-up", {
@@ -77,6 +78,7 @@ export class AuthLambdas extends NestedStack {
         SMTP_PASS: smtpPass,
         FRONTEND_URL: frontendUrl,
         PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+        TZ,
       },
     });
     profileSetupBucket.grantPut(this.signup);
@@ -86,7 +88,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-confirm-email",
       entry: path.resolve("src", "handlers", "auth", "confirm-email.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey, FRONTEND_URL: frontendUrl },
+      environment: { SUPABASE_KEY: supabaseKey, FRONTEND_URL: frontendUrl, TZ },
     });
 
     this.profileSetup = new NodejsFunction(this, "profile-setup", {
@@ -96,6 +98,7 @@ export class AuthLambdas extends NestedStack {
       environment: {
         SUPABASE_KEY: supabaseKey,
         PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+        TZ,
       },
     });
     profileSetupBucket.grantPut(this.profileSetup);
@@ -105,7 +108,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-verify-otp",
       entry: path.resolve("src", "handlers", "auth", "verify-otp.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey },
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
 
     this.changePassword = new NodejsFunction(this, "change-password", {
@@ -113,7 +116,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-change-password",
       entry: path.resolve("src", "handlers", "auth", "change-password.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey },
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
 
     this.profileStatus = new NodejsFunction(this, "profile-status", {
@@ -121,7 +124,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-profile-status",
       entry: path.resolve("src", "handlers", "auth", "profile-status.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey },
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
 
     this.completeInvite = new NodejsFunction(this, "complete-invite", {
@@ -131,6 +134,7 @@ export class AuthLambdas extends NestedStack {
       environment: {
         SUPABASE_KEY: supabaseKey,
         PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+        TZ,
       },
     });
     profileSetupBucket.grantPut(this.completeInvite);
@@ -140,7 +144,7 @@ export class AuthLambdas extends NestedStack {
       functionName: "pms-verify-token",
       entry: path.resolve("src", "handlers", "auth", "verify-token.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt },
+      environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt, TZ },
     });
   }
 }

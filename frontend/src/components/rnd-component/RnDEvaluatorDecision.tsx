@@ -12,6 +12,7 @@ import {
 	Building2,
 	Mail
 } from 'lucide-react';
+import { formatDate, formatTime } from '../../utils/date-formatter';
 
 interface EvaluatorDecision {
 	evaluatorId: string;
@@ -197,11 +198,11 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 									<div className="flex items-center gap-3 mt-1 text-sm text-slate-600">
 										<div className="flex items-center gap-2">
 											<Calendar className="w-4 h-4" />
-											<span>{new Date(decision.submittedDate).toLocaleDateString()}</span>
+											<span>{formatDate(decision.submittedDate)}</span>
 										</div>
 										<div className="flex items-center gap-2">
 											<Clock className="w-4 h-4" />
-											<span>{new Date(decision.submittedDate).toLocaleTimeString()}</span>
+											<span>{formatTime(decision.submittedDate)}</span>
 										</div>
 									</div>
 								</div>

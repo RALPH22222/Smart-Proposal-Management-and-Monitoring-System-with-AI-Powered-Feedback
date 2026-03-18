@@ -31,6 +31,7 @@ import {
 import Swal from 'sweetalert2';
 import { useAuthContext } from '../../../context/AuthContext';
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
@@ -593,7 +594,7 @@ const EndorsePage: React.FC = () => {
                                     </span>
                                   </div>
                                   <span className="text-xs text-slate-500">
-                                    {new Date(decision.submittedDate).toLocaleDateString()}
+                                    {formatDate(decision.submittedDate)}
                                   </span>
                                 </div>
 

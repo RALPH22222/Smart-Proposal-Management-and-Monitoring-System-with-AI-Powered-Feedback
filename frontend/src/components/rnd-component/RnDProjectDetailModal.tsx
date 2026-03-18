@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../utils/signed-url';
+import { formatDate } from '../../utils/date-formatter';
 import { type Project } from '../../types/InterfaceProject';
 import { useAuthContext } from '../../context/AuthContext';
 import {
@@ -267,7 +268,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                     : 'N/A'}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                   {new Date(project.startDate).toLocaleDateString()} — {new Date(project.endDate).toLocaleDateString()}
+                   {formatDate(project.startDate)} — {formatDate(project.endDate)}
                 </p>
              </div>
           </div>
@@ -473,7 +474,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                 <div className="bg-amber-50 px-5 py-3 flex justify-between items-center border-b border-amber-200">
                                   <div>
                                     <span className="font-bold text-amber-800">{quarterLabel} Fund Request</span>
-                                    <p className="text-xs text-amber-600 mt-0.5">By {requestedBy} &middot; {new Date(fr.created_at).toLocaleDateString()}</p>
+                                    <p className="text-xs text-amber-600 mt-0.5">By {requestedBy} &middot; {formatDate(fr.created_at)}</p>
                                   </div>
                                   <span className="text-lg font-bold text-amber-800">₱{totalAmount.toLocaleString()}</span>
                                 </div>
@@ -658,14 +659,14 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                        <div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500"></div>
                        <div>
                        <p className="text-xs text-slate-500 font-medium">Start Date</p>
-                       <p className="text-sm font-bold text-slate-800">{new Date(project.startDate).toLocaleDateString()}</p>
+                       <p className="text-sm font-bold text-slate-800">{formatDate(project.startDate)}</p>
                        </div>
                     </div>
                     <div className="flex items-start gap-3">
                        <div className={`w-2 h-2 mt-1.5 rounded-full ${project.status === 'Completed' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
                        <div>
                        <p className="text-xs text-slate-500 font-medium">Target End</p>
-                       <p className="text-sm font-bold text-slate-800">{new Date(project.endDate).toLocaleDateString()}</p>
+                       <p className="text-sm font-bold text-slate-800">{formatDate(project.endDate)}</p>
                        </div>
                     </div>
                  </div>

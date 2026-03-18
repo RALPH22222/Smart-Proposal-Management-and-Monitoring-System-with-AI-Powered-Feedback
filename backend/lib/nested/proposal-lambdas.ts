@@ -65,7 +65,7 @@ export class ProposalLambdas extends NestedStack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass, TZ: "Asia/Manila" };
 
     // Helper for the common case: shared role + SUPABASE_KEY only
     const simple = (id: string, fnName: string, handler: string) =>
@@ -120,6 +120,7 @@ export class ProposalLambdas extends NestedStack {
       environment: {
         SUPABASE_KEY: supabaseKey,
         PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
+        TZ: "Asia/Manila",
       },
     });
     proposalBucket.grantPut(this.getUploadUrl);
@@ -158,7 +159,7 @@ export class ProposalLambdas extends NestedStack {
       timeout: Duration.seconds(30),
       entry: path.resolve("src", "handlers", "proposal", "generate-tags.ts"),
       role: sharedRole,
-      environment: { SUPABASE_KEY: supabaseKey, GEMINI_API_KEY: geminiApiKey },
+      environment: { SUPABASE_KEY: supabaseKey, GEMINI_API_KEY: geminiApiKey, TZ: "Asia/Manila" },
     });
   }
 }

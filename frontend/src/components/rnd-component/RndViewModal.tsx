@@ -28,6 +28,7 @@ import {
   Edit,
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
+import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -54,6 +55,7 @@ export interface ModalProposalData {
   submittedDate: string;
   lastModified?: string;
   proponent: string;
+  proponentDepartment?: string;
   agency: string;
   address: string;
   telephone: string;
@@ -96,21 +98,6 @@ interface RndViewModalProps {
 
 // --- HELPER FUNCTIONS ---
 
-// Format YYYY-MM-DD to MM/DD/YYYY for display
-const formatDateForDisplay = (dateStr: string) => {
-  if (!dateStr) return "N/A";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
-  } catch {
-    return dateStr;
-  }
-};
 
 const getOrdinal = (n: number) => {
   const s = ["th", "st", "nd", "rd"];
@@ -502,7 +489,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                   {(p.lastModified || p.submittedDate) && (
                     <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />
-                      Endorsed on <span className="font-semibold">{formatDateForDisplay(p.lastModified || p.submittedDate)}</span>
+                      Endorsed on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
                     </p>
                   )}
                 </div>
@@ -515,7 +502,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
 
           {['revised_proposal', 'revised proposal'].includes((p.status || '').toLowerCase()) && (() => {
             const revisionNumber = Math.max(1, (p.versions?.length || 2) - 1);
-            const submittedDate = p.revisedSubmittedAt ? formatDateForDisplay(p.revisedSubmittedAt) : null;
+            const submittedDate = p.revisedSubmittedAt ? formatDateShort(p.revisedSubmittedAt) : null;
             return (
               <div className="bg-slate-50 border border-amber-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
                 <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -590,15 +577,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                         <Timer className="w-5 h-5 text-orange-600 flex-shrink-0" />
                         <div className="text-xs text-orange-800">
                           <span className="font-bold">Submission deadline for proponent:</span>{" "}
-                          {new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                            timeZone: "Asia/Manila",
-                          })}
+                          {formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000))}
                         </div>
                       </div>
                     )}
@@ -625,7 +604,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 </p>
                 {rejectionDate && (
                   <p className="text-xs text-slate-500 mt-2 text-right italic">
-                    Rejected on: {new Date(rejectionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}
+                    Rejected on: {formatDate(rejectionDate)}
                   </p>
                 )}
               </div>
@@ -705,6 +684,11 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               <div>
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
                 <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent}</p>
+                {p.proponentDepartment && p.proponentDepartment !== "N/A" && (
+                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-1.5">
+                    <Briefcase className="w-3 h-3 text-slate-400" /> {p.proponentDepartment}
+                  </p>
+                )}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email}
@@ -859,11 +843,11 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.startDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.startDate)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">End Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.endDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.endDate)}</p>
               </div>
             </div>
           </div>

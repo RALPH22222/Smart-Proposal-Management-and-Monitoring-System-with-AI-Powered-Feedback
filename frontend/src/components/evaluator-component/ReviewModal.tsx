@@ -24,6 +24,7 @@ import {
   Lock,
   EyeOff,
 } from "lucide-react";
+import { formatDateShort } from "../../utils/date-formatter";
 
 const RATING_CRITERIA = {
   title: {
@@ -197,21 +198,6 @@ export default function ReviewModal({
       .split(/[_\s]+/)
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
-  };
-
-  const formatDateForDisplay = (dateStr: string) => {
-    if (!dateStr) return "N/A";
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return dateStr;
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(date);
-    } catch {
-      return dateStr;
-    }
   };
 
   const renderBreakdown = (items?: { item: string; amount: number }[]) => {
@@ -451,11 +437,11 @@ export default function ReviewModal({
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.startDate)}</p>
+                  <p className="text-sm font-medium text-slate-900">{formatDateShort(proposal.startDate)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-1">End Date</p>
-                  <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(proposal.endDate)}</p>
+                  <p className="text-sm font-medium text-slate-900">{formatDateShort(proposal.endDate)}</p>
                 </div>
               </div>
             </div>

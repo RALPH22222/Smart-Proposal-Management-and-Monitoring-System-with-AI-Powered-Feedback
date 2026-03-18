@@ -24,6 +24,7 @@ import {
   Lock,
   RefreshCw,
 } from "lucide-react";
+import { formatDateShort } from "../../utils/date-formatter";
 
 // --- LOCAL INTERFACES ---
 interface Site {
@@ -88,21 +89,6 @@ interface ProposalModalProps {
 }
 
 // --- HELPERS ---
-const formatDateForDisplay = (dateStr: string) => {
-  if (!dateStr) return "N/A";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(date);
-  } catch {
-    return dateStr;
-  }
-};
-
 const formatString = (str: string) => {
   if (!str) return "N/A";
   return str
@@ -349,7 +335,7 @@ export default function ProposalModal({
                     {p.projectFile || "Project_Proposal.pdf"}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {p.submittedDate ? `Submitted: ${formatDateForDisplay(p.submittedDate)}` : "Current Version"}
+                    {p.submittedDate ? `Submitted: ${formatDateShort(p.submittedDate)}` : "Current Version"}
                   </p>
                 </div>
               </div>
@@ -514,11 +500,11 @@ export default function ProposalModal({
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.startDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.startDate)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">End Date</p>
-                <p className="text-sm font-medium text-slate-900">{formatDateForDisplay(p.endDate)}</p>
+                <p className="text-sm font-medium text-slate-900">{formatDateShort(p.endDate)}</p>
               </div>
             </div>
           </div>

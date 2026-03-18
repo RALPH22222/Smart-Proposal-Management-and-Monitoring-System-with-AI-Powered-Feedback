@@ -47,7 +47,7 @@ export class ProjectLambdas extends NestedStack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass, TZ: "Asia/Manila" };
 
     const simple = (id: string, fnName: string, handler: string) =>
       new NodejsFunction(this, id, {
@@ -84,6 +84,7 @@ export class ProjectLambdas extends NestedStack {
         SUPABASE_KEY: supabaseKey,
         SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
         FRONTEND_URL: frontendUrl,
+        TZ: "Asia/Manila",
       },
     });
 
@@ -95,6 +96,7 @@ export class ProjectLambdas extends NestedStack {
       environment: {
         SUPABASE_KEY: supabaseKey,
         PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
+        TZ: "Asia/Manila",
       },
     });
     proposalBucket.grantPut(this.getReportUploadUrl);

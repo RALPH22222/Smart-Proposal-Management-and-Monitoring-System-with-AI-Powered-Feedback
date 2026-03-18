@@ -18,6 +18,7 @@ import { useLookups } from "../../../context/LookupContext";
 
 import { useAuthContext } from "../../../context/AuthContext";
 import SecureImage from "../../../components/shared/SecureImage";
+import { formatDateTime } from "../../../utils/date-formatter";
 
 const Loader3D = () => (
   <div className="flex flex-col items-center justify-center py-12 w-full">
@@ -513,7 +514,7 @@ const Profile: React.FC = () => {
   const dropdownNotifications = rawNotifs.map((n) => ({
     id: String(n.id),
     title: n.message,
-    time: new Date(n.created_at).toLocaleString(),
+    time: formatDateTime(n.created_at),
     read: n.is_read,
   }));
 

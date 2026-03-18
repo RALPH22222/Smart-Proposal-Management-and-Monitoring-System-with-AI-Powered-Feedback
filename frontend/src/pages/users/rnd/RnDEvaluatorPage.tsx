@@ -17,6 +17,7 @@ import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluato
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 // --- INTERFACES ---
 
@@ -321,7 +322,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
         if (isExtensionRequest) {
           status = "Extension Requested";
-          extensionDate = item.request_deadline_at ? new Date(item.request_deadline_at).toLocaleDateString() : "N/A";
+          extensionDate = item.request_deadline_at ? formatDate(item.request_deadline_at) : "N/A";
           extensionReason = item.remarks || "No reason provided";
         } else if (item.status === "accept" || item.status === "accepted") {
           status = "Accepts";
@@ -582,7 +583,7 @@ export const RnDEvaluatorPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Clock className="w-3 h-3" />
-                          <span>Deadline: {new Date(assignment.deadline).toLocaleDateString()}</span>
+                          <span>Deadline: {formatDate(assignment.deadline)}</span>
                         </div>
 
                         {/* Tags Display (Replaced Project Type) */}

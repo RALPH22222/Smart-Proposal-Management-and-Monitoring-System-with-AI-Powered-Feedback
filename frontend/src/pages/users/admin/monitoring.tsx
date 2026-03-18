@@ -20,6 +20,7 @@ import {
   PauseCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { formatDate } from '../../../utils/date-formatter';
 import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
 import { useAuthContext } from '../../../context/AuthContext';
 import { fetchFundedProjects, transformToProject, updateProjectStatus } from '../../../services/ProjectMonitoringApi';
@@ -368,7 +369,7 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Calendar className="w-3 h-3" />
-                              <span>{new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}</span>
+                              <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-medium text-slate-500">ID: {project.projectId}</span>

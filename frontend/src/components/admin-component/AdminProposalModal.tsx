@@ -27,6 +27,7 @@ import {
 import { type Evaluator } from '../../types/evaluator';
 import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserItem, type RejectionSummary } from '../../services/proposal.api';
 import SecureImage from '../shared/SecureImage';
+import { formatDate } from '../../utils/date-formatter';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -390,7 +391,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                 {proposal.evaluationDeadline && (
                   <div className='flex items-center gap-1'>
                     <Clock className='w-3 h-3' />
-                    <span>Deadline: {new Date(proposal.evaluationDeadline).toLocaleDateString()}</span>
+                    <span>Deadline: {formatDate(proposal.evaluationDeadline)}</span>
                   </div>
                 )}
                 <div className='flex items-center gap-1'>
@@ -426,7 +427,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                         <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{rejectionSummary.comment}</p>
                         {rejectionSummary.created_at && (
                           <div className="mt-3 text-[10px] text-slate-400 italic text-right">
-                            Rejected on: {new Date(rejectionSummary.created_at).toLocaleDateString()}
+                            Rejected on: {formatDate(rejectionSummary.created_at)}
                           </div>
                         )}
                       </div>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ActivityApi, type ActivityLog, type ActivityLogsFilters } from "../../../services/admin/ActivityApi";
 import PageLoader from "../../../components/shared/PageLoader";
+import { formatDateTime } from "../../../utils/date-formatter";
 
 const ACTION_LABELS: Record<string, string> = {
   // Proposal
@@ -65,18 +66,6 @@ const ROLE_COLORS: Record<string, string> = {
   lead_proponent: "bg-teal-100 text-teal-700",
 };
 
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -86,7 +75,7 @@ function timeAgo(iso: string) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return formatDate(iso);
+  return formatDateTime(iso);
 }
 
 export default function Activity() {
@@ -266,7 +255,7 @@ export default function Activity() {
                     <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{timeAgo(log.created_at)}</div>
-                        <div className="text-xs text-gray-400">{formatDate(log.created_at)}</div>
+                        <div className="text-xs text-gray-400">{formatDateTime(log.created_at)}</div>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="text-sm font-medium text-gray-900">{log.user_name}</div>

@@ -17,6 +17,7 @@ import DetailedProposalModal from '../../../components/admin-component/AdminView
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
 import { forwardProposalToRnd, fetchAgencies, type LookupItem } from '../../../services/proposal.api';
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -575,7 +576,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
                             <div className={'flex items-center gap-1.5 font-semibold'}>
                               <Calendar className={'w-3.5 h-3.5'} />
                               <span>
-                                Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Submitted: {formatDate(proposal.submittedDate)}
                               </span>
                             </div>
 

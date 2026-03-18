@@ -19,6 +19,7 @@ import {
 } from 'recharts';
 import { useState, useEffect } from "react";
 import { getEvaluatorProposals } from "../../../services/proposal.api";
+import { formatDate } from "../../../utils/date-formatter";
 import { useAuthContext } from "../../../context/AuthContext";
 import PageLoader from "../../../components/shared/PageLoader";
 
@@ -143,7 +144,7 @@ export default function DashboardRdec() {
           status: displayStatus,
           created_at: new Date(p.created_at || proposalObj.created_at),
           updated_at: new Date(p.updated_at || proposalObj.updated_at),
-          date: new Date(p.updated_at || proposalObj.updated_at).toLocaleDateString(),
+          date: formatDate(p.updated_at || proposalObj.updated_at),
           updatedAt: new Date(p.updated_at || proposalObj.updated_at)
         };
       });
@@ -196,7 +197,7 @@ export default function DashboardRdec() {
       reviewedProposals.forEach((p: any) => {
         if (p.updated_at) {
           const date = new Date(p.updated_at);
-          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
           monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
         }
       });
@@ -207,7 +208,7 @@ export default function DashboardRdec() {
 
       if (mReviews.length === 0) {
         const todayDate = new Date();
-        const mY = todayDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const mY = todayDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
         mReviews.push({ month: mY, count: 0 });
       }
       setMonthlyReviews(mReviews);

@@ -26,6 +26,7 @@ import {
 import { type Evaluator } from '../../types/evaluator';
 import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type RevisionSummary, type RejectionSummary, getProponentExtensionRequests, reviewProponentExtension, type ProponentExtensionRequest } from '../../services/proposal.api';
 import Swal from 'sweetalert2';
+import { formatDate, formatDateTime } from '../../utils/date-formatter';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -487,7 +488,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                 {proposal.evaluationDeadline && (
                   <div className='flex items-center gap-1'>
                     <Clock className='w-3 h-3' />
-                    <span>Deadline: {new Date(proposal.evaluationDeadline).toLocaleDateString()}</span>
+                    <span>Deadline: {formatDate(proposal.evaluationDeadline)}</span>
                   </div>
                 )}
                 {userRole === 'Evaluator' && collaborationSession && (
@@ -525,7 +526,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{rejectionSummary.comment}</p>
                         {rejectionSummary.created_at && (
                           <div className="mt-3 text-[10px] text-slate-400 italic text-right">
-                            Rejected on: {new Date(rejectionSummary.created_at).toLocaleDateString()}
+                            Rejected on: {formatDate(rejectionSummary.created_at)}
                           </div>
                         )}
                       </div>
@@ -554,8 +555,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                           <Clock className="w-3.5 h-3.5" />
                           Deadline: {
                             (revisionSummary.created_at && revisionSummary.deadline) ?
-                              new Date(new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) :
-                              (proposal && proposal.evaluationDeadline ? new Date(proposal.evaluationDeadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) : "No deadline set")
+                              formatDateTime(new Date(new Date(revisionSummary.created_at).getTime() + revisionSummary.deadline * 86400000)) :
+                              (proposal && proposal.evaluationDeadline ? formatDateTime(proposal.evaluationDeadline) : "No deadline set")
                           }
                         </div>
 
@@ -592,7 +593,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                           {pendingExtension.proponent?.first_name} {pendingExtension.proponent?.last_name}
                         </span>
                       </span>
-                      <span>{new Date(pendingExtension.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}</span>
+                      <span>{formatDateTime(pendingExtension.created_at)}</span>
                     </div>
                     <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-xs font-bold text-slate-500 uppercase block mb-1">Reason</span>

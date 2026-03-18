@@ -50,7 +50,7 @@ export class AdminLambdas extends NestedStack {
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, TZ: "Asia/Manila" };
 
     // Public endpoint — own role (no shared role assigned in original)
     this.getContacts = new NodejsFunction(this, "get-contacts", {
@@ -65,10 +65,11 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-update-contacts",
       entry: path.resolve("src", "handlers", "admin", "update-contacts.ts"),
       role: sharedRole,
-      environment: { 
-        SUPABASE_KEY: supabaseKey, 
+      environment: {
+        SUPABASE_KEY: supabaseKey,
         SUPABASE_SECRET_JWT: supabaseSecretJwt,
-        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+        TZ: "Asia/Manila",
       },
     });
 
@@ -84,10 +85,11 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-update-about",
       entry: path.resolve("src", "handlers", "admin", "update-about.ts"),
       role: sharedRole,
-      environment: { 
-        SUPABASE_KEY: supabaseKey, 
+      environment: {
+        SUPABASE_KEY: supabaseKey,
         SUPABASE_SECRET_JWT: supabaseSecretJwt,
-        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+        TZ: "Asia/Manila",
       },
     });
 
@@ -103,10 +105,11 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-update-faq",
       entry: path.resolve("src", "handlers", "admin", "update-faq.ts"),
       role: sharedRole,
-      environment: { 
-        SUPABASE_KEY: supabaseKey, 
+      environment: {
+        SUPABASE_KEY: supabaseKey,
         SUPABASE_SECRET_JWT: supabaseSecretJwt,
-        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+        TZ: "Asia/Manila",
       },
     });
 
@@ -143,6 +146,7 @@ export class AdminLambdas extends NestedStack {
         SUPABASE_KEY: supabaseKey,
         SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
         FRONTEND_URL: frontendUrl,
+        TZ: "Asia/Manila",
       },
     });
 
@@ -187,6 +191,7 @@ export class AdminLambdas extends NestedStack {
         SUPABASE_KEY: supabaseKey,
         SUPABASE_SECRET_JWT: supabaseSecretJwt,
         SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+        TZ: "Asia/Manila",
       },
     });
 

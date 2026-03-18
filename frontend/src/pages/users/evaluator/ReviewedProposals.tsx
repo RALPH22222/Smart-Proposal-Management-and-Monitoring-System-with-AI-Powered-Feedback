@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, getEvaluationScoresFromProposal } from "../../../services/proposal.api";
+import { formatDate } from "../../../utils/date-formatter";
 import {
   FileText,
   Eye,
@@ -91,7 +92,7 @@ export default function ReviewedProposals() {
         return {
           id: p.id,
           title: p.project_title || "Untitled",
-          reviewedDate: evaluationScore?.created_at ? new Date(evaluationScore.created_at).toLocaleDateString() : (item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "N/A"),
+          reviewedDate: evaluationScore?.created_at ? formatDate(evaluationScore.created_at) : (item.updated_at ? formatDate(item.updated_at) : "N/A"),
           proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
           tags: (p.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           agency: p.agency?.name || "N/A",

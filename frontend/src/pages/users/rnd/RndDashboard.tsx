@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { useAuthContext } from '../../../context/AuthContext';
 import PageLoader from '../../../components/shared/PageLoader';
+import { formatDate } from '../../../utils/date-formatter';
 
 interface DashboardProps {
 	statistics: Statistics;
@@ -388,7 +389,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 											</div>
 											<span>•</span>
 											<span>
-												{new Date(activity.timestamp).toLocaleDateString()}
+												{formatDate(activity.timestamp)}
 											</span>
 										</div>
 									</div>

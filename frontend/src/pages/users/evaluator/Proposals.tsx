@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
+import { formatDate } from "../../../utils/date-formatter";
 import Swal from "sweetalert2";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
@@ -130,7 +131,7 @@ export default function Proposals() {
           proponent: proponentName.trim(),
           gender: proposalObj.proponent_id?.sex || "N/A",
           status: displayStatus,
-          deadline: p.deadline_at ? new Date(p.deadline_at).toLocaleDateString() : "N/A",
+          deadline: p.deadline_at ? formatDate(p.deadline_at) : "N/A",
           projectType: proposalObj.sector?.name || "N/A",
           agency: proposalObj.agency?.name || "N/A",
           address: agencyAddress,

@@ -24,6 +24,7 @@ import {
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
 import { transformProposalForModal } from "../../../utils/proposal-transform";
+import { formatDate } from "../../../utils/date-formatter";
 import PageLoader from '../../../components/shared/PageLoader';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
@@ -604,7 +605,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                             <div className={'flex items-center gap-1.5 font-semibold'}>
                               <Calendar className={'w-3.5 h-3.5'} />
                               <span>
-                                Submitted: {new Date(proposal.submittedDate).toLocaleDateString()}
+                                Submitted: {formatDate(proposal.submittedDate)}
                               </span>
                             </div>
 

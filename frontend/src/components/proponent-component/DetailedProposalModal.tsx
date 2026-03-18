@@ -41,6 +41,7 @@ import { openSignedUrl } from "../../utils/signed-url";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
+import { formatDate, formatDateTime } from "../../utils/date-formatter";
 
 interface Site {
   site: string;
@@ -903,7 +904,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <div className="flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 px-3 py-2 border border-yellow-200">
                   <Clock className="w-4 h-4" />
                   <span>Extension request is <span className="font-bold">pending review</span> by R&D. Submitted on{" "}
-                    {new Date(extensionRequest.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" })}.
+                    {formatDate(extensionRequest.created_at)}.
                   </span>
                 </div>
               )}
@@ -916,7 +917,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <span>
                       The revision deadline has <span className="font-bold">expired</span>.
                       {deadlineDate && (
-                        <> (was {deadlineDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })})</>
+                        <> (was {formatDateTime(deadlineDate)})</>
                       )}
                     </span>
                   </div>
@@ -986,7 +987,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <CheckCircle className="w-4 h-4" />
                   <span>Extension Approved — New Deadline:</span>
                   <span className="font-bold">
-                    {extendedDeadlineDate.toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" })}
+                    {formatDateTime(extendedDeadlineDate)}
                   </span>
                 </div>
               )}
@@ -999,8 +1000,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <span className="font-bold">
                     {isLoadingRevision ? "Loading..." :
                       (revisionData?.created_at && revisionData?.deadline) ?
-                        new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) :
-                        (proposal.deadline ? new Date(proposal.deadline).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) : "No deadline set")}
+                        formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000)) :
+                        (proposal.deadline ? formatDateTime(proposal.deadline) : "No deadline set")}
                   </span>
                 </div>
               )}
@@ -1014,7 +1015,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <span>Rejected on:</span>
                 <span className="font-bold">
                   {isLoadingRejection ? "Loading..." :
-                    rejectionDate ? new Date(rejectionDate as string).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' }) : "Date not available"}
+                    rejectionDate ? formatDateTime(rejectionDate as string) : "Date not available"}
                 </span>
               </div>
             </>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Edit2, CalendarFold } from "lucide-react";
 import type { User } from "../../types/admin";
+import { formatDate, formatTime } from "../../utils/date-formatter";
 
 const ROLE_OPTIONS = [
   { label: "Admin", value: "admin" },
@@ -75,9 +76,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
               <p className="text-sm text-slate-500 mt-1 font-medium flex items-center gap-1">
                 <CalendarFold className="w-3.5 h-3.5" />
                 Account Created:{" "}
-                <span className="text-red-700">{new Date(user.created_at).toLocaleDateString()}</span>
+                <span className="text-red-700">{formatDate(user.created_at)}</span>
                 {" "}at{" "}
-                <span className="text-red-700">{new Date(user.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="text-red-700">{formatTime(user.created_at)}</span>
               </p>
             )}
           </div>
