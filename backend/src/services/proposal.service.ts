@@ -295,7 +295,7 @@ export class ProposalService {
   }
 
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
-    const { proposal_id, evaluators, deadline_at, commentsForEvaluators } = input;
+    const { proposal_id, evaluators, deadline_at, commentsForEvaluators, anonymized_file_url } = input;
 
     const deadline_number_weeks = new Date();
     deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
@@ -307,7 +307,8 @@ export class ProposalService {
       deadline_at: deadline_number_weeks.toISOString(),
       comments_for_evaluators: commentsForEvaluators ?? null,
       status: EvaluatorStatus.PENDING,
-      proponent_info_visibility: ev.visibility || "both", // Saving per evaluator
+      proponent_info_visibility: ev.visibility || "both",
+      ...(anonymized_file_url ? { anonymized_file_url } : {}),
     }));
 
     const { error: insertError, data: assignments } = await this.db
@@ -1137,6 +1138,7 @@ export class ProposalService {
         deadline_at,
         comments_for_evaluators,
         proponent_info_visibility,
+        anonymized_file_url,
         evaluator_id(first_name,last_name),
         forwarded_by_rnd(first_name,last_name),
         proposal_id(
@@ -1213,6 +1215,13 @@ export class ProposalService {
           p.agency_address.city = "Confidential";
           p.agency_address.street = "Confidential";
           p.agency_address.barangay = "Confidential";
+        }
+      }
+
+      // Replace file URL with anonymized version when available
+      if (item.anonymized_file_url && p.proposal_version) {
+        for (const version of p.proposal_version) {
+          version.file_url = item.anonymized_file_url;
         }
       }
 
@@ -2497,5 +2506,130 @@ export class ProposalService {
 
     const { data, error } = await query;
     return { data, error };
+  }
+
+  /**
+   * Scheduled task: find evaluators who haven't responded by their deadline
+   * and auto-decline them. Notify RND + Admin users.
+   */
+  async checkAndDeclineOverdueEvaluators(): Promise<{
+    processed: number;
+    errors: string[];
+    details: Array<{ proposal_id: number; evaluator_id: string }>;
+  }> {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD in PH time (TZ set)
+
+    // Find pending assignments past their deadline
+    const { data: overdueRecords, error: fetchError } = await this.db
+      .from("proposal_assignment_tracker")
+      .select("id, proposal_id, evaluator_id, deadline_at")
+      .eq("status", AssignmentTracker.PENDING)
+      .lt("deadline_at", today);
+
+    if (fetchError) {
+      console.error("Failed to fetch overdue records:", fetchError);
+      return { processed: 0, errors: [fetchError.message], details: [] };
+    }
+
+    if (!overdueRecords || overdueRecords.length === 0) {
+      return { processed: 0, errors: [], details: [] };
+    }
+
+    const errors: string[] = [];
+    const details: Array<{ proposal_id: number; evaluator_id: string }> = [];
+
+    for (const record of overdueRecords) {
+      try {
+        // 1. Update tracker status to decline
+        await this.db
+          .from("proposal_assignment_tracker")
+          .update({
+            status: AssignmentTracker.DECLINE,
+            remarks: "Auto-declined: evaluator did not respond by deadline",
+          })
+          .eq("id", record.id);
+
+        // 2. Update proposal_evaluators status to decline (only if still pending)
+        await this.db
+          .from("proposal_evaluators")
+          .update({ status: EvaluatorStatus.DECLINE })
+          .eq("proposal_id", record.proposal_id)
+          .eq("evaluator_id", record.evaluator_id)
+          .eq("status", EvaluatorStatus.PENDING);
+
+        // 3. Fetch evaluator info and RND user who assigned them
+        const { data: evalData } = await this.db
+          .from("proposal_evaluators")
+          .select("forwarded_by_rnd, proposal_id(project_title)")
+          .eq("proposal_id", record.proposal_id)
+          .eq("evaluator_id", record.evaluator_id)
+          .single();
+
+        const { data: evaluator } = await this.db
+          .from("users")
+          .select("first_name, last_name")
+          .eq("id", record.evaluator_id)
+          .single();
+
+        const evalName = evaluator
+          ? `${evaluator.first_name} ${evaluator.last_name}`.trim()
+          : "An evaluator";
+        const proposalTitle =
+          (evalData?.proposal_id as any)?.project_title || `#${record.proposal_id}`;
+
+        const message = `${evalName} did not respond to the evaluation request for "${proposalTitle}" by the deadline and has been auto-removed. Please assign a replacement evaluator.`;
+
+        // 4. Notify the RND user who assigned this evaluator
+        if (evalData?.forwarded_by_rnd) {
+          await this.db.from("notifications").insert({
+            user_id: evalData.forwarded_by_rnd,
+            message,
+            is_read: false,
+          });
+        }
+
+        // 5. Notify all admin users
+        const { data: admins } = await this.db
+          .from("users")
+          .select("id")
+          .contains("roles", ["admin"]);
+
+        if (admins && admins.length > 0) {
+          const adminNotifs = admins
+            .filter((a) => a.id !== evalData?.forwarded_by_rnd) // avoid duplicate
+            .map((a) => ({ user_id: a.id, message, is_read: false }));
+
+          if (adminNotifs.length > 0) {
+            await this.db.from("notifications").insert(adminNotifs);
+          }
+        }
+
+        // 6. Log activity
+        await logActivity(this.db, {
+          user_id: record.evaluator_id,
+          action: "evaluator_auto_declined_overdue",
+          category: "evaluation",
+          target_id: String(record.proposal_id),
+          target_type: "proposal",
+          details: {
+            reason: "deadline_exceeded",
+            deadline_at: record.deadline_at,
+          },
+        });
+
+        details.push({
+          proposal_id: record.proposal_id,
+          evaluator_id: record.evaluator_id,
+        });
+      } catch (err: any) {
+        console.error(
+          `Failed to process overdue record ${record.id}:`,
+          err
+        );
+        errors.push(`Record ${record.id}: ${err.message}`);
+      }
+    }
+
+    return { processed: details.length, errors, details };
   }
 }

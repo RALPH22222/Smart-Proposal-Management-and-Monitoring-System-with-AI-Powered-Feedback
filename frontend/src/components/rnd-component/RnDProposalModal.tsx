@@ -24,9 +24,10 @@ import {
   type Reviewer
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
-import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type RevisionSummary, type RejectionSummary, getProponentExtensionRequests, reviewProponentExtension, type ProponentExtensionRequest } from '../../services/proposal.api';
+import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type RevisionSummary, type RejectionSummary, getProponentExtensionRequests, reviewProponentExtension, type ProponentExtensionRequest, getProposalUploadUrl } from '../../services/proposal.api';
 import Swal from 'sweetalert2';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
+import { redactFile } from '../../utils/file-redactor';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -137,6 +138,12 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
   const [showAnonymitySelection, setShowAnonymitySelection] = useState(false);
   const [showProponentInfo, setShowProponentInfo] = useState<'name' | 'agency' | 'both' | 'none'>('both');
+
+  // File redaction state
+  const [isRedacting, setIsRedacting] = useState(false);
+  const [redactedFileUrl, setRedactedFileUrl] = useState<string | null>(null);
+  const [redactionCount, setRedactionCount] = useState<number>(0);
+  const [redactionError, setRedactionError] = useState<string | null>(null);
 
   const [activeSection, setActiveSection] = useState<string>('title');
   const [typingSection, setTypingSection] = useState<string>('');
@@ -432,23 +439,100 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   };
 
   const handleForwardToEvaluators = () => {
+    setRedactedFileUrl(null);
+    setRedactionCount(0);
+    setRedactionError(null);
     setShowAnonymitySelection(true);
+  };
+
+  const handleAutoRedact = async () => {
+    if (!proposal) return;
+
+    const fileUrl = proposal.documentUrl || proposal.projectFile;
+    if (!fileUrl) {
+      setRedactionError("No proposal file found to redact.");
+      return;
+    }
+
+    // Build targets based on visibility setting
+    const targets: string[] = [];
+    const shouldHideName = showProponentInfo === 'agency' || showProponentInfo === 'none';
+    const shouldHideAgency = showProponentInfo === 'name' || showProponentInfo === 'none';
+
+    if (shouldHideName && proposal.proponent) {
+      targets.push(proposal.proponent);
+      // Also add individual name parts
+      const nameParts = proposal.proponent.split(' ').filter((p: string) => p.length > 2);
+      targets.push(...nameParts);
+    }
+    if (shouldHideAgency && proposal.agency && proposal.agency !== 'N/A') {
+      targets.push(proposal.agency);
+    }
+
+    if (targets.length === 0) {
+      setRedactionError("No redaction targets. Select 'Hide Name', 'Hide Agency', or 'Hide Both'.");
+      return;
+    }
+
+    setIsRedacting(true);
+    setRedactionError(null);
+
+    try {
+      // Fetch the original file
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const fileName = fileUrl.split('/').pop() || 'proposal.pdf';
+      const originalFile = new File([blob], fileName, { type: blob.type });
+
+      // Redact the file
+      const result = await redactFile(originalFile, targets);
+      setRedactionCount(result.redactionCount);
+
+      // Upload the redacted file to S3
+      const redactedFileName = `redacted-${Date.now()}-${fileName}`;
+      const contentType = result.type === 'docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/pdf';
+
+      const { uploadUrl, fileUrl: s3FileUrl } = await getProposalUploadUrl(
+        redactedFileName,
+        contentType,
+        result.blob.size
+      );
+
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: result.blob,
+      });
+
+      setRedactedFileUrl(s3FileUrl);
+    } catch (err: any) {
+      console.error("Redaction failed:", err);
+      setRedactionError(err.message || "Failed to redact file. You can still upload a manually redacted version.");
+    } finally {
+      setIsRedacting(false);
+    }
   };
 
   const submitWithAnonymity = () => {
     if (!proposal) return;
 
-    const decisionData: Decision & { proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none', assignedEvaluators?: string[] } = {
+    const decisionData: Decision & {
+      proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
+      assignedEvaluators?: string[];
+      anonymizedFileUrl?: string;
+    } = {
       proposalId: proposal.id,
       decision: 'Sent to Evaluators',
       structuredComments,
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
-      evaluationDeadline: evaluationDeadline, // Send '14', '7', etc. directly
+      evaluationDeadline: evaluationDeadline,
       proponentInfoVisibility: showProponentInfo,
-      // IMPORTANT: Map to IDs here
-      assignedEvaluators: assignedEvaluators.map(ev => ev.id!)
+      assignedEvaluators: assignedEvaluators.map(ev => ev.id!),
+      anonymizedFileUrl: redactedFileUrl || undefined,
     };
 
     onSubmitDecision(decisionData);
@@ -1029,9 +1113,87 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                 ))}
               </div>
 
+              {/* File Anonymization Section */}
+              {showProponentInfo !== 'both' && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <h4 className="text-sm font-bold text-amber-800 mb-2">File Anonymization</h4>
+                  <p className="text-xs text-amber-700 mb-3">
+                    The proposal file may contain the proponent's name or agency. Auto-redact to black out matching text, or upload a manually redacted version.
+                  </p>
+
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={handleAutoRedact}
+                      disabled={isRedacting}
+                      className="flex-1 px-3 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRedacting ? 'Redacting...' : 'Auto-Redact File'}
+                    </button>
+                    <label className="flex-1 px-3 py-2 text-xs font-bold text-amber-700 bg-white border border-amber-300 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer text-center">
+                      Upload Redacted File
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsRedacting(true);
+                          setRedactionError(null);
+                          try {
+                            const contentType = file.type || 'application/pdf';
+                            const { uploadUrl, fileUrl: s3FileUrl } = await getProposalUploadUrl(
+                              `redacted-${Date.now()}-${file.name}`,
+                              contentType,
+                              file.size
+                            );
+                            await fetch(uploadUrl, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': contentType },
+                              body: file,
+                            });
+                            setRedactedFileUrl(s3FileUrl);
+                            setRedactionCount(-1);
+                          } catch (err: any) {
+                            setRedactionError(err.message || 'Failed to upload file.');
+                          } finally {
+                            setIsRedacting(false);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {redactionError && (
+                    <p className="text-xs text-red-600 mt-2">{redactionError}</p>
+                  )}
+
+                  {redactedFileUrl && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-700 font-bold">
+                        {redactionCount >= 0
+                          ? `File redacted successfully (${redactionCount} instance${redactionCount !== 1 ? 's' : ''} found).`
+                          : 'Manually redacted file uploaded successfully.'}
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Evaluators will receive the anonymized version.
+                      </p>
+                    </div>
+                  )}
+
+                  {!redactedFileUrl && !isRedacting && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      If you skip this step, evaluators will receive the original file which may contain identifiable information.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className='flex gap-3'>
                 <button onClick={() => setShowAnonymitySelection(false)} className='flex-1 px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors'>Cancel</button>
-                <button onClick={submitWithAnonymity} className='flex-1 px-4 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all'>Confirm & Send</button>
+                <button onClick={submitWithAnonymity} disabled={isRedacting} className='flex-1 px-4 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed'>Confirm & Send</button>
               </div>
             </div>
           </div>

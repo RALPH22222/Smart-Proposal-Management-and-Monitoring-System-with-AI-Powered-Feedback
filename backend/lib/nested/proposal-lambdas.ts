@@ -4,6 +4,8 @@ import { Construct } from "constructs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { IRole } from "aws-cdk-lib/aws-iam";
 import { IBucket } from "aws-cdk-lib/aws-s3";
+import { Rule, Schedule } from "aws-cdk-lib/aws-events";
+import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
 import path from "path";
 
 interface ProposalLambdasProps {
@@ -55,6 +57,7 @@ export class ProposalLambdas extends NestedStack {
   public readonly respondRndTransfer: NodejsFunction;
   public readonly approveRndTransfer: NodejsFunction;
   public readonly getRndTransfers: NodejsFunction;
+  public readonly checkEvaluatorDeadlines: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
@@ -160,6 +163,25 @@ export class ProposalLambdas extends NestedStack {
       entry: path.resolve("src", "handlers", "proposal", "generate-tags.ts"),
       role: sharedRole,
       environment: { SUPABASE_KEY: supabaseKey, GEMINI_API_KEY: geminiApiKey, TZ: "Asia/Manila" },
+    });
+
+    // Scheduled: daily check for overdue evaluator deadlines
+    this.checkEvaluatorDeadlines = new NodejsFunction(this, "check-evaluator-deadlines", {
+      ...defaults,
+      functionName: "pms-check-evaluator-deadlines",
+      timeout: Duration.seconds(30),
+      entry: path.resolve("src", "handlers", "proposal", "check-evaluator-deadlines.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    new Rule(this, "check-evaluator-deadlines-rule", {
+      ruleName: "pms-check-evaluator-deadlines-daily",
+      schedule: Schedule.cron({
+        minute: "0",
+        hour: "16", // 16:00 UTC = 12:00 AM PH time (UTC+8)
+      }),
+      targets: [new LambdaFunction(this.checkEvaluatorDeadlines)],
     });
   }
 }

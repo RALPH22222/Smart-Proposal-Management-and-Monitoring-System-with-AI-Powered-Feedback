@@ -548,6 +548,7 @@ export type ForwardToEvaluatorsPayload = {
   evaluators: { id: string; visibility: string }[];
   deadline_at: number;
   commentsForEvaluators?: string;
+  anonymized_file_url?: string;
 };
 
 export const forwardProposalToEvaluators = async (input: ForwardToEvaluatorsPayload): Promise<any> => {

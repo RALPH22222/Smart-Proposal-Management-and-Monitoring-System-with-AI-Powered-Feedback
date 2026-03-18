@@ -170,6 +170,7 @@ export const forwardToEvaluatorsSchema = z.object({
   ),
   deadline_at: z.number().int().positive().max(90, "Deadline cannot be more than 90 days"),
   commentsForEvaluators: z.string().max(2000, "Comments are too long").optional(),
+  anonymized_file_url: z.string().url("Invalid anonymized file URL").optional(),
 });
 
 export const revisionProposalToProponentSchema = z.object({

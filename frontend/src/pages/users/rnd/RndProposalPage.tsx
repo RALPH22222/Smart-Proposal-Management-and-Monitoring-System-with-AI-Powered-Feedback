@@ -342,13 +342,15 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       const proposalIdNumber = Number(decision.proposalId); // API usually expects number
 
       if (decision.decision === 'Sent to Evaluators') {
+        const visibility = (decision as any).proponentInfoVisibility || 'both';
         await forwardProposalToEvaluators({
           proposal_id: proposalIdNumber,
           evaluators: (decision.assignedEvaluators || []).map((e: any) =>
-            typeof e === 'string' ? { id: e, visibility: 'both' } : e
+            typeof e === 'string' ? { id: e, visibility } : { ...e, visibility: e.visibility || visibility }
           ),
           deadline_at: decision.evaluationDeadline ? parseInt(decision.evaluationDeadline, 10) : 14,
-          commentsForEvaluators: decision.structuredComments?.title?.content // Use available comment field
+          commentsForEvaluators: decision.structuredComments?.title?.content,
+          anonymized_file_url: (decision as any).anonymizedFileUrl,
         });
       } else if (decision.decision === 'Revision Required') {
         const revisionDays = decision.evaluationDeadline ? parseInt(String(decision.evaluationDeadline), 10) : 14;
