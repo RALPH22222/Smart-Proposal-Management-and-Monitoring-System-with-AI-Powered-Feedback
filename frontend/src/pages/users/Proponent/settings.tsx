@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera } from 'lucide-react';
 import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 import {
@@ -198,7 +198,7 @@ const Settings: React.FC = () => {
             <div className="relative group">
                 <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm">
                     <SecureImage
-                        src={profile?.avatarUrl}
+                        src={profile?.avatarUrl ?? undefined}
                         fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName || 'User')}&background=E5E7EB&color=111827`}
                         alt='Avatar'
                         className='h-full w-full object-cover'

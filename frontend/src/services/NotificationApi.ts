@@ -16,7 +16,7 @@ export interface NotificationsResponse {
 
 export const NotificationApi = {
   async getNotifications(limit = 50, offset = 0): Promise<NotificationsResponse> {
-    const res = await api.get("/admin/notifications", {
+    const res = await api.get<NotificationsResponse>("/admin/notifications", {
       params: { limit, offset },
     });
     return res.data;

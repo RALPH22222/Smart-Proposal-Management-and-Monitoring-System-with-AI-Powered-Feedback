@@ -222,7 +222,7 @@ export interface ProjectDetailData {
  */
 export function buildDisplayReports(
   detail: ApiProjectDetail,
-  currentUserId: string
+  _currentUserId: string
 ): ProjectDetailData {
   const existingReports = detail.project_reports || [];
   const reportByQuarter = new Map<string, ApiProjectReport>();

@@ -3,10 +3,10 @@ import {
   FaChartLine
 } from 'react-icons/fa';
 import {
-  Search, Target, Clock, CheckCircle2, Play, Send,
-  FileText, Calendar, AlertTriangle, UploadCloud,
+  Search, Target, Clock, CheckCircle2, Play,
+  FileText, Calendar, AlertTriangle,
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
-  Plus, Trash2, User, ShieldAlert, Award,
+  Plus, Trash2, Award,
   Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
   ChevronUp, ChevronDown, DollarSign, Lock, Loader2
 } from 'lucide-react';
@@ -26,12 +26,9 @@ import {
   uploadReportFile,
   validateReportFile,
   REPORT_ALLOWED_EXTENSIONS,
-  REPORT_MAX_FILE_SIZE,
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
-  type ApiProjectDetail,
-  type DisplayReport,
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from '../../../utils/date-formatter';
@@ -62,13 +59,7 @@ interface QuarterData {
   expenses: { id: string; description: string; amount: number }[];
 }
 
-interface ProjectData {
-  project: Project;
-  backendProject: ApiFundedProject;
-  quarters: QuarterData[];
-  totalBudget: number;
-  budgetSummary: ApiBudgetSummary | null;
-}
+
 
 const ALL_QUARTERS = ['q1_report', 'q2_report', 'q3_report', 'q4_report'];
 const QUARTER_LABELS: Record<string, string> = {
@@ -92,8 +83,6 @@ const MonitoringPage: React.FC = () => {
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
 
   // Project detail data
-  const [projectDetail, setProjectDetail] = useState<ApiProjectDetail | null>(null);
-  const [fundRequests, setFundRequests] = useState<ApiFundRequest[]>([]);
   const [budgetSummary, setBudgetSummary] = useState<ApiBudgetSummary | null>(null);
   const [quarters, setQuarters] = useState<QuarterData[]>([]);
   const [totalBudget, setTotalBudget] = useState(0);
@@ -150,8 +139,6 @@ const MonitoringPage: React.FC = () => {
         fetchFundRequests(activeBackend.id),
         fetchBudgetSummary(activeBackend.id).catch(() => null),
       ]);
-      setProjectDetail(detail);
-      setFundRequests(frResponse.fund_requests);
       setBudgetSummary(frResponse.budget_summary || bs);
 
       // Build quarters from detail + fund requests
@@ -670,7 +657,7 @@ const MonitoringPage: React.FC = () => {
                           Your fund request has been submitted. Waiting for R&D to approve it before you can submit a report.
                         </p>
                         <div className="space-y-2">
-                          {currentReport.fundRequest.fund_request_items?.map((item, i) => (
+                          {currentReport.fundRequest.fund_request_items?.map((item, _i) => (
                             <div key={item.id} className="flex justify-between text-sm bg-white border border-amber-200 rounded-lg px-3 py-2">
                               <span className="text-gray-700">{item.item_name} <span className="text-xs text-gray-400 uppercase">({item.category})</span></span>
                               <span className="font-mono font-medium">{formatCurrency(item.amount)}</span>

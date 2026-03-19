@@ -71,7 +71,8 @@ export type ProposalStatus =
 	| 'Funding Revision'
 	| 'Unassigned'
 	| 'Under Review' // Keep for backward compatibility if needed
-	| 'Sent to Evaluators'; // Keep for backward compatibility if needed
+	| 'Sent to Evaluators' // Keep for backward compatibility if needed
+	| 'Deadline Expired';
 
 export type DecisionType =
 	| 'Sent to Evaluators'

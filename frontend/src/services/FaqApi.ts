@@ -1,5 +1,5 @@
 import { api } from "../utils/axios";
-import { type FaqInfo, DEFAULT_FAQ_INFO } from "../schemas/faq-schema";
+import { type FaqInfo } from "../schemas/faq-schema";
 
 export const FaqApi = {
   getFaqInfo: async (): Promise<FaqInfo> => {

@@ -48,40 +48,40 @@ export const NOTIFICATION_LABELS: Record<keyof NotificationChannel, string> = {
 export const SettingsApi = {
   // Late Submission Policy
   async getLateSubmissionPolicy(): Promise<LateSubmissionPolicy> {
-    const res = await api.get("/admin/late-submission-policy");
+    const res = await api.get<{ data: LateSubmissionPolicy }>("/admin/late-submission-policy");
     return res.data.data;
   },
 
   async updateLateSubmissionPolicy(policy: LateSubmissionPolicy): Promise<LateSubmissionPolicy> {
-    const res = await api.post("/admin/update-late-submission-policy", policy);
+    const res = await api.post<{ data: LateSubmissionPolicy }>("/admin/update-late-submission-policy", policy);
     return res.data.data;
   },
 
   // Notification Preferences
   async getNotificationPreferences(): Promise<NotificationPreferences> {
-    const res = await api.get("/admin/notification-preferences");
+    const res = await api.get<{ data: NotificationPreferences }>("/admin/notification-preferences");
     return res.data.data;
   },
 
   async updateNotificationPreferences(prefs: NotificationPreferences): Promise<NotificationPreferences> {
-    const res = await api.post("/admin/update-notification-preferences", prefs);
+    const res = await api.post<{ data: NotificationPreferences }>("/admin/update-notification-preferences", prefs);
     return res.data.data;
   },
 
   // Evaluator Availability
   async updateAvailability(is_available: boolean): Promise<{ is_available: boolean }> {
-    const res = await api.post("/admin/update-availability", { is_available });
+    const res = await api.post<{ data: { is_available: boolean } }>("/admin/update-availability", { is_available });
     return res.data.data;
   },
 
   // Evaluation Deadline
   async getEvaluationDeadline(): Promise<EvaluationDeadline> {
-    const res = await api.get("/admin/evaluation-deadline");
+    const res = await api.get<{ data: EvaluationDeadline }>("/admin/evaluation-deadline");
     return res.data.data;
   },
 
   async updateEvaluationDeadline(days: number): Promise<EvaluationDeadline> {
-    const res = await api.post("/admin/update-evaluation-deadline", { days });
+    const res = await api.post<{ data: EvaluationDeadline }>("/admin/update-evaluation-deadline", { days });
     return res.data.data;
   },
 };

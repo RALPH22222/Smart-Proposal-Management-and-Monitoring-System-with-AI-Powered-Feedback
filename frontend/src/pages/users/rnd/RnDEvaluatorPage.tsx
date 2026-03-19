@@ -322,7 +322,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
         if (isExtensionRequest) {
           status = "Extension Requested";
-          extensionDate = item.request_deadline_at ? formatDate(item.request_deadline_at) : "N/A";
+          extensionDate = item.request_deadline_at ? formatDate(new Date(item.request_deadline_at)) : "N/A";
           extensionReason = item.remarks || "No reason provided";
         } else if (item.status === "accept" || item.status === "accepted") {
           status = "Accepts";
