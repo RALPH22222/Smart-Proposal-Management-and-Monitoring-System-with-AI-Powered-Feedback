@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ContactsSection } from './components/ContactsSection';
 import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
+import { HomeSection } from "./components/HomeSection";
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
@@ -10,6 +11,7 @@ const ContentManagement: React.FC = () => {
   const tabs = [
     { id: 'guidelines', label: 'Guidelines & Resources', icon: '📋' },
     { id: 'templates', label: 'Proposal Templates', icon: '📄' },
+    { id: 'home', label: 'Home Page', icon: '🏠' },
     { id: 'about', label: 'About Page', icon: 'ℹ️' },
     { id: 'contacts', label: 'Contact Info', icon: '📞' },
     { id: 'faq', label: 'FAQ Page', icon: '❓' },
@@ -55,8 +57,9 @@ const ContentManagement: React.FC = () => {
 
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-1 overflow-y-auto'>
         {activeTab === 'guidelines' && <GuidelinesSection />}
-        {activeTab === 'templates' && <TemplatesSection />}
-        {activeTab === 'about' && <AboutSection />}
+        { activeTab === 'templates' && <TemplatesSection />}
+        { activeTab === 'home' && <HomeSection />}
+        { activeTab === 'about' && <AboutSection />}
         {activeTab === 'contacts' && <ContactsSection />}
         {activeTab === 'faq' && <FaqSection />}
         {activeTab === 'media' && <MediaLibrarySection />}

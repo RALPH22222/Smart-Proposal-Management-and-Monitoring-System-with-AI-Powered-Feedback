@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { GraduationCap, BookOpenText } from "lucide-react";
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
+import { AboutApi } from '../services/AboutApi';
+import { type AboutInfo, DEFAULT_ABOUT_INFO } from '../schemas/about-schema';
 
 const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean = false) => {
   const [count, setCount] = useState(0);
@@ -77,6 +79,14 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
 };
 
 const About: React.FC = () => {
+  const [aboutData, setAboutData] = useState<AboutInfo>(DEFAULT_ABOUT_INFO);
+
+  useEffect(() => {
+    AboutApi.getAboutInfo()
+      .then((data) => { if (data) setAboutData(data); })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
   const heroSection = useInView();
   const storySection = useInView();
   const missionSection = useInView();
@@ -99,18 +109,17 @@ const About: React.FC = () => {
           <div className={`text-center transition-all duration-1000 ${heroSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="mb-2 animate-fade-in-down">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
-                About Our Service
+                {aboutData.hero.badge}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 animate-fade-in-up animation-delay-100">
               <span className="text-transparent bg-clip-text">
-                <span className="text-gray-800">About</span>{' '}
-                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">Smart Project Proposal</span>
+                <span className="text-gray-800">{aboutData.hero.title_prefix}</span>{' '}
+                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">{aboutData.hero.title_highlight}</span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
-              Empowering students and faculty with professionally crafted project proposals
-              that secure funding and drive innovation at Western Mindanao State University.
+              {aboutData.hero.description}
             </p>
           </div>
         </div>
@@ -124,35 +133,21 @@ const About: React.FC = () => {
             <div className="animate-fade-in-left">
               <div className="mb-3">
                 <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
-                  Our Story
+                  {aboutData.story.badge}
                 </span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
-                Transforming Ideas into Funded Projects
+                {aboutData.story.title}
               </h2>
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Founded by dedicated professionals with extensive experience in academic
-                research and project development, Smart Project Proposal was born from a
-                simple observation: many brilliant ideas at our university never see the
-                light of day due to inadequate proposal writing.
-              </p>
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                We recognized the gap between innovative concepts and successful funding
-                approvals. Our mission became clear: to bridge this gap by providing
-                expert proposal writing services tailored specifically for WMSU's unique
-                academic environment.
-              </p>
-              <p className="text-lg text-gray-600 leading-relaxed">
-                Today, we're proud to have helped numerous students and faculty members
-                transform their visions into funded, impactful projects that contribute
-                to WMSU's legacy of excellence.
-              </p>
+              {aboutData.story.paragraphs.map((p: string, i: number) => (
+                <p key={i} className="text-lg text-gray-600 mb-6 leading-relaxed">{p}</p>
+              ))}
             </div>
 
             <div className="w-full h-full flex flex-col items-center justify-center animate-fade-in-right animation-delay-200">
               <div className="relative h-96 w-full overflow-hidden rounded-lg shadow-lg group">
                 <img
-                  src="https://upload.wikimedia.org/wikipedia/en/c/c8/Western_Mindanao_State_University_Gym_%28RT_Lim_Boulevard%2C_Zamboanga_City%3B_10-06-2023%29.jpg"
+                  src={aboutData.story.image_url || "https://upload.wikimedia.org/wikipedia/en/c/c8/Western_Mindanao_State_University_Gym_%28RT_Lim_Boulevard%2C_Zamboanga_City%3B_10-06-2023%29.jpg"}
                   alt="Western Mindanao State University"
                   className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
                 />
@@ -177,9 +172,7 @@ const About: React.FC = () => {
                 <span className="text-red-600">❞</span>
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                To empower WMSU students and faculty with professionally crafted project proposals
-                that secure funding, drive innovation, and contribute to the university's academic
-                excellence and community impact.
+                {aboutData.mission_vision.mission}
               </p>
             </div>
 
@@ -194,9 +187,7 @@ const About: React.FC = () => {
                 <span className="text-red-600">❞</span>
               </h3>
               <p className="text-gray-600 leading-relaxed">
-                To become the leading project proposal consultancy at Western Mindanao State University,
-                recognized for transforming innovative ideas into funded projects that create lasting
-                positive change in academia and society.
+                {aboutData.mission_vision.vision}
               </p>
             </div>
           </div>

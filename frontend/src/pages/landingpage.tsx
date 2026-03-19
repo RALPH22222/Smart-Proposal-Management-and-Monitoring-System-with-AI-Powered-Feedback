@@ -4,6 +4,8 @@ import Footer from '../components/footer';
 import CardSwap, { Card } from '../components/CardSwap';
 import templatePDF from '../assets/template/DOST-Template.pdf';
 import { ClipboardCheck, Clock, Bell, Mail, AlertCircle } from 'lucide-react';
+import { HomeApi } from "../services/HomeApi";
+import { DEFAULT_HOME_INFO, type HomeInfo } from "../schemas/home-schema";
 
 const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean = false) => {
   const [count, setCount] = useState(0);
@@ -133,9 +135,24 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
 
 {/* Gais kung may di kayo nagustuhan sabi lang sakin then kung meron kayo di alam sa code ko sabi lang if may time ako turuan ko lang how ga work*/ }
 const LandingPage: React.FC = () => {
+  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
   const heroSection = useInView();
   const aboutSection = useInView();
   const statsSection = useInView();
+
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        const data = await HomeApi.getHomeInfo();
+        if (data && data.hero && data.stats) {
+          setHomeData(data);
+        }
+      } catch (error) {
+        console.error("Error loading home data:", error);
+      }
+    };
+    fetchHomeData();
+  }, []);
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
       <Navbar />
@@ -150,19 +167,18 @@ const LandingPage: React.FC = () => {
           <div className={`order-2 lg:order-1 transition-all duration-1000 ${heroSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="mb-2 animate-fade-in-down">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
-                Western Mindanao State University
+                {homeData.hero.badge}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-5xl font-bold leading-tight mb-6 animate-fade-in-up">
               <span className="text-transparent bg-clip-text">
-                <span className="text-gray-800">WMSU</span>{' '}
-                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">Project Proposal</span>
+                <span className="text-gray-800">{homeData.hero.title_prefix}</span>{' '}
+                <span className="font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">{homeData.hero.title_highlight}</span>
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed animate-fade-in-up animation-delay-200">
-              A streamlined admin and monitoring system for project proposals —
-              <span className="font-medium text-gray-800"> fast, responsive, and intuitive</span>.
-              Experience seamless navigation and effortless proposal management with our user-centric design.</p>
+              {homeData.hero.description}
+            </p>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-fade-in-up animation-delay-400">
@@ -193,9 +209,15 @@ const LandingPage: React.FC = () => {
             {/* Stats Section with Animated Counters */}
             <div ref={statsSection.ref} className={`mt-12 pt-8 border-t border-gray-200 transition-all duration-1000 ${statsSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="flex flex-wrap gap-8">
-                <AnimatedStat value={200} suffix="+" label="Research Proposals" shouldStart={statsSection.isInView} />
-                <AnimatedStat value={84} suffix="%" label="Funding Success Rate" shouldStart={statsSection.isInView} />
-                <AnimatedStat value={300} suffix="+" label="Total Proponents" shouldStart={statsSection.isInView} />
+                {homeData.stats.map((stat, idx) => (
+                  <AnimatedStat 
+                    key={idx}
+                    value={stat.value} 
+                    suffix={stat.suffix} 
+                    label={stat.label} 
+                    shouldStart={statsSection.isInView} 
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -241,35 +263,23 @@ const LandingPage: React.FC = () => {
           <div className={`bg-white rounded-2xl shadow-xl p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] transition-all duration-1000 ${aboutSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>         <div className="lg:col-span-2">
             <div className="mb-3">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
-                About Our Office
+                {homeData.about.badge}
               </span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
-              Research Development & Evaluation Center
+              {homeData.about.title}
             </h2>
             <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-              The central hub RDEC for research excellence at Western Mindanao State University.
-              We facilitate innovative research projects, provide administrative support,
-              and ensure compliance with academic standards and funding requirements.
+              {homeData.about.description}
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">Proposal Guidance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">Funding Support</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">Compliance Monitoring</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">Research Ethics</span>
-              </div>
+              {homeData.about.bullets.map((bullet, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                  <span className="text-sm text-gray-600">{bullet}</span>
+                </div>
+              ))}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -301,8 +311,8 @@ const LandingPage: React.FC = () => {
             <div className="relative">
               <div className="w-full h-64 lg:h-80 rounded-xl overflow-hidden shadow-lg">
                 <img
-                  src="https://media.philstar.com/photos/2021/05/13/wmsu-campus_2021-05-13_15-03-21.jpg"
-                  alt="WMSU Campus View"
+                  src={homeData.about.image_url}
+                  alt="Office Display"
                   className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -472,13 +482,13 @@ const LandingPage: React.FC = () => {
             {/* Left Column: Sticky Title & Intro */}
             <div className="lg:col-span-4 lg:sticky lg:top-32 self-start">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-6">
-                Essentials
+                {homeData.guidelines.badge}
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
-                Submission Guidelines & Requirements
+                {homeData.guidelines.title}
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                Your roadmap to a successful proposal submission. Follow these core requirements to ensure a smooth approval process.
+                {homeData.guidelines.description}
               </p>
 
               {/* Pro Tip Integrated on Left */}
@@ -488,75 +498,35 @@ const LandingPage: React.FC = () => {
                   <span className="font-bold text-gray-900">Pro Tip</span>
                 </div>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Gather your CVs, consent forms, and research instruments <span className="font-semibold text-[#C8102E]">before</span> you start to avoid timeouts or errors.
+                  {homeData.guidelines.pro_tip}
                 </p>
               </div>
             </div>
 
             {/* Right Column: The List (No Cards) */}
             <div className="lg:col-span-8 space-y-12">
-              {/* Item 1 */}
-              <div className="flex flex-col sm:flex-row gap-6 group">
-                <div className="shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
-                    <ClipboardCheck size={32} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Complete Documentation</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">
-                    Incomplete attachments lead to automatic rejection. Ensure every required file is uploaded before you hit submit.
-                  </p>
-                </div>
-              </div>
-              <hr className="border-gray-100" />
-
-              {/* Item 2 */}
-              <div className="flex flex-col sm:flex-row gap-6 group">
-                <div className="shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
-                    <Clock size={32} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">7-Day Revision Window</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">
-                    Feedback received? You have exactly <span className="font-semibold text-gray-900">7 working days</span> to resubmit your revised proposal. Plan your timeline carefully.
-                  </p>
-                </div>
-              </div>
-              <hr className="border-gray-100" />
-
-              {/* Item 3 */}
-              <div className="flex flex-col sm:flex-row gap-6 group">
-                <div className="shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
-                    <Bell size={32} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Stay Updated</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">
-                    We notify via portal & email. Check your spam folder regularly so you don't miss critical updates about your proposal.
-                  </p>
-                </div>
-              </div>
-              <hr className="border-gray-100" />
-
-              {/* Item 4 */}
-              <div className="flex flex-col sm:flex-row gap-6 group">
-                <div className="shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
-                    <Mail size={32} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">Official Channels Only</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">
-                    All communication happens inside the portal. Avoid direct emails for procedural steps. Keep it official and documented.
-                  </p>
-                </div>
-              </div>
+              {homeData.guidelines.items.map((item, idx) => {
+                const Icons = [ClipboardCheck, Clock, Bell, Mail];
+                const Icon = Icons[idx] || ClipboardCheck;
+                return (
+                  <React.Fragment key={idx}>
+                    <div className="flex flex-col sm:flex-row gap-6 group">
+                      <div className="shrink-0">
+                        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:scale-110 transition-transform duration-300">
+                          <Icon size={32} />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-[#C8102E] transition-colors">{item.title}</h3>
+                        <p className="text-gray-600 text-lg leading-relaxed">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                    {idx < homeData.guidelines.items.length - 1 && <hr className="border-gray-100" />}
+                  </React.Fragment>
+                );
+              })}
 
               {/* Mobile Only Pro Tip */}
               <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 lg:hidden mt-8">
@@ -580,94 +550,38 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <div className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
-              Our Standards
+              {homeData.criteria.badge}
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text text-transparent">
-              Evaluation Criteria
+              {homeData.criteria.title}
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Learn how proposals are judged to ensure your project meets the highest standards for approval and funding.
+              {homeData.criteria.description}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Relevance to Institutional Goals */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Relevance to Institutional Goals</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Proposals must align with WMSU's strategic objectives, addressing key priorities in education, research, and community development that support the university's mission and vision.
-              </p>
-            </div>
-
-            {/* Originality and Innovation */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Originality and Innovation</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Projects should demonstrate creative thinking, novel approaches, and innovative solutions that contribute new knowledge or improve existing practices in their respective fields.
-              </p>
-            </div>
-
-            {/* Methodological Soundness */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Methodological Soundness</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Research designs and implementation plans must be scientifically rigorous, appropriate for the objectives, and demonstrate clear, logical methodology for data collection and analysis.
-              </p>
-            </div>
-
-            {/* Feasibility */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Feasibility</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Projects must be realistically achievable within proposed timelines, budgets, and available resources, with clear implementation plans and capable project teams.
-              </p>
-            </div>
-
-            {/* Ethical Compliance */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Ethical Compliance</h3>
-              <p className="text-gray-600 leading-relaxed">
-                All research must adhere to WMSU's ethical standards, ensuring participant safety, data privacy, intellectual property rights, and responsible conduct of research.
-              </p>
-            </div>
-
-            {/* Budget Justification */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Budget Justification</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Budget allocations must be reasonable, well-documented, and directly support project objectives, with clear justification for all expenses and cost-effective resource utilization.
-              </p>
-            </div>
+            {homeData.criteria.items.map((item, idx) => {
+              const icons = [
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" /></svg>
+              ];
+              return (
+                <div key={idx} className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:border-red-200">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-6">
+                    {icons[idx] || icons[0]}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

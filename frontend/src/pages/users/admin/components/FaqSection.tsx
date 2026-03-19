@@ -206,19 +206,6 @@ export const FaqSection: React.FC = () => {
                           className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 text-sm"
                         />
                      </div>
-                     <div className="w-40">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Icon Theme</label>
-                        <select
-                          value={category.icon}
-                          onChange={(e) => updateCategory(catIndex, "icon", e.target.value)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 text-sm bg-white"
-                        >
-                          <option value="general">General (Search)</option>
-                          <option value="submission">Submission (File)</option>
-                          <option value="funding">Funding (PiggyBank)</option>
-                          <option value="technical">Technical (Wrench)</option>
-                        </select>
-                     </div>
                    </div>
                    <button
                      onClick={() => removeCategory(catIndex)}

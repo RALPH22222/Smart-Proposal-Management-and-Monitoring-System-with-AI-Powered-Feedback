@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, FileText, PiggyBank, Wrench, Mail, Phone, Loader2 } from "lucide-react";
+import { Search, FileText, PiggyBank, Wrench, Mail, Phone } from "lucide-react";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import { FaqApi } from "../services/FaqApi";
-import { type FaqInfo } from "../schemas/faq-schema";
+import { type FaqInfo, DEFAULT_FAQ_INFO } from "../schemas/faq-schema";
 
 const useInView = (options?: IntersectionObserverInit) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -31,31 +31,26 @@ const useInView = (options?: IntersectionObserverInit) => {
 };
 
 const FAQ: React.FC = () => {
-  const [faqData, setFaqData] = useState<FaqInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [faqData, setFaqData] = useState<FaqInfo>(DEFAULT_FAQ_INFO);
   
-  // Set default active category once data loads
-  const [activeCategory, setActiveCategory] = useState<string>("");
+  // Set default active category from the default data
+  const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_FAQ_INFO.categories[0].id);
   const [openItems, setOpenItems] = useState<string[]>([]);
   
   const heroSection = useInView();
   const faqSection = useInView();
 
   useEffect(() => {
-    const fetchFaq = async () => {
-      try {
-        const data = await FaqApi.getFaqInfo();
-        setFaqData(data);
-        if (data.categories.length > 0) {
-          setActiveCategory(data.categories[0].id);
+    FaqApi.getFaqInfo()
+      .then((data) => {
+        if (data && data.categories !== undefined && data.hero?.badge) {
+          setFaqData(data);
+          if (data.categories.length > 0) {
+            setActiveCategory(data.categories[0].id);
+          }
         }
-      } catch (error) {
-        console.error("Failed to load FAQ data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchFaq();
+      })
+      .catch(() => { /* keep defaults */ });
   }, []);
 
   const toggleItem = (itemId: string) => {
@@ -67,29 +62,19 @@ const FAQ: React.FC = () => {
   };
 
   // SVG Icons
-  const CategoryIcons = {
+  const CategoryIcons: Record<string, React.ReactElement> = {
     general: <Search className="w-5 h-5" />,
     submission: <FileText className="w-5 h-5" />,
     funding: <PiggyBank className="w-5 h-5" />,
     technical: <Wrench className="w-5 h-5" />
   };
 
+  const getCategoryIcon = (icon: string) => CategoryIcons[icon] ?? CategoryIcons["general"];
+
   const ContactIcons = {
     email: <Mail className="w-4 h-4" />,
     phone: <Phone className="w-4 h-4" />
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navbar />
-        <div className="flex-grow flex items-center justify-center">
-          <Loader2 className="w-10 h-10 animate-spin text-[#C8102E]" />
-        </div>
-        <Footer />
-      </div>
-    );
-  }
 
   if (!faqData) {
     return (
@@ -178,7 +163,7 @@ const FAQ: React.FC = () => {
                         e.currentTarget.style.backgroundColor = "white";
                     }}
                   >
-                    {CategoryIcons[category.icon]}
+                    {getCategoryIcon(category.icon)}
                     {category.name}
                   </button>
                 ))}
@@ -237,7 +222,7 @@ const FAQ: React.FC = () => {
                    {/* Desktop Category Header */}
                    <div className="hidden lg:flex items-center gap-4 mb-6">
                      <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
-                       {CategoryIcons[activeCategoryData.icon]}
+                       {getCategoryIcon(activeCategoryData.icon)}
                      </div>
                      <div className="min-w-0">
                        <h2 className="text-2xl font-bold text-gray-900">
@@ -318,7 +303,7 @@ const FAQ: React.FC = () => {
                     >
                       <div className="flex items-center gap-2 px-6 pt-4 pb-2">
                         <div className="flex items-center gap-2 text-xs text-[#C8102E] font-medium bg-[#C8102E]/10 px-2 py-1 rounded-full">
-                          {CategoryIcons[faq.categoryIcon]}
+                          {getCategoryIcon(faq.categoryIcon)}
                           <span className="capitalize">{faq.categoryName}</span>
                         </div>
                       </div>
