@@ -478,8 +478,8 @@ export default function Register() {
         </div>
 
         {/* Form Section */}
-        <div className="order-2 md:order-2 w-full md:w-1/2 flex items-center justify-center bg-white p-6 md:p-8">
-          <div className="w-full max-w-[580px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col" style={{ minHeight: "620px" }}>
+        <div className="order-2 md:order-2 w-full md:w-1/2 flex items-center justify-center bg-white p-2 md:p-6 overflow-y-auto" style={{ minHeight: "calc(100vh - 2rem)" }}>
+          <div className="w-full max-w-[580px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 3rem)" }}>
             {/* Header with Stepper */}
             <div className="px-6 pt-6 pb-4">
               {/* Back to Home */}

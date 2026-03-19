@@ -40,14 +40,7 @@ const Tooltip: React.FC<TooltipProps> = ({
     }
   }, [isMobile, isVisible]);
 
-  // Design adjustments:
-  // 1. w-max: Forces the tooltip to be as wide as the text needs.
-  // 2. max-w-xs: Constraints it so it doesn't get too wide (wraps nicely).
-  // Design adjustments:
-  // 1. Mobile: Fixed width (w-48) to ensure it stays on screen, with wrapping.
-  // 2. Desktop (sm): Auto width (w-max) but capped at xs to keep it neat.
-  // 3. Removed previous positioning conflicts.
-  const baseClasses = "absolute z-50 px-3 py-2 text-sm font-medium text-white bg-slate-900 rounded-md shadow-xl border border-slate-800 animate-in fade-in zoom-in-95 duration-200 whitespace-normal break-words w-48 max-w-[90vw] sm:w-max sm:max-w-xs";
+  const baseClasses = "absolute z-2 px-3 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-md shadow-xl border border-red-900 animate-in fade-in zoom-in-95 duration-200 whitespace-normal break-words w-48 max-w-[90vw] sm:w-max sm:max-w-xs";
 
   const positionClasses = {
     top: 'bottom-full mb-2 left-1/2 -translate-x-1/2',
@@ -56,12 +49,11 @@ const Tooltip: React.FC<TooltipProps> = ({
     right: 'left-full ml-2 top-1/2 -translate-y-1/2'
   };
 
-  // Matched arrow color to bg-slate-900
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-t-slate-900 border-l-transparent border-r-transparent border-b-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-slate-900 border-l-transparent border-r-transparent border-t-transparent',
-    left: 'left-full top-1/2 -translate-y-1/2 border-l-slate-900 border-t-transparent border-b-transparent border-r-transparent',
-    right: 'right-full top-1/2 -translate-y-1/2 border-r-slate-900 border-t-transparent border-b-transparent border-l-transparent'
+    top: 'top-full left-1/2 -translate-x-1/2 border-t-red-900 border-l-transparent border-r-transparent border-b-transparent',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-red-900 border-l-transparent border-r-transparent border-t-transparent',
+    left: 'left-full top-1/2 -translate-y-1/2 border-l-red-900 border-t-transparent border-b-transparent border-r-transparent',
+    right: 'right-full top-1/2 -translate-y-1/2 border-r-red-900 border-t-transparent border-b-transparent border-l-transparent'
   };
 
   return (
@@ -86,7 +78,7 @@ const Tooltip: React.FC<TooltipProps> = ({
           style={{ pointerEvents: 'none' }} // Prevents tooltip from blocking clicks if it fades out slowly
         >
           {/* Content */}
-          <span className="block leading-relaxed text-slate-100">
+          <span className="block leading-relaxed text-white">
             {content}
           </span>
 

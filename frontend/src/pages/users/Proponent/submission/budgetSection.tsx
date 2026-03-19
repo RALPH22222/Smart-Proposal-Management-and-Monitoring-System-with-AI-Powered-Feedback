@@ -26,6 +26,18 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 }) => {
   const [activeModal, setActiveModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
 
+  const handleOpenModal = (itemId: number, category: 'ps' | 'mooe' | 'co') => {
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    const currentBreakdown = getBreakdown(item, category);
+    
+    if (currentBreakdown.length === 0) {
+      const newBreakdown = [{ item: '', value: 0 }];
+      updateBudgetStructure(itemId, category, newBreakdown);
+    }
+    
+    setActiveModal({ itemId, category });
+  };
+
   const formatCurrency = (amount: number) => {
     const num = Number(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
@@ -67,35 +79,16 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
 
-    // Validation: Check if the last item is empty or incomplete
-    if (currentBreakdown.length > 0) {
-      const lastItem = currentBreakdown[currentBreakdown.length - 1];
-      if (!lastItem.item?.trim() || (!lastItem.value && lastItem.value !== 0)) {
-        // Using a simple alert or Swal if imported. Since Swal isn't imported here, I'll pass a prop or import it.
-        // Let's assume standard window.alert or better, import Swal. 
-        // But to keep it safe, I'll use imports.
-        import("sweetalert2").then((Swal) => {
-          Swal.default.fire({
-            icon: "warning",
-            title: "Incomplete Item",
-            text: "Please complete the previous item description and amount before adding a new one.",
-            confirmButtonColor: "#C8102E",
-          });
-        });
-        return;
-      }
-    }
-
-    // Note: 'item' field maps to description in your previous code
+    // Add a new empty line item
     const newBreakdown = [
       ...currentBreakdown,
-      { item: '', value: 0 } // Using ExpenseItem interface keys
+      { item: '', value: 0 }
     ];
 
     updateBudgetStructure(itemId, category, newBreakdown);
   };
 
-  const handleDetailedUpdate = (index: number, desc: string, qty: number, price: number) => {
+  const handleDetailedUpdate = (index: number, desc: string, amount: number) => {
     if (!activeModal) return;
     const { itemId, category } = activeModal;
 
@@ -104,16 +97,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
     const updatedBreakdown = [...currentBreakdown];
 
-    // Enforce non-negative values
-    const safeQty = Math.max(1, qty);
-    const safePrice = Math.max(0, price);
-
-    const finalItemString = safeQty > 1 ? `${desc.trim()} [${safeQty}x]` : desc.trim();
-    const finalTotalValue = safeQty * safePrice;
+    const safeAmount = Math.max(0, amount);
 
     updatedBreakdown[index] = {
-      item: finalItemString,
-      value: finalTotalValue
+      item: desc.trim(),
+      value: safeAmount
     };
 
     updateBudgetStructure(itemId, category, updatedBreakdown);
@@ -125,6 +113,9 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
+
+    // Only allow removal if there's more than one item
+    if (currentBreakdown.length <= 1) return;
 
     const updatedBreakdown = currentBreakdown.filter((_, idx) => idx !== index);
 
@@ -160,12 +151,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       {/* Header (Same) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-            <FaMoneyBillWave className="text-[#C8102E] text-lg sm:text-xl" />
+          <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
+            <FaMoneyBillWave className="text-white w-6 h-6" />
           </div>
           Budget Requirements
         </h2>
-        <div className="flex items-center gap-2 text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full w-fit">
+        <div className="flex items-center gap-2 text-sm text-green-600 font-medium select-none">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
           Required
         </div>
@@ -179,7 +170,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         <button
           type="button"
           onClick={onBudgetItemAdd}
-          className="w-full sm:w-auto px-6 py-3 text-white rounded-xl hover:bg-[#9d0d24] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
+          className="w-full sm:w-auto px-6 py-3 text-white rounded-xl hover:bg-[#9d0d24] hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
           style={{ backgroundColor: '#C8102E' }}
         >
           <FaPlus className="w-4 h-4" />
@@ -225,11 +216,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
-                    onClick={() => setActiveModal({ itemId: item.id, category: 'ps' })}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    onClick={() => handleOpenModal(item.id, 'ps')}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
-                    <span>{formatCurrency(rowPS)}</span>
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <div className="flex-1 truncate" title={formatCurrency(rowPS)}>
+                      <span>{formatCurrency(rowPS)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -240,11 +233,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
-                    onClick={() => setActiveModal({ itemId: item.id, category: 'mooe' })}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    onClick={() => handleOpenModal(item.id, 'mooe')}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
-                    <span>{formatCurrency(rowMOOE)}</span>
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <div className="flex-1 truncate" title={formatCurrency(rowMOOE)}>
+                      <span>{formatCurrency(rowMOOE)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -255,11 +250,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center justify-between group/input"
-                    onClick={() => setActiveModal({ itemId: item.id, category: 'co' })}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    onClick={() => handleOpenModal(item.id, 'co')}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E]" />
-                    <span>{formatCurrency(rowCO)}</span>
+                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <div className="flex-1 truncate" title={formatCurrency(rowCO)}>
+                      <span>{formatCurrency(rowCO)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -291,26 +288,32 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         <div className="p-6">
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Personnel Services</p>
                   <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
                 </div>
-                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalPS)}</p>
+                <div className="w-full text-right">
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalPS)}>{formatCurrency(totalPS)}</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">MOOE</p>
                   <p className="text-sm text-slate-600">Maintenance & Operations</p>
                 </div>
-                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalMOOE)}</p>
+                <div className="w-full text-right">
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalMOOE)}>{formatCurrency(totalMOOE)}</p>
+                </div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28">
+              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capital Outlay</p>
                   <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
                 </div>
-                <p className="text-xl font-bold text-slate-800 font-mono text-right">{formatCurrency(totalCO)}</p>
+                <div className="w-full text-right">
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalCO)}>{formatCurrency(totalCO)}</p>
+                </div>
               </div>
             </div>
 
@@ -324,9 +327,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   <p className="text-xs text-white/60">Grand Total of all funding sources</p>
                 </div>
               </div>
-              <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight">
-                {formatCurrency(grandTotal)}
-              </p>
+              <div className="max-w-[150px] sm:max-w-xs lg:max-w-[280px] w-full text-right">
+                <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight truncate flex-1" title={formatCurrency(grandTotal)}>
+                  {formatCurrency(grandTotal)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -354,64 +359,45 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 </div>
               ) : (
                 getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => {
-                  const itemStr = item.item || '';
-                  const qtyMatch = itemStr.match(/\s*\[(\d+)x\]$/);
-                  const displayDescription = qtyMatch ? itemStr.replace(/\s*\[\d+x\]$/, '').trim() : itemStr;
-                  const displayQuantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-                  const unitPrice = displayQuantity > 0 ? (item.value || 0) / displayQuantity : (item.value || 0);
+                  const displayDescription = item.item || '';
+                  const itemAmount = item.value || 0;
 
                   return (
-                    <div key={idx} className="bg-white border border-gray-200 rounded-xl p-4 space-y-3 shadow-sm group animate-in slide-in-from-bottom-2">
-                      <div className="flex gap-3 items-center">
-                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
-                          {idx + 1}
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Item Description (e.g. Laptop, Travel)"
-                          value={displayDescription}
-                          onChange={(e) => handleDetailedUpdate(idx, e.target.value, displayQuantity, unitPrice)}
-                          className="flex-1 bg-transparent border-b border-gray-200 focus:border-[#C8102E] px-1 py-1 text-sm font-medium focus:outline-none transition-colors"
-                        />
-                        <button
-                          onClick={() => handleRemoveBreakdownItem(idx)}
-                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                          <FaTrash className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 pl-4 sm:pl-11">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Quantity</label>
+                    <div key={idx} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group animate-in slide-in-from-bottom-2">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                            {idx + 1}
+                          </div>
                           <input
-                            type="number"
-                            min="1"
-                            value={displayQuantity}
-                            onChange={(e) => handleDetailedUpdate(idx, displayDescription, Math.max(1, parseInt(e.target.value) || 1), unitPrice)}
-                            className="w-full sm:w-20 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none"
+                            type="text"
+                            placeholder="Item Description (e.g. Laptop, Travel)"
+                            value={displayDescription}
+                            onChange={(e) => handleDetailedUpdate(idx, e.target.value, itemAmount)}
+                            className="flex-1 bg-transparent border-b border-gray-200 focus:border-[#C8102E] px-1 py-1 text-sm font-medium focus:outline-none transition-colors"
                           />
                         </div>
 
-                        <div className="flex-1 w-full space-y-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unit Price</label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-gray-400 text-xs">₱</span>
+                        <div className="flex items-center gap-2 pl-10 sm:pl-0 sm:w-1/3 shrink-0">
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-2 text-gray-400 text-sm font-mono">₱</span>
                             <input
                               type="number"
                               min="0"
-                              value={unitPrice || ''}
-                              onChange={(e) => handleDetailedUpdate(idx, displayDescription, displayQuantity, Math.max(0, parseFloat(e.target.value) || 0))}
-                              className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none font-mono"
+                              placeholder="Amount"
+                              value={itemAmount || ''}
+                              onChange={(e) => handleDetailedUpdate(idx, displayDescription, Math.max(0, parseFloat(e.target.value) || 0))}
+                              className="w-full pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none font-mono"
                             />
                           </div>
-                        </div>
-
-                        <div className="w-full sm:w-32 text-right space-y-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sub-total</label>
-                          <div className="text-sm font-black text-gray-900 font-mono py-2 bg-gray-50/50 px-2 rounded-lg">
-                            {formatCurrency(item.value || 0)}
-                          </div>
+                          <button
+                            onClick={() => handleRemoveBreakdownItem(idx)}
+                            disabled={getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length <= 1}
+                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
+                            title={getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length <= 1 ? "Minimum 1 item required" : "Remove Item"}
+                          >
+                            <FaTrash className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -421,8 +407,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
             </div>
 
             <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-              <div className="text-sm font-semibold text-gray-700">
-                Total: <span className="text-[#C8102E] font-mono ml-2">
+              <div className="text-sm font-semibold text-gray-700 flex items-center w-full max-w-[200px] sm:max-w-[280px]">
+                <span className="shrink-0 mr-2">Total:</span> 
+                <span className="text-[#C8102E] font-mono truncate" title={formatCurrency(
+                    getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
+                      .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)
+                  )}>
                   {formatCurrency(
                     getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
                       .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)

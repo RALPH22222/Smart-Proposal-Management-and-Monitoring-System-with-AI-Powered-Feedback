@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
@@ -21,6 +21,23 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     if (!u.first_name && !u.last_name) return u.email || "User";
     return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
   };
+
+  const getFirstName = () => {
+    if (!user) return "Admin";
+    const u: any = user;
+    return u.first_name || "Admin";
+  };
+
+  const nameContainerRef = useRef<HTMLDivElement | null>(null);
+  const nameTextRef = useRef<HTMLDivElement | null>(null);
+  const [shouldScrollName, setShouldScrollName] = useState(false);
+
+  useEffect(() => {
+    const container = nameContainerRef.current;
+    const text = nameTextRef.current;
+    if (!container || !text) return;
+    setShouldScrollName(text.scrollWidth > container.clientWidth);
+  }, [user?.first_name]);
 
   const mainLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -64,6 +81,14 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
       )}
 
       {/* Sidebar */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          50% { transform: translateX(-30%); }
+          100% { transform: translateX(0); }
+        }
+        .animate-marquee { display: inline-block; animation: marquee 8s linear infinite; }
+      `}</style>
       <aside
         className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex flex-col z-40 transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
@@ -80,10 +105,12 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
             <SecureImage src={user?.profile_photo_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`} alt={getFullName()} className="w-full h-full object-cover" />
           </div>
           <div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
-              Admin
-            </h3>
-            <p className="text-xs text-gray-500 font-medium">Project Portal</p>
+            <div ref={nameContainerRef} className="overflow-hidden w-full">
+              <div ref={nameTextRef} className={`text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent whitespace-nowrap ${shouldScrollName ? 'animate-marquee' : ''}`}>
+                {getFirstName()}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 font-medium">Admin Portal</p>
           </div>
         </div>
 

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
+import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, PhilippinePeso, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Calendar1 } from "lucide-react";
-
+import { Microscope, FileText, RefreshCw, PhilippinePeso, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Calendar1, Info} from "lucide-react"; 
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import { useNotifications } from "../../../context/NotificationContext";
@@ -15,7 +15,6 @@ import {
 } from "../../../types/helpers";
 import { getProposals } from "../../../services/proposal.api";
 import { useLookups } from "../../../context/LookupContext";
-
 import { useAuthContext } from "../../../context/AuthContext";
 import SecureImage from "../../../components/shared/SecureImage";
 import { formatDateTime } from "../../../utils/date-formatter";
@@ -71,6 +70,7 @@ const Profile: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const [detailedModalOpen, setDetailedModalOpen] = useState(false);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Proposal | null>(null);
 
   // Search and Filter State
@@ -932,15 +932,18 @@ const Profile: React.FC = () => {
                   <p className="text-sm text-gray-600 mt-1">Complete overview of all your research proposals</p>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Funded</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span>In Progress</span>
-                  </div>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setHowItWorksOpen(true)}
+                    className="relative flex items-center gap-2 px-4 py-2 bg-white text-red-600 hover:text-[#C8102E] hover:border-[#C8102E] rounded-lg transition-all duration-300 text-sm font-bold border border-red-300 shadow-sm hover:shadow group"
+                  >
+                    <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#C8102E]"></span>
+                    </span>
+                    <Info className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                    How It Works
+                  </button>
                 </div>
               </div>
             </div>
@@ -1048,6 +1051,11 @@ const Profile: React.FC = () => {
         </section>
 
         {/* Modals */}
+        <HowItWorksModal 
+          isOpen={howItWorksOpen} 
+          onClose={() => setHowItWorksOpen(false)} 
+        />
+
         <DetailedProposalModal
           isOpen={detailedModalOpen}
           onClose={() => setDetailedModalOpen(false)}

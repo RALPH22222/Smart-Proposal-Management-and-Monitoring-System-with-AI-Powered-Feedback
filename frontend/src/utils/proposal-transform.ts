@@ -136,6 +136,12 @@ export function transformProposalForModal(raw: any) {
     duration: raw.duration ? `${raw.duration} Months` : "N/A",
     startDate: raw.plan_start_date || "",
     endDate: raw.plan_end_date || "",
+    department:
+      raw.proponent_id?.department_id?.name ||
+      (typeof raw.proponent_id?.department === 'string' ? raw.proponent_id.department : raw.proponent_id?.department?.name) ||
+      (typeof raw.department === 'string' ? raw.department : raw.department?.name) ||
+      (typeof raw.proponent_id?.dept === 'string' ? raw.proponent_id.dept : raw.proponent_id?.dept?.name) ||
+      "N/A",
     budgetSources,
     budgetTotal: fmt(budgetGrandTotal),
     documentUrl: latestVersion?.file_url || "",

@@ -302,8 +302,23 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
   // --- PRIORITY HANDLERS ---
   const handlePrioritySelect = (value: string) => {
-    setPriorityInput(value);
-    setIsPriorityOpen(false);
+    if (selectedPriorities.includes(value)) {
+      handleDeletePriority(value);
+      return;
+    }
+
+    if (!selectedPriorities.includes(value)) {
+      const newSelected = [...selectedPriorities, value];
+      setSelectedPriorities(newSelected);
+
+      const priorityEntry = prioritiesList.find((p) => p.name === value);
+      const currentIds = (formData.priorities_id || []).filter((id): id is number => typeof id === "number");
+
+      if (priorityEntry) {
+        const newIds = [...currentIds, priorityEntry.id];
+        onUpdate("priorities_id", newIds);
+      }
+    }
   };
 
   const handleAddPriority = () => {
@@ -372,8 +387,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       {/* Header */}
       <div className="max-w-5xl w-full mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FlaskConical className="text-[#C8102E] w-5 h-5" />
+          <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
+            <FlaskConical className="text-white w-6 h-6" />
           </div>
           Research Details
         </h2>
@@ -778,48 +793,46 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
         )}
 
         {/* Input Area (Custom Dropdown + Text Input) */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder={isLoading ? "Loading priorities..." : "Select or type a priority area (e.g. SDG 1)..."}
-              value={priorityInput}
-              onChange={(e) => setPriorityInput(e.target.value)}
-              onFocus={() => setIsPriorityOpen(true)}
-              onBlur={() => setTimeout(() => setIsPriorityOpen(false), 200)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddPriority();
-                }
-              }}
-            />
-            {isPriorityOpen && filteredPriorities.length > 0 && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredPriorities.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handlePrioritySelect(item.name)}
-                  >
+        <div className="relative">
+          <input
+            type="text"
+            placeholder={isLoading ? "Loading priorities..." : "Select or type a priority area (e.g. SDG 1)..."}
+            value={priorityInput}
+            onChange={(e) => setPriorityInput(e.target.value)}
+            onFocus={() => setIsPriorityOpen(true)}
+            onBlur={() => setTimeout(() => setIsPriorityOpen(false), 200)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddPriority();
+              }
+            }}
+          />
+          {isPriorityOpen && filteredPriorities.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+              {filteredPriorities.map((item, index) => (
+                <div
+                  key={item.id || index}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none ${selectedPriorities.includes(item.name) ? "bg-[#C8102E]/10" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handlePrioritySelect(item.name)}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedPriorities.includes(item.name)}
+                      readOnly
+                      className="w-4 h-4 text-[#C8102E] rounded pointer-events-none"
+                    />
                     <span className="text-sm text-gray-700">{item.name}</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleAddPriority}
-            disabled={!priorityInput.trim()}
-            className="px-4 py-2 bg-[#C8102E] text-white rounded-xl hover:bg-[#A00E26] transition-colors flex items-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" /> Add
-          </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <p className="text-xs text-gray-500">Select from the list or type your own custom priority area.</p>
+        <p className="text-xs text-gray-500">Select from the list or type your own custom priority area and press Enter.</p>
       </div>
 
     </div >

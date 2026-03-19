@@ -1,0 +1,67 @@
+﻿src/App.tsx(24,33): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/ProponentMainLayout.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/ProponentMainLayout.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./pages/users/Proponent/ProponentMainLayout" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/App.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/context/LookupContext.tsx(5,8): error TS6133: 'AgencyItem' is declared but its value is never read.
+src/context/LookupContext.tsx(6,8): error TS6133: 'LookupItem' is declared but its value is never read.
+src/pages/users/admin/evaluator.tsx(301,65): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string | Date | null | undefined'.
+src/pages/users/Proponent/monitoring.tsx(6,46): error TS6133: 'Send' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(7,38): error TS6133: 'UploadCloud' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(9,17): error TS6133: 'User' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(9,23): error TS6133: 'ShieldAlert' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(29,3): error TS6133: 'REPORT_MAX_FILE_SIZE' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(34,8): error TS6133: 'DisplayReport' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(65,11): error TS6196: 'ProjectData' is declared but never used.
+src/pages/users/Proponent/monitoring.tsx(95,10): error TS6133: 'projectDetail' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(96,10): error TS6133: 'fundRequests' is declared but its value is never read.
+src/pages/users/Proponent/monitoring.tsx(673,85): error TS6133: 'i' is declared but its value is never read.
+src/pages/users/Proponent/Profile.tsx(6,194): error TS6133: 'X' is declared but its value is never read.
+src/pages/users/Proponent/Profile.tsx(9,1): error TS6133: 'templatePDF' is declared but its value is never read.
+src/pages/users/Proponent/ProponentMainLayout.tsx(6,24): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/index.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/submission/index.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./submission" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/ProponentMainLayout.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/ProponentMainLayout.tsx(7,21): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/Profile.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/Profile.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./Profile" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/ProponentMainLayout.tsx'
+    Imported via "../Proponent/Profile" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/co-lead/CoLeadMainLayout.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/ProponentMainLayout.tsx(8,22): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/settings.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/settings.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./settings" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/ProponentMainLayout.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/ProponentMainLayout.tsx(9,24): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/monitoring.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/monitoring.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./monitoring" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/ProponentMainLayout.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/settings.tsx(201,25): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/users/Proponent/submission/index.tsx(4,30): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/basicInfo.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/submission/basicInfo.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./basicInfo" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/index.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/submission/index.tsx(5,29): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/researchDetails.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/submission/researchDetails.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./researchDetails" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/index.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/submission/index.tsx(6,27): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/budgetSection.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/submission/budgetSection.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./budgetSection" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/index.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/Proponent/submission/index.tsx(7,27): error TS1261: Already included file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/uploadSidebar.tsx' differs from file name 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/proponent/submission/uploadSidebar.tsx' only in casing.
+  The file is in the program because:
+    Imported via "./uploadSidebar" from file 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/src/pages/users/Proponent/submission/index.tsx'
+    Matched by include pattern 'src' in 'C:/Users/Admin/Smart-Proposal-Management-and-Monitoring-System-with-AI-Powered-Feedback/frontend/tsconfig.app.json'
+src/pages/users/rnd/RnDEvaluatorPage.tsx(325,65): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string | Date | null | undefined'.
+src/services/admin/SettingsApi.ts(52,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(57,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(63,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(68,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(74,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(80,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/admin/SettingsApi.ts(85,12): error TS18046: 'res.data' is of type 'unknown'.
+src/services/AdminProposalApi/ProposalApi.ts(145,27): error TS2322: Type '"Deadline Expired"' is not assignable to type 'ProposalStatus'.
+src/services/FaqApi.ts(2,24): error TS6133: 'DEFAULT_FAQ_INFO' is declared but its value is never read.
+src/services/NotificationApi.ts(22,5): error TS2322: Type 'unknown' is not assignable to type 'NotificationsResponse'.
+src/services/ProjectMonitoringApi.ts(225,3): error TS6133: 'currentUserId' is declared but its value is never read.
+src/services/RndProposalApi/ProposalApi.ts(84,31): error TS2322: Type '"Deadline Expired"' is not assignable to type 'ProposalStatus'.

@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import {
-  FaUpload,
   FaCheck,
   FaCircle,
   FaTimes,
@@ -89,12 +88,13 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (isFormValid) {
       Swal.fire({
         title: 'Confirm Submission',
-        text: "Are you sure you are ready to submit this proposal? Please verify that all provided information is accurate and the required documents are attached.",
+        text: "Are you sure you are ready to submit this proposal? You won't be able to edit this information until the R&D staff requests a revision.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#C8102E',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Confirm Submission',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Yes!',
+        cancelButtonText: 'No',
         reverseButtons: true
       }).then((result) => {
         if (result.isConfirmed) {
@@ -121,12 +121,20 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-            if (file && file.size > 10 * 1024 * 1024) {
-              Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
-              e.target.value = '';
-              return;
+            if (file) {
+              const extension = file.name.split('.').pop()?.toLowerCase();
+              if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+                Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
+                e.target.value = '';
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                e.target.value = '';
+                return;
+              }
+              onFileSelect(file);
             }
-            onFileSelect(file);
           }}
           disabled={isUploadDisabled}
         />
@@ -143,11 +151,18 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             e.preventDefault();
             if (!isUploadDisabled) {
               const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
-              if (file && file.size > 10 * 1024 * 1024) {
-                Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
-                return;
+              if (file) {
+                const extension = file.name.split('.').pop()?.toLowerCase();
+                if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+                  Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
+                  return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                  Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                  return;
+                }
+                onFileSelect(file);
               }
-              onFileSelect(file);
             }
           }}
           onDragOver={(e) => e.preventDefault()}
@@ -168,53 +183,39 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         </div>
 
         {/* Action Buttons for File */}
-        <div className="space-y-3 mb-6">
-          {selectedFile ? (
-            <>
-              <button
-                onClick={onAITemplateCheck}
-                disabled={isCheckingTemplate}
-                className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
-                  }`}
-              >
-                {isCheckingTemplate ? (
-                  <>
-                    <FaSpinner className="w-4 h-4 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <FaRobot className="w-4 h-4" />
-                    AI Template Check
-                  </>
-                )}
-              </button>
+        {selectedFile && (
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={onAITemplateCheck}
+              disabled={isCheckingTemplate}
+              className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+                }`}
+            >
+              {isCheckingTemplate ? (
+                <>
+                  <FaSpinner className="w-4 h-4 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <FaRobot className="w-4 h-4" />
+                  AI Template Check
+                </>
+              )}
+            </button>
 
-              <button
-                onClick={handleUploadClick}
-                disabled={isUploadDisabled}
-                className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
-              >
-                <FaTimes className="w-3 h-3" />
-                Choose different file
-              </button>
-            </>
-          ) : (
             <button
               onClick={handleUploadClick}
               disabled={isUploadDisabled}
-              className={`w-full py-3 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isUploadDisabled
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-                }`}
+              className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
             >
-              <FaUpload className="w-4 h-4" />
-              Upload Research
+              <FaTimes className="w-3 h-3" />
+              Choose different file
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Checklist */}
         <div className="p-5 bg-blue-50 rounded-xl border border-blue-100 mb-6">

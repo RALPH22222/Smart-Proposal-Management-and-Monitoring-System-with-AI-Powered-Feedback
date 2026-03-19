@@ -11,9 +11,12 @@ import {
   Briefcase,
   Plus,
   Calendar,
+  Calendar1,
   MapPin,
   Sparkles,
   Loader2,
+  FolderPen,
+  FolderOpenDot,
 } from "lucide-react";
 
 import { fetchAgencyAddresses, generateTags } from "../../../../services/proposal.api";
@@ -375,16 +378,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
     setAvailableAddresses([]);
-
-    try {
-      const addresses = await fetchAgencyAddresses(agency.id);
-      setAvailableAddresses(addresses || []);
-    } catch (error) {
-      console.error("Error fetching agency addresses:", error);
-      if (agency.agency_address) {
-        setAvailableAddresses(agency.agency_address);
-      }
-    }
   };
 
   const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -443,6 +436,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   };
 
   const handleTagSelect = (tag: { id: number; name: string }) => {
+    if (selectedTags.includes(tag.name)) {
+      handleTagRemove(tag.name);
+      return;
+    }
+
     if (selectedTags.length >= 4) {
       Swal.fire({
         title: "Maximum Tags Reached",
@@ -450,19 +448,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         icon: "warning",
         confirmButtonColor: "#C8102E",
       });
-      setIsTagsDropdownOpen(false);
       return;
     }
 
-    if (!selectedTags.includes(tag.name)) {
-      const newSelectedTags = [...selectedTags, tag.name];
-      setSelectedTags(newSelectedTags);
-      const currentTagIds = formData.tags || [];
-      const newTagIds = [...currentTagIds, tag.id];
-      onUpdate("tags", newTagIds);
-    }
-    setTagsSearchTerm("");
-    setIsTagsDropdownOpen(false);
+    const newSelectedTags = [...selectedTags, tag.name];
+    setSelectedTags(newSelectedTags);
+    const currentTagIds = formData.tags || [];
+    const newTagIds = [...currentTagIds, tag.id];
+    onUpdate("tags", newTagIds);
   };
 
   const handleTagRemove = (tagName: string) => {
@@ -582,8 +575,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FileText className="text-[#C8102E] w-5 h-5" />
+          <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
+            <FileText className="text-white w-6 h-6" />
           </div>
           Basic Information
         </h2>
@@ -597,6 +590,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <FolderOpenDot className="text-gray-400 w-4 h-4" />
             Program Title <span className="text-red-500">*</span>
             <Tooltip content="The name of the program or strategic initiative that this project falls under" />
           </label>
@@ -612,6 +606,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <FolderPen className="text-gray-400 w-4 h-4" />
             Project Title <span className="text-red-500">*</span>
             <Tooltip content="A specific and concise title for your research or development project" />
           </label>
@@ -627,6 +622,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Calendar1 className="text-gray-400 w-4 h-4" />
             School Year <span className="text-red-500">*</span>
             <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
           </label>
@@ -765,23 +761,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           Agency Address
           <Tooltip content="The complete office address where the project will be managed" />
         </label>
-
-        {availableAddresses.length > 0 && (
-          <div className="mb-3">
-            <select
-              className="w-full px-4 py-2 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={handleAddressSelect}
-              value={formData.agencyAddress?.id ? String(formData.agencyAddress.id) : ""}
-            >
-              <option value="" disabled>-- Select a known address (Optional) --</option>
-              {availableAddresses.map(addr => (
-                <option key={addr.id} value={addr.id}>
-                  {addr.city}, {addr.barangay || ""}, {addr.street || ""}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2 city-dropdown-container">
@@ -942,9 +921,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 <button
                   type="button"
                   onClick={() => handleAgencyRemove(agency.id)}
-                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-blue-200 focus:outline-none"
+                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors hover:text-red-500 focus:outline-none"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </span>
             ))}
@@ -967,8 +946,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedAgencies.some((a) => a.id === agency.id) ? "bg-[#C8102E]/10" : ""}`}
                   onClick={() => {
                     handleAgencySelect(agency);
-                    setCooperatingSearchTerm("");
-                    setIsCooperatingDropdownOpen(false);
                   }}
                 >
                   <div className="flex items-center gap-2">
@@ -1029,11 +1006,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             {selectedTags.map((tag, index) => (
               <div
                 key={index}
-                className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium"
               >
-                <span>{tag}</span>
-                <button type="button" onClick={() => handleTagRemove(tag)} className="hover:text-blue-600">
-                  <X className="w-3 h-3" />
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => handleTagRemove(tag)}
+                  className="hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))}
@@ -1054,10 +1035,18 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                 filteredTags.map((tag) => (
                   <div
                     key={tag.id}
-                    className="px-4 py-3 cursor-pointer hover:bg-gray-50"
+                    className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${selectedTags.includes(tag.name) ? "bg-[#C8102E]/10" : ""}`}
                     onClick={() => handleTagSelect(tag)}
                   >
-                    <span className="text-sm text-gray-700">{tag.name}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag.name)}
+                        readOnly
+                        className="w-4 h-4 text-[#C8102E] rounded pointer-events-none"
+                      />
+                      <span className="text-sm text-gray-700">{tag.name}</span>
+                    </div>
                   </div>
                 ))
               ) : (

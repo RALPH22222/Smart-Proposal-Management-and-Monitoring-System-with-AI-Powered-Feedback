@@ -21,6 +21,7 @@ import {
   Timer,
   MapPin,
   Globe,
+  Building2,
   CheckCircle,
   Search,
   Eye,
@@ -74,6 +75,7 @@ export interface ModalProposalData {
   duration: string;
   startDate: string;
   endDate: string;
+  department?: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
   proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
@@ -695,6 +697,9 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <Phone className="w-3.5 h-3.5 text-slate-400" /> {p.telephone}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> {p.department || "N/A"}
                   </div>
                 </div>
               </div>

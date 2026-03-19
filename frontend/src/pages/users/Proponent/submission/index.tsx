@@ -275,23 +275,6 @@ const Submission: React.FC = () => {
   };
 
   const handleSectionChange = (nextSection: string) => {
-    // Navigation Guard Logic:
-    // 1. To enter Research Details, Basic Info must be valid.
-    if (nextSection === "research-details") {
-      if (!validateBasicInfo()) return;
-    }
-
-    // 2. To enter Budget, both Basic Info and Research Details must be valid.
-    if (nextSection === "budget") {
-      // Check Basic Info first
-      if (!validateBasicInfo()) return;
-
-      // Then Check Research Details
-      if (!validateResearchDetails()) return;
-    }
-
-    // 3. Going to Basic Info is always allowed (backward navigation).
-
     setActiveSection(nextSection);
   };
 
@@ -349,46 +332,29 @@ const Submission: React.FC = () => {
   // --- SUBMISSION LOGIC ---
 
   const handleSubmit = useCallback(async () => {
+    // 1. Run Comprehensive Form Validations
+    if (!validateBasicInfo()) return;
+    if (!validateResearchDetails()) return;
+    if (!validateBudgetSection()) return;
+
+    // 2. File Check
     if (!selectedFile) {
       Swal.fire({
         icon: "warning",
         title: "Missing File",
-        text: "Please upload a proposal file (PDF/Word).",
+        text: "Please upload a proposal file (PDF/Word) using the Upload block.",
+        confirmButtonColor: "#C8102E",
       });
       return;
     }
-    if (!localFormData.project_title) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing Title",
-        text: "Project Title is required.",
-      });
-      return;
-    }
+
+    // 3. Auth Check
     if (!user?.id) {
       Swal.fire({
         icon: "error",
         title: "Auth Error",
         text: "User not authenticated. Please log in again.",
-      });
-      return;
-    }
-
-    // Pre-submit validation for fields the backend requires
-    const missingFields: string[] = [];
-    if (!localFormData.agency) missingFields.push("Agency");
-    if (!localFormData.agencyAddress?.city?.trim()) missingFields.push("Agency City");
-    if (!localFormData.sector) missingFields.push("Sector/Commodity");
-    if (!localFormData.discipline) missingFields.push("Discipline");
-    if (!localFormData.plannedStartDate) missingFields.push("Planned Start Date");
-    if (!localFormData.plannedEndDate) missingFields.push("Planned End Date");
-    if (!localFormData.schoolYear?.trim()) missingFields.push("School Year");
-
-    if (missingFields.length > 0) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing Required Fields",
-        html: `<p>Please fill in the following fields:</p><ul style="text-align:left;margin-top:8px;">${missingFields.map((f) => `<li>• ${f}</li>`).join("")}</ul>`,
+        confirmButtonColor: "#C8102E",
       });
       return;
     }
@@ -519,7 +485,7 @@ const Submission: React.FC = () => {
   // ... (Render Helpers remain the same)
 
   const getTabClass = (sectionName: string) => `
-    p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] font-medium
+    p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] font-bold
     ${activeSection === sectionName ? "bg-[#C8102E] text-white border-[#C8102E]" : "bg-white text-gray-600 border-gray-200"}
   `;
 
