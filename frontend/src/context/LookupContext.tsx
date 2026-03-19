@@ -2,8 +2,6 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import {
   fetchAllLookups,
   type AllLookups,
-  type AgencyItem,
-  type LookupItem,
 } from "../services/proposal.api";
 
 type LookupContextValue = AllLookups & {
