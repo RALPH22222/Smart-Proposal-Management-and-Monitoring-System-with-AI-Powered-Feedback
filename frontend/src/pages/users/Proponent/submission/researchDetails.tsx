@@ -236,46 +236,47 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
   // --- Handler for Research Station (Department) ---
   const handleStationSelect = (station: { id: number; name: string }) => {
     setResearchStationSearch(station.name);
-    onUpdate("researchStation", station.name); // Display name
-    onUpdate("department", station.id); // Store ID for backend
+    onUpdate("researchStation", station.name);
+    onUpdate("department", station.id);
     setIsResearchStationOpen(false);
   };
 
-  const handleStationChange = (value: string) => {
-    setResearchStationSearch(value);
-    onUpdate("researchStation", value);
-    // If typing custom, store the name (backend will resolve)
-    onUpdate("department", value);
+  const handleStationBlur = () => {
+    setTimeout(() => {
+      setIsResearchStationOpen(false);
+      // Revert to last valid selection if typed text doesn't match
+      setResearchStationSearch(formData.researchStation || "");
+    }, 200);
   };
 
   // --- Handler for Sector ---
   const handleSectorSelect = (sector: { id: number; name: string }) => {
     setSectorSearch(sector.name);
-    onUpdate("sectorCommodity", sector.name); // Display name
-    onUpdate("sector", sector.id); // Store ID for backend
+    onUpdate("sectorCommodity", sector.name);
+    onUpdate("sector", sector.id);
     setIsSectorOpen(false);
   };
 
-  const handleSectorChange = (value: string) => {
-    setSectorSearch(value);
-    onUpdate("sectorCommodity", value);
-    // If typing custom, store the name (backend will resolve)
-    onUpdate("sector", value);
+  const handleSectorBlur = () => {
+    setTimeout(() => {
+      setIsSectorOpen(false);
+      setSectorSearch(formData.sectorCommodity || "");
+    }, 200);
   };
 
   // --- Handler for Discipline ---
   const handleDisciplineSelect = (discipline: { id: number; name: string }) => {
     setDisciplineSearch(discipline.name);
-    onUpdate("disciplineName", discipline.name); // Display name
-    onUpdate("discipline", discipline.id); // Store ID for backend
+    onUpdate("disciplineName", discipline.name);
+    onUpdate("discipline", discipline.id);
     setIsDisciplineOpen(false);
   };
 
-  const handleDisciplineChange = (value: string) => {
-    setDisciplineSearch(value);
-    onUpdate("disciplineName", value);
-    // If typing custom, store the name (backend will resolve)
-    onUpdate("discipline", value);
+  const handleDisciplineBlur = () => {
+    setTimeout(() => {
+      setIsDisciplineOpen(false);
+      setDisciplineSearch(formData.disciplineName || "");
+    }, 200);
   };
 
 
@@ -410,15 +411,15 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             type="text"
             name="researchStation"
             value={researchStationSearch}
-            onChange={(e) => handleStationChange(e.target.value)}
+            onChange={(e) => setResearchStationSearch(e.target.value)}
             onFocus={() => setIsResearchStationOpen(true)}
-            onBlur={() => setTimeout(() => setIsResearchStationOpen(false), 200)}
+            onBlur={handleStationBlur}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
-            placeholder={isLoading ? "Loading stations..." : "Search or type research station"}
+            placeholder={isLoading ? "Loading stations..." : "Search research station..."}
           />
-          {isResearchStationOpen && filteredResearchStations.length > 0 && (
+          {isResearchStationOpen && (
             <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              {filteredResearchStations.map((station, index) => (
+              {filteredResearchStations.length > 0 ? filteredResearchStations.map((station, index) => (
                 <div
                   key={station.id || index}
                   className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
@@ -427,7 +428,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                 >
                   <span className="text-sm text-gray-700">{station.name}</span>
                 </div>
-              ))}
+              )) : (
+                <div className="px-4 py-3 text-sm text-gray-400 italic">No matching stations</div>
+              )}
             </div>
           )}
         </div>
@@ -446,15 +449,15 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
               type="text"
               name="sectorCommodity"
               value={sectorSearch}
-              onChange={(e) => handleSectorChange(e.target.value)}
+              onChange={(e) => setSectorSearch(e.target.value)}
               onFocus={() => setIsSectorOpen(true)}
-              onBlur={() => setTimeout(() => setIsSectorOpen(false), 200)}
+              onBlur={handleSectorBlur}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder={isLoading ? "Loading sectors..." : "Search or type sector"}
+              placeholder={isLoading ? "Loading sectors..." : "Search sector..."}
             />
-            {isSectorOpen && filteredSectors.length > 0 && (
+            {isSectorOpen && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredSectors.map((sector, index) => (
+                {filteredSectors.length > 0 ? filteredSectors.map((sector, index) => (
                   <div
                     key={sector.id || index}
                     className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
@@ -463,7 +466,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                   >
                     <span className="text-sm text-gray-700">{sector.name}</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="px-4 py-3 text-sm text-gray-400 italic">No matching sectors</div>
+                )}
               </div>
             )}
           </div>
@@ -481,15 +486,15 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
               type="text"
               name="discipline"
               value={disciplineSearch}
-              onChange={(e) => handleDisciplineChange(e.target.value)}
+              onChange={(e) => setDisciplineSearch(e.target.value)}
               onFocus={() => setIsDisciplineOpen(true)}
-              onBlur={() => setTimeout(() => setIsDisciplineOpen(false), 200)}
+              onBlur={handleDisciplineBlur}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder={isLoading ? "Loading disciplines..." : "Search or type discipline"}
+              placeholder={isLoading ? "Loading disciplines..." : "Search discipline..."}
             />
-            {isDisciplineOpen && filteredDisciplines.length > 0 && (
+            {isDisciplineOpen && (
               <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                {filteredDisciplines.map((discipline, index) => (
+                {filteredDisciplines.length > 0 ? filteredDisciplines.map((discipline, index) => (
                   <div
                     key={discipline.id || index}
                     className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
@@ -498,7 +503,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
                   >
                     <span className="text-sm text-gray-700">{discipline.name}</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="px-4 py-3 text-sm text-gray-400 italic">No matching disciplines</div>
+                )}
               </div>
             )}
           </div>

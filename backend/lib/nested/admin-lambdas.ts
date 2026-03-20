@@ -38,6 +38,7 @@ export class AdminLambdas extends NestedStack {
   public readonly updateAvailability: NodejsFunction;
   public readonly getEvaluationDeadline: NodejsFunction;
   public readonly updateEvaluationDeadline: NodejsFunction;
+  public readonly manageLookup: NodejsFunction;
   public readonly requestLeave: NodejsFunction;
   public readonly reviewLeave: NodejsFunction;
   public readonly endLeave: NodejsFunction;
@@ -269,6 +270,14 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-update-evaluation-deadline",
       entry: path.resolve("src", "handlers", "admin", "update-evaluation-deadline.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.manageLookup = new NodejsFunction(this, "manage-lookup", {
+      ...defaults,
+      functionName: "pms-manage-lookup",
+      entry: path.resolve("src", "handlers", "admin", "manage-lookup.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });

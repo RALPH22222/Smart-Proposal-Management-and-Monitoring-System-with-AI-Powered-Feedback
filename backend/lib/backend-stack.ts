@@ -502,6 +502,9 @@ export class BackendStack extends Stack {
       .addResource("update-evaluation-deadline")
       .addMethod(HttpMethod.POST, integrate(adminL.updateEvaluationDeadline), protectedRoute);
     admin
+      .addResource("manage-lookup")
+      .addMethod(HttpMethod.POST, integrate(adminL.manageLookup), protectedRoute);
+    admin
       .addResource("request-leave")
       .addMethod(HttpMethod.POST, integrate(adminL.requestLeave), protectedRoute);
     admin

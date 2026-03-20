@@ -12,6 +12,7 @@ import Monitoring from "./monitoring";
 import Endorsements from "./endorsement";
 import Funding from "./funding";
 import Activity from "./activity";
+import Lookups from "./lookups";
 import { ActivityApi } from "../../../services/admin/ActivityApi";
 import { getProposals } from "../../../services/proposal.api";
 import type { DashboardStats } from "../../../services/admin/ActivityApi";
@@ -95,6 +96,8 @@ const AdminLayout: React.FC = () => {
         return <Funding />;
       case "monitoring":
         return <Monitoring />;
+      case "lookups":
+        return <Lookups />;
       case "contents":
         return <Contents />;
       case "activity":

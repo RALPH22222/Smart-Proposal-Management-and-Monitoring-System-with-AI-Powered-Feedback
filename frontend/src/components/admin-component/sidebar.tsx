@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText } from "lucide-react";
+import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
 
@@ -47,6 +47,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => 
     { id: "endorsements", label: "Endorsements", icon: Gavel },
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },
+    { id: "lookups", label: "Lookups", icon: Database },
     { id: "contents", label: "Contents", icon: File },
     { id: "activity", label: "Activity Logs", icon: ScrollText },
   ];
