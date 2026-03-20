@@ -19,7 +19,7 @@ import {
   FolderOpenDot,
 } from "lucide-react";
 
-import { fetchAgencyAddresses, generateTags } from "../../../../services/proposal.api";
+import { generateTags } from "../../../../services/proposal.api";
 import type { AgencyItem } from "../../../../services/proposal.api";
 import { useLookups } from "../../../../context/LookupContext";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
@@ -377,22 +377,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("agency", agency.id);
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
-    setAvailableAddresses([]);
+    // Return the auto suggest addresses
+    setAvailableAddresses(agency.agency_address || []);
   };
 
-  const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    if (!selectedId) return;
-    const selectedAddr = availableAddresses.find(a => String(a.id) === selectedId);
-    if (selectedAddr) {
-      onUpdate("agencyAddress", {
-        id: String(selectedAddr.id),
-        street: selectedAddr.street || "",
-        barangay: selectedAddr.barangay || "",
-        city: selectedAddr.city || ""
-      });
-    }
-  };
+
 
   const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
     const newAddress = { ...formData.agencyAddress, [field]: value };
@@ -756,11 +745,59 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* ADDRESS */}
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <MapPin className="text-gray-400 w-4 h-4" />
-          Agency Address
-          <Tooltip content="The complete office address where the project will be managed" />
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <MapPin className="text-gray-400 w-4 h-4" />
+            Agency Address
+            <Tooltip content="The complete office address where the project will be managed" />
+          </label>
+        </div>
+
+        {availableAddresses.length > 0 && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-500 mb-6">
+            <div className="flex items-center gap-2 mb-3 px-1">
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-gray-200"></div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 whitespace-nowrap">
+                <Sparkles className="w-3 h-3 text-[#C8102E]" />
+                Select a saved address for {agencySearchTerm}
+              </p>
+              <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-gray-200"></div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {availableAddresses.map((addr) => (
+                <button
+                  key={addr.id}
+                  type="button"
+                  onClick={() => {
+                    const updates = {
+                      street: addr.street || "",
+                      barangay: addr.barangay || "",
+                      city: addr.city || ""
+                    };
+                    onUpdate("agencyAddress", { id: String(addr.id), ...updates });
+                    setCitySearchTerm(updates.city);
+                    setBarangaySearchTerm(updates.barangay);
+
+                    // Fetch barangays for the selected city
+                    const matchedCity = psgcCities.find(c => c.name.toLowerCase() === updates.city.toLowerCase());
+                    if (matchedCity) fetchBarangays(matchedCity.code);
+                  }}
+                  className="group flex flex-col items-start px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:border-[#C8102E] hover:bg-[#C8102E]/5 hover:shadow-md transition-all text-left active:scale-[0.98] duration-300"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin className="w-3 h-3 text-gray-400 group-hover:text-[#C8102E] transition-colors" />
+                    <span className="text-xs font-bold text-gray-700 group-hover:text-[#C8102E] transition-colors">
+                      {addr.city}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 leading-tight">
+                    {addr.barangay ? `${addr.barangay}, ` : ""}{addr.street || ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2 city-dropdown-container">

@@ -1,14 +1,17 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  FaCheck,
-  FaCircle,
-  FaTimes,
-  FaSpinner,
-  FaRobot,
-  FaFileAlt,
-  FaPaperPlane,
-  FaLock
-} from 'react-icons/fa';
+  Check,
+  Circle,
+  X,
+  Loader2,
+  Bot,
+  FileText,
+  Send,
+  Lock,
+  Eye,
+  Download
+} from 'lucide-react';
+import templatePDF from '../../../../assets/template/DOST-Template.pdf';
 import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -36,6 +39,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   isBudgetValid
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -169,13 +173,13 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         >
           {selectedFile ? (
             <div className="text-green-700">
-              <FaCheck className="text-3xl mb-3 mx-auto" />
+              <Check className="text-3xl mb-3 mx-auto" />
               <p className="font-semibold text-lg">File Ready</p>
               <p className="text-sm mt-1 truncate max-w-[200px] mx-auto">{selectedFile.name}</p>
             </div>
           ) : (
             <div className="py-4">
-              <FaFileAlt className="text-4xl text-gray-400 mb-3 mx-auto" />
+              <FileText className="text-4xl text-gray-400 mb-3 mx-auto" />
               <p className="text-gray-700 font-bold mb-1">Drop file here</p>
               <p className="text-gray-500 text-sm">or click to browse</p>
             </div>
@@ -195,12 +199,12 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             >
               {isCheckingTemplate ? (
                 <>
-                  <FaSpinner className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Checking...
                 </>
               ) : (
                 <>
-                  <FaRobot className="w-4 h-4" />
+                  <Bot className="w-4 h-4" />
                   AI Template Check
                 </>
               )}
@@ -211,42 +215,73 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               disabled={isUploadDisabled}
               className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
             >
-              <FaTimes className="w-3 h-3" />
+              <X className="w-3 h-3" />
               Choose different file
             </button>
           </div>
         )}
 
+        {/* --- Proposal Template Section --- */}
+        <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">
+          
+          <div className="flex flex-col items-center gap-2 relative z-10">
+            <h4 className="font-bold text-slate-900 text-lg leading-[1.15] tracking-tight text-center">
+              DOST Form No. 1B Template
+            </h4>
+            <div className="bg-slate-200 rounded-md px-2.5 py-1.5 flex flex-col items-center justify-center shrink-0">
+              <span className="text-[11px] font-semibold text-slate-600 tracking-widest leading-none">Required Format</span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2.5 relative z-10">
+            <button
+              onClick={() => setIsTemplateModalOpen(true)}
+              className="w-full py-3 px-4 bg-white border border-slate-300 text-slate-900 rounded-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 active:scale-95"
+            >
+              <Eye className="w-[15px] h-[15px] shrink-0 text-slate-600" />
+              <span className="text-[15px] font-bold leading-tight">View Template</span>
+            </button>
+            <a
+              href={templatePDF}
+              download="DOST-Project-Proposal-Template.pdf"
+              className="w-full py-3 px-4 bg-[#C8102E] text-white rounded-[14px] hover:bg-[#a00c24] transition-all flex items-center justify-center gap-2.5 active:scale-95"
+            >
+              <Download className="w-[15px] h-[15px] shrink-0" />
+              <span className="text-[15px] font-bold leading-tight">Download</span>
+            </a>
+          </div>
+        </div>
+
         {/* Checklist */}
         <div className="p-5 bg-blue-50 rounded-xl border border-blue-100 mb-6">
           <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2">
-            <FaCheck className="w-3 h-3" />
+            <Check className="w-3 h-3" />
             Submission Status
           </h4>
           <div className="space-y-2.5 text-sm">
             {/* File Status */}
             <div className={`flex items-center ${selectedFile ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {selectedFile ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {selectedFile ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Proposal Document</span>
             </div>
 
             {/* Basic Info Status */}
             <div className={`flex items-center ${(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 
             {/* Research Details Status */}
             <div className={`flex items-center ${(formData.sector && formData.discipline && formData.plannedStartDate && formData.plannedEndDate && formData.classification_type && formData.class_input?.trim() && formData.implementation_site?.length > 0 && formData.priorities_id?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.sector && formData.discipline && formData.plannedStartDate && formData.plannedEndDate && formData.classification_type && formData.class_input?.trim() && formData.implementation_site?.length > 0 && formData.priorities_id?.length > 0) ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.sector && formData.discipline && formData.plannedStartDate && formData.plannedEndDate && formData.classification_type && formData.class_input?.trim() && formData.implementation_site?.length > 0 && formData.priorities_id?.length > 0) ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Research Details</span>
             </div>
 
             {/* Budget Status */}
             <div className={`flex items-center ${isBudgetValid ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
-              {isBudgetValid ? <FaCheck className="w-3 h-3 mr-2" /> : <FaCircle className="w-2 h-2 mr-2 opacity-50" />}
+              {isBudgetValid ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Budget Section</span>
             </div>
           </div>
@@ -263,7 +298,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
                 : 'bg-[#C8102E] text-white hover:bg-[#9d0d24] hover:shadow-xl hover:scale-[1.02] cursor-pointer'
                 }`}
             >
-              {!isFormValid ? <FaLock className="w-4 h-4" /> : <FaPaperPlane className="w-4 h-4" />}
+              {!isFormValid ? <Lock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
               Submit Proposal
             </button>
 
@@ -278,6 +313,67 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         </div>
       </div>
 
+      {/* --- Template Modal (Matching HowItWorksModal design) --- */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-full max-h-[95vh] flex flex-col overflow-hidden relative">
+            
+            {/* --- HEADER --- */}
+            <div className="relative bg-white border-b border-gray-100 px-6 sm:px-8 py-5 shrink-0">
+              <button
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="absolute right-4 top-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all duration-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-3 pr-8">
+                <div className="bg-red-50 p-2.5 rounded-xl border border-red-100">
+                  <FileText className="w-5 h-5 text-[#C8102E]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
+                    DOST Project Proposal Template
+                  </h2>
+                  <p className="text-slate-500 text-xs mt-0.5 font-normal">
+                    DOST Form No. 1B
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* --- BODY --- */}
+            <div className="flex-1 bg-slate-50 p-4 sm:p-6 md:p-8 overflow-hidden relative">
+              <div className="w-full h-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <iframe
+                  src={`${templatePDF}#view=FitH`}
+                  title="DOST Proposal Template Document"
+                  className="w-full h-full border-none"
+                />
+              </div>
+            </div>
+            
+            {/* --- FOOTER --- */}
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0 gap-3">
+              <button
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Close
+              </button>
+              <a
+                href={templatePDF}
+                download="DOST-Project-Proposal-Template.pdf"
+                className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </>
   );
