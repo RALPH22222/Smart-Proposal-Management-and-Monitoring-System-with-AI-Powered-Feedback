@@ -225,7 +225,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">
           
           <div className="flex flex-col items-center gap-2 relative z-10">
-            <h4 className="font-bold text-slate-900 text-lg leading-[1.15] tracking-tight text-center">
+            <h4 className="font-bold text-gray-800 text-lg leading-[1.15] tracking-tight text-center">
               DOST Form No. 1B Template
             </h4>
             <div className="bg-slate-200 rounded-md px-2.5 py-1.5 flex flex-col items-center justify-center shrink-0">
@@ -238,8 +238,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               onClick={() => setIsTemplateModalOpen(true)}
               className="w-full py-3 px-4 bg-white border border-slate-300 text-slate-900 rounded-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 active:scale-95"
             >
-              <Eye className="w-[15px] h-[15px] shrink-0 text-slate-600" />
-              <span className="text-[15px] font-bold leading-tight">View Template</span>
+              <Eye className="w-[15px] h-[15px] shrink-0 text-gray-800" />
+              <span className="text-[15px] font-semibold leading-tight">View Template</span>
             </button>
             <a
               href={templatePDF}
@@ -247,7 +247,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               className="w-full py-3 px-4 bg-[#C8102E] text-white rounded-[14px] hover:bg-[#a00c24] transition-all flex items-center justify-center gap-2.5 active:scale-95"
             >
               <Download className="w-[15px] h-[15px] shrink-0" />
-              <span className="text-[15px] font-bold leading-tight">Download</span>
+              <span className="text-[15px] font-semibold leading-tight">Download</span>
             </a>
           </div>
         </div>
