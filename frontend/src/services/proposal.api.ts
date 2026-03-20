@@ -216,10 +216,10 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
   const implementationMode = (formData.cooperating_agencies?.length || 0) > 0 ? "multi_agency" : "single_agency";
 
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", {
-    department: String(formData.department ?? ""),
-    sector: String(formData.sector ?? ""),
-    discipline: String(formData.discipline ?? ""),
-    agency: String(formData.agency ?? ""),
+    department: formData.department ?? "",
+    sector: formData.sector ?? "",
+    discipline: formData.discipline ?? "",
+    agency: formData.agency ?? "",
     program_title: formData.program_title ?? "",
     project_title: formData.project_title,
     email: formData.email ?? "",

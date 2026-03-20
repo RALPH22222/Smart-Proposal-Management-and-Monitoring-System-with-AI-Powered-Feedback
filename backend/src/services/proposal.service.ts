@@ -63,6 +63,12 @@ export class ProposalService {
     const name = cleanName(value);
     if (!name) return null;
 
+    // numeric string (e.g. "5") -> treat as ID, not as a name
+    const parsed = Number(name);
+    if (Number.isFinite(parsed) && parsed > 0 && Number.isInteger(parsed)) {
+      return parsed;
+    }
+
     // 1) try to find existing
     const existing = await this.db.from(table).select("id").eq(nameColumn, name).maybeSingle();
 

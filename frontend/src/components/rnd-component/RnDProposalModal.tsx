@@ -126,6 +126,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   // Evaluator Assignment State
   const [evaluatorSearch, setEvaluatorSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
+  const [showMatchedOnly, setShowMatchedOnly] = useState(false);
   const [availableEvaluators, setAvailableEvaluators] = useState<Partial<Evaluator>[]>([]);
 
   // Selection States
@@ -216,8 +217,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
             name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
             email: u.email || '',
             department: u.departments?.[0]?.name || 'N/A',
-            agency: 'WMSU', // Default or need to fetch from somewhere else if available
-            availabilityStatus: 'Available' // Defaulting to Available
+            agency: 'WMSU',
+            availabilityStatus: 'Available',
           }));
           setEvaluators(mappedEvaluators);
         } catch (error) {
@@ -249,6 +250,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       // Reset Assignment States
       setEvaluatorSearch('');
       setDepartmentFilter('All');
+      setShowMatchedOnly(false);
       setCheckedAvailableIds([]);
       setCheckedAssignedIds([]);
       setAssignedEvaluators([]);
@@ -270,6 +272,12 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     }
   }, [decision]);
 
+  // Helper: check if evaluator's department matches the proposal's department
+  const isDepartmentMatch = (ev: Partial<Evaluator>) => {
+    if (!proposal?.department || !ev.department || ev.department === 'N/A') return false;
+    return ev.department === proposal.department;
+  };
+
   // Filter Available Evaluators
   useEffect(() => {
     let filtered = evaluators.filter(ev =>
@@ -284,6 +292,11 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       filtered = filtered.filter(ev => ev.department === departmentFilter);
     }
 
+    // Apply "Show matched only" filter
+    if (showMatchedOnly) {
+      filtered = filtered.filter(ev => isDepartmentMatch(ev));
+    }
+
     // Apply Search Filter (Name Only)
     if (evaluatorSearch.trim()) {
       const lowerSearch = evaluatorSearch.toLowerCase();
@@ -293,8 +306,15 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       );
     }
 
+    // Sort: matched evaluators first
+    filtered.sort((a, b) => {
+      const aMatch = isDepartmentMatch(a) ? 0 : 1;
+      const bMatch = isDepartmentMatch(b) ? 0 : 1;
+      return aMatch - bMatch;
+    });
+
     setAvailableEvaluators(filtered);
-  }, [evaluatorSearch, departmentFilter, assignedEvaluators, evaluators]);
+  }, [evaluatorSearch, departmentFilter, showMatchedOnly, assignedEvaluators, evaluators, proposal?.department]);
 
   // Simulate typing indicators
   useEffect(() => {
@@ -863,30 +883,44 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                     </h4>
 
                     {/* Toolbar */}
-                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Search evaluators..."
-                          value={evaluatorSearch}
-                          onChange={(e) => setEvaluatorSearch(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
-                        />
+                    <div className="flex flex-col gap-3 mb-4">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search evaluators..."
+                            value={evaluatorSearch}
+                            onChange={(e) => setEvaluatorSearch(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] focus:outline-none"
+                          />
+                        </div>
+                        <div className="relative sm:w-1/3">
+                          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <select
+                            value={departmentFilter}
+                            onChange={(e) => setDepartmentFilter(e.target.value)}
+                            className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] focus:outline-none appearance-none bg-white"
+                          >
+                            <option value="All">All Departments</option>
+                            {departments.filter(d => d !== 'All').map(dept => (
+                              <option key={dept} value={dept}>{dept}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                      <div className="relative sm:w-1/3">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <select
-                          value={departmentFilter}
-                          onChange={(e) => setDepartmentFilter(e.target.value)}
-                          className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] focus:outline-none appearance-none bg-white"
-                        >
-                          <option value="All">All Departments</option>
-                          {departments.filter(d => d !== 'All').map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
-                          ))}
-                        </select>
-                      </div>
+                      {proposal?.department && (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={showMatchedOnly}
+                            onChange={(e) => setShowMatchedOnly(e.target.checked)}
+                            className="w-3.5 h-3.5 text-[#C8102E] rounded border-slate-300 focus:ring-[#C8102E]"
+                          />
+                          <span className="text-xs font-medium text-slate-600">Show matched only</span>
+                          <span className="text-[10px] text-slate-400">({proposal.department})</span>
+                        </label>
+                      )}
                     </div>
 
                     {/* Available List */}
@@ -904,20 +938,31 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                         ) : availableEvaluators.length === 0 ? (
                           <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">No evaluators found</div>
                         ) : (
-                          availableEvaluators.map(ev => (
-                            <label key={ev.id} className="flex items-center p-2 hover:bg-slate-50 rounded-md cursor-pointer group transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={checkedAvailableIds.includes(ev.id!)}
-                                onChange={() => handleAvailableCheckboxChange(ev.id!)}
-                                className="w-4 h-4 text-[#C8102E] rounded border-slate-300 focus:ring-[#C8102E]"
-                              />
-                              <div className="ml-3">
-                                <p className="text-sm font-medium text-slate-700 group-hover:text-slate-900">{ev.name}</p>
-                                <p className="text-[10px] text-slate-500">{ev.department} • {ev.email}</p>
-                              </div>
-                            </label>
-                          ))
+                          availableEvaluators.map(ev => {
+                            const matched = isDepartmentMatch(ev);
+                            return (
+                              <label key={ev.id} className={`flex items-center p-2 rounded-md cursor-pointer group transition-colors ${matched ? 'bg-emerald-50/60 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checkedAvailableIds.includes(ev.id!)}
+                                  onChange={() => handleAvailableCheckboxChange(ev.id!)}
+                                  className="w-4 h-4 text-[#C8102E] rounded border-slate-300 focus:ring-[#C8102E]"
+                                />
+                                <div className="ml-3 flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium text-slate-700 group-hover:text-slate-900 truncate">{ev.name}</p>
+                                    {matched && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">
+                                        <CheckCircle className="w-2.5 h-2.5 mr-0.5" />
+                                        Match
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500">{ev.department} • {ev.email}</p>
+                                </div>
+                              </label>
+                            );
+                          })
                         )}
                       </div>
                       <button
@@ -951,25 +996,33 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       ) : (
                         <div className="space-y-2">
                           <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg h-32 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                            {assignedEvaluators.map(ev => (
-                              <label key={ev.id} className="flex items-center p-2 bg-white border border-emerald-100/50 rounded-md shadow-sm cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={checkedAssignedIds.includes(ev.id!)}
-                                  onChange={() => handleAssignedCheckboxChange(ev.id!)}
-                                  className="w-4 h-4 text-red-500 rounded border-slate-300 focus:ring-red-500"
-                                />
-                                <div className="ml-3 flex-1 flex justify-between items-center">
-                                  <div>
-                                    <p className="text-xs font-bold text-slate-700">{ev.name}</p>
-                                    <p className="text-[10px] text-slate-500">{ev.department}</p>
+                            {assignedEvaluators.map(ev => {
+                              const matched = isDepartmentMatch(ev);
+                              return (
+                                <label key={ev.id} className="flex items-center p-2 bg-white border border-emerald-100/50 rounded-md shadow-sm cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={checkedAssignedIds.includes(ev.id!)}
+                                    onChange={() => handleAssignedCheckboxChange(ev.id!)}
+                                    className="w-4 h-4 text-red-500 rounded border-slate-300 focus:ring-red-500"
+                                  />
+                                  <div className="ml-3 flex-1 flex justify-between items-center">
+                                    <div>
+                                      <div className="flex items-center gap-1">
+                                        <p className="text-xs font-bold text-slate-700">{ev.name}</p>
+                                        {matched && (
+                                          <span className="inline-flex items-center px-1 py-0 rounded text-[8px] font-bold bg-emerald-100 text-emerald-700">Match</span>
+                                        )}
+                                      </div>
+                                      <p className="text-[10px] text-slate-500">{ev.department}</p>
+                                    </div>
+                                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                                      {ev.name?.charAt(0)}
+                                    </div>
                                   </div>
-                                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
-                                    {ev.name?.charAt(0)}
-                                  </div>
-                                </div>
-                              </label>
-                            ))}
+                                </label>
+                              );
+                            })}
                           </div>
                           <button
                             type="button"
