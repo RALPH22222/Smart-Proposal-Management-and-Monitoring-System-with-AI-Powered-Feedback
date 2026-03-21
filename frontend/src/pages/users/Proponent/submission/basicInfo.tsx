@@ -24,6 +24,7 @@ import type { AgencyItem } from "../../../../services/proposal.api";
 import { useLookups } from "../../../../context/LookupContext";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Tooltip from "../../../../components/Tooltip";
+import AutoFillBadge from "../../../../components/shared/AutoFillBadge";
 import type { FormData } from "../../../../types/proponent-form";
 import { useAuthContext } from "../../../../context/AuthContext";
 import Swal from "sweetalert2";
@@ -32,9 +33,10 @@ interface BasicInformationProps {
   formData: FormData;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: string, value: any) => void;
+  autoFilledFields?: Set<string>;
 }
 
-const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate }) => {
+const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate, autoFilledFields = new Set() }) => {
   const { user } = useAuthContext();
   const lookups = useLookups();
 
@@ -480,6 +482,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <FolderOpenDot className="text-gray-400 w-4 h-4" />
             Program Title <span className="text-red-500">*</span>
             <Tooltip content="The name of the program or strategic initiative that this project falls under" />
+            <AutoFillBadge fieldName="program_title" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="text"
@@ -496,6 +499,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <FolderPen className="text-gray-400 w-4 h-4" />
             Project Title <span className="text-red-500">*</span>
             <Tooltip content="A specific and concise title for your research or development project" />
+            <AutoFillBadge fieldName="project_title" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="text"
@@ -512,6 +516,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Calendar1 className="text-gray-400 w-4 h-4" />
             School Year <span className="text-red-500">*</span>
             <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
+            <AutoFillBadge fieldName="schoolYear" autoFilledFields={autoFilledFields} />
           </label>
           <div className="flex items-center gap-3">
             <input
@@ -548,6 +553,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Calendar className="text-gray-400 w-4 h-4" />
             Planned Start Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will begin" />
+            <AutoFillBadge fieldName="plannedStartDate" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="date"
@@ -563,6 +569,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Calendar className="text-gray-400 w-4 h-4" />
             Planned End Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will be completed" />
+            <AutoFillBadge fieldName="plannedEndDate" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="date"
@@ -578,6 +585,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Clock className="text-gray-400 w-4 h-4" />
             Duration <span className="text-red-500">*</span>
             <Tooltip content="The total length of the project implementation period in months or years" />
+            <AutoFillBadge fieldName="duration" autoFilledFields={autoFilledFields} />
           </label>
           <div className="relative">
             <select
@@ -611,6 +619,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           <Building2 className="text-gray-400 w-4 h-4" />
           Agency <span className="text-red-500">*</span>
           <Tooltip content="The government agency, institution, or organization implementing the project" />
+          <AutoFillBadge fieldName="agency" autoFilledFields={autoFilledFields} />
         </label>
         <div className="relative">
           <input
@@ -648,6 +657,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <MapPin className="text-gray-400 w-4 h-4" />
             Agency Address
             <Tooltip content="The complete office address where the project will be managed" />
+            <AutoFillBadge fieldName="agencyAddress" autoFilledFields={autoFilledFields} />
           </label>
         </div>
 
@@ -763,6 +773,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Phone className="text-gray-400 w-4 h-4" />
             Telephone <span className="text-red-500">*</span>
             <Tooltip content="The contact phone number of the project implementing agency or principal proposer" />
+            <AutoFillBadge fieldName="telephone" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="tel"
@@ -779,6 +790,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Mail className="text-gray-400 w-4 h-4" />
             Email <span className="text-red-500">*</span>
             <Tooltip content="Your registered email address (from your account)" />
+            <AutoFillBadge fieldName="email" autoFilledFields={autoFilledFields} />
           </label>
           <input
             type="email"
@@ -797,6 +809,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Users className="text-gray-400 w-4 h-4" />
             Cooperating Agencies <span className="text-gray-400 font-normal italic text-xs ml-1">(Leave blank if 'None')</span>
             <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
+            <AutoFillBadge fieldName="cooperating_agencies" autoFilledFields={autoFilledFields} />
           </label>
 
           {/* Display Current Mode Badge */}
@@ -875,6 +888,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Tags className="text-gray-400 w-4 h-4" />
             Tags <span className="text-red-500">*</span>
             <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
+            <AutoFillBadge fieldName="tags" autoFilledFields={autoFilledFields} />
           </label>
           <button
             type="button"

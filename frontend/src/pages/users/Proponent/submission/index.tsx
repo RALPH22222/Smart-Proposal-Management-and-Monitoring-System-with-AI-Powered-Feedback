@@ -12,17 +12,26 @@ import type { FormData } from "../../../../types/proponent-form";
 import type { AIAnalysisResult } from "../../../../components/proponent-component/aiModal";
 
 // API Service
-import { submitProposal, analyzeProposalWithAI } from "../../../../services/proposal.api";
+import { submitProposal, analyzeProposalWithAI, type FormExtractedFields } from "../../../../services/proposal.api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { isValidationError, parseValidationErrors } from "../../../../utils/validationErrors";
 
+// Lookup Context for matching extracted names to IDs
+import { useLookups } from "../../../../context/LookupContext";
+
 // Auth Context
 import { useAuthContext } from "../../../../context/AuthContext";
+
+const MONTH_MAP: Record<string, number> = {
+  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+};
 
 const Submission: React.FC = () => {
   // Auth Context
   const { user } = useAuthContext();
+  const lookups = useLookups();
   const navigate = useNavigate();
 
   // ... (UI State remains the same)
@@ -37,6 +46,9 @@ const Submission: React.FC = () => {
   // ... (Data State remains the same)
   // ... (Data State remains the same)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Track which fields were auto-filled from the uploaded document
+  const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
 
   // --- FIX 1: UPDATE INITIAL STATE STRUCTURE ---
   const [localFormData, setLocalFormData] = useState<FormData>({
@@ -419,6 +431,137 @@ const Submission: React.FC = () => {
     }
   }, [localFormData, selectedFile, user, navigate]);
 
+  // Auto-fill form fields from extracted DOST template data
+  const applyAutoFill = useCallback((fields: FormExtractedFields) => {
+    const filled = new Set<string>();
+
+    setLocalFormData((prev: any) => {
+      const updated = { ...prev };
+
+      // --- (1) Basic Info ---
+      if (fields.program_title) { updated.program_title = fields.program_title; filled.add("program_title"); }
+      if (fields.project_title) { updated.project_title = fields.project_title; filled.add("project_title"); }
+      if (fields.telephone) { updated.telephone = fields.telephone; filled.add("telephone"); }
+      if (fields.email) { updated.email = fields.email; filled.add("email"); }
+
+      // Agency: fuzzy-match name to existing lookup
+      if (fields.agency_name) {
+        const lower = fields.agency_name.toLowerCase();
+        const match = lookups.agencies.find(a => a.name.toLowerCase() === lower);
+        if (match) {
+          updated.agency = match.id;
+        } else {
+          updated.agency = fields.agency_name;
+        }
+        filled.add("agency");
+      }
+
+      // Agency address
+      if (fields.agency_city || fields.agency_barangay || fields.agency_street) {
+        updated.agencyAddress = {
+          ...updated.agencyAddress,
+          ...(fields.agency_city && { city: fields.agency_city }),
+          ...(fields.agency_barangay && { barangay: fields.agency_barangay }),
+          ...(fields.agency_street && { street: fields.agency_street }),
+        };
+        filled.add("agencyAddress");
+      }
+
+      // --- (2) Cooperating Agencies ---
+      if (fields.cooperating_agency_names && fields.cooperating_agency_names.length > 0) {
+        const matched = fields.cooperating_agency_names.map(name => {
+          const lower = name.toLowerCase();
+          const found = lookups.agencies.find(a => a.name.toLowerCase() === lower);
+          return found ? { id: found.id, name: found.name } : { id: Date.now() + Math.random(), name };
+        });
+        updated.cooperating_agencies = matched;
+        filled.add("cooperating_agencies");
+      }
+
+      // --- (3) R&D Station / Department ---
+      if (fields.research_station) {
+        const lower = fields.research_station.toLowerCase();
+        const match = lookups.departments.find(d => d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase()));
+        if (match) {
+          updated.department = match.id;
+          updated.researchStation = match.name;
+        } else {
+          updated.researchStation = fields.research_station;
+        }
+        filled.add("department");
+      }
+
+      // --- (4) Classification ---
+      if (fields.classification_type) { updated.classification_type = fields.classification_type; filled.add("classification"); }
+      if (fields.class_input) { updated.class_input = fields.class_input; filled.add("classification"); }
+
+      // --- (7) Sector ---
+      if (fields.sector) {
+        const lower = fields.sector.toLowerCase();
+        const match = lookups.sectors.find(s => s.name.toLowerCase().includes(lower) || lower.includes(s.name.toLowerCase()));
+        if (match) {
+          updated.sector = match.id;
+          updated.sectorCommodity = match.name;
+        } else {
+          updated.sectorCommodity = fields.sector;
+        }
+        filled.add("sector");
+      }
+
+      // --- (8) Discipline ---
+      if (fields.discipline) {
+        const lower = fields.discipline.toLowerCase();
+        const match = lookups.disciplines.find(d => d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase()));
+        if (match) {
+          updated.discipline = match.id;
+          updated.disciplineName = match.name;
+        } else {
+          updated.disciplineName = fields.discipline;
+        }
+        filled.add("discipline");
+      }
+
+      // --- (15) Duration & Dates ---
+      if (fields.duration) { updated.duration = String(fields.duration); filled.add("duration"); }
+
+      if (fields.planned_start_month && fields.planned_start_year) {
+        const m = MONTH_MAP[fields.planned_start_month.toLowerCase()];
+        if (m !== undefined) {
+          const d = new Date(parseInt(fields.planned_start_year), m, 1);
+          updated.plannedStartDate = d.toISOString().split("T")[0];
+          filled.add("plannedStartDate");
+        }
+      }
+
+      if (fields.planned_end_month && fields.planned_end_year) {
+        const m = MONTH_MAP[fields.planned_end_month.toLowerCase()];
+        if (m !== undefined) {
+          const d = new Date(parseInt(fields.planned_end_year), m + 1, 0);
+          updated.plannedEndDate = d.toISOString().split("T")[0];
+          filled.add("plannedEndDate");
+        }
+      }
+
+      // --- (16) Budget ---
+      if (fields.budget_sources && fields.budget_sources.length > 0) {
+        updated.budgetItems = fields.budget_sources.map((src, idx) => ({
+          id: idx + 1,
+          source: src.source,
+          budget: {
+            ps: src.ps > 0 ? [{ item: "Personnel Services", value: src.ps }] : [],
+            mooe: src.mooe > 0 ? [{ item: "Maintenance and Other Operating Expenses", value: src.mooe }] : [],
+            co: src.co > 0 ? [{ item: "Capital Outlay", value: src.co }] : [],
+          },
+        }));
+        filled.add("budget");
+      }
+
+      return updated;
+    });
+
+    setAutoFilledFields(filled);
+  }, [lookups]);
+
   // AI Template Check - Updated to use real AI
   // Modified to accept an optional file argument for immediate checking after selection
   const handleAITemplateCheck = useCallback(async (fileToAnalyze?: File) => {
@@ -450,6 +593,11 @@ const Submission: React.FC = () => {
       // Call the AI analysis API
       const result = await analyzeProposalWithAI(targetFile);
 
+      // Auto-fill form fields from extracted data
+      if (result.formFields) {
+        applyAutoFill(result.formFields);
+      }
+
       // Close loading alert
       Swal.close();
 
@@ -468,7 +616,7 @@ const Submission: React.FC = () => {
     } finally {
       setIsCheckingTemplate(false);
     }
-  }, [selectedFile]);
+  }, [selectedFile, applyAutoFill]);
 
   // Wrapper to handle file selection AND trigger AI check immediately
   const handleFileSelect = (file: File | null) => {
@@ -547,12 +695,14 @@ const Submission: React.FC = () => {
                 formData={localFormData}
                 onInputChange={handleInputChange}
                 onUpdate={handleDirectUpdate}
+                autoFilledFields={autoFilledFields}
               />
             )}
             {activeSection === "research-details" && (
               <ResearchDetails
                 formData={localFormData}
                 onUpdate={handleDirectUpdate}
+                autoFilledFields={autoFilledFields}
               />
             )}
             {activeSection === "budget" && (
@@ -561,6 +711,7 @@ const Submission: React.FC = () => {
                 onBudgetItemAdd={addBudgetItem}
                 onBudgetItemRemove={removeBudgetItem}
                 onBudgetItemUpdate={updateBudgetItem}
+                autoFilledFields={autoFilledFields}
               />
             )}
           </div>

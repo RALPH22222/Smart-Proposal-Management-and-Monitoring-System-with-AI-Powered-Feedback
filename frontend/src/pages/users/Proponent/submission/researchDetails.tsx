@@ -18,6 +18,7 @@ import {
 
 import type { FormData } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
+import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
 
 // --- IMPORT LOOKUP CONTEXT ---
 import { useLookups } from "../../../../context/LookupContext";
@@ -26,10 +27,11 @@ import { useLookups } from "../../../../context/LookupContext";
 interface ResearchDetailsProps {
   formData: FormData;
   onUpdate: (field: keyof FormData, value: any) => void;
+  autoFilledFields?: Set<string>;
 }
 
 // Fixed: Removed unused 'onInputChange' from destructuring
-const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate }) => {
+const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, autoFilledFields = new Set() }) => {
   const lookups = useLookups();
 
   // --- Data Source State ---
@@ -405,6 +407,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <University className="text-gray-400 w-4 h-4" />
           Research & Development Station <span className="text-red-500">*</span>
           <Tooltip content="The research institution or facility that will conduct the research or development activities" />
+          <AutoFillBadge fieldName="department" autoFilledFields={autoFilledFields} />
         </label>
         <div className="relative">
           <input
@@ -443,6 +446,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             <Tag className="text-gray-400 w-4 h-4" />
             Sector/Commodity <span className="text-red-500">*</span>
             <Tooltip content="The agricultural or economic sector that the project will address (e.g., Crops, Livestock, Fisheries, Agribusiness)" />
+            <AutoFillBadge fieldName="sector" autoFilledFields={autoFilledFields} />
           </label>
           <div className="relative">
             <input
@@ -480,6 +484,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             <GraduationCap className="text-gray-400 w-4 h-4" />
             Discipline <span className="text-red-500">*</span>
             <Tooltip content="The scientific or technical field or specialization relevant to the project (e.g., Agricultural Engineering, Biotechnology, Horticulture)" />
+            <AutoFillBadge fieldName="discipline" autoFilledFields={autoFilledFields} />
           </label>
           <div className="relative">
             <input
@@ -518,6 +523,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             <MapPin className="text-gray-400 w-4 h-4" />
             Implementation Sites <span className="text-red-500">*</span>
             <Tooltip content="The specific locations or cities where the project will be implemented. Add multiple sites if the project spans different areas." />
+            <AutoFillBadge fieldName="implementation_site" autoFilledFields={autoFilledFields} />
           </label>
 
           {/* Display Current Mode Badge */}
@@ -611,6 +617,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
             <FolderOpen className="text-gray-400 w-4 h-4" />
             Classification Type <span className="text-red-500">*</span>
             <Tooltip content="Choose whether the project is primarily focused on Research (generating new knowledge) or Development (implementing/commercializing technologies)" />
+            <AutoFillBadge fieldName="classification" autoFilledFields={autoFilledFields} />
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {["research", "development"].map((type) => (
@@ -776,6 +783,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
           <Star className="text-gray-400 w-4 h-4" />
           Priority Areas <span className="text-red-500">*</span>
           <Tooltip content="The Sustainable Development Goals (SDGs) or strategic priority areas that the project contributes to or addresses" />
+          <AutoFillBadge fieldName="priorities" autoFilledFields={autoFilledFields} />
         </label>
 
         {/* Selected Priority Chips */}
