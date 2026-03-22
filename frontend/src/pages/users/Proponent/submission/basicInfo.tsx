@@ -457,6 +457,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
 
 
+  const isBasicInfoComplete = Boolean(
+    formData.program_title?.trim() &&
+    formData.project_title?.trim() &&
+    formData.schoolYear?.trim() &&
+    formData.schoolYear.includes("-") &&
+    formData.schoolYear.split("-").every(y => y.length === 4) &&
+    formData.plannedStartDate &&
+    formData.plannedEndDate &&
+    formData.duration &&
+    formData.agency &&
+    formData.agencyAddress?.city?.trim() &&
+    formData.telephone?.trim() &&
+    formData.email &&
+    formData.tags && formData.tags.length > 0
+  );
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -476,8 +492,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Program, Project, School Year */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <FolderOpenDot className="text-gray-400 w-4 h-4" />
+          <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.program_title ? 'text-green-600' : 'text-gray-700'}`}>
+            <FolderOpenDot className={`${formData.program_title ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Program Title <span className="text-red-500">*</span>
             <Tooltip content="The name of the program or strategic initiative that this project falls under" />
           </label>
@@ -492,8 +508,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <FolderPen className="text-gray-400 w-4 h-4" />
+          <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.project_title ? 'text-green-600' : 'text-gray-700'}`}>
+            <FolderPen className={`${formData.project_title ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Project Title <span className="text-red-500">*</span>
             <Tooltip content="A specific and concise title for your research or development project" />
           </label>
@@ -508,8 +524,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Calendar1 className="text-gray-400 w-4 h-4" />
+          <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.schoolYear?.split("-").every(y => y.length === 4) ? 'text-green-600' : 'text-gray-700'}`}>
+            <Calendar1 className={`${formData.schoolYear?.split("-").every(y => y.length === 4) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             School Year <span className="text-red-500">*</span>
             <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
           </label>
@@ -544,8 +560,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         {/* Dates & Duration */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.plannedStartDate ? 'text-green-600' : 'text-gray-700'}`}>
+            <Calendar className={`${formData.plannedStartDate ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Planned Start Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will begin" />
           </label>
@@ -559,8 +575,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Calendar className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.plannedEndDate ? 'text-green-600' : 'text-gray-700'}`}>
+            <Calendar className={`${formData.plannedEndDate ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Planned End Date <span className="text-red-500">*</span>
             <Tooltip content="The expected date when the project implementation will be completed" />
           </label>
@@ -574,8 +590,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Clock className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.duration ? 'text-green-600' : 'text-gray-700'}`}>
+            <Clock className={`${formData.duration ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Duration <span className="text-red-500">*</span>
             <Tooltip content="The total length of the project implementation period in months or years" />
           </label>
@@ -607,8 +623,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       {/* AGENCY */}
       <div className="space-y-2 agency-name-dropdown-container">
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-          <Building2 className="text-gray-400 w-4 h-4" />
+        <label className={`flex items-center gap-2 text-sm font-semibold ${formData.agency ? 'text-green-600' : 'text-gray-700'}`}>
+          <Building2 className={`${formData.agency ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
           Agency <span className="text-red-500">*</span>
           <Tooltip content="The government agency, institution, or organization implementing the project" />
         </label>
@@ -644,8 +660,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* ADDRESS */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <MapPin className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.agencyAddress?.city ? 'text-green-600' : 'text-gray-700'}`}>
+            <MapPin className={`${formData.agencyAddress?.city ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Agency Address
             <Tooltip content="The complete office address where the project will be managed" />
           </label>
@@ -673,12 +689,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                       city: addr.city || ""
                     };
                     onUpdate("agencyAddress", { id: String(addr.id), ...updates });
-                    setCitySearchTerm(updates.city);
-                    setBarangaySearchTerm(updates.barangay);
-
-                    // Fetch barangays for the selected city
-                    const matchedCity = psgcCities.find(c => c.name.toLowerCase() === updates.city.toLowerCase());
-                    if (matchedCity) fetchBarangays(matchedCity.code);
                   }}
                   className="group flex flex-col items-start px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:border-[#C8102E] hover:bg-[#C8102E]/5 hover:shadow-md transition-all text-left active:scale-[0.98] duration-300"
                 >
@@ -697,24 +707,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           </div>
         )}
 
-        {/* Address picker for agencies with multiple stored addresses */}
-        {availableAddresses.length > 1 && (
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-500">Select from existing addresses</label>
-            <select
-              onChange={handleAddressSelect}
-              value={formData.agencyAddress?.id || ""}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] bg-white"
-            >
-              <option value="">— Choose an address or type below —</option>
-              {availableAddresses.map((addr) => (
-                <option key={addr.id} value={addr.id}>
-                  {[addr.street, addr.barangay, addr.city].filter(Boolean).join(", ")}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
@@ -759,8 +751,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Telephone & Email */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Phone className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.telephone ? 'text-green-600' : 'text-gray-700'}`}>
+            <Phone className={`${formData.telephone ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Telephone <span className="text-red-500">*</span>
             <Tooltip content="The contact phone number of the project implementing agency or principal proposer" />
           </label>
@@ -775,8 +767,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Mail className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.email ? 'text-green-600' : 'text-gray-700'}`}>
+            <Mail className={`${formData.email ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Email <span className="text-red-500">*</span>
             <Tooltip content="Your registered email address (from your account)" />
           </label>
@@ -793,9 +785,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
       <div className="space-y-2 cooperating-agency-dropdown-container">
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Users className="text-gray-400 w-4 h-4" />
-            Cooperating Agencies <span className="text-gray-400 font-normal italic text-xs ml-1">(Leave blank if 'None')</span>
+          <label className={`flex items-center gap-2 text-sm font-semibold ${(isBasicInfoComplete || selectedAgencies.length > 0 || cooperatingSearchTerm.trim()) ? 'text-green-600' : 'text-gray-700'}`}>
+            <Users className={`${(isBasicInfoComplete || selectedAgencies.length > 0 || cooperatingSearchTerm.trim()) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
+            Cooperating Agencies <span className={`${(isBasicInfoComplete || selectedAgencies.length > 0 || cooperatingSearchTerm.trim()) ? 'text-green-600/60' : 'text-gray-400'} font-normal italic text-xs ml-1`}>(Leave blank if 'None')</span>
             <Tooltip content="Other government agencies, institutions, or organizations partnering with the lead agency to implement the project" />
           </label>
 
@@ -871,8 +863,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       {/* Tags Input */}
       <div className="space-y-2 tags-dropdown-container">
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <Tags className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold ${formData.tags && formData.tags.length > 0 ? 'text-green-600' : 'text-gray-700'}`}>
+            <Tags className={`${formData.tags && formData.tags.length > 0 ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Tags <span className="text-red-500">*</span>
             <Tooltip content="Disciplines or specializations related to the project (e.g., Agricultural Engineering, Biotechnology)" />
           </label>

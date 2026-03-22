@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { FaqApi } from "../../../../services/FaqApi";
 import { type FaqInfo, type FaqCategory, type FaqItem } from "../../../../schemas/faq-schema";
 import { toast, Toaster } from "react-hot-toast";
-import { Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Rocket, HelpCircle, Phone } from "lucide-react";
+import PageLoader from "../../../../components/shared/PageLoader";
 
 export const FaqSection: React.FC = () => {
   const [faqData, setFaqData] = useState<FaqInfo | null>(null);
@@ -97,11 +98,7 @@ export const FaqSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-      </div>
-    );
+    return <PageLoader text="Loading FAQ information..." className="min-h-[400px]" />;
   }
 
   if (!faqData) {
@@ -130,7 +127,7 @@ export const FaqSection: React.FC = () => {
         {/* HERO SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🚀</span> Hero Section
+            <Rocket className="w-5 h-5 text-gray-500" /> Hero Section
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className="space-y-4">
@@ -180,7 +177,7 @@ export const FaqSection: React.FC = () => {
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <div className='flex justify-between items-center mb-4'>
              <h3 className='text-md font-semibold text-gray-800 flex items-center gap-2'>
-               <span>❓</span> Categories & Questions
+               <HelpCircle className="w-5 h-5 text-gray-500" /> Categories & Questions
              </h3>
              <button
                 onClick={addCategory}
@@ -273,7 +270,7 @@ export const FaqSection: React.FC = () => {
         {/* SUPPORT / CONTACT BANNERS */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
            <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-             <span>📞</span> Contact Support Footer
+             <Phone className="w-5 h-5 text-gray-500" /> Contact Support Footer
            </h3>
            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
              <div>

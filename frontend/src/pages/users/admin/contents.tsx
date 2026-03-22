@@ -3,19 +3,20 @@ import { ContactsSection } from './components/ContactsSection';
 import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
+import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Image as ImageIcon, BarChart, Folder, FileImage } from 'lucide-react';
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('guidelines');
 
   const tabs = [
-    { id: 'guidelines', label: 'Guidelines & Resources', icon: '📋' },
-    { id: 'templates', label: 'Proposal Templates', icon: '📄' },
-    { id: 'home', label: 'Home Page', icon: '🏠' },
-    { id: 'about', label: 'About Page', icon: 'ℹ️' },
-    { id: 'contacts', label: 'Contact Info', icon: '📞' },
-    { id: 'faq', label: 'FAQ Page', icon: '❓' },
-    { id: 'media', label: 'Media Library', icon: '🖼️' }
+    { id: 'guidelines', label: 'Guidelines & Resources', icon: ClipboardList },
+    { id: 'templates', label: 'Proposal Templates', icon: FileText },
+    { id: 'home', label: 'Home Page', icon: Home },
+    { id: 'about', label: 'About Page', icon: Info },
+    { id: 'contacts', label: 'Contact Info', icon: Phone },
+    { id: 'faq', label: 'FAQ Page', icon: HelpCircle },
+    { id: 'media', label: 'Media Library', icon: ImageIcon }
   ];
 
   return (
@@ -47,7 +48,7 @@ const ContentManagement: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-all duration-200 flex items-center gap-2`}
               >
-                 <span className='text-base sm:text-lg'>{tab.icon}</span>
+                 <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{tab.label}</span>
               </button>
             ))}
@@ -158,12 +159,12 @@ const GuidelinesSection: React.FC = () => {
             >
               <div className='flex items-start justify-between mb-2'>
                 <div className='flex items-center gap-2 min-w-0 flex-1'>
-                  <span className='text-xl sm:text-2xl flex-shrink-0'>
+                  <span className='flex-shrink-0'>
                     {file.type === 'PDF'
-                      ? '📄'
+                      ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
                       : file.type === 'DOCX'
-                      ? '📝'
-                      : '📊'}
+                      ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+                      : <BarChart className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />}
                   </span>
                   <div className="min-w-0 flex-1">
                     <h4 className='font-medium text-gray-900 truncate'>{file.title}</h4>
@@ -275,8 +276,8 @@ const TemplatesSection: React.FC = () => {
           >
             <div className='flex items-start justify-between mb-4'>
               <div className='flex items-center gap-3 min-w-0 flex-1'>
-                <span className='text-2xl sm:text-3xl flex-shrink-0'>
-                  {template.type === 'DOCX' ? '📝' : '📄'}
+                <span className='flex-shrink-0'>
+                  {template.type === 'DOCX' ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" /> : <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className='font-semibold text-gray-900 text-sm sm:text-base truncate'>
@@ -469,14 +470,14 @@ const MediaLibrarySection: React.FC = () => {
               className='border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow'
             >
               <div className='text-center'>
-                <div className='text-2xl sm:text-4xl mb-2'>
+                <div className='mb-2 flex justify-center'>
                   {item.type === 'image'
-                    ? '🖼️'
+                    ? <FileImage className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" />
                     : item.type === 'document'
-                    ? '📄'
+                    ? <FileText className="w-8 h-8 sm:w-10 sm:h-10 text-gray-500" />
                     : item.type === 'presentation'
-                    ? '📊'
-                    : '📁'}
+                    ? <BarChart className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500" />
+                    : <Folder className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500" />}
                 </div>
                 <h4 className='text-xs sm:text-sm font-medium text-gray-900 truncate'>
                   {item.name}
@@ -506,14 +507,14 @@ const MediaLibrarySection: React.FC = () => {
               className='flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow gap-3'
             >
               <div className='flex items-center gap-3 min-w-0 flex-1'>
-                <span className='text-xl sm:text-2xl flex-shrink-0'>
+                <span className='flex-shrink-0'>
                   {item.type === 'image'
-                    ? '🖼️'
+                    ? <FileImage className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
                     : item.type === 'document'
-                    ? '📄'
+                    ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
                     : item.type === 'presentation'
-                    ? '📊'
-                    : '📁'}
+                    ? <BarChart className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
+                    : <Folder className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h4 className='font-medium text-gray-900 text-sm sm:text-base truncate'>{item.name}</h4>

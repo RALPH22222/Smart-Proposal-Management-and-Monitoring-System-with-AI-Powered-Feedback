@@ -294,14 +294,6 @@ const Lookups: React.FC = () => {
   const isAgencies = activeTab === "agencies";
   const activeConfig = TABS.find(t => t.key === activeTab)!;
 
-  if (isLoading && items.length === 0) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading lookups..." />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 h-full">
       <header className="flex-shrink-0 pt-12 lg:pt-0">
@@ -369,13 +361,11 @@ const Lookups: React.FC = () => {
         )}
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-gray-400">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-              Loading...
-            </div>
-          ) : items.length === 0 ? (
+        <div className="flex-1 overflow-y-auto relative bg-white">
+          {isLoading && (
+            <PageLoader text={`Loading ${activeConfig.label}...`} className="absolute inset-0 z-10 min-h-[300px] backdrop-blur-none bg-white" />
+          )}
+          {items.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <AlertTriangle className="w-8 h-8 mb-2" />
               <p className="text-sm">No entries yet</p>

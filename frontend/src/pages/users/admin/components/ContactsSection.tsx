@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { ContactInfo } from '../../../../schemas/contact-schema';
 import { ContactApi } from '../../../../services/ContactApi';
+import { Building2, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
+import PageLoader from "../../../../components/shared/PageLoader";
 
 export const ContactsSection: React.FC = () => {
   const [formData, setFormData] = useState<ContactInfo | null>(null);
@@ -54,7 +56,7 @@ export const ContactsSection: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-center text-gray-500">Loading contact information...</div>;
+    return <PageLoader text="Loading contact information..." className="min-h-[400px]" />;
   }
 
   if (!formData) {
@@ -86,7 +88,7 @@ export const ContactsSection: React.FC = () => {
         {/* Office Location */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🏢</span> Office Location
+            <Building2 className="w-5 h-5 text-gray-500" /> Office Location
           </h3>
           <div className='space-y-4'>
             <div>
@@ -111,7 +113,7 @@ export const ContactsSection: React.FC = () => {
         {/* Phone Numbers */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>📞</span> Phone Numbers
+            <Phone className="w-5 h-5 text-gray-500" /> Phone Numbers
           </h3>
           <div className='space-y-4'>
             <div>
@@ -132,7 +134,7 @@ export const ContactsSection: React.FC = () => {
         {/* Email Addresses */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>✉️</span> Email Addresses
+            <Mail className="w-5 h-5 text-gray-500" /> Email Addresses
           </h3>
           <div className='space-y-4'>
             <div>
@@ -153,7 +155,7 @@ export const ContactsSection: React.FC = () => {
         {/* Office Hours */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>⏰</span> Office Hours
+            <Clock className="w-5 h-5 text-gray-500" /> Office Hours
           </h3>
           <div className='space-y-4'>
             <div>
@@ -174,7 +176,7 @@ export const ContactsSection: React.FC = () => {
         {/* Emergency Contact */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🚨</span> Emergency / Urgent Research Line
+            <AlertTriangle className="w-5 h-5 text-red-500" /> Emergency / Urgent Research Line
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>

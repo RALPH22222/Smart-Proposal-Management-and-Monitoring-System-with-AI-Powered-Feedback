@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { type HomeInfo } from "../../../../schemas/home-schema";
 import { HomeApi } from "../../../../services/HomeApi";
 import { toast, Toaster } from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Rocket, BarChart2, Building2, ClipboardList, GraduationCap } from "lucide-react";
+import PageLoader from "../../../../components/shared/PageLoader";
 
 export const HomeSection: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo | null>(null);
@@ -40,11 +41,7 @@ export const HomeSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-      </div>
-    );
+    return <PageLoader text="Loading home page information..." className="min-h-[400px]" />;
   }
 
   if (!homeData) {
@@ -73,7 +70,7 @@ export const HomeSection: React.FC = () => {
         {/* HERO SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🚀</span> Hero Section
+            <Rocket className="w-5 h-5 text-gray-500" /> Hero Section
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className="space-y-4">
@@ -122,7 +119,7 @@ export const HomeSection: React.FC = () => {
         {/* STATS SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>📊</span> Statistics
+            <BarChart2 className="w-5 h-5 text-gray-500" /> Statistics
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
             {homeData.stats.map((stat, index) => (
@@ -179,7 +176,7 @@ export const HomeSection: React.FC = () => {
         {/* ABOUT OFFICE SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🏛️</span> About Our Office
+            <Building2 className="w-5 h-5 text-gray-500" /> About Our Office
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className="space-y-4">
@@ -248,7 +245,7 @@ export const HomeSection: React.FC = () => {
         {/* SUBMISSION GUIDELINES */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>📝</span> Submission Guidelines
+            <ClipboardList className="w-5 h-5 text-gray-500" /> Submission Guidelines
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
             <div className="space-y-4">
@@ -334,7 +331,7 @@ export const HomeSection: React.FC = () => {
         {/* EVALUATION CRITERIA */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🎓</span> Evaluation Criteria
+            <GraduationCap className="w-5 h-5 text-gray-500" /> Evaluation Criteria
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
             <div className="space-y-4">

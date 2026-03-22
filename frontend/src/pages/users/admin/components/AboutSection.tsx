@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { type AboutInfo } from "../../../../schemas/about-schema";
 import { AboutApi } from "../../../../services/AboutApi";
 import { toast, Toaster } from "react-hot-toast";
-import { Loader2 } from "lucide-react";
+import { Rocket, BookOpen, Target, BarChart2, Clock, Lightbulb } from "lucide-react";
+import PageLoader from "../../../../components/shared/PageLoader";
 
 export const AboutSection: React.FC = () => {
   const [aboutData, setAboutData] = useState<AboutInfo | null>(null);
@@ -42,11 +43,7 @@ export const AboutSection: React.FC = () => {
 
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-      </div>
-    );
+    return <PageLoader text="Loading about page information..." className="min-h-[400px]" />;
   }
 
   if (!aboutData) {
@@ -75,7 +72,7 @@ export const AboutSection: React.FC = () => {
         {/* HERO SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🚀</span> Hero Section
+            <Rocket className="w-5 h-5 text-gray-500" /> Hero Section
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className="space-y-4">
@@ -124,7 +121,7 @@ export const AboutSection: React.FC = () => {
         {/* OUR STORY SECTION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>📖</span> Our Story
+            <BookOpen className="w-5 h-5 text-gray-500" /> Our Story
           </h3>
           <div className='space-y-5'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -183,7 +180,7 @@ export const AboutSection: React.FC = () => {
         {/* MISSION & VISION */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>🎯</span> Mission & Vision
+            <Target className="w-5 h-5 text-gray-500" /> Mission & Vision
           </h3>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div>
@@ -210,7 +207,7 @@ export const AboutSection: React.FC = () => {
         {/* KEY STATISTICS */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>📊</span> Key Statistics & Track Record
+            <BarChart2 className="w-5 h-5 text-gray-500" /> Key Statistics & Track Record
           </h3>
           <div className='space-y-6'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
@@ -288,7 +285,7 @@ export const AboutSection: React.FC = () => {
         {/* PROCESS TIMELINE */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>⏳</span> Process Timeline
+            <Clock className="w-5 h-5 text-gray-500" /> Process Timeline
           </h3>
           <div className='space-y-6'>
             <div>
@@ -340,7 +337,7 @@ export const AboutSection: React.FC = () => {
         {/* VALUE PROPOSITIONS */}
         <div className='bg-gray-50 p-5 rounded-lg border border-gray-200 lg:col-span-2'>
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
-            <span>💡</span> Value Propositions
+            <Lightbulb className="w-5 h-5 text-gray-500" /> Value Propositions
           </h3>
           <div className='space-y-6'>
             <div className='space-y-4'>

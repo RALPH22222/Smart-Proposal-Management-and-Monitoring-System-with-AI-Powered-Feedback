@@ -20,7 +20,7 @@ const PageLoader = ({ text, className }: { text?: string; className?: string }) 
 	}, []);
 
 	return (
-		<div className={`flex flex-col items-center justify-center w-full bg-gray-50/80 backdrop-blur-sm z-50 ${className ?? 'min-h-screen'}`}>
+		<div className={`flex flex-col items-center justify-center w-full backdrop-blur-sm z-50 ${className ?? 'min-h-screen'}`}>
 			{/* Circle with percentage inside */}
 			<div className="relative w-20 h-20 mb-6 flex items-center justify-center">
 				{/* Outer static ring */}

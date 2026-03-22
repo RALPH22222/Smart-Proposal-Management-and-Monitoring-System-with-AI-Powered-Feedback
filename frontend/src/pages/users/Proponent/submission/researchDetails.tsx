@@ -401,8 +401,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
       {/* Research & Development Station */}
       <div className="space-y-2" ref={researchStationRef}>
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-          <University className="text-gray-400 w-4 h-4" />
+        <label className={`flex items-center gap-2 text-sm font-semibold select-none ${researchStationSearch ? 'text-green-600' : 'text-gray-700'}`}>
+          <University className={`${researchStationSearch ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
           Research & Development Station <span className="text-red-500">*</span>
           <Tooltip content="The research institution or facility that will conduct the research or development activities" />
         </label>
@@ -439,8 +439,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Sector/Commodity */}
         <div className="space-y-2" ref={sectorRef}>
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-            <Tag className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold select-none ${sectorSearch ? 'text-green-600' : 'text-gray-700'}`}>
+            <Tag className={`${sectorSearch ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Sector/Commodity <span className="text-red-500">*</span>
             <Tooltip content="The agricultural or economic sector that the project will address (e.g., Crops, Livestock, Fisheries, Agribusiness)" />
           </label>
@@ -476,8 +476,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
         {/* Discipline */}
         <div className="space-y-2" ref={disciplineRef}>
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-            <GraduationCap className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold select-none ${disciplineSearch ? 'text-green-600' : 'text-gray-700'}`}>
+            <GraduationCap className={`${disciplineSearch ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Discipline <span className="text-red-500">*</span>
             <Tooltip content="The scientific or technical field or specialization relevant to the project (e.g., Agricultural Engineering, Biotechnology, Horticulture)" />
           </label>
@@ -514,8 +514,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
       <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-            <MapPin className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold select-none ${implementationSites.length > 0 && implementationSites.every(s => s.site?.trim() && s.city?.trim()) ? 'text-green-600' : 'text-gray-700'}`}>
+            <MapPin className={`${implementationSites.length > 0 && implementationSites.every(s => s.site?.trim() && s.city?.trim()) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Implementation Sites <span className="text-red-500">*</span>
             <Tooltip content="The specific locations or cities where the project will be implemented. Add multiple sites if the project spans different areas." />
           </label>
@@ -607,8 +607,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
       {/* Classification Type Selection */}
       <div className="space-y-6">
         <div className="space-y-4">
-          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-            <FolderOpen className="text-gray-400 w-4 h-4" />
+          <label className={`flex items-center gap-2 text-sm font-semibold select-none ${formData.classification_type ? 'text-green-600' : 'text-gray-700'}`}>
+            <FolderOpen className={`${formData.classification_type ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Classification Type <span className="text-red-500">*</span>
             <Tooltip content="Choose whether the project is primarily focused on Research (generating new knowledge) or Development (implementing/commercializing technologies)" />
           </label>
@@ -772,8 +772,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate })
 
       {/* Priority Areas */}
       <div className="space-y-4" ref={priorityRef}>
-        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 select-none">
-          <Star className="text-gray-400 w-4 h-4" />
+        <label className={`flex items-center gap-2 text-sm font-semibold select-none ${selectedPriorities.length > 0 ? 'text-green-600' : 'text-gray-700'}`}>
+          <Star className={`${selectedPriorities.length > 0 ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
           Priority Areas <span className="text-red-500">*</span>
           <Tooltip content="The Sustainable Development Goals (SDGs) or strategic priority areas that the project contributes to or addresses" />
         </label>
