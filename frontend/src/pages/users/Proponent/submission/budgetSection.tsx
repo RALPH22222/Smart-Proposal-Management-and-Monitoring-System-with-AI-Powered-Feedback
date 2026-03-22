@@ -170,7 +170,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         <button
           type="button"
           onClick={onBudgetItemAdd}
-          className="w-full sm:w-auto px-6 py-3 text-white rounded-xl hover:bg-[#9d0d24] hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
+          className="w-full sm:w-auto px-6 py-3 text-white font-semibold rounded-xl hover:bg-[#9d0d24] hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
           style={{ backgroundColor: '#C8102E' }}
         >
           <FaPlus className="w-4 h-4" />
