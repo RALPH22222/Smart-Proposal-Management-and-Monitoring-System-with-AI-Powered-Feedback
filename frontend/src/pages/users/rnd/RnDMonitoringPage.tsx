@@ -214,9 +214,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     return diffDays;
   };
 
-  if (loading) {
-    return <PageLoader text="Loading projects..." />;
-  }
+
 
   return (
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
@@ -310,7 +308,13 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
         </section>
 
         {/* Projects List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          {loading && (
+            <PageLoader 
+              text="Updating projects..." 
+              className="absolute inset-0 z-50 bg-white" 
+            />
+          )}
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">

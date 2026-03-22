@@ -158,7 +158,10 @@ export default function Proposals() {
           extensionReason: p.remarks || null,
           proponentInfoVisibility: proposalObj.proponent_info_visibility,
           tags: (proposalObj.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
-          raw: p
+          raw: p,
+          assignedDate: p.date_forwarded || p.created_at || proposalObj.created_at || null,
+          evaluatedDate: (p.status === 'decline' || p.status === 'rejected' || p.status === 'accepted' || p.status === 'approved') ? p.updated_at || proposalObj.updated_at : null,
+          remarks: p.remarks || null
         };
       });
 
@@ -493,11 +496,15 @@ export default function Proposals() {
                           <span>{proposal.proponent}</span>
                         </div>
                         {proposal.status === "pending" && (
-                          <div className="flex items-center gap-1.5 text-red-600 font-semibold">
+                          <div className="flex items-center gap-1.5 text-red-600">
                             <Calendar className="w-3 h-3" aria-hidden="true" />
-                            <span>Deadline: {proposal.deadline}</span>
+                            <span>Deadline: <span className="font-semibold">{proposal.deadline}</span></span>
                           </div>
                         )}
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <CalendarClock className="w-3 h-3" aria-hidden="true" />
+                          <span>Forwarded: <span className="font-semibold text-slate-700">{proposal.assignedDate ? formatDate(proposal.assignedDate) : "N/A"}</span></span>
+                        </div>
                         {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
                           <span
                             key={i}

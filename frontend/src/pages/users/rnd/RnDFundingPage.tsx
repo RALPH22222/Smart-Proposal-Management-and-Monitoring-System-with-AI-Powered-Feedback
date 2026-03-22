@@ -127,9 +127,7 @@ const FundingPage: React.FC = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
 
-  if (loading) {
-    return <PageLoader text="Loading funding data..." />;
-  }
+
 
   return (
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative">
@@ -197,7 +195,13 @@ const FundingPage: React.FC = () => {
         </section>
 
         {/* Proposals List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          {loading && (
+            <PageLoader 
+              text="Updating funding data..." 
+              className="absolute inset-0 z-50 bg-white" 
+            />
+          )}
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#C8102E]" />
