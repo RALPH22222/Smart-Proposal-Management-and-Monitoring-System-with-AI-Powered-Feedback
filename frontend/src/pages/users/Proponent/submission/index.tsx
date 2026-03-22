@@ -479,17 +479,8 @@ const Submission: React.FC = () => {
       }
 
       // --- (3) R&D Station / Department ---
-      if (fields.research_station) {
-        const lower = fields.research_station.toLowerCase();
-        const match = lookups.departments.find(d => d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase()));
-        if (match) {
-          updated.department = match.id;
-          updated.researchStation = match.name;
-        } else {
-          updated.researchStation = fields.research_station;
-        }
-        filled.add("department");
-      }
+      // Skipped: R&D Station is now locked to the user's profile department.
+      // The department is auto-filled from AuthContext in researchDetails.tsx.
 
       // --- (4) Classification ---
       if (fields.classification_type) { updated.classification_type = fields.classification_type; filled.add("classification"); }

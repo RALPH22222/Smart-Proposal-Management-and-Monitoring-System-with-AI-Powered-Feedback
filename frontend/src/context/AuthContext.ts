@@ -7,6 +7,8 @@ export type AuthUser = {
   first_name?: string;
   last_name?: string;
   profile_photo_url?: string;
+  department_id?: number | null;
+  department_name?: string | null;
 };
 
 type AuthContextValue = {

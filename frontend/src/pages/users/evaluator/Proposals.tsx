@@ -353,8 +353,8 @@ export default function Proposals() {
         return;
     }
 
-    // Format deadline if exists (Use YYYY-MM-DD to match backend expectations)
-    const formattedDeadline = newDeadline ? new Date(newDeadline).toISOString().split("T")[0] : undefined;
+    // Use YYYY-MM-DD string directly — avoid new Date().toISOString() timezone shift
+    const formattedDeadline = newDeadline || undefined;
 
     const payload = {
       proposal_id: proposalToEvaluate,

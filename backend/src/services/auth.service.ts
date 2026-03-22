@@ -236,13 +236,14 @@ export class AuthService {
       const userId = decoded.sub;
 
       const { data: row, error: rolesError } = await this.db!.from("users")
-        .select("roles,email,first_name,last_name,photo_profile_url")
+        .select("roles,email,first_name,last_name,photo_profile_url,department_id,departments(id,name)")
         .eq("id", userId)
         .maybeSingle();
 
       if (rolesError) return { data: null, error: rolesError };
 
       const roles = Array.isArray(row?.roles) ? row.roles : [];
+      const dept = row?.departments as unknown as { id: number; name: string } | null;
 
       return {
         data: {
@@ -254,6 +255,8 @@ export class AuthService {
             last_name: (row?.last_name as string) ?? null,
             roles,
             profile_photo_url: (row?.photo_profile_url as string) ?? null,
+            department_id: dept?.id ?? null,
+            department_name: dept?.name ?? null,
           },
         },
         error: null,

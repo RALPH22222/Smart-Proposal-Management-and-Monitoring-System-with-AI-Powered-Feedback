@@ -13,7 +13,7 @@ import {
   MapPin,
   Building2,
   Trash2,
-
+  Lock,
 } from 'lucide-react';
 
 import type { FormData } from '../../../../types/proponent-form';
@@ -22,6 +22,7 @@ import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
 
 // --- IMPORT LOOKUP CONTEXT ---
 import { useLookups } from "../../../../context/LookupContext";
+import { useAuthContext } from "../../../../context/AuthContext";
 
 
 interface ResearchDetailsProps {
@@ -33,16 +34,15 @@ interface ResearchDetailsProps {
 // Fixed: Removed unused 'onInputChange' from destructuring
 const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, autoFilledFields = new Set() }) => {
   const lookups = useLookups();
+  const { user } = useAuthContext();
 
   // --- Data Source State ---
-  const [stationsList, setStationsList] = useState<{ id: number; name: string }[]>([]);
   const [sectorsList, setSectorsList] = useState<{ id: number; name: string }[]>([]);
   const [disciplinesList, setDisciplinesList] = useState<{ id: number; name: string }[]>([]);
   const [prioritiesList, setPrioritiesList] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // --- UI State ---
-  const [isResearchStationOpen, setIsResearchStationOpen] = useState(false);
   const [isSectorOpen, setIsSectorOpen] = useState(false);
   const [isDisciplineOpen, setIsDisciplineOpen] = useState(false);
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
@@ -61,7 +61,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
   const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
 
   // Filtered Lists State
-  const [filteredResearchStations, setFilteredResearchStations] = useState<typeof stationsList>([]);
   const [filteredSectors, setFilteredSectors] = useState<typeof sectorsList>([]);
   const [filteredDisciplines, setFilteredDisciplines] = useState<typeof disciplinesList>([]);
   const [filteredPriorities, setFilteredPriorities] = useState<typeof prioritiesList>([]);
@@ -90,13 +89,21 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
   // --- 1. LOAD LOOKUP DATA FROM CONTEXT ---
   useEffect(() => {
     if (!lookups.loading) {
-      if (lookups.stations.length > 0) setStationsList(lookups.stations);
       if (lookups.sectors.length > 0) setSectorsList(lookups.sectors);
       if (lookups.disciplines.length > 0) setDisciplinesList(lookups.disciplines);
       if (lookups.priorities.length > 0) setPrioritiesList([...lookups.priorities]);
       setIsLoading(false);
     }
   }, [lookups.loading]);
+
+  // --- AUTO-FILL R&D STATION FROM USER'S DEPARTMENT ---
+  useEffect(() => {
+    if (user?.department_id && user?.department_name) {
+      onUpdate("department", user.department_id);
+      onUpdate("researchStation", user.department_name);
+      setResearchStationSearch(user.department_name);
+    }
+  }, [user?.department_id, user?.department_name]);
 
   useEffect(() => {
 
@@ -184,12 +191,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
 
   // --- 3. FILTERING EFFECTS ---
   useEffect(() => {
-    setFilteredResearchStations(
-      stationsList.filter((s) => s.name.toLowerCase().includes(researchStationSearch.toLowerCase())),
-    );
-  }, [researchStationSearch, stationsList]);
-
-  useEffect(() => {
     setFilteredSectors(sectorsList.filter((s) => s.name.toLowerCase().includes(String(sectorSearch).toLowerCase())));
   }, [sectorSearch, sectorsList]);
 
@@ -234,22 +235,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
   };
 
   // --- 5. GENERAL HANDLERS ---
-
-  // --- Handler for Research Station (Department) ---
-  const handleStationSelect = (station: { id: number; name: string }) => {
-    setResearchStationSearch(station.name);
-    onUpdate("researchStation", station.name);
-    onUpdate("department", station.id);
-    setIsResearchStationOpen(false);
-  };
-
-  const handleStationBlur = () => {
-    setTimeout(() => {
-      setIsResearchStationOpen(false);
-      // Revert to last valid selection if typed text doesn't match
-      setResearchStationSearch(formData.researchStation || "");
-    }, 200);
-  };
 
   // --- Handler for Sector ---
   const handleSectorSelect = (sector: { id: number; name: string }) => {
@@ -368,8 +353,6 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
   // Click Outside Listener
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (researchStationRef.current && !researchStationRef.current.contains(event.target as Node))
-        setIsResearchStationOpen(false);
       if (sectorRef.current && !sectorRef.current.contains(event.target as Node)) setIsSectorOpen(false);
       if (disciplineRef.current && !disciplineRef.current.contains(event.target as Node)) setIsDisciplineOpen(false);
       if (priorityRef.current && !priorityRef.current.contains(event.target as Node)) setIsPriorityOpen(false);
@@ -401,42 +384,28 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
         </div>
       </div>
 
-      {/* Research & Development Station */}
+      {/* Research & Development Station (Locked to user's department) */}
       <div className="space-y-2" ref={researchStationRef}>
         <label className={`flex items-center gap-2 text-sm font-semibold select-none ${researchStationSearch ? 'text-green-600' : 'text-gray-700'}`}>
           <University className={`${researchStationSearch ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
           Research & Development Station <span className="text-red-500">*</span>
-          <Tooltip content="The research institution or facility that will conduct the research or development activities" />
-          <AutoFillBadge fieldName="department" autoFilledFields={autoFilledFields} />
+          <Tooltip content="This is automatically set based on your profile department and cannot be changed." />
         </label>
         <div className="relative">
           <input
             type="text"
             name="researchStation"
-            value={researchStationSearch}
-            onChange={(e) => setResearchStationSearch(e.target.value)}
-            onFocus={() => setIsResearchStationOpen(true)}
-            onBlur={handleStationBlur}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
-            placeholder={isLoading ? "Loading stations..." : "Search research station..."}
+            value={user?.department_name || researchStationSearch}
+            readOnly
+            disabled
+            className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
           />
-          {isResearchStationOpen && (
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-              {filteredResearchStations.length > 0 ? filteredResearchStations.map((station, index) => (
-                <div
-                  key={station.id || index}
-                  className="px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleStationSelect(station)}
-                >
-                  <span className="text-sm text-gray-700">{station.name}</span>
-                </div>
-              )) : (
-                <div className="px-4 py-3 text-sm text-gray-400 italic">No matching stations</div>
-              )}
-            </div>
-          )}
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         </div>
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <Lock className="w-3 h-3" />
+          Locked to your profile department
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

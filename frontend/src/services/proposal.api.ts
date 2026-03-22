@@ -191,8 +191,10 @@ export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<voi
 };
 
 export const submitProposal = async (formData: FormData, file: File): Promise<CreateProposalResponse> => {
-  const startDate = formData.plannedStartDate ? new Date(formData.plannedStartDate).toISOString().split("T")[0] : "";
-  const endDate = formData.plannedEndDate ? new Date(formData.plannedEndDate).toISOString().split("T")[0] : "";
+  // Use the YYYY-MM-DD string directly — converting via new Date().toISOString()
+  // can shift the date back by one day in UTC+8 (Philippines) timezone.
+  const startDate = formData.plannedStartDate || "";
+  const endDate = formData.plannedEndDate || "";
 
   // Map classification_type: "research" -> "research_class", "development" -> "development_class"
   const classificationTypeMap: Record<string, string> = {
