@@ -10,12 +10,14 @@ import {
 } from 'react-icons/fa';
 import type { ExpenseItem, FormData, BudgetItem } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
+import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
 
 interface BudgetSectionProps {
   formData: FormData;
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
   onBudgetItemUpdate: (id: number, field: string, value: any) => void;
+  autoFilledFields?: Set<string>;
 }
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
@@ -23,6 +25,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
+  autoFilledFields = new Set(),
 }) => {
   const [activeModal, setActiveModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
 
@@ -155,6 +158,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
             <FaMoneyBillWave className="text-white w-6 h-6" />
           </div>
           Budget Requirements
+          <AutoFillBadge fieldName="budget" autoFilledFields={autoFilledFields} />
         </h2>
         <div className="flex items-center gap-2 text-sm text-green-600 font-medium select-none">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
