@@ -133,7 +133,7 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
   const getFullName = (u: User | UserItem) => {
     const first = u.first_name || "";
     const last = u.last_name || "";
-    return `${first} ${last}`.trim() || ("email" in u ? u.email : "Unknown");
+    return `${first} ${last}`.trim() || (u.email ?? "Unknown");
   };
 
   const isCurrentlyActive = !user.is_disabled;
