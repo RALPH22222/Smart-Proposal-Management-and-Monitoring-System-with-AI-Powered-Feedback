@@ -47,6 +47,7 @@ export class BackendStack extends Stack {
       "/pms/backend/SUPABASE_SERVICE_ROLE_KEY",
     );
     const GEMINI_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/GEMINI_API_KEY");
+    const ORS_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/ORS_API_KEY");
 
     const FRONTEND_URL = "https://wmsu-spmams.vercel.app";
 
@@ -130,6 +131,7 @@ export class BackendStack extends Stack {
       proposalBucket: proposal_attachments_bucket,
       supabaseKey: SUPABASE_KEY,
       geminiApiKey: GEMINI_API_KEY,
+      orsApiKey: ORS_API_KEY,
       smtpHost: SMTP_HOST,
       smtpUser: SMTP_USER,
       smtpPass: SMTP_PASS,
@@ -323,6 +325,9 @@ export class BackendStack extends Stack {
     proposal
       .addResource("update-status")
       .addMethod(HttpMethod.POST, integrate(proposalL.updateStatus), protectedRoute);
+    proposal
+      .addResource("reverse-geocode")
+      .addMethod(HttpMethod.GET, integrate(proposalL.reverseGeocode), protectedRoute);
     proposal
       .addResource("create-evaluation-scores-to-proposal")
       .addMethod(HttpMethod.POST, integrate(proposalL.createEvalScores), protectedRoute);

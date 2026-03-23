@@ -16,6 +16,7 @@ interface ProposalLambdasProps {
   smtpHost: string;
   smtpUser: string;
   smtpPass: string;
+  orsApiKey: string;
   stageName: string;
 }
 
@@ -58,10 +59,11 @@ export class ProposalLambdas extends NestedStack {
   public readonly approveRndTransfer: NodejsFunction;
   public readonly getRndTransfers: NodejsFunction;
   public readonly checkEvaluatorDeadlines: NodejsFunction;
+  public readonly reverseGeocode: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
 
     const defaults = {
       memorySize: 128,
@@ -114,6 +116,13 @@ export class ProposalLambdas extends NestedStack {
     this.respondRndTransfer = simple("respond-rnd-transfer", "pms-respond-rnd-transfer", "respond-rnd-transfer.ts");
     this.approveRndTransfer = simple("approve-rnd-transfer", "pms-approve-rnd-transfer", "approve-rnd-transfer.ts");
     this.getRndTransfers = simple("get-rnd-transfers", "pms-get-rnd-transfers", "get-rnd-transfers.ts");
+    this.reverseGeocode = new NodejsFunction(this, "reverse-geocode", {
+      ...defaults,
+      functionName: "pms-reverse-geocode",
+      entry: path.resolve("src", "handlers", "proposal", "reverse-geocode.ts"),
+      role: sharedRole,
+      environment: { ORS_API_KEY: orsApiKey, TZ: "Asia/Manila" },
+    });
 
     // Special: needs S3 access, own role
     this.getUploadUrl = new NodejsFunction(this, "get-upload-url", {
