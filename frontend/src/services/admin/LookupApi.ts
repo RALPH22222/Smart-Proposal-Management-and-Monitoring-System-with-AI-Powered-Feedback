@@ -14,9 +14,13 @@ export type AgencyAddress = {
   street: string | null;
 };
 
+interface ApiResponse<T> {
+  data: T;
+}
+
 export const LookupApi = {
   create: async (table: LookupTable, name: string): Promise<LookupEntry> => {
-    const { data } = await api.post(
+    const { data } = await api.post<ApiResponse<LookupEntry>>(
       "/admin/manage-lookup",
       { action: "create", table, name },
       { withCredentials: true },
@@ -25,7 +29,7 @@ export const LookupApi = {
   },
 
   update: async (table: LookupTable, id: number, name: string): Promise<LookupEntry> => {
-    const { data } = await api.post(
+    const { data } = await api.post<ApiResponse<LookupEntry>>(
       "/admin/manage-lookup",
       { action: "update", table, id, name },
       { withCredentials: true },
@@ -43,7 +47,7 @@ export const LookupApi = {
 
   // Agency Address CRUD
   getAddresses: async (agencyId: number): Promise<AgencyAddress[]> => {
-    const { data } = await api.post(
+    const { data } = await api.post<AgencyAddress[]>(
       "/admin/manage-lookup",
       { action: "get_addresses", agency_id: agencyId },
       { withCredentials: true },
@@ -52,7 +56,7 @@ export const LookupApi = {
   },
 
   createAddress: async (agencyId: number, address: { city: string; barangay?: string; street?: string }): Promise<AgencyAddress> => {
-    const { data } = await api.post(
+    const { data } = await api.post<ApiResponse<AgencyAddress>>(
       "/admin/manage-lookup",
       { action: "create_address", agency_id: agencyId, ...address },
       { withCredentials: true },
@@ -61,7 +65,7 @@ export const LookupApi = {
   },
 
   updateAddress: async (id: string, address: { city: string; barangay?: string; street?: string }): Promise<AgencyAddress> => {
-    const { data } = await api.post(
+    const { data } = await api.post<ApiResponse<AgencyAddress>>(
       "/admin/manage-lookup",
       { action: "update_address", id, ...address },
       { withCredentials: true },

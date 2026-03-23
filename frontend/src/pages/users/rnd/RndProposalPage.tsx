@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
-  Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature
+  Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -447,6 +447,13 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           <span className={`${baseClasses} text-blue-800 bg-blue-100 border-blue-200 cursor-default`}>
             <Signature className="w-3 h-3 flex-shrink-0" />
             Endorsed for Funding
+          </span>
+        );
+      case 'Funded':
+        return (
+          <span className={`${baseClasses} text-emerald-800 bg-emerald-100 border-emerald-200 cursor-default`}>
+            <CheckCircle className="w-3 h-3 flex-shrink-0 text-emerald-600" />
+            Project Funded
           </span>
         );
       default:

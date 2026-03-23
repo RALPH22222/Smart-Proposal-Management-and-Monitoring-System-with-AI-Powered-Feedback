@@ -81,7 +81,9 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     try {
       setLoading(true);
       const data = await fetchFundedProjects("rnd");
-      setProjects(data.map(transformToProject));
+      const transformed = data.map(transformToProject);
+      const sorted = transformed.sort((a: any, b: any) => Number(b.backendId || 0) - Number(a.backendId || 0));
+      setProjects(sorted);
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {

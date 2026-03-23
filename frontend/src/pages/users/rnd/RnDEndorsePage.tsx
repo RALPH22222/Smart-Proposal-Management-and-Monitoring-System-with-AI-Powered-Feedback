@@ -158,7 +158,8 @@ const EndorsePage: React.FC = () => {
         };
       });
 
-      setEndorsementProposals(mapped);
+      const sorted = mapped.sort((a, b) => Number(b.id) - Number(a.id));
+      setEndorsementProposals(sorted);
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
       Swal.fire('Error', 'Failed to load endorsement proposals', 'error');
@@ -422,7 +423,6 @@ const EndorsePage: React.FC = () => {
         onClose={handleCloseEvaluatorModal}
         decision={selectedDecision!}
         proposalTitle={selectedProposal?.title || ''}
-        proposalId={selectedProposal?.id || ''}
       />
 
       {/* New Endorsement Decision Modal */}
@@ -565,10 +565,7 @@ const EndorsePage: React.FC = () => {
                             <User className="w-3 h-3" aria-hidden="true" />
                             <span>By: {proposal.submittedBy}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <FileText className="w-3 h-3" aria-hidden="true" />
-                            <span>ID: {proposal.id}</span>
-                          </div>
+
                           {/* Department Badge */}
                           {proposal.department && proposal.department !== "N/A" && (
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${getDepartmentColor(proposal.department)}`}>

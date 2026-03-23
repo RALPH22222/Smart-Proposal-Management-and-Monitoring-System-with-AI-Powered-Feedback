@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { X, Power, AlertTriangle, Loader2, Users, ChevronDown } from "lucide-react";
 import type { User } from "../../types/admin";
 import { AccountApi, type ActiveAssignments, type ReassignmentPayload } from "../../services/admin/AccountApi";
-import { fetchUsersByRole, UserItem } from "../../services/proposal.api";
+import { fetchUsersByRole, type UserItem } from "../../services/proposal.api";
 import SecureImage from "../shared/SecureImage";
 
 interface DisableAccountModalProps {
@@ -237,7 +237,7 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
           {/* User info */}
           <div className="flex items-center gap-3">
             <SecureImage
-              src={user.photo_profile_url}
+              src={user.photo_profile_url ?? undefined}
               fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`}
               alt={getFullName(user)}
               className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"

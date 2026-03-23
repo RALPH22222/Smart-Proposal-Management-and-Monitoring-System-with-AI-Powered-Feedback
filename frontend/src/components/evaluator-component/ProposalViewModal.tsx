@@ -296,7 +296,7 @@ export default function ProposalModal({
             </h2>
             <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
               <CalendarClock className="w-3.5 h-3.5" />
-              <span>Forwarded: <span className="font-semibold text-slate-700">{p.assignedDate ? formatDateTime(p.assignedDate) : "N/A"}</span></span>
+              <span>Forwarded on: <span className="font-semibold text-slate-700">{p.assignedDate ? formatDateTime(p.assignedDate) : "N/A"}</span></span>
             </div>
           </div>
           <button

@@ -583,7 +583,11 @@ export const RnDEvaluatorPage: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                         <div className="flex items-center gap-1.5">
                           <User className="w-3 h-3" />
-                          <span>{assignment.evaluatorNames.join(", ")}</span>
+                          <span>
+                            {assignment.evaluatorNames.length > 0 
+                              ? assignment.evaluatorNames.join(", ") 
+                              : "No Assigned Evaluators"}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Clock className="w-3 h-3" />

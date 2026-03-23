@@ -5,8 +5,6 @@ import {
   CheckCircle,
   XCircle,
   RotateCcw,
-  Plus,
-  Trash2,
   AlertTriangle, // Added for confirmation warning
   Building2,
   Mail
@@ -96,28 +94,6 @@ export default function EndorsementDecisionModal({
 
   if (!isOpen) return null;
 
-  const handleAddSection = () => {
-    let counter = 1;
-    while (sections.includes(`Additional Section ${counter}`)) {
-      counter++;
-    }
-    const newSectionName = `Additional Section ${counter}`;
-    setSections([...sections, newSectionName]);
-    setActiveTab(newSectionName);
-  };
-
-  const handleDeleteSection = (sectionToDelete: string) => {
-    if (DEFAULT_SECTIONS.includes(sectionToDelete)) return;
-    const newSections = sections.filter(s => s !== sectionToDelete);
-    setSections(newSections);
-    const newRemarks = { ...structuredRemarks };
-    delete newRemarks[sectionToDelete];
-    setStructuredRemarks(newRemarks);
-    if (activeTab === sectionToDelete) {
-      setActiveTab(newSections[0] || DEFAULT_SECTIONS[0]);
-    }
-  };
-
   const handleProceedToConfirm = () => {
     if (decision === "revised") {
       const hasContent = Object.values(structuredRemarks).some(val => val.trim().length > 0);
@@ -156,8 +132,6 @@ export default function EndorsementDecisionModal({
     setStructuredRemarks(prev => ({ ...prev, [activeTab]: text }));
     if (error) setError("");
   };
-
-  const isCustomSection = !DEFAULT_SECTIONS.includes(activeTab);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -324,9 +298,6 @@ export default function EndorsementDecisionModal({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-base font-bold text-slate-800">Structured Comments</h4>
-                    <button onClick={handleAddSection} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full font-medium transition-colors">
-                      <Plus className="w-3 h-3" /> Add Section
-                    </button>
                   </div>
                   <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
                     {sections.map((section) => (
@@ -345,9 +316,6 @@ export default function EndorsementDecisionModal({
                   <div className="bg-white relative">
                     <div className="flex justify-between items-center mb-2">
                       <label className="text-sm font-medium text-slate-700">{activeTab}</label>
-                      {isCustomSection && (
-                        <button onClick={() => handleDeleteSection(activeTab)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-                      )}
                     </div>
                     <textarea
                       className="w-full h-40 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none resize-none text-sm"

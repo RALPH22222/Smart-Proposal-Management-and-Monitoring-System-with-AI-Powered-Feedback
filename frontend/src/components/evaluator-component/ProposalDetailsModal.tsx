@@ -185,10 +185,15 @@ export default function ProposalDetailsModal({
         {/* Modal Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                Completed Review
+              </span>
+            </div>
             <h2 className="text-xl font-bold text-slate-900">
               {proposal.title}
             </h2>
-            <p className="text-sm text-slate-600 mt-1">Completed Review</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -203,6 +208,132 @@ export default function ProposalDetailsModal({
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
           <div className="space-y-4 sm:space-y-6">
+
+            {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
+            <div className="bg-slate-50 rounded-xl p-4 sm:p-6 border border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-[#C8102E]" />
+                Evaluator Comments & Ratings
+              </h3>
+
+              <div className="space-y-6">
+                {/* Loop for the 4 main rated sections */}
+                {["title", "budget", "timeline"].map(
+                  (key) => {
+                    const field = key as keyof typeof RATING_CRITERIA;
+                    // Safe access with fallback 0
+                    const ratingValue = proposal.ratings?.[field] || 0;
+                    const ratingDesc =
+                      (RATING_CRITERIA[field].descriptions as any)[
+                      ratingValue
+                      ] || "No rating provided.";
+
+                    return (
+                      <div
+                        key={key}
+                        className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
+                      >
+                        <div className="mb-3">
+                          <label className="block text-sm font-bold text-slate-900">
+                            {RATING_CRITERIA[field].label}
+                          </label>
+                        </div>
+
+                        {/* 1-5 Visual Indicators (Read-Only) */}
+                        <div className="flex gap-2 mb-3">
+                          {[5, 4, 3, 2, 1].map((num) => (
+                            <div
+                              key={num}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border transition-all duration-200 cursor-default ${getButtonStyles(
+                                ratingValue === num
+                              )}`}
+                            >
+                              {num}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Rating Description ONLY */}
+                        <div
+                          className={`text-xs p-3 rounded-lg border ${ratingValue > 0
+                            ? getRatingColor(ratingValue)
+                            : "bg-slate-100 text-slate-500 border-slate-200 italic"
+                            }`}
+                        >
+                          {ratingDesc}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+
+                {/* Comments */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">
+                    Comments
+                  </label>
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
+                    {proposal.comment}
+                  </div>
+                </div>
+
+                {/* Suggested Decision Section (Read-Only) */}
+                <div className="border-t border-slate-200 pt-6 mt-2">
+                  <h4 className="block text-sm font-bold text-slate-900 mb-3">
+                    Suggested Decision
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Approve Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Approve"
+                        ? "bg-green-600 text-white border-green-600 shadow-md"
+                        : "bg-green-50 text-green-400 border-green-200 opacity-70"
+                        }`}
+                    >
+                      <CheckCircle
+                        className={`w-5 h-5 ${proposal.decision === "Approve"
+                          ? "text-white"
+                          : "text-green-400"
+                          }`}
+                      />
+                      <span className="font-semibold text-sm">Approve</span>
+                    </div>
+
+                    {/* Revise Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Revise"
+                        ? "bg-yellow-500 text-white border-yellow-500 shadow-md"
+                        : "bg-yellow-50 text-yellow-500 border-yellow-200 opacity-70"
+                        }`}
+                    >
+                      <RotateCcw
+                        className={`w-5 h-5 ${proposal.decision === "Revise"
+                          ? "text-white"
+                          : "text-yellow-500"
+                          }`}
+                      />
+                      <span className="font-semibold text-sm">Revise</span>
+                    </div>
+
+                    {/* Reject Button */}
+                    <div
+                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Reject"
+                        ? "bg-red-700 text-white border-red-700 shadow-md"
+                        : "bg-red-50 text-red-400 border-red-200 opacity-70"
+                        }`}
+                    >
+                      <XCircle
+                        className={`w-5 h-5 ${proposal.decision === "Reject"
+                          ? "text-white"
+                          : "text-red-400"
+                          }`}
+                      />
+                      <span className="font-semibold text-sm">Reject</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Documents Section (Updated Layout) */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -468,131 +599,7 @@ export default function ProposalDetailsModal({
             )}
 
 
-            {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
-            <div className="border-t-2 border-slate-300 pt-6 mt-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-[#C8102E]" />
-                Evaluator Comments & Ratings
-              </h3>
 
-              <div className="space-y-6">
-                {/* Loop for the 4 main rated sections */}
-                {["title", "budget", "timeline"].map(
-                  (key) => {
-                    const field = key as keyof typeof RATING_CRITERIA;
-                    // Safe access with fallback 0
-                    const ratingValue = proposal.ratings?.[field] || 0;
-                    const ratingDesc =
-                      (RATING_CRITERIA[field].descriptions as any)[
-                      ratingValue
-                      ] || "No rating provided.";
-
-                    return (
-                      <div
-                        key={key}
-                        className="bg-slate-50 p-4 rounded-xl border border-slate-200"
-                      >
-                        <div className="mb-3">
-                          <label className="block text-sm font-bold text-slate-900">
-                            {RATING_CRITERIA[field].label}
-                          </label>
-                        </div>
-
-                        {/* 1-5 Visual Indicators (Read-Only) */}
-                        <div className="flex gap-2 mb-3">
-                          {[5, 4, 3, 2, 1].map((num) => (
-                            <div
-                              key={num}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border transition-all duration-200 cursor-default ${getButtonStyles(
-                                ratingValue === num
-                              )}`}
-                            >
-                              {num}
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Rating Description ONLY */}
-                        <div
-                          className={`text-xs p-3 rounded-lg border ${ratingValue > 0
-                            ? getRatingColor(ratingValue)
-                            : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                            }`}
-                        >
-                          {ratingDesc}
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-
-                {/* Comments */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <label className="block text-sm font-bold text-slate-900 mb-2">
-                    Comments
-                  </label>
-                  <div className="bg-white p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
-                    {proposal.comment}
-                  </div>
-                </div>
-
-                {/* Suggested Decision Section (Read-Only) */}
-                <div className="border-t border-slate-200 pt-6 mt-2">
-                  <h4 className="block text-sm font-bold text-slate-900 mb-3">
-                    Suggested Decision
-                  </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    {/* Approve Button */}
-                    <div
-                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Approve"
-                        ? "bg-green-600 text-white border-green-600 shadow-md"
-                        : "bg-green-50 text-green-400 border-green-200 opacity-70"
-                        }`}
-                    >
-                      <CheckCircle
-                        className={`w-5 h-5 ${proposal.decision === "Approve"
-                          ? "text-white"
-                          : "text-green-400"
-                          }`}
-                      />
-                      <span className="font-semibold text-sm">Approve</span>
-                    </div>
-
-                    {/* Revise Button */}
-                    <div
-                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Revise"
-                        ? "bg-yellow-500 text-white border-yellow-500 shadow-md"
-                        : "bg-yellow-50 text-yellow-500 border-yellow-200 opacity-70"
-                        }`}
-                    >
-                      <RotateCcw
-                        className={`w-5 h-5 ${proposal.decision === "Revise"
-                          ? "text-white"
-                          : "text-yellow-500"
-                          }`}
-                      />
-                      <span className="font-semibold text-sm">Revise</span>
-                    </div>
-
-                    {/* Reject Button */}
-                    <div
-                      className={`flex flex-col sm:flex-row items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 cursor-default ${proposal.decision === "Reject"
-                        ? "bg-red-700 text-white border-red-700 shadow-md"
-                        : "bg-red-50 text-red-400 border-red-200 opacity-70"
-                        }`}
-                    >
-                      <XCircle
-                        className={`w-5 h-5 ${proposal.decision === "Reject"
-                          ? "text-white"
-                          : "text-red-400"
-                          }`}
-                      />
-                      <span className="font-semibold text-sm">Reject</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

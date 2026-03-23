@@ -42,7 +42,8 @@ const FundingPage: React.FC = () => {
       // Filter proposals that are relevant to funding
       const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Funded', 'Funding Rejected', 'Funding Revision'];
       const filtered = allProposals.filter(p => relevantStatuses.includes(p.status as ProposalStatus));
-      setFundingProposals(filtered as Proposal[]);
+      const sorted = (filtered as Proposal[]).sort((a, b) => Number(b.id) - Number(a.id));
+      setFundingProposals(sorted);
     } catch (error) {
       console.error('Error loading funding proposals:', error);
     } finally {

@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown } from "lucide-react";
 
 import type { User } from "../../../types/admin";
-import { AccountApi, ReassignmentPayload } from "../../../services/admin/AccountApi";
+import { AccountApi, type ReassignmentPayload } from "../../../services/admin/AccountApi";
 import AddAccountModal from "../../../components/admin-component/addAccountModal";
 import EditAccountModal from "../../../components/admin-component/editAccountModal";
 import DisableAccountModal from "../../../components/admin-component/disableAccountModal";

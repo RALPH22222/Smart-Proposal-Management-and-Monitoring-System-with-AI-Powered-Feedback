@@ -33,6 +33,8 @@ import {
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from '../../../utils/date-formatter';
 
+
+
 // --- Types ---
 type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked';
 
@@ -422,13 +424,7 @@ const MonitoringPage: React.FC = () => {
   );
 
   // --- Loading ---
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen">
@@ -479,12 +475,38 @@ const MonitoringPage: React.FC = () => {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {filteredProjects.length === 0 && (
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
+            {/* If loading and we have no projects yet: show skeletons */}
+            {loading && projects.length === 0 && (
+              <div className="space-y-2 animate-pulse">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50/50 flex items-center justify-between blur-[1px]">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded-md w-3/4"></div>
+                      <div className="h-3 bg-gray-100 rounded-md w-1/2"></div>
+                    </div>
+                    <div className="w-4 h-4 bg-gray-200 rounded-full"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* If not loading and no projects found */}
+            {!loading && filteredProjects.length === 0 && (
               <p className="text-center text-sm text-gray-400 py-8">No projects found.</p>
             )}
-            {filteredProjects.map((project) => (
-              <button key={project.id} onClick={() => { setActiveProjectId(project.id); setShowMobileDetail(true); }} className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}`}>
+
+            {/* Show actual items (blurred if loading) */}
+            {(loading ? projects : filteredProjects).map((project) => (
+              <button
+                key={project.id}
+                onClick={() => {
+                  if (loading) return; // Prevent interaction during loading
+                  setActiveProjectId(project.id);
+                  setShowMobileDetail(true);
+                }}
+                className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${loading ? 'blur-[1.5px] pointer-events-none opacity-60' : (activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200')}`}
+              >
                 <div className="min-w-0">
                   <h4 className={`text-sm font-bold line-clamp-1 ${activeProjectId === project.id ? 'text-blue-800' : 'text-gray-700'}`}>{project.title}</h4>
                   <p className="text-xs text-gray-400 mt-1">{project.department}</p>
@@ -498,17 +520,45 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* --- RIGHT PANEL (Detail View) --- */}
-        <div className={`w-full lg:w-2/3 flex flex-col ${showMobileDetail ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="lg:hidden mb-4">
-            <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
-          </div>
-
-          {detailLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <div className={`w-full lg:w-2/3 flex flex-col ${showMobileDetail ? 'flex' : 'hidden lg:flex'} transition-all duration-500 ${(loading || detailLoading) ? 'blur-[1.5px] pointer-events-none opacity-60' : ''}`}>
+            <div className="lg:hidden mb-4">
+              <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
             </div>
-          ) : activeProject && quarters.length > 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
+
+            {(loading || detailLoading) && !activeProject ? (
+              <div className="flex-1 space-y-8 animate-pulse p-4 sm:p-6 lg:p-8">
+                {/* Header Skeleton */}
+                <div className="space-y-4">
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-100 rounded w-1/4"></div>
+                </div>
+
+                {/* Budget Stats Skeleton */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-20"></div>
+                      <div className="h-6 bg-gray-200 rounded w-32"></div>
+                    </div>
+                  ))}
+                  <div className="col-span-full h-2 bg-gray-200 rounded-full w-full"></div>
+                </div>
+
+                {/* Reports Skeleton */}
+                <div className="space-y-6">
+                  <div className="h-6 bg-gray-200 rounded w-40"></div>
+                  <div className="border border-gray-100 rounded-2xl p-6 space-y-4">
+                    <div className="h-10 bg-gray-100 rounded w-full"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-100 rounded w-1/3"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : activeProject && quarters.length > 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
 
               {/* --- COMPLETED PROJECT --- */}
               {activeProject.status === 'Completed' ? (

@@ -3,7 +3,7 @@ import NotificationsDropdown from "../../../components/proponent-component/Notif
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, PhilippinePeso, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Calendar1, Info} from "lucide-react"; 
+import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info} from "lucide-react"; 
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import { useNotifications } from "../../../context/NotificationContext";
@@ -19,51 +19,7 @@ import { useAuthContext } from "../../../context/AuthContext";
 import SecureImage from "../../../components/shared/SecureImage";
 import { formatDateTime } from "../../../utils/date-formatter";
 
-const Loader3D = () => (
-  <div className="flex flex-col items-center justify-center py-12 w-full">
-    <div className="relative w-24 h-24" style={{ perspective: "1000px" }}>
-      <div className="relative w-full h-full transform-style-3d animate-spin-file">
-        <style>{`
-          .transform-style-3d { transform-style: preserve-3d; }
-          .animate-spin-file { animation: spin-file 3s infinite ease-in-out; }
-          @keyframes spin-file {
-            0% { transform: rotateY(0deg); }
-            50% { transform: rotateY(180deg); }
-            100% { transform: rotateY(360deg); }
-          }
-        `}</style>
 
-        {/* Document Body - Front */}
-        <div className="absolute inset-0 bg-white border-2 border-gray-200 rounded-lg shadow-lg flex flex-col p-3 gap-2"
-          style={{ width: '60px', height: '80px', margin: 'auto', transform: "translateZ(1px)", backfaceVisibility: "hidden" }}>
-          <div className="w-3/4 h-2 bg-gray-200 rounded animate-pulse"></div>
-          <div className="w-full h-1.5 bg-gray-100 rounded animate-pulse delay-75"></div>
-          <div className="w-full h-1.5 bg-gray-100 rounded animate-pulse delay-100"></div>
-          <div className="w-5/6 h-1.5 bg-gray-100 rounded animate-pulse delay-150"></div>
-          <div className="mt-auto self-end w-6 h-6 rounded-full bg-[#C8102E]/10 flex items-center justify-center">
-            <div className="w-3 h-3 bg-[#C8102E] rounded-sm transform rotate-45"></div>
-          </div>
-        </div>
-
-        {/* Document Body - Back */}
-        <div className="absolute inset-0 bg-[#C8102E] border-2 border-[#C8102E] rounded-lg shadow-lg flex items-center justify-center p-4"
-          style={{ width: '60px', height: '80px', margin: 'auto', transform: "rotateY(180deg) translateZ(1px)", backfaceVisibility: "hidden" }}>
-          <div className="w-10 h-10 border-2 border-white/30 rounded-full flex items-center justify-center">
-            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-          </div>
-        </div>
-
-        {/* Floating particles/elements */}
-        <div className="absolute top-0 right-0 w-3 h-3 bg-blue-400 rounded-full opacity-60 animate-bounce" style={{ animationDelay: '0.2s', transform: 'translateZ(20px)' }}></div>
-        <div className="absolute bottom-0 left-0 w-2 h-2 bg-yellow-400 rounded-full opacity-60 animate-bounce" style={{ animationDelay: '0.5s', transform: 'translateZ(-10px)' }}></div>
-      </div>
-    </div>
-    <div className="mt-4 flex flex-col items-center gap-1">
-      <span className="text-[#C8102E] font-bold text-lg tracking-wider animate-pulse">Loading...</span>
-      <span className="text-gray-400 text-xs tracking-wide font-medium">Fetching proposals</span>
-    </div>
-  </div>
-);
 
 const Profile: React.FC = () => {
   const { user } = useAuthContext();
@@ -554,30 +510,52 @@ const Profile: React.FC = () => {
       return String(b.id).localeCompare(String(a.id));
     });
 
-  // Project Portfolio rendering functions
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
-      {loading ? (
-        <Loader3D />
-      ) : filteredProjects.length === 0 ? (
+      {/* If loading and we have NO data: show skeletons */}
+      {loading && proposals.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 blur-[1px]">
+          {[1, 2, 3, 4, 5, 6].map((idx) => (
+            <div key={idx} className="bg-white rounded-xl p-6 border border-gray-100 flex flex-col space-y-4 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="flex flex-wrap gap-2">
+                <div className="h-4 bg-gray-100 rounded-full w-16"></div>
+                <div className="h-4 bg-gray-100 rounded-full w-20"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-100 rounded w-full"></div>
+                <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+              </div>
+              <div className="mt-auto h-2 bg-gray-200 rounded-full w-full"></div>
+              <div className="h-6 bg-gray-100 rounded-full w-24"></div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* If NOT loading and we have no data found after filter */}
+      {!loading && filteredProjects.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
             <FileText className="w-8 h-8 text-slate-400" />
           </div>
           <p>No projects found matching your criteria.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
-          {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project) => {
-            const progress = getLocalProgress(project);
-            const statusLabel = getLocalStatusLabel(project);
+      )}
+
+      {/* If we have data (blurred if loading) */}
+      {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).length > 0 && (
+        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink ${loading ? 'blur-[2px] pointer-events-none opacity-60 transition-all duration-500' : ''}`}>
+          {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).map((project: any) => {
+            const progress = loading ? 0 : getLocalProgress(project);
+            const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
 
             return (
               <div
                 key={project.id}
                 className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col"
-                onClick={() => handleCardClick(project)}
+                onClick={() => !loading && handleCardClick(project as any)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0 overflow-hidden" style={{ containerType: 'inline-size' }}>
@@ -587,7 +565,6 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
 
-                {/* --- TAGS SECTION (Above Budget) --- */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   {tags.map((tag, idx) => (
                     <span
@@ -609,10 +586,6 @@ const Profile: React.FC = () => {
                     <span>Duration:</span>
                     <span className="font-semibold">{project.duration}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-600">
-                    <span className="flex items-center gap-1"><Calendar1 className="w-3 h-3 text-slate-500" />Date Created:</span>
-                    <span className="font-semibold">{project.submissionDate}</span>
-                  </div>
                 </div>
 
                 <div className="mb-3">
@@ -631,9 +604,9 @@ const Profile: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getLocalStatusColor(project)}`}
+                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${loading ? 'bg-gray-100 text-gray-400' : getLocalStatusColor(project)}`}
                     >
-                      {getLocalStatusIcon(project)}
+                      {!loading && getLocalStatusIcon(project)}
                       {statusLabel}
                     </span>
                   </div>
@@ -663,13 +636,24 @@ const Profile: React.FC = () => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {loading ? (
-            <tr>
-              <td colSpan={6} className="px-6 py-12">
-                <Loader3D />
-              </td>
-            </tr>
-          ) : filteredProjects.length === 0 ? (
+          {/* If loading and we have NO data: show skeletons */}
+          {loading && proposals.length === 0 && (
+            [1, 2, 3, 4, 5].map((idx) => (
+              <tr key={idx} className="animate-pulse blur-[1px]">
+                <td className="px-6 py-4 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-100 rounded w-1/4"></div>
+                </td>
+                <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded-full w-20"></div></td>
+                <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
+                <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-12"></div></td>
+                <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded-full w-24"></div></td>
+              </tr>
+            ))
+          )}
+
+          {/* If NOT loading and no data found */}
+          {!loading && filteredProjects.length === 0 && (
             <tr>
               <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -678,71 +662,70 @@ const Profile: React.FC = () => {
                 No projects found.
               </td>
             </tr>
-          ) : (
-            filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project) => {
-              const progress = getProgressPercentageByIndex(project.currentIndex);
-              const statusLabel = getLocalStatusLabel(project);
-              const tags = getProjectTags(project.id);
-
-              return (
-                <tr
-                  key={project.id}
-                  className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                  onClick={() => handleCardClick(project)}
-                >
-                  <td className="px-4 lg:px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-100 rounded-lg group-hover:bg-[#C8102E] group-hover:text-white transition-colors">
-                        {getStageIcon(project.currentIndex)}
-                      </div>
-                      <div className="min-w-0 max-w-[200px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
-                        <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
-                          <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
-                            {project.title}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {/* Removed Priority Badge from List View */}
-                          {/* Tags in List View */}
-                          {tags.slice(0, 1).map((tag, i) => (
-                            <span
-                              key={i}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 lg:px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${getLocalStatusColor(project)}`}
-                    >
-                      {getLocalStatusIcon(project)}
-                      {statusLabel}
-                    </span>
-                  </td>
-                  <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">{project.budget}</td>
-                  <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">{project.duration}</td>
-                  <td className="px-4 lg:px-6 py-4">
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
-                        <span className="font-semibold">{progress}%</span>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
           )}
+
+          {/* Show actual items (blurred if loading) */}
+          {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).map((project: any) => {
+            const progress = loading ? 0 : getProgressPercentageByIndex(project.currentIndex);
+            const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
+            const tags = getProjectTags(project.id);
+
+            return (
+              <tr
+                key={project.id}
+                className={`transition-all duration-500 ${loading ? 'blur-[1.5px] pointer-events-none opacity-60' : 'hover:bg-gray-50 cursor-pointer group'}`}
+                onClick={() => !loading && handleCardClick(project as any)}
+              >
+                <td className="px-4 lg:px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg transition-colors ${loading ? 'bg-gray-100 text-gray-300' : 'bg-gray-100 group-hover:bg-[#C8102E] group-hover:text-white'}`}>
+                      {!loading ? getStageIcon(project.currentIndex) : <Clock className="w-5 h-5" />}
+                    </div>
+                    <div className="min-w-0 max-w-[200px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
+                      <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                        <div className="font-semibold text-gray-800 group-hover:text-[#C8102E] transition-colors text-sm lg:text-base whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
+                          {project.title}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        {tags.slice(0, 1).map((tag, i) => (
+                          <span
+                            key={i}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${getTagColor(tag)}`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 lg:px-6 py-4">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${loading ? 'bg-gray-100 text-gray-400' : getLocalStatusColor(project)}`}
+                  >
+                    {!loading && getLocalStatusIcon(project)}
+                    {statusLabel}
+                  </span>
+                </td>
+                <td className="px-4 lg:px-6 py-4 text-gray-600 font-medium hidden lg:table-cell">{project.budget}</td>
+                <td className="px-4 lg:px-6 py-4 text-gray-600 text-sm hidden md:table-cell">{project.duration}</td>
+                <td className="px-4 lg:px-6 py-4">
+                  <div className="flex items-center gap-2 justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <span className="font-semibold">{progress}%</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -913,7 +896,7 @@ const Profile: React.FC = () => {
                   <p className="text-xs font-semibold text-slate-700 mb-2">Funded</p>
                   <p className="text-xl font-bold text-green-600 tabular-nums">{fundedCount}</p>
                 </div>
-                <PhilippinePeso className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                <CheckCircle className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
