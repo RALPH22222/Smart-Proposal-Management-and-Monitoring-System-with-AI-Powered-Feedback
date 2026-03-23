@@ -35,14 +35,10 @@ export class AdminLambdas extends NestedStack {
   public readonly markNotificationRead: NodejsFunction;
   public readonly getNotificationPreferences: NodejsFunction;
   public readonly updateNotificationPreferences: NodejsFunction;
-  public readonly updateAvailability: NodejsFunction;
   public readonly getEvaluationDeadline: NodejsFunction;
   public readonly updateEvaluationDeadline: NodejsFunction;
   public readonly manageLookup: NodejsFunction;
-  public readonly requestLeave: NodejsFunction;
-  public readonly reviewLeave: NodejsFunction;
-  public readonly endLeave: NodejsFunction;
-  public readonly getLeaveRequests: NodejsFunction;
+  public readonly checkActiveAssignments: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
@@ -250,14 +246,6 @@ export class AdminLambdas extends NestedStack {
       environment: sharedEnv,
     });
 
-    this.updateAvailability = new NodejsFunction(this, "update-availability", {
-      ...defaults,
-      functionName: "pms-update-availability",
-      entry: path.resolve("src", "handlers", "admin", "update-availability.ts"),
-      role: sharedRole,
-      environment: sharedEnv,
-    });
-
     this.getEvaluationDeadline = new NodejsFunction(this, "get-evaluation-deadline", {
       ...defaults,
       functionName: "pms-get-evaluation-deadline",
@@ -282,36 +270,13 @@ export class AdminLambdas extends NestedStack {
       environment: sharedEnv,
     });
 
-    this.requestLeave = new NodejsFunction(this, "request-leave", {
+    this.checkActiveAssignments = new NodejsFunction(this, "check-active-assignments", {
       ...defaults,
-      functionName: "pms-request-leave",
-      entry: path.resolve("src", "handlers", "admin", "request-leave.ts"),
+      functionName: "pms-admin-check-active-assignments",
+      entry: path.resolve("src", "handlers", "admin", "check-active-assignments.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });
 
-    this.reviewLeave = new NodejsFunction(this, "review-leave", {
-      ...defaults,
-      functionName: "pms-review-leave",
-      entry: path.resolve("src", "handlers", "admin", "review-leave.ts"),
-      role: sharedRole,
-      environment: sharedEnv,
-    });
-
-    this.endLeave = new NodejsFunction(this, "end-leave", {
-      ...defaults,
-      functionName: "pms-end-leave",
-      entry: path.resolve("src", "handlers", "admin", "end-leave.ts"),
-      role: sharedRole,
-      environment: sharedEnv,
-    });
-
-    this.getLeaveRequests = new NodejsFunction(this, "get-leave-requests", {
-      ...defaults,
-      functionName: "pms-get-leave-requests",
-      entry: path.resolve("src", "handlers", "admin", "get-leave-requests.ts"),
-      role: sharedRole,
-      environment: sharedEnv,
-    });
   }
 }

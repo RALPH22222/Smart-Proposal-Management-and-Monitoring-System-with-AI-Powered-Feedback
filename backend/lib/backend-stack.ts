@@ -479,6 +479,9 @@ export class BackendStack extends Stack {
       .addResource("toggle-account-status")
       .addMethod(HttpMethod.POST, integrate(adminL.toggleAccountStatus), protectedRoute);
     admin
+      .addResource("check-active-assignments")
+      .addMethod(HttpMethod.GET, integrate(adminL.checkActiveAssignments), protectedRoute);
+    admin
       .addResource("activity-logs")
       .addMethod(HttpMethod.GET, integrate(adminL.getActivityLogs), protectedRoute);
     admin
@@ -515,9 +518,6 @@ export class BackendStack extends Stack {
       .addResource("update-notification-preferences")
       .addMethod(HttpMethod.POST, integrate(adminL.updateNotificationPreferences), protectedRoute);
     admin
-      .addResource("update-availability")
-      .addMethod(HttpMethod.POST, integrate(adminL.updateAvailability), protectedRoute);
-    admin
       .addResource("evaluation-deadline")
       .addMethod(HttpMethod.GET, integrate(adminL.getEvaluationDeadline), protectedRoute);
     admin
@@ -526,18 +526,5 @@ export class BackendStack extends Stack {
     admin
       .addResource("manage-lookup")
       .addMethod(HttpMethod.POST, integrate(adminL.manageLookup), protectedRoute);
-    admin
-      .addResource("request-leave")
-      .addMethod(HttpMethod.POST, integrate(adminL.requestLeave), protectedRoute);
-    admin
-      .addResource("review-leave")
-      .addMethod(HttpMethod.POST, integrate(adminL.reviewLeave), protectedRoute);
-    admin
-      .addResource("end-leave")
-      .addMethod(HttpMethod.POST, integrate(adminL.endLeave), protectedRoute);
-    admin
-      .addResource("leave-requests")
-      .addMethod(HttpMethod.GET, integrate(adminL.getLeaveRequests), protectedRoute);
-
   }
 }

@@ -218,7 +218,6 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
             email: u.email || '',
             department: u.departments?.[0]?.name || 'N/A',
             agency: 'WMSU',
-            availabilityStatus: 'Available',
           }));
           setEvaluators(mappedEvaluators);
         } catch (error) {
@@ -281,10 +280,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   // Filter Available Evaluators
   useEffect(() => {
     let filtered = evaluators.filter(ev =>
-      // 1. Exclude already assigned
-      !assignedEvaluators.some(assigned => assigned.id === ev.id) &&
-      // 2. Only show Available
-      ev.availabilityStatus === 'Available'
+      // Exclude already assigned
+      !assignedEvaluators.some(assigned => assigned.id === ev.id)
     );
 
     // Apply Department Filter

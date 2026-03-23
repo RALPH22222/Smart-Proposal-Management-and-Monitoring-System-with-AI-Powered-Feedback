@@ -23,6 +23,29 @@ export type UpdateAccountPayload = {
   roles?: string[];
 };
 
+export type ActiveAssignments = {
+  user_id: string;
+  user_roles: string[];
+  rnd_assignments: Array<{
+    proposal_id: number;
+    project_title: string;
+    proposal_status: string;
+    department_id: number;
+  }>;
+  evaluator_assignments: Array<{
+    proposal_id: number;
+    project_title: string;
+    proposal_status: string;
+    evaluator_status: string;
+  }>;
+  has_active_assignments: boolean;
+};
+
+export type ReassignmentPayload = {
+  rnd: Array<{ proposal_id: number; new_rnd_id: string }>;
+  evaluator: Array<{ proposal_id: number; new_evaluator_id: string }>;
+};
+
 export const AccountApi = {
   createAccount: async (payload: CreateAccountPayload) => {
     const { data } = await api.post("/admin/create-account", payload, {
@@ -56,10 +79,18 @@ export const AccountApi = {
     return data;
   },
 
-  toggleAccountStatus: async (userId: string, isDisabled: boolean) => {
+  toggleAccountStatus: async (userId: string, isDisabled: boolean, reassignments?: ReassignmentPayload) => {
     const { data } = await api.post(
       "/admin/toggle-account-status",
-      { user_id: userId, is_disabled: isDisabled },
+      { user_id: userId, is_disabled: isDisabled, reassignments },
+      { withCredentials: true },
+    );
+    return data;
+  },
+
+  checkActiveAssignments: async (userId: string): Promise<ActiveAssignments> => {
+    const { data } = await api.get<ActiveAssignments>(
+      `/admin/check-active-assignments?user_id=${userId}`,
       { withCredentials: true },
     );
     return data;

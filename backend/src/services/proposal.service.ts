@@ -529,13 +529,12 @@ export class ProposalService {
    * "Load" = number of active proposals (status review_rnd or under_evaluation) in proposal_rnd.
    */
   async getLeastLoadedRnd(departmentId: number) {
-    // 1. Get eligible RND users (not disabled, available, matching department)
+    // 1. Get eligible RND users (not disabled, matching department)
     const { data: rndUsers, error: rndError } = await this.db
       .from("users")
       .select("id")
       .contains("roles", ["rnd"])
       .eq("is_disabled", false)
-      .eq("is_available", true)
       .eq("department_id", departmentId);
 
     if (rndError) return { data: null, error: rndError };
@@ -582,17 +581,16 @@ export class ProposalService {
     if (assignErr) return { data: null, error: assignErr };
     if (!assignment) return { data: null, error: { message: "You are not the current RND assignee for this proposal" } };
 
-    // Validate target RND is not disabled/unavailable
+    // Validate target RND is not disabled
     const { data: targetUser, error: targetErr } = await this.db
       .from("users")
-      .select("id, is_disabled, is_available, department_id")
+      .select("id, is_disabled, department_id")
       .eq("id", to_rnd_id)
       .maybeSingle();
 
     if (targetErr) return { data: null, error: targetErr };
     if (!targetUser) return { data: null, error: { message: "Target RND user not found" } };
     if (targetUser.is_disabled) return { data: null, error: { message: "Target RND user is disabled" } };
-    if (!targetUser.is_available) return { data: null, error: { message: "Target RND user is currently unavailable" } };
 
     // Check proposal department matches target RND department
     const { data: proposal, error: propErr } = await this.db
@@ -862,24 +860,19 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getUsersByRole(role: string, departmentId?: number, opts?: { includeUnavailable?: boolean }) {
+  async getUsersByRole(role: string, departmentId?: number) {
     // Use users.department_id as the primary department association.
     // This works for all roles (rnd, evaluator, etc.) without needing
     // a separate junction table. The department name is joined via FK.
     let query = this.db
       .from("users")
-      .select("id, first_name, last_name, email, photo_profile_url, department_id, is_available, departments(id, name)");
+      .select("id, first_name, last_name, email, photo_profile_url, department_id, departments(id, name)");
 
     // Filter by role using the roles array column (contains operator)
     query = query.contains("roles", [role]);
 
     // Always exclude disabled users
     query = query.eq("is_disabled", false);
-
-    // Exclude unavailable users unless explicitly requested
-    if (!opts?.includeUnavailable) {
-      query = query.eq("is_available", true);
-    }
 
     // Filter by department if provided
     if (departmentId) {
@@ -920,7 +913,6 @@ export class ProposalService {
           email: u.email,
           profile_picture: u.photo_profile_url, // map to frontend expected key
           department_id: u.department_id, // Pass raw ID for frontend lookup
-          is_available: u.is_available ?? true,
           departments: depts,
         };
       }),

@@ -3,14 +3,9 @@ import {
   CreateAccountInput,
   UpdateAccountInput,
   ToggleAccountStatusInput,
+  CheckActiveAssignmentsInput,
   InviteUserInput,
 } from "../schemas/admin-schema";
-import {
-  RequestLeaveInput,
-  ReviewLeaveInput,
-  EndLeaveInput,
-  GetLeaveRequestsInput,
-} from "../schemas/leave-schema";
 import { LateSubmissionPolicy, NotificationPreferences, EvaluationDeadlineInput } from "../schemas/settings-schema";
 import { logActivity } from "../utils/activity-logger";
 
@@ -128,6 +123,205 @@ export class AdminService {
       .from("users")
       .update({ is_disabled })
       .eq("id", user_id)
+      .select("id, is_disabled")
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
+  }
+
+  async checkActiveAssignments(userId: string) {
+    // Get user info to know their roles
+    const { data: user, error: userErr } = await this.db
+      .from("users")
+      .select("id, roles")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userErr) return { data: null, error: userErr };
+    if (!user) return { data: null, error: { message: "User not found" } };
+
+    const roles: string[] = user.roles || [];
+
+    // Active proposal statuses (not terminal)
+    const activeProposalStatuses = [
+      "review_rnd",
+      "under_evaluation",
+      "revision_rnd",
+      "endorsed_for_funding",
+      "revision_funding",
+    ];
+
+    // Active evaluator statuses (not completed/declined)
+    const activeEvaluatorStatuses = ["pending", "for_review", "extend"];
+
+    let rndAssignments: any[] = [];
+    let evaluatorAssignments: any[] = [];
+
+    if (roles.includes("rnd") || roles.includes("admin")) {
+      const { data, error } = await this.db
+        .from("proposal_rnd")
+        .select("proposal_id, proposals(id, project_title, status, department_id)")
+        .eq("rnd_id", userId);
+
+      if (!error && data) {
+        rndAssignments = data
+          .filter((r: any) => r.proposals && activeProposalStatuses.includes(r.proposals.status))
+          .map((r: any) => ({
+            proposal_id: r.proposal_id,
+            project_title: r.proposals.project_title,
+            proposal_status: r.proposals.status,
+            department_id: r.proposals.department_id,
+          }));
+      }
+    }
+
+    if (roles.includes("evaluator")) {
+      const { data, error } = await this.db
+        .from("proposal_evaluators")
+        .select("proposal_id, status, proposals(id, project_title, status)")
+        .eq("evaluator_id", userId);
+
+      if (!error && data) {
+        evaluatorAssignments = data
+          .filter(
+            (e: any) =>
+              e.proposals && activeEvaluatorStatuses.includes(e.status),
+          )
+          .map((e: any) => ({
+            proposal_id: e.proposal_id,
+            project_title: e.proposals.project_title,
+            proposal_status: e.proposals.status,
+            evaluator_status: e.status,
+          }));
+      }
+    }
+
+    return {
+      data: {
+        user_id: userId,
+        user_roles: roles,
+        rnd_assignments: rndAssignments,
+        evaluator_assignments: evaluatorAssignments,
+        has_active_assignments: rndAssignments.length > 0 || evaluatorAssignments.length > 0,
+      },
+      error: null,
+    };
+  }
+
+  async disableWithReassignment(input: {
+    user_id: string;
+    reassignments: {
+      rnd: Array<{ proposal_id: number; new_rnd_id: string }>;
+      evaluator: Array<{ proposal_id: number; new_evaluator_id: string }>;
+    };
+    admin_id: string;
+  }) {
+    // Execute RND reassignments
+    for (const r of input.reassignments.rnd) {
+      // Delete old assignment
+      await this.db
+        .from("proposal_rnd")
+        .delete()
+        .eq("proposal_id", r.proposal_id)
+        .eq("rnd_id", input.user_id);
+
+      // Insert new assignment
+      const { error: insertErr } = await this.db
+        .from("proposal_rnd")
+        .insert({ proposal_id: r.proposal_id, rnd_id: r.new_rnd_id });
+
+      if (insertErr) {
+        return { data: null, error: { message: `Failed to reassign RND for proposal ${r.proposal_id}: ${insertErr.message}` } };
+      }
+
+      await logActivity(this.db, {
+        user_id: input.admin_id,
+        action: "proposal_rnd_reassigned_on_disable",
+        category: "account",
+        target_id: String(r.proposal_id),
+        target_type: "proposal",
+        details: {
+          disabled_user_id: input.user_id,
+          new_rnd_id: r.new_rnd_id,
+          reason: "account_disabled",
+        },
+      });
+    }
+
+    // Execute Evaluator reassignments
+    for (const e of input.reassignments.evaluator) {
+      // Fetch old evaluator record to copy metadata
+      const { data: oldRecord } = await this.db
+        .from("proposal_evaluators")
+        .select("deadline_at, forwarded_by_rnd, comments_for_evaluators, proponent_info_visibility, anonymized_file_url")
+        .eq("proposal_id", e.proposal_id)
+        .eq("evaluator_id", input.user_id)
+        .maybeSingle();
+
+      // Delete old evaluator assignment
+      await this.db
+        .from("proposal_evaluators")
+        .delete()
+        .eq("proposal_id", e.proposal_id)
+        .eq("evaluator_id", input.user_id);
+
+      // Delete old tracker entry
+      await this.db
+        .from("proposal_assignment_tracker")
+        .delete()
+        .eq("proposal_id", e.proposal_id)
+        .eq("evaluator_id", input.user_id);
+
+      // Insert new evaluator assignment (copy metadata from old record)
+      const { error: insertErr } = await this.db
+        .from("proposal_evaluators")
+        .insert({
+          proposal_id: e.proposal_id,
+          evaluator_id: e.new_evaluator_id,
+          status: "pending",
+          deadline_at: oldRecord?.deadline_at || null,
+          forwarded_by_rnd: oldRecord?.forwarded_by_rnd || null,
+          comments_for_evaluators: oldRecord?.comments_for_evaluators || null,
+          proponent_info_visibility: oldRecord?.proponent_info_visibility ?? true,
+          anonymized_file_url: oldRecord?.anonymized_file_url || null,
+        });
+
+      if (insertErr) {
+        return { data: null, error: { message: `Failed to reassign evaluator for proposal ${e.proposal_id}: ${insertErr.message}` } };
+      }
+
+      // Insert new tracker entry
+      await this.db
+        .from("proposal_assignment_tracker")
+        .insert({
+          proposal_id: e.proposal_id,
+          evaluator_id: e.new_evaluator_id,
+          status: "pending",
+        });
+
+      await logActivity(this.db, {
+        user_id: input.admin_id,
+        action: "proposal_evaluator_reassigned_on_disable",
+        category: "account",
+        target_id: String(e.proposal_id),
+        target_type: "proposal",
+        details: {
+          disabled_user_id: input.user_id,
+          new_evaluator_id: e.new_evaluator_id,
+          reason: "account_disabled",
+        },
+      });
+    }
+
+    // Finally, disable the account
+    const { data, error } = await this.db
+      .from("users")
+      .update({ is_disabled: true })
+      .eq("id", input.user_id)
       .select("id, is_disabled")
       .maybeSingle();
 
@@ -372,37 +566,6 @@ export class AdminService {
     return { data: data.notification_preferences, error: null };
   }
 
-  // ===================== EVALUATOR AVAILABILITY =====================
-
-  async updateAvailability(userId: string, isAvailable: boolean) {
-    const { data, error } = await this.db
-      .from("users")
-      .update({ is_available: isAvailable })
-      .eq("id", userId)
-      .select("id, is_available")
-      .single();
-
-    if (error) {
-      return { data: null, error };
-    }
-
-    return { data, error: null };
-  }
-
-  async getAvailability(userId: string) {
-    const { data, error } = await this.db
-      .from("users")
-      .select("is_available")
-      .eq("id", userId)
-      .single();
-
-    if (error) {
-      return { data: null, error };
-    }
-
-    return { data: { is_available: data?.is_available ?? true }, error: null };
-  }
-
   // ===================== EVALUATION DEADLINE =====================
 
   async getEvaluationDeadline() {
@@ -509,140 +672,4 @@ export class AdminService {
     return { data: logs, error: null, count: count || 0 };
   }
 
-  // ===================== LEAVE REQUESTS =====================
-
-  async requestLeave(userId: string, input: RequestLeaveInput) {
-    const { data, error } = await this.db
-      .from("leave_requests")
-      .insert({
-        user_id: userId,
-        reason: input.reason,
-        status: "pending",
-      })
-      .select()
-      .single();
-
-    if (error) return { data: null, error };
-
-    await logActivity(this.db, {
-      user_id: userId,
-      action: "leave_requested",
-      category: "admin",
-      target_id: String(data.id),
-      target_type: "leave_request",
-    });
-
-    return { data, error: null };
-  }
-
-  async reviewLeave(input: ReviewLeaveInput & { reviewer_id: string }) {
-    const { leave_id, status, review_note, reviewer_id } = input;
-
-    // Fetch the leave request
-    const { data: leave, error: fetchErr } = await this.db
-      .from("leave_requests")
-      .select("*")
-      .eq("id", leave_id)
-      .eq("status", "pending")
-      .maybeSingle();
-
-    if (fetchErr) return { data: null, error: fetchErr };
-    if (!leave) return { data: null, error: { message: "Leave request not found or already reviewed" } };
-
-    // Update leave request
-    const { data: updated, error: updateErr } = await this.db
-      .from("leave_requests")
-      .update({
-        status,
-        reviewed_by: reviewer_id,
-        review_note: review_note || null,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", leave_id)
-      .select()
-      .single();
-
-    if (updateErr) return { data: null, error: updateErr };
-
-    // If approved, set user as unavailable
-    if (status === "approved") {
-      await this.db.from("users").update({ is_available: false }).eq("id", leave.user_id);
-    }
-
-    await logActivity(this.db, {
-      user_id: reviewer_id,
-      action: `leave_${status}`,
-      category: "admin",
-      target_id: String(leave_id),
-      target_type: "leave_request",
-      details: { user_id: leave.user_id },
-    });
-
-    return { data: updated, error: null };
-  }
-
-  async endLeave(leaveId: number, userId: string) {
-    // Fetch the leave request
-    const { data: leave, error: fetchErr } = await this.db
-      .from("leave_requests")
-      .select("*")
-      .eq("id", leaveId)
-      .eq("status", "approved")
-      .maybeSingle();
-
-    if (fetchErr) return { data: null, error: fetchErr };
-    if (!leave) return { data: null, error: { message: "Active leave request not found" } };
-
-    // Only the leave owner or an admin can end a leave
-    if (leave.user_id !== userId) {
-      // Caller must be admin — handler checks this
-    }
-
-    const { data: updated, error: updateErr } = await this.db
-      .from("leave_requests")
-      .update({
-        status: "ended",
-        ended_at: new Date().toISOString(),
-      })
-      .eq("id", leaveId)
-      .select()
-      .single();
-
-    if (updateErr) return { data: null, error: updateErr };
-
-    // Set user as available again
-    await this.db.from("users").update({ is_available: true }).eq("id", leave.user_id);
-
-    await logActivity(this.db, {
-      user_id: userId,
-      action: "leave_ended",
-      category: "admin",
-      target_id: String(leaveId),
-      target_type: "leave_request",
-      details: { user_id: leave.user_id },
-    });
-
-    return { data: updated, error: null };
-  }
-
-  async getLeaveRequests(filters?: GetLeaveRequestsInput) {
-    let query = this.db
-      .from("leave_requests")
-      .select(`
-        *,
-        user:users!leave_requests_user_id_fkey(id, first_name, last_name, email, roles),
-        reviewer:users!leave_requests_reviewed_by_fkey(id, first_name, last_name)
-      `)
-      .order("created_at", { ascending: false });
-
-    if (filters?.status) {
-      query = query.eq("status", filters.status);
-    }
-    if (filters?.user_id) {
-      query = query.eq("user_id", filters.user_id);
-    }
-
-    const { data, error } = await query;
-    return { data, error };
-  }
 }

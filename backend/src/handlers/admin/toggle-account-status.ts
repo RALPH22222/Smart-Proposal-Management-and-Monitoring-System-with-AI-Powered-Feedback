@@ -18,8 +18,27 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
+    const { userId } = getAuthContext(event);
     const service = new AdminService(supabase);
-    const { data, error } = await service.toggleAccountStatus(parsed.data);
+    const { is_disabled, user_id, reassignments } = parsed.data;
+
+    let data;
+    let error;
+
+    // If disabling with reassignments, use the reassignment flow
+    if (is_disabled && reassignments && (reassignments.rnd.length > 0 || reassignments.evaluator.length > 0)) {
+      const result = await service.disableWithReassignment({
+        user_id,
+        reassignments,
+        admin_id: userId,
+      });
+      data = result.data;
+      error = result.error;
+    } else {
+      const result = await service.toggleAccountStatus({ user_id, is_disabled });
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
       return {
@@ -28,14 +47,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
-    const action = parsed.data.is_disabled ? "disabled" : "enabled";
+    const action = is_disabled ? "disabled" : "enabled";
 
-    const { userId } = getAuthContext(event);
     await logActivity(supabase, {
       user_id: userId,
-      action: parsed.data.is_disabled ? "account_disabled" : "account_enabled",
+      action: is_disabled ? "account_disabled" : "account_enabled",
       category: "account",
-      target_id: parsed.data.user_id,
+      target_id: user_id,
       target_type: "user",
     });
 

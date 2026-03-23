@@ -6,7 +6,6 @@ export interface Evaluator {
 	specialty: string[];
 	currentWorkload: number;
 	maxWorkload: number;
-	availabilityStatus: 'Available' | 'Busy' | 'Unavailable';
 	avatar?: string;
 	rating: number;
 	completedReviews: number;

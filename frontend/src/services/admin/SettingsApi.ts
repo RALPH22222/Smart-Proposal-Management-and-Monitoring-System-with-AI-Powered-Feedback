@@ -68,12 +68,6 @@ export const SettingsApi = {
     return res.data.data;
   },
 
-  // Evaluator Availability
-  async updateAvailability(is_available: boolean): Promise<{ is_available: boolean }> {
-    const res = await api.post<{ data: { is_available: boolean } }>("/admin/update-availability", { is_available });
-    return res.data.data;
-  },
-
   // Evaluation Deadline
   async getEvaluationDeadline(): Promise<EvaluationDeadline> {
     const res = await api.get<{ data: EvaluationDeadline }>("/admin/evaluation-deadline");

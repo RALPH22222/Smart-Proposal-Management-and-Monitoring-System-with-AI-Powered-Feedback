@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown } from "lucide-react";
 
 import type { User } from "../../../types/admin";
-import { AccountApi } from "../../../services/admin/AccountApi";
+import { AccountApi, ReassignmentPayload } from "../../../services/admin/AccountApi";
 import AddAccountModal from "../../../components/admin-component/addAccountModal";
 import EditAccountModal from "../../../components/admin-component/editAccountModal";
 import DisableAccountModal from "../../../components/admin-component/disableAccountModal";
@@ -150,12 +150,12 @@ const Accounts: React.FC = () => {
     setShowDisableModal(true);
   };
 
-  const handleDisableConfirm = async () => {
+  const handleDisableConfirm = async (reassignments?: ReassignmentPayload) => {
     if (!selectedUser) return;
     try {
       setIsSubmitting(true);
       const newDisabledState = !selectedUser.is_disabled;
-      await AccountApi.toggleAccountStatus(selectedUser.id, newDisabledState);
+      await AccountApi.toggleAccountStatus(selectedUser.id, newDisabledState, reassignments);
       setShowDisableModal(false);
       setSelectedUser(null);
       const action = newDisabledState ? "disabled" : "enabled";

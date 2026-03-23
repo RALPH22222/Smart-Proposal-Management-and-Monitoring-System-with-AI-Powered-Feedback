@@ -79,7 +79,6 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
               id: u.id,
               name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown',
               department: deptName,
-              availabilityStatus: 'Available', // Default available for now
               email: u.email || '',
               agency: 'WMSU', // Default agency
               avatar: u.profile_picture
@@ -191,10 +190,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   // Filter Available Evaluators
   useEffect(() => {
     let filtered = evaluators.filter(ev =>
-      // 1. Exclude already assigned evaluators
-      !assignedEvaluators.some(assigned => assigned.id === ev.id) &&
-      // 2. Only show AVAILABLE evaluators (Hide Busy)
-      ev.availabilityStatus === 'Available'
+      // Exclude already assigned evaluators
+      !assignedEvaluators.some(assigned => assigned.id === ev.id)
     );
 
     // Apply Department Filter

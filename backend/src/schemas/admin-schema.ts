@@ -20,6 +20,32 @@ export const updateAccountSchema = z.object({
 export const toggleAccountStatusSchema = z.object({
   user_id: z.string().uuid("Invalid user ID"),
   is_disabled: z.boolean(),
+  reassignments: z
+    .object({
+      rnd: z
+        .array(
+          z.object({
+            proposal_id: z.number(),
+            new_rnd_id: z.string().uuid(),
+          }),
+        )
+        .optional()
+        .default([]),
+      evaluator: z
+        .array(
+          z.object({
+            proposal_id: z.number(),
+            new_evaluator_id: z.string().uuid(),
+          }),
+        )
+        .optional()
+        .default([]),
+    })
+    .optional(),
+});
+
+export const checkActiveAssignmentsSchema = z.object({
+  user_id: z.string().uuid("Invalid user ID"),
 });
 
 export const inviteUserSchema = z.object({
@@ -52,5 +78,6 @@ export const completeInviteSchema = z.object({
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 export type ToggleAccountStatusInput = z.infer<typeof toggleAccountStatusSchema>;
+export type CheckActiveAssignmentsInput = z.infer<typeof checkActiveAssignmentsSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 export type CompleteInviteInput = z.infer<typeof completeInviteSchema>;

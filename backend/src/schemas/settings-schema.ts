@@ -39,13 +39,6 @@ export const notificationPreferencesSchema = z.object({
 
 export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;
 
-// Evaluator Availability Schema
-export const updateAvailabilitySchema = z.object({
-  is_available: z.boolean(),
-});
-
-export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
-
 // Default Evaluation Deadline Schema
 export const evaluationDeadlineSchema = z.object({
   days: z.number().int().min(1).max(90),
