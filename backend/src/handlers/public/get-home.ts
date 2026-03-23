@@ -18,7 +18,30 @@ export const handler = buildCorsHeaders(async (event) => {
       };
     }
 
-    const homeData = data?.value || DEFAULT_HOME_INFO;
+    const homeData = {
+      ...DEFAULT_HOME_INFO,
+      ...(data?.value || {}),
+      hero: {
+        ...DEFAULT_HOME_INFO.hero,
+        ...(data?.value?.hero || {}),
+        images: (data?.value?.hero?.images && Array.isArray(data.value.hero.images) && data.value.hero.images.length === 3)
+          ? data.value.hero.images
+          : DEFAULT_HOME_INFO.hero.images
+      },
+      stats: data?.value?.stats || DEFAULT_HOME_INFO.stats,
+      about: {
+        ...DEFAULT_HOME_INFO.about,
+        ...(data?.value?.about || {}),
+      },
+      guidelines: {
+        ...DEFAULT_HOME_INFO.guidelines,
+        ...(data?.value?.guidelines || {}),
+      },
+      criteria: {
+        ...DEFAULT_HOME_INFO.criteria,
+        ...(data?.value?.criteria || {}),
+      },
+    };
 
     return {
       statusCode: 200,

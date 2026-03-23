@@ -22,6 +22,7 @@ export const HomeInfoSchema = z.object({
     title_prefix: z.string(),
     title_highlight: z.string(),
     description: z.string(),
+    images: z.array(z.string()).length(3),
   }),
   stats: z.array(HomeStatSchema),
   about: z.object({
@@ -57,6 +58,11 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
     title_prefix: "WMSU",
     title_highlight: "Project Proposal",
     description: "A streamlined admin and monitoring system for project proposals — fast, responsive, and intuitive. Experience seamless navigation and effortless proposal management with our user-centric design.",
+    images: [
+      "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerQQIHJtk7j-LPjHlOT4i7UKeE2P-XkTZXBbg73hMubbRW8Qu80gko3QHh-g1I1Wt7Q7aCie-n3-EfE-irNl_y7oL8WmvfqbRSEzEQNISnMuJ0Qs00BrErjjEJm0j4lJKFZHMKePthc3602=s1360-w1360-h1020-rw",
+      "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerMx6BRFRdFIC4CrhzDCSrfFHyr-wywrLtqRZ3v0PWpWwln4U-tDFNIoZayf9AT844PPeop0nBm1GypDBI2inhDGaJbmluTCj-0m-JFr2MFNXqPpBpeSlbBHLq51Jko508mhfJ2LA=s1360-w1360-h1020-rw",
+      "https://lh3.googleusercontent.com/gps-cs-s/AHVAwerJ5DHzhyNJ2YS08iOAwkiRMsePZK4OoXhweyK_OJzJHK63dwCeL6ThXhmi7bF9DhLoCu5WEH6tDfVn649q31o9ngWaoUoDccqD3WRf1zxZWqZTOCdNy98vzZCdKFIJlu3DHgql=s1360-w1360-h1020-rw"
+    ]
   },
   stats: [
     { value: 200, suffix: "+", label: "Research Proposals" },

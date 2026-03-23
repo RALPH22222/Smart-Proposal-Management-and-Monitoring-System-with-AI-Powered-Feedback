@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
@@ -8,10 +8,12 @@ const s3Client = new S3Client({});
 
 const PROPOSAL_BUCKET = process.env.PROPOSAL_BUCKET_NAME || "";
 const PROFILE_BUCKET = process.env.PROFILE_BUCKET_NAME || "";
+const CMS_BUCKET = process.env.CMS_BUCKET_NAME || "";
 
 const BUCKET_MAP: Record<string, string> = {
   proposals: PROPOSAL_BUCKET,
   profiles: PROFILE_BUCKET,
+  cms: CMS_BUCKET,
 };
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
@@ -23,7 +25,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  const { key, bucket } = event.queryStringParameters || {};
+  const { key, bucket, method = "GET", contentType } = event.queryStringParameters || {};
 
   if (!key || !bucket) {
     return {
@@ -36,11 +38,21 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   if (!bucketName) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ message: "Invalid bucket. Allowed: proposals, profiles" }),
+      body: JSON.stringify({ message: "Invalid bucket. Allowed: proposals, profiles, cms" }),
     };
   }
 
-  const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
+  let command;
+  if (method.toUpperCase() === "PUT") {
+    command = new PutObjectCommand({ 
+      Bucket: bucketName, 
+      Key: key,
+      ContentType: contentType || "application/octet-stream",
+    });
+  } else {
+    command = new GetObjectCommand({ Bucket: bucketName, Key: key });
+  }
+
   const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
   return {

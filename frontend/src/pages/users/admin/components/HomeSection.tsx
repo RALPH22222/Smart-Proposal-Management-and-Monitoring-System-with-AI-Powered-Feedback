@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { type HomeInfo } from "../../../../schemas/home-schema";
+import { DEFAULT_HOME_INFO, type HomeInfo } from "../../../../schemas/home-schema";
 import { HomeApi } from "../../../../services/HomeApi";
 import { toast, Toaster } from "react-hot-toast";
 import { Rocket, BarChart2, Building2, ClipboardList, GraduationCap } from "lucide-react";
 import PageLoader from "../../../../components/shared/PageLoader";
+import { ImageUpload } from "./shared/ImageUpload";
 
 export const HomeSection: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo | null>(null);
@@ -17,7 +18,18 @@ export const HomeSection: React.FC = () => {
   const fetchHomeInfo = async () => {
     try {
       const data = await HomeApi.getHomeInfo();
-      setHomeData(data);
+      // Merge with defaults to ensure all new fields (like images) are present
+      setHomeData({
+        ...DEFAULT_HOME_INFO,
+        ...data,
+        hero: {
+          ...DEFAULT_HOME_INFO.hero,
+          ...data.hero,
+          images: (data.hero.images && Array.isArray(data.hero.images) && data.hero.images.length === 3)
+            ? data.hero.images
+            : DEFAULT_HOME_INFO.hero.images
+        }
+      });
     } catch (error) {
       console.error("Fetch home error:", error);
       toast.error("Failed to load home page information.");
@@ -113,6 +125,21 @@ export const HomeSection: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm h-full"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-gray-100">
+            {homeData.hero.images.map((img: string, idx: number) => (
+              <ImageUpload
+                key={idx}
+                currentUrl={img}
+                label={`Hero Gallery Image ${idx + 1}`}
+                onUploadSuccess={(newUrl) => {
+                  const newImages = [...homeData.hero.images];
+                  newImages[idx] = newUrl;
+                  setHomeData({ ...homeData, hero: { ...homeData.hero, images: newImages } });
+                }}
+              />
+            ))}
           </div>
         </div>
 
@@ -228,16 +255,13 @@ export const HomeSection: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                <input
-                  type="text"
-                  value={homeData.about.image_url}
-                  onChange={(e) => setHomeData({ ...homeData, about: { ...homeData.about, image_url: e.target.value } })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUpload
+                currentUrl={homeData.about.image_url}
+                label="About Section Image"
+                onUploadSuccess={(newUrl) => {
+                  setHomeData({ ...homeData, about: { ...homeData.about, image_url: newUrl } });
+                }}
+              />
             </div>
           </div>
         </div>

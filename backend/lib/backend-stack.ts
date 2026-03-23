@@ -71,6 +71,26 @@ export class BackendStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
+    const cms_assets_bucket = new Bucket(this, `pms-cms-assets-bucket-${stageName}`, {
+      bucketName: `pms-cms-assets-bucket-${stageName}`,
+      publicReadAccess: true, // Allow publicly readable images for CMS
+      blockPublicAccess: new BlockPublicAccess({
+        blockPublicAcls: false,
+        blockPublicPolicy: false,
+        ignorePublicAcls: false,
+        restrictPublicBuckets: false,
+      }),
+      removalPolicy: RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: [HttpMethods.PUT, HttpMethods.GET],
+          allowedOrigins: ["https://wmsu-spmams.vercel.app", "http://localhost:5173"],
+          maxAge: 3000,
+        },
+      ],
+    });
+
     // ========== SHARED IAM ROLES ==========
     const authLambdaRole = new Role(this, "pms-auth-lambda-role", {
       assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
@@ -147,10 +167,12 @@ export class BackendStack extends Stack {
         SUPABASE_KEY: SUPABASE_KEY,
         PROPOSAL_BUCKET_NAME: `pms-proposal-attachments-bucket-${stageName}`,
         PROFILE_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+        CMS_BUCKET_NAME: `pms-cms-assets-bucket-${stageName}`,
       },
     });
     proposal_attachments_bucket.grantRead(getSignedUrl);
     profile_setup_bucket.grantRead(getSignedUrl);
+    cms_assets_bucket.grantReadWrite(getSignedUrl);
 
     // ========== API GATEWAY ==========
     const api = new RestApi(this, "pms-api-gateway", {

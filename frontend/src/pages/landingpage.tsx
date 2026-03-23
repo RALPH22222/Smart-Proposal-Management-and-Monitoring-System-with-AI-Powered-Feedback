@@ -145,7 +145,17 @@ const LandingPage: React.FC = () => {
       try {
         const data = await HomeApi.getHomeInfo();
         if (data && data.hero && data.stats) {
-          setHomeData(data);
+          setHomeData({
+            ...DEFAULT_HOME_INFO,
+            ...data,
+            hero: {
+              ...DEFAULT_HOME_INFO.hero,
+              ...data.hero,
+              images: (data.hero.images && Array.isArray(data.hero.images) && data.hero.images.length === 3)
+                ? data.hero.images
+                : DEFAULT_HOME_INFO.hero.images
+            }
+          });
         }
       } catch (error) {
         console.error("Error loading home data:", error);
@@ -228,15 +238,15 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4 md:space-y-6 animate-fade-in-left">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   <img
-                    src="https://lh3.googleusercontent.com/gps-cs-s/AHVAwerQQIHJtk7j-LPjHlOT4i7UKeE2P-XkTZXBbg73hMubbRW8Qu80gko3QHh-g1I1Wt7Q7aCie-n3-EfE-irNl_y7oL8WmvfqbRSEzEQNISnMuJ0Qs00BrErjjEJm0j4lJKFZHMKePthc3602=s1360-w1360-h1020-rw"
-                    alt="Lecture hall with students"
+                    src={homeData.hero.images?.[0]}
+                    alt="Research visual 1"
                     className="w-full h-44 sm:h-48 lg:h-56 object-cover transition-transform duration-700 hover:scale-110"
                   />
                 </div>
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   <img
-                    src="https://lh3.googleusercontent.com/gps-cs-s/AHVAwerMx6BRFRdFIC4CrhzDCSrfFHyr-wywrLtqRZ3v0PWpWwln4U-tDFNIoZayf9AT844PPeop0nBm1GypDBI2inhDGaJbmluTCj-0m-JFr2MFNXqPpBpeSlbBHLq51Jko508mhfJ2LA=s1360-w1360-h1020-rw"
-                    alt="Data research and analysis on computer screens"
+                    src={homeData.hero.images?.[1]}
+                    alt="Research visual 2"
                     className="w-full max-w-2xl object-cover rounded-xl transition-transform duration-700 hover:scale-110"
                   />
                 </div>
@@ -244,8 +254,8 @@ const LandingPage: React.FC = () => {
               <div className="pt-8 md:pt-12 animate-fade-in-right animation-delay-200">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:-rotate-1">
                   <img
-                    src="https://lh3.googleusercontent.com/gps-cs-s/AHVAwerJ5DHzhyNJ2YS08iOAwkiRMsePZK4OoXhweyK_OJzJHK63dwCeL6ThXhmi7bF9DhLoCu5WEH6tDfVn649q31o9ngWaoUoDccqD3WRf1zxZWqZTOCdNy98vzZCdKFIJlu3DHgql=s1360-w1360-h1020-rw"
-                    alt="University library interior"
+                    src={homeData.hero.images?.[2]}
+                    alt="Research visual 3"
                     className="w-full h-80 sm:h-72 lg:h-96 object-cover transition-transform duration-700 hover:scale-110"
                   />
                 </div>
