@@ -9,17 +9,17 @@ const ROLE_OPTIONS = [
 interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (_data: { email: string; roles: string[] }) => Promise<void> | void;
+  onSubmit: (_data: { emails: string[]; roles: string[] }) => Promise<void> | void;
   isSubmitting?: boolean;
 }
 
 const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
-  const [email, setEmail] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
-      setEmail("");
+      setEmailInput("");
       setSelectedRole("");
     }
   }, [isOpen]);
@@ -28,8 +28,17 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) return;
-    onSubmit({ email, roles: [selectedRole] });
+    if (!selectedRole || !emailInput.trim()) return;
+
+    // Parse emails: split by space, comma, newline and keep valid entries
+    const parsedEmails = emailInput
+      .split(/[\s,]+/)
+      .map(email => email.trim())
+      .filter(email => email !== "");
+
+    if (parsedEmails.length === 0) return;
+
+    onSubmit({ emails: parsedEmails, roles: [selectedRole] });
   };
 
   return (
@@ -59,15 +68,16 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
         <form id="add-account-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">
-              Email Address <span className="text-red-500">*</span>
+              Email Addresses <span className="text-red-500">*</span>
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <p className="text-xs text-slate-500 mb-2">You can invite multiple users by separating emails with commas or spaces.</p>
+            <textarea
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
               required
-              placeholder="Enter email address"
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm"
+              rows={3}
+              placeholder="e.g. user1@wmsu.edu.ph, user2@wmsu.edu.ph"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm custom-scrollbar resize-none"
             />
           </div>
 

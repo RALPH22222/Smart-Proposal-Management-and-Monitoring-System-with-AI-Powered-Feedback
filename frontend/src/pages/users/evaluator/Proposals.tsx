@@ -192,10 +192,24 @@ export default function Proposals() {
     fetchProposals();
   }, [fetchProposals]);
 
+  // Map each filter tab to all backend status aliases it should capture
+  const STATUS_GROUPS: Record<string, string[]> = {
+    pending:             ["pending"],
+    accepted:            ["accepted", "accept", "approve", "approved", "funded"],
+    for_review:          ["for_review", "under_evaluation"],
+    decline:             ["decline", "reject", "rejected", "disapproved"],
+    extension_approved:  ["extension_approved"],
+    extension_requested: ["extension_requested", "extend"],
+    extension_rejected:  ["extension_rejected"],
+  };
+
   const filtered = proposals.filter((p) => {
     const matchesSearch =
       p.title.toLowerCase().includes(search.toLowerCase()) || p.proponent.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "All" || p.status === statusFilter;
+    const s = (p.status || "").toLowerCase();
+    const matchesStatus =
+      statusFilter === "All" ||
+      (STATUS_GROUPS[statusFilter] ?? [statusFilter]).includes(s);
     return matchesSearch && matchesStatus;
   });
 
@@ -234,7 +248,7 @@ export default function Proposals() {
   const getStatusTheme = (status: string) => {
     const s = (status || "").toLowerCase();
 
-    if (["accepted", "approve", "approved", "funded"].includes(s))
+    if (["accepted", "accept", "approve", "approved", "funded"].includes(s))
       return {
         bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-800",
         icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
@@ -248,7 +262,7 @@ export default function Proposals() {
         label: "Extension Approved",
       };
 
-    if (["rejected", "decline", "disapproved"].includes(s))
+    if (["reject", "rejected", "decline", "disapproved"].includes(s))
       return {
         bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
@@ -414,7 +428,9 @@ export default function Proposals() {
       {/* Filter Section */}
       <section className="flex-shrink-0" aria-label="Filter proposals">
         <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+
+          {/* Search Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
             <div className="relative flex-1 max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
@@ -428,34 +444,54 @@ export default function Proposals() {
                 aria-label="Search proposals"
               />
             </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Filter by status"
-              >
-                <option value="All">All Statuses</option>
-                <option value="pending">Pending Review</option>
-                <option value="extension_requested">Extension Requested</option>
-                <option value="extension_approved">Extension Approved</option>
-                <option value="extension_rejected">Extension Declined</option>
-                <option value="accepted">Reviewed</option>
-                <option value="decline">Declined</option>
-                <option value="for_review">Under Review</option>
-              </select>
-            </div>
           </div>
 
-          <div className="mt-4 text-xs text-slate-600">
+          {/* Status Tabs — wrapping layout, no scroll */}
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "All", label: "All", icon: Filter },
+              { id: "pending", label: "Pending Review", icon: Clock },
+              { id: "accepted", label: "Reviewed", icon: CheckCircle },
+              { id: "for_review", label: "Under Review", icon: RefreshCw },
+              { id: "decline", label: "Declined", icon: XCircle },
+              { id: "extension_approved", label: "Extension Approved", icon: CheckCircle },
+              { id: "extension_requested", label: "Extension Requested", icon: CalendarClock },
+              { id: "extension_rejected", label: "Extension Declined", icon: XCircle },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.id;
+              const count = tab.id === "All"
+                ? proposals.length
+                : proposals.filter(p => (STATUS_GROUPS[tab.id] ?? [tab.id]).includes((p.status || "").toLowerCase())).length;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => { setStatusFilter(tab.id); setCurrentPage(1); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                    isActive
+                      ? "bg-[#C8102E] text-white border-[#C8102E] shadow-sm"
+                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  <tab.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+                  <span>{tab.label}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500"
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 text-xs text-slate-500">
             Showing {sortedFiltered.length} of {proposals.length} proposals
           </div>
         </div>
       </section>
+
+
+
 
       {/* Main Content Table */}
       <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">

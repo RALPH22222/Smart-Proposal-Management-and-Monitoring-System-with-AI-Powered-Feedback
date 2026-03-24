@@ -9,8 +9,10 @@ import {
   Menu,
   X,
   Gavel,
-  DollarSign
+  DollarSign,
+  Microscope
 } from 'lucide-react';
+import rdecLogo from "../../assets/IMAGES/RDEC-WMSU.png";
 import { type Statistics } from '../../types/InterfaceProposal';
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
@@ -185,93 +187,114 @@ const Sidebar: React.FC<SidebarProps> = ({
       <MobileOverlay />
 
       <aside
-        className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex flex-col z-40 transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        className={`fixed lg:sticky top-0 h-screen w-64 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm flex flex-col z-40 transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
       >
-        {/* Enhanced Header with Animation */}
-        <div className="flex items-center gap-3 mb-8 p-3 rounded-xl bg-gradient-to-r from-red-50 to-red-50/30 border border-red-100/50 shadow-sm">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md transform transition-transform duration-300 hover:scale-110 hover:rotate-3 overflow-hidden"
-            style={{
-              backgroundColor: accent,
-              background: `linear-gradient(135deg, ${accent} 0%, #A00E26 100%)`,
-            }}
-          >
-            <SecureImage src={user?.profile_photo_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`} alt={getFullName()} className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <div ref={nameContainerRef} className="overflow-hidden w-full">
-              <div ref={nameTextRef} className={`text-xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent whitespace-nowrap ${shouldScrollName ? 'animate-marquee' : ''}`}>
-                {getFirstName()}
+        {/* Header — fixed, never scrolls */}
+        <div className="flex-shrink-0 p-2">
+          <div className="relative overflow-hidden px-4 py-3 rounded-xl border-1 border-red-200" style={{ background: "linear-gradient(135deg, #fff1f2 0%, #fef2f2 60%, #fff 100%)" }}>
+            {/* Logo watermark */}
+            <img
+              src={rdecLogo}
+              alt="RDEC WMSU"
+              className="absolute -right-2 -bottom-2 w-16 h-16 object-contain opacity-15 pointer-events-none select-none"
+            />
+
+            <div className="relative flex items-center gap-3">
+              {/* Avatar with ring + online dot */}
+              <div className="relative flex-shrink-0">
+                <div className="w-12 h-12 rounded-full ring-2 ring-[#C8102E]/30 ring-offset-2 ring-offset-white overflow-hidden shadow-md">
+                  <SecureImage
+                    src={user?.profile_photo_url}
+                    fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`}
+                    alt={getFullName()}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {/* Online indicator */}
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full shadow-sm" />
+              </div>
+
+              {/* Name & Role */}
+              <div className="min-w-0 flex-1">
+                <div ref={nameContainerRef} className="overflow-hidden">
+                  <p ref={nameTextRef} className={`text-sm font-bold text-gray-900 whitespace-nowrap truncate ${shouldScrollName ? 'animate-marquee' : ''}`}>
+                    {getFullName()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-red-100 text-[#C8102E] border border-red-200">
+                    <Microscope className="w-2.5 h-2.5" />
+                    R&D Staff
+                  </span>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500 font-medium">R&D Portal</p>
           </div>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1">
-          {/* Main Navigation Links */}
-          <div className="space-y-1">
-            {mainLinks.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
+        {/* Nav Body — only this scrolls */}
+        <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1 custom-scrollbar">
+          {mainLinks.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    onPageChange(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
-                    ? "bg-[#C8102E] text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                >
-                  <div className="relative">
-                    <Icon
-                      className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"}`}
-                    />
-                  </div>
-                  <span className="flex-1">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Enhanced Bottom Navigation */}
-          <div className="mt-auto pt-4 border-t border-gray-200/60 space-y-1">
-            {bottomLinks.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.id === "logout") {
-                      handleLogout();
-                    } else {
-                      onPageChange(item.id);
-                    }
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
-                    ? "bg-[#C8102E] text-white shadow-md"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                    }`}
-                >
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onPageChange(item.id);
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
+                  ? "bg-[#C8102E] text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+              >
+                <div className="relative">
                   <Icon
-                    className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : item.id === "logout" ? "text-red-600 group-hover:text-red-700" : "text-gray-500 group-hover:text-gray-900"
-                      }`}
+                    className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"}`}
                   />
-                  <span className={`${item.id === "logout" && !isActive ? "text-red-600 font-bold" : ""}`}>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+                </div>
+                <span className="flex-1">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
+
+        {/* Footer — fixed, never scrolls */}
+        <div className="flex-shrink-0 px-4 pt-2 pb-4 border-t border-gray-200/60 space-y-1">
+          {bottomLinks.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.id === "logout") {
+                    handleLogout();
+                  } else {
+                    onPageChange(item.id);
+                  }
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`cursor-pointer group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left ${isActive
+                  ? "bg-[#C8102E] text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+              >
+                <Icon
+                  className={`w-5 h-5 transition-all duration-200 ${isActive ? "text-white" : item.id === "logout" ? "text-red-600 group-hover:text-red-700" : "text-gray-500 group-hover:text-gray-900"
+                    }`}
+                />
+                <span className={`${item.id === "logout" && !isActive ? "text-red-600 font-bold" : ""}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </aside>
+
     </>
   );
 };

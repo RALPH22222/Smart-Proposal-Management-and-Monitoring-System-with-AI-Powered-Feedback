@@ -279,6 +279,51 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 										{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[decision.ratings.timeline]}
 									</div>
 								</div>
+
+								{/* Total Score Section */}
+								<div className="bg-slate-100 rounded-xl p-5 border-1 border-slate-300 mt-6">
+									<div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+										<div className="flex items-center gap-3">
+											<div>
+												<h4 className="text-lg font-bold text-slate-800">Total Assessment Score</h4>
+												<p className="text-xs text-slate-500">Cumulative rating from all assessment criteria</p>
+											</div>
+										</div>
+										<div className="flex items-center gap-4">
+											<div className="text-right">
+												<div className="text-3xl font-black text-[#C8102E]">
+													{decision.ratings.title + decision.ratings.budget + decision.ratings.timeline}
+													<span className="text-lg text-slate-400 font-bold">/15</span>
+												</div>
+												<div className="text-[10px] font-semibold text-slate-400 mt-0.5">
+													{((decision.ratings.title + decision.ratings.budget + decision.ratings.timeline) / 15 * 100).toFixed(1)}% Accuracy Score
+												</div>
+											</div>
+											{/* Visual Gauge */}
+											<div className="relative w-14 h-14 hidden sm:block">
+												<svg className="w-full h-full" viewBox="0 0 36 36">
+													<path
+														className="text-slate-200"
+														strokeDasharray="100, 100"
+														d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+														fill="none"
+														stroke="currentColor"
+														strokeWidth="3.5"
+													/>
+													<path
+														className="text-[#C8102E]"
+														strokeDasharray={`${((decision.ratings.title + decision.ratings.budget + decision.ratings.timeline) / 15 * 100).toFixed(0)}, 100`}
+														d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+														fill="none"
+														stroke="currentColor"
+														strokeWidth="3.5"
+														strokeLinecap="round"
+													/>
+												</svg>
+											</div>
+										</div>
+									</div>
+								</div>
 							</div>
 						)}
 

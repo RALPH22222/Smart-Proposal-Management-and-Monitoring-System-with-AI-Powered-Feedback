@@ -24,7 +24,7 @@ import {
   Lock,
   RefreshCw,
 } from "lucide-react";
-import { formatDateShort, formatDateTime } from "../../utils/date-formatter";
+import { formatDateShort } from "../../utils/date-formatter";
 
 // --- LOCAL INTERFACES ---
 interface Site {
@@ -195,7 +195,7 @@ export default function ProposalModal({
     const s = (status || "").toLowerCase();
 
     // Green (Approved/Funded)
-    if (["accepted", "approve", "approved", "funded"].includes(s))
+    if (["accepted", "accept", "approve", "approved", "funded"].includes(s))
       return {
         bg: "bg-emerald-100",
         border: "border-emerald-200",
@@ -214,7 +214,7 @@ export default function ProposalModal({
       };
 
     // Red (Declined)
-    if (["rejected", "decline", "disapproved", "extension_rejected"].includes(s))
+    if (["reject", "rejected", "decline", "disapproved", "extension_rejected"].includes(s))
       return {
         bg: "bg-red-100",
         border: "border-red-200",
@@ -288,16 +288,12 @@ export default function ProposalModal({
                 {theme.label}
               </span>
               <span className="text-xs text-slate-500 font-normal">
-                ID: {p.id}
+                DOST Form No. 1B
               </span>
             </div>
             <h2 className="text-xl font-bold text-gray-900 leading-tight truncate pr-4">
               {p.title}
             </h2>
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500">
-              <CalendarClock className="w-3.5 h-3.5" />
-              <span>Forwarded on: <span className="font-semibold text-slate-700">{p.assignedDate ? formatDateTime(p.assignedDate) : "N/A"}</span></span>
-            </div>
           </div>
           <button
             onClick={onClose}
@@ -310,29 +306,126 @@ export default function ProposalModal({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
 
-          {/* Extension Reason Block */}
+        {/* --- STATUS CONTEXTUAL COMMENT BLOCKS --- */}
+
+          {/* Pending Review */}
+          {p.status === "pending" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-amber-800 mb-1 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-600" /> Pending Your Review
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    This proposal has been forwarded to you for evaluation. Please review the details and submit your assessment by the deadline.
+                  </p>
+                  {p.deadline && p.deadline !== "N/A" && (
+                    <p className="text-xs text-amber-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Evaluation Deadline: <span className="font-semibold ml-1">{p.deadline}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Accepted / Reviewed */}
+          {["accepted", "accept", "approve", "approved", "funded"].includes((p.status || "").toLowerCase()) && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-emerald-800 mb-1 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" /> Evaluation Submitted
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  You have completed your evaluation and submitted your recommendation for this proposal.
+                </p>
+                {p.remarks && (
+                  <div className="mt-3 bg-white p-3 rounded-lg border border-emerald-100">
+                    <p className="text-xs font-bold text-emerald-700 mb-1">Your Remarks:</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{p.remarks}</p>
+                  </div>
+                )}
+                {p.evaluatedDate && (
+                  <p className="text-xs text-emerald-700/80 mt-2 flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Evaluated on: <span className="font-semibold ml-1">{p.evaluatedDate ? new Date(p.evaluatedDate).toLocaleDateString() : "N/A"}</span>
+                  </p>
+                )}
+              </div>
+              <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Extension Requested */}
           {p.status === "extension_requested" && (
-            <div className="bg-blue-50 rounded-xl p-5 border border-blue-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
               <h3 className="text-sm font-bold text-blue-800 mb-3 flex items-center gap-2">
                 <CalendarClock className="w-5 h-5" />
-                Reason for Extension
+                Reason for Extension Request
               </h3>
               <div className="bg-white p-4 rounded-lg border border-blue-100">
                 <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
                   {p.extensionReason || "The evaluator has requested additional time to thoroughly review the technical specifications and methodology of this proposal."}
                 </p>
               </div>
+              {p.deadline && p.deadline !== "N/A" && (
+                <p className="text-xs text-blue-700/80 mt-3 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Original Deadline: <span className="font-semibold ml-1">{p.deadline}</span>
+                </p>
+              )}
+              <CalendarClock className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
 
-          {/* Declined Information Block */}
-          {theme.label.includes("Declined") && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+          {/* Extension Approved */}
+          {p.status === "extension_approved" && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-emerald-800 mb-1 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" /> Extension Approved
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Your request for a deadline extension has been approved by R&D. You now have additional time to complete your evaluation.
+                </p>
+                {p.remarks && (
+                  <div className="mt-3 bg-white p-3 rounded-lg border border-emerald-100">
+                    <p className="text-xs font-bold text-emerald-700 mb-1">R&D Remarks:</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{p.remarks}</p>
+                  </div>
+                )}
+              </div>
+              <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Extension Rejected */}
+          {p.status === "extension_rejected" && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10 flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
+                  <XCircle className="w-5 h-5" /> Extension Declined
+                </h3>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-red-100 shadow-sm">
+                <p className="text-xs font-bold text-red-700 mb-2">Reason for Declining Extension:</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                  {p.remarks || "Your extension request was reviewed and declined. Please proceed with your evaluation by the original deadline."}
+                </p>
+              </div>
+              <XCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-red-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Declined */}
+          {["reject", "rejected", "decline", "disapproved"].includes((p.status || "").toLowerCase()) && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
-                    <XCircle className="w-5 h-5" />
-                    Declined Information
+                    <XCircle className="w-5 h-5" /> Evaluation Declined
                   </h3>
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider bg-red-100 text-red-700 border border-red-200">
                     {(!p.remarks || p.remarks.toLowerCase().includes("missed") || p.remarks.toLowerCase().includes("system")) ? "Auto Decline" : "User Declined"}
@@ -352,13 +445,15 @@ export default function ProposalModal({
                   {p.evaluatedDate && (
                     <div className="mt-2 text-xs text-slate-500 italic flex items-center justify-end">
                       <XCircle className="w-3.5 h-3.5 mr-1 text-red-500" />
-                      Declined: <span className="font-semibold ml-1">{formatDateTime(p.evaluatedDate)}</span>
+                      Declined: <span className="font-semibold ml-1">{new Date(p.evaluatedDate).toLocaleDateString()}</span>
                     </div>
                   )}
                 </div>
               </div>
+              <XCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-red-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
+
 
           {/* Documents Section */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">

@@ -171,12 +171,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   };
 
-  const handleDurationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedDuration = e.target.value;
-    onUpdate("duration", selectedDuration);
+  const handleDurationChange = (totalMonths: number) => {
+    if (totalMonths <= 0) return;
+    onUpdate("duration", String(totalMonths));
     if (formData.plannedStartDate) {
-      calculateImplementationDates(formData.plannedStartDate, selectedDuration);
+      calculateImplementationDates(formData.plannedStartDate, String(totalMonths));
     }
+  };
+
+  const handleDurationYearsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const years = parseInt(e.target.value, 10);
+    const currentMonths = parseInt(formData.duration || "6", 10);
+    const remainingMonths = currentMonths % 12;
+    handleDurationChange(years * 12 + remainingMonths);
+  };
+
+  const handleDurationMonthsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const months = parseInt(e.target.value, 10);
+    const currentMonths = parseInt(formData.duration || "6", 10);
+    const years = Math.floor(currentMonths / 12);
+    const total = years * 12 + months;
+    handleDurationChange(total > 0 ? total : 1);
   };
 
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,14 +214,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         } catch (e) { console.error(e); }
       }
     }
-  };
-
-  const formatDuration = (months: number): string => {
-    if (months < 12) return `${months} Month${months !== 1 ? 's' : ''}`;
-    const years = Math.floor(months / 12);
-    const remainingMonths = months % 12;
-    if (remainingMonths === 0) return `${years} Year${years !== 1 ? 's' : ''}`;
-    return `${years} Year${years !== 1 ? 's' : ''}, ${remainingMonths} Month${remainingMonths !== 1 ? 's' : ''}`;
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -459,6 +466,26 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
 
 
+  // --- DATE CONSTRAINTS ---
+  // Start date: must be at least next month (1st day of next month)
+  const getMinStartDate = () => {
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return format(nextMonth, 'yyyy-MM-dd');
+  };
+
+  // End date: maximum 10 years from today
+  const getMaxEndDate = () => {
+    const now = new Date();
+    const max = new Date(now.getFullYear() + 10, now.getMonth(), now.getDate());
+    return format(max, 'yyyy-MM-dd');
+  };
+
+  const minStartDate = getMinStartDate();
+  const maxEndDate = getMaxEndDate();
+  // End date minimum: must be after the selected start date (or next month if none selected)
+  const minEndDate = formData.plannedStartDate || minStartDate;
+
   const isBasicInfoComplete = Boolean(
     formData.program_title?.trim() &&
     formData.project_title?.trim() &&
@@ -576,6 +603,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             name="plannedStartDate"
             value={formData.plannedStartDate || ""}
             onChange={handleDateChangeWithCalc}
+            min={minStartDate}
+            max={maxEndDate}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
         </div>
@@ -592,6 +621,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             name="plannedEndDate"
             value={formData.plannedEndDate || ""}
             onChange={handleDateChangeWithCalc}
+            min={minEndDate}
+            max={maxEndDate}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           />
         </div>
@@ -603,29 +634,59 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             <Tooltip content="The total length of the project implementation period in months or years" />
             <AutoFillBadge fieldName="duration" autoFilledFields={autoFilledFields} />
           </label>
-          <div className="relative">
-            <select
-              name="duration"
-              value={formData.duration || ""}
-              onChange={handleDurationChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
-            >
-              <option value="" disabled>Select Duration or Calculate</option>
-              <option value="6">6 Months</option>
-              <option value="12">1 Year</option>
-              <option value="18">1 Year, 6 Months</option>
-              <option value="24">2 Years</option>
-              <option value="36">3 Years</option>
-              {formData.duration && !["6", "12", "18", "24", "36"].includes(formData.duration) && (
-                <option value={formData.duration}>{formatDuration(parseInt(formData.duration))}</option>
-              )}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-              <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-              </svg>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <select
+                value={Math.floor(parseInt(formData.duration || "6", 10) / 12)}
+                onChange={handleDurationYearsChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
+              >
+                {Array.from({ length: 11 }, (_, i) => (
+                  <option key={i} value={i}>{i} {i === 1 ? 'Year' : 'Years'}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                </svg>
+              </div>
+            </div>
+            <div className="relative flex-1">
+              <select
+                value={parseInt(formData.duration || "6", 10) % 12}
+                onChange={handleDurationMonthsChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] appearance-none bg-white"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>{i} {i === 1 ? 'Month' : 'Months'}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                </svg>
+              </div>
             </div>
           </div>
+          {formData.plannedStartDate && formData.plannedEndDate && (() => {
+            const start = parseISO(formData.plannedStartDate);
+            const end = parseISO(formData.plannedEndDate);
+            if (isValid(start) && isValid(end) && end >= start) {
+              const diffTime = end.getTime() - start.getTime();
+              const totalDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              return (
+                <p className="text-xs text-slate-400 mt-1">
+                  Total: {totalDays.toLocaleString()} {totalDays === 1 ? 'day' : 'days'}
+                </p>
+              );
+            }
+            return null;
+          })()}
+          {!formData.plannedStartDate && formData.duration && (
+            <p className="text-xs text-slate-500 mt-1">
+              ≈ {(parseInt(formData.duration, 10) * 30).toLocaleString()} days
+            </p>
+          )}
         </div>
       </div>
 

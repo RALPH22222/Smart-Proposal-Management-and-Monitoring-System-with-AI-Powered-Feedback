@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 // import { useLoading } from "../../../contexts/LoadingContext";
-import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown, ShieldCheck, GraduationCap, LayoutGrid, Microscope, Users } from "lucide-react";
 
 import type { User } from "../../../types/admin";
 import { AccountApi, type ReassignmentPayload } from "../../../services/admin/AccountApi";
@@ -60,12 +60,6 @@ const Accounts: React.FC = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const uniqueRoles = useMemo(() => {
-    const allRoles = new Set<string>();
-    users.forEach(u => (u.roles || []).forEach(r => allRoles.add(r)));
-    return Array.from(allRoles).sort();
-  }, [users]);
-
   const filteredUsers = useMemo(() => {
     const result = users.filter(user => {
       const fullName = getFullName(user).toLowerCase();
@@ -109,16 +103,18 @@ const Accounts: React.FC = () => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  const handleInviteSubmit = async (formData: { email: string; roles: string[] }) => {
+  const handleInviteSubmit = async (formData: { emails: string[]; roles: string[] }) => {
     try {
       setIsSubmitting(true);
-      await AccountApi.inviteUser(formData);
+      await Promise.all(formData.emails.map(email => 
+        AccountApi.inviteUser({ email, roles: formData.roles })
+      ));
       setShowAddModal(false);
-      Swal.fire("Success", "Invitation sent successfully!", "success");
+      Swal.fire("Success", "Invitations sent successfully!", "success");
       fetchAccounts();
     } catch (err: any) {
-      console.error("Failed to send invitation:", err);
-      Swal.fire("Error", err.response?.data?.message || "Failed to send invitation", "error");
+      console.error("Failed to send invitations:", err);
+      Swal.fire("Error", err.response?.data?.message || "Failed to send some or all invitations", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -187,6 +183,19 @@ const Accounts: React.FC = () => {
 
   const getRoleDisplay = (roles: string[]) => (roles || []).map(r => ROLE_DISPLAY[r] || r).join(", ");
 
+  const getRoleCount = (role: string) => {
+    if (role === 'All') return users.length;
+    return users.filter(u => (u.roles || []).includes(role)).length;
+  };
+
+  const tabs = [
+    { id: 'All', label: 'All', icon: LayoutGrid },
+    { id: 'admin', label: 'Admin', icon: ShieldCheck },
+    { id: 'rnd', label: 'R&D Staff', icon: Microscope },
+    { id: 'evaluator', label: 'Evaluator', icon: Users },
+    { id: 'proponent', label: 'Proponent', icon: GraduationCap },
+  ];
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -198,13 +207,42 @@ const Accounts: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 h-full">
       <header className="flex-shrink-0 pt-12 lg:pt-0">
-        <h1 className="text-2xl font-bold text-red-700">Accounts</h1>
+        <h1 className="text-2xl font-bold text-[#C8102E]">Accounts</h1>
         <p className="text-gray-600 mt-1">Manage user accounts and roles</p>
       </header>
 
+      {/* Role Tabs */}
+      <section className="flex-shrink-0 overflow-x-auto pb-2">
+        <div className="flex gap-2">
+          {tabs.map(tab => {
+            const isActive = roleFilter === tab.id;
+            const count = getRoleCount(tab.id);
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setRoleFilter(tab.id); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${isActive
+                  ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+              >
+                <tab.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 text-slate-500'
+                  }`}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
       <section className="flex-shrink-0">
-        <div className="flex flex-col gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="relative flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center w-full">
+          <div className="relative flex-1 min-w-0 w-full sm:w-auto">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
@@ -213,33 +251,22 @@ const Accounts: React.FC = () => {
               placeholder="Search users, email, department..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full min-w-0"
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full min-w-0"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between w-full">
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <select
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
-              >
-                <option value="All">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Disabled">Disabled</option>
-              </select>
+          <div className="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Disabled">Disabled</option>
+            </select>
 
-              <select
-                value={roleFilter}
-                onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
-              >
-                <option value="All">All Roles</option>
-                {uniqueRoles.map(role => <option key={role} value={role}>{ROLE_DISPLAY[role] || role}</option>)}
-              </select>
-            </div>
-
-            <button onClick={() => setShowAddModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C8102E] hover:bg-[#A00D26] text-white rounded-lg text-sm font-medium transition-colors shadow-sm w-full sm:w-auto whitespace-nowrap">
+            <button onClick={() => setShowAddModal(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-[#C8102E] hover:bg-[#A00D26] text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap w-full sm:w-auto">
               <Mail className="w-4 h-4" />
               Invite User
             </button>
