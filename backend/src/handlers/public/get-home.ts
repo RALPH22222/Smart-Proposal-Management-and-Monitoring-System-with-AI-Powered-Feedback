@@ -24,7 +24,11 @@ export const handler = buildCorsHeaders(async (event) => {
       hero: {
         ...DEFAULT_HOME_INFO.hero,
         ...(data?.value?.hero || {}),
-        images: (data?.value?.hero?.images && Array.isArray(data.value.hero.images) && data.value.hero.images.length === 3)
+        // Fix the typo if it exists in DB
+        badge: (data?.value?.hero?.badge === "Western Mindanao State Universityss")
+          ? DEFAULT_HOME_INFO.hero.badge
+          : (data?.value?.hero?.badge || DEFAULT_HOME_INFO.hero.badge),
+        images: (Array.isArray(data?.value?.hero?.images) && data.value.hero.images.length === 3)
           ? data.value.hero.images
           : DEFAULT_HOME_INFO.hero.images
       },

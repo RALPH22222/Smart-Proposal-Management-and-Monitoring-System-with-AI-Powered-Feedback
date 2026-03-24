@@ -17,6 +17,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   className = "",
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [isUrlMode, setIsUrlMode] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +34,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       setIsUploading(true);
       const { uploadUrl, fileUrl } = await CmsApi.getUploadUrl(file.name, file.type);
       
-      // We directly upload to S3 bypassing our API Gateway for the file data
       await CmsApi.uploadFile(uploadUrl, file);
       
       onUploadSuccess(fileUrl);
@@ -46,21 +47,56 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
+  const handleUrlApply = () => {
+    if (!urlInput.trim()) {
+      toast.error("Please enter an image address.");
+      return;
+    }
+    
+    // Basic validation
+    try {
+      new URL(urlInput);
+      onUploadSuccess(urlInput.trim());
+      toast.success("Image address applied!");
+      setUrlInput("");
+    } catch (e) {
+      toast.error("Please enter a valid URL.");
+    }
+  };
+
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between mb-1">
         <label className="block text-sm font-medium text-gray-700">{label}</label>
-        {currentUrl && (
-          <a 
-            href={currentUrl} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider"
-            title="Open original image"
-          >
-            Preview <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 p-0.5 rounded-md">
+            <button
+              type="button"
+              onClick={() => setIsUrlMode(false)}
+              className={`px-2 py-0.5 text-[10px] font-bold rounded ${!isUrlMode ? 'bg-white shadow-sm text-red-600' : 'text-gray-500'}`}
+            >
+              UPLOAD
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsUrlMode(true)}
+              className={`px-2 py-0.5 text-[10px] font-bold rounded ${isUrlMode ? 'bg-white shadow-sm text-red-600' : 'text-gray-500'}`}
+            >
+              URL
+            </button>
+          </div>
+          {currentUrl && (
+            <a 
+              href={currentUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider"
+              title="Open original image"
+            >
+              Link <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
       </div>
       
       <div className="relative group">
@@ -68,25 +104,23 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           {currentUrl ? (
             <>
               <img src={currentUrl} alt={label} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-white/90 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-white transition-colors flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" /> Change Image
-                </button>
-              </div>
+              {!isUrlMode && (
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-white/90 text-gray-800 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-white transition-colors flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" /> Change Image
+                  </button>
+                </div>
+              )}
             </>
           ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
-            >
+            <div className="flex flex-col items-center gap-2 text-gray-500">
               <Upload className="w-8 h-8 opacity-40" />
-              <span className="text-sm">Click to upload image</span>
-            </button>
+              <span className="text-sm">No image set</span>
+            </div>
           )}
 
           {isUploading && (
@@ -98,27 +132,47 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         </div>
       </div>
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
-      
-      <div className="flex items-center gap-3 mt-2">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="bg-red-50 text-red-700 px-4 py-1.5 rounded-md text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50 border border-red-100"
-        >
-          Choose File
-        </button>
-        <span className="text-xs text-gray-400 truncate max-w-[150px] italic">
-          {isUploading ? "Uploading..." : "No file chosen"}
-        </span>
-      </div>
+      {isUrlMode ? (
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            placeholder="Paste image address here..."
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleUrlApply}
+            className="bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-red-700 transition-colors"
+          >
+            Apply
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="bg-red-50 text-red-700 px-4 py-1.5 rounded-md text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50 border border-red-100"
+            >
+              Choose File
+            </button>
+            <span className="text-xs text-gray-400 truncate max-w-[150px] italic">
+              {isUploading ? "Uploading..." : "No file chosen"}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 };

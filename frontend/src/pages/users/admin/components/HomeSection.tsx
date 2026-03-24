@@ -205,7 +205,8 @@ export const HomeSection: React.FC = () => {
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
             <Building2 className="w-5 h-5 text-gray-500" /> About Our Office
           </h3>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 items-start'>
+            {/* Column 1: Core Text Info */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Badge Text</label>
@@ -230,31 +231,37 @@ export const HomeSection: React.FC = () => {
                 <textarea
                   value={homeData.about.description}
                   onChange={(e) => setHomeData({ ...homeData, about: { ...homeData.about, description: e.target.value } })}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm italic h-full"
                 />
               </div>
             </div>
+
+            {/* Column 2: Bullet Points (Service List) */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bullet Points (Service List)</label>
-                <div className="space-y-2">
-                  {homeData.about.bullets.map((bullet, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={bullet}
-                        onChange={(e) => {
-                          const newBullets = [...homeData.about.bullets];
-                          newBullets[index] = e.target.value;
-                          setHomeData({ ...homeData, about: { ...homeData.about, bullets: newBullets } });
-                        }}
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 text-sm"
-                      />
-                    </div>
-                  ))}
-                </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bullet Points (Service List)</label>
+              <div className="space-y-3">
+                {homeData.about.bullets.map((bullet, index) => (
+                  <div key={index} className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 font-bold">•</span>
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => {
+                        const newBullets = [...homeData.about.bullets];
+                        newBullets[index] = e.target.value;
+                        setHomeData({ ...homeData, about: { ...homeData.about, bullets: newBullets } });
+                      }}
+                      className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
+                      placeholder={`Service Item ${index + 1}`}
+                    />
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Column 3: Image Section */}
+            <div>
               <ImageUpload
                 currentUrl={homeData.about.image_url}
                 label="About Section Image"

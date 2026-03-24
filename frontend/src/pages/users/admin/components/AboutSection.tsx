@@ -5,6 +5,8 @@ import { toast, Toaster } from "react-hot-toast";
 import { Rocket, BookOpen, Target, BarChart2, Clock, Lightbulb } from "lucide-react";
 import PageLoader from "../../../../components/shared/PageLoader";
 
+import { ImageUpload } from "./shared/ImageUpload";
+
 export const AboutSection: React.FC = () => {
   const [aboutData, setAboutData] = useState<AboutInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,56 +125,56 @@ export const AboutSection: React.FC = () => {
           <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
             <BookOpen className="w-5 h-5 text-gray-500" /> Our Story
           </h3>
-          <div className='space-y-5'>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Badge Text</label>
-                <input
-                  type="text"
-                  value={aboutData.story.badge}
-                  onChange={(e) => setAboutData({ ...aboutData, story: { ...aboutData.story, badge: e.target.value } })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
-                <input
-                  type="text"
-                  value={aboutData.story.title}
-                  onChange={(e) => setAboutData({ ...aboutData, story: { ...aboutData.story, title: e.target.value } })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {aboutData.story.paragraphs.map((p: string, index: number) => (
-                <div key={index}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph {index + 1}</label>
-                  <textarea
-                    value={p}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                      const newParagraphs = [...aboutData.story.paragraphs];
-                      newParagraphs[index] = e.target.value;
-                      setAboutData({ ...aboutData, story: { ...aboutData.story, paragraphs: newParagraphs } });
-                    }}
-                    rows={3}
+          <div className='grid grid-cols-1 lg:grid-cols-12 gap-6 items-start'>
+            <div className='lg:col-span-7 space-y-5'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge Text</label>
+                  <input
+                    type="text"
+                    value={aboutData.story.badge}
+                    onChange={(e) => setAboutData({ ...aboutData, story: { ...aboutData.story, badge: e.target.value } })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
                   />
                 </div>
-              ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={aboutData.story.title}
+                    onChange={(e) => setAboutData({ ...aboutData, story: { ...aboutData.story, title: e.target.value } })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {aboutData.story.paragraphs.map((p: string, index: number) => (
+                  <div key={index}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Paragraph {index + 1}</label>
+                    <textarea
+                      value={p}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        const newParagraphs = [...aboutData.story.paragraphs];
+                        newParagraphs[index] = e.target.value;
+                        setAboutData({ ...aboutData, story: { ...aboutData.story, paragraphs: newParagraphs } });
+                      }}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-              <input
-                type="text"
-                value={aboutData.story.image_url || ""}
-                onChange={(e) => setAboutData({ ...aboutData, story: { ...aboutData.story, image_url: e.target.value } })}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm"
+            <div className="lg:col-span-5">
+              <ImageUpload
+                currentUrl={aboutData.story.image_url || ""}
+                label="Story Section Image"
+                onUploadSuccess={(newUrl) => {
+                  setAboutData({ ...aboutData, story: { ...aboutData.story, image_url: newUrl } });
+                }}
               />
-              <p className="text-xs text-gray-500 mt-1">Direct link to an image. (e.g. Wikimedia commons, Imgur, or S3 link)</p>
             </div>
           </div>
         </div>

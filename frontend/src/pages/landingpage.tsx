@@ -133,9 +133,15 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
   );
 };
 
+// Skeleton component for images
+const ImageSkeleton: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={`bg-gray-200 animate-pulse rounded-2xl ${className}`}></div>
+);
+
 {/* Gais kung may di kayo nagustuhan sabi lang sakin then kung meron kayo di alam sa code ko sabi lang if may time ako turuan ko lang how ga work*/ }
 const LandingPage: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
+  const [isLoading, setIsLoading] = useState(true);
   const heroSection = useInView();
   const aboutSection = useInView();
   const statsSection = useInView();
@@ -159,6 +165,8 @@ const LandingPage: React.FC = () => {
         }
       } catch (error) {
         console.error("Error loading home data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchHomeData();
@@ -237,27 +245,39 @@ const LandingPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-4 md:space-y-6 animate-fade-in-left">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
-                  <img
-                    src={homeData.hero.images?.[0]}
-                    alt="Research visual 1"
-                    className="w-full h-44 sm:h-48 lg:h-56 object-cover transition-transform duration-700 hover:scale-110"
-                  />
+                  {isLoading || !homeData.hero.images?.[0] ? (
+                    <ImageSkeleton className="w-full h-44 sm:h-48 lg:h-56" />
+                  ) : (
+                    <img
+                      src={homeData.hero.images[0]}
+                      alt="Research visual 1"
+                      className="w-full h-44 sm:h-48 lg:h-56 object-cover transition-transform duration-700 hover:scale-110"
+                    />
+                  )}
                 </div>
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
-                  <img
-                    src={homeData.hero.images?.[1]}
-                    alt="Research visual 2"
-                    className="w-full max-w-2xl object-cover rounded-xl transition-transform duration-700 hover:scale-110"
-                  />
+                  {isLoading || !homeData.hero.images?.[1] ? (
+                    <ImageSkeleton className="w-full h-44 sm:h-48 lg:h-56" />
+                  ) : (
+                    <img
+                      src={homeData.hero.images[1]}
+                      alt="Research visual 2"
+                      className="w-full max-w-2xl object-cover rounded-xl transition-transform duration-700 hover:scale-110"
+                    />
+                  )}
                 </div>
               </div>
               <div className="pt-8 md:pt-12 animate-fade-in-right animation-delay-200">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:-rotate-1">
-                  <img
-                    src={homeData.hero.images?.[2]}
-                    alt="Research visual 3"
-                    className="w-full h-80 sm:h-72 lg:h-96 object-cover transition-transform duration-700 hover:scale-110"
-                  />
+                  {isLoading || !homeData.hero.images?.[2] ? (
+                    <ImageSkeleton className="w-full h-80 sm:h-72 lg:h-96" />
+                  ) : (
+                    <img
+                      src={homeData.hero.images[2]}
+                      alt="Research visual 3"
+                      className="w-full h-80 sm:h-72 lg:h-96 object-cover transition-transform duration-700 hover:scale-110"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -320,11 +340,15 @@ const LandingPage: React.FC = () => {
 
             <div className="relative">
               <div className="w-full h-64 lg:h-80 rounded-xl overflow-hidden shadow-lg">
-                <img
-                  src={homeData.about.image_url}
-                  alt="Office Display"
-                  className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-500"
-                />
+                {isLoading || !homeData.about.image_url ? (
+                  <ImageSkeleton className="w-full h-full" />
+                ) : (
+                  <img
+                    src={homeData.about.image_url}
+                    alt="Office Display"
+                    className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-500"
+                  />
+                )}
               </div>
               <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-red-100 rounded-full opacity-80 -z-10"></div>
               <div className="absolute -top-4 -left-4 w-16 h-16 bg-red-50 rounded-full opacity-60 -z-10"></div>
