@@ -40,5 +40,8 @@ export const handler = buildCorsHeaders(async (_event: APIGatewayProxyEvent) => 
       priorities: priorities.data || [],
       stations: stations.data || [],
     }),
+    headers: {
+      "Cache-Control": "public, max-age=300", // 5 minutes — lookup data rarely changes
+    },
   };
 });

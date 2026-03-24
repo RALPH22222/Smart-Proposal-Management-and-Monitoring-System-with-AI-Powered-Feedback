@@ -271,6 +271,7 @@ export class BackendStack extends Stack {
     authResource.addResource("confirm-email").addMethod(HttpMethod.GET, integrate(auth.confirmEmail));
     authResource.addResource("departments").addMethod(HttpMethod.GET, integrate(proposalL.getLookup));
     authResource.addResource("verify-otp").addMethod(HttpMethod.POST, integrate(auth.verifyOtp));
+    authResource.addResource("refresh-token").addMethod(HttpMethod.POST, integrate(auth.refreshToken));
 
     authResource
       .addResource("complete-invite")

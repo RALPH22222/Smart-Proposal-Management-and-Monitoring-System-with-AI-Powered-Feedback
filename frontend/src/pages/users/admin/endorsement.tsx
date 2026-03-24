@@ -62,8 +62,8 @@ const AdminEndorsementPage: React.FC = () => {
       
       // 1. Fetch ALL proposals via existing Admin API
       const { adminProposalApi } = await import('../../../services/AdminProposalApi/ProposalApi');
-      const { getAssignmentTracker } = await import('../../../services/proposal.api');
-      
+      const { getAllAssignmentTrackers } = await import('../../../services/proposal.api');
+
       const allProposals = await adminProposalApi.fetchProposals();
 
       // 2. Fetch all evaluator users once (already deployed endpoint) for email lookup
@@ -80,17 +80,25 @@ const AdminEndorsementPage: React.FC = () => {
         console.warn('Could not fetch evaluator users for email lookup', e);
       }
 
-      // 3. Map and fetch assignments for each
+      // 3. Fetch ALL tracker data in a single call, then group by proposal
+      const allTrackerData = await getAllAssignmentTrackers();
+      const trackerByProposal = new Map<number, any[]>();
+      for (const item of allTrackerData) {
+        const pid = (item as any).proposal_id?.id;
+        if (!pid) continue;
+        if (!trackerByProposal.has(pid)) trackerByProposal.set(pid, []);
+        trackerByProposal.get(pid)!.push(item);
+      }
+
       const mappedProposals: EndorsementProposal[] = [];
 
       for (const p of allProposals) {
         let evaluatorDecisions: EvaluatorDecision[] = [];
-        
+
         try {
-          // getAssignmentTracker returns an array of assignment objects
-          const trackerData = await getAssignmentTracker(Number(p.id));
-          
-          if (trackerData && trackerData.length > 0) {
+          const trackerData = trackerByProposal.get(Number(p.id)) || [];
+
+          if (trackerData.length > 0) {
             evaluatorDecisions = trackerData.map((d: unknown) => {
               const typedD = d as any;
               let decisionStatus: "Approve" | "Revise" | "Reject" | "Pending" = "Pending";

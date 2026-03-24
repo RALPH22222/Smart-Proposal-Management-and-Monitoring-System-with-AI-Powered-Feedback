@@ -78,6 +78,14 @@ Write-Host ""
 function Get-SsmType([string]$Key)
 {
   $lower = $Key.ToLower()
+
+  # Keys that should remain plain String even though they match secret-like patterns
+  $forceString = @('gemini_api_key', 'ors_api_key')
+  if ($forceString -contains $lower)
+  {
+    return "String"
+  }
+
   if ($lower -match '(secret|password|api_key|token|webhook|private_key|credentials)')
   {
     return "SecureString"

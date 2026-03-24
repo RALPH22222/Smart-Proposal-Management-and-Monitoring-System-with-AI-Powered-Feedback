@@ -15,7 +15,7 @@ import Swal from "sweetalert2";
 
 import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
-import { getAssignmentTracker, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
+import { getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 
@@ -86,25 +86,8 @@ export const RnDEvaluatorPage: React.FC = () => {
       const proposals = await getRndProposals();
       console.log("RND Proposals:", proposals);
 
-      // 2. For each proposal, fetch its assignment tracker data in parallel batches
-      // Batch size of 5 to avoid hitting Supabase connection limits
-      const validProposals = proposals.filter((p: any) => p?.proposal_id?.id);
-      const allAssignments: any[] = [];
-      const BATCH_SIZE = 5;
-
-      for (let i = 0; i < validProposals.length; i += BATCH_SIZE) {
-        const batch = validProposals.slice(i, i + BATCH_SIZE);
-        const results = await Promise.allSettled(
-          batch.map((p: any) => getAssignmentTracker(p.proposal_id.id))
-        );
-        results.forEach((result, idx) => {
-          if (result.status === 'fulfilled' && result.value?.length > 0) {
-            allAssignments.push(...result.value);
-          } else if (result.status === 'rejected') {
-            console.error(`Failed to fetch tracker for proposal ${batch[idx].proposal_id.id}`, result.reason);
-          }
-        });
-      }
+      // 2. Fetch ALL assignment tracker data in a single call (no N+1)
+      const allAssignments: any[] = await getAllAssignmentTrackers();
 
       // Group by Proposal
       const groupedMap = new Map<number, GroupedAssignment>();

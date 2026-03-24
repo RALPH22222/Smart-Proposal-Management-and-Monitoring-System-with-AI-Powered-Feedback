@@ -672,6 +672,19 @@ export const getAssignmentTracker = async (proposalId?: number): Promise<Assignm
   return data;
 };
 
+/** Fetch ALL assignment tracker data in a single API call (no N+1) */
+export const getAllAssignmentTrackers = async (): Promise<AssignmentTrackerItem[]> => {
+  const cacheKey = "tracker:bulk";
+  const cached = getCachedWithTtl<AssignmentTrackerItem[]>(cacheKey, DATA_CACHE_TTL);
+  if (cached) return cached;
+
+  const { data } = await api.get<AssignmentTrackerItem[]>("/proposal/assignment-tracker", {
+    withCredentials: true,
+  });
+  setCache(cacheKey, data);
+  return data;
+};
+
 export type HandleExtensionPayload = {
   proposal_id: number;
   evaluator_id: string;

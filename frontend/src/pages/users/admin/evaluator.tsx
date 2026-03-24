@@ -16,7 +16,7 @@ import { formatDate } from '../../../utils/date-formatter';
 
 import EvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
-import { getProposals, getAssignmentTracker, handleExtensionRequest, forwardProposalToEvaluators, removeEvaluator } from '../../../services/proposal.api';
+import { getProposals, getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, forwardProposalToEvaluators, removeEvaluator } from '../../../services/proposal.api';
 import PageLoader from '../../../components/shared/PageLoader';
 
 // --- INTERFACES ---
@@ -85,20 +85,8 @@ export const EvaluatorPage: React.FC = () => {
       // 1. Fetch all proposals visible to Admin
       const proposals = await getProposals();
 
-      // 2. Fetch tracker data sequentially to avoid hitting Supabase connection limits
-      const allAssignments: any[] = [];
-      for (const p of proposals) {
-        const typedP = p as { id?: string | number };
-        if (!typedP?.id) continue;
-        try {
-          const trackerData = await getAssignmentTracker(Number(typedP.id));
-          if (trackerData && trackerData.length > 0) {
-            allAssignments.push(...trackerData);
-          }
-        } catch (err) {
-          console.error(`Failed to fetch tracker for proposal ${typedP.id}`, err);
-        }
-      }
+      // 2. Fetch ALL assignment tracker data in a single call (no N+1)
+      const allAssignments: any[] = await getAllAssignmentTrackers();
 
       // Group by Proposal
       const groupedMap = new Map<number, GroupedAssignment>();

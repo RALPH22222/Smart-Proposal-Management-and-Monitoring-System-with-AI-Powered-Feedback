@@ -66,7 +66,16 @@ export const handler = buildCorsHeaders(async (event) => {
   }
 
   // Create Proposal Version
-  await proposalService.createVersion(validation_version.data);
+  const { error: versionError } = await proposalService.createVersion(validation_version.data);
+  if (versionError) {
+    console.error("Error creating proposal version:", versionError);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: "Proposal created but failed to save file version",
+      }),
+    };
+  }
 
   await logActivity(supabase, {
     user_id: auth.userId,

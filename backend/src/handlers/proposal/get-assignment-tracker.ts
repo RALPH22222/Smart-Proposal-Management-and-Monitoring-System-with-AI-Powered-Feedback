@@ -18,13 +18,14 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  const proposal_id = Number(event.queryStringParameters?.proposal_id);
+  const rawProposalId = event.queryStringParameters?.proposal_id;
+  const proposal_id = rawProposalId ? Number(rawProposalId) : 0;
 
-  if (!proposal_id || isNaN(proposal_id)) {
+  if (rawProposalId && (isNaN(proposal_id) || proposal_id <= 0)) {
     return {
       statusCode: 400,
       body: JSON.stringify({
-        message: "proposal_id query parameter is required",
+        message: "proposal_id must be a valid positive number",
       }),
     };
   }

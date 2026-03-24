@@ -37,6 +37,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     });
   }
 
+  const accessCookie = setCookieString("tk", data.session!.access_token, {
+    maxAge: 3600, // 1 hour
+  });
+  const refreshCookie = setCookieString("rt", data.session!.refresh_token, {
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+
   return {
     statusCode: 200,
     body: JSON.stringify({
@@ -50,8 +57,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       access_token: data.session!.access_token,
       refresh_token: data.session!.refresh_token,
     }),
-    headers: {
-      "Set-Cookie": setCookieString("tk", data.session!.access_token),
+    multiValueHeaders: {
+      "Set-Cookie": [accessCookie, refreshCookie],
     },
   };
 });

@@ -11,3 +11,4 @@ cdk.out
 dist
 
 src/lib
+ENV_SETUP.md

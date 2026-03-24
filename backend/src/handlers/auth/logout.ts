@@ -10,8 +10,11 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     body: JSON.stringify({
       message: "Successfully logged out.",
     }),
-    headers: {
-      "Set-Cookie": setCookieString("tk", "", { maxAge: 0 }),
+    multiValueHeaders: {
+      "Set-Cookie": [
+        setCookieString("tk", "", { maxAge: 0 }),
+        setCookieString("rt", "", { maxAge: 0 }),
+      ],
     },
   };
 });

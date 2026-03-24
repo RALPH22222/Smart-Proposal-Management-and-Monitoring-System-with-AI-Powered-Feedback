@@ -30,6 +30,7 @@ export class AuthLambdas extends NestedStack {
   public readonly profileStatus: NodejsFunction;
   public readonly completeInvite: NodejsFunction;
   public readonly verifyToken: NodejsFunction;
+  public readonly refreshToken: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AuthLambdasProps) {
     super(scope, id);
@@ -145,6 +146,14 @@ export class AuthLambdas extends NestedStack {
       entry: path.resolve("src", "handlers", "auth", "verify-token.ts"),
       role: sharedRole,
       environment: { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt, TZ },
+    });
+
+    this.refreshToken = new NodejsFunction(this, "refresh-token", {
+      ...defaults,
+      functionName: "pms-refresh-token",
+      entry: path.resolve("src", "handlers", "auth", "refresh-token.ts"),
+      role: sharedRole,
+      environment: { SUPABASE_KEY: supabaseKey, TZ },
     });
   }
 }
