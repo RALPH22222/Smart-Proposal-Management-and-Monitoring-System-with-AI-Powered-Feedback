@@ -16,10 +16,8 @@ import { formatDate } from '../../../utils/date-formatter';
 
 import EvaluatorPageModal from '../../../components/rnd-component/RnDEvaluatorPageModal';
 import type { EvaluatorOption } from '../../../components/rnd-component/RnDEvaluatorPageModal';
-import { getProposals, getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, forwardProposalToEvaluators, removeEvaluator } from '../../../services/proposal.api';
+import {getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, forwardProposalToEvaluators, removeEvaluator } from '../../../services/proposal.api';
 import PageLoader from '../../../components/shared/PageLoader';
-
-// --- INTERFACES ---
 
 interface Assignment {
   id: string; // unique ID for key
@@ -82,10 +80,7 @@ export const EvaluatorPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch all proposals visible to Admin
-      const proposals = await getProposals();
-
-      // 2. Fetch ALL assignment tracker data in a single call (no N+1)
+      // 1. Fetch ALL assignment tracker data in a single call (no N+1)
       const allAssignments: any[] = await getAllAssignmentTrackers();
 
       // Group by Proposal
