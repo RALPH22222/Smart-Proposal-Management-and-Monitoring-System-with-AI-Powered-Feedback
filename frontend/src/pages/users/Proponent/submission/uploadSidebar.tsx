@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
   Check,
   Circle,
@@ -11,7 +11,9 @@ import {
   Eye,
   Download
 } from 'lucide-react';
-import templatePDF from '../../../../assets/template/DOST-Template.pdf';
+import templateDOCX from '../../../../assets/template/DOST_Form_No.1b.docx';
+import TemplateViewModal from '../../../../components/proponent-component/TemplateViewModal';
+import {useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
 
@@ -30,8 +32,6 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   formData,
   selectedFile,
   isCheckingTemplate,
-  // Fixed: Removed unused 'isCheckingForm'
-  // Fixed: Removed unused 'onAIFormCheck'
   onFileSelect,
   onAITemplateCheck,
   onSubmit,
@@ -223,7 +223,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
         {/* --- Proposal Template Section --- */}
         <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">
-          
+
           <div className="flex flex-col items-center gap-2 relative z-10">
             <h4 className="font-bold text-gray-800 text-lg leading-[1.15] tracking-tight text-center">
               DOST Form No. 1B Template
@@ -232,7 +232,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               <span className="text-[11px] font-semibold text-slate-600 tracking-widest leading-none">Required Format</span>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-2.5 relative z-10">
             <button
               onClick={() => setIsTemplateModalOpen(true)}
@@ -242,8 +242,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               <span className="text-[15px] font-semibold leading-tight">View Template</span>
             </button>
             <a
-              href={templatePDF}
-              download="DOST-Project-Proposal-Template.pdf"
+              href={templateDOCX}
+              download="DOST-Project-Proposal-Template.docx"
               className="w-full py-3 px-4 bg-[#C8102E] text-white rounded-[14px] hover:bg-[#a00c24] transition-all flex items-center justify-center gap-2.5 active:scale-95"
             >
               <Download className="w-[15px] h-[15px] shrink-0" />
@@ -313,67 +313,11 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
         </div>
       </div>
 
-      {/* --- Template Modal (Matching HowItWorksModal design) --- */}
-      {isTemplateModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-full max-h-[95vh] flex flex-col overflow-hidden relative">
-            
-            {/* --- HEADER --- */}
-            <div className="relative bg-white border-b border-gray-100 px-6 sm:px-8 py-5 shrink-0">
-              <button
-                onClick={() => setIsTemplateModalOpen(false)}
-                className="absolute right-4 top-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all duration-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center gap-3 pr-8">
-                <div className="bg-red-50 p-2.5 rounded-xl border border-red-100">
-                  <FileText className="w-5 h-5 text-[#C8102E]" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
-                    DOST Project Proposal Template
-                  </h2>
-                  <p className="text-slate-500 text-xs mt-0.5 font-normal">
-                    DOST Form No. 1B
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            {/* --- BODY --- */}
-            <div className="flex-1 bg-slate-50 p-4 sm:p-6 md:p-8 overflow-hidden relative">
-              <div className="w-full h-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <iframe
-                  src={`${templatePDF}#view=FitH`}
-                  title="DOST Proposal Template Document"
-                  className="w-full h-full border-none"
-                />
-              </div>
-            </div>
-            
-            {/* --- FOOTER --- */}
-            <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0 gap-3">
-              <button
-                onClick={() => setIsTemplateModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Close
-              </button>
-              <a
-                href={templatePDF}
-                download="DOST-Project-Proposal-Template.pdf"
-                className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download PDF
-              </a>
-            </div>
-
-          </div>
-        </div>
-      )}
+      {/* --- Template Modal --- */}
+      <TemplateViewModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
 
     </>
   );

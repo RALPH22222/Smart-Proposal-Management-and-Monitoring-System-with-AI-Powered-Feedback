@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FileText,
   Building2,
@@ -67,6 +67,18 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const [filteredCooperatingAgencies, setFilteredCooperatingAgencies] = useState<AgencyItem[]>([]);
   const [filteredTags, setFilteredTags] = useState<{ id: number; name: string }[]>([]);
 
+  // PSGC autocomplete (same as researchDetails)
+  const [psgcCities, setPsgcCities] = useState<{ code: string; name: string; isZamboanga?: boolean }[]>([]);
+  const [psgcBarangays, setPsgcBarangays] = useState<{ code: string; name: string }[]>([]);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showBarangayDropdown, setShowBarangayDropdown] = useState(false);
+  const [isBarangayLoading, setIsBarangayLoading] = useState(false);
+
+  // Focus refs for automated flow
+  const cityInputRef = useRef<HTMLInputElement>(null);
+  const barangayInputRef = useRef<HTMLInputElement>(null);
+  const streetInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!lookups.loading) {
       setAgenciesList(lookups.agencies);
@@ -74,6 +86,98 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       setIsLoading(false);
     }
   }, [lookups.loading]);
+
+  // Load PSGC cities (same approach as researchDetails.tsx)
+  useEffect(() => {
+    const loadCities = async () => {
+      try {
+        const response = await fetch("https://psgc.cloud/api/cities-municipalities");
+        if (response.ok) {
+          const data = await response.json();
+          let mapped = data.map((d: any) => {
+            let formattedName = d.name.replace(/Ã±/g, "ñ").replace(/Ã'/g, "Ñ");
+            if (formattedName.startsWith("City of ")) {
+              formattedName = formattedName.replace("City of ", "") + " City";
+            }
+            return {
+              code: d.code,
+              name: formattedName,
+              isZamboanga: d.code === "0931700000" || d.name === "City of Zamboanga"
+            };
+          });
+          // Remove duplicates
+          const uniqueNames = new Set<string>();
+          mapped = mapped.filter((city: any) => {
+            if (!uniqueNames.has(city.name)) { uniqueNames.add(city.name); return true; }
+            return false;
+          });
+          mapped.sort((a: any, b: any) => {
+            if (a.isZamboanga) return -1;
+            if (b.isZamboanga) return 1;
+            return a.name.localeCompare(b.name);
+          });
+          setPsgcCities(mapped);
+        }
+      } catch (error) {
+        console.error("Error fetching PSGC cities:", error);
+      }
+    };
+    loadCities();
+  }, []);
+
+  // Fetch Barangays when city is selected/changed
+  useEffect(() => {
+    const fetchBarangays = async () => {
+      const cityInput = formData.agencyAddress?.city || "";
+      const selectedCity = psgcCities.find((c) => c.name.toLowerCase() === cityInput.toLowerCase());
+
+      if (selectedCity) {
+        setIsBarangayLoading(true);
+        try {
+          const response = await fetch(`https://psgc.cloud/api/cities-municipalities/${selectedCity.code}/barangays`);
+          if (response.ok) {
+            const data = await response.json();
+            const mapped = data.map((b: any) => ({
+              code: b.code,
+              name: b.name.replace(/Ã±/g, "ñ").replace(/Ã'/g, "Ñ")
+            })).sort((a: any, b: any) => a.name.localeCompare(b.name));
+            
+            setPsgcBarangays(mapped);
+
+            // AUTO-SUGGEST ENFORCEMENT:
+            // If there's a barangay currently set (e.g. from autofill),
+            // verify it exists in this new list. If not, clear it.
+            const currentBrgy = formData.agencyAddress?.barangay || "";
+            if (currentBrgy) {
+              const isMatch = mapped.some((b: any) => b.name.toLowerCase() === currentBrgy.toLowerCase());
+              if (!isMatch) {
+                // If it doesn't match exactly, don't input it
+                onUpdate("agencyAddress", { ...formData.agencyAddress, barangay: "" });
+              } else {
+                // To be safe, set it to the official casing from the list
+                const officialBrgy = mapped.find((b: any) => b.name.toLowerCase() === currentBrgy.toLowerCase())?.name;
+                if (officialBrgy) onUpdate("agencyAddress", { ...formData.agencyAddress, barangay: officialBrgy });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching barangays:", error);
+        } finally {
+          setIsBarangayLoading(false);
+        }
+      } else {
+        setPsgcBarangays([]);
+        // If city is invalid/empty, also ensure barangay is empty (strict enforcement)
+        if (formData.agencyAddress?.barangay) {
+          onUpdate("agencyAddress", { ...formData.agencyAddress, barangay: "" });
+        }
+      }
+    };
+
+    if (psgcCities.length > 0) {
+      fetchBarangays();
+    }
+  }, [formData.agencyAddress?.city, psgcCities]);
 
 
   // --- FILTERING ---
@@ -274,16 +378,27 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
 
+    // Helper to find best PSGC match
+    const findCityMatch = (name: string) => {
+      if (!name) return "";
+      const exact = psgcCities.find(c => c.name.toLowerCase() === name.toLowerCase());
+      if (exact) return exact.name;
+      const fuzzy = psgcCities.find(c => c.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(c.name.toLowerCase()));
+      return fuzzy ? fuzzy.name : "";
+    };
+
     // Auto-fill address from existing agency data
     const addresses = agency.agency_address || [];
     if (addresses.length === 1) {
       // Single address — auto-fill immediately
       const addr = addresses[0];
+      const officialCity = findCityMatch(addr.city || "");
+      
       onUpdate("agencyAddress", {
         id: String(addr.id),
         street: addr.street || "",
-        barangay: addr.barangay || "",
-        city: addr.city || "",
+        barangay: addr.barangay || "", // We can't easily match barangay without first loading by city code, so we'll fill and let validator handle it or ignore Match
+        city: officialCity,
       });
       setAvailableAddresses([]);
     } else if (addresses.length > 1) {
@@ -298,9 +413,34 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
 
   const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
-    const newAddress = { ...formData.agencyAddress, [field]: value };
+    // If city is changed, reset barangay
+    let newAddress = { ...formData.agencyAddress, [field]: value };
+    if (field === "city" && value !== (formData.agencyAddress?.city || "")) {
+      newAddress.barangay = "";
+    }
+    
     if (newAddress.id) delete newAddress.id;
     onUpdate("agencyAddress", newAddress);
+
+    if (field === "city") {
+      setShowCityDropdown(true);
+    }
+    if (field === "barangay") {
+      setShowBarangayDropdown(true);
+    }
+  };
+
+  const validateAddressField = (field: "city" | "barangay") => {
+    const list = field === "city" ? psgcCities : psgcBarangays;
+    const currentVal = (formData.agencyAddress?.[field] || "").trim().toLowerCase();
+    
+    // If it's an exact match, fine. If not, clear it.
+    const isMatch = list.some(item => item.name.trim().toLowerCase() === currentVal);
+    
+    if (currentVal && !isMatch) {
+      handleAddressChange(field, "");
+      if (field === "city") setPsgcBarangays([]); // Clear barangays too
+    }
   };
 
 
@@ -458,6 +598,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
       if (!target.closest(".agency-name-dropdown-container")) setIsAgencyDropdownOpen(false);
       if (!target.closest(".cooperating-agency-dropdown-container")) setIsCooperatingDropdownOpen(false);
       if (!target.closest(".tags-dropdown-container")) setIsTagsDropdownOpen(false);
+      if (!target.closest(".city-input-container")) setShowCityDropdown(false);
+      if (!target.closest(".barangay-input-container")) setShowBarangayDropdown(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -754,10 +896,19 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
                   key={addr.id}
                   type="button"
                   onClick={() => {
+                    const findCityMatch = (name: string) => {
+                      if (!name) return "";
+                      const exact = psgcCities.find(c => c.name.toLowerCase() === name.toLowerCase());
+                      if (exact) return exact.name;
+                      const fuzzy = psgcCities.find(c => c.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(c.name.toLowerCase()));
+                      return fuzzy ? fuzzy.name : "";
+                    };
+                    const officialCity = findCityMatch(addr.city || "");
+                    
                     const updates = {
                       street: addr.street || "",
                       barangay: addr.barangay || "",
-                      city: addr.city || ""
+                      city: officialCity
                     };
                     onUpdate("agencyAddress", { id: String(addr.id), ...updates });
                   }}
@@ -780,33 +931,107 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
+          <div className="space-y-2 relative city-input-container font-sans">
             <label className="block text-sm font-medium text-gray-800 font-semibold">City / Municipality <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              value={formData.agencyAddress?.city || ""}
-              onChange={(e) => handleAddressChange("city", e.target.value)}
-              maxLength={256}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="Enter City / Municipality"
-            />
+            <div className="relative">
+              <input
+                ref={cityInputRef}
+                type="text"
+                value={formData.agencyAddress?.city || ""}
+                onChange={(e) => handleAddressChange("city", e.target.value)}
+                onFocus={() => setShowCityDropdown(true)}
+                onBlur={() => {
+                  setTimeout(() => {
+                    validateAddressField("city");
+                    setShowCityDropdown(false)
+                  }, 200);
+                }}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all bg-white"
+                placeholder="Type City / Municipality"
+              />
+              <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+              {showCityDropdown && (
+                <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar border-t-0 ring-1 ring-black ring-opacity-5 animate-in fade-in zoom-in-95 duration-100">
+                  {psgcCities
+                    .filter(c => c.name.toLowerCase().includes((formData.agencyAddress?.city || "").toLowerCase()))
+                    .map((city) => (
+                      <div
+                        key={city.code}
+                        className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between transition-colors ${
+                          formData.agencyAddress?.city === city.name ? "bg-[#C8102E]/10" : ""
+                        }`}
+                        onMouseDown={() => {
+                          handleAddressChange("city", city.name);
+                          setShowCityDropdown(false);
+                          // Auto-focus next field
+                          setTimeout(() => barangayInputRef.current?.focus(), 100);
+                        }}
+                      >
+                        <span className={`text-sm ${city.isZamboanga ? "font-bold text-[#C8102E]" : "text-gray-700"}`}>
+                          {city.name}
+                        </span>
+                        {city.isZamboanga && <MapPin className="w-3 h-3 text-[#C8102E]" />}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 relative barangay-input-container font-sans">
+            <label className="block text-sm font-medium text-gray-500 font-semibold">Barangay</label>
+            <div className="relative">
+              <input
+                ref={barangayInputRef}
+                type="text"
+                value={formData.agencyAddress?.barangay || ""}
+                onChange={(e) => handleAddressChange("barangay", e.target.value)}
+                onFocus={() => setShowBarangayDropdown(true)}
+                onBlur={() => {
+                  setTimeout(() => {
+                    validateAddressField("barangay");
+                    setShowBarangayDropdown(false)
+                  }, 200);
+                }}
+                maxLength={256}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all bg-white disabled:bg-gray-50"
+                placeholder={isBarangayLoading ? "Loading barangays..." : formData.agencyAddress?.city ? "Type Barangay" : "Select city first"}
+                disabled={!formData.agencyAddress?.city}
+              />
+              <Building2 className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+              {showBarangayDropdown && (
+                <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar border-t-0 ring-1 ring-black ring-opacity-5 animate-in fade-in zoom-in-95 duration-100">
+                  {psgcBarangays.length > 0 ? (
+                    psgcBarangays
+                      .filter(b => b.name.toLowerCase().includes((formData.agencyAddress?.barangay || "").toLowerCase()))
+                      .map((brgy) => (
+                        <div
+                          key={brgy.code}
+                          className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between transition-colors ${
+                            formData.agencyAddress?.barangay === brgy.name ? "bg-[#C8102E]/10" : ""
+                          }`}
+                          onMouseDown={() => {
+                            handleAddressChange("barangay", brgy.name);
+                            setShowBarangayDropdown(false);
+                            // Auto-focus next field
+                            setTimeout(() => streetInputRef.current?.focus(), 100);
+                          }}
+                        >
+                          <span className="text-sm text-gray-700">{brgy.name}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-400 italic">No barangays found</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-500">Barangay</label>
+            <label className="block text-sm font-medium text-gray-500 font-semibold">Street</label>
             <input
-              type="text"
-              value={formData.agencyAddress?.barangay || ""}
-              onChange={(e) => handleAddressChange("barangay", e.target.value)}
-              maxLength={256}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-              placeholder="Enter Barangay"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-500">Street</label>
-            <input
+              ref={streetInputRef}
               type="text"
               name="street"
               value={formData.agencyAddress?.street || ""}

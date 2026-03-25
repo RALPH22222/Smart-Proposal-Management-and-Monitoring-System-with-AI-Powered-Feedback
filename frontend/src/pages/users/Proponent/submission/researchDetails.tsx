@@ -526,21 +526,32 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
                   value={item.city}
                   onChange={(e) => handleSiteChange(index, "city", e.target.value)}
                   onFocus={() => setActiveCityDropdownIndex(index)}
-                  maxLength={256}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200"
-                  placeholder={`City/Municipality ${index + 1}`}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      const currentVal = (item.city || "").trim().toLowerCase();
+                      const isMatch = psgcCities.some(city => city.name.trim().toLowerCase() === currentVal);
+                      if (currentVal && !isMatch) {
+                        handleSiteChange(index, "city", "");
+                      }
+                      setActiveCityDropdownIndex(null);
+                    }, 200);
+                  }}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 bg-white"
+                  placeholder={`Type City/Municipality ${index + 1}`}
                 />
                 <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-
                 {activeCityDropdownIndex === index && (
-                  <div className="absolute z-30 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar border-t-0 ring-1 ring-black ring-opacity-5 animate-in fade-in zoom-in-95 duration-100">
                     {psgcCities
                       .filter(c => c.name.toLowerCase().includes((item.city || "").toLowerCase()))
                       .map((city) => (
                         <div
                           key={city.code}
-                          className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${item.city === city.name ? "bg-[#C8102E]/10" : ""}`}
-                          onClick={() => {
+                          className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between transition-colors ${
+                            item.city === city.name ? "bg-[#C8102E]/10" : ""
+                          }`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
                             handleSiteChange(index, "city", city.name);
                             setActiveCityDropdownIndex(null);
                           }}

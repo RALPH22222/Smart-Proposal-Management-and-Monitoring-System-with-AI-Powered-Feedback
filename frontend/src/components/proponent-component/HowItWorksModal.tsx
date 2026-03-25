@@ -1,6 +1,6 @@
 import React from 'react';
 import {X, FileText, FileSliders } from "lucide-react";
-import templatePDF from '../../assets/template/DOST-Template.pdf';
+import templateDOCX from '../../assets/template/DOST_Form_No.1b.docx';
 
 interface HowItWorksModalProps {
   isOpen: boolean;
@@ -50,7 +50,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
               <div className="bg-white rounded-xl p-5 border-2 border-slate-200 shadow-sm flex-1 group-hover:border-[#C8102E] group-hover:shadow-md transition-all duration-300">
                 <h3 className="font-bold text-slate-900 text-lg mb-2">Download & Submit Documentation</h3>
                 <p className="text-slate-600 leading-relaxed text-sm">
-                 Ensure you have your <a href={templatePDF} download className="text-[#C8102E] hover:underline font-semibold inline-flex items-center gap-1"><FileText className="w-3.5 h-3.5"/> DOST project proposal template</a> ready and all required fields are properly filled out. Proceed to the Submission page to submit your proposal. Double-check all information before submitting, as it cannot be edited unless the R&D requests a revision. You will be notified through your Profile page.</p>
+                 Ensure you have your <a href={templateDOCX} download className="text-[#C8102E] hover:underline font-semibold inline-flex items-center gap-1"><FileText className="w-3.5 h-3.5"/> DOST project proposal template</a> ready and all required fields are properly filled out. Proceed to the Submission page to submit your proposal. Double-check all information before submitting, as it cannot be edited unless the R&D requests a revision. You will be notified through your Profile page.</p>
               </div>
             </div>
             

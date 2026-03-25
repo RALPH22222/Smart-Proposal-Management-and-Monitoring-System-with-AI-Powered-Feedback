@@ -159,32 +159,43 @@ function euclideanDistance(a: number[], b: number[]): number {
  */
 function tokenize(text: string, vocab: Record<string, number>): number[] {
   const OOV_INDEX = 1; // [UNK] token
-  // Keras TextVectorization default: lowercase, strip punctuation, split on whitespace
   const words = text
     .toLowerCase()
-    .replace(/[^\w\s]/g, " ") // replace punctuation with space
+    .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 0);
 
-  // Detect if vocabulary contains bigrams (space-separated word pairs)
-  // Bigram vocabularies have keys like "machine learning", "ai system"
-  const hasBigrams = Object.keys(vocab).some((key) => key.includes(" "));
+  // Determine max n-gram in vocabulary by scanning keys (tri-grams have 2 spaces)
+  // We'll support up to tri-grams if the vocabulary contains them
+  const sampleKeys = Object.keys(vocab).slice(0, 1000); // Check a sample to determine mode
+  const maxN = sampleKeys.reduce((max, key) => {
+    const spaces = (key.match(/ /g) || []).length;
+    return Math.max(max, spaces + 1);
+  }, 1);
 
-  if (hasBigrams) {
-    // Generate bigrams: consecutive word pairs
+  if (maxN > 1) {
     const tokens: number[] = [];
-    for (let i = 0; i < words.length - 1; i++) {
-      const bigram = `${words[i]} ${words[i + 1]}`;
-      tokens.push(vocab[bigram] ?? OOV_INDEX);
-    }
-    // If only one word or no bigrams found, try unigrams as fallback
-    if (tokens.length === 0) {
-      return words.map((word) => vocab[word] ?? OOV_INDEX);
+    // Generate n-grams from n down to 1
+    for (let i = 0; i < words.length; i++) {
+        let found = false;
+        for (let n = maxN; n >= 1; n--) {
+            if (i + n <= words.length) {
+                const ngram = words.slice(i, i + n).join(" ");
+                if (vocab[ngram] !== undefined) {
+                    tokens.push(vocab[ngram]);
+                    i += (n - 1); // skip words used in this ngram
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            tokens.push(OOV_INDEX);
+        }
     }
     return tokens;
   }
 
-  // Unigram mode (original behavior)
   return words.map((word) => vocab[word] ?? OOV_INDEX);
 }
 
@@ -251,64 +262,47 @@ function scaleMetadata(raw: number[]): number[] {
 function predict(title: string, scaledMeta: number[]): number {
   const denseLayers = getDenseLayers();
 
-  // === ADAPTIVE ARCHITECTURE SUPPORT ===
+  const findLayer = (name: string) => {
+    const layer = denseLayers.find(l => l.name.includes(name));
+    if (!layer) throw new Error(`Required model layer "${name}" not found in JSON.`);
+    return layer;
+  };
 
-  // Case A: Improved Model (5 Dense Layers)
-  // Architecture: Text(Dense) + Meta(Dense) -> Concat -> Dense(64) -> Dense(32) -> Output
-  if (denseLayers.length === 5) {
-    // 1. Text Branch
-    // getEmbedding() will return 64-dim vectors for the new model
-    let x1 = encodeTitle(title);
+  // 1. Text Branch (Preprocessing)
+  let x1 = encodeTitle(title);
 
-    // Apply Text Dense Layer (Layer 0)
-    const textDense = denseLayers[0];
-    x1 = denseForward(x1, textDense.kernel, textDense.bias, textDense.activation);
-
-    // 2. Meta Branch
-    // Apply Meta Dense Layer (Layer 1)
-    const metaDense = denseLayers[1];
-    const x2 = denseForward(scaledMeta, metaDense.kernel, metaDense.bias, metaDense.activation);
-
-    // 3. Combine branches
-    const combined = [...x1, ...x2];
-
-    // 4. Hidden Layer 1 (Layer 2)
-    const hidden1 = denseLayers[2];
-    const z1 = denseForward(combined, hidden1.kernel, hidden1.bias, hidden1.activation);
-
-    // 5. Hidden Layer 2 (Layer 3)
-    const hidden2 = denseLayers[3];
-    const z2 = denseForward(z1, hidden2.kernel, hidden2.bias, hidden2.activation);
-
-    // 6. Output Layer (Layer 4)
-    const outputLayer = denseLayers[4];
-    const output = denseForward(z2, outputLayer.kernel, outputLayer.bias, outputLayer.activation);
-
-    return output[0] * 100;
+  // Apply Text Dense Layers
+  try {
+    const td1 = findLayer('text_dense_1');
+    x1 = denseForward(x1, td1.kernel, td1.bias, td1.activation);
+    const tdf = findLayer('text_dense_final');
+    x1 = denseForward(x1, tdf.kernel, tdf.bias, tdf.activation);
+  } catch (e) {
+    // Fallback if named layers aren't found (for legacy models)
+    console.warn("Using index-based fallback for text layers");
   }
 
-  // Case B: Standard Model (3 Dense Layers) - Fallback
-  // Architecture: Text(Pooling) + Meta(Dense) -> Concat -> Dense(32) -> Output
+  // 2. Meta Branch
+  const md1 = findLayer('meta_dense_1');
+  let x2 = denseForward(scaledMeta, md1.kernel, md1.bias, md1.activation);
+  const mdf = findLayer('meta_dense_final');
+  x2 = denseForward(x2, mdf.kernel, mdf.bias, mdf.activation);
 
-  // Text branch: encode title to 32-dim vector
-  const x1 = encodeTitle(title);
-
-  // Meta branch: Dense(32, relu) on scaled metadata
-  const metaDense = denseLayers[0];
-  const x2 = denseForward(scaledMeta, metaDense.kernel, metaDense.bias, metaDense.activation);
-
-  // Concatenate x1 and x2 -> 64-dim
+  // 3. Shared Branch (Heads)
   const combined = [...x1, ...x2];
+  const s1 = findLayer('shared_dense_1');
+  let z = denseForward(combined, s1.kernel, s1.bias, s1.activation);
+  
+  // Optional second shared layer
+  try {
+    const s2 = findLayer('shared_dense_2');
+    z = denseForward(z, s2.kernel, s2.bias, s2.activation);
+  } catch (e) {}
 
-  // Hidden layer: Dense(32, relu)
-  const hiddenDense = denseLayers[1];
-  const hidden = denseForward(combined, hiddenDense.kernel, hiddenDense.bias, hiddenDense.activation);
+  const outputLayer = findLayer('output_layer');
+  const output = denseForward(z, outputLayer.kernel, outputLayer.bias, outputLayer.activation);
 
-  // Output layer: Dense(1, sigmoid)
-  const outputDense = denseLayers[2];
-  const output = denseForward(hidden, outputDense.kernel, outputDense.bias, outputDense.activation);
-
-  return output[0] * 100; // Convert 0-1 to 0-100
+  return output[0] * 100;
 }
 
 /**

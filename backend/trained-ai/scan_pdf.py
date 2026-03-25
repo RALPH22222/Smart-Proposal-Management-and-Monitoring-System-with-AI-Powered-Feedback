@@ -5,11 +5,13 @@ import numpy as np
 import tensorflow as tf
 import joblib
 from pypdf import PdfReader
+import docx
+import docx2txt
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- CONFIGURATION ---
 MODEL_DIR = "models"
-PDF_FILE = "VAWC_CapsuleProposal-updated.pdf" 
+DOCUMENT_FILE = "VAWC_CapsuleProposal-updated.pdf"  # Now supports .pdf, .docx, .doc
 DATASET_FILE = "mock_dataset.json"
 
 print("Loading AI Models...")
@@ -23,13 +25,12 @@ try:
     with open(os.path.join(MODEL_DIR, "cluster_descriptions.json"), 'r') as f:
         cluster_descs = json.load(f)
 
-    # 2. Setup Encoder
+    # 2. Setup Encoder (Semantic Feature Extractor)
     text_input = model.input[0]
     pool_layer = next(l for l in model.layers if isinstance(l, tf.keras.layers.GlobalAveragePooling1D))
     encoder = tf.keras.Model(inputs=text_input, outputs=pool_layer.output)
 
-    # 3. Load Comparison Database (Smart Fallback)
-    # This prepares the list of titles we check against for duplicates.
+    # 3. Load Comparison Database
     try:
         with open(DATASET_FILE, 'r') as f:
             dataset = json.load(f)
@@ -41,7 +42,6 @@ try:
         comparison_source = DATASET_FILE
         
     except FileNotFoundError:
-        # Fallback to the generic training memory if mock_dataset.json is missing
         with open(os.path.join(MODEL_DIR, "vector_db.json"), 'r') as f:
             db = json.load(f)
             db_vecs = np.array(db['vectors'])
@@ -55,18 +55,36 @@ except Exception as e:
     print(f"Error loading models: {e}")
     exit()
 
-# --- PART 1: THE INTELLIGENT PARSER ---
-def extract_data_from_pdf(pdf_path):
-    print(f"Reading PDF: {pdf_path}...")
+# --- PART 1: THE MULTI-FORMAT INTELLIGENT PARSER ---
+def extract_text_from_document(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+    text = ""
     
     try:
-        reader = PdfReader(pdf_path)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-    except FileNotFoundError:
-        print("File not found! Please ensure the PDF is in this folder.")
+        if ext == ".pdf":
+            reader = PdfReader(file_path)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+        elif ext == ".docx":
+            doc = docx.Document(file_path)
+            text = "\n".join([para.text for para in doc.paragraphs])
+        elif ext == ".doc":
+            # Basic extraction for .doc using docx2txt (requires antiword/similar usually, but handles text)
+            text = docx2txt.process(file_path)
+        else:
+            print(f"Unsupported file format: {ext}")
+            return None
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}")
         return None
+        
+    return text
+
+def parse_document_data(file_path):
+    text = extract_text_from_document(file_path)
+    if not text: return None
+    
+    print(f"Parsing Document: {file_path}...")
 
     data = {
         "title": "Unknown Project",
@@ -78,141 +96,142 @@ def extract_data_from_pdf(pdf_path):
         "co": 0.0
     }
 
-    # 1. Extract Title
-    title_match = re.search(r"Project Title[:\s]+(.+)", text, re.IGNORECASE)
-    if title_match:
-        data["title"] = title_match.group(1).strip()
+    # 1. Semantic-Aware Title Extraction
+    # We look for various synonyms and phrasing for 'Project Title'
+    title_patterns = [
+        r"(?:Project Title|Title of Project|Proposed Title|Project Name|Research Title)[:\s]+(.+)",
+        r"(?:Name of Project|Study Title|Title)[:\s]+(.+)"
+    ]
+    
+    for pattern in title_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            found_title = match.group(1).strip()
+            if len(found_title) > 5: # Filter junk
+                data["title"] = found_title
+                break
 
-    # 2. Extract Duration
-    month_label_match = re.search(r"\(In months\)\s*(\d+)", text, re.IGNORECASE)
-    duration_label_match = re.search(r"Duration[:\s]+(\d+)", text, re.IGNORECASE)
-
-    if month_label_match:
-        data["duration"] = int(month_label_match.group(1))
-    elif duration_label_match:
-        val = int(duration_label_match.group(1))
-        if val < 120: 
-            data["duration"] = val
+    # 2. Extract Duration (Supports 'Duration: X months' or '(In months) X')
+    duration_patterns = [
+        r"\(In months\)\s*(\d+)",
+        r"Duration[:\s]+(\d+)\s*(?:months)?",
+        r"Period[:\s]+(\d+)\s*(?:months)?"
+    ]
+    for pattern in duration_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            val = int(match.group(1))
+            if val < 120: 
+                data["duration"] = val
+                break
 
     # 3. Extract Cooperating Agencies
-    agency_section = re.search(r"Cooperating Agencies.*?\n(.*?)(?=\n\(\d\)|$|Classification)", text, re.IGNORECASE | re.DOTALL)
-    
+    agency_section = re.search(r"Cooperating Agencies.*?\n(.*?)(?=\n\(\d\)|$|Classification|Budget)", text, re.IGNORECASE | re.DOTALL)
     if agency_section:
         raw_agencies = agency_section.group(1).strip()
         if len(raw_agencies) > 3 and "N/A" not in raw_agencies:
             count = raw_agencies.count(",") + 1
+            # Also check for bullet points or newlines as separators
+            if count == 1:
+                alt_count = raw_agencies.count("\n") + 1
+                count = max(count, alt_count)
             data["cooperating_agencies"] = count
 
-    # 4. Extract Budget
+    # 4. Extract Budget (Fuzzy keyword matching)
     numbers = re.findall(r"([\d,]+\.\d{2})", text)
-    
     if numbers:
         clean_nums = []
         for n in numbers:
             try:
                 val = float(n.replace(",", "").strip())
                 clean_nums.append(val)
-            except:
-                pass
+            except: pass
         
         if clean_nums:
             data["total"] = max(clean_nums)
             
-            if "PS" in text:
-                ps_match = re.search(r"PS.*?([\d,]+\.\d{2})", text, re.DOTALL)
-                if ps_match: 
-                    val = float(ps_match.group(1).replace(",", ""))
-                    if val < data["total"]: data["ps"] = val
+            # Look for PS/Staff costs
+            ps_match = re.search(r"(?:Personnel Services|PS).*?([\d,]+\.\d{2})", text, re.IGNORECASE | re.DOTALL)
+            if ps_match: 
+                data["ps"] = float(ps_match.group(1).replace(",", ""))
             
-            if "MOOE" in text:
-                mooe_match = re.search(r"MOOE.*?([\d,]+\.\d{2})", text, re.DOTALL)
-                if mooe_match: 
-                    val = float(mooe_match.group(1).replace(",", ""))
-                    if val < data["total"]: data["mooe"] = val
+            # Look for MOOE/Ops costs
+            mooe_match = re.search(r"(?:MOOE|Maintenance).*?([\d,]+\.\d{2})", text, re.IGNORECASE | re.DOTALL)
+            if mooe_match: 
+                data["mooe"] = float(mooe_match.group(1).replace(",", ""))
             
-            if data["co"] == 0 and data["total"] > 0:
-                remainder = data["total"] - (data["ps"] + data["mooe"])
-                if remainder > 0: data["co"] = remainder
+            # Calculate CO if needed
+            if data["ps"] + data["mooe"] < data["total"]:
+                data["co"] = data["total"] - (data["ps"] + data["mooe"])
 
     return data
 
-# --- PART 2: THE AI ANALYSIS ---
-def analyze_pdf():
-    extracted = extract_data_from_pdf(PDF_FILE)
+# --- PART 2: THE AI ANALYSIS (SEMANTIC EQUIVALENCE MODE) ---
+def analyze_document(file_path):
+    extracted = parse_document_data(file_path)
     if not extracted: return
 
-    print("\nDATA EXTRACTED FROM DOCUMENT:")
-    print(f"   Title:    {extracted['title'][:60]}...")
+    print("\nEXTRACTED PARAMETERS:")
+    print(f"   Title:    {extracted['title'][:70]}...")
     print(f"   Duration: {extracted['duration']} months")
     print(f"   Agencies: {extracted['cooperating_agencies']}")
     print(f"   Budget:   PHP {extracted['total']:,.2f}")
     
-    # Prepare Data Vector
+    # 1. Prediction Score
     stats = scaler.transform([[
-        extracted['duration'], 
-        extracted['mooe'], 
-        extracted['ps'], 
-        extracted['co'], 
-        extracted['total'], 
-        extracted['cooperating_agencies']
+        extracted['duration'], extracted['mooe'], 
+        extracted['ps'], extracted['co'], 
+        extracted['total'], extracted['cooperating_agencies']
     ]])
-
-    # 1. AI Score (The Math Check)
+    
     score = model.predict({
         'text_input': tf.constant([extracted['title']], dtype=tf.string),
         'meta_input': stats
     }, verbose=0)[0][0] * 100
     
-    # 2. Profile
-    cluster_id = kmeans.predict(stats)[0]
-    profile = cluster_descs.get(str(cluster_id), "Unknown")
-    
-    # 3. Uniqueness (The Duplicate Check)
+    # 2. Semantic Duplicate Check (Looking for Meaning, not just words)
     vec = encoder.predict(tf.constant([extracted['title']], dtype=tf.string), verbose=0)
-    
-    # Compare against all DB items
     sim_scores = cosine_similarity(vec, db_vecs)[0]
-    
-    # Find the single best match
     best_match_idx = np.argmax(sim_scores)
     max_sim = sim_scores[best_match_idx]
     
-    # Novelty is the opposite of Similarity
+    # Novelty: Inverse of Semantic Similarity
     novelty = int((1 - max_sim) * 100)
 
+    # 3. Profiling
+    cluster_id = kmeans.predict(stats)[0]
+    profile = cluster_descs.get(str(cluster_id), "General R&D")
+
     # --- FINAL REPORT ---
-    print("\n" + "-"*50)
-    print(f"ANALYSIS RESULTS")
-    print("-" * 50)
-    print(f"PROFILE:     {profile}")
+    print("\n" + "="*50)
+    print(f"AI ANALYSIS REPORT")
+    print("=" * 50)
+    print(f"CLASSIFICATION: {profile}")
+    print(f"SCORE:          {int(score)}%")
+    print(f"NOVELTY:        {novelty}% (Semantic Check)")
     
-    # LOGIC: Check Duplicates FIRST. If Duplicate, Reject immediately.
-    if novelty < 20: # This means > 80% Similarity
-        print(f"SCORE:       {int(score)}")
-        print(f"UNIQUENESS:  {novelty}% (vs {comparison_source})")
-        print("\nSTATUS: HIGH CHANGE OF BEING REJECTED")
-        print("   This proposal is too similar to an existing project.")
-        print(f"  Match Found: '{db_titles[best_match_idx]}'")
-
-    elif score < 70:
-        print(f"SCORE:       {int(score)}%")
-        print(f"UNIQUENESS:  {novelty}% (vs {comparison_source})")
-        print("\nSTATUS: WILL BE REJECTED PROBABLY")
-        
-        if extracted['ps'] > (extracted['total'] * 0.6):
-            print("   • Salary (PS) budget is too high (>60%).")
-        if extracted['duration'] < 6:
-            print("   • Project duration is too short.")
-        if extracted['cooperating_agencies'] == 0:
-            print("   • No cooperating agencies (Solo Project).")
-            
-    else:
-        print(f"SCORE:       {int(score)}%")
-        print(f"UNIQUENESS:  {novelty}% (vs {comparison_source})")
+    # Semantic Equivalence Logic: Low Novelty means high Semantic Similarity
+    if novelty < 25: 
+        print("\nSTATUS: REJECTED (Duplicate Found)")
+        print(f"   SEMANTIC MATCH: {int(max_sim*100)}% Match")
+        print(f"   Matched with:   \"{db_titles[best_match_idx]}\"")
+        print("   Logic: This title is semantically equivalent to one in our records.")
+    elif score >= 70:
         print("\nSTATUS: PASSED")
-        print("   • Proposal is compliant and unique.")
+        print("   Proposal appears to be unique and compliant.")
+    else:
+        print("\nSTATUS: REVISION SUGGESTED")
+        print("   The score suggests the proposal may be weak in R&D focus.")
 
-    print("-" * 50)
+    print("=" * 50)
 
 if __name__ == "__main__":
-    analyze_pdf()
+    # Test with standard or found file
+    target = DOCUMENT_FILE
+    if not os.path.exists(target):
+        # Scan for any document if default is missing
+        docs = [f for f in os.listdir('.') if f.endswith(('.pdf', '.docx', '.doc'))]
+        if docs: target = docs[0]
+        
+    analyze_document(target)
+ze_pdf()

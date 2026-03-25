@@ -22,26 +22,26 @@ def generate_data(n=3000):
     stats = [] # [duration, mooe, ps, co, total, agencies]
     labels = []
     
-    # Enhanced vocabulary pools with synonyms and variations
-    tech_base = ["AI", "Artificial Intelligence", "Machine Learning", "Deep Learning", "Neural Network"]
-    tech_apps = ["System", "Platform", "Framework", "Application", "Tool", "Solution"]
-    tech_verbs = ["Development", "Implementation", "Design", "Creation", "Building"]
+    # Expanded vocabulary pools for deeper semantic variety
+    tech_base = ["AI", "Artificial Intelligence", "Machine Learning", "Deep Learning", "Neural Network", "Robotics", "Cloud Computing"]
+    tech_apps = ["System", "Platform", "Framework", "Application", "Tool", "Solution", "Engine", "Interface"]
+    tech_verbs = ["Development", "Implementation", "Design", "Creation", "Building", "Optimization", "Deployment", "Engineering"]
     
-    agri_base = ["Hydroponic", "Crop", "Agricultural", "Farming", "Cultivation"]
-    agri_focus = ["Yield", "Production", "Growth", "Harvest", "Optimization"]
-    agri_tech = ["Precision", "Smart", "Automated", "IoT-based", "Data-driven"]
+    agri_base = ["Hydroponic", "Crop", "Agricultural", "Farming", "Cultivation", "Aquabase", "Livestock", "Poultry"]
+    agri_focus = ["Yield", "Production", "Growth", "Harvest", "Optimization", "Sustainability", "Management"]
+    agri_tech = ["Precision", "Smart", "Automated", "IoT-based", "Data-driven", "Advanced", "Sensor-based"]
     
-    social_base = ["Gender", "Community", "Social", "Cultural", "Economic"]
-    social_focus = ["Development", "Empowerment", "Policy", "Framework", "Program"]
-    social_impact = ["Livelihood", "Welfare", "Equity", "Inclusion", "Sustainability"]
+    social_base = ["Gender", "Community", "Social", "Cultural", "Economic", "Educational", "Healthcare", "Urban"]
+    social_focus = ["Development", "Empowerment", "Policy", "Framework", "Program", "Initiative", "Strategy"]
+    social_impact = ["Livelihood", "Welfare", "Equity", "Inclusion", "Sustainability", "Resilience", "Accessibility"]
     
-    bad_keywords = ["Purchase", "Procurement", "Acquisition", "Buying"]
-    bad_items = ["Laptops", "Computers", "Equipment", "Supplies", "Materials", "Vehicles", "Furniture"]
+    bad_keywords = ["Purchase", "Procurement", "Acquisition", "Buying", "Shopping", "Order"]
+    bad_items = ["Laptops", "Computers", "Equipment", "Supplies", "Materials", "Vehicles", "Furniture", "Tablets", "Phones"]
 
     for _ in range(n):
         is_good = np.random.rand() > 0.35 
         
-        # --- 1. Generate Title with Semantic Variations ---
+        # --- 1. Generate Title with Rich Semantic Variations ---
         if is_good:
             category = np.random.choice(['tech', 'agri', 'social'])
             
@@ -49,12 +49,14 @@ def generate_data(n=3000):
                 base = np.random.choice(tech_base)
                 app = np.random.choice(tech_apps)
                 verb = np.random.choice(tech_verbs)
-                # Create variations: "AI System Development", "Development of AI Platform", etc.
                 patterns = [
                     f"{base} {app} {verb}",
                     f"{verb} of {base}-based {app}",
                     f"{base} for {app} {verb}",
-                    f"Innovative {base} {app}"
+                    f"Innovative {base} {app} for {verb}",
+                    f"{app} {verb} using {base}",
+                    f"A {base} Approach to {app} {verb}",
+                    f"Smart {app} powered by {base}"
                 ]
                 t = np.random.choice(patterns)
                 
@@ -66,7 +68,10 @@ def generate_data(n=3000):
                     f"{tech} {base} for {focus}",
                     f"{base} {focus} using {tech} Technology",
                     f"{focus} Enhancement through {base}",
-                    f"{tech} Approach to {base} {focus}"
+                    f"{tech} Approach to {base} {focus}",
+                    f"Improving {base} {focus} via {tech} Systems",
+                    f"Sustainable {base} {focus} and {tech} Management",
+                    f"Next-gen {tech} {base} Platform"
                 ]
                 t = np.random.choice(patterns)
                 
@@ -78,7 +83,10 @@ def generate_data(n=3000):
                     f"{base} {focus} for {impact}",
                     f"{impact} through {base}-focused {focus}",
                     f"{focus} Framework for {base} {impact}",
-                    f"Strengthening {base} {impact}"
+                    f"Strengthening {base} {impact}",
+                    f"Community-led {base} {focus} for {impact}",
+                    f"{base} {impact} Enhancement Strategy",
+                    f"Promoting {impact} in {base} {focus}"
                 ]
                 t = np.random.choice(patterns)
         else:
@@ -89,7 +97,9 @@ def generate_data(n=3000):
                 f"{keyword} of {item}",
                 f"{item} {keyword}",
                 f"{keyword} and Installation of {item}",
-                f"General {keyword} of {item}"
+                f"General {keyword} of {item}",
+                f"Request for {keyword}: {item}",
+                f"Supply and Delivery of {item}"
             ]
             t = np.random.choice(patterns)
 
@@ -207,32 +217,32 @@ def make_dataset(t, m, l, batch_size=32):
 train_ds = make_dataset(X_text_train, X_meta_train, y_train)
 val_ds = make_dataset(X_text_val, X_meta_val, y_val)
 
-# Text Input with improved vectorization
+# Text Input with high-fidelity vectorization for semantic matching
 text_input = keras.Input(shape=(1,), dtype=tf.string, name='text_input')
 vectorizer = layers.TextVectorization(
-    max_tokens=2000, 
+    max_tokens=5000, 
     output_mode='int',
-    ngrams=2,  # Capture bi-grams for better semantic understanding
-    output_sequence_length=50  # Fixed length for consistency
+    ngrams=(1, 3),  # Capture up to tri-grams for complex phrasing
+    output_sequence_length=100
 )
 vectorizer.adapt(titles)
 
-# Enhanced embedding with more dimensions for better semantic capture
-x1 = layers.Embedding(2001, 64, mask_zero=True)(vectorizer(text_input))
-x1 = layers.GlobalAveragePooling1D()(x1)
-x1 = layers.Dense(32, activation='relu')(x1)  # Additional dense layer for text
+# High-dimensional embeddings to capture fine-grained semantic nuances
+x1 = layers.Embedding(5001, 128, mask_zero=True, name='embedding_layer')(vectorizer(text_input))
+x1 = layers.GlobalAveragePooling1D(name='text_features')(x1)
+x1 = layers.Dense(128, activation='relu', name='text_dense_1')(x1)
+x1 = layers.Dense(64, activation='relu', name='text_dense_final')(x1)
 
 # Stats Input (6 Features)
 meta_input = keras.Input(shape=(6,), name='meta_input') 
-x2 = layers.Dense(32, activation='relu')(meta_input)
-x2 = layers.Dropout(0.3)(x2)  # Add dropout to prevent overfitting
-
-# Merge with attention to both branches
+x2 = layers.Dense(64, activation='relu', name='meta_dense_1')(meta_input)
+x2 = layers.Dropout(0.3)(x2)
+x2 = layers.Dense(32, activation='relu', name='meta_dense_final')(x2)
 combined = layers.concatenate([x1, x2])
-z = layers.Dense(64, activation='relu')(combined)
+z = layers.Dense(64, activation='relu', name='shared_dense_1')(combined)
 z = layers.Dropout(0.3)(z)
-z = layers.Dense(32, activation='relu')(z)
-output = layers.Dense(1, activation='sigmoid')(z)
+z = layers.Dense(32, activation='relu', name='shared_dense_2')(z)
+output = layers.Dense(1, activation='sigmoid', name='output_layer')(z)
 
 model = keras.Model(inputs=[text_input, meta_input], outputs=output)
 model.compile(
@@ -256,8 +266,9 @@ history = model.fit(
 # Save Models
 model.save(os.path.join(MODEL_DIR, "proposal_model.keras"))
 
-# Save Vector DB Base with semantic embeddings
-encoder = keras.Model(inputs=text_input, outputs=x1)
+# Save Vector DB Base with semantic embeddings (using text features layer specifically)
+text_feat_layer = model.get_layer('text_features').output
+encoder = keras.Model(inputs=text_input, outputs=text_feat_layer)
 vecs = encoder.predict(tf.constant(titles, dtype=tf.string), batch_size=32)
 with open(os.path.join(MODEL_DIR, "vector_db.json"), 'w') as f:
     json.dump({"titles": titles.tolist(), "vectors": vecs.tolist()}, f)

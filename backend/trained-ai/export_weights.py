@@ -96,7 +96,7 @@ print("Exporting kmeans...")
 kmeans_data = {
     "centroids": kmeans.cluster_centers_.tolist(),
     "descriptions": cluster_descs,
-}
+} 
 with open(os.path.join(OUTPUT_DIR, "kmeans.json"), "w") as f:
     json.dump(kmeans_data, f)
 print(f"   KMeans: {kmeans.cluster_centers_.shape[0]} clusters")

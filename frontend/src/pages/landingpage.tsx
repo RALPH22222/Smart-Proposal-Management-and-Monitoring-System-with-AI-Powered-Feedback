@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 import CardSwap, { Card } from '../components/CardSwap';
-import templatePDF from '../assets/template/DOST-Template.pdf';
+import templateDOCX from '../assets/template/DOST_Form_No.1b.docx';
+import TemplateViewModal from '../components/proponent-component/TemplateViewModal';
 import { ClipboardCheck, Clock, Bell, Mail, AlertCircle } from 'lucide-react';
 import { HomeApi } from "../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo } from "../schemas/home-schema";
@@ -138,10 +139,10 @@ const ImageSkeleton: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`bg-gray-200 animate-pulse rounded-2xl ${className}`}></div>
 );
 
-{/* Gais kung may di kayo nagustuhan sabi lang sakin then kung meron kayo di alam sa code ko sabi lang if may time ako turuan ko lang how ga work*/ }
 const LandingPage: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Added missing state
   const heroSection = useInView();
   const aboutSection = useInView();
   const statsSection = useInView();
@@ -171,6 +172,7 @@ const LandingPage: React.FC = () => {
     };
     fetchHomeData();
   }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
       <Navbar />
@@ -228,12 +230,12 @@ const LandingPage: React.FC = () => {
             <div ref={statsSection.ref} className={`mt-12 pt-8 border-t border-gray-200 transition-all duration-1000 ${statsSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="flex flex-wrap gap-8">
                 {homeData.stats.map((stat, idx) => (
-                  <AnimatedStat 
+                  <AnimatedStat
                     key={idx}
-                    value={stat.value} 
-                    suffix={stat.suffix} 
-                    label={stat.label} 
-                    shouldStart={statsSection.isInView} 
+                    value={stat.value}
+                    suffix={stat.suffix}
+                    label={stat.label}
+                    shouldStart={statsSection.isInView}
                   />
                 ))}
               </div>
@@ -288,55 +290,57 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+      
       <section id="about" className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div ref={aboutSection.ref} className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className={`bg-white rounded-2xl shadow-xl p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] transition-all duration-1000 ${aboutSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>         <div className="lg:col-span-2">
-            <div className="mb-3">
-              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
-                {homeData.about.badge}
-              </span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
-              {homeData.about.title}
-            </h2>
-            <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-              {homeData.about.description}
-            </p>
+          <div className={`bg-white rounded-2xl shadow-xl p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] transition-all duration-1000 ${aboutSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div className="lg:col-span-2">
+              <div className="mb-3">
+                <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
+                  {homeData.about.badge}
+                </span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent leading-relaxed">
+                {homeData.about.title}
+              </h2>
+              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+                {homeData.about.description}
+              </p>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {homeData.about.bullets.map((bullet, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                  <span className="text-sm text-gray-600">{bullet}</span>
-                </div>
-              ))}
-            </div>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {homeData.about.bullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                    <span className="text-sm text-gray-600">{bullet}</span>
+                  </div>
+                ))}
+              </div>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a
-                href="mailto:research@wmsu.edu.ph"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-white text-center bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
-                style={{ backgroundColor: '#C8102E' }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Contact Our Office
-              </a>
-              <a
-                href="#services"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
-                style={{ borderColor: '#C8102E', color: '#C8102E' }}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                View Services
-              </a>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a
+                  href="mailto:research@wmsu.edu.ph"
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-white text-center bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                  style={{ backgroundColor: '#C8102E' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Contact Our Office
+                </a>
+                <a
+                  href="#services"
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                  style={{ borderColor: '#C8102E', color: '#C8102E' }}
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  View Services
+                </a>
+              </div>
             </div>
-          </div>
 
             <div className="relative">
               <div className="w-full h-64 lg:h-80 rounded-xl overflow-hidden shadow-lg">
@@ -406,7 +410,7 @@ const LandingPage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href={templatePDF}
+                    href={templateDOCX}
                     download
                     className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-white text-center flex-1 bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
                     style={{ backgroundColor: '#C8102E' }}
@@ -418,11 +422,9 @@ const LandingPage: React.FC = () => {
                     </svg>
                     Download Template
                   </a>
-                  <a
-                    href={templatePDF}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center flex-1 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
+                  <button
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center flex-1 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 cursor-pointer"
                     style={{ borderColor: '#C8102E', color: '#C8102E' }}
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -430,7 +432,7 @@ const LandingPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                     View Template
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -619,87 +621,11 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Featured
-     <section id="featured" className="py-20 bg-gradient-to-b from-gray-50 to-white">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200 mb-4">
-            Featured Content
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">
-            Explore Our Resources
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover the latest research highlights, important announcements, and successful projects from our community.
-          </p>
-        </div>     
-
-        <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              title: 'Proposal Highlights',
-              description: 'Browse through successful research proposals and get inspired for your next project submission.',
-              image: 'https://img.freepik.com/free-photo/colleagues-doing-team-work-project_23-2149361602.jpg?semt=ais_hybrid&w=740&q=80',
-              link: '#interactive'
-            },
-            {
-              title: 'Office Notices',
-              description: 'Stay updated with the latest announcements, deadlines, and important updates from the research office.',
-              image: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&auto=format&fit=crop&w=1200&h=600',
-              link: '#about'
-            },
-            {
-              title: 'Top Projects',
-              description: 'Explore groundbreaking research projects that have made significant impact in their respective fields.',
-              image: 'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?q=80&auto=format&fit=crop&w=1200&h=600',
-              link: '#featured'
-            }
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-gray-100 border-b-4 border-b-red-700"
-            >
-              <div className="relative overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-48 object-cover transform transition-transform duration-500 hover:scale-105"
-                />
-                <div className="absolute top-4 left-4">
-                  <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
-                    <span className="text-red-600 font-bold text-lg">{i + 1}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#C8102E' }}>
-                  {item.title}
-                </h3>
-                <p className="text-gray-600 mb-4 leading-relaxed">
-                  {item.description}
-                </p>
-                <div className="mt-4">
-                  <a
-                    href={item.link}
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:shadow-md bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
-                    style={{ backgroundColor: '#C8102E', color: '#fff' }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
-                  >
-                    <span>Learn More</span>
-                    <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section> */}
       <Footer />
+      <TemplateViewModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
     </div>
   );
 };

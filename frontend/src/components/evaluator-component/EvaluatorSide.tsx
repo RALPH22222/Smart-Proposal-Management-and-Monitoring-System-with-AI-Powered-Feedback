@@ -138,30 +138,38 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
               className="absolute -right-2 -bottom-2 w-16 h-16 object-contain opacity-15 pointer-events-none select-none"
             />
 
-            <div className="relative flex items-center gap-3">
-              {/* Avatar with ring + online dot */}
-              <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-full ring-2 ring-[#C8102E]/30 ring-offset-2 ring-offset-white overflow-hidden shadow-md">
-                  <SecureImage
-                    src={user?.profile_photo_url}
-                    fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`}
-                    alt={getFullName()}
-                    className="w-full h-full object-cover"
-                  />
+            <div className="relative flex items-center gap-3 group">
+              {/* Profile Photo with hover premium effects */}
+              <div className="relative flex-shrink-0 cursor-pointer">
+                {/* Main square container with hover lift animation */}
+                <div className="relative w-12 h-12 bg-white rounded-xl p-[1.5px] shadow-sm border border-gray-100 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-[#C8102E]/30">
+                  {/* Thin inner gradient border */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#C8102E] to-[#E03A52] p-[1.5px]">
+                    <div className="h-full w-full bg-white rounded-[10px] overflow-hidden">
+                      <SecureImage
+                        src={user?.profile_photo_url}
+                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`}
+                        alt={getFullName()}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Decorative corner accents with hover animation */}
+                  <div className="absolute -top-0.5 -left-0.5 w-2 h-2 border-t-2 border-l-2 border-[#C8102E] rounded-tl-[4px] opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-top-1 group-hover:-left-1"></div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 border-b-2 border-r-2 border-[#C8102E] rounded-br-[4px] opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:-bottom-1 group-hover:-right-1"></div>
                 </div>
-                {/* Online indicator */}
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full shadow-sm" />
               </div>
 
               {/* Name & Role */}
               <div className="min-w-0 flex-1">
                 <div ref={nameContainerRef} className="overflow-hidden">
-                  <p ref={nameTextRef} className={`text-sm font-bold text-gray-900 whitespace-nowrap truncate ${shouldScrollName ? 'animate-marquee' : ''}`}>
+                  <p ref={nameTextRef} className={`text-sm font-bold text-gray-900 whitespace-nowrap truncate transition-colors duration-300 group-hover:text-[#C8102E] ${shouldScrollName ? 'animate-marquee' : ''}`}>
                     {getFullName()}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-red-100 text-[#C8102E] border border-red-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-red-100 text-[#C8102E] border border-red-200 shadow-sm transition-all duration-300 group-hover:bg-[#C8102E] group-hover:text-white group-hover:border-[#C8102E]">
                     <UserCheck className="w-2.5 h-2.5" />
                     Evaluator
                   </span>
