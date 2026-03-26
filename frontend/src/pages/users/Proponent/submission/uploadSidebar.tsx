@@ -16,10 +16,12 @@ import TemplateViewModal from '../../../../components/proponent-component/Templa
 import {useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
+import type { AIAnalysisResult } from '../../../../components/proponent-component/aiModal';
 
 interface UploadSidebarProps {
   formData: FormData;
   selectedFile: File | null;
+  aiCheckResult: AIAnalysisResult | null;
   isCheckingTemplate: boolean;
   onFileSelect: (file: File | null) => void;
   onAITemplateCheck: () => void;
@@ -31,6 +33,7 @@ interface UploadSidebarProps {
 const UploadSidebar: React.FC<UploadSidebarProps> = ({
   formData,
   selectedFile,
+  aiCheckResult,
   isCheckingTemplate,
   onFileSelect,
   onAITemplateCheck,
@@ -193,22 +196,68 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
               onClick={onAITemplateCheck}
               disabled={isCheckingTemplate}
               className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
-                ? 'bg-gray-400 cursor-not-allowed'
+                ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
                 }`}
             >
               {isCheckingTemplate ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Checking...
+                  Analyzing...
                 </>
               ) : (
                 <>
                   <Bot className="w-4 h-4" />
-                  AI Template Check
+                  {aiCheckResult ? 'Re-analyze Proposal' : 'AI Analysis & Feedback'}
                 </>
               )}
             </button>
+
+            {/* AI Insights Mini Dashboard */}
+            {aiCheckResult && !isCheckingTemplate && (
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top duration-500">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bot className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">AI Insights Dashboard</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Compliance Score */}
+                  <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Compliance</span>
+                    <span className={`text-xl font-black ${aiCheckResult.score && aiCheckResult.score >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
+                      {aiCheckResult.score}%
+                    </span>
+                  </div>
+
+                  {/* Novelty Score */}
+                  <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center min-w-[100px]">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Novelty</span>
+                    <span className={`text-xl font-black ${(aiCheckResult.noveltyScore || 0) >= 75 ? 'text-blue-600' : 'text-purple-600'}`}>
+                      {aiCheckResult.noveltyScore}%
+                    </span>
+                    <span className="text-[9px] font-bold text-gray-400 mt-1">
+                      {(() => {
+                        const sim = 100 - (aiCheckResult.noveltyScore || 0);
+                        if (sim <= 20) return "Not Related";
+                        if (sim <= 40) return "Slightly Related";
+                        if (sim <= 60) return "Moderately Similar";
+                        if (sim <= 80) return "Highly Similar";
+                        return "Very Similar";
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 text-[11px] text-blue-800 leading-tight bg-blue-100/50 p-2 rounded-lg border border-blue-200/50 italic">
+                  {(aiCheckResult.noveltyScore || 0) < 40 
+                    ? "Warning: High similarity detected. Consider clarifying your unique approach." 
+                    : (aiCheckResult.noveltyScore || 0) < 70
+                      ? "Note: Some similar research found. Ensure your methodology is distinct."
+                      : "Tip: High novelty detected. This proposal shows a unique research direction."}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleUploadClick}
@@ -220,6 +269,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </button>
           </div>
         )}
+
 
         {/* --- Proposal Template Section --- */}
         <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">

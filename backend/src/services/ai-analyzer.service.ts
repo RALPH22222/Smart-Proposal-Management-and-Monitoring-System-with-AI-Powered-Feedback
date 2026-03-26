@@ -490,34 +490,56 @@ export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
   const issues: string[] = [];
   const suggestions: string[] = [];
 
-  // Duplicate check
-  if (noveltyScore < 20) {
-    issues.push(`This proposal is very similar to an existing project: "${bestMatchTitle}" (${Math.round(bestMatchSimilarity * 100)}% match).`);
+  // Semantic Similarity Interpretation (User Requested Scale)
+  const similarityPct = Math.round(bestMatchSimilarity * 100);
+  let simStatus = "";
+  if (similarityPct <= 20) simStatus = "Not Related";
+  else if (similarityPct <= 40) simStatus = "Slightly Related";
+  else if (similarityPct <= 60) simStatus = "Moderately Similar";
+  else if (similarityPct <= 80) simStatus = "Highly Similar";
+  else simStatus = "Very Similar / Duplicate";
+
+  // Duplicate / Similarity check
+  if (similarityPct > 60) {
+    issues.push(`This proposal is ${simStatus} (${similarityPct}%) to an existing project: "${bestMatchTitle}".`);
+  } else if (similarityPct > 20) {
+    suggestions.push(`Semantic check: This project is ${simStatus} (${similarityPct}%) to "${bestMatchTitle}".`);
+  }
+
+  // ── Feasibility & Logic Checks ───────────────────────────
+  
+  // Timeline vs Budget Intensity
+  if (extracted.total > 2000000 && extracted.duration < 12) {
+    issues.push(`Budget intensity is high (PHP ${Math.round(extracted.total/1000000)}M for only ${extracted.duration} months). This may raise feasibility concerns during review.`);
+  } else if (extracted.total < 500000 && extracted.duration > 24) {
+    suggestions.push(`Budget may be too low (PHP ${extracted.total}) to sustain a long ${extracted.duration}-month research timeline.`);
   }
 
   // Budget checks
   if (extracted.total > 0 && extracted.ps > extracted.total * 0.6) {
     const psPct = Math.round((extracted.ps / extracted.total) * 100);
-    issues.push(`Personal Services (PS) budget is ${psPct}% of total (exceeds 60% threshold).`);
-  } else if (extracted.total > 0 && extracted.ps > extracted.total * 0.5) {
+    issues.push(`Personal Services (PS) budget is ${psPct}% of total (exceeds DOST's 60% recommended overhead threshold).`);
+  } else if (extracted.total > 0 && extracted.ps > extracted.total * 0.45) {
     const psPct = Math.round((extracted.ps / extracted.total) * 100);
-    suggestions.push(`PS budget is ${psPct}% (approaching the 60% limit). Consider redistributing.`);
+    suggestions.push(`PS budget is ${psPct}% (approaching threshold). Ensure all roles are clearly justified.`);
   }
 
   // Duration check
   if (extracted.duration < 6) {
-    issues.push(`Project duration is too short (${extracted.duration} months). Minimum recommended is 6 months.`);
+    issues.push(`Project duration is too short (${extracted.duration} months). Minimum recommended for R&D is 6 months.`);
+  } else if (extracted.duration > 36) {
+    suggestions.push(`Project duration exceeds 3 years (${extracted.duration} months). Ensure long-term deliverables are clear.`);
   }
 
   // Agency check
   if (extracted.cooperating_agencies === 0) {
-    suggestions.push("No cooperating agencies detected. Consider adding partner institutions to strengthen the proposal.");
+    suggestions.push("No cooperating agencies detected. Feasibility is better demonstrated through institutional partnerships.");
   }
 
   // Title check
   const titleLower = extracted.title.toLowerCase();
   if (titleLower.includes("purchase") || titleLower.includes("procurement")) {
-    issues.push("Title sounds like a procurement request rather than a research proposal.");
+    issues.push("Feasibility alert: Proposal sounds more like a procurement request than a scientific research project.");
   }
 
   // Build similar papers list

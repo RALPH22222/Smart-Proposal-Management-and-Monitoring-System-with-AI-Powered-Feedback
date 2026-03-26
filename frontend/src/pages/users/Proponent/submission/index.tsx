@@ -712,6 +712,7 @@ const Submission: React.FC = () => {
           <UploadSidebar
             formData={localFormData}
             selectedFile={selectedFile}
+            aiCheckResult={aiCheckResult}
             isCheckingTemplate={isCheckingTemplate}
             isUploadDisabled={isSubmitting}
             isBudgetValid={isBudgetValid}

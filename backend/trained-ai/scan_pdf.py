@@ -10,14 +10,21 @@ import docx2txt
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --- CONFIGURATION ---
+import pandas as pd
+from sentence_transformers import SentenceTransformer
+
 MODEL_DIR = "models"
 DOCUMENT_FILE = "VAWC_CapsuleProposal-updated.pdf"  # Now supports .pdf, .docx, .doc
-DATASET_FILE = "mock_dataset.json"
+DATASET_FILE = "NSF_Award_Search_cleaned.csv"
 
 print("Loading AI Models...")
 
 try:
-    # 1. Load Brains
+    # 1. Load Semantic Embedder (MiniLM)
+    print("Loading Semantic Encoder (MiniLM)...")
+    embedder = SentenceTransformer('all-MiniLM-L6-v2')
+
+    # 2. Load Keras Brain & Scaler
     model = tf.keras.models.load_model(os.path.join(MODEL_DIR, "proposal_model.keras"))
     scaler = joblib.load(os.path.join(MODEL_DIR, "scaler.pkl"))
     kmeans = joblib.load(os.path.join(MODEL_DIR, "kmeans_profiler.pkl"))
@@ -25,31 +32,33 @@ try:
     with open(os.path.join(MODEL_DIR, "cluster_descriptions.json"), 'r') as f:
         cluster_descs = json.load(f)
 
-    # 2. Setup Encoder (Semantic Feature Extractor)
-    text_input = model.input[0]
-    pool_layer = next(l for l in model.layers if isinstance(l, tf.keras.layers.GlobalAveragePooling1D))
-    encoder = tf.keras.Model(inputs=text_input, outputs=pool_layer.output)
-
     # 3. Load Comparison Database
     try:
-        with open(DATASET_FILE, 'r') as f:
-            dataset = json.load(f)
-        db_titles = [item['title'] for item in dataset]
-        print(f"   ...Comparison Mode: Real Dataset ({len(db_titles)} items)")
+        # Load from Vector DB for semantic comparisons
+        vdb_path = os.path.join(MODEL_DIR, "vector_db.json")
+        if os.path.exists(vdb_path):
+            with open(vdb_path, 'r') as f:
+                vdb = json.load(f)
+                db_vectors = np.array(vdb['vectors'])
+                db_titles = vdb['titles']
+            print(f"   ...Comparison Mode: Semantic Vector DB ({len(db_titles)} items)")
+        else:
+            df = pd.read_csv(DATASET_FILE)
+            db_titles = df['AwardTitle'].dropna().unique().tolist()
+            print(f"   ...Encoding {len(db_titles)} titles...")
+            db_vectors = embedder.encode(db_titles, show_progress_bar=False)
         
-        # Pre-calculate vectors for the dataset
-        db_vecs = encoder.predict(tf.constant(db_titles, dtype=tf.string), verbose=0)
-        comparison_source = DATASET_FILE
+        comparison_source = "MiniLM Semantic DB"
         
-    except FileNotFoundError:
-        with open(os.path.join(MODEL_DIR, "vector_db.json"), 'r') as f:
-            db = json.load(f)
-            db_vecs = np.array(db['vectors'])
-            db_titles = db['titles']
-        print("   ...Comparison Mode: Training Database (Generic)")
-        comparison_source = "Training DB"
+    except Exception as e:
+        print(f"   ...Error loading dataset ({e}), limited functionality")
+        db_vectors = np.array([])
+        db_titles = []
+        comparison_source = "None"
         
     print("System Ready.\n")
+
+
 
 except Exception as e:
     print(f"Error loading models: {e}")
@@ -177,7 +186,9 @@ def analyze_document(file_path):
     print(f"   Agencies: {extracted['cooperating_agencies']}")
     print(f"   Budget:   PHP {extracted['total']:,.2f}")
     
-    # 1. Prediction Score
+    # 1. Prediction Score (Semantic Integration)
+    title_vec = embedder.encode([extracted['title']])[0]
+    
     stats = scaler.transform([[
         extracted['duration'], extracted['mooe'], 
         extracted['ps'], extracted['co'], 
@@ -185,45 +196,54 @@ def analyze_document(file_path):
     ]])
     
     score = model.predict({
-        'text_input': tf.constant([extracted['title']], dtype=tf.string),
+        'emb_input': np.array([title_vec]),
         'meta_input': stats
     }, verbose=0)[0][0] * 100
     
-    # 2. Semantic Duplicate Check (Looking for Meaning, not just words)
-    vec = encoder.predict(tf.constant([extracted['title']], dtype=tf.string), verbose=0)
-    sim_scores = cosine_similarity(vec, db_vecs)[0]
-    best_match_idx = np.argmax(sim_scores)
-    max_sim = sim_scores[best_match_idx]
+    # 2. Semantic Duplicate Check
+    if len(db_vectors) > 0:
+        sim_scores = cosine_similarity([title_vec], db_vectors)[0]
+        best_match_idx = np.argmax(sim_scores)
+        max_sim = sim_scores[best_match_idx]
+    else:
+        max_sim = 0
+        best_match_idx = 0
     
+    percentage = int(max_sim * 100)
+    
+    # User-requested interpretation scale
+    if percentage <= 20: sim_status = "Not Related"
+    elif percentage <= 40: sim_status = "Slightly Related"
+    elif percentage <= 60: sim_status = "Moderately Similar"
+    elif percentage <= 80: sim_status = "Highly Similar"
+    else: sim_status = "Very Similar / Duplicate"
+
     # Novelty: Inverse of Semantic Similarity
     novelty = int((1 - max_sim) * 100)
 
     # 3. Profiling
     cluster_id = kmeans.predict(stats)[0]
-    profile = cluster_descs.get(str(cluster_id), "General R&D")
+    profile = cluster_descs.get(str(cluster_id), "General R&D Project")
 
     # --- FINAL REPORT ---
     print("\n" + "="*50)
     print(f"AI ANALYSIS REPORT")
     print("=" * 50)
     print(f"CLASSIFICATION: {profile}")
-    print(f"SCORE:          {int(score)}%")
-    print(f"NOVELTY:        {novelty}% (Semantic Check)")
+    print(f"OVERALL SCORE:  {int(score)}%")
+    print(f"NOVELTY SCORE:  {novelty}%")
+    print(f"SEMANTIC MATCH: {percentage}% ({sim_status})")
     
-    # Semantic Equivalence Logic: Low Novelty means high Semantic Similarity
-    if novelty < 25: 
-        print("\nSTATUS: REJECTED (Duplicate Found)")
-        print(f"   SEMANTIC MATCH: {int(max_sim*100)}% Match")
-        print(f"   Matched with:   \"{db_titles[best_match_idx]}\"")
-        print("   Logic: This title is semantically equivalent to one in our records.")
+    if percentage > 60: 
+        print("\nSTATUS: REJECTED (Duplicate Risk)")
+        print(f"   Matched with: \"{db_titles[best_match_idx]}\"")
     elif score >= 70:
         print("\nSTATUS: PASSED")
-        print("   Proposal appears to be unique and compliant.")
     else:
         print("\nSTATUS: REVISION SUGGESTED")
-        print("   The score suggests the proposal may be weak in R&D focus.")
 
     print("=" * 50)
+
 
 if __name__ == "__main__":
     # Test with standard or found file
