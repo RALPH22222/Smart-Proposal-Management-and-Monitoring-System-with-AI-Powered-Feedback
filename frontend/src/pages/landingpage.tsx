@@ -161,6 +161,10 @@ const LandingPage: React.FC = () => {
               images: (data.hero.images && Array.isArray(data.hero.images) && data.hero.images.length === 3)
                 ? data.hero.images
                 : DEFAULT_HOME_INFO.hero.images
+            },
+            templates: {
+              ...DEFAULT_HOME_INFO.templates,
+              ...(data.templates || {})
             }
           });
         }
@@ -410,7 +414,7 @@ const LandingPage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href={templateDOCX}
+                    href={homeData.templates.research_url || templateDOCX}
                     download
                     className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-white text-center flex-1 bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
                     style={{ backgroundColor: '#C8102E' }}
@@ -625,6 +629,7 @@ const LandingPage: React.FC = () => {
       <TemplateViewModal
         isOpen={isTemplateModalOpen}
         onClose={() => setIsTemplateModalOpen(false)}
+        templateUrl={homeData.templates.research_url}
       />
     </div>
   );

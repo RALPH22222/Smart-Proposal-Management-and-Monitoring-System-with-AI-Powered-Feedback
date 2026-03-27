@@ -100,10 +100,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
       
       <div className="relative group">
-        <div className="aspect-video w-full rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden flex items-center justify-center relative">
+        <div 
+          className="aspect-video w-full rounded-lg border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center relative"
+          style={{ background: currentUrl ? "repeating-conic-gradient(#d1d5db 0% 25%, #f9fafb 0% 50%) 0 0 / 16px 16px" : "#f9fafb" }}
+        >
           {currentUrl ? (
             <>
-              <img src={currentUrl} alt={label} className="w-full h-full object-cover" />
+              <img src={currentUrl} alt={label} className="w-full h-full object-contain p-2" />
               {!isUrlMode && (
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button

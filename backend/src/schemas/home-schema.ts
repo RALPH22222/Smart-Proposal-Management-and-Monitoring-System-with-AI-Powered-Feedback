@@ -45,6 +45,10 @@ export const HomeInfoSchema = z.object({
     description: z.string(),
     items: z.array(HomeCriteriaSchema),
   }),
+  templates: z.object({
+    research_url: z.string(),
+    project_url: z.string(),
+  }),
 });
 
 export type HomeStat = z.infer<typeof HomeStatSchema>;
@@ -96,5 +100,9 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
       { title: "Ethical Compliance", description: "All research must adhere to WMSU's ethical standards, ensuring participant safety, data privacy, intellectual property rights, and responsible conduct of research." },
       { title: "Budget Justification", description: "Budget allocations must be reasonable, well-documented, and directly support project objectives, with clear justification for all expenses and cost-effective resource utilization." },
     ],
+  },
+  templates: {
+    research_url: "",
+    project_url: "",
   },
 };

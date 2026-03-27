@@ -6,9 +6,10 @@ import templateDOCX from '../../assets/template/DOST_Form_No.1b.docx';
 interface TemplateViewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  templateUrl?: string;
 }
 
-const TemplateViewModal: React.FC<TemplateViewModalProps> = ({ isOpen, onClose }) => {
+const TemplateViewModal: React.FC<TemplateViewModalProps> = ({ isOpen, onClose, templateUrl }) => {
   if (!isOpen) return null;
 
   return (
@@ -59,7 +60,7 @@ const TemplateViewModal: React.FC<TemplateViewModalProps> = ({ isOpen, onClose }
             Close
           </button>
           <a
-            href={templateDOCX}
+            href={templateUrl || templateDOCX}
             download="DOST-Project-Proposal-Template.docx"
             className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
           >

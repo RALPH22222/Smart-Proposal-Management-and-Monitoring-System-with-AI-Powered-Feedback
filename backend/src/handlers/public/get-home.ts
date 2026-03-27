@@ -45,6 +45,10 @@ export const handler = buildCorsHeaders(async (event) => {
         ...DEFAULT_HOME_INFO.criteria,
         ...(data?.value?.criteria || {}),
       },
+      templates: {
+        research_url: data?.value?.templates?.research_url || "",
+        project_url: data?.value?.templates?.project_url || "",
+      },
     };
 
     return {

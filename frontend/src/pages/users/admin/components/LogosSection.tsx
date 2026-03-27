@@ -63,10 +63,10 @@ export const LogosSection: React.FC = () => {
               Recommended: Transparent PNG, 512x512px.
             </p>
             <ImageUpload
-              currentUrl={logos.wmsu_logo}
+              currentUrl={logos?.wmsu_logo || ""}
               label="WMSU Logo"
               onUploadSuccess={(newUrl) => {
-                setLogos({ ...logos, wmsu_logo: newUrl });
+                setLogos({ ...(logos || { wmsu_logo: "", rdec_logo: "" }), wmsu_logo: newUrl });
               }}
             />
           </div>
@@ -87,10 +87,10 @@ export const LogosSection: React.FC = () => {
               It is paired with the WMSU seal in standard navigation bars.
             </p>
             <ImageUpload
-              currentUrl={logos.rdec_logo}
+              currentUrl={logos?.rdec_logo || ""}
               label="RDEC Logo"
               onUploadSuccess={(newUrl) => {
-                setLogos({ ...logos, rdec_logo: newUrl });
+                setLogos({ ...(logos || { wmsu_logo: "", rdec_logo: "" }), rdec_logo: newUrl });
               }}
             />
           </div>
