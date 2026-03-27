@@ -138,9 +138,10 @@ export class ProposalLambdas extends NestedStack {
     proposalBucket.grantPut(this.getUploadUrl);
 
     // Special: AI analysis with local SentenceTransformer (WASM via onnxruntime-web).
-    // nodeModules forces Docker bundling → afterBundling commands MUST be Linux.
-    // We strip onnxruntime-node (211MB native binaries) and sharp (21MB).
-    // @huggingface/transformers auto-falls back to onnxruntime-web (WASM).
+    // We strip onnxruntime-node (211MB native binaries) and sharp (21MB), then replace
+    // onnxruntime-node with a tiny shim that re-exports onnxruntime-web (WASM).
+    // transformers.node.mjs has a static `import ... from "onnxruntime-node"` that MUST
+    // resolve — just deleting the package causes ERR_MODULE_NOT_FOUND at load time.
     // Final package: ~165MB (under 250MB Lambda limit).
     this.analyzeProposal = new NodejsFunction(this, "analyze-proposal", {
       ...defaults,
@@ -163,15 +164,24 @@ export class ProposalLambdas extends NestedStack {
             if (process.platform === "win32") {
               return [
                 `xcopy "${inputDir}\\src\\ai-models" "${outputDir}\\ai-models" /E /I /Y`,
+                // Replace onnxruntime-node with shim → onnxruntime-web (WASM)
                 `if exist "${outputDir}\\node_modules\\onnxruntime-node" rmdir /S /Q "${outputDir}\\node_modules\\onnxruntime-node"`,
+                `xcopy "${inputDir}\\src\\onnxruntime-shim" "${outputDir}\\node_modules\\onnxruntime-node" /E /I /Y`,
+                // Replace sharp with no-op shim (not used — text/NLP only)
                 `if exist "${outputDir}\\node_modules\\sharp" rmdir /S /Q "${outputDir}\\node_modules\\sharp"`,
+                `xcopy "${inputDir}\\src\\sharp-shim" "${outputDir}\\node_modules\\sharp" /E /I /Y`,
                 `if exist "${outputDir}\\node_modules\\@img" rmdir /S /Q "${outputDir}\\node_modules\\@img"`,
               ];
             }
             return [
               `cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`,
+              // Replace onnxruntime-node with shim → onnxruntime-web (WASM)
               `rm -rf ${outputDir}/node_modules/onnxruntime-node || true`,
-              `rm -rf ${outputDir}/node_modules/sharp ${outputDir}/node_modules/@img || true`,
+              `cp -r ${inputDir}/src/onnxruntime-shim ${outputDir}/node_modules/onnxruntime-node`,
+              // Replace sharp with no-op shim (not used — text/NLP only)
+              `rm -rf ${outputDir}/node_modules/sharp || true`,
+              `cp -r ${inputDir}/src/sharp-shim ${outputDir}/node_modules/sharp`,
+              `rm -rf ${outputDir}/node_modules/@img || true`,
             ];
           },
         },

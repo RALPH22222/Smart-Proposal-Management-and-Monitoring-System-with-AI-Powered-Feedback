@@ -57,6 +57,7 @@ api.interceptors.response.use(
       processQueue(refreshError);
       // Refresh failed — clear storage and redirect to login
       localStorage.removeItem('user');
+      sessionStorage.removeItem('auth_verified');
       window.location.href = '/login';
       return Promise.reject(refreshError);
     } finally {

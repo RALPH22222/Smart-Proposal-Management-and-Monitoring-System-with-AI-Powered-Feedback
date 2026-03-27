@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("logout error (ignored):", error);
     } finally {
       localStorage.removeItem("user");
+      sessionStorage.removeItem("auth_verified");
       setUser(null);
       console.log("Successfully logged out...");
       navigate("/");

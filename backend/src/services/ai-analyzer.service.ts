@@ -123,6 +123,12 @@ async function getExtractor() {
   // Lambda can only write to /tmp — cache downloaded ONNX model there
   env.cacheDir = "/tmp/hf-cache";
 
+  // @huggingface/transformers sets wasmPaths to a CDN URL (https://cdn.jsdelivr.net/…)
+  // but Node.js ESM loader rejects https: imports. Point to local WASM files instead.
+  const wasmDir = path.resolve(__dirname, "node_modules", "onnxruntime-web", "dist");
+  env.backends.onnx.wasm!.wasmPaths = `file://${wasmDir}/`;
+  env.backends.onnx.wasm!.numThreads = 1;
+
   _extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
     dtype: "q8",
   });
