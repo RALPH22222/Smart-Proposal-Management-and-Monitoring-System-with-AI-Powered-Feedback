@@ -47,6 +47,7 @@ export class BackendStack extends Stack {
       "/pms/backend/SUPABASE_SERVICE_ROLE_KEY",
     );
     const GEMINI_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/GEMINI_API_KEY");
+    const HF_API_TOKEN = StringParameter.valueForStringParameter(this, "/pms/backend/HF_API_TOKEN");
     const ORS_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/ORS_API_KEY");
 
     const FRONTEND_URL = "https://wmsu-spmams.vercel.app";
@@ -131,6 +132,7 @@ export class BackendStack extends Stack {
       proposalBucket: proposal_attachments_bucket,
       supabaseKey: SUPABASE_KEY,
       geminiApiKey: GEMINI_API_KEY,
+      hfApiToken: HF_API_TOKEN,
       orsApiKey: ORS_API_KEY,
       smtpHost: SMTP_HOST,
       smtpUser: SMTP_USER,

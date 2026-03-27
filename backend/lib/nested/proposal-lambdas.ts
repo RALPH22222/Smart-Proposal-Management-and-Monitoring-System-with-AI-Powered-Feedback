@@ -13,6 +13,7 @@ interface ProposalLambdasProps {
   proposalBucket: IBucket;
   supabaseKey: string;
   geminiApiKey: string;
+  hfApiToken: string;
   smtpHost: string;
   smtpUser: string;
   smtpPass: string;
@@ -63,7 +64,7 @@ export class ProposalLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, hfApiToken, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
 
     const defaults = {
       memorySize: 128,
@@ -137,7 +138,8 @@ export class ProposalLambdas extends NestedStack {
     });
     proposalBucket.grantPut(this.getUploadUrl);
 
-    // Special: larger memory + timeout + bundling for AI analysis
+    // Special: AI analysis with HuggingFace API for MiniLM embeddings.
+    // No heavy packages — model weights are JSON files (~26 MB), embeddings via HF API.
     this.analyzeProposal = new NodejsFunction(this, "analyze-proposal", {
       ...defaults,
       functionName: "pms-analyze-proposal",
@@ -145,7 +147,7 @@ export class ProposalLambdas extends NestedStack {
       timeout: Duration.seconds(60),
       entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
       role: sharedRole,
-      environment: sharedEnv,
+      environment: { ...sharedEnv, HF_API_TOKEN: hfApiToken },
       bundling: {
         commandHooks: {
           beforeBundling(_inputDir: string, _outputDir: string): string[] {

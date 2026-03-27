@@ -39,6 +39,23 @@ for layer in model.layers:
 with open(os.path.join(OUTPUT_DIR, "dense_layers.json"), "w") as f:
     json.dump(dense_layers, f)
 
+# --- 1b. Export BatchNormalization weights (for TypeScript inference) ---
+print("Exporting batch normalization weights...")
+for layer in model.layers:
+    if isinstance(layer, tf.keras.layers.BatchNormalization):
+        weights = layer.get_weights()  # [gamma, beta, moving_mean, moving_variance]
+        bn_data = {
+            "gamma": weights[0].tolist(),
+            "beta": weights[1].tolist(),
+            "moving_mean": weights[2].tolist(),
+            "moving_variance": weights[3].tolist(),
+            "epsilon": layer.epsilon,
+        }
+        with open(os.path.join(OUTPUT_DIR, "batch_norm.json"), "w") as f:
+            json.dump(bn_data, f)
+        print(f"   BatchNorm '{layer.name}': size={len(weights[0])}")
+        break  # Only one BN layer in this model
+
 # --- 2. Export Scaler parameters ---
 print("Exporting scaler...")
 scaler_data = {

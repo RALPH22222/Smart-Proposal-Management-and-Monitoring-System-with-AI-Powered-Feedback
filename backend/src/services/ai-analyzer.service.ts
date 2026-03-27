@@ -1,5 +1,5 @@
 import path from "path";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -8,6 +8,14 @@ interface DenseLayerWeights {
   kernel: number[][]; // shape: [inputDim, outputDim]
   bias: number[];
   activation: string;
+}
+
+interface BatchNormParams {
+  gamma: number[];
+  beta: number[];
+  moving_mean: number[];
+  moving_variance: number[];
+  epsilon: number;
 }
 
 interface ScalerParams {
@@ -55,27 +63,31 @@ function loadJSON<T>(filename: string): T {
   return JSON.parse(raw) as T;
 }
 
-// Lazy-loaded singletons
-let _vocab: Record<string, number> | null = null;
-let _embedding: number[][] | null = null;
+// Lazy-loaded singletons (JSON-based models)
 let _denseLayers: DenseLayerWeights[] | null = null;
 let _scaler: ScalerParams | null = null;
 let _kmeans: KMeansParams | null = null;
 let _comparisonDB: ComparisonDB | null = null;
-
-function getVocab(): Record<string, number> {
-  if (!_vocab) _vocab = loadJSON<Record<string, number>>("vocab.json");
-  return _vocab;
-}
-
-function getEmbedding(): number[][] {
-  if (!_embedding) _embedding = loadJSON<number[][]>("embedding.json");
-  return _embedding;
-}
+let _batchNormLoaded = false;
+let _batchNorm: BatchNormParams | null = null;
 
 function getDenseLayers(): DenseLayerWeights[] {
   if (!_denseLayers) _denseLayers = loadJSON<DenseLayerWeights[]>("dense_layers.json");
   return _denseLayers;
+}
+
+function getBatchNorm(): BatchNormParams | null {
+  if (!_batchNormLoaded) {
+    _batchNormLoaded = true;
+    try {
+      if (existsSync(path.join(MODELS_DIR, "batch_norm.json"))) {
+        _batchNorm = loadJSON<BatchNormParams>("batch_norm.json");
+      }
+    } catch {
+      _batchNorm = null;
+    }
+  }
+  return _batchNorm;
 }
 
 function getScaler(): ScalerParams {
@@ -91,6 +103,70 @@ function getKMeans(): KMeansParams {
 function getComparisonDB(): ComparisonDB {
   if (!_comparisonDB) _comparisonDB = loadJSON<ComparisonDB>("comparison_db.json");
   return _comparisonDB;
+}
+
+// ── SentenceTransformer (MiniLM via HuggingFace Inference API) ──────
+//
+// Calls the free HuggingFace Inference API to encode titles using the same
+// all-MiniLM-L6-v2 model as Python's SentenceTransformer.
+// Produces 384-dim semantic vectors — exact parity with Keras training.
+// No heavy packages needed — just a single HTTP call (~500ms).
+
+const HF_MODEL_URL =
+  "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2";
+
+/**
+ * Encode a title into a 384-dim semantic vector using MiniLM.
+ * Calls HuggingFace Inference API (free, same model as Python training).
+ *
+ * The API returns token-level embeddings [[tok1_384], [tok2_384], ...].
+ * We apply mean pooling to match SentenceTransformer('all-MiniLM-L6-v2').encode().
+ */
+async function encodeTitle(title: string): Promise<number[]> {
+  const hfToken = process.env.HF_API_TOKEN;
+  if (!hfToken) {
+    throw new Error("HF_API_TOKEN environment variable is required for AI analysis");
+  }
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${hfToken}`,
+  };
+
+  const res = await fetch(HF_MODEL_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ inputs: title, options: { wait_for_model: true } }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`HuggingFace API error: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+
+  // API returns token-level embeddings: number[][] (shape: [seq_len, 384])
+  // Apply mean pooling to get a single 384-dim sentence vector
+  if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) {
+    // Shape: [1, seq_len, 384] — batch response
+    const tokens: number[][] = data[0];
+    return meanPool(tokens);
+  } else if (Array.isArray(data) && Array.isArray(data[0]) && typeof data[0][0] === "number") {
+    // Shape: [seq_len, 384] — direct token embeddings
+    return meanPool(data as number[][]);
+  }
+
+  throw new Error("Unexpected HuggingFace API response format");
+}
+
+/** Mean pooling over token embeddings → single sentence vector */
+function meanPool(tokenEmbeddings: number[][]): number[] {
+  const dim = tokenEmbeddings[0].length;
+  const result = new Array<number>(dim).fill(0);
+  for (const tokenVec of tokenEmbeddings) {
+    for (let i = 0; i < dim; i++) result[i] += tokenVec[i];
+  }
+  for (let i = 0; i < dim; i++) result[i] /= tokenEmbeddings.length;
+  return result;
 }
 
 // ── Math primitives ──────────────────────────────────────────────────
@@ -126,12 +202,26 @@ function denseForward(input: number[], kernel: number[][], bias: number[], activ
   return result;
 }
 
+/**
+ * BatchNormalization forward pass (inference mode).
+ * y = gamma * (x - moving_mean) / sqrt(moving_variance + epsilon) + beta
+ */
+function batchNormForward(input: number[], params: BatchNormParams): number[] {
+  const result = new Array<number>(input.length);
+  for (let i = 0; i < input.length; i++) {
+    const normalized = (input[i] - params.moving_mean[i]) / Math.sqrt(params.moving_variance[i] + params.epsilon);
+    result[i] = params.gamma[i] * normalized + params.beta[i];
+  }
+  return result;
+}
+
 /** Cosine similarity between two vectors */
 function cosineSimilarity(a: number[], b: number[]): number {
+  const len = Math.min(a.length, b.length);
   let dot = 0;
   let normA = 0;
   let normB = 0;
-  for (let i = 0; i < a.length; i++) {
+  for (let i = 0; i < len; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
@@ -150,97 +240,7 @@ function euclideanDistance(a: number[], b: number[]): number {
   return Math.sqrt(sum);
 }
 
-// ── Text processing ──────────────────────────────────────────────────
-
-/**
- * Replicates Keras TextVectorization: lowercase, split on whitespace/punct, lookup indices.
- * Supports both unigram (ngrams=1) and bigram (ngrams=2) modes based on vocabulary.
- * Returns array of integer token indices.
- */
-function tokenize(text: string, vocab: Record<string, number>): number[] {
-  const OOV_INDEX = 1; // [UNK] token
-  const words = text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 0);
-
-  // Determine max n-gram in vocabulary by scanning keys (tri-grams have 2 spaces)
-  // We'll support up to tri-grams if the vocabulary contains them
-  const sampleKeys = Object.keys(vocab).slice(0, 1000); // Check a sample to determine mode
-  const maxN = sampleKeys.reduce((max, key) => {
-    const spaces = (key.match(/ /g) || []).length;
-    return Math.max(max, spaces + 1);
-  }, 1);
-
-  if (maxN > 1) {
-    const tokens: number[] = [];
-    // Generate n-grams from n down to 1
-    for (let i = 0; i < words.length; i++) {
-        let found = false;
-        for (let n = maxN; n >= 1; n--) {
-            if (i + n <= words.length) {
-                const ngram = words.slice(i, i + n).join(" ");
-                if (vocab[ngram] !== undefined) {
-                    tokens.push(vocab[ngram]);
-                    i += (n - 1); // skip words used in this ngram
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if (!found) {
-            tokens.push(OOV_INDEX);
-        }
-    }
-    return tokens;
-  }
-
-  return words.map((word) => vocab[word] ?? OOV_INDEX);
-}
-
-/**
- * Replicates Embedding + GlobalAveragePooling1D.
- * Looks up each token index in the embedding matrix and averages all vectors.
- */
-function embedAndPool(tokens: number[], embeddingMatrix: number[][]): number[] {
-  const embDim = embeddingMatrix[0].length; // 32
-
-  if (tokens.length === 0) {
-    // Return zero vector if no tokens
-    return new Array<number>(embDim).fill(0);
-  }
-
-  const sum = new Array<number>(embDim).fill(0);
-  for (const idx of tokens) {
-    // Clamp index to valid range
-    const safeIdx = Math.min(idx, embeddingMatrix.length - 1);
-    const vec = embeddingMatrix[safeIdx];
-    for (let j = 0; j < embDim; j++) {
-      sum[j] += vec[j];
-    }
-  }
-
-  // Average pooling
-  for (let j = 0; j < embDim; j++) {
-    sum[j] /= tokens.length;
-  }
-
-  return sum;
-}
-
 // ── Inference pipeline ───────────────────────────────────────────────
-
-/**
- * Encode a title string to its 32-dim embedding vector.
- * Replicates: TextVectorization -> Embedding -> GlobalAveragePooling1D
- */
-function encodeTitle(title: string): number[] {
-  const vocab = getVocab();
-  const embedding = getEmbedding();
-  const tokens = tokenize(title, vocab);
-  return embedAndPool(tokens, embedding);
-}
 
 /**
  * StandardScaler transform: (value - mean) / scale
@@ -251,56 +251,38 @@ function scaleMetadata(raw: number[]): number[] {
 }
 
 /**
- * Full model forward pass.
- * Returns score 0-100.
+ * Full model forward pass. Returns score 0-100.
  *
- * Model architecture:
- *   text_input -> TextVectorization -> Embedding -> GlobalAveragePooling1D -> x1 (32)
- *   meta_input -> Dense(32, relu) -> x2 (32)
- *   concatenate(x1, x2) -> (64) -> Dense(32, relu) -> Dense(1, sigmoid)
+ * Keras architecture:
+ *   emb_input (384) -> Dense(128, relu) -> BatchNorm -> Dropout -> x1
+ *   meta_input (6)  -> Dense(64, relu)  -> Dropout -> x2
+ *   concatenate(x1, x2) (192) -> Dense(64, relu) -> Dense(32, relu) -> Dense(1, sigmoid)
+ *
+ * Exported dense_layers.json indices:
+ *   [0] "dense"   = text branch:  384 -> 128, relu
+ *   [1] "dense_1" = meta branch:  6 -> 64, relu
+ *   [2] "dense_2" = shared 1:     192 -> 64, relu
+ *   [3] "dense_3" = shared 2:     64 -> 32, relu
+ *   [4] "output"  = output:       32 -> 1, sigmoid
  */
-function predict(title: string, scaledMeta: number[]): number {
-  const denseLayers = getDenseLayers();
+function predict(titleVec: number[], scaledMeta: number[]): number {
+  const layers = getDenseLayers();
+  const bn = getBatchNorm();
 
-  const findLayer = (name: string) => {
-    const layer = denseLayers.find(l => l.name.includes(name));
-    if (!layer) throw new Error(`Required model layer "${name}" not found in JSON.`);
-    return layer;
-  };
-
-  // 1. Text Branch (Preprocessing)
-  let x1 = encodeTitle(title);
-
-  // Apply Text Dense Layers
-  try {
-    const td1 = findLayer('text_dense_1');
-    x1 = denseForward(x1, td1.kernel, td1.bias, td1.activation);
-    const tdf = findLayer('text_dense_final');
-    x1 = denseForward(x1, tdf.kernel, tdf.bias, tdf.activation);
-  } catch (e) {
-    // Fallback if named layers aren't found (for legacy models)
-    console.warn("Using index-based fallback for text layers");
+  // 1. Text Branch: Dense(128, relu) -> BatchNorm (if exported)
+  let x1 = denseForward(titleVec, layers[0].kernel, layers[0].bias, layers[0].activation);
+  if (bn) {
+    x1 = batchNormForward(x1, bn);
   }
 
-  // 2. Meta Branch
-  const md1 = findLayer('meta_dense_1');
-  let x2 = denseForward(scaledMeta, md1.kernel, md1.bias, md1.activation);
-  const mdf = findLayer('meta_dense_final');
-  x2 = denseForward(x2, mdf.kernel, mdf.bias, mdf.activation);
+  // 2. Meta Branch: Dense(64, relu)
+  const x2 = denseForward(scaledMeta, layers[1].kernel, layers[1].bias, layers[1].activation);
 
-  // 3. Shared Branch (Heads)
+  // 3. Shared Branch: concat -> Dense(64) -> Dense(32) -> Dense(1, sigmoid)
   const combined = [...x1, ...x2];
-  const s1 = findLayer('shared_dense_1');
-  let z = denseForward(combined, s1.kernel, s1.bias, s1.activation);
-  
-  // Optional second shared layer
-  try {
-    const s2 = findLayer('shared_dense_2');
-    z = denseForward(z, s2.kernel, s2.bias, s2.activation);
-  } catch (e) {}
-
-  const outputLayer = findLayer('output_layer');
-  const output = denseForward(z, outputLayer.kernel, outputLayer.bias, outputLayer.activation);
+  let z = denseForward(combined, layers[2].kernel, layers[2].bias, layers[2].activation);
+  z = denseForward(z, layers[3].kernel, layers[3].bias, layers[3].activation);
+  const output = denseForward(z, layers[4].kernel, layers[4].bias, layers[4].activation);
 
   return output[0] * 100;
 }
@@ -327,7 +309,7 @@ function classify(scaledMeta: number[]): string {
 
 /**
  * Novelty check via cosine similarity against comparison DB.
- * Returns { noveltyScore: 0-100, bestMatch: { title, similarity } }
+ * Both the input vector and DB vectors are 384-dim MiniLM embeddings.
  */
 function checkUniqueness(titleVec: number[]): {
   noveltyScore: number;
@@ -358,8 +340,10 @@ function checkUniqueness(titleVec: number[]): {
 /**
  * Run the full AI analysis on extracted proposal data.
  * Returns the shape expected by the frontend AIModal component.
+ *
+ * Now async because SentenceTransformer inference is async.
  */
-export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
+export async function analyzeProposal(extracted: ExtractedData): Promise<AnalysisResult> {
   // ========== ERROR HANDLING FOR UNDETECTABLE PROPOSALS ==========
 
   // Check for "Unknown" title (default when extraction fails)
@@ -405,7 +389,6 @@ export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
   const hasValidData = extracted.total > 0 || extracted.duration > 0;
 
   if (!hasValidTitle || !hasValidData) {
-    // Return error result for undetectable proposals
     return {
       title: "Analysis Error",
       score: 0,
@@ -476,17 +459,19 @@ export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
   ];
   const scaledMeta = scaleMetadata(rawMeta);
 
-  // 2. AI Score (0-100)
-  const score = Math.round(predict(extracted.title, scaledMeta));
+  // 2. Encode title to 384-dim semantic vector (SentenceTransformer / MiniLM)
+  const titleVec = await encodeTitle(extracted.title);
 
-  // 3. Cluster profile
+  // 3. AI Score (0-100) — full neural network forward pass
+  const score = Math.round(predict(titleVec, scaledMeta));
+
+  // 4. Cluster profile
   const profile = classify(scaledMeta);
 
-  // 4. Novelty / uniqueness check
-  const titleVec = encodeTitle(extracted.title);
+  // 5. Novelty / uniqueness check (cosine similarity against comparison DB)
   const { noveltyScore, bestMatchTitle, bestMatchSimilarity } = checkUniqueness(titleVec);
 
-  // 5. Build issues and suggestions (same logic as scan_pdf.py)
+  // 6. Build issues and suggestions (same logic as scan_pdf.py)
   const issues: string[] = [];
   const suggestions: string[] = [];
 
@@ -507,7 +492,7 @@ export function analyzeProposal(extracted: ExtractedData): AnalysisResult {
   }
 
   // ── Feasibility & Logic Checks ───────────────────────────
-  
+
   // Timeline vs Budget Intensity
   if (extracted.total > 2000000 && extracted.duration < 12) {
     issues.push(`Budget intensity is high (PHP ${Math.round(extracted.total/1000000)}M for only ${extracted.duration} months). This may raise feasibility concerns during review.`);

@@ -127,8 +127,8 @@ export const handler = buildCorsHeaders(async (event) => {
   // Extract form-fillable fields from the DOST template
   const formFields = extractFormFields(text);
 
-  // Run AI analysis
-  const result = analyzeProposal(extracted);
+  // Run AI analysis (async — SentenceTransformer inference)
+  const result = await analyzeProposal(extracted);
 
   return {
     statusCode: 200,
