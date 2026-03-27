@@ -105,68 +105,39 @@ function getComparisonDB(): ComparisonDB {
   return _comparisonDB;
 }
 
-// ── SentenceTransformer (MiniLM via HuggingFace Inference API) ──────
+// ── SentenceTransformer (MiniLM via @huggingface/transformers) ──────
 //
-// Calls the free HuggingFace Inference API to encode titles using the same
-// all-MiniLM-L6-v2 model as Python's SentenceTransformer.
+// Runs the same all-MiniLM-L6-v2 model locally in Lambda via ONNX (WASM).
 // Produces 384-dim semantic vectors — exact parity with Keras training.
-// No heavy packages needed — just a single HTTP call (~500ms).
+// Pipeline is lazy-loaded and cached across warm Lambda invocations.
+// First cold start downloads the ONNX model from HuggingFace Hub (~23MB → /tmp).
 
-const HF_MODEL_URL =
-  "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _extractor: any = null;
+
+async function getExtractor() {
+  if (_extractor) return _extractor;
+
+  const { pipeline, env } = await import("@huggingface/transformers");
+
+  // Lambda can only write to /tmp — cache downloaded ONNX model there
+  env.cacheDir = "/tmp/hf-cache";
+
+  _extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
+    dtype: "q8",
+  });
+
+  return _extractor;
+}
 
 /**
  * Encode a title into a 384-dim semantic vector using MiniLM.
- * Calls HuggingFace Inference API (free, same model as Python training).
- *
- * The API returns token-level embeddings [[tok1_384], [tok2_384], ...].
- * We apply mean pooling to match SentenceTransformer('all-MiniLM-L6-v2').encode().
+ * Equivalent to Python: SentenceTransformer('all-MiniLM-L6-v2').encode(title)
  */
 async function encodeTitle(title: string): Promise<number[]> {
-  const hfToken = process.env.HF_API_TOKEN;
-  if (!hfToken) {
-    throw new Error("HF_API_TOKEN environment variable is required for AI analysis");
-  }
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${hfToken}`,
-  };
-
-  const res = await fetch(HF_MODEL_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ inputs: title, options: { wait_for_model: true } }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`HuggingFace API error: ${res.status} ${await res.text()}`);
-  }
-
-  const data = await res.json();
-
-  // API returns token-level embeddings: number[][] (shape: [seq_len, 384])
-  // Apply mean pooling to get a single 384-dim sentence vector
-  if (Array.isArray(data) && Array.isArray(data[0]) && Array.isArray(data[0][0])) {
-    // Shape: [1, seq_len, 384] — batch response
-    const tokens: number[][] = data[0];
-    return meanPool(tokens);
-  } else if (Array.isArray(data) && Array.isArray(data[0]) && typeof data[0][0] === "number") {
-    // Shape: [seq_len, 384] — direct token embeddings
-    return meanPool(data as number[][]);
-  }
-
-  throw new Error("Unexpected HuggingFace API response format");
-}
-
-/** Mean pooling over token embeddings → single sentence vector */
-function meanPool(tokenEmbeddings: number[][]): number[] {
-  const dim = tokenEmbeddings[0].length;
-  const result = new Array<number>(dim).fill(0);
-  for (const tokenVec of tokenEmbeddings) {
-    for (let i = 0; i < dim; i++) result[i] += tokenVec[i];
-  }
-  for (let i = 0; i < dim; i++) result[i] /= tokenEmbeddings.length;
-  return result;
+  const extractor = await getExtractor();
+  const output = await extractor(title, { pooling: "mean", normalize: false });
+  return Array.from(output.data as Float32Array);
 }
 
 // ── Math primitives ──────────────────────────────────────────────────

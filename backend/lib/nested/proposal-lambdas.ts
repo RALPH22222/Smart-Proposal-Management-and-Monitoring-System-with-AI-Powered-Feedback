@@ -13,7 +13,6 @@ interface ProposalLambdasProps {
   proposalBucket: IBucket;
   supabaseKey: string;
   geminiApiKey: string;
-  hfApiToken: string;
   smtpHost: string;
   smtpUser: string;
   smtpPass: string;
@@ -64,7 +63,7 @@ export class ProposalLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, hfApiToken, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
 
     const defaults = {
       memorySize: 128,
@@ -138,17 +137,21 @@ export class ProposalLambdas extends NestedStack {
     });
     proposalBucket.grantPut(this.getUploadUrl);
 
-    // Special: AI analysis with HuggingFace API for MiniLM embeddings.
-    // No heavy packages — model weights are JSON files (~26 MB), embeddings via HF API.
+    // Special: AI analysis with local SentenceTransformer (WASM via onnxruntime-web).
+    // nodeModules forces Docker bundling → afterBundling commands MUST be Linux.
+    // We strip onnxruntime-node (211MB native binaries) and sharp (21MB).
+    // @huggingface/transformers auto-falls back to onnxruntime-web (WASM).
+    // Final package: ~165MB (under 250MB Lambda limit).
     this.analyzeProposal = new NodejsFunction(this, "analyze-proposal", {
       ...defaults,
       functionName: "pms-analyze-proposal",
-      memorySize: 512,
-      timeout: Duration.seconds(60),
+      memorySize: 1024,
+      timeout: Duration.seconds(120),
       entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
       role: sharedRole,
-      environment: { ...sharedEnv, HF_API_TOKEN: hfApiToken },
+      environment: sharedEnv,
       bundling: {
+        nodeModules: ["@huggingface/transformers"],
         commandHooks: {
           beforeBundling(_inputDir: string, _outputDir: string): string[] {
             return [];
@@ -156,11 +159,20 @@ export class ProposalLambdas extends NestedStack {
           beforeInstall(_inputDir: string, _outputDir: string): string[] {
             return [];
           },
-          afterBundling(inputDir: string, outputDir: string): string[] {
+            afterBundling(inputDir: string, outputDir: string): string[] {
             if (process.platform === "win32") {
-              return [`xcopy "${inputDir}\\src\\ai-models" "${outputDir}\\ai-models" /E /I /Y`];
+              return [
+                `xcopy "${inputDir}\\src\\ai-models" "${outputDir}\\ai-models" /E /I /Y`,
+                `if exist "${outputDir}\\node_modules\\onnxruntime-node" rmdir /S /Q "${outputDir}\\node_modules\\onnxruntime-node"`,
+                `if exist "${outputDir}\\node_modules\\sharp" rmdir /S /Q "${outputDir}\\node_modules\\sharp"`,
+                `if exist "${outputDir}\\node_modules\\@img" rmdir /S /Q "${outputDir}\\node_modules\\@img"`,
+              ];
             }
-            return [`cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`];
+            return [
+              `cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`,
+              `rm -rf ${outputDir}/node_modules/onnxruntime-node || true`,
+              `rm -rf ${outputDir}/node_modules/sharp ${outputDir}/node_modules/@img || true`,
+            ];
           },
         },
       },
