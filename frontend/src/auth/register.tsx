@@ -2,8 +2,7 @@ import { api } from "@utils/axios";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Swal from "sweetalert2";
 import { User, LibraryBig, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
-import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
-import WmsuLogo from "../assets/IMAGES/WMSU.png";
+import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
 
 interface Department {
@@ -27,6 +26,7 @@ const validateAge = (birthdate: string): boolean => {
 };
 
 export default function Register() {
+  const { logos } = useLogos();
   // Step 1 fields
   const [first_name, setFirstName] = useState("");
   const [middle_ini, setMiddleInitial] = useState("");
@@ -455,8 +455,8 @@ export default function Register() {
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
           <div className="relative max-w-md text-center space-y-4 md:space-y-6">
             <div className="flex justify-center items-center gap-3">
-              <img src={WmsuLogo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
-              <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <img src={logos.wmsu_logo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <img src={logos.rdec_logo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
               Project Proposal

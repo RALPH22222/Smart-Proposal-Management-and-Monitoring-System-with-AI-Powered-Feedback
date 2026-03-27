@@ -292,6 +292,7 @@ export class BackendStack extends Stack {
     publicResource.addResource("about").addMethod(HttpMethod.GET, integrate(adminL.getAbout));
     publicResource.addResource("faq").addMethod(HttpMethod.GET, integrate(adminL.getFaq));
     publicResource.addResource("home").addMethod(HttpMethod.GET, integrate(adminL.getHome));
+    publicResource.addResource("logos").addMethod(HttpMethod.GET, integrate(adminL.getLogos));
 
     // ========== PROPOSAL ROUTES ==========
     const proposal = api.root.addResource("proposal");
@@ -505,6 +506,9 @@ export class BackendStack extends Stack {
     admin
       .addResource("update-home")
       .addMethod(HttpMethod.PUT, integrate(adminL.updateHome), protectedRoute);
+    admin
+      .addResource("update-logos")
+      .addMethod(HttpMethod.PUT, integrate(adminL.updateLogos), protectedRoute);
     admin
       .addResource("late-submission-policy")
       .addMethod(HttpMethod.GET, integrate(adminL.getLateSubmissionPolicy), protectedRoute);

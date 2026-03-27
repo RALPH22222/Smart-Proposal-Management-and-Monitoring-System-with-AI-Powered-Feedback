@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import Logo from "../../assets/IMAGES/WMSU.png";
-import RdecLogo from "../../assets/IMAGES/RDEC-WMSU.png";
+import { useLogos } from "../../context/LogoContext";
 import { useAuthContext } from "../../context/AuthContext";
 
 const COLORS = {
@@ -43,6 +42,7 @@ interface NavbarProps {
 }
 
 const CoLeadNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) => {
+  const { logos } = useLogos();
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { logout } = useAuthContext();
@@ -93,8 +93,8 @@ const CoLeadNavbar: React.FC<NavbarProps> = ({ currentPage, onPageChange }) => {
             }}
           >
             <div className="relative flex items-center gap-2">
-              <img src={Logo} alt="WMSU Logo" className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300" />
-              <img src={RdecLogo} alt="RDEC-WMSU Logo" className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300" />
+              <img src={logos.wmsu_logo} alt="WMSU Logo" className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300" />
+              <img src={logos.rdec_logo} alt="RDEC-WMSU Logo" className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-base lg:text-lg font-bold tracking-tight text-white">WMSU Project Proposal</span>

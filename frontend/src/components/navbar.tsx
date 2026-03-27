@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Logo from '../assets/IMAGES/WMSU.png';
-import RdecLogo from '../assets/IMAGES/RDEC-WMSU.png';
+import { useLogos } from '../context/LogoContext';
 
 const COLORS = {
   brand: "#C8102E",
@@ -41,6 +40,7 @@ const FAQIcon = ({ isActive }: { isActive: boolean }) => (
 );
 
 const Navbar: React.FC = () => {
+  const { logos } = useLogos();
   const [scrolled, setScrolled] = useState(false);
   const [activeLink, setActiveLink] = useState("home");
 
@@ -130,12 +130,12 @@ const Navbar: React.FC = () => {
             >
               <div className="relative flex items-center gap-2">
                 <img
-                  src={Logo}
+                  src={logos.wmsu_logo}
                   alt="WMSU Project Proposal Logo"
                   className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
                 />
                 <img
-                  src={RdecLogo}
+                  src={logos.rdec_logo}
                   alt="RDEC-WMSU Logo"
                   className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
                 />

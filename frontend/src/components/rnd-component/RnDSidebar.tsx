@@ -12,7 +12,7 @@ import {
   DollarSign,
   Microscope
 } from 'lucide-react';
-import rdecLogo from "../../assets/IMAGES/RDEC-WMSU.png";
+import { useLogos } from '../../context/LogoContext';
 import { type Statistics } from '../../types/InterfaceProposal';
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
@@ -29,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onPageChange,
   isCollapsed = false
 }) => {
+  const { logos } = useLogos();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { logout, user } = useAuthContext();
 
@@ -202,7 +203,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="relative overflow-hidden px-4 py-3 rounded-xl border-1 border-red-200" style={{ background: "linear-gradient(135deg, #fff1f2 0%, #fef2f2 60%, #fff 100%)" }}>
             {/* Logo watermark */}
             <img
-              src={rdecLogo}
+              src={logos.rdec_logo}
               alt="RDEC WMSU"
               className="absolute -right-2 -bottom-2 w-16 h-16 object-contain opacity-15 pointer-events-none select-none"
             />

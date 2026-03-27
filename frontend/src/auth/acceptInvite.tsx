@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { supabase } from '../config/supabaseClient';
 import { api } from '../utils/axios';
-import RdecLogo from '../assets/IMAGES/RDEC-WMSU.png';
+import { useLogos } from '../context/LogoContext';
 import AuthBackground from '../assets/IMAGES/Auth-Background.jpg';
 
 interface Department {
@@ -37,6 +37,7 @@ const getMaxDate = () => {
 };
 
 export default function AcceptInvite() {
+  const { logos } = useLogos();
   // Account fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -238,7 +239,7 @@ export default function AcceptInvite() {
           </div>
         </div>
         <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 p-8 text-center">
-          <img src={RdecLogo} alt="RDEC Logo" className="w-20 h-20 object-contain mx-auto mb-4" />
+          <img src={logos.rdec_logo} alt="RDEC Logo" className="w-20 h-20 object-contain mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h2>
           <p className="text-gray-600 text-sm mb-6">{errorMessage}</p>
           <button
@@ -526,7 +527,7 @@ export default function AcceptInvite() {
           {/* Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 overflow-hidden">
             <img
-              src="../src/assets/IMAGES/WMSU-LOGO.png"
+              src={logos.wmsu_logo}
               alt="Logo Watermark"
               className="max-w-[50%] max-h-[50%] object-contain opacity-[0.03]"
             />
@@ -535,7 +536,7 @@ export default function AcceptInvite() {
           {/* Header */}
           <div className="bg-white px-8 pt-6 pb-4 relative z-20">
             <div className="flex items-center gap-3 mb-1">
-              <img src={RdecLogo} alt="RDEC Logo" className="w-12 h-12 object-contain" />
+              <img src={logos.rdec_logo} alt="RDEC Logo" className="w-12 h-12 object-contain" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Complete Registration</h2>
                 <p className="text-gray-500 text-sm mt-0.5">Set up your account and profile to get started.</p>

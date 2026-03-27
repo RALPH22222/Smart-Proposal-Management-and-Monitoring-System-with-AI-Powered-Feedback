@@ -21,7 +21,7 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
 //Proponent
-import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
+import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
 
 // Co-Lead
 import CoLeadMainLayout from "./pages/users/co-lead/CoLeadMainLayout";
@@ -33,12 +33,14 @@ import { Role } from "./types/auth";
 import RedirectAuthenticated from "./components/RedirectAuthenticated";
 import { AuthProvider } from "./context/AuthProvider";
 import { NotificationProvider } from "./context/NotificationContext";
+import { LogoProvider } from "./context/LogoContext";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
+        <LogoProvider>
         <LoadingProvider>
           <LocationWatcher />
           <Routes>
@@ -88,6 +90,7 @@ function App() {
           </Routes>
           <LoadingOverlay />
         </LoadingProvider>
+        </LogoProvider>
         </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>

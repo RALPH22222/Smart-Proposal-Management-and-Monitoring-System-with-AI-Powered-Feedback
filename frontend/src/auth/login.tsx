@@ -4,8 +4,7 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
-import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
-import WmsuLogo from "../assets/IMAGES/WMSU.png";
+import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
 type LoginResponse = {
   message: string;
@@ -19,6 +18,7 @@ type LoginResponse = {
 };
 
 export default function Login() {
+  const { logos } = useLogos();
   const { setUser } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -320,8 +320,8 @@ export default function Login() {
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
           <div className="flex justify-center items-center gap-3">
-            <img src={WmsuLogo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
-            <img src={RdecLogo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+            <img src={logos.wmsu_logo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+            <img src={logos.rdec_logo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
           </div>
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             Project Proposal

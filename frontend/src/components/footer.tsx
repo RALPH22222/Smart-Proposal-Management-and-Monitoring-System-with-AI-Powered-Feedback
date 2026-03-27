@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import Logo from "../assets/IMAGES/WMSU.png";
-import RdecLogo from "../assets/IMAGES/RDEC-WMSU.png";
+import { useLogos } from "../context/LogoContext";
 import type { ContactInfo } from "../schemas/contact-schema";
 import { ContactApi } from "../services/ContactApi";
 
 const Footer: React.FC = () => {
+  const { logos } = useLogos();
   const [contactData, setContactData] = useState<ContactInfo | null>(null);
 
   useEffect(() => {
@@ -28,12 +28,12 @@ const Footer: React.FC = () => {
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <img
-                  src={Logo}
+                  src={logos.wmsu_logo}
                   alt="WMSU Logo"
                   className="w-12 h-12 object-contain"
                 />
                 <img
-                  src={RdecLogo}
+                  src={logos.rdec_logo}
                   alt="RDEC-WMSU Logo"
                   className="w-12 h-12 object-contain"
                 />

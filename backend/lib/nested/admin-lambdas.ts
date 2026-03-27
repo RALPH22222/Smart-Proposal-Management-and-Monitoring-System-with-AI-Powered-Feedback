@@ -39,6 +39,8 @@ export class AdminLambdas extends NestedStack {
   public readonly updateEvaluationDeadline: NodejsFunction;
   public readonly manageLookup: NodejsFunction;
   public readonly checkActiveAssignments: NodejsFunction;
+  public readonly getLogos: NodejsFunction;
+  public readonly updateLogos: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
@@ -276,6 +278,26 @@ export class AdminLambdas extends NestedStack {
       entry: path.resolve("src", "handlers", "admin", "check-active-assignments.ts"),
       role: sharedRole,
       environment: sharedEnv,
+    });
+
+    this.getLogos = new NodejsFunction(this, "get-logos", {
+      ...defaults,
+      functionName: "pms-get-logos",
+      entry: path.resolve("src", "handlers", "public", "get-logos.ts"),
+      environment: sharedEnv,
+    });
+
+    this.updateLogos = new NodejsFunction(this, "update-logos", {
+      ...defaults,
+      functionName: "pms-update-logos",
+      entry: path.resolve("src", "handlers", "admin", "update-logos.ts"),
+      role: sharedRole,
+      environment: {
+        SUPABASE_KEY: supabaseKey,
+        SUPABASE_SECRET_JWT: supabaseSecretJwt,
+        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceRoleKey,
+        TZ: "Asia/Manila",
+      },
     });
 
   }
