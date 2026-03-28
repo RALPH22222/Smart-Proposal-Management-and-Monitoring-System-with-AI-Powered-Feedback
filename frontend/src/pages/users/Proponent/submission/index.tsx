@@ -403,7 +403,7 @@ const Submission: React.FC = () => {
         text: "Your proposal has been submitted successfully.",
         confirmButtonColor: "#C8102E",
       }).then(() => {
-        navigate("/users/proponent/proponentMainLayout?tab=profile");
+        navigate("/users/Proponent/ProponentMainLayout?tab=profile");
       });
     } catch (error: any) {
       console.error("Submission Error:", error);

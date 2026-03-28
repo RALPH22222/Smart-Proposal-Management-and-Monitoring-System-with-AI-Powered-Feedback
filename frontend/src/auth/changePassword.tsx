@@ -42,7 +42,7 @@ export default function ChangePassword() {
   const navigateToDashboard = (role?: string) => {
     switch (role) {
       case 'proponent':
-        navigate('/users/proponent/proponentMainLayout', { replace: true });
+        navigate('/users/Proponent/ProponentMainLayout', { replace: true });
         break;
       case 'rnd':
         navigate('/users/rnd/rndMainLayout', { replace: true });

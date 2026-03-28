@@ -596,7 +596,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       };
       onUpdateProposal(updatedProposal);
       onClose();
-      navigate("/users/proponent/ProponentMainLayout?tab=monitoring");
+      navigate("/users/Proponent/ProponentMainLayout?tab=monitoring");
     }
   };
 
