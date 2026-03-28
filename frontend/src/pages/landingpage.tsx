@@ -3,6 +3,7 @@ import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 import CardSwap, { Card } from '../components/CardSwap';
 import templateDOCX from '../assets/template/DOST_Form_No.1b.docx';
+import { downloadFile } from '../utils/download-helper';
 import TemplateViewModal from '../components/proponent-component/TemplateViewModal';
 import { ClipboardCheck, Clock, Bell, Mail, AlertCircle } from 'lucide-react';
 import { HomeApi } from "../services/HomeApi";
@@ -413,9 +414,15 @@ const LandingPage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <a
-                    href={homeData.templates.research_url || templateDOCX}
-                    download
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = homeData.templates.research_url || templateDOCX;
+                      const fileName = url.includes('supabase.co') || url.includes('amazonaws.com') 
+                        ? (url.split('/').pop()?.replace(/^\d+-/, '') || "DOST-Project-Proposal-Template.docx")
+                        : "DOST-Project-Proposal-Template.docx";
+                      downloadFile(url, fileName);
+                    }}
                     className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-white text-center flex-1 bg-[#C8102E] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2"
                     style={{ backgroundColor: '#C8102E' }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
@@ -425,7 +432,7 @@ const LandingPage: React.FC = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Download Template
-                  </a>
+                  </button>
                   <button
                     onClick={() => setIsTemplateModalOpen(true)}
                     className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-300 border-2 hover:bg-red-50 text-center flex-1 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 cursor-pointer"

@@ -2,6 +2,7 @@ import React from 'react';
 import { X, FileText, Download } from 'lucide-react';
 import templatePDF from '../../assets/template/DOST_Form_No.1b.pdf';
 import templateDOCX from '../../assets/template/DOST_Form_No.1b.docx';
+import { downloadFile } from '../../utils/download-helper';
 
 interface TemplateViewModalProps {
   isOpen: boolean;
@@ -59,14 +60,20 @@ const TemplateViewModal: React.FC<TemplateViewModalProps> = ({ isOpen, onClose, 
           >
             Close
           </button>
-          <a
-            href={templateUrl || templateDOCX}
-            download="DOST-Project-Proposal-Template.docx"
+          <button
+            type="button"
+            onClick={() => {
+              const url = templateUrl || templateDOCX;
+              const fileName = url.includes('supabase.co') || url.includes('amazonaws.com') 
+                ? (url.split('/').pop()?.replace(/^\d+-/, '') || "DOST-Project-Proposal-Template.docx")
+                : "DOST-Project-Proposal-Template.docx";
+              downloadFile(url, fileName);
+            }}
             className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Download Word (DOCX)
-          </a>
+          </button>
         </div>
 
       </div>

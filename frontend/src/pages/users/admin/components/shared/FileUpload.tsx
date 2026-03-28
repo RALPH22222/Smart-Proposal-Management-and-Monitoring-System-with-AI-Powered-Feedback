@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
-import { Upload, Loader2, ExternalLink, FileText, File as FileIcon, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, File as FileIcon, CheckCircle2, Download } from "lucide-react";
 import { CmsApi } from "../../../../../services/CmsApi";
 import { toast } from "react-hot-toast";
+import { downloadFile } from "../../../../../utils/download-helper";
 
 interface FileUploadProps {
   currentUrl: string;
@@ -121,14 +122,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   {fileName}
                 </h4>
                 <div className="flex items-center gap-3 mt-1">
-                  <a 
-                    href={currentUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase flex items-center gap-1"
+                  <button
+                    type="button"
+                    onClick={() => downloadFile(currentUrl, fileName)}
+                    className="text-[10px] font-bold text-red-600 hover:text-red-700 uppercase flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
                   >
-                    View File <ExternalLink className="w-3 h-3" />
-                  </a>
+                    Download File <Download className="w-3 h-3" />
+                  </button>
                   <span className="text-[10px] text-gray-400 font-medium">• ACTIVE TEMPLATE</span>
                 </div>
               </>
