@@ -151,7 +151,7 @@ export class ProjectService {
           sector:sectors (id, name),
           discipline:disciplines (id, name),
           agency:agencies (id, name, street, barangay, city),
-          estimated_budget (id, source, ps, mooe, co)
+          estimated_budget (id, source, budget, item, amount)
         ),
         project_lead:users!project_lead_id (
           id,
