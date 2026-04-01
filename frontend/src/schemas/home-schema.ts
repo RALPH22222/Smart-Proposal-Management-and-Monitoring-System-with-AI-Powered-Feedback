@@ -16,6 +16,11 @@ export const HomeCriteriaSchema = z.object({
   description: z.string(),
 });
 
+export const HomeProcessStepSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
 export const HomeInfoSchema = z.object({
   hero: z.object({
     badge: z.string(),
@@ -49,11 +54,13 @@ export const HomeInfoSchema = z.object({
     research_url: z.string(),
     project_url: z.string(),
   }),
+  process_steps: z.array(HomeProcessStepSchema),
 });
 
 export type HomeStat = z.infer<typeof HomeStatSchema>;
 export type HomeGuideline = z.infer<typeof HomeGuidelineSchema>;
 export type HomeCriteria = z.infer<typeof HomeCriteriaSchema>;
+export type HomeProcessStep = z.infer<typeof HomeProcessStepSchema>;
 export type HomeInfo = z.infer<typeof HomeInfoSchema>;
 
 export const DEFAULT_HOME_INFO: HomeInfo = {
@@ -105,4 +112,13 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
     research_url: "",
     project_url: "",
   },
+  process_steps: [
+    { title: "Download & Submit Documentation", description: "Ensure you have your DOST project proposal template ready and all required fields are properly filled out. Proceed to the Submission page to submit your proposal. Double-check all information before submitting, as it cannot be edited unless the R&D requests a revision." },
+    { title: "Admin Checking & Assignment", description: "The proposal you submit first goes to the Admin, where it will be checked for initial review. The Admin will then assign it to the appropriate R&D staff for evaluation, though the Admin also maintains the option to directly review and evaluate the proposal themselves." },
+    { title: "R&D Technical Evaluation", description: "Once your proposal is forwarded by the Admin, the Research and Development (R&D) division will review your submitted information and attached documents. They will then evaluate your proposal and may request a revision, reject the submission, or pass it to the evaluators for further review." },
+    { title: "Evaluators' Assessment Panel", description: "Once passed by the R&D division, the proposal is forwarded to the evaluators for assessment. Evaluators review the proposal and assign scores based on key aspects such as the title, timeline, and budget to determine feasibility." },
+    { title: "Consolidated Review & Endorsement", description: "After receiving all evaluators' scores and feedback, the R&D division reviews and consolidates the results. Based on this evaluation, the R&D may request revisions, reject the submission, or endorse it for funding." },
+    { title: "RDEC Funding Deliberation", description: "This step will be reviewed by the Research and Development (R&D) Committee. The committee will meet and discuss the proposal, and based on their evaluation, they will decide whether to approve the project for funding or not." },
+    { title: "Implementation & Progress Monitoring", description: "After your project has been funded, you may request the budget for the start of the quarter and for the following quarters. You are required to report your progress percentage, submit reports, and provide the necessary documents until the project is successfully completed." },
+  ],
 };

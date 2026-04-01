@@ -4,9 +4,9 @@ import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
 import { LogosSection } from "./components/LogosSection";
-import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, BarChart, Palette, Save, Loader2 } from 'lucide-react';
+import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, BarChart, Palette, Save, Loader2, ListOrdered } from 'lucide-react';
 import { HomeApi } from "../../../services/HomeApi";
-import { DEFAULT_HOME_INFO, type HomeInfo } from "../../../schemas/home-schema";
+import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
 import { toast, Toaster } from "react-hot-toast";
 
@@ -17,6 +17,7 @@ const ContentManagement: React.FC = () => {
   const tabs = [
     { id: 'guidelines', label: 'Guidelines & Resources', icon: ClipboardList },
     { id: 'templates', label: 'Proposal Templates', icon: FileText },
+    { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
     { id: 'home', label: 'Home Page', icon: Home },
     { id: 'about', label: 'About Page', icon: Info },
     { id: 'contacts', label: 'Contact Info', icon: Phone },
@@ -64,6 +65,7 @@ const ContentManagement: React.FC = () => {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-1 overflow-y-auto'>
         {activeTab === 'guidelines' && <GuidelinesSection />}
         { activeTab === 'templates' && <TemplatesSection />}
+        { activeTab === 'howitworks' && <HowItWorksSection />}
         { activeTab === 'home' && <HomeSection />}
         { activeTab === 'about' && <AboutSection />}
         {activeTab === 'contacts' && <ContactsSection />}
@@ -75,6 +77,163 @@ const ContentManagement: React.FC = () => {
 };
 
 // --- SUB-COMPONENTS (Fully Preserved) ---
+
+// Proponent Section
+const HowItWorksSection: React.FC = () => {
+  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await HomeApi.getHomeInfo();
+        setHomeData({
+          ...DEFAULT_HOME_INFO,
+          ...(data || {}),
+          process_steps: (Array.isArray(data?.process_steps) && data.process_steps.length > 0)
+            ? data.process_steps
+            : DEFAULT_HOME_INFO.process_steps,
+        });
+      } catch {
+        toast.error("Failed to load process steps.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await HomeApi.updateHomeInfo(homeData);
+      toast.success('Process steps updated!');
+    } catch {
+      toast.error('Failed to save changes.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateStep = (index: number, field: keyof HomeProcessStep, value: string) => {
+    setHomeData(prev => ({
+      ...prev,
+      process_steps: prev.process_steps.map((s, i) => i === index ? { ...s, [field]: value } : s),
+    }));
+  };
+
+  const addStep = () => {
+    setHomeData(prev => ({
+      ...prev,
+      process_steps: [...prev.process_steps, { title: 'New Step', description: '' }],
+    }));
+  };
+
+  const removeStep = (index: number) => {
+    if (homeData.process_steps.length <= 1) { toast.error('At least one step is required.'); return; }
+    setHomeData(prev => ({
+      ...prev,
+      process_steps: prev.process_steps.filter((_, i) => i !== index),
+    }));
+  };
+
+  const moveStep = (index: number, direction: 'up' | 'down') => {
+    const steps = [...homeData.process_steps];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= steps.length) return;
+    [steps[index], steps[swapIndex]] = [steps[swapIndex], steps[index]];
+    setHomeData(prev => ({ ...prev, process_steps: steps }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Loader2 className="w-8 h-8 text-red-600 animate-spin mb-4" />
+        <p className="text-gray-500 font-medium">Loading steps...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 sm:p-6">
+      <Toaster position="top-right" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Proponent Steps</h2>
+          <p className="text-sm text-gray-500 mt-1">Manage the step-by-step process shown to proponents in the "How It Works" modal.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-all font-bold text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50 flex-shrink-0"
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {homeData.process_steps.map((step, index) => (
+          <div key={index} className="bg-gray-50 rounded-xl border border-gray-200 p-4 flex gap-3 items-start">
+            {/* Step Number & Move buttons */}
+            <div className="flex flex-col items-center gap-1 shrink-0 mt-1">
+              <div className="w-9 h-9 rounded-lg bg-red-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                {index + 1}
+              </div>
+              <button
+                onClick={() => moveStep(index, 'up')}
+                disabled={index === 0}
+                className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors leading-none font-bold"
+                title="Move up"
+              >▲</button>
+              <button
+                onClick={() => moveStep(index, 'down')}
+                disabled={index === homeData.process_steps.length - 1}
+                className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-20 transition-colors leading-none font-bold"
+                title="Move down"
+              >▼</button>
+            </div>
+
+            {/* Fields */}
+            <div className="flex-1 space-y-2">
+              <input
+                type="text"
+                value={step.title}
+                onChange={(e) => updateStep(index, 'title', e.target.value)}
+                placeholder="Step title..."
+                className="w-full px-3 py-2 text-sm font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none bg-white"
+              />
+              <textarea
+                value={step.description}
+                onChange={(e) => updateStep(index, 'description', e.target.value)}
+                placeholder="Step description..."
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none bg-white"
+              />
+            </div>
+
+            {/* Remove */}
+            <button
+              onClick={() => removeStep(index)}
+              className="text-red-400 hover:text-red-600 transition-colors shrink-0 mt-1 p-1 text-lg leading-none font-bold"
+              title="Remove step"
+            >✕</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add Step */}
+      <button
+        onClick={addStep}
+        className="mt-4 w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-red-400 hover:text-red-600 transition-colors text-sm font-bold flex items-center justify-center gap-2"
+      >
+        + Add Step
+      </button>
+    </div>
+  );
+};
 
 // Guidelines & Resources Section
 const GuidelinesSection: React.FC = () => {
