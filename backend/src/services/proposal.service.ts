@@ -1248,7 +1248,8 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
-          proposal_version(id,file_url,created_at)
+          proposal_version(id,file_url,created_at),
+          funded_projects(funding_document_url)
         )
       `,
       )

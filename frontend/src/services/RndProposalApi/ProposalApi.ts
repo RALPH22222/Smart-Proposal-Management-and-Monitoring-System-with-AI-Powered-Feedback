@@ -63,6 +63,9 @@ const transformProposal = (raw: any): Proposal => {
         evaluatorInstruction: p.evaluator_instruction || "",
         endorsementJustification: "",
         tags: p.proposal_tags?.map((t: any) => t.tags?.name) || [],
+        fundingDocumentUrl: (Array.isArray(p.funded_projects) && p.funded_projects.length > 0) 
+            ? p.funded_projects[0].funding_document_url 
+            : (p.funded_projects?.funding_document_url || ""),
         rdStaffReviewer: raw.users
             ? `${raw.users.first_name} ${raw.users.last_name}`
             : p.proposal_rnd?.[0]?.users

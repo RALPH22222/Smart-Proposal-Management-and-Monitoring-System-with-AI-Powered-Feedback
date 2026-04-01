@@ -54,6 +54,7 @@ export interface Proposal {
 	tags?: string[];
 	proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
 	versions?: string[];
+	fundingDocumentUrl?: string;
 }
 
 export type ProposalStatus =

@@ -24,6 +24,7 @@ import { formatDate } from '../../../utils/date-formatter';
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'archived'>('pending');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -123,10 +124,19 @@ const FundingPage: React.FC = () => {
 
 
 
-  // Pagination
-  const totalPages = Math.ceil(fundingProposals.length / itemsPerPage);
+  // Pagination & Filtering
+  const pendingStatuses = ['Endorsed', 'Funding Revision'];
+  const archivedStatuses = ['Funded', 'Funding Rejected'];
+
+  const displayedProposals = fundingProposals.filter(p => 
+    activeTab === 'pending' 
+      ? pendingStatuses.includes(p.status) 
+      : archivedStatuses.includes(p.status)
+  );
+
+  const totalPages = Math.ceil(displayedProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = displayedProposals.slice(startIndex, startIndex + itemsPerPage);
 
 
 
@@ -203,30 +213,49 @@ const FundingPage: React.FC = () => {
               className="absolute inset-0 z-50 bg-white" 
             />
           )}
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#C8102E]" />
-              Funding Proposals
+              {activeTab === 'pending' ? 'Funding Proposals' : 'Funding Archive'}
             </h3>
+            <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-lg">
+              <button
+                onClick={() => { setActiveTab('pending'); setCurrentPage(1); }}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => { setActiveTab('archived'); setCurrentPage(1); }}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'archived' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              >
+                Archive
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {fundingProposals.length === 0 ? (
+            {displayedProposals.length === 0 ? (
               <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   <DollarSign className="w-8 h-8 text-slate-400" />
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No funding proposals found
+                  {activeTab === 'pending' ? 'No pending proposals' : 'No archived proposals'}
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
-                  Proposals will appear here once they are endorsed for funding by the R&D department.
+                  {activeTab === 'pending' 
+                    ? 'Proposals will appear here once they are endorsed for funding by the R&D department.' 
+                    : 'Projects that have been approved or rejected for funding will appear here.'}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {paginatedProposals.map((proposal) => (
-                  <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200">
+                  <article 
+                    key={proposal.id} 
+                    className={`p-4 transition-colors duration-200 ${proposal.status === 'Funded' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}
+                  >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -262,13 +291,37 @@ const FundingPage: React.FC = () => {
                       {/* Actions */}
                       <div className="flex items-center gap-3">
                         {getStatusBadge(proposal.status)}
-                        <button
-                          onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
-                        >
-                          <Gavel className="w-3.5 h-3.5" />
-                          Action
-                        </button>
+                        {activeTab === 'pending' ? (
+                          <button
+                            onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
+                          >
+                            <Gavel className="w-3.5 h-3.5" />
+                            Action
+                          </button>
+                        ) : proposal.status === 'Funded' ? (
+                          <div className="flex items-center gap-2">
+                            {proposal.fundingDocumentUrl && (
+                              <a
+                                href={proposal.fundingDocumentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl shadow-sm border border-emerald-200 transition-colors"
+                              >
+                                View File
+                              </a>
+                            )}
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-xl shadow-sm border border-emerald-200 cursor-default">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Archived
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-xl shadow-sm border border-slate-200 cursor-default">
+                            <XCircle className="w-3.5 h-3.5" />
+                            Archived
+                          </div>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -278,11 +331,11 @@ const FundingPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {fundingProposals.length > 0 && (
+          {displayedProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, fundingProposals.length)} of {fundingProposals.length} proposals
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, displayedProposals.length)} of {displayedProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button

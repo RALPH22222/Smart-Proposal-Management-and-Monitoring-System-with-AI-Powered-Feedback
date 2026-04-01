@@ -33,7 +33,7 @@ const useInView = (options?: IntersectionObserverInit) => {
 const Contacts: React.FC = () => {
   const heroSection = useInView();
   const contactSection = useInView();
-  
+
   const [contactData, setContactData] = useState<ContactInfo | null>(null);
 
   useEffect(() => {

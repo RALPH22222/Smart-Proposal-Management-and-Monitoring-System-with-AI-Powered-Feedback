@@ -78,6 +78,41 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
   );
 };
 
+// Phase 1: The Skeleton (The "Shell") + Smooth Blurred Transition
+const BlurredImage: React.FC<{ src: string; alt: string; className?: string }> = ({ src, alt, className }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div className={`relative overflow-hidden ${className} bg-gray-200 transition-colors duration-500`}>
+      {/* 
+        Phase 1: The Skeleton (The Shell) 
+        A grey, pulsing rectangle that matches the exact dimensions of the image 
+        to prevent Cumulative Layout Shift (CLS).
+      */}
+      {!isLoaded && (
+        <div className="absolute inset-0 z-0 bg-gray-200 animate-pulse flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer bg-[length:200%_100%]"></div>
+        </div>
+      )}
+
+      {/* Blurred Loading state when image starts buffering */}
+      <div
+        className={`absolute inset-0 z-10 transition-opacity duration-1000 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 animate-pulse"></div>
+      </div>
+
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setIsLoaded(true)}
+        className={`relative z-20 w-full h-full object-cover transition-all duration-1000 ease-out-expo
+          ${isLoaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-2xl scale-110'}`}
+      />
+    </div>
+  );
+};
+
 const About: React.FC = () => {
   const [aboutData, setAboutData] = useState<AboutInfo>(DEFAULT_ABOUT_INFO);
 
@@ -146,10 +181,10 @@ const About: React.FC = () => {
 
             <div className="w-full h-full flex flex-col items-center justify-center animate-fade-in-right animation-delay-200">
               <div className="relative h-96 w-full overflow-hidden rounded-lg shadow-lg group">
-                <img
+                <BlurredImage
                   src={aboutData.story.image_url || "https://upload.wikimedia.org/wikipedia/en/c/c8/Western_Mindanao_State_University_Gym_%28RT_Lim_Boulevard%2C_Zamboanga_City%3B_10-06-2023%29.jpg"}
                   alt="Western Mindanao State University"
-                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             </div>

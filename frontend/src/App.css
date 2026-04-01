@@ -50,5 +50,17 @@
   .animation-delay-400 { animation-delay: 400ms; }
   .animation-delay-2000 { animation-delay: 2s; }
   .animation-delay-4000 { animation-delay: 4s; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+  }
+  
+  .ease-out-expo {
+    transition-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  }
 }
 

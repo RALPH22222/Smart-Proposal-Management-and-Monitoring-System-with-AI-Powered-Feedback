@@ -32,11 +32,11 @@ const useInView = (options?: IntersectionObserverInit) => {
 
 const FAQ: React.FC = () => {
   const [faqData, setFaqData] = useState<FaqInfo>(DEFAULT_FAQ_INFO);
-  
+
   // Set default active category from the default data
   const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_FAQ_INFO.categories[0].id);
   const [openItems, setOpenItems] = useState<string[]>([]);
-  
+
   const heroSection = useInView();
   const faqSection = useInView();
 
@@ -216,25 +216,25 @@ const FAQ: React.FC = () => {
           <div className={`lg:col-span-3 transition-all duration-1000 ${faqSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
 
             <div className="bg-white rounded-2xl p-3 sm:p-6 md:p-8 border border-[#C8102E]/20 shadow-md hover:shadow-xl transition-all duration-300 overflow-x-auto">
-              
+
               {activeCategoryData && (
-                 <>
-                   {/* Desktop Category Header */}
-                   <div className="hidden lg:flex items-center gap-4 mb-6">
-                     <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
-                       {getCategoryIcon(activeCategoryData.icon)}
-                     </div>
-                     <div className="min-w-0">
-                       <h2 className="text-2xl font-bold text-gray-900">
-                         {activeCategoryData.name}
-                       </h2>
-                       <p className="text-gray-600 text-sm sm:text-base">
-                         {activeCategoryData.items.length}{" "}
-                         questions in this category
-                       </p>
-                     </div>
-                   </div>
-                 </>
+                <>
+                  {/* Desktop Category Header */}
+                  <div className="hidden lg:flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-[#C8102E]/10 rounded-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 min-w-[48px] min-h-[48px]">
+                      {getCategoryIcon(activeCategoryData.icon)}
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {activeCategoryData.name}
+                      </h2>
+                      <p className="text-gray-600 text-sm sm:text-base">
+                        {activeCategoryData.items.length}{" "}
+                        questions in this category
+                      </p>
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Mobile All Questions Header */}
@@ -291,7 +291,7 @@ const FAQ: React.FC = () => {
                     </div>
                   ))}
                   {activeCategoryData?.items.length === 0 && (
-                     <div className="text-center py-8 text-gray-500 text-lg">No questions in this category.</div>
+                    <div className="text-center py-8 text-gray-500 text-lg">No questions in this category.</div>
                   )}
                 </div>
                 {/* Mobile View - All Questions */}
@@ -362,22 +362,22 @@ const FAQ: React.FC = () => {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   {faqData.support.email && (
-                     <a
-                       href={`mailto:${faqData.support.email}`}
-                       className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2 transform hover:scale-100"
-                     >
-                       {ContactIcons.email}
-                       Email Support
-                     </a>
+                    <a
+                      href={`mailto:${faqData.support.email}`}
+                      className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#C8102E] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-md gap-2 transform hover:scale-100"
+                    >
+                      {ContactIcons.email}
+                      Email Support
+                    </a>
                   )}
                   {faqData.support.phone && (
-                     <a
-                       href={`tel:${faqData.support.phone}`}
-                       className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2 transform hover:scale-100"
-                     >
-                       {ContactIcons.phone}
-                       Call Now
-                     </a>
+                    <a
+                      href={`tel:${faqData.support.phone}`}
+                      className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#C8102E] transition-all duration-300 gap-2 transform hover:scale-100"
+                    >
+                      {ContactIcons.phone}
+                      Call Now
+                    </a>
                   )}
                 </div>
               </div>

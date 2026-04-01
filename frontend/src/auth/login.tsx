@@ -324,7 +324,7 @@ export default function Login() {
             <img src={logos.rdec_logo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
           </div>
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
-            Project Proposal
+            WMSU Project Proposal
           </h1>
           <p className="text-sm opacity-90 px-4 md:px-0 hover:opacity-100 transition-opacity duration-300">
             Create, submit and track project proposals — fast, simple, and secure.

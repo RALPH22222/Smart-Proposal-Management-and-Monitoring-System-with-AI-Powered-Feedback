@@ -135,10 +135,40 @@ const AnimatedStat: React.FC<AnimatedStatProps> = ({ value, suffix, label, shoul
   );
 };
 
-// Skeleton component for images
-const ImageSkeleton: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={`bg-gray-200 animate-pulse rounded-2xl ${className}`}></div>
-);
+// Phase 1: The Skeleton (The "Shell") + Smooth Blurred Transition
+const BlurredImage: React.FC<{ src: string; alt: string; className?: string }> = ({ src, alt, className }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div className={`relative overflow-hidden ${className} bg-gray-200 transition-colors duration-500`}>
+      {/* 
+        Phase 1: The Skeleton (The Shell) 
+        A grey, pulsing rectangle that matches the exact dimensions of the image 
+        to prevent Cumulative Layout Shift (CLS).
+      */}
+      {!isLoaded && (
+        <div className="absolute inset-0 z-0 bg-gray-200 animate-pulse flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer bg-[length:200%_100%]"></div>
+        </div>
+      )}
+
+      {/* Blurred Loading state when image starts buffering */}
+      <div
+        className={`absolute inset-0 z-10 transition-opacity duration-1000 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 animate-pulse"></div>
+      </div>
+
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setIsLoaded(true)}
+        className={`relative z-20 w-full h-full object-cover transition-all duration-1000 ease-out-expo
+          ${isLoaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-2xl scale-110'}`}
+      />
+    </div>
+  );
+};
 
 const LandingPage: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
@@ -253,23 +283,23 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4 md:space-y-6 animate-fade-in-left">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   {isLoading || !homeData.hero.images?.[0] ? (
-                    <ImageSkeleton className="w-full h-44 sm:h-48 lg:h-56" />
+                    <div className="bg-gray-200 animate-pulse w-full h-44 sm:h-48 lg:h-56" />
                   ) : (
-                    <img
+                    <BlurredImage
                       src={homeData.hero.images[0]}
                       alt="Research visual 1"
-                      className="w-full h-44 sm:h-48 lg:h-56 object-cover transition-transform duration-700 hover:scale-110"
+                      className="w-full h-44 sm:h-48 lg:h-56 transition-transform duration-700 hover:scale-110"
                     />
                   )}
                 </div>
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:rotate-1">
                   {isLoading || !homeData.hero.images?.[1] ? (
-                    <ImageSkeleton className="w-full h-44 sm:h-48 lg:h-56" />
+                    <div className="bg-gray-200 animate-pulse w-full h-44 sm:h-48 lg:h-56" />
                   ) : (
-                    <img
+                    <BlurredImage
                       src={homeData.hero.images[1]}
                       alt="Research visual 2"
-                      className="w-full max-w-2xl object-cover rounded-xl transition-transform duration-700 hover:scale-110"
+                      className="w-full h-44 sm:h-48 lg:h-56 transition-transform duration-700 hover:scale-110"
                     />
                   )}
                 </div>
@@ -277,12 +307,12 @@ const LandingPage: React.FC = () => {
               <div className="pt-8 md:pt-12 animate-fade-in-right animation-delay-200">
                 <div className="overflow-hidden rounded-2xl shadow-lg transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:-rotate-1">
                   {isLoading || !homeData.hero.images?.[2] ? (
-                    <ImageSkeleton className="w-full h-80 sm:h-72 lg:h-96" />
+                    <div className="bg-gray-200 animate-pulse w-full h-80 sm:h-72 lg:h-96" />
                   ) : (
-                    <img
+                    <BlurredImage
                       src={homeData.hero.images[2]}
                       alt="Research visual 3"
-                      className="w-full h-80 sm:h-72 lg:h-96 object-cover transition-transform duration-700 hover:scale-110"
+                      className="w-full h-80 sm:h-72 lg:h-96 transition-transform duration-700 hover:scale-110"
                     />
                   )}
                 </div>
@@ -295,7 +325,7 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
-      
+
       <section id="about" className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div ref={aboutSection.ref} className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className={`bg-white rounded-2xl shadow-xl p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center transform hover:shadow-[0_20px_50px_rgba(128,0,0,0.15)] transition-all duration-1000 ${aboutSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -350,12 +380,12 @@ const LandingPage: React.FC = () => {
             <div className="relative">
               <div className="w-full h-64 lg:h-80 rounded-xl overflow-hidden shadow-lg">
                 {isLoading || !homeData.about.image_url ? (
-                  <ImageSkeleton className="w-full h-full" />
+                  <div className="bg-gray-200 animate-pulse w-full h-full" />
                 ) : (
-                  <img
+                  <BlurredImage
                     src={homeData.about.image_url}
                     alt="Office Display"
-                    className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full transition-transform duration-500 hover:scale-105"
                   />
                 )}
               </div>
