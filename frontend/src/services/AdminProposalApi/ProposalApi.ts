@@ -141,7 +141,8 @@ const mapStatus = (status: string): ProposalStatus => {
     case 'funded': return 'Funded';
     case 'rejected_funding': return 'Funding Rejected';
     case 'revision_funding': return 'Funding Revision';
-    case 'revised': return 'Revised Proposal'; // Hypothetical
+    case 'revised_proposal': return 'Revised Proposal';
+    case 'revised': return 'Revised Proposal';
     case 'not_submitted': return 'Deadline Expired';
     default: return 'Pending'; // Fallback
   }

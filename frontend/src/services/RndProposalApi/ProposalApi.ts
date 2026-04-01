@@ -77,6 +77,7 @@ const transformProposal = (raw: any): Proposal => {
 const mapBackendStatusToFrontend = (status: string): ProposalStatus => {
     switch (status) {
         case 'review_rnd': return 'Pending';
+        case 'revised_proposal': return 'Revised Proposal';
         case 'under_evaluation': return 'Sent to Evaluators'; // Or 'Under Evaluators Assessment'
         case 'revision_rnd': return 'Revision Required';
         case 'rejected_rnd': return 'Rejected Proposal';
