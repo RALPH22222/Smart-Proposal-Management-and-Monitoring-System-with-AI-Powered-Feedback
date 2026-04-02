@@ -81,4 +81,5 @@ export interface Proposal {
   lastUpdated: string;
   deadline?: string;
   fundingDocumentUrl?: string;
+  debugRawFundedProjects?: any;
 }

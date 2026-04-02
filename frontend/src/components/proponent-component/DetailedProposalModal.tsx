@@ -598,7 +598,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       };
       onUpdateProposal(updatedProposal);
       onClose();
-      navigate("/users/Proponent/ProponentMainLayout?tab=monitoring");
+      navigate("/users/Proponent/ProponentMainLayout?tab=monitoring", {
+        state: { proposalId: proposal.id },
+      });
     }
   };
 
@@ -610,7 +612,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const canEditFile = isInRevisionMode && isEditing;
   // Restrict other fields in revision mode
   const canEditOtherFields = !isInRevisionMode && isEditing;
-  const isFunded = proposal.status === "funded";
+  const isFunded = normalizedStatus === 'funded';
 
   // Deadline expiry computation
   const deadlineDate = (revisionData?.created_at && revisionData?.deadline)
@@ -1025,6 +1027,25 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {/* --- BODY --- */}
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+            {isFunded && proposal.fundingDocumentUrl && (
+              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" /> Funding Approval Document
+                    </h4>
+                    <p className="text-xs text-emerald-600 mt-1">Official document confirming your project has been funded.</p>
+                  </div>
+                  <button
+                    onClick={() => setViewingDocumentUrl(proposal.fundingDocumentUrl!)}
+                    className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm flex-shrink-0"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View Approval File
+                  </button>
+                </div>
+              </div>
+            )}
+
             {isFunded && (
               <div className="bg-green-50 rounded-xl border border-green-200 p-6 relative overflow-hidden group">
                 <div className="relative z-10">
@@ -1253,25 +1274,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 )}
               </div>
               <div className="flex flex-col gap-3">
-                {proposal.fundingDocumentUrl && (
-                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-600" /> Funding Approval
-                        </h4>
-                        <p className="text-xs text-emerald-600 mt-1">This project has been officially funded and archived.</p>
-                      </div>
-                      <button
-                        onClick={() => setViewingDocumentUrl(proposal.fundingDocumentUrl!)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl shadow-sm border border-emerald-200 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" /> View Approval Document
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
+
                 {submittedFiles.length > 0 ? (
                   <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
                     {[...submittedFiles].reverse().map((fileUrl, reversedIndex) => {

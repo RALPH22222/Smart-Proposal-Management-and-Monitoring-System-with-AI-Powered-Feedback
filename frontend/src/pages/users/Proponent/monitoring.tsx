@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   FaChartLine
 } from 'react-icons/fa';
@@ -71,6 +72,9 @@ const QUARTER_LABELS: Record<string, string> = {
 const MonitoringPage: React.FC = () => {
   const { user } = useAuthContext();
 
+  const location = useLocation();
+  const incomingProposalId = (location.state as any)?.proposalId as string | undefined;
+
   // --- State ---
   const [projects, setProjects] = useState<Project[]>([]);
   const [backendProjects, setBackendProjects] = useState<ApiFundedProject[]>([]);
@@ -118,6 +122,18 @@ const MonitoringPage: React.FC = () => {
       setBackendProjects(data);
       const mapped = data.map(transformToProject);
       setProjects(mapped);
+
+      // If navigated from DetailedProposalModal with a proposalId, auto-select that project
+      if (incomingProposalId) {
+        const match = data.find(fp => String(fp.proposal_id) === String(incomingProposalId));
+        if (match) {
+          setActiveProjectId(String(match.id));
+          setShowMobileDetail(true);
+          return;
+        }
+      }
+
+      // Default: select first project
       if (mapped.length > 0 && !activeProjectId) {
         setActiveProjectId(mapped[0].id);
       }
