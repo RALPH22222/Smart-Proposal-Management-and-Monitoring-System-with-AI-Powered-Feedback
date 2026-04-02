@@ -80,4 +80,5 @@ export interface Proposal {
   versions?: string[];
   lastUpdated: string;
   deadline?: string;
+  fundingDocumentUrl?: string;
 }

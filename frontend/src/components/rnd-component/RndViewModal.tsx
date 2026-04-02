@@ -569,10 +569,10 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                       revisionData?.timeline_comment,
                       revisionData?.overall_comment,
                     ].some(Boolean)) && (
-                      <div className="text-center py-8 bg-white/80 rounded-xl border border-dashed border-orange-200">
-                        <p className="text-sm text-gray-500 italic">No specific feedback comments provided.</p>
-                      </div>
-                    )}
+                        <div className="text-center py-8 bg-white/80 rounded-xl border border-dashed border-orange-200">
+                          <p className="text-sm text-gray-500 italic">No specific feedback comments provided.</p>
+                        </div>
+                      )}
 
                     {revisionData?.created_at != null && revisionData?.deadline != null && (
                       <div className="bg-orange-100 p-4 rounded-lg border border-orange-200 shadow-sm flex items-center gap-3 mt-1">
@@ -686,11 +686,6 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               <div>
                 <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
                 <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent}</p>
-                {p.proponentDepartment && p.proponentDepartment !== "N/A" && (
-                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-1.5">
-                    <Briefcase className="w-3 h-3 text-slate-400" /> {p.proponentDepartment}
-                  </p>
-                )}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email}

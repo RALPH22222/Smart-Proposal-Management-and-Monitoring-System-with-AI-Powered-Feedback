@@ -42,6 +42,7 @@ import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
+import DocumentViewerModal from "../shared/DocumentViewerModal";
 
 interface Site {
   site: string;
@@ -80,6 +81,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
+  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
@@ -1251,6 +1253,25 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 )}
               </div>
               <div className="flex flex-col gap-3">
+                {proposal.fundingDocumentUrl && (
+                  <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" /> Funding Approval
+                        </h4>
+                        <p className="text-xs text-emerald-600 mt-1">This project has been officially funded and archived.</p>
+                      </div>
+                      <button
+                        onClick={() => setViewingDocumentUrl(proposal.fundingDocumentUrl!)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl shadow-sm border border-emerald-200 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" /> View Approval Document
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 {submittedFiles.length > 0 ? (
                   <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
                     {[...submittedFiles].reverse().map((fileUrl, reversedIndex) => {
@@ -2327,6 +2348,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Document Viewer Modal for Funding Document */}
+      <DocumentViewerModal
+        isOpen={!!viewingDocumentUrl}
+        onClose={() => setViewingDocumentUrl(null)}
+        documentUrl={viewingDocumentUrl || ""}
+        title="Funding Approval Document"
+        proposal={proposal}
+      />
     </>
   );
 };

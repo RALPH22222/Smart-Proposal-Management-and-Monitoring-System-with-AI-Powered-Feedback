@@ -935,6 +935,7 @@ export class ProposalService {
       agency_address(id,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
       proposal_version(id,file_url),
+      funded_projects(funding_document_url),
       proposal_rnd(users(first_name,last_name,email,department:departments(name)))
     `);
 

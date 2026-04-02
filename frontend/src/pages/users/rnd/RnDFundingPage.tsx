@@ -10,16 +10,18 @@ import {
   AlertTriangle,
   XCircle,
   Tag,
-  Signature
+  Signature,
+  Eye
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
-import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
+import DocumentViewerModal from '../../../components/shared/DocumentViewerModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
+import { transformProposalForModal } from '../../../utils/proposal-transform';
 
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
@@ -29,7 +31,9 @@ const FundingPage: React.FC = () => {
   const itemsPerPage = 5;
 
   const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
+  const [activeProposalRaw, setActiveProposalRaw] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadFundingProposals();
@@ -38,13 +42,28 @@ const FundingPage: React.FC = () => {
   const loadFundingProposals = async () => {
     try {
       setLoading(true);
-      const allProposals = await proposalApi.fetchProposals();
+      const rawData = await (await import('../../../services/proposal.api')).getRndProposals();
 
-      // Filter proposals that are relevant to funding
-      const relevantStatuses: ProposalStatus[] = ['Endorsed', 'Funded', 'Funding Rejected', 'Funding Revision'];
-      const filtered = allProposals.filter(p => relevantStatuses.includes(p.status as ProposalStatus));
-      const sorted = (filtered as Proposal[]).sort((a, b) => Number(b.id) - Number(a.id));
-      setFundingProposals(sorted);
+      // Store raw data on each proposal for later use in DocumentViewerModal
+      const { proposalApi: pApi } = await import('../../../services/RndProposalApi/ProposalApi');
+      const allMapped = await pApi.fetchProposals();
+      const relevantFrontendStatuses: ProposalStatus[] = ['Endorsed', 'Funded', 'Funding Rejected', 'Funding Revision'];
+      const mappedFiltered = allMapped.filter(p => relevantFrontendStatuses.includes(p.status as ProposalStatus));
+
+      // Attach raw data to each proposal
+      const withRaw = mappedFiltered.map(proposal => {
+        const rawMatch = rawData.find((r: any) => {
+          const rp = (r.proposal_id && (r.proposal_id.project_title || r.proposal_id.title)) ? r.proposal_id : r;
+          return String(rp.id) === String(proposal.id);
+        });
+        const rawProposal = rawMatch
+          ? ((rawMatch.proposal_id && (rawMatch.proposal_id.project_title || rawMatch.proposal_id.title)) ? rawMatch.proposal_id : rawMatch)
+          : null;
+        return { ...proposal, _raw: rawProposal };
+      });
+
+      const sorted = withRaw.sort((a, b) => Number(b.id) - Number(a.id));
+      setFundingProposals(sorted as any);
     } catch (error) {
       console.error('Error loading funding proposals:', error);
     } finally {
@@ -112,7 +131,7 @@ const FundingPage: React.FC = () => {
       case 'Endorsed':
         return <span className={`${baseClasses} text-blue-800 bg-blue-50 border-blue-200`}><Signature className="w-3.5 h-3.5" /> Endorsed</span>;
       case 'Funded':
-        return <span className={`${baseClasses} text-emerald-600 bg-emerald-50 border-emerald-200`}>Funded</span>;
+        return <span className={`${baseClasses} text-emerald-800 bg-emerald-100 border-emerald-200`}><CheckCircle className="w-3.5 h-3.5" /> Funded</span>;
       case 'Funding Rejected':
         return <span className={`${baseClasses} text-red-600 bg-red-50 border-red-200`}>Funding Rejected</span>;
       case 'Funding Revision':
@@ -128,9 +147,9 @@ const FundingPage: React.FC = () => {
   const pendingStatuses = ['Endorsed', 'Funding Revision'];
   const archivedStatuses = ['Funded', 'Funding Rejected'];
 
-  const displayedProposals = fundingProposals.filter(p => 
-    activeTab === 'pending' 
-      ? pendingStatuses.includes(p.status) 
+  const displayedProposals = fundingProposals.filter(p =>
+    activeTab === 'pending'
+      ? pendingStatuses.includes(p.status)
       : archivedStatuses.includes(p.status)
   );
 
@@ -208,9 +227,9 @@ const FundingPage: React.FC = () => {
         {/* Proposals List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
           {loading && (
-            <PageLoader 
-              text="Updating funding data..." 
-              className="absolute inset-0 z-50 bg-white" 
+            <PageLoader
+              text="Updating funding data..."
+              className="absolute inset-0 z-50 bg-white"
             />
           )}
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -244,16 +263,16 @@ const FundingPage: React.FC = () => {
                   {activeTab === 'pending' ? 'No pending proposals' : 'No archived proposals'}
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
-                  {activeTab === 'pending' 
-                    ? 'Proposals will appear here once they are endorsed for funding by the R&D department.' 
+                  {activeTab === 'pending'
+                    ? 'Proposals will appear here once they are endorsed for funding by the R&D department.'
                     : 'Projects that have been approved or rejected for funding will appear here.'}
                 </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {paginatedProposals.map((proposal) => (
-                  <article 
-                    key={proposal.id} 
+                  <article
+                    key={proposal.id}
                     className={`p-4 transition-colors duration-200 ${proposal.status === 'Funded' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -271,7 +290,7 @@ const FundingPage: React.FC = () => {
 
                           {/* Date Submitted */}
                           <div className="flex items-center gap-1.5 font-semibold">
-                            <Calendar className="w-3.5 h-3.5"/>
+                            <Calendar className="w-3.5 h-3.5" />
                             <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                           </div>
 
@@ -299,29 +318,19 @@ const FundingPage: React.FC = () => {
                             <Gavel className="w-3.5 h-3.5" />
                             Action
                           </button>
-                        ) : proposal.status === 'Funded' ? (
-                          <div className="flex items-center gap-2">
-                            {proposal.fundingDocumentUrl && (
-                              <a
-                                href={proposal.fundingDocumentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white hover:bg-emerald-50 rounded-xl shadow-sm border border-emerald-200 transition-colors"
-                              >
-                                View File
-                              </a>
-                            )}
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 rounded-xl shadow-sm border border-emerald-200 cursor-default">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Archived
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-xl shadow-sm border border-slate-200 cursor-default">
-                            <XCircle className="w-3.5 h-3.5" />
-                            Archived
-                          </div>
-                        )}
+                        ) : proposal.status === 'Funded' && (proposal as any).fundingDocumentUrl ? (
+                          <button
+                            onClick={() => {
+                              setActiveProposal(proposal);
+                              setActiveProposalRaw((proposal as any)._raw);
+                              setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View File
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </article>
@@ -370,6 +379,14 @@ const FundingPage: React.FC = () => {
         onClose={() => setIsActionModalOpen(false)}
         onSubmit={handleActionSubmit}
         proposalTitle={activeProposal?.title || ''}
+      />
+
+      <DocumentViewerModal
+        isOpen={!!viewingDocumentUrl}
+        onClose={() => { setViewingDocumentUrl(null); setActiveProposalRaw(null); }}
+        documentUrl={viewingDocumentUrl || ''}
+        title="Funding Approval Document"
+        proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
       />
     </div>
   );

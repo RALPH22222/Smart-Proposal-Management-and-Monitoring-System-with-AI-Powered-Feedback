@@ -450,6 +450,9 @@ const Profile: React.FC = () => {
       versions: Array.isArray(raw.proposal_version) ? raw.proposal_version.map((v: any) => v.file_url) : [],
       lastUpdated: val(raw.updated_at) || val(raw.created_at),
       deadline: getStatusFromIndex(project.currentIndex) === "revise" ? val(raw.evaluation_deadline_at) : undefined,
+      fundingDocumentUrl: (Array.isArray(raw.funded_projects) && raw.funded_projects.length > 0)
+        ? raw.funded_projects[0].funding_document_url
+        : (raw.funded_projects?.funding_document_url || ""),
     };
 
     setSelectedProject(proposal);
