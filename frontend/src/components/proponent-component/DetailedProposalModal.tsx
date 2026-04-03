@@ -1118,6 +1118,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <p className="text-sm text-slate-600 leading-relaxed">
                       Your proposal has been successfully submitted and is now in the Admin's queue. The Admin will review and assign it to a specific R&D staff for evaluation. Please wait for the next decision.
                     </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-yellow-600 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Status changed on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
@@ -1134,6 +1140,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <p className="text-sm text-slate-600 leading-relaxed">
                       Your project proposal has been successfully endorsed for funding. It is now awaiting the final funding approval decision from the RDEC Committee.
                     </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-blue-500 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Endorsed on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Signature className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0" />
@@ -1150,6 +1162,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <p className="text-sm text-slate-600 leading-relaxed">
                       Your proposal is currently being reviewed by the R&D staff. They are assessing the project title, timeline, budget, and overall feasibility of your project. The evaluation may take some time, so please wait for the next decision.
                     </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-blue-400 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Assigned for review on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Microscope className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
@@ -1164,8 +1182,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       Proposal is currently being assessed by the Evaluators
                     </h3>
                     <p className="text-sm text-slate-600 leading-relaxed">
-                      Your proposal has passed the R&D review and is now being assessed by a panel of Evaluators. They will provide scores and feedback based on defined evaluation criteria. Please wait for the evaluators’ decision, which will be reviewed by the R&D staff.
+                      Your proposal has passed the R&D review and is now being assessed by a panel of Evaluators. They will provide scores and feedback based on defined evaluation criteria. Please wait for the evaluators' decision, which will be reviewed by the R&D staff.
                     </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-purple-400 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Sent for evaluation on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <FileCheck className="absolute -right-6 -bottom-6 w-32 h-32 text-purple-200 opacity-40 z-0 pointer-events-none" />
@@ -1184,6 +1208,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       This is your <span className="font-bold text-amber-700">{getOrdinal(revisionCount)}</span> revised version.
                       Your revised proposal has been sent back to the R&D staff for re-evaluation. Please wait while they review the changes you have made.
                     </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-amber-500 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Revision submitted on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                      </p>
+                    )}
                   </div>
                   <Edit className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
                 </div>

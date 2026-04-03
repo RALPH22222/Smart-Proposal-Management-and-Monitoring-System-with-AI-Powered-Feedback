@@ -3,7 +3,7 @@ import NotificationsDropdown from "../../../components/proponent-component/Notif
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info} from "lucide-react"; 
+import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import { useNotifications } from "../../../context/NotificationContext";
@@ -1037,9 +1037,9 @@ const Profile: React.FC = () => {
         </section>
 
         {/* Modals */}
-        <HowItWorksModal 
-          isOpen={howItWorksOpen} 
-          onClose={() => setHowItWorksOpen(false)} 
+        <HowItWorksModal
+          isOpen={howItWorksOpen}
+          onClose={() => setHowItWorksOpen(false)}
         />
 
         <DetailedProposalModal

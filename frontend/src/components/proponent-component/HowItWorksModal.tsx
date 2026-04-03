@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileSliders, Loader2 } from "lucide-react";
+import { X, FileSliders } from "lucide-react";
 import { HomeApi } from '../../services/HomeApi';
 import { DEFAULT_HOME_INFO, type HomeProcessStep } from '../../schemas/home-schema';
 
@@ -58,7 +58,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           <div className="flex items-center gap-3">
             <div className="bg-red-50 p-2.5 rounded-xl border border-red-100">
               <FileSliders className="w-5 h-5 text-[#C8102E]" />
@@ -73,13 +73,29 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
             </div>
           </div>
         </div>
-        
+
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-slate-50 text-slate-700">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="w-8 h-8 text-[#C8102E] animate-spin" />
-              <p className="text-sm text-slate-500">Loading process steps...</p>
+            <div className="space-y-8 blur-[1px]">
+              {[1, 2, 3, 4].map((idx) => (
+                <div key={idx} className="flex gap-4 relative z-10 animate-pulse">
+                  <div className="relative flex flex-col items-center w-12 shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-gray-200 border-2 border-gray-100 shrink-0"></div>
+                    {idx !== 4 && (
+                      <div className="absolute top-12 -bottom-8 w-0.5 bg-gray-100 hidden sm:block z-0" />
+                    )}
+                  </div>
+                  <div className="bg-white rounded-xl p-5 border-2 border-gray-100 flex-1 space-y-3 shadow-sm">
+                    <div className="h-5 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-gray-100 rounded w-full"></div>
+                      <div className="h-3 bg-gray-100 rounded w-5/6"></div>
+                      <div className="h-3 bg-gray-100 rounded w-4/6"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="relative">
@@ -108,7 +124,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
             </div>
           )}
         </div>
-        
+
         {/* --- FOOTER --- */}
         <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0">
           <button
