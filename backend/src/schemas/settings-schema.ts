@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Late Submission Policy Schema
-export const lateSubmissionPolicySchema = z.discriminatedUnion("type", [
+export const lateSubmissionPolicySchema = z.union([
   z.object({
     enabled: z.literal(true),
     type: z.literal("until_date"),

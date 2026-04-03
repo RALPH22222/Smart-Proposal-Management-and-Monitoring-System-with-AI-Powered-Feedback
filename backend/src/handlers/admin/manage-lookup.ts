@@ -54,7 +54,7 @@ const deleteAddressSchema = z.object({
   id: z.string().uuid(),
 });
 
-const manageLookupSchema = z.discriminatedUnion("action", [
+const manageLookupSchema = z.union([
   createSchema,
   updateSchema,
   deleteSchema,
