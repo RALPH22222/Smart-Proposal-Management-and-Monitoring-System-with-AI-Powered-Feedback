@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Upload, Loader2, File as FileIcon, CheckCircle2, Download } from "lucide-react";
+import { Upload, Loader2, File as FileIcon, CheckCircle2, Download, Trash2 } from "lucide-react";
 import { CmsApi } from "../../../../../services/CmsApi";
 import { toast } from "react-hot-toast";
 import { downloadFile } from "../../../../../utils/download-helper";
@@ -7,6 +7,7 @@ import { downloadFile } from "../../../../../utils/download-helper";
 interface FileUploadProps {
   currentUrl: string;
   onUploadSuccess: (newUrl: string) => void;
+  onDelete?: () => void;
   label?: string;
   accept?: string;
   className?: string;
@@ -16,6 +17,7 @@ interface FileUploadProps {
 export const FileUpload: React.FC<FileUploadProps> = ({
   currentUrl,
   onUploadSuccess,
+  onDelete,
   label = "File",
   accept = ".docx,.pdf,.pptx,.xlsx",
   className = "",
@@ -139,11 +141,24 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               </>
             )}
           </div>
-          {currentUrl && !isUploading && (
-             <div className="flex items-center">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-             </div>
-          )}
+          <div className="flex items-center gap-2">
+            {currentUrl && !isUploading && (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            )}
+            {currentUrl && onDelete && !isUploading && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                title="Delete File"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {isUploading && (

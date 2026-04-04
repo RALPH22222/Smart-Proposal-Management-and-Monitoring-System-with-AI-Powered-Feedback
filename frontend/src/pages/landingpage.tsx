@@ -7,7 +7,7 @@ import { downloadFile } from '../utils/download-helper';
 import TemplateViewModal from '../components/proponent-component/TemplateViewModal';
 import { ClipboardCheck, Clock, Bell, Mail, AlertCircle } from 'lucide-react';
 import { HomeApi } from "../services/HomeApi";
-import { DEFAULT_HOME_INFO, type HomeInfo } from "../schemas/home-schema";
+import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../schemas/home-schema";
 
 const useCountUp = (end: number, duration: number = 2000, shouldStart: boolean = false) => {
   const [count, setCount] = useState(0);
@@ -61,51 +61,36 @@ const useInView = (options?: IntersectionObserverInit) => {
   return { ref, isInView };
 };
 
-const mobileCards = [
-  {
-    step: 1,
-    title: "Proposal Submission",
-    color: "red-400",
-    desc: "Submit your project proposal using the standardized DOST Form 1B template. Ensure all required documents are attached for faster processing.",
-  },
-  {
-    step: 2,
-    title: "Review & Approval",
-    color: "red-500",
-    desc: "Our research committee will review your proposal, provide feedback, and approve compliant submissions. Track progress in real-time through your dashboard.",
-  },
-  {
-    step: 3,
-    title: "Implementation",
-    color: "red-600",
-    desc: "Once approved, proceed with project implementation. Use our portal to submit progress reports, request support, and manage project milestones.",
-  },
-];
 
-function MobileCardSwap() {
+// Mobile: Animated step card swap - driven by CMS process_steps
+function MobileCardSwap({ steps }: { steps: HomeProcessStep[] }) {
   const [current, setCurrent] = useState(0);
   useEffect(() => {
+    if (!steps.length) return;
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % mobileCards.length);
+      setCurrent((prev) => (prev + 1) % steps.length);
     }, 3500);
     return () => clearInterval(timer);
-  }, []);
+  }, [steps.length]);
+
+  if (!steps.length) return null;
+
   return (
     <div className="block sm:hidden relative h-[340px] flex items-center justify-center">
-      {mobileCards.map((card, idx) => (
+      {steps.map((step, idx) => (
         <div
-          key={card.step}
+          key={idx}
           className={`absolute left-0 right-0 mx-auto w-[98%] bg-white rounded-2xl shadow-2xl border border-red-200 transition-all duration-500 ease-in-out
             ${idx === current ? 'z-20 opacity-100 scale-100 translate-y-0' : 'z-10 opacity-0 scale-95 translate-y-6 pointer-events-none'}`}
           style={{ top: 32 }}
         >
           <div className="flex gap-4 items-start p-6">
-            <div className={`w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0`}>
-              <span className={`text-${card.color} font-bold text-lg`}>{card.step}</span>
+            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-red-600 font-bold text-lg">{idx + 1}</span>
             </div>
             <div className="flex-1">
-              <h3 className={`text-xl font-bold mb-2 text-${card.color}`}>{card.title}</h3>
-              <p className="text-gray-700 text-base">{card.desc}</p>
+              <h3 className="text-xl font-bold mb-2 text-red-600">{step.title}</h3>
+              <p className="text-gray-700 text-base line-clamp-4">{step.description}</p>
             </div>
           </div>
         </div>
@@ -478,7 +463,7 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Side - Interactive Cards */}
+            {/* Right Side - Dynamic Process Steps from CMS */}
             <div className="order-1 lg:order-2">
               <div className="mb-3">
                 <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
@@ -493,7 +478,7 @@ const LandingPage: React.FC = () => {
               </p>
 
               {/* Mobile: Animated swapping cards */}
-              <MobileCardSwap />
+              <MobileCardSwap steps={homeData.process_steps} />
 
               {/* Tablet and Desktop: CardSwap */}
               <div className="hidden sm:flex mt-8 items-center justify-center">
@@ -505,44 +490,21 @@ const LandingPage: React.FC = () => {
                     pauseOnHover={true}
                     skewAmount={5}
                   >
-                    <Card
-                      customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
-                      style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
-                    >
-                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-red-600 font-bold text-lg">1</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-3" style={{ color: '#C8102E' }}>Proposal Submission</h3>
-                        <p className="text-gray-600 leading-relaxed">Submit your project proposal using the standardized DOST Form 1B template. Ensure all required documents are attached for faster processing.</p>
-                      </div>
-                    </Card>
-
-                    <Card
-                      customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
-                      style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
-                    >
-                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-red-600 font-bold text-lg">2</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-3" style={{ color: '#C8102E' }}>Review & Approval</h3>
-                        <p className="text-gray-600 leading-relaxed">Our research committee will review your proposal, provide feedback, and approve compliant submissions. Track progress in real-time through your dashboard.</p>
-                      </div>
-                    </Card>
-
-                    <Card
-                      customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
-                      style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
-                    >
-                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-red-600 font-bold text-lg">3</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold mb-3" style={{ color: '#C8102E' }}>Implementation</h3>
-                        <p className="text-gray-600 leading-relaxed">Once approved, proceed with project implementation. Use our portal to submit progress reports, request support, and manage project milestones.</p>
-                      </div>
-                    </Card>
+                    {homeData.process_steps.map((step, idx) => (
+                      <Card
+                        key={idx}
+                        customClass="p-6 bg-white text-gray-900 shadow-2xl rounded-xl flex gap-4 items-start border w-full"
+                        style={{ height: 260, borderColor: 'rgba(200,16,46,0.12)' }}
+                      >
+                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <span className="text-red-600 font-bold text-lg">{idx + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold mb-3" style={{ color: '#C8102E' }}>{step.title}</h3>
+                          <p className="text-gray-600 leading-relaxed line-clamp-4">{step.description}</p>
+                        </div>
+                      </Card>
+                    ))}
                   </CardSwap>
                 </div>
               </div>

@@ -4,6 +4,7 @@ import Footer from "../components/footer";
 import { MapPin, Phone, Mail, Clock, ShieldAlert, ChevronRight } from "lucide-react";
 import { ContactApi } from "../services/ContactApi";
 import type { ContactInfo } from "../schemas/contact-schema";
+import { DEFAULT_CONTACT_INFO } from "../schemas/contact-schema";
 
 const useInView = (options?: IntersectionObserverInit) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -34,7 +35,7 @@ const Contacts: React.FC = () => {
   const heroSection = useInView();
   const contactSection = useInView();
 
-  const [contactData, setContactData] = useState<ContactInfo | null>(null);
+  const [contactData, setContactData] = useState<ContactInfo>(DEFAULT_CONTACT_INFO);
 
   useEffect(() => {
     fetchContactData();
@@ -43,7 +44,15 @@ const Contacts: React.FC = () => {
   const fetchContactData = async () => {
     try {
       const data = await ContactApi.getContacts();
-      setContactData(data);
+      // Deep merge so 'hero' field is always present even if API returns old format
+      setContactData({
+        ...DEFAULT_CONTACT_INFO,
+        ...data,
+        hero: {
+          ...DEFAULT_CONTACT_INFO.hero,
+          ...(data?.hero || {}),
+        },
+      });
     } catch (error) {
       console.error("Failed to load contact data:", error);
     }
@@ -64,17 +73,16 @@ const Contacts: React.FC = () => {
           <div className={`text-center transition-all duration-1000 ${heroSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="mb-3 md:mb-4 animate-fade-in-down">
               <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
-                Connect With Us
+                {contactData.hero.badge}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 px-4 animate-fade-in-up animation-delay-100">
               <span className="bg-gradient-to-r from-gray-800 to-red-700 bg-clip-text text-transparent">
-                Research Support Center
+                {contactData.hero.title}
               </span>
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed animate-fade-in-up animation-delay-200">
-              Direct access to our research committee and support staff. Get comprehensive assistance
-              for your project proposals and research initiatives at Western Mindanao State University.
+              {contactData.hero.description}
             </p>
           </div>
         </div>
@@ -98,12 +106,12 @@ const Contacts: React.FC = () => {
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Visit Our Office</h3>
                     <p className="text-gray-600 leading-relaxed">
-                      {contactData?.location.officeName || "Research & Development Center"}<br />
-                      {contactData?.location.university || "Western Mindanao State University"}<br />
-                      {contactData?.location.address || "Normal Road, Baliwasan, Zamboanga City"}
+                      {contactData.location.officeName}<br />
+                      {contactData.location.university}<br />
+                      {contactData.location.address}
                     </p>
                     <div className="mt-3 text-sm font-medium text-[#C8102E] flex items-center gap-1">
-                      {contactData?.location.details || "2nd Floor, Admin Building"} <ChevronRight size={14} />
+                      {contactData.location.details} <ChevronRight size={14} />
                     </div>
                   </div>
                 </div>
@@ -120,9 +128,9 @@ const Contacts: React.FC = () => {
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Call Us</h3>
                       <ul className="space-y-2 text-gray-600">
-                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Main</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData?.phones.main || "+63 (62) 991-4567"}</span></li>
-                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Research Desk</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData?.phones.researchDesk || "+63 (62) 991-4568"}</span></li>
-                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Proposal Hotline</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData?.phones.proposalHotline || "+63 (62) 991-4569"}</span></li>
+                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Main</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData.phones.main}</span></li>
+                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Research Desk</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData.phones.researchDesk}</span></li>
+                        <li className="flex items-center justify-between gap-4"><span className="text-sm text-gray-500">Proposal Hotline</span> <span className="font-medium hover:text-[#C8102E] transition-colors cursor-pointer">{contactData.phones.proposalHotline}</span></li>
                       </ul>
                     </div>
                   </div>
@@ -137,9 +145,9 @@ const Contacts: React.FC = () => {
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Email Us</h3>
                       <ul className="space-y-2">
-                        <li><a href={`mailto:${contactData?.emails.research || "research@wmsu.edu.ph"}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData?.emails.research || "research@wmsu.edu.ph"}</a></li>
-                        <li><a href={`mailto:${contactData?.emails.proposals || "proposals@wmsu.edu.ph"}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData?.emails.proposals || "proposals@wmsu.edu.ph"}</a></li>
-                        <li><a href={`mailto:${contactData?.emails.support || "research.support@wmsu.edu.ph"}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData?.emails.support || "research.support@wmsu.edu.ph"}</a></li>
+                        <li><a href={`mailto:${contactData.emails.research}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData.emails.research}</a></li>
+                        <li><a href={`mailto:${contactData.emails.proposals}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData.emails.proposals}</a></li>
+                        <li><a href={`mailto:${contactData.emails.support}`} className="text-gray-600 hover:text-[#C8102E] transition-colors font-medium hover:underline">{contactData.emails.support}</a></li>
                       </ul>
                     </div>
                   </div>
@@ -157,15 +165,15 @@ const Contacts: React.FC = () => {
                     <ul className="space-y-3">
                       <li className="flex justify-between items-center text-sm">
                         <span className="text-gray-500">Monday - Friday</span>
-                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData?.officeHours.weekdays || "8:00 AM - 5:00 PM"}</span>
+                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData.officeHours.weekdays}</span>
                       </li>
                       <li className="flex justify-between items-center text-sm">
                         <span className="text-gray-500">Saturday</span>
-                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData?.officeHours.saturday || "9:00 AM - 12:00 PM"}</span>
+                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData.officeHours.saturday}</span>
                       </li>
                       <li className="flex justify-between items-center text-sm">
                         <span className="text-gray-500">Sunday</span>
-                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData?.officeHours.sunday || "Closed"}</span>
+                        <span className="text-gray-900 font-semibold bg-red-50 px-3 py-1 rounded-full text-xs text-red-700">{contactData.officeHours.sunday}</span>
                       </li>
                     </ul>
                   </div>
@@ -210,11 +218,11 @@ const Contacts: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold mb-1">Emergency Research Line</h3>
-                      <p className="text-red-100 font-medium opacity-90">{contactData?.emergency.availability || "Available 24/7 for urgent matters"}</p>
+                      <p className="text-red-100 font-medium opacity-90">{contactData.emergency.availability}</p>
                     </div>
                   </div>
                   <div className="text-2xl sm:text-3xl font-mono font-bold tracking-wider bg-black/20 px-4 py-2 rounded-lg backdrop-blur-sm">
-                    {contactData?.emergency.line || "+63 (62) 991-4570"}
+                    {contactData.emergency.line}
                   </div>
                 </div>
               </a>

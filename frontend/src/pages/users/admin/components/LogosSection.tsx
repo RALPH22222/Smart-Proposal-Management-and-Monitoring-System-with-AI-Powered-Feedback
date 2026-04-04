@@ -5,15 +5,20 @@ import { ImageUpload } from "./shared/ImageUpload";
 import { toast, Toaster } from "react-hot-toast";
 import { Shield, LayoutDashboard } from "lucide-react";
 import { useLogos } from "../../../../context/LogoContext";
+import PageLoader from "../../../../components/shared/PageLoader";
 
 export const LogosSection: React.FC = () => {
-  const { logos: currentLogos, refreshLogos } = useLogos();
+  const { logos: currentLogos, refreshLogos, isLoading } = useLogos();
   const [logos, setLogos] = useState<LogosInfo>(currentLogos);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setLogos(currentLogos);
   }, [currentLogos]);
+
+  if (isLoading) {
+    return <PageLoader text="Loading branding information..." className="min-h-[400px]" />;
+  }
 
   const handleSave = async () => {
     try {

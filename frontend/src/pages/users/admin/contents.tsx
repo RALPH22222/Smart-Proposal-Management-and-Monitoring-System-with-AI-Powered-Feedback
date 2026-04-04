@@ -4,11 +4,12 @@ import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
 import { LogosSection } from "./components/LogosSection";
-import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, BarChart, Palette, Save, Loader2, ListOrdered } from 'lucide-react';
+import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered } from 'lucide-react';
 import { HomeApi } from "../../../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
 import { toast, Toaster } from "react-hot-toast";
+import PageLoader from "../../../components/shared/PageLoader";
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
@@ -148,12 +149,7 @@ const HowItWorksSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 text-red-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-medium">Loading steps...</p>
-      </div>
-    );
+    return <PageLoader text="Loading proponent steps..." className="min-h-[400px]" />;
   }
 
   return (
@@ -237,125 +233,113 @@ const HowItWorksSection: React.FC = () => {
 
 // Guidelines & Resources Section
 const GuidelinesSection: React.FC = () => {
-  const [guidelines] = useState([
-    {
-      id: 1,
-      title: 'Proposal Writing Guidelines',
-      type: 'PDF',
-      size: '2.3 MB',
-      uploadDate: '2024-02-15',
-      category: 'Writing'
-    },
-    {
-      id: 2,
-      title: 'Evaluation Rubric Template',
-      type: 'DOCX',
-      size: '1.1 MB',
-      uploadDate: '2024-02-10',
-      category: 'Evaluation'
-    }
-  ]);
+  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [showUpload, setShowUpload] = useState(false);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await HomeApi.getHomeInfo();
+        setHomeData({
+          ...DEFAULT_HOME_INFO,
+          ...(data || {}),
+          resources: {
+            ...DEFAULT_HOME_INFO.resources,
+            ...(data?.resources || {})
+          }
+        });
+      } catch (error) {
+        toast.error("Failed to load guidelines.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await HomeApi.updateHomeInfo(homeData);
+      toast.success("Guidelines and resources updated successfully!");
+    } catch (error) {
+      toast.error("Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <PageLoader text="Loading guidelines..." className="min-h-[400px]" />;
+  }
 
   return (
     <div className='p-4 sm:p-6'>
-      <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-6'>
-        Guidelines & Resources
-      </h2>
-
-      {/* File Upload Section */}
-      <div className='mb-8'>
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4'>
-          <h3 className='text-base sm:text-lg font-medium text-gray-900'>
-            Uploaded Files
-          </h3>
-          <button
-            onClick={() => setShowUpload(true)}
-            className='bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto text-sm sm:text-base'
-          >
-            + Upload File
-          </button>
+      <Toaster position="top-right" />
+      
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8'>
+        <div>
+          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
+            Guidelines & Resources
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Manage official submission guidelines and supplementary research resources.</p>
         </div>
-
-        {showUpload && (
-          <div className='mb-4 p-4 border-2 border-dashed border-gray-300 rounded-lg'>
-            <div className='text-center'>
-              <svg
-                className='mx-auto h-8 sm:h-12 w-8 sm:w-12 text-gray-400'
-                stroke='currentColor'
-                fill='none'
-                viewBox='0 0 48 48'
-              >
-                <path
-                  d='M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02'
-                  strokeWidth='2'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                />
-              </svg>
-              <div className='mt-3 sm:mt-4'>
-                <label htmlFor='file-upload' className='cursor-pointer'>
-                  <span className='block text-sm sm:text-base font-medium text-gray-900'>
-                    Drop files here or click to upload
-                  </span>
-                  <input
-                    id='file-upload'
-                    name='file-upload'
-                    type='file'
-                    className='sr-only'
-                    multiple
-                  />
-                </label>
-                <p className='mt-1 text-xs sm:text-sm text-gray-500'>
-                  PDF, DOCX, XLSX up to 10MB
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {guidelines.map((file) => (
-            <div
-              key={file.id}
-              className='border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow'
-            >
-              <div className='flex items-start justify-between mb-2'>
-                <div className='flex items-center gap-2 min-w-0 flex-1'>
-                  <span className='flex-shrink-0'>
-                    {file.type === 'PDF'
-                      ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />
-                      : file.type === 'DOCX'
-                      ? <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-                      : <BarChart className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h4 className='font-medium text-gray-900 truncate'>{file.title}</h4>
-                    <p className='text-xs sm:text-sm text-gray-500'>
-                      {file.type} • {file.size}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className='text-xs text-gray-400 mb-2'>
-                Uploaded: {file.uploadDate}
-              </div>
-              <div className='flex gap-2 flex-wrap'>
-                <button className='text-red-600 hover:text-red-700 text-xs sm:text-sm'>
-                  Download
-                </button>
-                <button className='text-gray-600 hover:text-gray-700 text-xs sm:text-sm'>
-                  Edit
-                </button>
-                <button className='text-red-600 hover:text-red-700 text-xs sm:text-sm'>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className='bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-all font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md disabled:opacity-50'
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
       </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+        {/* Main Guidelines */}
+        <FileUpload 
+          label="Official Submission Guidelines (.docx/PDF)"
+          currentUrl={homeData?.resources?.guidelines_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            resources: { 
+              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
+              guidelines_url: url 
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            resources: { 
+              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
+              guidelines_url: "" 
+            }
+          })}
+          helperText="The primary document outlining the research proposal submission process."
+        />
+
+        {/* Technical Handbook / Resources */}
+        <FileUpload 
+          label="Technical Handbook / Resources (.docx/PDF)"
+          currentUrl={homeData?.resources?.handbook_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            resources: { 
+              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
+              handbook_url: url 
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            resources: { 
+              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
+              handbook_url: "" 
+            }
+          })}
+          helperText="Supplementary materials, formatting standards, or technical FAQs for proponents."
+        />
+      </div>
+
     </div>
   );
 };
@@ -401,12 +385,7 @@ const TemplatesSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 text-red-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-medium font-inter">Loading templates...</p>
-      </div>
-    );
+    return <PageLoader text="Loading templates..." className="min-h-[400px]" />;
   }
 
   return (
@@ -442,6 +421,13 @@ const TemplatesSection: React.FC = () => {
               research_url: url 
             }
           })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            templates: { 
+              ...(homeData?.templates || { research_url: "", project_url: "" }), 
+              research_url: "" 
+            }
+          })}
           helperText="Standardized DOST Form 1B for Research & Development Proposals."
         />
 
@@ -456,24 +442,17 @@ const TemplatesSection: React.FC = () => {
               project_url: url 
             }
           })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            templates: { 
+              ...(homeData?.templates || { research_url: "", project_url: "" }), 
+              project_url: "" 
+            }
+          })}
           helperText="Generic template for Monitoring and Project implementation plans."
         />
       </div>
 
-      <div className="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-        <div className="flex gap-3">
-          <div className="bg-blue-100 p-2 rounded-lg h-fit">
-            <Info className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-blue-900">CMS Guidance</h4>
-            <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-              These files are linked directly to the download buttons on the landing page. 
-              Always ensure you use high-quality, standardized templates endorsed by the research center.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

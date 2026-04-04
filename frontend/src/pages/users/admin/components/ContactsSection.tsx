@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { ContactInfo } from '../../../../schemas/contact-schema';
+import { DEFAULT_CONTACT_INFO } from '../../../../schemas/contact-schema';
 import { ContactApi } from '../../../../services/ContactApi';
-import { Building2, Phone, Mail, Clock, AlertTriangle } from 'lucide-react';
+import { Building2, Phone, Mail, Clock, AlertTriangle, LayoutTemplate } from 'lucide-react';
 import PageLoader from "../../../../components/shared/PageLoader";
 
 export const ContactsSection: React.FC = () => {
@@ -17,7 +18,15 @@ export const ContactsSection: React.FC = () => {
   const fetchContactData = async () => {
     try {
       const data = await ContactApi.getContacts();
-      setFormData(data);
+      // Deep merge with defaults so new 'hero' field always has a value
+      setFormData({
+        ...DEFAULT_CONTACT_INFO,
+        ...data,
+        hero: {
+          ...DEFAULT_CONTACT_INFO.hero,
+          ...(data?.hero || {}),
+        },
+      });
     } catch (error) {
       console.error('Failed to fetch contact data:', error);
       setMessage({ text: 'Failed to load contact information.', type: 'error' });
@@ -83,6 +92,47 @@ export const ContactsSection: React.FC = () => {
           {message.text}
         </div>
       )}
+
+      <div className='grid grid-cols-1 gap-6 mb-6'>
+        {/* Hero Section */}
+        <div className='bg-gray-50 p-5 rounded-lg border border-gray-200'>
+          <h3 className='text-md font-semibold text-gray-800 mb-4 flex items-center gap-2'>
+            <LayoutTemplate className="w-5 h-5 text-gray-500" /> Page Hero Section
+          </h3>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Badge Text</label>
+              <input
+                type='text'
+                value={formData.hero.badge}
+                onChange={(e) => handleChange('hero', 'badge', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
+                placeholder='e.g., Connect With Us'
+              />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Page Title</label>
+              <input
+                type='text'
+                value={formData.hero.title}
+                onChange={(e) => handleChange('hero', 'title', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500'
+                placeholder='e.g., Research Support Center'
+              />
+            </div>
+            <div className='md:col-span-2'>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Description</label>
+              <textarea
+                rows={3}
+                value={formData.hero.description}
+                onChange={(e) => handleChange('hero', 'description', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 resize-none'
+                placeholder='Short description displayed below the title...'
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* Office Location */}

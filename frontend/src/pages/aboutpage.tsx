@@ -241,14 +241,14 @@ const About: React.FC = () => {
           <div className="text-center mb-16 animate-fade-in-up">
             <div className="inline-block px-3 py-1 items-center rounded-full bg-red-50 border border-red-300 mb-4">
               <span className="text-xs text-red-700 font-semibold rounded-fulltext-red-700">
-                Our Distinct Approach
+                {aboutData.stats.badge}
               </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text text-transparent">
-              The WMSU Lead
+              {aboutData.stats.title}
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Experience a partnership built on academic excellence, tailored specifically for the Western Mindanao State University community.
+              {aboutData.stats.description}
             </p>
           </div>
 
@@ -257,10 +257,10 @@ const About: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="p-12 lg:p-16 bg-gradient-to-br from-red-50 to-white">
                 <div className="flex items-center gap-4 mb-8">
-                  <h3 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text">University-Tailored Expertise</h3>
+                  <h3 className="text-3xl font-bold text-gray-900 bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-800 bg-clip-text">{aboutData.stats.title}</h3>
                 </div>
                 <p className="text-lg text-gray-700 leading-relaxed mb-6">
-                  Our team consists of former WMSU faculty and research committee members who understand the intricate requirements and approval processes unique to our university.
+                  {aboutData.stats.description}
                 </p>
                 <ul className="space-y-3">
                   <li className="flex items-center gap-3 text-gray-600 transform hover:translate-x-2 transition-transform duration-300">
@@ -280,13 +280,13 @@ const About: React.FC = () => {
               <div ref={statsSection.ref} className="bg-gradient-to-br from-gray-900 to-[#C8102E] p-12 lg:p-16 text-white">
                 <h4 className="text-2xl font-bold mb-6">Proven Track Record</h4>
                 <div className={`grid grid-cols-2 gap-8 mb-8 transition-all duration-1000 ${statsSection.isInView ? 'opacity-100' : 'opacity-0'}`}>
-                  <AnimatedStat value={89} suffix="%" label="Approval Rate" shouldStart={statsSection.isInView} />
-                  <AnimatedStat value={50} suffix="+" label="Projects Funded" shouldStart={statsSection.isInView} />
+                  <AnimatedStat value={aboutData.stats.approval_rate} suffix="%" label="Approval Rate" shouldStart={statsSection.isInView} />
+                  <AnimatedStat value={aboutData.stats.projects_funded} suffix="+" label="Projects Funded" shouldStart={statsSection.isInView} />
                   <div className="text-center transform hover:scale-110 transition-transform duration-300">
-                    <div className="text-3xl font-bold mb-2">₱2.3M+</div>
+                    <div className="text-3xl font-bold mb-2">{aboutData.stats.funding_secured_text}</div>
                     <div className="text-red-200 text-sm">Funding Secured</div>
                   </div>
-                  <AnimatedStat value={100} suffix="%" label="Client Satisfaction" shouldStart={statsSection.isInView} />
+                  <AnimatedStat value={aboutData.stats.client_satisfaction} suffix="%" label="Client Satisfaction" shouldStart={statsSection.isInView} />
                 </div>
                 <p className="text-red-100 leading-relaxed">
                   Join the growing community of successful researchers who have transformed their ideas into funded projects through our specialized support.
@@ -297,62 +297,30 @@ const About: React.FC = () => {
 
           {/* Process Timeline with scroll reveal */}
           <div ref={processSection.ref} className="mb-16">
-            <h3 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-900 transition-all duration-1000 ${processSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>Our Streamlined Process</h3>
+            <h3 className={`text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-900 transition-all duration-1000 ${processSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>{aboutData.process.title}</h3>
             <div className="relative">
               {/* Timeline Line - Hidden on mobile, visible on medium+ */}
               <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-red-200 to-red-300"></div>
 
               <div className="space-y-6 sm:space-y-8 md:space-y-12">
-                {[
-                  {
-                    step: "01",
-                    title: "Team Formation & Proposal Preparation",
-                    description: "Assemble your research team and develop your initial proposal concept with our guidance",
-                    alignment: "left",
-                  },
-                  {
-                    step: "02",
-                    title: "Proposal Submission",
-                    description: "Submit your completed proposal through our streamlined online portal for initial review",
-                    alignment: "right",
-                  },
-                  {
-                    step: "03",
-                    title: "R&D Staff & Evaluator Review",
-                    description: "Our research and development team and expert evaluators conduct comprehensive assessment",
-                    alignment: "left",
-                  },
-                  {
-                    step: "04",
-                    title: "RDEC Endorsement",
-                    description: "Successful proposals receive official endorsement from the Research and Development Ethics Committee",
-                    alignment: "right",
-                  },
-                  {
-                    step: "05",
-                    title: "Funding Approval & Implementation",
-                    description: "Your proposal is declared fundable and ready for project implementation and execution",
-                    alignment: "left",
-                  }
-                ].map((item, index) => (
+                {aboutData.process.steps.map((item, index) => (
                   <div key={index} className={`relative transition-all duration-700 ${processSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`} style={{ transitionDelay: `${index * 150}ms` }}>
                     {/* Mobile Layout */}
                     <div className="md:hidden bg-white p-6 rounded-2xl shadow-lg border-l-4 border-red-600 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
                       <div className="flex-1">
-                        <div className="text-sm font-semibold text-red-600 mb-1">Step {item.step}</div>
+                        <div className="text-sm font-semibold text-red-600 mb-1">Step {String(index + 1).padStart(2, '0')}</div>
                         <h4 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h4>
                         <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
                       </div>
                     </div>
 
-                    {/* Desktop Layout */}
+                    {/* Desktop Layout - alternating left/right */}
                     <div className="hidden md:flex items-center w-full">
-                      {/* Left-aligned content */}
-                      {item.alignment === "left" && (
+                      {index % 2 === 0 ? (
                         <>
                           <div className="w-1/2 pr-8 lg:pr-12">
                             <div className="bg-white p-6 lg:p-8 rounded-2xl shadow-lg border-l-4 border-red-600 text-right hover:shadow-xl transform hover:-translate-x-2 hover:scale-105 transition-all duration-300">
-                              <div className="text-sm font-semibold text-red-600 mb-2">Step {item.step}</div>
+                              <div className="text-sm font-semibold text-red-600 mb-2">Step {String(index + 1).padStart(2, '0')}</div>
                               <h4 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">{item.title}</h4>
                               <p className="text-gray-600 leading-relaxed text-sm lg:text-base">{item.description}</p>
                             </div>
@@ -360,16 +328,13 @@ const About: React.FC = () => {
                           <div className="w-8 h-8 bg-red-600 rounded-full border-4 border-white shadow-lg z-10 flex-shrink-0 animate-pulse"></div>
                           <div className="w-1/2"></div>
                         </>
-                      )}
-
-                      {/* Right-aligned content */}
-                      {item.alignment === "right" && (
+                      ) : (
                         <>
                           <div className="w-1/2"></div>
                           <div className="w-8 h-8 bg-red-600 rounded-full border-4 border-white shadow-lg z-10 flex-shrink-0 animate-pulse"></div>
                           <div className="w-1/2 pl-8 lg:pl-12">
                             <div className="bg-white p-6 lg:p-8 rounded-2xl shadow-lg border-l-4 border-red-600 hover:shadow-xl transform hover:translate-x-2 hover:scale-105 transition-all duration-300">
-                              <div className="text-sm font-semibold text-red-600 mb-2">Step {item.step}</div>
+                              <div className="text-sm font-semibold text-red-600 mb-2">Step {String(index + 1).padStart(2, '0')}</div>
                               <h4 className="text-lg lg:text-xl font-bold text-gray-900 mb-3">{item.title}</h4>
                               <p className="text-gray-600 leading-relaxed text-sm lg:text-base">{item.description}</p>
                             </div>
@@ -390,12 +355,12 @@ const About: React.FC = () => {
             >
               <div className="flex items-start gap-6">
                 <div>
-                  <h4 className="text-2xl font-bold text-white mb-4 group-hover:scale-110 transition-transform duration-300 inline-block">Response Guarantee</h4>
+                  <h4 className="text-2xl font-bold text-white mb-4 group-hover:scale-110 transition-transform duration-300 inline-block">{aboutData.value_props.proposition_1.title}</h4>
                   <p className="text-gray-300 leading-relaxed mb-4">
-                    Get feedback within 48 hours and complete proposals in as little as 2 weeks, ensuring you never miss important deadlines.
+                    {aboutData.value_props.proposition_1.description}
                   </p>
                   <div className="inline-flex items-center gap-2 px-4 py-2 border-1 border-solid border-white bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                    <span>Get Feedback</span>
+                    <span>{aboutData.value_props.proposition_1.button_text}</span>
                   </div>
                 </div>
               </div>
@@ -408,13 +373,13 @@ const About: React.FC = () => {
                     className="text-2xl font-bold mb-4 group-hover:scale-110 transition-transform duration-300 inline-block"
                     style={{ color: "rgb(200, 16, 46)" }}
                   >
-                    Budget-Conscious Solutions
+                    {aboutData.value_props.proposition_2.title}
                   </h4>
                   <p className="text-red-900 leading-relaxed mb-4">
-                    Special student and faculty rates with flexible payment options, because great research shouldn't be limited by budget constraints.
+                    {aboutData.value_props.proposition_2.description}
                   </p>
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold hover:bg-red-200 transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                    <span>Affordable Excellence</span>
+                    <span>{aboutData.value_props.proposition_2.button_text}</span>
                   </div>
                 </div>
               </div>

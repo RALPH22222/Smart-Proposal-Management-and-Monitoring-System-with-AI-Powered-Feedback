@@ -54,6 +54,10 @@ export const HomeInfoSchema = z.object({
     research_url: z.string(),
     project_url: z.string(),
   }),
+  resources: z.object({
+    guidelines_url: z.string(),
+    handbook_url: z.string(),
+  }),
   process_steps: z.array(HomeProcessStepSchema),
 });
 
@@ -111,6 +115,10 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
   templates: {
     research_url: "",
     project_url: "",
+  },
+  resources: {
+    guidelines_url: "",
+    handbook_url: "",
   },
   process_steps: [
     { title: "Download & Submit Documentation", description: "Ensure you have your DOST project proposal template ready and all required fields are properly filled out. Proceed to the Submission page to submit your proposal. Double-check all information before submitting, as it cannot be edited unless the R&D requests a revision." },

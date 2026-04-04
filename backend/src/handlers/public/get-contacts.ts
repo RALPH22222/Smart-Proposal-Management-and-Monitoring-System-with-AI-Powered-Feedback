@@ -1,5 +1,6 @@
 import { buildCorsHeaders } from "../../utils/cors";
 import { supabase } from "../../lib/supabase";
+import { DEFAULT_CONTACT_INFO } from "../../schemas/contact-schema";
 
 export const handler = buildCorsHeaders(async (event) => {
   try {
@@ -17,22 +18,45 @@ export const handler = buildCorsHeaders(async (event) => {
       };
     }
 
-    if (!data || !data.value) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ message: "Contact information not found" }),
-      };
-    }
+    // Deep merge with defaults so existing DB rows missing 'hero' still work correctly
+    const contactData = {
+      ...DEFAULT_CONTACT_INFO,
+      ...(data?.value || {}),
+      hero: {
+        ...DEFAULT_CONTACT_INFO.hero,
+        ...(data?.value?.hero || {}),
+      },
+      location: {
+        ...DEFAULT_CONTACT_INFO.location,
+        ...(data?.value?.location || {}),
+      },
+      phones: {
+        ...DEFAULT_CONTACT_INFO.phones,
+        ...(data?.value?.phones || {}),
+      },
+      emails: {
+        ...DEFAULT_CONTACT_INFO.emails,
+        ...(data?.value?.emails || {}),
+      },
+      officeHours: {
+        ...DEFAULT_CONTACT_INFO.officeHours,
+        ...(data?.value?.officeHours || {}),
+      },
+      emergency: {
+        ...DEFAULT_CONTACT_INFO.emergency,
+        ...(data?.value?.emergency || {}),
+      },
+    };
 
     return {
       statusCode: 200,
-      body: JSON.stringify(data.value),
+      body: JSON.stringify(contactData),
     };
   } catch (err: any) {
     console.error("Unexpected error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: "Unexpected crash", detail: err?.message, stack: err?.stack?.split("\n").slice(0, 3).join(" | ") }),
+      body: JSON.stringify({ message: "Unexpected crash", detail: err?.message }),
     };
   }
 });

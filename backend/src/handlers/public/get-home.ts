@@ -49,6 +49,10 @@ export const handler = buildCorsHeaders(async (event) => {
         research_url: data?.value?.templates?.research_url || "",
         project_url: data?.value?.templates?.project_url || "",
       },
+      resources: {
+        guidelines_url: data?.value?.resources?.guidelines_url || "",
+        handbook_url: data?.value?.resources?.handbook_url || "",
+      },
       process_steps: (Array.isArray(data?.value?.process_steps) && data.value.process_steps.length > 0)
         ? data.value.process_steps
         : DEFAULT_HOME_INFO.process_steps,
