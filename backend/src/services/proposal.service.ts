@@ -303,6 +303,33 @@ export class ProposalService {
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
     const { proposal_id, evaluators, deadline_at, commentsForEvaluators, anonymized_file_url } = input;
 
+    // Validate proposal status — only allow forwarding when proposal is in an eligible status
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("status")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found"), assignments: null };
+    }
+
+    const allowedStatuses = [
+      Status.REVIEW_RND,
+      Status.PENDING,
+      Status.REVISED_PROPOSAL,
+      Status.UNDER_EVALUATION,
+    ];
+
+    if (!allowedStatuses.includes(proposal.status as Status)) {
+      return {
+        error: new Error(
+          `Cannot assign evaluators: proposal is in '${proposal.status}' status. Evaluators can only be assigned when proposal is pending review or under evaluation.`
+        ),
+        assignments: null,
+      };
+    }
+
     const deadline_number_weeks = new Date();
     deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
 
@@ -369,6 +396,25 @@ export class ProposalService {
   }
 
   async removeEvaluator(proposal_id: number, evaluator_id: string) {
+    // Validate proposal status — only allow removal when still under evaluation
+    const { data: proposal, error: fetchError } = await this.db
+      .from("proposals")
+      .select("status")
+      .eq("id", proposal_id)
+      .single();
+
+    if (fetchError || !proposal) {
+      return { error: fetchError || new Error("Proposal not found") };
+    }
+
+    if (proposal.status !== Status.UNDER_EVALUATION) {
+      return {
+        error: new Error(
+          `Cannot remove evaluator: proposal is in '${proposal.status}' status. Evaluators can only be removed when proposal is under evaluation.`
+        ),
+      };
+    }
+
     // 1. Remove from proposal_evaluators
     const { error: evalError } = await this.db
       .from("proposal_evaluators")
@@ -2084,6 +2130,7 @@ export class ProposalService {
         proposals:proposals(
           id,
           project_title,
+          status,
           proposal_tags(
             tags:tags(name)
           )
@@ -2140,6 +2187,7 @@ export class ProposalService {
       const cleanProposal = {
         id: row.proposals?.id,
         project_title: row.proposals?.project_title,
+        status: row.proposals?.status,
         proposal_tags: row.proposals?.proposal_tags,
       };
 

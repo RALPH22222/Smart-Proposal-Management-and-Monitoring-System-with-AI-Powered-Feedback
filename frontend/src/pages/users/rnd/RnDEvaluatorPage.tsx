@@ -41,12 +41,14 @@ interface Assignment {
   | "Extension Rejected";
   projectType: string;
   tags: string[];
+  proposalStatus: string; // backend proposal status (e.g. under_evaluation, endorsed_for_funding)
 }
 
 // Grouping structure to handle multiple evaluators per proposal
 interface GroupedAssignment {
   proposalIdNumeric: number;
   proposalTitle: string;
+  proposalStatus: string;
   projectType: string;
   deadline: string;
   tags: string[]; // Add tags field
@@ -70,6 +72,7 @@ export const RnDEvaluatorPage: React.FC = () => {
   const [currentEvaluators, setCurrentEvaluators] = useState<EvaluatorOption[]>([]);
   const [selectedProposalTitle, setSelectedProposalTitle] = useState("");
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
+  const [selectedProposalStatus, setSelectedProposalStatus] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -106,6 +109,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           groupedMap.set(pid, {
             proposalIdNumeric: pid,
             proposalTitle: item.proposal_id.project_title || "Untitled Proposal",
+            proposalStatus: item.proposal_id.status || "unknown",
             projectType: item.proposal_id.sector?.name || "N/A",
             deadline: item.deadline ? new Date(item.deadline).toISOString() : new Date().toISOString(),
             tags: item.proposal_id.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => t && t !== "N/A") || [],
@@ -186,6 +190,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           status: aggregateStatus,
           projectType: group.projectType,
           tags: group.tags,
+          proposalStatus: group.proposalStatus,
         };
       });
 
@@ -262,10 +267,11 @@ export const RnDEvaluatorPage: React.FC = () => {
     try {
       const proposalIdNumeric = parseInt(id);
 
-      // Optimistically set title if we can find it in the list (so header isn't empty)
+      // Optimistically set title and status if we can find it in the list
       const cachedAssignment = assignments.find(a => a.id === id);
       if (cachedAssignment) {
         setSelectedProposalTitle(cachedAssignment.proposalTitle);
+        setSelectedProposalStatus(cachedAssignment.proposalStatus);
       }
       setSelectedProposalId(proposalIdNumeric);
 
@@ -457,6 +463,39 @@ export const RnDEvaluatorPage: React.FC = () => {
 
 
 
+  // Helper: check if proposal status allows evaluator modifications
+  const isEvaluatorEditable = (proposalStatus: string) => {
+    return proposalStatus === "under_evaluation" || proposalStatus === "review_rnd" || proposalStatus === "pending" || proposalStatus === "revised_proposal";
+  };
+
+  // Helper: get display label for proposal status
+  const getProposalStatusLabel = (status: string) => {
+    switch (status) {
+      case "under_evaluation": return "Under Evaluation";
+      case "endorsed_for_funding": return "Endorsed";
+      case "funded": return "Funded";
+      case "review_rnd": return "Pending Review";
+      case "revision_rnd": return "Revision Required";
+      case "rejected_rnd": return "Rejected";
+      case "revised_proposal": return "Revised";
+      case "rejected_funding": return "Rejected (Funding)";
+      case "revision_funding": return "Revision (Funding)";
+      default: return status;
+    }
+  };
+
+  // Helper: get style for proposal status badge
+  const getProposalStatusStyle = (status: string) => {
+    switch (status) {
+      case "under_evaluation": return "bg-blue-50 text-blue-700 border-blue-200";
+      case "endorsed_for_funding": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "funded": return "bg-green-50 text-green-700 border-green-200";
+      case "rejected_rnd": case "rejected_funding": return "bg-red-50 text-red-700 border-red-200";
+      case "revision_rnd": case "revision_funding": return "bg-amber-50 text-amber-700 border-amber-200";
+      default: return "bg-slate-50 text-slate-700 border-slate-200";
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
@@ -577,6 +616,13 @@ export const RnDEvaluatorPage: React.FC = () => {
                           <span>Deadline: {formatDate(assignment.deadline)}</span>
                         </div>
 
+                        {/* Proposal Status Badge */}
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getProposalStatusStyle(assignment.proposalStatus)}`}
+                        >
+                          {getProposalStatusLabel(assignment.proposalStatus)}
+                        </span>
+
                         {/* Tags Display (Replaced Project Type) */}
                         {assignment.tags && assignment.tags.length > 0 && (
                           assignment.tags.map((tag, idx) => (
@@ -594,10 +640,9 @@ export const RnDEvaluatorPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(assignment.id)}
-                        disabled={false} // Always enable to allow clicking
-                        className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1"
                       >
-                        <Edit2 className="w-3 h-3" /> Action
+                        <Edit2 className="w-3 h-3" /> {isEvaluatorEditable(assignment.proposalStatus) ? "Action" : "View"}
                       </button>
                     </div>
                   </div>
@@ -658,6 +703,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         onReassign={handleReassignEvaluators}
         onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
+        proposalStatus={selectedProposalStatus}
         isLoading={editLoading}
       />
     </div>

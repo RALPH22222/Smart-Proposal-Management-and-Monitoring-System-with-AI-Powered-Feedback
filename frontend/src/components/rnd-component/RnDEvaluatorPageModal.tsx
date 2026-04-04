@@ -9,7 +9,8 @@ import {
   Users,
   NotebookPen,
   Trash2,
-  Mail
+  Mail,
+  UserPlus
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchDepartments, fetchUsersByRole, type UserItem } from '../../services/proposal.api';
@@ -32,6 +33,7 @@ interface RnDEvaluatorPageModalProps {
   onReassign: (newEvaluators: EvaluatorOption[]) => void;
   onExtensionAction?: (evaluatorId: string, action: 'Accept' | 'Reject') => void;
   proposalTitle: string;
+  proposalStatus?: string;
   isLoading?: boolean;
 }
 
@@ -42,8 +44,26 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   onReassign,
   onExtensionAction,
   proposalTitle = "Untitled Project",
+  proposalStatus = "",
   isLoading = false,
 }) => {
+  // Check if the proposal status allows evaluator modifications
+  const isEditable = ["under_evaluation", "review_rnd", "pending", "revised_proposal"].includes(proposalStatus);
+
+  const getProposalStatusLabel = (status: string) => {
+    switch (status) {
+      case "under_evaluation": return "Under Evaluation";
+      case "endorsed_for_funding": return "Endorsed";
+      case "funded": return "Funded";
+      case "review_rnd": return "Pending Review";
+      case "revision_rnd": return "Revision Required";
+      case "rejected_rnd": return "Rejected";
+      case "revised_proposal": return "Revised";
+      case "rejected_funding": return "Rejected (Funding)";
+      case "revision_funding": return "Revision (Funding)";
+      default: return status;
+    }
+  };
   const [departments, setDepartments] = useState<string[]>([]);
   const [allEvaluators, setAllEvaluators] = useState<UserItem[]>([]);
   const [isInternalLoading, setIsInternalLoading] = useState(true);
@@ -60,6 +80,11 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const [replacementTargetId, setReplacementTargetId] = useState<string | null>(null);
   const [replaceSearch, setReplaceSearch] = useState('');
   const [replaceDeptFilter, setReplaceDeptFilter] = useState('All');
+
+  // Add Evaluator Panel States
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [addSearch, setAddSearch] = useState('');
+  const [addDeptFilter, setAddDeptFilter] = useState('All');
 
   useEffect(() => {
     if (isOpen) {
@@ -132,6 +157,37 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     }
   };
 
+  const confirmAdd = async (newEvaluatorId: string) => {
+    const newEvaluatorUser = allEvaluators.find(user => user.id === newEvaluatorId);
+    if (!newEvaluatorUser) return;
+
+    const result = await Swal.fire({
+      title: 'Add Evaluator?',
+      html: `Add <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong> to this assignment?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#C8102E',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Yes, Add',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) {
+      setCurrentList(prev => [
+        ...prev,
+        {
+          id: newEvaluatorUser.id,
+          name: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}`.trim(),
+          department: newEvaluatorUser.departments[0]?.name || "Unknown Dept",
+          status: 'Pending',
+        },
+      ]);
+      Swal.fire({ title: 'Added!', text: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name} has been added.`, icon: 'success', timer: 2000, showConfirmButton: false });
+      setShowAddPanel(false);
+      setAddSearch('');
+    }
+  };
+
   const handleSaveClick = async () => {
     const result = await Swal.fire({
       title: 'Confirm Assignment',
@@ -186,18 +242,34 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     return matchSearch && matchDept && matchStatus;
   });
 
-  const replaceCandidates = allEvaluators
-    .filter(user => !currentList.some(curr => curr.id === user.id))
+  // Evaluators not already assigned (shared base for replace & add)
+  const availableEvaluators = allEvaluators.filter(user => !currentList.some(curr => curr.id === user.id));
+
+  const replaceCandidates = availableEvaluators
     .filter(user => {
       const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim();
       const email = user.email || '';
       const dept = user.departments[0]?.name || 'Unknown';
-      
-      const matchSearch = name.toLowerCase().includes(replaceSearch.toLowerCase()) || 
+
+      const matchSearch = name.toLowerCase().includes(replaceSearch.toLowerCase()) ||
                           email.toLowerCase().includes(replaceSearch.toLowerCase()) ||
                           dept.toLowerCase().includes(replaceSearch.toLowerCase());
       const matchDept = replaceDeptFilter === 'All' || dept === replaceDeptFilter;
-      
+
+      return matchSearch && matchDept;
+    });
+
+  const addCandidates = availableEvaluators
+    .filter(user => {
+      const name = `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim();
+      const email = user.email || '';
+      const dept = user.departments[0]?.name || 'Unknown';
+
+      const matchSearch = name.toLowerCase().includes(addSearch.toLowerCase()) ||
+                          email.toLowerCase().includes(addSearch.toLowerCase()) ||
+                          dept.toLowerCase().includes(addSearch.toLowerCase());
+      const matchDept = addDeptFilter === 'All' || dept === addDeptFilter;
+
       return matchSearch && matchDept;
     });
 
@@ -214,6 +286,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-gray-900 leading-tight">Evaluator Assignment Status</h2>
               <p className="text-sm text-slate-500 mt-1 leading-snug line-clamp-2">{proposalTitle}</p>
+              {proposalStatus && (
+                <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                  isEditable ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {getProposalStatusLabel(proposalStatus)}
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -226,7 +305,22 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6 relative">
-          
+
+          {/* Read-only banner when proposal is past evaluation */}
+          {!isEditable && proposalStatus && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-amber-100 rounded-lg">
+                <Users className="w-4 h-4 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">View Only</p>
+                <p className="text-xs text-amber-600">
+                  This proposal is <strong>{getProposalStatusLabel(proposalStatus).toLowerCase()}</strong>. Evaluator assignments can no longer be modified.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Mini Replace Modal Overlay */}
           {replacementTargetId && (
             <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
@@ -299,16 +393,97 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             </div>
           )}
 
+          {/* Add Evaluator Overlay */}
+          {showAddPanel && (
+            <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(200,16,46,0.25)] ring-1 ring-red-100 w-full max-w-xl overflow-hidden flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200">
+                <div className="p-4 border-b border-red-100 bg-red-50 flex items-center justify-between">
+                  <h3 className="font-bold text-red-900 flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-[#C8102E]" />
+                    Add Evaluator
+                  </h3>
+                  <button onClick={() => { setShowAddPanel(false); setAddSearch(''); setAddDeptFilter('All'); }} className="p-1 hover:bg-red-200 text-red-400 hover:text-red-600 rounded-lg transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                {/* Filters */}
+                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-300" />
+                    <input
+                      type="text"
+                      placeholder="Search name, email, or dept..."
+                      value={addSearch}
+                      onChange={(e) => setAddSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-red-50/30 border border-red-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <select
+                    value={addDeptFilter}
+                    onChange={(e) => setAddDeptFilter(e.target.value)}
+                    className="w-full sm:w-48 p-2 bg-red-50/30 border border-red-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#C8102E] transition-all text-red-900"
+                  >
+                    <option value="All">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* List */}
+                <div className="flex-1 overflow-y-auto max-h-64 p-3 space-y-2 custom-scrollbar bg-slate-50">
+                  {addCandidates.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
+                  ) : (
+                    addCandidates.map((user) => (
+                      <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-red-300 hover:shadow-md transition-all">
+                        <div className="flex items-center gap-3 w-full">
+                          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                            <UserIcon className="w-5 h-5 text-[#C8102E]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                              <span className="truncate flex items-center gap-1"><NotebookPen className="w-3 h-3"/> {user.departments[0]?.name || 'Unknown'}</span>
+                              {user.email && (
+                                <span className="truncate flex items-center gap-1"><Mail className="w-3 h-3"/> {user.email}</span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => confirmAdd(user.id)}
+                            className="bg-red-50 hover:bg-[#C8102E] text-[#C8102E] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Section 1: Current Evaluators */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
             <div className="border-b border-slate-200 pb-4 mb-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-4">
-                <Users className="w-4 h-4 text-[#C8102E]" />
-                Assigned Evaluators
-                <span className="text-xs font-bold text-white bg-[#C8102E] px-2 py-0.5 rounded-full">
-                  {filteredAssignedEvaluators.length}
-                </span>
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#C8102E]" />
+                  Assigned Evaluators
+                  <span className="text-xs font-bold text-white bg-[#C8102E] px-2 py-0.5 rounded-full">
+                    {filteredAssignedEvaluators.length}
+                  </span>
+                </h3>
+                {isEditable && (
+                  <button
+                    onClick={() => setShowAddPanel(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C8102E] text-white text-xs rounded-lg font-semibold hover:bg-[#A00E26] transition-colors shadow-sm"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Add Evaluator
+                  </button>
+                )}
+              </div>
               
               {/* filters matching request */}
               <div className="flex flex-col sm:flex-row gap-3">
@@ -394,7 +569,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                     Requested: {ev.extensionDate}
                                   </div>
                                 </div>
-                                {onExtensionAction && (
+                                {onExtensionAction && isEditable && (
                                   <div className="flex gap-2 mt-3 pt-2 border-t border-blue-200/50">
                                     <button onClick={() => onExtensionAction(ev.id, 'Accept')} className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
                                       <Check className="w-3 h-3" /> Approve
@@ -422,21 +597,25 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
                           {/* Actions */}
                           <td className="px-4 py-3 align-middle text-center">
-                            <div className="flex flex-row items-center justify-center gap-2">
-                              {ev.status !== 'Accepts' && (
-                                <button 
-                                  onClick={() => setReplacementTargetId(ev.id)} 
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 text-xs rounded-lg font-bold transition-all shadow-sm"
-                                >
-                                  <Users className="w-3.5 h-3.5" /> Replace
-                                </button>
-                              )}
-                              {ev.status !== 'Accepts' && (
-                                <button onClick={() => initiateRemove(ev)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-lg font-medium transition-colors">
-                                  <Trash2 className="w-3 h-3" /> Remove
-                                </button>
-                              )}
-                            </div>
+                            {isEditable ? (
+                              <div className="flex flex-row items-center justify-center gap-2">
+                                {ev.status !== 'Accepts' && (
+                                  <button
+                                    onClick={() => setReplacementTargetId(ev.id)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 text-xs rounded-lg font-bold transition-all shadow-sm"
+                                  >
+                                    <Users className="w-3.5 h-3.5" /> Replace
+                                  </button>
+                                )}
+                                {ev.status !== 'Accepts' && (
+                                  <button onClick={() => initiateRemove(ev)} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs rounded-lg font-medium transition-colors">
+                                    <Trash2 className="w-3 h-3" /> Remove
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">View only</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -460,19 +639,21 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition-colors text-sm"
           >
-            Cancel
+            {isEditable ? 'Cancel' : 'Close'}
           </button>
-          <button
-            onClick={handleSaveClick}
-            disabled={!hasChanges}
-            className={`px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors text-sm ${
-              hasChanges
-                ? 'bg-[#C8102E] hover:bg-[#A00E26] cursor-pointer'
-                : 'bg-slate-300 cursor-not-allowed'
-            }`}
-          >
-            Save Changes
-          </button>
+          {isEditable && (
+            <button
+              onClick={handleSaveClick}
+              disabled={!hasChanges}
+              className={`px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors text-sm ${
+                hasChanges
+                  ? 'bg-[#C8102E] hover:bg-[#A00E26] cursor-pointer'
+                  : 'bg-slate-300 cursor-not-allowed'
+              }`}
+            >
+              Save Changes
+            </button>
+          )}
         </div>
       </div>
     </div>
