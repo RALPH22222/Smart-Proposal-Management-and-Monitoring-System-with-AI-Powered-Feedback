@@ -11,18 +11,24 @@ import SkeletonPulse from '../shared/SkeletonPulse';
 interface Props {
   /** Which notification event keys this role should see */
   visibleEvents: (keyof NotificationChannel)[];
+  initialPrefs?: NotificationPreferences;
 }
 
-const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents }) => {
-  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
+const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents, initialPrefs }) => {
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(initialPrefs || null);
+  const [loading, setLoading] = useState(!initialPrefs);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (initialPrefs) {
+      setPrefs(initialPrefs);
+      setLoading(false);
+      return;
+    }
+    
     SettingsApi.getNotificationPreferences()
       .then((data) => setPrefs(data))
       .catch(() => {
-        // use defaults on error
         const defaults: NotificationChannel = {
           proposal_endorsed: true,
           proposal_revision: true,
@@ -33,10 +39,10 @@ const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents }) => {
         setPrefs({ email: { ...defaults }, in_app: { ...defaults } });
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialPrefs]);
 
   const toggle = (channel: 'email' | 'in_app', key: keyof NotificationChannel) => {
-    if (!prefs) return;
+    if (!prefs || !prefs[channel]) return;
     setPrefs({
       ...prefs,
       [channel]: {
@@ -92,7 +98,7 @@ const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents }) => {
             <label key={`email-${key}`} className="flex items-center gap-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
-                checked={prefs.email[key]}
+                checked={prefs.email ? !!prefs.email[key] : false}
                 onChange={() => toggle('email', key)}
                 className="accent-red-600 w-4 h-4"
               />
@@ -110,7 +116,7 @@ const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents }) => {
             <label key={`in_app-${key}`} className="flex items-center gap-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
-                checked={prefs.in_app[key]}
+                checked={prefs.in_app ? !!prefs.in_app[key] : false}
                 onChange={() => toggle('in_app', key)}
                 className="accent-red-600 w-4 h-4"
               />

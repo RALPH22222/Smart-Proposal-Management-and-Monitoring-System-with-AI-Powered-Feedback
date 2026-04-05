@@ -734,8 +734,9 @@ const Profile: React.FC = () => {
           95%, 100% { transform: translateX(0); }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 animate-fade-in">
-        {/* Header Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-fade-in">
+
+        {/* --- HEADER --- */}
         <header className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -1019,28 +1020,28 @@ const Profile: React.FC = () => {
             )}
           </div>
         </section>
-
-        {/* Modals */}
-        <HowItWorksModal
-          isOpen={howItWorksOpen}
-          onClose={() => setHowItWorksOpen(false)}
-        />
-
-        <DetailedProposalModal
-          isOpen={detailedModalOpen}
-          onClose={() => setDetailedModalOpen(false)}
-          proposal={selectedProject}
-          onUpdateProposal={handleUpdateProposal}
-          // Pass lookup data
-          agencies={agencies}
-          sectors={sectors}
-          disciplines={disciplines}
-          priorities={priorities}
-          stations={stations}
-          tags={tags}
-          departments={departments}
-        />
       </div>
+
+      {/* Modals placed outside the animate-fade-in div to fix z-index stacking issues with the navbar */}
+      <HowItWorksModal
+        isOpen={howItWorksOpen}
+        onClose={() => setHowItWorksOpen(false)}
+      />
+
+      <DetailedProposalModal
+        isOpen={detailedModalOpen}
+        onClose={() => setDetailedModalOpen(false)}
+        proposal={selectedProject}
+        onUpdateProposal={handleUpdateProposal}
+        // Pass lookup data
+        agencies={agencies}
+        sectors={sectors}
+        disciplines={disciplines}
+        priorities={priorities}
+        stations={stations}
+        tags={tags}
+        departments={departments}
+      />
     </>
   );
 };

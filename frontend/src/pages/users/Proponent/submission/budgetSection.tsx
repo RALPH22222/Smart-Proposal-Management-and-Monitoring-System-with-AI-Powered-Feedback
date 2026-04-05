@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   FaMoneyBillWave,
   FaPlus,
@@ -17,6 +17,7 @@ interface BudgetSectionProps {
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
   onBudgetItemUpdate: (id: number, field: string, value: any) => void;
+  onOpenBudgetModal: (itemId: number, category: 'ps' | 'mooe' | 'co') => void;
   autoFilledFields?: Set<string>;
 }
 
@@ -25,22 +26,9 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
+  onOpenBudgetModal,
   autoFilledFields = new Set(),
 }) => {
-  const [activeModal, setActiveModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
-
-  const handleOpenModal = (itemId: number, category: 'ps' | 'mooe' | 'co') => {
-    const item = formData.budgetItems.find(i => i.id === itemId);
-    const currentBreakdown = getBreakdown(item, category);
-    
-    if (currentBreakdown.length === 0) {
-      const newBreakdown = [{ item: '', value: 0 }];
-      updateBudgetStructure(itemId, category, newBreakdown);
-    }
-    
-    setActiveModal({ itemId, category });
-  };
-
   const formatCurrency = (amount: number) => {
     const num = Number(amount) || 0;
     return new Intl.NumberFormat('en-PH', {
@@ -50,84 +38,8 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     }).format(num);
   };
 
-  // --- FIX 1: SAFETY CHECK ---
-  // Ensure item.budget exists before trying to access it
-  const getBreakdown = (item: BudgetItem | undefined, category: 'ps' | 'mooe' | 'co'): ExpenseItem[] => {
-    if (!item || !item.budget || !item.budget[category]) return [];
-    return item.budget[category];
-  };
-
-  // --- FIX 2: UPDATE LOGIC FOR NESTED OBJECT ---
-  // When adding/editing a breakdown, we must update the entire 'budget' object
-  // and send it back to the parent.
-
-  const updateBudgetStructure = (itemId: number, category: 'ps' | 'mooe' | 'co', newCategoryArray: ExpenseItem[]) => {
-    const item = formData.budgetItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    // Create copy of current budget object
-    const updatedBudget = {
-      ...item.budget,
-      [category]: newCategoryArray
-    };
-
-    // Send the WHOLE budget object up to index.tsx
-    onBudgetItemUpdate(itemId, 'budget', updatedBudget);
-  };
-
-  const handleAddBreakdownItem = () => {
-    if (!activeModal) return;
-    const { itemId, category } = activeModal;
-
-    const item = formData.budgetItems.find(i => i.id === itemId);
-    const currentBreakdown = getBreakdown(item, category);
-
-    // Add a new empty line item
-    const newBreakdown = [
-      ...currentBreakdown,
-      { item: '', value: 0 }
-    ];
-
-    updateBudgetStructure(itemId, category, newBreakdown);
-  };
-
-  const handleDetailedUpdate = (index: number, desc: string, amount: number) => {
-    if (!activeModal) return;
-    const { itemId, category } = activeModal;
-
-    const item = formData.budgetItems.find(i => i.id === itemId);
-    const currentBreakdown = getBreakdown(item, category);
-
-    const updatedBreakdown = [...currentBreakdown];
-
-    const safeAmount = Math.max(0, amount);
-
-    updatedBreakdown[index] = {
-      item: desc.trim(),
-      value: safeAmount
-    };
-
-    updateBudgetStructure(itemId, category, updatedBreakdown);
-  };
-
-  const handleRemoveBreakdownItem = (index: number) => {
-    if (!activeModal) return;
-    const { itemId, category } = activeModal;
-
-    const item = formData.budgetItems.find(i => i.id === itemId);
-    const currentBreakdown = getBreakdown(item, category);
-
-    // Only allow removal if there's more than one item
-    if (currentBreakdown.length <= 1) return;
-
-    const updatedBreakdown = currentBreakdown.filter((_, idx) => idx !== index);
-
-    updateBudgetStructure(itemId, category, updatedBreakdown);
-  };
-
   const calculateTotal = (field: 'ps' | 'mooe' | 'co' | 'total') => {
     return formData.budgetItems.reduce((grandTotal, item) => {
-      // Helper function to sum up an array of ExpenseItems
       const getCategorySum = (items: ExpenseItem[] | undefined) => {
         if (!items) return 0;
         return items.reduce((sum, expense) => sum + (Number(expense.value) || 0), 0);
@@ -151,7 +63,6 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
   return (
     <div className="space-y-8 relative">
-      {/* Header (Same) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
@@ -184,8 +95,6 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
       <div className="space-y-4">
         {formData.budgetItems.map((item, index) => {
-          // --- FIX 3: SAFE ACCESS ---
-          // Safely calculate totals for this specific row using optional chaining
           const rowPS = item.budget?.ps?.reduce((sum, curr) => sum + (Number(curr.value) || 0), 0) || 0;
           const rowMOOE = item.budget?.mooe?.reduce((sum, curr) => sum + (Number(curr.value) || 0), 0) || 0;
           const rowCO = item.budget?.co?.reduce((sum, curr) => sum + (Number(curr.value) || 0), 0) || 0;
@@ -197,11 +106,10 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                {/* Source Field */}
                 <div className="lg:col-span-4 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${item.source ? 'text-green-600' : 'text-gray-500'}`}>
                     Source of Funds <span className="text-red-500">*</span>
-                    <Tooltip content="The origin of the funding (e.g., General Appropriations Act, Local Government Units, Private Industry, etc.)" />
+                    <Tooltip content="The origin of the funding" />
                   </label>
                   <input
                     type="text"
@@ -213,58 +121,54 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   />
                 </div>
 
-                {/* PS Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowPS > 0 ? 'text-green-600' : 'text-gray-500'}`}>
                     PS <span className="text-red-500">*</span>
-                    <Tooltip content="Personnel Services - salaries, wages, allowances, and other benefits for project staff" position="right" />
+                    <Tooltip content="Personnel Services" position="right" />
                   </label>
                   <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
-                    onClick={() => handleOpenModal(item.id, 'ps')}
+                    onClick={() => onOpenBudgetModal(item.id, 'ps')}
                   >
                     <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
-                    <div className="flex-1 truncate" title={formatCurrency(rowPS)}>
+                    <div className="flex-1 truncate">
                       <span>{formatCurrency(rowPS)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* MOOE Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowMOOE > 0 ? 'text-green-600' : 'text-gray-500'}`}>
                     MOOE <span className="text-red-500">*</span>
-                    <Tooltip content="Maintenance and Other Operating Expenses - utilities, supplies, repairs, transportation, communication, etc." position="right" />
+                    <Tooltip content="Maintenance and Other Operating Expenses" position="right" />
                   </label>
                   <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
-                    onClick={() => handleOpenModal(item.id, 'mooe')}
+                    onClick={() => onOpenBudgetModal(item.id, 'mooe')}
                   >
                     <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
-                    <div className="flex-1 truncate" title={formatCurrency(rowMOOE)}>
+                    <div className="flex-1 truncate">
                       <span>{formatCurrency(rowMOOE)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* CO Field */}
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowCO > 0 ? 'text-green-600' : 'text-gray-500'}`}>
                     CO <span className="text-red-500">*</span>
-                    <Tooltip content="Capital Outlay - acquisition of fixed assets like equipment, machinery, vehicles, buildings, and infrastructure" position="right" />
+                    <Tooltip content="Capital Outlay" position="right" />
                   </label>
                   <div
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
-                    onClick={() => handleOpenModal(item.id, 'co')}
+                    onClick={() => onOpenBudgetModal(item.id, 'co')}
                   >
                     <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
-                    <div className="flex-1 truncate" title={formatCurrency(rowCO)}>
+                    <div className="flex-1 truncate">
                       <span>{formatCurrency(rowCO)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Remove Action */}
                 <div className="lg:col-span-2 flex items-center justify-end lg:pt-6">
                   <button
                     type="button"
@@ -282,7 +186,6 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         })}
       </div>
 
-      {/* Summary Totals Area (Same as yours, but using calculated totals) */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-8">
         <div className="bg-slate-100 px-6 py-4 border-b border-slate-200 flex items-center gap-2">
           <FaCalculator className="text-slate-500" />
@@ -298,7 +201,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
                 </div>
                 <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalPS)}>{formatCurrency(totalPS)}</p>
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalPS)}</p>
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
@@ -307,7 +210,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   <p className="text-sm text-slate-600">Maintenance & Operations</p>
                 </div>
                 <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalMOOE)}>{formatCurrency(totalMOOE)}</p>
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalMOOE)}</p>
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
@@ -316,7 +219,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
                 </div>
                 <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate" title={formatCurrency(totalCO)}>{formatCurrency(totalCO)}</p>
+                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalCO)}</p>
                 </div>
               </div>
             </div>
@@ -332,7 +235,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 </div>
               </div>
               <div className="max-w-[150px] sm:max-w-xs lg:max-w-[280px] w-full text-right">
-                <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight truncate flex-1" title={formatCurrency(grandTotal)}>
+                <p className="text-3xl sm:text-4xl font-black font-mono tracking-tight truncate flex-1">
                   {formatCurrency(grandTotal)}
                 </p>
               </div>
@@ -340,101 +243,133 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           </div>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* --- BREAKDOWN MODAL --- */}
-      {activeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+export const BudgetBreakdownModal: React.FC<{
+  formData: FormData,
+  activeModal: { itemId: number, category: 'ps' | 'mooe' | 'co' },
+  onClose: () => void,
+  onBudgetItemUpdate: (id: number, field: string, value: any) => void
+}> = ({ formData, activeModal, onClose, onBudgetItemUpdate }) => {
+  
+  const getBreakdown = (item: BudgetItem | undefined, category: 'ps' | 'mooe' | 'co'): ExpenseItem[] => {
+    if (!item || !item.budget || !item.budget[category]) return [];
+    return item.budget[category];
+  };
 
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <FaListUl className="text-[#C8102E]" />
-                {activeModal.category.toUpperCase()} Breakdown
-              </h3>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                <FaTimes className="text-gray-500" />
-              </button>
-            </div>
+  const updateBudgetStructure = (itemId: number, category: 'ps' | 'mooe' | 'co', newCategoryArray: ExpenseItem[]) => {
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    if (!item) return;
+    const updatedBudget = { ...item.budget, [category]: newCategoryArray };
+    onBudgetItemUpdate(itemId, 'budget', updatedBudget);
+  };
 
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No line items added yet. Click "Add Item" to start.
-                </div>
-              ) : (
-                getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).map((item, idx) => {
-                  const displayDescription = item.item || '';
-                  const itemAmount = item.value || 0;
+  const handleAddBreakdownItem = () => {
+    const { itemId, category } = activeModal;
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    const currentBreakdown = getBreakdown(item, category);
+    const newBreakdown = [...currentBreakdown, { item: '', value: 0 }];
+    updateBudgetStructure(itemId, category, newBreakdown);
+  };
 
-                  return (
-                    <div key={idx} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group animate-in slide-in-from-bottom-2">
-                      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
-                            {idx + 1}
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Item Description (e.g. Laptop, Travel)"
-                            value={displayDescription}
-                            onChange={(e) => handleDetailedUpdate(idx, e.target.value, itemAmount)}
-                            className="flex-1 bg-transparent border-b border-gray-200 focus:border-[#C8102E] px-1 py-1 text-sm font-medium focus:outline-none transition-colors"
-                          />
-                        </div>
+  const handleDetailedUpdate = (index: number, desc: string, amount: number) => {
+    const { itemId, category } = activeModal;
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    const currentBreakdown = getBreakdown(item, category);
+    const updatedBreakdown = [...currentBreakdown];
+    updatedBreakdown[index] = { item: desc.trim(), value: Math.max(0, amount) };
+    updateBudgetStructure(itemId, category, updatedBreakdown);
+  };
 
-                        <div className="flex items-center gap-2 pl-10 sm:pl-0 sm:w-1/3 shrink-0">
-                          <div className="relative flex-1">
-                            <span className="absolute left-2.5 top-2 text-gray-400 text-sm font-mono">₱</span>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="Amount"
-                              value={itemAmount || ''}
-                              onChange={(e) => handleDetailedUpdate(idx, displayDescription, Math.max(0, parseFloat(e.target.value) || 0))}
-                              className="w-full pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:bg-white outline-none font-mono"
-                            />
-                          </div>
-                          <button
-                            onClick={() => handleRemoveBreakdownItem(idx)}
-                            disabled={getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length <= 1}
-                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300"
-                            title={getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category).length <= 1 ? "Minimum 1 item required" : "Remove Item"}
-                          >
-                            <FaTrash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+  const handleRemoveBreakdownItem = (index: number) => {
+    const { itemId, category } = activeModal;
+    const item = formData.budgetItems.find(i => i.id === itemId);
+    const currentBreakdown = getBreakdown(item, category);
+    if (currentBreakdown.length <= 1) return;
+    const updatedBreakdown = currentBreakdown.filter((_, idx) => idx !== index);
+    updateBudgetStructure(itemId, category, updatedBreakdown);
+  };
 
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-              <div className="text-sm font-semibold text-gray-700 flex items-center w-full max-w-[200px] sm:max-w-[280px]">
-                <span className="shrink-0 mr-2">Total:</span> 
-                <span className="text-[#C8102E] font-mono truncate" title={formatCurrency(
-                    getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
-                      .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)
-                  )}>
-                  {formatCurrency(
-                    getBreakdown(formData.budgetItems.find(i => i.id === activeModal.itemId), activeModal.category)
-                      .reduce((sum, curr) => sum + (Number(curr.value) || 0), 0)
-                  )}
-                </span>
-              </div>
-              <button
-                onClick={handleAddBreakdownItem}
-                className="px-4 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] transition-colors flex items-center gap-2"
-              >
-                <FaPlus className="w-3 h-3" /> Add Item
-              </button>
-            </div>
+  const formatCurrency = (amount: number) => {
+    const num = Number(amount) || 0;
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 2,
+    }).format(num);
+  };
 
-          </div>
+  const currentItem = formData.budgetItems.find(i => i.id === activeModal.itemId);
+  const currentBreakdown = getBreakdown(currentItem, activeModal.category);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+          <h3 className="font-bold text-gray-800 flex items-center gap-2">
+            <FaListUl className="text-[#C8102E]" />
+            {activeModal.category.toUpperCase()} Breakdown
+          </h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+            <FaTimes className="text-gray-500" />
+          </button>
         </div>
-      )}
 
+        <div className="p-4 overflow-y-auto flex-1 space-y-3">
+          {currentBreakdown.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm">
+              No line items added yet. Click "Add Item" to start.
+            </div>
+          ) : (
+            currentBreakdown.map((item, idx) => (
+              <div key={idx} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group animate-in slide-in-from-bottom-2">
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-7 h-7 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">{idx + 1}</div>
+                    <input
+                      type="text"
+                      placeholder="Item Description"
+                      value={item.item || ''}
+                      onChange={(e) => handleDetailedUpdate(idx, e.target.value, item.value || 0)}
+                      className="flex-1 bg-transparent border-b border-gray-200 focus:border-[#C8102E] px-1 py-1 text-sm font-medium focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pl-10 sm:pl-0 sm:w-1/3 shrink-0">
+                    <div className="relative flex-1">
+                      <span className="absolute left-2.5 top-2 text-gray-400 text-sm font-mono">₱</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.value || ''}
+                        onChange={(e) => handleDetailedUpdate(idx, item.item || '', parseFloat(e.target.value) || 0)}
+                        className="w-full pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none font-mono"
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleRemoveBreakdownItem(idx)}
+                      disabled={currentBreakdown.length <= 1}
+                      className="p-2 text-gray-300 hover:text-red-500 rounded-lg transition-all disabled:opacity-30"
+                    >
+                      <FaTrash className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+          <div className="text-sm font-semibold text-gray-700">
+            Total: <span className="text-[#C8102E] font-mono">{formatCurrency(currentBreakdown.reduce((sum, curr) => sum + (Number(curr.value) || 0), 0))}</span>
+          </div>
+          <button onClick={handleAddBreakdownItem} className="px-4 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] flex items-center gap-2">
+            <FaPlus className="w-3 h-3" /> Add Item
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

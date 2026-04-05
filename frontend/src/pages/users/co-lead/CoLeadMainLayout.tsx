@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import CoLeadNavbar from "../../../components/co-lead-component/CoLeadNavbar";
-import Profile from "../Proponent/Profile";
+import Profile from "../proponent/Profile";
 import CoLeadProjects from "./CoLeadProjects";
 
 const CoLeadMainLayout: React.FC = () => {

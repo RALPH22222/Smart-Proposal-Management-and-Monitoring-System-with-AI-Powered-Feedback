@@ -8,6 +8,7 @@ import {
   updateMyName,
   type UserProfile
 } from '../../../services/user/userService';
+import { SettingsApi, type NotificationPreferences } from '../../../services/admin/SettingsApi';
 import SecureImage from '../../../components/shared/SecureImage';
 import PageLoader from '../../../components/shared/PageLoader';
 
@@ -37,6 +38,7 @@ interface ExtendedUserProfile extends UserProfile {
 
 const Settings: React.FC = () => {
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -61,8 +63,13 @@ const Settings: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const me = await getMyProfile() as ExtendedUserProfile;
+        const [me, p] = await Promise.all([
+            getMyProfile() as Promise<ExtendedUserProfile>,
+            SettingsApi.getNotificationPreferences().catch(() => null)
+        ]);
+        
         setProfile(me);
+        setPrefs(p);
         
         setFormData({
             firstName: me.firstName || '',
@@ -352,6 +359,7 @@ const Settings: React.FC = () => {
       <section className='mb-6'>
         <h2 className='text-lg font-medium text-gray-800 mb-4'>Notification Preferences</h2>
         <NotificationPreferencesCard
+          initialPrefs={prefs || undefined}
           visibleEvents={[
             'proposal_endorsed',
             'proposal_revision',

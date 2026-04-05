@@ -16,7 +16,7 @@ const RedirectAuthenticated: React.FC = () => {
 
     // Handle Proponents ( Lead + Co-Lead )
     if (role === Role.LEAD_PROPONENT || role === Role.PROPONENT) {
-      return <Navigate to="/users/Proponent/ProponentMainLayout" replace />;
+      return <Navigate to="/users/proponent/ProponentMainLayout" replace />;
     }
 
     // Default behavior for other roles

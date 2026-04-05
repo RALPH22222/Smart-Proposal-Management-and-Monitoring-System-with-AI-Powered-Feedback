@@ -20,8 +20,8 @@ import RnDMainLayout from "./pages/users/rnd/RnDMainLayout";
 // Evaluator
 import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 
-//Proponent
-import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
+// Proponent
+import ProponentMainLayout from "./pages/users/proponent/ProponentMainLayout";
 
 // Co-Lead
 import CoLeadMainLayout from "./pages/users/co-lead/CoLeadMainLayout";
@@ -80,7 +80,7 @@ function App() {
 
             {/* Lead Proponent & Co-Lead Proponent */}
             <Route element={<ProtectedRoute roles={[Role.LEAD_PROPONENT, Role.PROPONENT]} />}>
-              <Route path="/users/Proponent/ProponentMainLayout" element={<ProponentMainLayout />} />
+              <Route path="/users/proponent/proponentMainLayout" element={<ProponentMainLayout />} />
             </Route>
 
             {/* Co-Lead Only (users with only lead_proponent role, no proponent role) */}

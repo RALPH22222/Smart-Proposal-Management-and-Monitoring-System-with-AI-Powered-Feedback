@@ -12,8 +12,7 @@ import {
   Download
 } from 'lucide-react';
 import templateDOCX from '../../../../assets/template/DOST_Form_No.1b.docx';
-import TemplateViewModal from '../../../../components/proponent-component/TemplateViewModal';
-import {useRef, useState } from 'react';
+import {useRef } from 'react';
 import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
 import type { AIAnalysisResult } from '../../../../components/proponent-component/aiModal';
@@ -26,6 +25,7 @@ interface UploadSidebarProps {
   onFileSelect: (file: File | null) => void;
   onAITemplateCheck: () => void;
   onSubmit: () => void;
+  onViewTemplate: () => void;
   isUploadDisabled: boolean;
   isBudgetValid: boolean;
 }
@@ -38,11 +38,11 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   onFileSelect,
   onAITemplateCheck,
   onSubmit,
+  onViewTemplate,
   isUploadDisabled,
   isBudgetValid
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -285,7 +285,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
           <div className="flex flex-col gap-2.5 relative z-10">
             <button
-              onClick={() => setIsTemplateModalOpen(true)}
+              onClick={onViewTemplate}
               className="w-full py-3 px-4 bg-white border border-slate-300 text-slate-900 rounded-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 active:scale-95"
             >
               <Eye className="w-[15px] h-[15px] shrink-0 text-gray-800" />
@@ -362,13 +362,6 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           </div>
         </div>
       </div>
-
-      {/* --- Template Modal --- */}
-      <TemplateViewModal
-        isOpen={isTemplateModalOpen}
-        onClose={() => setIsTemplateModalOpen(false)}
-      />
-
     </>
   );
 };

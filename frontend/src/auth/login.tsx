@@ -79,7 +79,7 @@ export default function Login() {
 
     switch (role.toLowerCase()) {
       case "proponent":
-        navigate("/users/Proponent/ProponentMainLayout");
+        navigate("/users/proponent/ProponentMainLayout");
         break;
       case "rnd":
         navigate("/users/rnd/rndMainLayout");

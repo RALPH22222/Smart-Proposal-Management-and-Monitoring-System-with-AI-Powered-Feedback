@@ -653,7 +653,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       };
       onUpdateProposal(updatedProposal);
       onClose();
-      navigate("/users/Proponent/ProponentMainLayout?tab=monitoring", {
+      navigate("/users/proponent/ProponentMainLayout?tab=monitoring", {
         state: { proposalId: proposal.id },
       });
     }

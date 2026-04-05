@@ -71,10 +71,10 @@ export default function ProfileSetup() {
         case 'rnd': navigate('/users/rnd/rndMainLayout', { replace: true }); return;
         case 'admin': navigate('/users/admin/adminMainLayout', { replace: true }); return;
         case 'evaluator': navigate('/users/evaluator/evaluatorMainLayout', { replace: true }); return;
-        default: navigate('/users/Proponent/ProponentMainLayout', { replace: true }); return;
+        default: navigate('/users/proponent/ProponentMainLayout', { replace: true }); return;
       }
     }
-    navigate('/users/Proponent/ProponentMainLayout', { replace: true });
+    navigate('/users/proponent/ProponentMainLayout', { replace: true });
   };
 
   useEffect(() => {

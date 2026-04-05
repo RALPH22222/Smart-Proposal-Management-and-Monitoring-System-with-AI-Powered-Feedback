@@ -3,9 +3,10 @@ import React, { useState, useCallback, useMemo } from "react";
 // Component Imports
 import BasicInformation from "./basicInfo";
 import ResearchDetails from "./researchDetails";
-import BudgetSection from "./budgetSection";
+import BudgetSection, { BudgetBreakdownModal } from "./budgetSection";
 import UploadSidebar from "./uploadSidebar";
 import AIModal from "../../../../components/proponent-component/aiModal";
+import TemplateViewModal from "../../../../components/proponent-component/TemplateViewModal";
 
 // Type Imports
 import type { FormData } from "../../../../types/proponent-form";
@@ -22,6 +23,7 @@ import { useLookups } from "../../../../context/LookupContext";
 
 // Auth Context
 import { useAuthContext } from "../../../../context/AuthContext";
+import PageLoader from "../../../../components/shared/PageLoader";
 
 const MONTH_MAP: Record<string, number> = {
   january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
@@ -39,9 +41,13 @@ const Submission: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
 
-  // ... (AI State remains the same)
+  // AI State
   const [isCheckingTemplate, setIsCheckingTemplate] = useState(false);
   const [aiCheckResult, setAiCheckResult] = useState<AIAnalysisResult | null>(null);
+
+  // Lifted Modal States
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [activeBudgetModal, setActiveBudgetModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
 
   // ... (Data State remains the same)
   // ... (Data State remains the same)
@@ -109,6 +115,10 @@ const Submission: React.FC = () => {
       return true;
     });
   }, [localFormData.budgetItems]);
+
+  if (lookups.loading || !user) {
+    return <PageLoader mode="proponent-submission" />;
+  }
 
   const handleDirectUpdate = (field: keyof FormData | string, value: any) => {
     setLocalFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -403,7 +413,7 @@ const Submission: React.FC = () => {
         text: "Your proposal has been submitted successfully.",
         confirmButtonColor: "#C8102E",
       }).then(() => {
-        navigate("/users/Proponent/ProponentMainLayout?tab=profile");
+        navigate("/users/proponent/ProponentMainLayout?tab=profile");
       });
     } catch (error: any) {
       console.error("Submission Error:", error);
@@ -629,100 +639,114 @@ const Submission: React.FC = () => {
   `;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3 flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+              <button
+                onClick={() => handleSectionChange("basic-info")}
+                className={getTabClass("basic-info") + " group relative overflow-hidden"}
+              >
+                <span className="flex items-center gap-2 justify-center w-full text-center">
+                  Basic Information
+                </span>
+                {activeSection === "basic-info" && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+                )}
+              </button>
+              <button
+                onClick={() => handleSectionChange("research-details")}
+                className={getTabClass("research-details") + " group relative overflow-hidden"}
+              >
+                <span className="flex items-center gap-2 justify-center w-full text-center">
+                  Research Details
+                </span>
+                {activeSection === "research-details" && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+                )}
+              </button>
+              <button
+                onClick={() => handleSectionChange("budget")}
+                className={getTabClass("budget") + " group relative overflow-hidden"}
+              >
+                <span className="flex items-center gap-2 justify-center w-full text-center">
+                  Budget Section
+                </span>
+                {activeSection === "budget" && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
+                )}
+              </button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
+              {activeSection === "basic-info" && (
+                <BasicInformation
+                  formData={localFormData}
+                  onInputChange={handleInputChange}
+                  onUpdate={handleDirectUpdate}
+                  autoFilledFields={autoFilledFields}
+                />
+              )}
+              {activeSection === "research-details" && (
+                <ResearchDetails
+                  formData={localFormData}
+                  onUpdate={handleDirectUpdate}
+                  autoFilledFields={autoFilledFields}
+                />
+              )}
+              {activeSection === "budget" && (
+                <BudgetSection
+                  formData={localFormData}
+                  onBudgetItemAdd={addBudgetItem}
+                  onBudgetItemRemove={removeBudgetItem}
+                  onBudgetItemUpdate={updateBudgetItem}
+                  autoFilledFields={autoFilledFields}
+                  onOpenBudgetModal={(itemId: number, category: 'ps' | 'mooe' | 'co') => setActiveBudgetModal({ itemId, category })}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <UploadSidebar
+              formData={localFormData}
+              selectedFile={selectedFile}
+              aiCheckResult={aiCheckResult}
+              isCheckingTemplate={isCheckingTemplate}
+              isUploadDisabled={isSubmitting}
+              isBudgetValid={isBudgetValid}
+              onFileSelect={handleFileSelect}
+              onAITemplateCheck={() => handleAITemplateCheck()}
+              onSubmit={handleSubmit}
+              onViewTemplate={() => setIsTemplateModalOpen(true)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* --- Modals (Outside animate-fade-in container to fix z-index) --- */}
       <AIModal
         show={showAIModal}
-        onClose={() => {
-          setShowAIModal(false);
-          // Don't clear result immediately so user can view it again if they want? 
-          // Actually usually better to keep it until new file. 
-          // But close clears modal.
-        }}
+        onClose={() => setShowAIModal(false)}
         aiCheckResult={aiCheckResult}
         isChecking={isCheckingTemplate}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 flex flex-col gap-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-            <button
-              onClick={() => handleSectionChange("basic-info")}
-              className={getTabClass("basic-info") + " group relative overflow-hidden"}
-            >
-              <span className="flex items-center gap-2 justify-center w-full text-center">
-                Basic Information
-              </span>
-              {activeSection === "basic-info" && (
-                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-              )}
-            </button>
-            <button
-              onClick={() => handleSectionChange("research-details")}
-              className={getTabClass("research-details") + " group relative overflow-hidden"}
-            >
-              <span className="flex items-center gap-2 justify-center w-full text-center">
-                Research Details
-              </span>
-              {activeSection === "research-details" && (
-                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-              )}
-            </button>
-            <button
-              onClick={() => handleSectionChange("budget")}
-              className={getTabClass("budget") + " group relative overflow-hidden"}
-            >
-              <span className="flex items-center gap-2 justify-center w-full text-center">
-                Budget Section
-              </span>
-              {activeSection === "budget" && (
-                <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-              )}
-            </button>
-          </div>
+      <TemplateViewModal
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
 
-          <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 border border-gray-100 min-h-[600px]">
-            {activeSection === "basic-info" && (
-              <BasicInformation
-                formData={localFormData}
-                onInputChange={handleInputChange}
-                onUpdate={handleDirectUpdate}
-                autoFilledFields={autoFilledFields}
-              />
-            )}
-            {activeSection === "research-details" && (
-              <ResearchDetails
-                formData={localFormData}
-                onUpdate={handleDirectUpdate}
-                autoFilledFields={autoFilledFields}
-              />
-            )}
-            {activeSection === "budget" && (
-              <BudgetSection
-                formData={localFormData}
-                onBudgetItemAdd={addBudgetItem}
-                onBudgetItemRemove={removeBudgetItem}
-                onBudgetItemUpdate={updateBudgetItem}
-                autoFilledFields={autoFilledFields}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <UploadSidebar
-            formData={localFormData}
-            selectedFile={selectedFile}
-            aiCheckResult={aiCheckResult}
-            isCheckingTemplate={isCheckingTemplate}
-            isUploadDisabled={isSubmitting}
-            isBudgetValid={isBudgetValid}
-            onFileSelect={handleFileSelect}
-            onAITemplateCheck={() => handleAITemplateCheck()}
-            onSubmit={handleSubmit}
-          />
-        </div>
-      </div>
-    </div>
+      {activeBudgetModal && (
+        <BudgetBreakdownModal
+          formData={localFormData}
+          activeModal={activeBudgetModal}
+          onClose={() => setActiveBudgetModal(null)}
+          onBudgetItemUpdate={updateBudgetItem}
+        />
+      )}
+    </>
   );
 };
 
