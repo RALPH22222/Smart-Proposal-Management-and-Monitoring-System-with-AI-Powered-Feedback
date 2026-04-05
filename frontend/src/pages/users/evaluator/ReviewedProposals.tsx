@@ -203,10 +203,11 @@ export default function ReviewedProposals() {
 
   const proposal = reviewedProposals.find((p) => p.id === selectedProposal);
 
-  if (loading) return <PageLoader text="Loading reviewed proposals..." />;
+  if (loading) return <PageLoader mode="table" />;
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+    <>
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -368,6 +369,7 @@ export default function ReviewedProposals() {
           </div>
         </div>
       </main>
+    </div>
 
       {/* Render the updated modal */}
       {proposal && (
@@ -377,6 +379,6 @@ export default function ReviewedProposals() {
           onClose={closeModal}
         />
       )}
-    </div>
+    </>
   );
 }

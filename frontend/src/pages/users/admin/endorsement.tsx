@@ -341,16 +341,12 @@ const AdminEndorsementPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading admin endorsements..." />
-      </div>
-    );
+    return <PageLoader mode="endorsement" />;
   }
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
-      {/* Admin Evaluator Modal */}
+    <>
+      {/* Admin Evaluator Modal - Moved outside to preserve stacking context */}
       <AdminEvaluatorDecisionModal
         isOpen={isEvaluatorModalOpen}
         onClose={handleCloseEvaluatorModal}
@@ -359,7 +355,7 @@ const AdminEndorsementPage: React.FC = () => {
         proposalId={selectedProposal?.id || ''}
       />
 
-      {/* Admin Endorsement Decision Modal */}
+      {/* Admin Endorsement Decision Modal - Moved outside to preserve stacking context */}
       <AdminEndorsementDecisionModal
         isOpen={isDecisionModalOpen}
         onClose={handleCloseDecisionModal}
@@ -369,6 +365,8 @@ const AdminEndorsementPage: React.FC = () => {
         budgetData={selectedProposal?.budget}
         onSubmit={handleDecisionSubmit}
       />
+
+      <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
 
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
@@ -619,6 +617,7 @@ const AdminEndorsementPage: React.FC = () => {
         </main>
       </div>
     </div>
+    </>
   );
 };
 

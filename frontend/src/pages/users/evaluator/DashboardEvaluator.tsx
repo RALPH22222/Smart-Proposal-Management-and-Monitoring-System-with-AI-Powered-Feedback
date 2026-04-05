@@ -263,7 +263,7 @@ export default function DashboardRdec() {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading dashboard..." />;
+    return <PageLoader mode="evaluator-dashboard" />;
   }
 
   const stats = [
@@ -306,7 +306,7 @@ export default function DashboardRdec() {
   ];
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 overflow-y-auto">
+    <div className="h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 overflow-y-auto animate-fade-in">
       <div className="p-4 sm:p-6">
         {/* Header */}
         <header className="pb-4 sm:pb-6">

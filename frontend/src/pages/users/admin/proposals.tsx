@@ -463,15 +463,12 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading proposals..." />
-      </div>
-    );
+    return <PageLoader mode="table" />;
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+    <>
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
       <div className="flex-1 flex flex-col p-6 gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -718,9 +715,9 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             setCurrentEvaluatorMessage('');
           }}
         />
-
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

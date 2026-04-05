@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchDepartments, fetchUsersByRole, type UserItem } from '../../services/proposal.api';
-import PageLoader from '../shared/PageLoader';
 
 export interface EvaluatorOption {
   id: string;
@@ -523,11 +522,49 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             </div>
 
             {isLoading || isInternalLoading ? (
-              <div className="min-h-[220px] rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                <PageLoader text="Loading evaluator data..." className="w-full h-full bg-transparent" />
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm animate-fade-in">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-slate-300 font-semibold text-xs uppercase tracking-wider w-1/4">Evaluator</th>
+                      <th className="px-4 py-3 text-left text-slate-300 font-semibold text-xs uppercase tracking-wider w-1/2">Feedback / Status</th>
+                      <th className="px-4 py-3 text-center text-slate-300 font-semibold text-xs uppercase tracking-wider w-1/4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[1, 2, 3].map((i) => (
+                      <tr key={i} className="animate-pulse bg-white">
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0"></div>
+                            <div className="w-full">
+                              <div className="h-4 bg-slate-200 rounded w-2/3 max-w-[120px]"></div>
+                              <div className="h-3 bg-slate-100 rounded w-1/2 max-w-[90px] mt-1.5"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div>
+                            <div className="h-5 bg-slate-200 rounded-md w-24"></div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <div className="w-3 h-3 bg-slate-200 rounded-full shrink-0"></div>
+                              <div className="h-3 bg-slate-100 rounded w-full max-w-[200px]"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-middle text-center">
+                          <div className="flex flex-row items-center justify-center gap-2">
+                             <div className="h-[30px] w-20 bg-slate-200 rounded-lg"></div>
+                             <div className="h-[30px] w-20 bg-slate-200 rounded-lg"></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : filteredAssignedEvaluators.length > 0 ? (
-              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm animate-fade-in">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>

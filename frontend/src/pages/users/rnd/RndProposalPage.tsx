@@ -499,8 +499,11 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
 
 
+  if (loading) return <PageLoader mode="table" />;
+
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row">
+    <>
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -561,12 +564,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
         {/* Proposals List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit overflow-hidden flex-1">
-          {loading && (
-            <PageLoader 
-              text="Updating proposals..." 
-              className="absolute inset-0 z-50 bg-white" 
-            />
-          )}
+
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -701,42 +699,43 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           )}
         </main>
 
-        {/* Modals */}
-        <ProposalModal
-          proposal={selectedProposal}
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSubmitDecision={handleSubmitDecision}
-          userRole='R&D Staff'
-          currentUser={currentUser}
-        />
-
-        <DetailedProposalModal
-          proposal={selectedProposalForView}
-          isOpen={isViewModalOpen}
-          onClose={() => {
-            setIsViewModalOpen(false);
-            setSelectedProposalForView(null);
-          }}
-          agencies={agencies}
-          sectors={sectors}
-          priorityAreas={priorityAreas}
-        />
-
-        {/* Evaluator List Modal */}
-        <EvaluatorListModal
-          evaluators={currentEvaluatorsList}
-          message={currentEvaluatorMessage}
-          isOpen={isEvaluatorModalOpen}
-          onClose={() => {
-            setIsEvaluatorModalOpen(false);
-            setCurrentEvaluatorsList([]);
-            setCurrentEvaluatorMessage('');
-          }}
-        />
-
       </div>
     </div>
+    
+    {/* Modals outside the animated container to prevent stacking context z-index trapping */}
+    <ProposalModal
+      proposal={selectedProposal}
+      isOpen={isModalOpen}
+      onClose={handleCloseModal}
+      onSubmitDecision={handleSubmitDecision}
+      userRole='R&D Staff'
+      currentUser={currentUser}
+    />
+
+    <DetailedProposalModal
+      proposal={selectedProposalForView}
+      isOpen={isViewModalOpen}
+      onClose={() => {
+        setIsViewModalOpen(false);
+        setSelectedProposalForView(null);
+      }}
+      agencies={agencies}
+      sectors={sectors}
+      priorityAreas={priorityAreas}
+    />
+
+    {/* Evaluator List Modal */}
+    <EvaluatorListModal
+      evaluators={currentEvaluatorsList}
+      message={currentEvaluatorMessage}
+      isOpen={isEvaluatorModalOpen}
+      onClose={() => {
+        setIsEvaluatorModalOpen(false);
+        setCurrentEvaluatorsList([]);
+        setCurrentEvaluatorMessage('');
+      }}
+    />
+    </>
   );
 };
 

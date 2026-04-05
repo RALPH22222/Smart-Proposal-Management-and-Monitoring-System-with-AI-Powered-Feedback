@@ -159,8 +159,11 @@ const FundingPage: React.FC = () => {
 
 
 
+  if (loading) return <PageLoader mode="table" />;
+
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative">
+    <>
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -226,12 +229,7 @@ const FundingPage: React.FC = () => {
 
         {/* Proposals List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          {loading && (
-            <PageLoader
-              text="Updating funding data..."
-              className="absolute inset-0 z-50 bg-white"
-            />
-          )}
+
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#C8102E]" />
@@ -373,6 +371,7 @@ const FundingPage: React.FC = () => {
 
         </main>
       </div>
+    </div>
 
       <FundingActionModal
         isOpen={isActionModalOpen}
@@ -388,7 +387,7 @@ const FundingPage: React.FC = () => {
         title="Funding Approval Document"
         proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
       />
-    </div>
+    </>
   );
 };
 

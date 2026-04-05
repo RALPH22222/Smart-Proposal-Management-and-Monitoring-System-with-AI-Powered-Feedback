@@ -165,6 +165,31 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             </div>
           </div>
 
+          {/* Total Funded Amount - outside the document viewer card */}
+          {p && p.budgetTotal && (
+            <div className="rounded-xl bg-emerald-600 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-emerald-100 tracking-wider">Total Funded Amount</p>
+                  <p className="text-sm text-emerald-50">Grand Total Budget Requirements</p>
+                  {p.lastUpdated && (
+                    <p className="flex items-center gap-1.5 text-xs text-emerald-200 mt-1">
+                      <Calendar className="w-3 h-3" />
+                      Funded on <span className="font-semibold">{formatDateShort(p.lastUpdated)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-extrabold text-white tracking-tight">{p.budgetTotal}</p>
+                <p className="text-xs text-emerald-100 mt-0.5">Officially approved and funded</p>
+              </div>
+            </div>
+          )}
+
           {/* Proposal Details */}
           {p && (
             <>
@@ -377,38 +402,26 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     ))}
                   </div>
 
-                  {/* Grand Total — highlighted as total funded amount */}
-                  <div className="mt-6 rounded-xl bg-emerald-600 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-emerald-100 tracking-wider">Total Funded Amount</p>
-                        <p className="text-sm text-emerald-50">Grand Total Budget Requirements</p>
-                      </div>
+                  {/* Grand Total Footer */}
+                  <div className="mt-6 bg-slate-100 rounded-xl p-4 flex justify-between items-center border border-slate-200">
+                    <div>
+                      <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
+                      <p className="text-xs text-slate-500">Grand total of all sources</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-extrabold text-white tracking-tight">{p.budgetTotal}</p>
-                      <p className="text-xs text-emerald-100 mt-0.5">Officially approved and funded</p>
+                    <div className="text-xl font-black text-[#C8102E] font-mono">
+                      {p.budgetTotal}
                     </div>
                   </div>
                 </div>
               ) : p.budgetTotal ? (
                 /* Fallback: only show grand total */
-                <div className="rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-emerald-100 tracking-wider">Total Funded Amount</p>
-                      <p className="text-sm text-emerald-50">Grand Total Budget Requirements</p>
-                    </div>
+                <div className="rounded-xl bg-slate-100 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow border border-slate-200">
+                  <div>
+                    <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
+                    <p className="text-xs text-slate-500">Grand total of all sources</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-extrabold text-white tracking-tight">{p.budgetTotal}</p>
-                    <p className="text-xs text-emerald-100 mt-0.5">Officially approved and funded</p>
+                    <p className="text-xl font-black text-[#C8102E] font-mono">{p.budgetTotal}</p>
                   </div>
                 </div>
               ) : null}

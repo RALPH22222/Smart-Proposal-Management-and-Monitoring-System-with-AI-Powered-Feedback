@@ -496,8 +496,11 @@ export const RnDEvaluatorPage: React.FC = () => {
     }
   };
 
+  if (loading) return <PageLoader mode="table" />;
+
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6">
+    <>
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -580,12 +583,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
         {/* Assignments List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          {loading && (
-            <PageLoader 
-              text="Updating assignments..." 
-              className="absolute inset-0 z-50 bg-white" 
-            />
-          )}
+
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#C8102E]" />
@@ -694,6 +692,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           </div>
         </main>
       </div>
+    </div>
 
       {/* --- MERGED MODAL --- */}
       <RnDEvaluatorPageModal
@@ -706,7 +705,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         proposalStatus={selectedProposalStatus}
         isLoading={editLoading}
       />
-    </div>
+    </>
   );
 };
 

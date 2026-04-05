@@ -27,7 +27,7 @@ const ContentManagement: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden">
+    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0">
         <h1 className='text-xl sm:text-2xl font-bold text-red-700 mb-2'>
@@ -149,7 +149,7 @@ const HowItWorksSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading proponent steps..." className="min-h-[400px]" />;
+    return <PageLoader mode="rows" className="min-h-[400px]" />;
   }
 
   return (
@@ -272,7 +272,7 @@ const GuidelinesSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading guidelines..." className="min-h-[400px]" />;
+    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
   }
 
   return (
@@ -385,7 +385,7 @@ const TemplatesSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading templates..." className="min-h-[400px]" />;
+    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
   }
 
   return (

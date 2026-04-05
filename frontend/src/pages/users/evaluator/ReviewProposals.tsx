@@ -200,10 +200,11 @@ export default function EndorsedProposals() {
 
   const proposal = endorsedProposals.find((p) => p.id === selectedProposal);
 
-  if (loading) return <PageLoader text="Loading under review proposals..." />;
+  if (loading) return <PageLoader mode="table" />;
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+    <>
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -347,7 +348,7 @@ export default function EndorsedProposals() {
           </div>
         </div>
       </main>
-
+    </div>
       {/* Review Modal */}
       {proposal && (
         <ReviewModal
@@ -357,6 +358,6 @@ export default function EndorsedProposals() {
           onSubmit={handleSubmitReview}
         />
       )}
-    </div>
+    </>
   );
 }

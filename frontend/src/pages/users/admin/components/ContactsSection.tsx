@@ -65,7 +65,7 @@ export const ContactsSection: React.FC = () => {
   };
 
   if (loading) {
-    return <PageLoader text="Loading contact information..." className="min-h-[400px]" />;
+    return <PageLoader mode="rows" className="min-h-[400px]" />;
   }
 
   if (!formData) {

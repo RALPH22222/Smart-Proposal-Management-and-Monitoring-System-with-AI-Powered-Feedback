@@ -26,7 +26,7 @@ import {
   Search,
   Eye,
   Target,
-  Edit,
+  Edit
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
 import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
@@ -78,6 +78,8 @@ export interface ModalProposalData {
   department?: string;
   budgetSources: BudgetSource[];
   budgetTotal: string;
+  fundingDocumentUrl?: string;
+  lastUpdated?: string;
   proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
   evaluators?: { name: string; department?: string; status: string }[];
   assignedBy?: string;
@@ -116,6 +118,7 @@ const formatString = (str: string) => {
     .join(' ');
 };
 
+
 // Format any date string to YYYY-MM-DD for input value
 // const formatDateForInput = (dateStr: string) => { ... };
 // Extract number from duration string
@@ -141,6 +144,8 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
   const [confirmAction, setConfirmAction] = useState<{ type: 'revision' | 'reject' | null, id: string | number | null }>({ type: null, id: null });
   const [evaluators, setEvaluators] = useState<{ name: string; department?: string; status: string }[]>([]);
   const [isLoadingEvaluators, setIsLoadingEvaluators] = useState(false);
+
+  const isFunded = ['funded', 'accepted', 'approved'].includes((p?.status || '').toLowerCase());
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -410,6 +415,29 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
 
+          {/* Project Funding Approved (isFunded) Block */}
+          {isFunded && (
+            <div className="bg-slate-50 border border-emerald-300 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-emerald-800 mb-1 flex items-center gap-2">
+                    Project Funding Approved
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This project has been funded.
+                  </p>
+                  {(p.lastModified || p.lastUpdated) && (
+                    <p className="text-xs text-emerald-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Funded on <span className="font-semibold">{formatDateShort(p.lastModified || p.lastUpdated)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-200 opacity-50 z-0 pointer-events-none" />
+            </div>
+          )}
+
           {/* Under R&D Review / Pending Status Block */}
           {['pending', 'review_rnd', 'under r&d evaluation'].includes((p.status || '').toLowerCase()) && (
             <div className="bg-slate-50 border border-blue-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
@@ -421,6 +449,12 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                   <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
                     This proposal is currently assigned to you for review. Assess the project's viability, budget, and timeline to determine the next appropriate steps (Forward to Evaluators, Request Revision, or Reject).
                   </p>
+                  {(p.lastModified || p.lastUpdated) && (
+                    <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Status updated on <span className="font-semibold">{formatDateShort(p.lastModified || p.lastUpdated)}</span>
+                    </p>
+                  )}
                 </div>
               </div>
               <Search className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
@@ -438,6 +472,12 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                   <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
                     This proposal has been forwarded to the evaluator panel for detailed assessment. Below is a summary of how many and who the evaluators are that this proposal was assigned to.
                   </p>
+                  {(p.lastModified || p.lastUpdated) && (
+                    <p className="text-xs text-purple-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Status updated on <span className="font-semibold">{formatDateShort(p.lastModified || p.lastUpdated)}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="bg-white border border-purple-100 rounded-lg p-4 shadow-sm">

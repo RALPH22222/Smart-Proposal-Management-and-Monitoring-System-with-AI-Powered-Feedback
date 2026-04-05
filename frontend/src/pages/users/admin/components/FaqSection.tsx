@@ -98,7 +98,7 @@ export const FaqSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading FAQ information..." className="min-h-[400px]" />;
+    return <PageLoader mode="rows" className="min-h-[400px]" />;
   }
 
   if (!faqData) {

@@ -197,15 +197,12 @@ const Accounts: React.FC = () => {
   ];
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading accounts..." />
-      </div>
-    );
+    return <PageLoader mode="table" />;
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 h-full">
+    <>
+      <div className="flex flex-col gap-6 p-4 sm:p-6 h-full animate-fade-in">
       <header className="flex-shrink-0 pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-[#C8102E]">Accounts</h1>
         <p className="text-gray-600 mt-1">Manage user accounts and roles</p>
@@ -357,6 +354,7 @@ const Accounts: React.FC = () => {
         )}
       </section>
 
+      </div>
       <AddAccountModal
         isOpen={showAddModal}
         onClose={handleCloseModal}
@@ -379,7 +377,7 @@ const Accounts: React.FC = () => {
         onConfirm={handleDisableConfirm}
         isSubmitting={isSubmitting}
       />
-    </div>
+    </>
   );
 };
 

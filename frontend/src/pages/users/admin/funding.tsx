@@ -125,15 +125,12 @@ const AdminFundingPage: React.FC = () => {
    const paginatedProposals = fundingProposals.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading admin funding data..." />
-      </div>
-    );
+    return <PageLoader mode="table" />;
   }
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative">
+    <>
+      <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -308,7 +305,8 @@ const AdminFundingPage: React.FC = () => {
         onSubmit={handleActionSubmit}
         proposalTitle={activeProposal?.title || ''}
       />
-    </div>
+      </div>
+    </>
   );
 };
 

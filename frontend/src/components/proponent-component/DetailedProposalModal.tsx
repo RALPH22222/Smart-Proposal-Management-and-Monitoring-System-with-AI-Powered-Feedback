@@ -34,15 +34,34 @@ import {
   CalendarSync,
   AlertCircle,
   Loader,
+  Loader2,
+  AlertTriangle,
   Signature,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { openSignedUrl } from "../../utils/signed-url";
+import { api } from "../../utils/axios";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
-import DocumentViewerModal from "../shared/DocumentViewerModal";
+
+const extractS3Key = (url: string): string | null => {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    let path = parsed.pathname.replace(/^\//, '');
+    const pathStyleMatch = parsed.hostname.match(/^s3[.-]/);
+    if (pathStyleMatch) {
+      const segments = path.split('/');
+      segments.shift();
+      path = segments.join('/');
+    }
+    return path || null;
+  } catch {
+    return null;
+  }
+};
 
 interface Site {
   site: string;
@@ -81,7 +100,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
-  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
@@ -90,6 +108,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isLoadingRejection, setIsLoadingRejection] = useState(false);
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
   const [revisionError, setRevisionError] = useState<string | null>(null);
+
+  // Inline funding document viewer state
+  const [fundingSignedUrl, setFundingSignedUrl] = useState<string | null>(null);
+  const [isLoadingFundingUrl, setIsLoadingFundingUrl] = useState(false);
+  const [fundingUrlError, setFundingUrlError] = useState<string | null>(null);
 
   // Extension request state
   const [extensionRequest, setExtensionRequest] = useState<ProponentExtensionRequest | null>(null);
@@ -115,6 +138,38 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
+
+  // Fetch signed URL for inline funding document
+  const isFundedForEffect = (proposal?.status || '').toLowerCase().trim() === 'funded';
+  useEffect(() => {
+    if (!isOpen || !isFundedForEffect || !proposal?.fundingDocumentUrl) {
+      setFundingSignedUrl(null);
+      setFundingUrlError(null);
+      return;
+    }
+    const fetchSignedUrl = async () => {
+      setIsLoadingFundingUrl(true);
+      setFundingUrlError(null);
+      try {
+        const key = extractS3Key(proposal.fundingDocumentUrl!);
+        if (!key) {
+          setFundingSignedUrl(proposal.fundingDocumentUrl!);
+          return;
+        }
+        const { data } = await api.get<{ url: string }>('/files/signed-url', {
+          params: { key, bucket: 'proposals' },
+          withCredentials: true,
+        });
+        setFundingSignedUrl(data.url);
+      } catch {
+        setFundingSignedUrl(proposal.fundingDocumentUrl!);
+        setFundingUrlError('Could not generate a secure preview link.');
+      } finally {
+        setIsLoadingFundingUrl(false);
+      }
+    };
+    fetchSignedUrl();
+  }, [isOpen, isFundedForEffect, proposal?.fundingDocumentUrl]);
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -1027,84 +1082,124 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {/* --- BODY --- */}
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
-            {isFunded && proposal.fundingDocumentUrl && (
-              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" /> Funding Approval Document
-                    </h4>
-                    <p className="text-xs text-emerald-600 mt-1">Official document confirming your project has been funded.</p>
-                  </div>
-                  <button
-                    onClick={() => setViewingDocumentUrl(proposal.fundingDocumentUrl!)}
-                    className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm flex-shrink-0"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View Approval File
-                  </button>
-                </div>
-              </div>
-            )}
-
             {isFunded && (
-              <div className="bg-green-50 rounded-xl border border-green-200 p-6 relative overflow-hidden group">
-                <div className="relative z-10">
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-green-900 mb-2 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />{" "}
-                        Project Funding Approved
-                      </h3>
-                      <p className="text-sm text-green-800 leading-relaxed mb-4">
-                        Congratulations! Your project has been fully funded. Below
-                        is the confirmed Project Leadership Team as indicated in
-                        your proposal. Click start to proceed to the monitoring
-                        phase.
+              <div className="space-y-4">
+
+                {/* Project Funding Approved card — with inline approval file inside */}
+                <div className="bg-green-50 rounded-xl border border-green-200 overflow-hidden relative">
+                  <div className="p-6 relative z-10">
+                    {/* Header */}
+                    <h3 className="text-lg font-bold text-green-900 mb-1 flex items-center gap-2">
+                      Project Funding Approved
+                    </h3>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-green-700 mb-3">
+                        <Calendar className="w-3 h-3" />
+                        Funded on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
-                    </div>
-                    <div className="w-full md:w-96 bg-white p-5 rounded-lg border border-green-200 flex flex-col justify-between">
-                      <div>
-                        <div className="mb-4">
-                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
+                    )}
+                    <p className="text-sm text-green-800 leading-relaxed mb-5">
+                      Congratulations! Your project has been fully funded. Below
+                      is the confirmed Project Leadership Team as indicated in
+                      your proposal. Click start to proceed to the monitoring
+                      phase.
+                    </p>
+                    {/* Leader + co-leader + start button row */}
+                    <div className="flex flex-col md:flex-row gap-4 mb-5">
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-1.5">
                             <User className="w-3.5 h-3.5" /> Project Leader
                           </label>
-                          <div className="bg-slate-50 border border-slate-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
+                          <div className="bg-white border border-green-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
                             {proposal.proponent}
                           </div>
                         </div>
-                        <div className="mb-4">
-                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-2">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader
-                            Proponent(s)
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader Proponent(s)
                           </label>
                           {coProponentsList.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {coProponentsList.map((name, index) => (
-                                <span
-                                  key={index}
-                                  className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200"
-                                >
+                                <span key={index} className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200">
                                   {name}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2 rounded border border-slate-100">
+                            <div className="text-xs text-slate-400 italic bg-white p-2 rounded border border-green-100">
                               No co-lead proponent indicated.
                             </div>
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={handleStartImplementation}
-                        className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm mt-2"
-                      >
-                        <Play className="w-4 h-4" /> Start Project Implementation
-                      </button>
+                      <div className="flex items-end md:items-center">
+                        <button
+                          onClick={handleStartImplementation}
+                          className="w-full md:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap shadow-lg shadow-emerald-100"
+                        >
+                          <Play className="w-4 h-4" /> Start Project Implementation
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-30 pointer-events-none z-0" />
                 </div>
-                <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-40 pointer-events-none" />
+
+                {/* Inline Approval File — outside the card */}
+                {proposal.fundingDocumentUrl ? (
+                  <div className="rounded-lg border border-slate-200 overflow-hidden">
+                    <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-red-600" />
+                      <span className="text-sm font-bold text-slate-800">Funding Approval Document</span>
+                    </div>
+                    {fundingUrlError && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                        {fundingUrlError}
+                      </div>
+                    )}
+                    <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
+                      {isLoadingFundingUrl ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50">
+                          <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
+                          <p className="text-sm text-slate-500">Preparing secure document preview…</p>
+                        </div>
+                      ) : fundingSignedUrl ? (
+                        <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50">
+                          <AlertTriangle className="w-8 h-8 text-slate-400" />
+                          <p className="text-sm text-slate-500">No approval document attached.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-green-300 bg-green-100/30 p-4 flex items-center gap-3 text-sm text-green-700">
+                    <FileText className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    No approval document was attached by the R&D staff.
+                  </div>
+                )}
+
+                {/* Total Funded Amount + funded date — outside the card */}
+                <div className="rounded-xl bg-emerald-600 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-100 tracking-wider">Total Funded Amount</p>
+                      <p className="text-sm text-emerald-50">Grand Total Budget Requirements</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-extrabold text-white tracking-tight">{proposal.budgetTotal}</p>
+                    <p className="text-xs text-emerald-100 mt-0.5">Officially approved and funded</p>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -1121,7 +1216,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {proposal.lastUpdated && (
                       <p className="flex items-center gap-1.5 text-xs text-yellow-600 mt-3">
                         <Calendar className="w-3 h-3" />
-                        Status changed on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                        Status changed on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
                     )}
                   </div>
@@ -1143,7 +1238,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {proposal.lastUpdated && (
                       <p className="flex items-center gap-1.5 text-xs text-blue-500 mt-3">
                         <Calendar className="w-3 h-3" />
-                        Endorsed on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                        Endorsed on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
                     )}
                   </div>
@@ -1165,7 +1260,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {proposal.lastUpdated && (
                       <p className="flex items-center gap-1.5 text-xs text-blue-400 mt-3">
                         <Calendar className="w-3 h-3" />
-                        Assigned for review on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                        Assigned for review on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
                     )}
                   </div>
@@ -1187,7 +1282,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {proposal.lastUpdated && (
                       <p className="flex items-center gap-1.5 text-xs text-purple-400 mt-3">
                         <Calendar className="w-3 h-3" />
-                        Sent for evaluation on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                        Sent for evaluation on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
                     )}
                   </div>
@@ -1211,7 +1306,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {proposal.lastUpdated && (
                       <p className="flex items-center gap-1.5 text-xs text-amber-500 mt-3">
                         <Calendar className="w-3 h-3" />
-                        Revision submitted on <span className="font-semibold">{formatDate(proposal.lastUpdated)}</span>
+                        Revision submitted on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
                       </p>
                     )}
                   </div>
@@ -2382,14 +2477,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         </div>
       )}
 
-      {/* Document Viewer Modal for Funding Document */}
-      <DocumentViewerModal
-        isOpen={!!viewingDocumentUrl}
-        onClose={() => setViewingDocumentUrl(null)}
-        documentUrl={viewingDocumentUrl || ""}
-        title="Funding Approval Document"
-        proposal={proposal}
-      />
     </>
   );
 };

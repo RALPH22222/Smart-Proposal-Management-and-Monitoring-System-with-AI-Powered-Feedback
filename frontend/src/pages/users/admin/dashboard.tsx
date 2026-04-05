@@ -126,11 +126,7 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading dashboard..." />
-      </div>
-    );
+    return <PageLoader mode="admin-dashboard" />;
   }
 
   if (error || !stats) {
@@ -142,7 +138,7 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 min-h-screen overflow-y-auto pb-10 bg-slate-50">
+    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 min-h-screen overflow-y-auto pb-10 bg-slate-50 animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0 pt-10 sm:pt-0 pb-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

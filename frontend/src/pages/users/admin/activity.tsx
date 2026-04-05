@@ -127,15 +127,11 @@ export default function Activity() {
     : logs;
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading logs..." />
-      </div>
-    );
+    return <PageLoader mode="activity" />;
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
+    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">

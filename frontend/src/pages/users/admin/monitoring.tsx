@@ -215,15 +215,12 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <PageLoader text="Loading projects..." />
-      </div>
-    );
+    return <PageLoader mode="monitoring" />;
   }
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
+    <>
+      <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -492,7 +489,8 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
         />
       </div>
     </div>
-  );
+  </>
+);
 };
 
 export default AdminMonitoringPage;

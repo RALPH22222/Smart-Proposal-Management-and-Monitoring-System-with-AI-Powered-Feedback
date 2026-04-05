@@ -181,14 +181,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen">
-				<PageLoader text="Loading dashboard..." />
-			</div>
+			<PageLoader mode="dashboard" />
 		);
 	}
 
 	return (
-		<div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-slate-100">
+		<div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
 			{/* Header */}
 			<header className="pb-4 sm:pb-6">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

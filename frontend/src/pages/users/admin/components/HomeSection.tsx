@@ -53,7 +53,7 @@ export const HomeSection: React.FC = () => {
   };
 
   if (isLoading) {
-    return <PageLoader text="Loading home page information..." className="min-h-[400px]" />;
+    return <PageLoader mode="rows" className="min-h-[400px]" />;
   }
 
   if (!homeData) {

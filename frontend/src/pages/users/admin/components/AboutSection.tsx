@@ -45,7 +45,7 @@ export const AboutSection: React.FC = () => {
 
 
   if (isLoading) {
-    return <PageLoader text="Loading about page information..." className="min-h-[400px]" />;
+    return <PageLoader mode="rows" className="min-h-[400px]" />;
   }
 
   if (!aboutData) {

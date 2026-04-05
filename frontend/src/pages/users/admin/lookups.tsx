@@ -294,8 +294,12 @@ const Lookups: React.FC = () => {
   const isAgencies = activeTab === "agencies";
   const activeConfig = TABS.find(t => t.key === activeTab)!;
 
+  if (isLoading && items.length === 0) {
+    return <PageLoader mode="lookup" />;
+  }
+
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 h-full">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 h-full animate-fade-in">
       <header className="flex-shrink-0 pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-red-700">Lookup Management</h1>
         <p className="text-gray-600 mt-1">Manage dropdown options used in proposal submission forms</p>
@@ -363,7 +367,7 @@ const Lookups: React.FC = () => {
         {/* List */}
         <div className="flex-1 overflow-y-auto relative bg-white">
           {isLoading && (
-            <PageLoader text={`Loading ${activeConfig.label}...`} className="absolute inset-0 z-10 min-h-[300px] backdrop-blur-none bg-white" />
+            <PageLoader mode="rows" className="absolute inset-0 z-10 min-h-[300px] backdrop-blur-none bg-white" />
           )}
           {items.length === 0 && !isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">

@@ -17,7 +17,7 @@ export const LogosSection: React.FC = () => {
   }, [currentLogos]);
 
   if (isLoading) {
-    return <PageLoader text="Loading branding information..." className="min-h-[400px]" />;
+    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
   }
 
   const handleSave = async () => {

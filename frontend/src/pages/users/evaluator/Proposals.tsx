@@ -409,10 +409,11 @@ export default function Proposals() {
   const proposal = proposals.find((p) => p.id === selectedProposal);
   const evaluationProposal = proposals.find((p) => p.id === proposalToEvaluate);
 
-  if (loading) return <PageLoader text="Loading proposals..." />;
+  if (loading) return <PageLoader mode="table" />;
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden">
+    <>
+    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -638,6 +639,7 @@ export default function Proposals() {
         </div>
       </main>
 
+    </div>
       {/* Modals */}
       {selectedProposal && proposal && (
         <ProposalModal isOpen={!!selectedProposal} proposal={proposal} onClose={closeModal} />
@@ -651,6 +653,6 @@ export default function Proposals() {
           onSubmit={handleSubmitDecision}
         />
       )}
-    </div>
+    </>
   );
 }

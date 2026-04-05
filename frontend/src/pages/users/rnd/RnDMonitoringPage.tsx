@@ -218,8 +218,11 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
 
 
+  if (loading) return <PageLoader mode="table" />;
+
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row">
+    <>
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row animate-fade-in">
       <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
@@ -311,12 +314,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
         {/* Projects List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-          {loading && (
-            <PageLoader 
-              text="Updating projects..." 
-              className="absolute inset-0 z-50 bg-white" 
-            />
-          )}
+
           <div className="p-4 border-b border-slate-200 bg-slate-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -474,7 +472,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
             </div>
           )}
         </main>
-
+      </div>
+    </div>
         {/* Project Detail Modal */}
         <RnDProjectDetailModal
           project={selectedProject}
@@ -489,8 +488,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           onClose={handleCloseBlockModal}
           onConfirm={handleConfirmBlock}
         />
-      </div>
-    </div>
+    </>
   );
 };
 
