@@ -6,6 +6,7 @@ import {
   type NotificationPreferences,
   type NotificationChannel,
 } from '../../services/admin/SettingsApi';
+import SkeletonPulse from '../shared/SkeletonPulse';
 
 interface Props {
   /** Which notification event keys this role should see */
@@ -61,8 +62,20 @@ const NotificationPreferencesCard: React.FC<Props> = ({ visibleEvents }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600" />
+      <div className="grid gap-6 md:grid-cols-2">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white shadow rounded-lg border border-slate-100 p-6 space-y-4">
+            <SkeletonPulse className="h-6 w-40 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <SkeletonPulse className="h-4 w-4" />
+                  <SkeletonPulse className="h-3 w-48 opacity-50" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

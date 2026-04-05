@@ -32,7 +32,8 @@ import {
   type ApiBudgetSummary,
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
-import { formatDate } from '../../../utils/date-formatter';
+import { formatDate } from "../../../utils/date-formatter";
+import PageLoader from "../../../components/shared/PageLoader";
 
 
 
@@ -442,8 +443,12 @@ const MonitoringPage: React.FC = () => {
   // --- Loading ---
 
 
+  if (loading && projects.length === 0) {
+    return <PageLoader mode="proponent-monitoring" />;
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-fade-in">
 
       {/* --- HEADER --- */}
       <header className="mb-8">
@@ -492,21 +497,6 @@ const MonitoringPage: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
-            {/* If loading and we have no projects yet: show skeletons */}
-            {loading && projects.length === 0 && (
-              <div className="space-y-2 animate-pulse">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50/50 flex items-center justify-between blur-[1px]">
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded-md w-3/4"></div>
-                      <div className="h-3 bg-gray-100 rounded-md w-1/2"></div>
-                    </div>
-                    <div className="w-4 h-4 bg-gray-200 rounded-full"></div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* If not loading and no projects found */}
             {!loading && filteredProjects.length === 0 && (
               <p className="text-center text-sm text-gray-400 py-8">No projects found.</p>
@@ -541,38 +531,8 @@ const MonitoringPage: React.FC = () => {
               <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
             </div>
 
-            {(loading || detailLoading) && !activeProject ? (
-              <div className="flex-1 space-y-8 animate-pulse p-4 sm:p-6 lg:p-8">
-                {/* Header Skeleton */}
-                <div className="space-y-4">
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
-                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-100 rounded w-1/4"></div>
-                </div>
-
-                {/* Budget Stats Skeleton */}
-                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded w-20"></div>
-                      <div className="h-6 bg-gray-200 rounded w-32"></div>
-                    </div>
-                  ))}
-                  <div className="col-span-full h-2 bg-gray-200 rounded-full w-full"></div>
-                </div>
-
-                {/* Reports Skeleton */}
-                <div className="space-y-6">
-                  <div className="h-6 bg-gray-200 rounded w-40"></div>
-                  <div className="border border-gray-100 rounded-2xl p-6 space-y-4">
-                    <div className="h-10 bg-gray-100 rounded w-full"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-4 bg-gray-100 rounded w-1/3"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {(detailLoading) && !activeProject ? (
+              <PageLoader mode="proponent-monitoring" />
             ) : activeProject && quarters.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
 

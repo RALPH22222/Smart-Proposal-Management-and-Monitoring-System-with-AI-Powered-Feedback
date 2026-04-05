@@ -9,6 +9,7 @@ import {
   type UserProfile
 } from '../../../services/user/userService';
 import SecureImage from '../../../components/shared/SecureImage';
+import PageLoader from '../../../components/shared/PageLoader';
 
 // --- Constants from Profile Setup ---
 const DEPARTMENTS = [
@@ -168,8 +169,12 @@ const Settings: React.FC = () => {
   };
 
 
+  if (loading && !profile) {
+    return <PageLoader mode="proponent-settings" />;
+  }
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
       <header className='mb-6'>
         <h1 className='text-2xl font-bold text-gray-800'>Account Settings</h1>
         <p className='text-sm text-gray-500'>

@@ -18,6 +18,7 @@ import { useLookups } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
 import SecureImage from "../../../components/shared/SecureImage";
 import { formatDateTime } from "../../../utils/date-formatter";
+import PageLoader from "../../../components/shared/PageLoader";
 
 
 
@@ -515,27 +516,6 @@ const Profile: React.FC = () => {
 
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
-      {/* If loading and we have NO data: show skeletons */}
-      {loading && proposals.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 blur-[1px]">
-          {[1, 2, 3, 4, 5, 6].map((idx) => (
-            <div key={idx} className="bg-white rounded-xl p-6 border border-gray-100 flex flex-col space-y-4 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="flex flex-wrap gap-2">
-                <div className="h-4 bg-gray-100 rounded-full w-16"></div>
-                <div className="h-4 bg-gray-100 rounded-full w-20"></div>
-              </div>
-              <div className="space-y-2">
-                <div className="h-3 bg-gray-100 rounded w-full"></div>
-                <div className="h-3 bg-gray-100 rounded w-5/6"></div>
-              </div>
-              <div className="mt-auto h-2 bg-gray-200 rounded-full w-full"></div>
-              <div className="h-6 bg-gray-100 rounded-full w-24"></div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* If NOT loading and we have no data found after filter */}
       {!loading && filteredProjects.length === 0 && (
         <div className="text-center py-12 text-gray-500">
@@ -741,6 +721,10 @@ const Profile: React.FC = () => {
     return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
   };
 
+  if (loading && proposals.length === 0) {
+    return <PageLoader mode="proponent-dashboard" />;
+  }
+
   return (
     <>
       <style>{`
@@ -750,7 +734,7 @@ const Profile: React.FC = () => {
           95%, 100% { transform: translateX(0); }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 animate-fade-in">
         {/* Header Section */}
         <header className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
