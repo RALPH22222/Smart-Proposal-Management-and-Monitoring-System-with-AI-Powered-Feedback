@@ -105,6 +105,24 @@ function getComparisonDB(): ComparisonDB {
   return _comparisonDB;
 }
 
+// Lightweight titles-only load — skips the massive vectors array to save memory
+let _dbTitles: string[] | null = null;
+function getDbTitles(): string[] {
+  if (!_dbTitles) {
+    // If comparison_db.json is already loaded (neural path), reuse its titles
+    if (_comparisonDB) {
+      _dbTitles = _comparisonDB.titles;
+    } else {
+      // Parse only the titles array — JSON.parse the whole file but discard vectors immediately
+      const raw = readFileSync(path.join(MODELS_DIR, "comparison_db.json"), "utf-8");
+      const parsed = JSON.parse(raw) as { titles: string[]; vectors: unknown };
+      _dbTitles = parsed.titles;
+      // Do NOT assign to _comparisonDB — avoids holding the 13.8MB vectors in memory
+    }
+  }
+  return _dbTitles!;
+}
+
 // ── Pure-JS TF-IDF Title Encoder (fallback when ONNX/WASM unavailable) ──────
 //
 // Builds a 384-dim sparse vector from the top-384 vocabulary words found across
@@ -193,7 +211,7 @@ function tfidfEncode(title: string): number[] {
 
 // ── SentenceTransformer (MiniLM via @huggingface/transformers) ──────
 //
-// ⚠️  COST GUARD: The HuggingFace ONNX pipeline is DISABLED.
+// COST GUARD: The HuggingFace ONNX pipeline is DISABLED.
 // On AWS Lambda, downloading the ~23MB ONNX model on every cold start
 // dramatically increases billed duration and data-transfer costs.
 //
@@ -411,14 +429,51 @@ function classify(scaledMeta: number[]): string {
 }
 
 /**
- * Novelty check via cosine similarity against comparison DB.
- * Both the input vector and DB vectors are 384-dim MiniLM embeddings.
+ * Novelty check via TF-IDF cosine similarity against DB titles.
+ * When the neural encoder is disabled (default), we compare the TF-IDF vector
+ * of the input title against a random sample of DB titles encoded the same way.
+ * This is O(sampleSize) instead of O(n * 384) and avoids loading the 13.8MB vector DB.
+ *
+ * When neural encoder is on, falls back to the pre-computed vector DB.
  */
 function checkUniqueness(titleVec: number[]): {
   noveltyScore: number;
   bestMatchTitle: string;
   bestMatchSimilarity: number;
 } {
+  if (!USE_NEURAL_ENCODER) {
+    // TF-IDF path: compare against a capped sample of DB titles
+    const allTitles = getDbTitles();
+    const SAMPLE_SIZE = 500; // enough for meaningful novelty check, fast enough for Lambda
+
+    // Deterministic shuffle using title hash as seed so results are reproducible
+    const seed = titleVec.slice(0, 4).reduce((s, v) => s + Math.abs(v) * 1000, 0);
+    const sampled: string[] = [];
+    const step = Math.max(1, Math.floor(allTitles.length / SAMPLE_SIZE));
+    const offset = Math.floor(seed % step);
+    for (let i = offset; i < allTitles.length && sampled.length < SAMPLE_SIZE; i += step) {
+      sampled.push(allTitles[i]);
+    }
+
+    let maxSim = 0;
+    let bestTitle = sampled[0] ?? "Unknown";
+    for (const t of sampled) {
+      const vec = tfidfEncode(t);
+      const sim = cosineSimilarity(titleVec, vec);
+      if (sim > maxSim) {
+        maxSim = sim;
+        bestTitle = t;
+      }
+    }
+
+    return {
+      noveltyScore: Math.round((1 - maxSim) * 100),
+      bestMatchTitle: bestTitle,
+      bestMatchSimilarity: maxSim,
+    };
+  }
+
+  // Neural encoder path: use full pre-computed vector DB
   const db = getComparisonDB();
   let bestIdx = 0;
   let maxSim = -1;
