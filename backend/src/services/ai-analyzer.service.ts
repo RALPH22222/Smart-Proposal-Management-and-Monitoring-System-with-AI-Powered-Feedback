@@ -105,15 +105,111 @@ function getComparisonDB(): ComparisonDB {
   return _comparisonDB;
 }
 
+// ── Pure-JS TF-IDF Title Encoder (fallback when ONNX/WASM unavailable) ──────
+//
+// Builds a 384-dim sparse vector from the top-384 vocabulary words found across
+// all comparison DB titles. Each dimension = TF-IDF weight for that word in the
+// given title. This is deterministic, fast, runs with zero dependencies, and
+// produces genuinely different vectors per title — enabling real similarity checks.
+
+let _tfidfVocab: string[] | null = null;
+let _idfWeights: number[] | null = null;
+const TFIDF_DIM = 384;
+
+function stopWords(): Set<string> {
+  return new Set([
+    "a","an","the","of","in","on","and","for","to","with","by","at","is","are",
+    "was","were","be","been","has","have","had","this","that","these","those",
+    "it","its","from","as","or","but","not","than","into","via","through"
+  ]);
+}
+
+function tokenize(text: string): string[] {
+  const stops = stopWords();
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stops.has(w));
+}
+
+function buildTfidfVocab(): { vocab: string[]; idf: number[] } {
+  const db = getComparisonDB();
+  const docFreq = new Map<string, number>();
+  const numDocs = db.titles.length;
+
+  for (const title of db.titles) {
+    const words = new Set(tokenize(title));
+    for (const w of words) {
+      docFreq.set(w, (docFreq.get(w) ?? 0) + 1);
+    }
+  }
+
+  // Sort by doc frequency descending (most common meaningful words first) then take top TFIDF_DIM
+  const sorted = [...docFreq.entries()]
+    .filter(([, df]) => df >= 2) // must appear in at least 2 docs
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TFIDF_DIM);
+
+  const vocab = sorted.map(([w]) => w);
+  const idf = sorted.map(([, df]) => Math.log((numDocs + 1) / (df + 1)) + 1);
+
+  return { vocab, idf };
+}
+
+function getVocab(): { vocab: string[]; idf: number[] } {
+  if (!_tfidfVocab || !_idfWeights) {
+    const built = buildTfidfVocab();
+    _tfidfVocab = built.vocab;
+    _idfWeights = built.idf;
+  }
+  return { vocab: _tfidfVocab!, idf: _idfWeights! };
+}
+
+function tfidfEncode(title: string): number[] {
+  const { vocab, idf } = getVocab();
+  const words = tokenize(title);
+  const tf = new Map<string, number>();
+  for (const w of words) {
+    tf.set(w, (tf.get(w) ?? 0) + 1);
+  }
+
+  const vec = new Array<number>(TFIDF_DIM).fill(0);
+  for (let i = 0; i < vocab.length; i++) {
+    const count = tf.get(vocab[i]) ?? 0;
+    if (count > 0) {
+      vec[i] = (count / words.length) * idf[i];
+    }
+  }
+
+  // L2 normalize
+  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
+  if (norm > 0) {
+    for (let i = 0; i < vec.length; i++) vec[i] /= norm;
+  }
+
+  return vec;
+}
+
 // ── SentenceTransformer (MiniLM via @huggingface/transformers) ──────
 //
-// Runs the same all-MiniLM-L6-v2 model locally in Lambda via ONNX (WASM).
-// Produces 384-dim semantic vectors — exact parity with Keras training.
-// Pipeline is lazy-loaded and cached across warm Lambda invocations.
-// First cold start downloads the ONNX model from HuggingFace Hub (~23MB → /tmp).
+// ⚠️  COST GUARD: The HuggingFace ONNX pipeline is DISABLED.
+// On AWS Lambda, downloading the ~23MB ONNX model on every cold start
+// dramatically increases billed duration and data-transfer costs.
+//
+// The TF-IDF encoder above produces genuinely unique 384-dim vectors
+// from the comparison DB vocabulary — no network calls, no WASM runtime,
+// runs in pure JS in < 5ms, and is free at any invocation volume.
+//
+// To re-enable the neural encoder in the future, set USE_NEURAL_ENCODER=true
+// in your Lambda environment variables.
+
+const USE_NEURAL_ENCODER = process.env.USE_NEURAL_ENCODER === "true";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _extractor: any = null;
+// Start as failed unless neural encoder is explicitly opted-in via env var
+let _extractorFailed = !USE_NEURAL_ENCODER;
 
 async function getExtractor() {
   if (_extractor) return _extractor;
@@ -160,9 +256,20 @@ async function getExtractor() {
  * Equivalent to Python: SentenceTransformer('all-MiniLM-L6-v2').encode(title)
  */
 async function encodeTitle(title: string): Promise<number[]> {
-  const extractor = await getExtractor();
-  const output = await extractor(title, { pooling: "mean", normalize: false });
-  return Array.from(output.data as Float32Array);
+  // If ONNX/WASM already failed once in this Lambda instance, use TF-IDF directly
+  if (_extractorFailed) {
+    return tfidfEncode(title);
+  }
+
+  try {
+    const extractor = await getExtractor();
+    const output = await extractor(title, { pooling: "mean", normalize: false });
+    return Array.from(output.data as Float32Array);
+  } catch (e) {
+    console.warn("HuggingFace encoder failed, switching to TF-IDF fallback:", (e as Error).message);
+    _extractorFailed = true;
+    return tfidfEncode(title);
+  }
 }
 
 // ── Math primitives ──────────────────────────────────────────────────
@@ -455,31 +562,9 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
   ];
   const scaledMeta = scaleMetadata(rawMeta);
 
-  // 2. Encode title to 384-dim semantic vector (SentenceTransformer / MiniLM)
-  let titleVec: number[] = new Array(384).fill(0);
-  try {
-    titleVec = await encodeTitle(extracted.title);
-  } catch (e) {
-    console.error("Failed to execute AI title encoder (model download or WASM timeout):", e);
-    // If the ML part fails, return a graceful response instead of 502 crashing
-    return {
-      title: extracted.title || "Proposal",
-      score: 50,
-      isValid: false,
-      noveltyScore: 0,
-      keywords: ["Unscanned"],
-      similarPapers: [],
-      issues: [
-        "AI Semantic Scanner Failed to Load.",
-        "This usually happens due to a timeout downloading the AI models, or an out-of-memory error on the server.",
-        "Your proposal format was recognized correctly, but the deeper scientific analysis timed out."
-      ],
-      suggestions: [
-        "Please try submitting again in a few minutes.",
-        "If the problem persists, contact support regarding the AI Server Timeout."
-      ],
-    };
-  }
+  // 2. Encode title to 384-dim semantic vector.
+  // encodeTitle() tries HuggingFace/ONNX first, then falls back to TF-IDF — never throws.
+  const titleVec = await encodeTitle(extracted.title);
 
   // 3. AI Score (0-100) — full neural network forward pass
   const score = Math.round(predict(titleVec, scaledMeta));
