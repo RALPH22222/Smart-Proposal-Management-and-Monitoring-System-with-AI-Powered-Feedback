@@ -160,7 +160,15 @@ export class ProjectService {
           email
         ),
         project_reports (
-          *,
+          id,
+          funded_project_id,
+          quarterly_report,
+          status,
+          progress,
+          comment,
+          report_file_url,
+          submitted_by_proponent_id,
+          created_at,
           project_expenses (id, expenses, desription, created_at)
         )
       `

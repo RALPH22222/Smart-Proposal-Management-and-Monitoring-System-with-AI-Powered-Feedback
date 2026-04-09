@@ -105,19 +105,27 @@ function getComparisonDB(): ComparisonDB {
   return _comparisonDB;
 }
 
-// Lightweight titles-only load — skips the massive vectors array to save memory
+// Lightweight titles-only load — loads pre-extracted titles_only.json (tiny, no vectors)
+// Generated once by: node backend/scripts/extract-titles.js
+// Falls back to parsing full comparison_db.json if the file doesn't exist yet.
 let _dbTitles: string[] | null = null;
 function getDbTitles(): string[] {
   if (!_dbTitles) {
-    // If comparison_db.json is already loaded (neural path), reuse its titles
-    if (_comparisonDB) {
+    const titlesOnlyPath = path.join(MODELS_DIR, "titles_only.json");
+    if (existsSync(titlesOnlyPath)) {
+      // Fast path: load only the tiny titles file (no vectors)
+      const raw = readFileSync(titlesOnlyPath, "utf-8");
+      _dbTitles = (JSON.parse(raw) as { titles: string[] }).titles;
+    } else if (_comparisonDB) {
+      // Neural path already loaded the full DB, reuse its titles
       _dbTitles = _comparisonDB.titles;
     } else {
-      // Parse only the titles array — JSON.parse the whole file but discard vectors immediately
+      // Slow fallback: parse full comparison_db.json (expensive, avoid if possible)
+      console.warn("[ai-analyzer] titles_only.json not found — run: node backend/scripts/extract-titles.js");
       const raw = readFileSync(path.join(MODELS_DIR, "comparison_db.json"), "utf-8");
       const parsed = JSON.parse(raw) as { titles: string[]; vectors: unknown };
       _dbTitles = parsed.titles;
-      // Do NOT assign to _comparisonDB — avoids holding the 13.8MB vectors in memory
+      // Discard vectors — do NOT assign to _comparisonDB
     }
   }
   return _dbTitles!;

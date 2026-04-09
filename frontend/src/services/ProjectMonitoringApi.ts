@@ -381,12 +381,19 @@ export async function fetchProjectDetail(
   const cached = getCached<ApiProjectDetail>(cacheKey);
   if (cached) return cached;
 
-  const { data } = await api.get<{ data: ApiProjectDetail }>(
-    "/project/view",
-    { params: { project_id: projectId }, withCredentials: true }
-  );
-  setCache(cacheKey, data.data);
-  return data.data;
+  let response;
+  try {
+    response = await api.get<{ data: ApiProjectDetail }>(
+      "/project/view",
+      { params: { project_id: projectId }, withCredentials: true }
+    );
+  } catch (err: any) {
+    // Log the actual backend error body so we can see the Supabase message
+    console.error("[fetchProjectDetail] Backend error body:", err?.response?.data);
+    throw err;
+  }
+  setCache(cacheKey, response.data.data);
+  return response.data.data;
 }
 
 export async function verifyReport(
