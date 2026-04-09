@@ -160,11 +160,12 @@ function tokenize(text: string): string[] {
 }
 
 function buildTfidfVocab(): { vocab: string[]; idf: number[] } {
-  const db = getComparisonDB();
+  // Use getDbTitles() — loads only titles_only.json (tiny), NOT the 13.8MB vectors
+  const titles = getDbTitles();
   const docFreq = new Map<string, number>();
-  const numDocs = db.titles.length;
+  const numDocs = titles.length;
 
-  for (const title of db.titles) {
+  for (const title of titles) {
     const words = new Set(tokenize(title));
     for (const w of words) {
       docFreq.set(w, (docFreq.get(w) ?? 0) + 1);
