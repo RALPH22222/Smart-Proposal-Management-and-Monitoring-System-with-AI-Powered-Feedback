@@ -116,9 +116,7 @@ const Submission: React.FC = () => {
     });
   }, [localFormData.budgetItems]);
 
-  if (lookups.loading || !user) {
-    return <PageLoader mode="proponent-submission" />;
-  }
+
 
   const handleDirectUpdate = (field: keyof FormData | string, value: any) => {
     setLocalFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -641,6 +639,10 @@ const Submission: React.FC = () => {
     p-4 rounded-xl border transition-all duration-200 hover:scale-105 hover:border-[#C8102E] font-bold
     ${activeSection === sectionName ? "bg-[#C8102E] text-white border-[#C8102E]" : "bg-white text-gray-600 border-gray-200"}
   `;
+
+  if (lookups.loading || !user) {
+    return <PageLoader mode="proponent-submission" />;
+  }
 
   return (
     <>

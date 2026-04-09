@@ -123,11 +123,16 @@ async function getExtractor() {
   // Lambda can only write to /tmp — cache downloaded ONNX model there
   env.cacheDir = "/tmp/hf-cache";
 
-  // @huggingface/transformers sets wasmPaths to a CDN URL (https://cdn.jsdelivr.net/…)
-  // but Node.js ESM loader rejects https: imports. Point to local WASM files instead.
-  const wasmDir = path.resolve(__dirname, "node_modules", "onnxruntime-web", "dist");
-  env.backends.onnx.wasm!.wasmPaths = `file://${wasmDir}/`;
-  env.backends.onnx.wasm!.numThreads = 1;
+  // Safely resolve the ONNX WASM directory using Node's module resolution
+  try {
+    const pkgPath = require.resolve("onnxruntime-web/package.json");
+    const wasmDir = path.join(path.dirname(pkgPath), "dist");
+    // Ensure posix path formatting for the file URL
+    env.backends.onnx.wasm!.wasmPaths = `file://${wasmDir.replace(/\\/g, "/")}/`;
+    env.backends.onnx.wasm!.numThreads = 1;
+  } catch (e) {
+    console.warn("Could not dynamically resolve onnxruntime-web WASM path.", e);
+  }
 
   _extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", {
     dtype: "q8",
@@ -437,7 +442,30 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
   const scaledMeta = scaleMetadata(rawMeta);
 
   // 2. Encode title to 384-dim semantic vector (SentenceTransformer / MiniLM)
-  const titleVec = await encodeTitle(extracted.title);
+  let titleVec: number[] = new Array(384).fill(0);
+  try {
+    titleVec = await encodeTitle(extracted.title);
+  } catch (e) {
+    console.error("Failed to execute AI title encoder (model download or WASM timeout):", e);
+    // If the ML part fails, return a graceful response instead of 502 crashing
+    return {
+      title: extracted.title || "Proposal",
+      score: 50,
+      isValid: false,
+      noveltyScore: 0,
+      keywords: ["Unscanned"],
+      similarPapers: [],
+      issues: [
+        "AI Semantic Scanner Failed to Load.",
+        "This usually happens due to a timeout downloading the AI models, or an out-of-memory error on the server.",
+        "Your proposal format was recognized correctly, but the deeper scientific analysis timed out."
+      ],
+      suggestions: [
+        "Please try submitting again in a few minutes.",
+        "If the problem persists, contact support regarding the AI Server Timeout."
+      ],
+    };
+  }
 
   // 3. AI Score (0-100) — full neural network forward pass
   const score = Math.round(predict(titleVec, scaledMeta));
