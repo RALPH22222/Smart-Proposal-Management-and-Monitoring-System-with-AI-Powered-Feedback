@@ -125,9 +125,23 @@ async function getExtractor() {
 
   // Safely resolve the ONNX WASM directory using Node's module resolution
   try {
-    const pkgPath = require.resolve("onnxruntime-web/package.json");
-    const wasmDir = path.join(path.dirname(pkgPath), "dist");
-    // Ensure posix path formatting for the file URL
+    // Try multiple possible paths for the WASM files depending on build environment
+    const possiblePaths = [
+      path.resolve(__dirname, "node_modules", "onnxruntime-web", "dist"),
+      path.resolve(__dirname, "../../node_modules", "onnxruntime-web", "dist"),
+      path.resolve(__dirname, "../../../node_modules", "onnxruntime-web", "dist")
+    ];
+    
+    let wasmDir = possiblePaths[0];
+    for (const p of possiblePaths) {
+      try {
+        if (require('fs').existsSync(p)) {
+          wasmDir = p;
+          break;
+        }
+      } catch (err) {}
+    }
+
     env.backends.onnx.wasm!.wasmPaths = `file://${wasmDir.replace(/\\/g, "/")}/`;
     env.backends.onnx.wasm!.numThreads = 1;
   } catch (e) {

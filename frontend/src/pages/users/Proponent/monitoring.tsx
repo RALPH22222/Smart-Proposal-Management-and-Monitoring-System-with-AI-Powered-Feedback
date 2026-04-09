@@ -185,14 +185,14 @@ const MonitoringPage: React.FC = () => {
           // Even if overdue, check if fund request exists
           if (!fr) status = 'fund_request';
           else if (fr.status === 'approved') status = 'overdue';
-          else if (fr.status === 'pending') status = 'due'; // waiting for approval
+          else if (fr.status === 'pending') status = 'fund_request'; // waiting for approval
           else if (fr.status === 'rejected') status = 'fund_request'; // need to re-request
           else status = 'overdue';
         } else {
           // "Due" status
           if (!fr) status = 'fund_request';
           else if (fr.status === 'approved') status = 'due';
-          else if (fr.status === 'pending') status = 'due'; // waiting for approval, show as due
+          else if (fr.status === 'pending') status = 'fund_request'; // keeping it as fund_request so isEditable is false, but we can detect isFundRequestPending
           else if (fr.status === 'rejected') status = 'fund_request'; // re-request
           else status = 'fund_request';
         }
