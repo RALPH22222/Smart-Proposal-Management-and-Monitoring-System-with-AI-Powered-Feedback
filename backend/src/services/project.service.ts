@@ -21,7 +21,7 @@ import { logActivity } from "../utils/activity-logger";
 import { EmailService } from "./email.service";
 
 export class ProjectService {
-  constructor(private db: SupabaseClient) {}
+  constructor(private db: SupabaseClient) { }
 
   /**
    * Get funded projects with optional filtering
@@ -65,24 +65,24 @@ export class ProjectService {
       query = query.eq("status", input.status);
     }
 
-    // Filter by proponent (user_id) if role is proponent
-    if (input.role === "proponent" && input.user_id) {
-      query = query.eq("project_lead_id", input.user_id);
-    }
-
-    // Filter for co-lead: find projects where user is an active member
-    if (input.role === "lead_proponent" && input.user_id) {
+    // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member
+    if ((input.role === "proponent" || input.role === "lead_proponent") && input.user_id) {
+      // 1. Get projects where user is the lead
+      // 2. Get projects where user is an active member
       const { data: memberships } = await this.db
         .from("project_members")
         .select("funded_project_id")
         .eq("user_id", input.user_id)
         .eq("status", ProjectMemberStatus.ACTIVE);
 
-      const projectIds = memberships?.map((m) => m.funded_project_id) || [];
-      if (projectIds.length === 0) {
-        return { data: [], error: null };
+      const projectMemberIds = memberships?.map((m) => m.funded_project_id) || [];
+
+      // Combine: where (project_lead_id == user_id) OR (id IN projectMemberIds)
+      if (projectMemberIds.length > 0) {
+        query = query.or(`project_lead_id.eq.${input.user_id},id.in.(${projectMemberIds.join(",")})`);
+      } else {
+        query = query.eq("project_lead_id", input.user_id);
       }
-      query = query.in("id", projectIds);
     }
 
     // Filter for RND: only show projects assigned to this RND user via proposal_rnd
@@ -785,7 +785,7 @@ export class ProjectService {
     // Breakdown by category
     const budgetByCategory = { ps: 0, mooe: 0, co: 0 };
     for (const row of budgetRows || []) {
-      const cat = row.budget as keyof typeof budgetByCategory;
+      const cat = (row.budget || "").toString().toLowerCase() as keyof typeof budgetByCategory;
       if (cat in budgetByCategory) {
         budgetByCategory[cat] += Number(row.amount) || 0;
       }
@@ -811,7 +811,7 @@ export class ProjectService {
       const items = (fr as any).fund_request_items || [];
       for (const item of items) {
         const amount = Number(item.amount) || 0;
-        const cat = item.category as keyof typeof approvedByCategory;
+        const cat = (item.category || "").toString().toLowerCase() as keyof typeof approvedByCategory;
         if (fr.status === "approved") {
           totalApproved += amount;
           if (cat in approvedByCategory) approvedByCategory[cat] += amount;

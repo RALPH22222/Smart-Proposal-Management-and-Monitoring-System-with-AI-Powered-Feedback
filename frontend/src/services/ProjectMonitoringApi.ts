@@ -112,7 +112,7 @@ export interface ApiProjectDetail {
     sector: { id: number; name: string } | null;
     discipline: { id: number; name: string } | null;
     agency: { id: number; name: string; street: string; barangay: string; city: string } | null;
-    estimated_budget: { id: number; source: string; ps: number; mooe: number; co: number }[];
+    estimated_budget: { id: number; source: string; budget: string; item: string; amount: number }[];
   };
   project_lead: {
     id: string;
@@ -320,10 +320,10 @@ export function buildDisplayReports(
     };
   });
 
-  // Calculate total budget from estimated_budget
+  // Calculate total budget from estimated_budget (sum all amount fields)
   const budgets = detail.proposal?.estimated_budget || [];
   const totalBudget = budgets.reduce(
-    (sum, b) => sum + (b.ps || 0) + (b.mooe || 0) + (b.co || 0),
+    (sum, b) => sum + (Number(b.amount) || 0),
     0
   );
 

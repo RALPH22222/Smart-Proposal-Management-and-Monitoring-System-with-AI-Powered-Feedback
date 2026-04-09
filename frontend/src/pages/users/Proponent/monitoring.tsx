@@ -625,7 +625,10 @@ const MonitoringPage: React.FC = () => {
               {/* --- TEAM MEMBERS --- */}
               {activeBackend && (
                 <div className="mb-6">
-                  <TeamMembersSection fundedProjectId={activeBackend.id} isProjectLead={true} />
+                  <TeamMembersSection 
+                    fundedProjectId={activeBackend.id} 
+                    isProjectLead={activeBackend.project_lead_id === user?.id} 
+                  />
                 </div>
               )}
 
