@@ -186,7 +186,7 @@ function extractDataFromText(text: string): ExtractedData {
   }
 
   // 3. Extract Cooperating Agencies
-  const agencySection = text.match(/Cooperating Agencies.*?\n(.*?)(?=\n\(\d\)|$|Classification)/is);
+  const agencySection = text.match(/Cooperating Agencies[^\n]*\n([\s\S]*?)(?=\n\(\d\)|$|Classification)/i);
   if (agencySection) {
     const rawAgencies = agencySection[1].trim();
     if (rawAgencies.length > 3 && !rawAgencies.includes("N/A")) {
@@ -316,7 +316,7 @@ function extractFormFields(text: string): FormExtractedFields {
   }
 
   // --- (2) Cooperating Agencies ---
-  const coopMatch = text.match(/Cooperating\s+Agenc(?:y|ies)[:\s]*\n?(.*?)(?=\n\s*\(\d\)|\n\s*R\s*&\s*D\s+Station|$)/is);
+  const coopMatch = text.match(/Cooperating\s+Agenc(?:y|ies)[^\n]*\n?([\s\S]*?)(?=\n\s*\(\d\)|\n\s*R\s*&\s*D\s+Station|$)/i);
   if (coopMatch) {
     const raw = clean(coopMatch[1]);
     if (raw.length > 2 && !/^N\/?A$/i.test(raw)) {
@@ -325,7 +325,7 @@ function extractFormFields(text: string): FormExtractedFields {
   }
 
   // --- (3) R&D Station ---
-  const stationMatch = text.match(/R\s*&?\s*D\s+Station[:\s]*\n?(.*?)(?=\n\s*\(\d\)|$)/is);
+  const stationMatch = text.match(/R\s*&?\s*D\s+Station[^\n]*\n?([\s\S]*?)(?=\n\s*\(\d\)|$)/i);
   if (stationMatch) {
     const val = clean(stationMatch[1]);
     if (val.length > 2) fields.research_station = val;
@@ -334,7 +334,7 @@ function extractFormFields(text: string): FormExtractedFields {
   // --- (4) Classification ---
   // Look for checked items: "Research: ✓ Basic" or "Development: ✓ Pilot Testing"
   // PDF text often shows checked as "X", "✓", "__" (underscored), or the item directly after the label
-  const classSection = text.match(/Classification.*?\n([\s\S]*?)(?=\n\s*\(\d\)\s*(?:Mode|Priority|Sector)|$)/i);
+  const classSection = text.match(/Classification[^\n]*\n([\s\S]*?)(?=\n\s*\(\d\)\s*(?:Mode|Priority|Sector)|$)/i);
   if (classSection) {
     const classText = classSection[1];
     // Check for Research types
@@ -351,14 +351,14 @@ function extractFormFields(text: string): FormExtractedFields {
   }
 
   // --- (7) Sector/Commodity ---
-  const sectorMatch = text.match(/Sector\/Commodity[:\s]*\n?(.*?)(?=\n\s*\(\d\)|$)/is);
+  const sectorMatch = text.match(/Sector\/Commodity[^\n]*\n?([\s\S]*?)(?=\n\s*\(\d\)|$)/i);
   if (sectorMatch) {
     const val = clean(sectorMatch[1]);
     if (val.length > 2) fields.sector = val;
   }
 
   // --- (8) Discipline ---
-  const discMatch = text.match(/Discipline[:\s]*\n?(.*?)(?=\n\s*\(\d\)|$)/is);
+  const discMatch = text.match(/Discipline[^\n]*\n?([\s\S]*?)(?=\n\s*\(\d\)|$)/i);
   if (discMatch) {
     const val = clean(discMatch[1]);
     if (val.length > 2) fields.discipline = val;

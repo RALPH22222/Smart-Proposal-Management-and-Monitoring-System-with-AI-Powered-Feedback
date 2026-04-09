@@ -593,6 +593,10 @@ const Submission: React.FC = () => {
 
       // Call the AI analysis API
       const result = await analyzeProposalWithAI(targetFile);
+      
+      // Add a small artificial delay for the "AI thinking" effect 
+      // since the backend is now so fast we want it to feel substantial
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Auto-fill form fields from extracted data
       if (result.formFields) {
