@@ -186,7 +186,7 @@ const AIModal: React.FC<AIModalProps> = ({
                         </h4>
                         
                         {/* Safe Check for array length */}
-                        {(finalResult.similarPapers || []).length > 0 && (
+                        {(finalResult.similarPapers || []).length > 0 ? (
                           <ul className="mt-3 space-y-2">
                             {(finalResult.similarPapers || []).map((paper, idx) => (
                               <li key={idx} className="text-xs bg-gray-50 p-2 rounded border border-gray-200 text-gray-700 flex items-center gap-2">
@@ -196,6 +196,12 @@ const AIModal: React.FC<AIModalProps> = ({
                               </li>
                             ))}
                           </ul>
+                        ) : (
+                          <p className={`mt-2 text-xs italic ${isNovel ? 'text-blue-700' : 'text-gray-500'}`}>
+                            {isNovel 
+                              ? "No significantly similar projects found. This looks highly original!" 
+                              : "Similarity detected, but no specific reference titles were flagged."}
+                          </p>
                         )}
                       </div>
                     </div>

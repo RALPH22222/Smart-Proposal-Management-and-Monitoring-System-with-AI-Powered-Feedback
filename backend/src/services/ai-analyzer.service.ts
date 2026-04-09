@@ -534,8 +534,11 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
 
   // Build similar papers list
   const similarPapers: { title: string; year: string }[] = [];
-  if (bestMatchSimilarity > 0.5) {
-    similarPapers.push({ title: bestMatchTitle, year: "N/A" });
+  if (bestMatchSimilarity > 0.1) {
+    similarPapers.push({ 
+      title: bestMatchTitle, 
+      year: `${similarityPct}% Match` 
+    });
   }
 
   // Determine validity
