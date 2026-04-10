@@ -128,12 +128,22 @@ export const handler = buildCorsHeaders(async (event) => {
   const formFields = extractFormFields(text);
 
   // Run AI analysis (async — SentenceTransformer inference)
-  const result = await analyzeProposal(extracted);
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ ...result, formFields }),
-  };
+  try {
+    const result = await analyzeProposal(extracted);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ ...result, formFields }),
+    };
+  } catch (err: any) {
+    console.error("AI Analysis crash:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+        message: "AI engine error", 
+        error: err.message || String(err) 
+      }),
+    };
+  }
 });
 
 /**
