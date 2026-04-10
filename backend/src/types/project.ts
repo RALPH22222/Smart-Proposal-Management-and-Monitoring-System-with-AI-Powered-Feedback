@@ -92,7 +92,7 @@ export interface ProjectReportWithDetails extends ProjectReport {
 // Input types for service methods
 export interface GetFundedProjectsInput {
   user_id?: string;
-  role?: "proponent" | "rnd" | "admin" | "lead_proponent";
+  role?: "proponent" | "rnd" | "admin" | "co_lead";
   status?: ProjectStatus;
   limit?: number;
   offset?: number;

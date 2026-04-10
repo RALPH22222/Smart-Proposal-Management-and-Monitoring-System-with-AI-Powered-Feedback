@@ -53,7 +53,7 @@ export default function ChangePassword() {
       case 'evaluator':
         navigate('/users/evaluator/evaluatorMainLayout', { replace: true });
         break;
-      case 'lead_proponent':
+      case 'co_lead':
         navigate('/users/co-lead/coLeadMainLayout', { replace: true });
         break;
       default:

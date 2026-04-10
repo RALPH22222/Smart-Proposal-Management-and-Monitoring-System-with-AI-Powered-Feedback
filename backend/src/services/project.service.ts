@@ -66,7 +66,7 @@ export class ProjectService {
     }
 
     // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member
-    if ((input.role === "proponent" || input.role === "lead_proponent") && input.user_id) {
+    if ((input.role === "proponent" || input.role === "co_lead") && input.user_id) {
       // 1. Get projects where user is the lead
       // 2. Get projects where user is an active member
       const { data: memberships } = await this.db
@@ -513,12 +513,12 @@ export class ProjectService {
         return { data: null, error: insertError };
       }
 
-      // Append lead_proponent role if not present
+      // Append co_lead role if not present
       const roles: string[] = existingUser.roles || [];
-      if (!roles.includes("lead_proponent")) {
+      if (!roles.includes("co_lead")) {
         await this.db
           .from("users")
-          .update({ roles: [...roles, "lead_proponent"] })
+          .update({ roles: [...roles, "co_lead"] })
           .eq("id", existingUser.id);
       }
 
@@ -547,7 +547,7 @@ export class ProjectService {
 
       const { data: inviteData, error: inviteError } =
         await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-          data: { roles: ["lead_proponent"] },
+          data: { roles: ["co_lead"] },
           redirectTo,
         });
 
@@ -590,7 +590,7 @@ export class ProjectService {
    * Remove a co-lead from a funded project
    * - Only the project lead can remove
    * - Cannot remove the lead themselves
-   * - Cleans up lead_proponent role if user has no other active memberships
+   * - Cleans up co_lead role if user has no other active memberships
    */
   async removeMember(input: RemoveMemberInput) {
     // Verify caller is the project lead
@@ -645,7 +645,7 @@ export class ProjectService {
       .neq("id", input.member_id);
 
     if (!otherMemberships || otherMemberships.length === 0) {
-      // Remove lead_proponent role
+      // Remove co_lead role
       const { data: user } = await this.db
         .from("users")
         .select("roles")
@@ -653,7 +653,7 @@ export class ProjectService {
         .single();
 
       if (user?.roles) {
-        const newRoles = (user.roles as string[]).filter((r) => r !== "lead_proponent");
+        const newRoles = (user.roles as string[]).filter((r) => r !== "co_lead");
         await this.db.from("users").update({ roles: newRoles }).eq("id", member.user_id);
       }
     }

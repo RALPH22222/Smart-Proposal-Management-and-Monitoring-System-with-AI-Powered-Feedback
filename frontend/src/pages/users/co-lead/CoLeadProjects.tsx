@@ -49,7 +49,7 @@ const CoLeadProjects: React.FC = () => {
       try {
         setLoading(true);
         const { data } = await api.get<{ data: FundedProject[] }>("/project/funded", {
-          params: { user_id: user.id, role: "lead_proponent" },
+          params: { user_id: user.id, role: "co_lead" },
           withCredentials: true,
         });
         setProjects(data.data || []);

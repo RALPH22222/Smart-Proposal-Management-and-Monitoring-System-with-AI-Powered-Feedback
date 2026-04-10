@@ -15,12 +15,12 @@ const RedirectAuthenticated: React.FC = () => {
     }
 
     // Co-lead only → co-lead dashboard
-    if (role === Role.LEAD_PROPONENT && !user.roles?.includes(Role.PROPONENT)) {
+    if (role === Role.CO_LEAD && !user.roles?.includes(Role.PROPONENT)) {
       return <Navigate to="/users/co-lead/coLeadMainLayout" replace />;
     }
 
-    // Proponent (may also have lead_proponent) → proponent dashboard
-    if (role === Role.PROPONENT || role === Role.LEAD_PROPONENT) {
+    // Proponent (may also have co_lead) → proponent dashboard
+    if (role === Role.PROPONENT || role === Role.CO_LEAD) {
       return <Navigate to="/users/Proponent/ProponentMainLayout" replace />;
     }
 

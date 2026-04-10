@@ -63,7 +63,7 @@ const ROLE_COLORS: Record<string, string> = {
   rnd: "bg-indigo-100 text-indigo-700",
   evaluator: "bg-purple-100 text-purple-700",
   proponent: "bg-emerald-100 text-emerald-700",
-  lead_proponent: "bg-teal-100 text-teal-700",
+  co_lead: "bg-teal-100 text-teal-700",
 };
 
 function timeAgo(iso: string) {

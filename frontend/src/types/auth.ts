@@ -33,7 +33,7 @@ export type SupabaseAuthToken = {
 };
 
 export enum Role {
-  LEAD_PROPONENT = "lead_proponent",
+  CO_LEAD = "co_lead",
   EVALUATOR = "evaluator",
   RND = "rnd",
   RDEC = "rdec",

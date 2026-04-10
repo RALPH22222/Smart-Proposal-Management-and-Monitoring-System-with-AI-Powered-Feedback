@@ -24,7 +24,7 @@ export enum Sex {
 }
 
 export enum Roles {
-  LEAD_PROPONENT = "lead_proponent",
+  CO_LEAD = "co_lead",
   EVALUATOR = "evaluator",
   RND = "rnd",
   RDEC = "rdec",
