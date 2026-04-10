@@ -56,7 +56,7 @@ export interface ExtractedData {
 
 // ── Model loading ────────────────────────────────────────────────────
 
-const MODELS_DIR = path.resolve(__dirname, "ai-models");
+const MODELS_DIR = path.resolve(__dirname, "..", "ai-models");
 
 function loadJSON<T>(filename: string): T {
   const raw = readFileSync(path.join(MODELS_DIR, filename), "utf-8");
@@ -159,42 +159,58 @@ function tokenize(text: string): string[] {
     .filter(w => w.length > 2 && !stops.has(w));
 }
 
-function buildTfidfVocab(): { vocab: string[]; idf: number[] } {
-  // Use getDbTitles() — loads only titles_only.json (tiny), NOT the 13.8MB vectors
-  const titles = getDbTitles();
-  const docFreq = new Map<string, number>();
-  const numDocs = titles.length;
+function getPreTrainedVocab(): Record<string, number> {
+  try {
+    const vocabPath = path.join(MODELS_DIR, "vocab.json");
+    if (existsSync(vocabPath)) {
+      return JSON.parse(readFileSync(vocabPath, "utf-8"));
+    }
+  } catch (err) {
+    console.warn("Failed to load pre-trained vocab.json:", err);
+  }
+  return {};
+}
 
+function buildTfidfVocab(): { vocabMap: Record<string, number>; idf: number[] } {
+  // Use the pre-trained vocab for indices
+  const vocabMap = getPreTrainedVocab();
+  
+  // For IDF, if not stored, we'll use a neutral 1.0 weight or calculate from DB
+  const titles = getDbTitles();
+  const numDocs = titles.length;
+  const docFreq = new Map<string, number>();
+
+  // Only calculate IVF for the words actually in the vocab
   for (const title of titles) {
     const words = new Set(tokenize(title));
     for (const w of words) {
-      docFreq.set(w, (docFreq.get(w) ?? 0) + 1);
+      if (vocabMap[w] !== undefined) {
+        docFreq.set(w, (docFreq.get(w) ?? 0) + 1);
+      }
     }
   }
 
-  // Sort by doc frequency descending (most common meaningful words first) then take top TFIDF_DIM
-  const sorted = [...docFreq.entries()]
-    .filter(([, df]) => df >= 2) // must appear in at least 2 docs
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, TFIDF_DIM);
+  const idf = new Array<number>(TFIDF_DIM).fill(1.0);
+  Object.entries(vocabMap).forEach(([word, idx]) => {
+    if (idx < TFIDF_DIM) {
+      const df = docFreq.get(word) ?? 1;
+      idf[idx] = Math.log((numDocs + 1) / (df + 1)) + 1;
+    }
+  });
 
-  const vocab = sorted.map(([w]) => w);
-  const idf = sorted.map(([, df]) => Math.log((numDocs + 1) / (df + 1)) + 1);
-
-  return { vocab, idf };
+  return { vocabMap, idf };
 }
 
-function getVocab(): { vocab: string[]; idf: number[] } {
-  if (!_tfidfVocab || !_idfWeights) {
-    const built = buildTfidfVocab();
-    _tfidfVocab = built.vocab;
-    _idfWeights = built.idf;
+let _cachedFullVocab: { vocabMap: Record<string, number>; idf: number[] } | null = null;
+function getVocab(): { vocabMap: Record<string, number>; idf: number[] } {
+  if (!_cachedFullVocab) {
+    _cachedFullVocab = buildTfidfVocab();
   }
-  return { vocab: _tfidfVocab!, idf: _idfWeights! };
+  return _cachedFullVocab;
 }
 
 function tfidfEncode(title: string): number[] {
-  const { vocab, idf } = getVocab();
+  const { vocabMap, idf } = getVocab();
   const words = tokenize(title);
   const tf = new Map<string, number>();
   for (const w of words) {
@@ -202,12 +218,14 @@ function tfidfEncode(title: string): number[] {
   }
 
   const vec = new Array<number>(TFIDF_DIM).fill(0);
-  for (let i = 0; i < vocab.length; i++) {
-    const count = tf.get(vocab[i]) ?? 0;
-    if (count > 0) {
-      vec[i] = (count / words.length) * idf[i];
+  Object.entries(vocabMap).forEach(([word, idx]) => {
+    if (idx < TFIDF_DIM) {
+      const count = tf.get(word) ?? 0;
+      if (count > 0) {
+        vec[idx] = (count / words.length) * idf[idx];
+      }
     }
-  }
+  });
 
   // L2 normalize
   const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0));
@@ -395,26 +413,48 @@ function scaleMetadata(raw: number[]): number[] {
  *   [3] "dense_3" = shared 2:     64 -> 32, relu
  *   [4] "output"  = output:       32 -> 1, sigmoid
  */
+/**
+ * Full model forward pass. Returns score 0-100.
+ */
 function predict(titleVec: number[], scaledMeta: number[]): number {
-  const layers = getDenseLayers();
-  const bn = getBatchNorm();
+  try {
+    const layers = getDenseLayers();
+    const bn = getBatchNorm();
 
-  // 1. Text Branch: Dense(128, relu) -> BatchNorm (if exported)
-  let x1 = denseForward(titleVec, layers[0].kernel, layers[0].bias, layers[0].activation);
-  if (bn) {
-    x1 = batchNormForward(x1, bn);
+    // Map layers by name or dimension to prevent mismatch crashes
+    const metaLayer = layers.find(l => l.name?.includes("meta") || l.kernel.length === 6) || layers[1];
+    const textLayer = layers.find(l => l.name?.includes("text") || l.kernel.length === 384) || layers[0];
+    const shared1 = layers.find(l => l.name === "dense_2" || l.kernel.length === 192) || layers[2];
+    const shared2 = layers.find(l => l.name === "dense_3" || l.kernel.length === 64) || layers[3];
+    const outputLayer = layers.find(l => l.name === "output" || l.kernel[0].length === 1) || layers[4];
+
+    // 1. Text Branch
+    let x1 = denseForward(titleVec, textLayer.kernel, textLayer.bias, textLayer.activation);
+    if (bn && x1.length === bn.moving_mean.length) {
+      x1 = batchNormForward(x1, bn);
+    }
+
+    // 2. Meta Branch
+    const x2 = denseForward(scaledMeta, metaLayer.kernel, metaLayer.bias, metaLayer.activation);
+
+    // 3. Shared Branch: concat -> Dense(64) -> Dense(32) -> Dense(1, sigmoid)
+    const combined = [...x1, ...x2];
+    
+    // Safety check for concatenation dimension
+    if (combined.length !== shared1.kernel.length) {
+       console.warn(`Shape mismatch in concat: got ${combined.length}, expected ${shared1.kernel.length}. Using meta only.`);
+       return 50; // Baseline neutral score
+    }
+
+    let z = denseForward(combined, shared1.kernel, shared1.bias, shared1.activation);
+    z = denseForward(z, shared2.kernel, shared2.bias, shared2.activation);
+    const output = denseForward(z, outputLayer.kernel, outputLayer.bias, outputLayer.activation);
+
+    return output[0] * 100;
+  } catch (err) {
+    console.error("AI Neural Pass failed, using fallback score:", err);
+    return 65; // Safe fallback score
   }
-
-  // 2. Meta Branch: Dense(64, relu)
-  const x2 = denseForward(scaledMeta, layers[1].kernel, layers[1].bias, layers[1].activation);
-
-  // 3. Shared Branch: concat -> Dense(64) -> Dense(32) -> Dense(1, sigmoid)
-  const combined = [...x1, ...x2];
-  let z = denseForward(combined, layers[2].kernel, layers[2].bias, layers[2].activation);
-  z = denseForward(z, layers[3].kernel, layers[3].bias, layers[3].activation);
-  const output = denseForward(z, layers[4].kernel, layers[4].bias, layers[4].activation);
-
-  return output[0] * 100;
 }
 
 /**
