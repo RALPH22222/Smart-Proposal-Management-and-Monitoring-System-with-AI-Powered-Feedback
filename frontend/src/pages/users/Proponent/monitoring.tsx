@@ -30,6 +30,7 @@ import {
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
+  extractFileInfo,
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from "../../../utils/date-formatter";
@@ -265,9 +266,9 @@ const MonitoringPage: React.FC = () => {
   }, [currentReportIndex, currentReport?.progressPercentage, prevReportProgress]);
 
   // Budget calculations from budget summary
-  const totalApproved = budgetSummary?.total_approved || 0;
-  const totalPending = budgetSummary?.total_pending || 0;
-  const remaining = budgetSummary?.remaining || (totalBudget - totalApproved);
+  const totalApproved = budgetSummary?.total_approved ?? 0;
+  const totalPending = budgetSummary?.total_pending ?? 0;
+  const remaining = budgetSummary?.remaining ?? (totalBudget - totalApproved);
   const budgetProgress = totalBudget > 0 ? (totalApproved / totalBudget) * 100 : 0;
 
   // --- Handlers ---
@@ -379,24 +380,27 @@ const MonitoringPage: React.FC = () => {
     try {
       setSubmittingReport(true);
 
-      // Upload files to S3 first
+      // Upload files to S3 first, tagged with type prefixes for identification
       const fileUrls: string[] = [];
 
       if (reportFile) {
         setUploadProgress('Uploading quarterly report...');
-        const url = await uploadReportFile(reportFile);
+        const tagged = new File([reportFile], `QR__${reportFile.name}`, { type: reportFile.type });
+        const url = await uploadReportFile(tagged);
         fileUrls.push(url);
       }
 
       if (terminalReportFile) {
         setUploadProgress('Uploading terminal report...');
-        const url = await uploadReportFile(terminalReportFile);
+        const tagged = new File([terminalReportFile], `TR__${terminalReportFile.name}`, { type: terminalReportFile.type });
+        const url = await uploadReportFile(tagged);
         fileUrls.push(url);
       }
 
       for (let i = 0; i < receiptFiles.length; i++) {
         setUploadProgress(`Uploading receipt ${i + 1} of ${receiptFiles.length}...`);
-        const url = await uploadReportFile(receiptFiles[i]);
+        const tagged = new File([receiptFiles[i]], `RC${i + 1}__${receiptFiles[i].name}`, { type: receiptFiles[i].type });
+        const url = await uploadReportFile(tagged);
         fileUrls.push(url);
       }
 
@@ -837,17 +841,26 @@ const MonitoringPage: React.FC = () => {
                             <span className="text-sm font-bold text-blue-600">{localProgress}%</span>
                           </label>
                           <div className="flex items-center gap-3">
-                            <div className="flex-1 w-full p-3 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-800 font-semibold text-center select-none">
-                              {localProgress}%
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <button onClick={() => handleProgressStep('up')} disabled={localProgress >= 100} className="p-1 bg-gray-200 rounded-lg hover:bg-blue-100 text-gray-600 disabled:opacity-30 transition-colors"><ChevronUp className="w-4 h-4" /></button>
+                            <input
+                              type="range"
+                              min={prevReportProgress}
+                              max={100}
+                              step={5}
+                              value={localProgress}
+                              onChange={(e) => setLocalProgress(Number(e.target.value))}
+                              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            />
+                            <div className="flex items-center gap-1">
                               <button onClick={() => handleProgressStep('down')} disabled={localProgress <= prevReportProgress} className="p-1 bg-gray-200 rounded-lg hover:bg-red-100 text-gray-600 disabled:opacity-30 transition-colors"><ChevronDown className="w-4 h-4" /></button>
+                              <div className="w-12 p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-800 font-semibold text-center select-none">
+                                {localProgress}%
+                              </div>
+                              <button onClick={() => handleProgressStep('up')} disabled={localProgress >= 100} className="p-1 bg-gray-200 rounded-lg hover:bg-blue-100 text-gray-600 disabled:opacity-30 transition-colors"><ChevronUp className="w-4 h-4" /></button>
                             </div>
                           </div>
-                          <div className="mt-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${localProgress}%` }}></div>
+                          <div className="mt-3">
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${localProgress}%` }}></div>
                             </div>
                           </div>
                         </div>
@@ -871,7 +884,7 @@ const MonitoringPage: React.FC = () => {
                                 <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
                                   <FileText className="w-3 h-3" />
                                   <span className="truncate">{reportFile.name}</span>
-                                  <span className="text-gray-400">({(reportFile.size / 1024 / 1024).toFixed(1)} MB)</span>
+                                  <span className="text-gray-400">({reportFile.size < 1024 * 1024 ? `${(reportFile.size / 1024).toFixed(0)} KB` : `${(reportFile.size / 1024 / 1024).toFixed(1)} MB`})</span>
                                   <button onClick={() => setReportFile(null)} className="ml-auto text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
                                 </div>
                               )}
@@ -888,7 +901,7 @@ const MonitoringPage: React.FC = () => {
                                 <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
                                   <FileText className="w-3 h-3" />
                                   <span className="truncate">{terminalReportFile.name}</span>
-                                  <span className="text-gray-400">({(terminalReportFile.size / 1024 / 1024).toFixed(1)} MB)</span>
+                                  <span className="text-gray-400">({terminalReportFile.size < 1024 * 1024 ? `${(terminalReportFile.size / 1024).toFixed(0)} KB` : `${(terminalReportFile.size / 1024 / 1024).toFixed(1)} MB`})</span>
                                   <button onClick={() => setTerminalReportFile(null)} className="ml-auto text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
                                 </div>
                               )}
@@ -909,7 +922,7 @@ const MonitoringPage: React.FC = () => {
                                   <div key={i} className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">
                                     <FileText className="w-3 h-3 text-blue-500" />
                                     <span className="truncate">{file.name}</span>
-                                    <span className="text-gray-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                                    <span className="text-gray-400">({file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(0)} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`})</span>
                                     <button onClick={() => removeReceiptFile(i)} className="ml-auto text-gray-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
                                   </div>
                                 ))}
@@ -993,11 +1006,18 @@ const MonitoringPage: React.FC = () => {
                           <div>
                             <p className="text-xs font-bold text-gray-500 uppercase mb-2">Proof of Accomplishment</p>
                             <div className="flex flex-wrap gap-2">
-                              {currentReport.proofFiles.map((file, i) => (
-                                <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
-                                  <FileText className="w-3 h-3" /> File {i + 1}
-                                </a>
-                              ))}
+                              {currentReport.proofFiles.map((file, i) => {
+                                const info = extractFileInfo(file);
+                                return (
+                                  <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-100" title={info.filename}>
+                                    <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="flex flex-col leading-tight">
+                                      {info.label && <span className="text-[10px] font-bold text-blue-500 uppercase">{info.label}</span>}
+                                      <span className="truncate max-w-[180px]">{info.filename}</span>
+                                    </span>
+                                  </a>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

@@ -22,6 +22,7 @@ import {
   type ProjectDetailData,
   type ApiFundRequest,
   type ApiBudgetSummary,
+  extractFileInfo,
 } from '../../services/ProjectMonitoringApi';
 
 interface RnDProjectDetailModalProps {
@@ -92,13 +93,13 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   }
 
   // --- CALCULATE FINANCIALS ---
-  const totalBudget = budgetSummary?.total_budget || details.totalBudget;
+  const totalBudget = budgetSummary?.total_budget ?? details.totalBudget;
   const isCompleted = project.status === 'Completed';
   const totalUsed = isCompleted
     ? totalBudget
-    : budgetSummary?.total_approved || details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
+    : budgetSummary?.total_approved ?? details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
   const remainingBudget = budgetSummary?.remaining ?? (totalBudget - totalUsed);
-  const totalPending = budgetSummary?.total_pending || 0;
+  const totalPending = budgetSummary?.total_pending ?? 0;
 
   const toggleReport = (id: string) => setExpandedReportId(expandedReportId === id ? null : id);
 
@@ -381,13 +382,19 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   <div>
                       <p className="text-xs font-bold text-slate-500 uppercase mb-2">Proof of Accomplishment</p>
                       <div className="flex flex-wrap gap-2">
-                         {report.proofs.map((file, i) => (
-                            <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
-                               <Paperclip className="w-4 h-4"/>
-                               <span className="font-medium">File {i + 1}</span>
-                               <Download className="w-4 h-4 ml-1 opacity-70 group-hover:opacity-100"/>
-                            </a>
-                         ))}
+                         {report.proofs.map((file, i) => {
+                            const info = extractFileInfo(file);
+                            return (
+                              <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm" title={info.filename}>
+                                 <Paperclip className="w-4 h-4 flex-shrink-0"/>
+                                 <span className="flex flex-col leading-tight">
+                                   {info.label && <span className="text-[10px] font-bold text-slate-400 uppercase">{info.label}</span>}
+                                   <span className="font-medium truncate max-w-[200px]">{info.filename}</span>
+                                 </span>
+                                 <Download className="w-4 h-4 ml-1 opacity-70 flex-shrink-0"/>
+                              </a>
+                            );
+                         })}
                       </div>
                   </div>
                ) : (

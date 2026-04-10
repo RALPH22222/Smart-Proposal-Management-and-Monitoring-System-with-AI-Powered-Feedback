@@ -18,7 +18,10 @@ export const REPORT_ALLOWED_EXTENSIONS = ".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
 
 export function validateReportFile(file: File): string | null {
   if (file.size > REPORT_MAX_FILE_SIZE) {
-    return `File "${file.name}" exceeds the 5 MB limit (${(file.size / 1024 / 1024).toFixed(1)} MB).`;
+    const sizeLabel = file.size < 1024 * 1024
+      ? `${(file.size / 1024).toFixed(0)} KB`
+      : `${(file.size / 1024 / 1024).toFixed(1)} MB`;
+    return `File "${file.name}" exceeds the 5 MB limit (${sizeLabel}).`;
   }
   if (!REPORT_ALLOWED_TYPES.includes(file.type)) {
     return `File "${file.name}" has an unsupported type. Allowed: PDF, DOC, DOCX, PNG, JPG, WEBP.`;
@@ -154,6 +157,48 @@ const STATUS_MAP: Record<string, ProjectStatus> = {
 
 export function mapBackendStatus(backendStatus: string): ProjectStatus {
   return STATUS_MAP[backendStatus] || "Active";
+}
+
+// ─── File URL Helpers ───────────────────────────────────────────────
+
+/**
+ * Extract the original filename from an S3 report file URL.
+ * URL format: https://{bucket}.s3.amazonaws.com/reports/uploads/{userId}/{timestamp}-{filename}
+ */
+export function extractFilenameFromUrl(url: string): string {
+  try {
+    const path = new URL(url).pathname;
+    const segment = path.split('/').pop() || '';
+    // Remove timestamp prefix: "1712748000000-filename.pdf" → "filename.pdf"
+    const match = segment.match(/^\d+-(.+)$/);
+    return decodeURIComponent(match ? match[1] : segment);
+  } catch {
+    return 'File';
+  }
+}
+
+/** File type prefix labels used during upload tagging */
+const FILE_TYPE_LABELS: Record<string, string> = {
+  QR: 'Quarterly Report',
+  TR: 'Terminal Report',
+  RC: 'Receipt',
+};
+
+/**
+ * Extract file type label and clean filename from a tagged S3 URL.
+ * Tagged files have prefixes like: QR__report.pdf, TR__output.pdf, RC1__receipt.pdf
+ * Untagged (legacy) files just return the raw filename with no label.
+ */
+export function extractFileInfo(url: string): { label: string; filename: string } {
+  const rawName = extractFilenameFromUrl(url);
+  const match = rawName.match(/^(QR|TR|RC)(\d*)__(.+)$/);
+  if (match) {
+    const [, type, num, name] = match;
+    const baseLabel = FILE_TYPE_LABELS[type] || type;
+    const label = num ? `${baseLabel} #${num}` : baseLabel;
+    return { label, filename: name };
+  }
+  return { label: '', filename: rawName };
 }
 
 // ─── Quarter Helpers ────────────────────────────────────────────────
