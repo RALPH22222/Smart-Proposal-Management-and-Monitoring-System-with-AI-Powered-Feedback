@@ -1554,8 +1554,9 @@ export class ProposalService {
           evaluatorEmail: evaluator?.email || "N/A",
           decision,
           status: ev.status,
-          // Use evaluation submission date if available, then status change date, then deadline as last resort
-          submittedDate: evaluatorScore?.created_at || ev.updated_at || ev.deadline_at,
+          // Use status change timestamp (set when evaluator submits), then score creation date, then deadline as last resort
+          // Note: deadline_at is date-only (no time), updated_at is a proper timestamp
+          submittedDate: ev.updated_at || evaluatorScore?.created_at || ev.deadline_at,
           ratings,
           comment: evaluatorScore?.comment || null,
         };
