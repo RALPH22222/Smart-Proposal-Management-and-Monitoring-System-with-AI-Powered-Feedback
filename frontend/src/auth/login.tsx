@@ -81,9 +81,6 @@ export default function Login() {
       case "proponent":
         navigate("/users/Proponent/ProponentMainLayout");
         break;
-      case "co_lead":
-        navigate("/users/co-lead/coLeadMainLayout");
-        break;
       case "rnd":
         navigate("/users/rnd/rndMainLayout");
         break;

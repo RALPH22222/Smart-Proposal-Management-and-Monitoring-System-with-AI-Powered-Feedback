@@ -10,7 +10,7 @@ export const reportStatusSchema = z.enum(["submitted", "verified", "overdue"]);
 // Get Funded Projects Schema
 export const getFundedProjectsSchema = z.object({
   user_id: z.string().uuid().optional(),
-  role: z.enum(["proponent", "rnd", "admin", "co_lead"]).optional(),
+  role: z.enum(["proponent", "rnd", "admin"]).optional(),
   status: projectStatusSchema.optional(),
   limit: z.number().int().positive().optional().default(20),
   offset: z.number().int().nonnegative().optional().default(0),

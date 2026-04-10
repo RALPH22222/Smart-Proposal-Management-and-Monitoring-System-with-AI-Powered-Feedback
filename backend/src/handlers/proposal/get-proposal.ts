@@ -27,7 +27,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Co-leads don't own proposals — return empty
+  // Only proponent, admin, and rnd roles can view proposals
   if (!roles.includes("proponent") && !roles.includes("admin") && !roles.includes("rnd")) {
     return {
       statusCode: 200,

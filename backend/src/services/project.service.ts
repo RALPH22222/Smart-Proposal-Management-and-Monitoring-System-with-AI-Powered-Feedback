@@ -66,7 +66,7 @@ export class ProjectService {
     }
 
     // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member
-    if ((input.role === "proponent" || input.role === "co_lead") && input.user_id) {
+    if (input.role === "proponent" && input.user_id) {
       // 1. Get projects where user is the lead
       // 2. Get projects where user is an active member
       const { data: memberships } = await this.db
@@ -513,12 +513,12 @@ export class ProjectService {
         return { data: null, error: insertError };
       }
 
-      // Append co_lead role if not present
+      // Ensure user has proponent role
       const roles: string[] = existingUser.roles || [];
-      if (!roles.includes("co_lead")) {
+      if (!roles.includes("proponent")) {
         await this.db
           .from("users")
-          .update({ roles: [...roles, "co_lead"] })
+          .update({ roles: [...roles, "proponent"] })
           .eq("id", existingUser.id);
       }
 
@@ -547,7 +547,7 @@ export class ProjectService {
 
       const { data: inviteData, error: inviteError } =
         await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-          data: { roles: ["co_lead"] },
+          data: { roles: ["proponent"] },
           redirectTo,
         });
 
@@ -643,20 +643,6 @@ export class ProjectService {
       .eq("user_id", member.user_id)
       .in("status", [ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING])
       .neq("id", input.member_id);
-
-    if (!otherMemberships || otherMemberships.length === 0) {
-      // Remove co_lead role
-      const { data: user } = await this.db
-        .from("users")
-        .select("roles")
-        .eq("id", member.user_id)
-        .single();
-
-      if (user?.roles) {
-        const newRoles = (user.roles as string[]).filter((r) => r !== "co_lead");
-        await this.db.from("users").update({ roles: newRoles }).eq("id", member.user_id);
-      }
-    }
 
     // Send notification
     await this.db.from("notifications").insert({

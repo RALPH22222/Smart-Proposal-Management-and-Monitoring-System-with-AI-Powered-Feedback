@@ -23,9 +23,6 @@ import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 // Proponent
 import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
 
-// Co-Lead
-import CoLeadMainLayout from "./pages/users/co-lead/CoLeadMainLayout";
-
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -78,14 +75,9 @@ function App() {
               <Route path="/users/rnd/rndMainLayout" element={<RnDMainLayout />} />
             </Route>
 
-            {/* Proponent (users with proponent role — may also have co_lead) */}
+            {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
               <Route path="/users/Proponent/proponentMainLayout" element={<ProponentMainLayout />} />
-            </Route>
-
-            {/* Co-Lead Only (users with only co_lead role, no proponent role) */}
-            <Route element={<ProtectedRoute roles={[Role.CO_LEAD]} />}>
-              <Route path="/users/co-lead/coLeadMainLayout" element={<CoLeadMainLayout />} />
             </Route>
           </Routes>
           <LoadingOverlay />

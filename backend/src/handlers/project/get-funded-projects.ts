@@ -22,8 +22,6 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     ? "rnd"
     : auth.roles.includes("proponent")
     ? "proponent"
-    : auth.roles.includes("co_lead")
-    ? "co_lead"
     : undefined;
 
   // Parse query parameters (only non-identity fields)

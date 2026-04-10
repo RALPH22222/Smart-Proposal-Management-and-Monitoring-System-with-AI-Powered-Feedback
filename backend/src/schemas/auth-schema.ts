@@ -34,7 +34,7 @@ const photoProfileSchema = z.object({
     }),
 });
 
-export const RoleEnum = z.enum(["proponent", "rnd", "evaluator", "rdec", "admin", "co_lead"]);
+export const RoleEnum = z.enum(["proponent", "rnd", "evaluator", "rdec", "admin"]);
 
 export const signUpSchema = z.object({
   email: z.string().email("Email is not valid"),
