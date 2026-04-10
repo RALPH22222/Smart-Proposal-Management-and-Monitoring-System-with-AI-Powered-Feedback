@@ -161,6 +161,9 @@ export const RnDEvaluatorPage: React.FC = () => {
           aggregateStatus = "Extension Approved";
         } else if (statusSet.has("extension_rejected")) {
           aggregateStatus = "Extension Rejected";
+        } else if (statusSet.has("decline") || statusSet.has("rejected")) {
+          // If any evaluator declined, surface it so RND can take action
+          aggregateStatus = "Rejected";
         } else if (statusSet.has("pending")) {
           aggregateStatus = "Pending";
         } else if (statusSet.has("completed") || statusSet.has("done")) {
@@ -702,6 +705,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         onReassign={handleReassignEvaluators}
         onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
+        proposalId={selectedProposalId}
         proposalStatus={selectedProposalStatus}
         isLoading={editLoading}
       />

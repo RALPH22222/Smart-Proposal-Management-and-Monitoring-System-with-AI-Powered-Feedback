@@ -74,7 +74,7 @@ export interface EvaluatorDecision {
 	evaluatorName: string;
 	evaluatorDepartment?: string;
 	evaluatorEmail?: string;
-	decision: 'Approve' | 'Revise' | 'Reject' | 'Pending';
+	decision: 'Approve' | 'Revise' | 'Reject' | 'Pending' | 'Declined' | 'In Review' | 'Extension Requested';
 	comments: string;
 	submittedDate: string;
 	ratings?: {

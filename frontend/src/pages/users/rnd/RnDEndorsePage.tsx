@@ -362,6 +362,12 @@ const EndorsePage: React.FC = () => {
       case 'reject':
       case 'rejected':
         return <XCircle className='w-4 h-4 text-red-600' />;
+      case 'declined':
+        return <XCircle className='w-4 h-4 text-rose-500' />;
+      case 'in review':
+        return <FileText className='w-4 h-4 text-blue-600' />;
+      case 'extension requested':
+        return <Clock className='w-4 h-4 text-orange-600' />;
       case 'pending':
         return <Clock className='w-4 h-4 text-yellow-600' />;
       default:
@@ -380,6 +386,12 @@ const EndorsePage: React.FC = () => {
       case 'reject':
       case 'rejected':
         return 'text-red-600 bg-red-50 border-red-200';
+      case 'declined':
+        return 'text-rose-500 bg-rose-50 border-rose-200';
+      case 'in review':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'extension requested':
+        return 'text-orange-600 bg-orange-50 border-orange-200';
       case 'pending':
         return 'text-yellow-600 bg-yellow-50 border-yellow-200';
       default:
@@ -550,11 +562,36 @@ const EndorsePage: React.FC = () => {
                           >
                             {proposal.title}
                           </h2>
-                          {!proposal.readyForEndorsement && proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length > 0 && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
-                              {proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length} Pending Evaluator{proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length !== 1 ? 's' : ''}
-                            </span>
-                          )}
+                          {!proposal.readyForEndorsement && (() => {
+                            const pending = proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length;
+                            const declined = proposal.evaluatorDecisions.filter(d => d.decision === 'Declined').length;
+                            const inReview = proposal.evaluatorDecisions.filter(d => d.decision === 'In Review').length;
+                            const extReq = proposal.evaluatorDecisions.filter(d => d.decision === 'Extension Requested').length;
+                            return (
+                              <>
+                                {pending > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
+                                    {pending} Pending
+                                  </span>
+                                )}
+                                {declined > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-200 text-rose-500 bg-rose-50 whitespace-nowrap">
+                                    {declined} Declined
+                                  </span>
+                                )}
+                                {inReview > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-blue-200 text-blue-600 bg-blue-50 whitespace-nowrap">
+                                    {inReview} In Review
+                                  </span>
+                                )}
+                                {extReq > 0 && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 text-orange-600 bg-orange-50 whitespace-nowrap">
+                                    {extReq} Extension Requested
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">

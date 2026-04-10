@@ -10,10 +10,22 @@ import {
   NotebookPen,
   Trash2,
   Mail,
-  UserPlus
+  UserPlus,
+  History,
+  ChevronDown,
+  ChevronRight,
+  UserMinus,
+  UserCheck,
+  UserX,
+  ClockArrowUp,
+  CheckCircle,
+  XCircle,
+  FileCheck,
+  Send,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { fetchDepartments, fetchUsersByRole, type UserItem } from '../../services/proposal.api';
+import { fetchDepartments, fetchUsersByRole, getAssignmentHistory, type UserItem, type AssignmentHistoryItem } from '../../services/proposal.api';
+import { formatDate } from '../../utils/date-formatter';
 
 export interface EvaluatorOption {
   id: string;
@@ -32,6 +44,7 @@ interface RnDEvaluatorPageModalProps {
   onReassign: (newEvaluators: EvaluatorOption[]) => void;
   onExtensionAction?: (evaluatorId: string, action: 'Accept' | 'Reject') => void;
   proposalTitle: string;
+  proposalId?: number | null;
   proposalStatus?: string;
   isLoading?: boolean;
 }
@@ -43,6 +56,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   onReassign,
   onExtensionAction,
   proposalTitle = "Untitled Project",
+  proposalId = null,
   proposalStatus = "",
   isLoading = false,
 }) => {
@@ -85,6 +99,11 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const [addSearch, setAddSearch] = useState('');
   const [addDeptFilter, setAddDeptFilter] = useState('All');
 
+  // Assignment History States
+  const [historyItems, setHistoryItems] = useState<AssignmentHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       const loadData = async () => {
@@ -103,8 +122,21 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
         }
       };
       loadData();
+
+      // Fetch assignment history
+      if (proposalId) {
+        setHistoryLoading(true);
+        getAssignmentHistory(proposalId)
+          .then((data) => setHistoryItems(data))
+          .catch((err) => console.error("Failed to load assignment history", err))
+          .finally(() => setHistoryLoading(false));
+      }
+    } else {
+      // Reset history state when modal closes
+      setHistoryItems([]);
+      setHistoryOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, proposalId]);
 
   useEffect(() => {
     const list = currentEvaluators.length > 0 ? currentEvaluators : [];
@@ -215,6 +247,30 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const getHistoryDisplay = (action: string): { icon: React.ReactNode; color: string; label: string } => {
+    switch (action) {
+      case 'evaluator_assigned':
+      case 'proposal_forwarded_to_evaluators':
+        return { icon: <Send className="w-3.5 h-3.5 text-white" />, color: 'bg-blue-500', label: 'Evaluator Assigned' };
+      case 'evaluator_accepted':
+        return { icon: <UserCheck className="w-3.5 h-3.5 text-white" />, color: 'bg-emerald-500', label: 'Assignment Accepted' };
+      case 'evaluator_declined':
+        return { icon: <UserX className="w-3.5 h-3.5 text-white" />, color: 'bg-rose-500', label: 'Assignment Declined' };
+      case 'evaluator_removed':
+        return { icon: <UserMinus className="w-3.5 h-3.5 text-white" />, color: 'bg-red-600', label: 'Evaluator Removed' };
+      case 'evaluator_extension_requested':
+        return { icon: <ClockArrowUp className="w-3.5 h-3.5 text-white" />, color: 'bg-orange-500', label: 'Extension Requested' };
+      case 'evaluator_extension_approved':
+        return { icon: <CheckCircle className="w-3.5 h-3.5 text-white" />, color: 'bg-emerald-600', label: 'Extension Approved' };
+      case 'evaluator_extension_denied':
+        return { icon: <XCircle className="w-3.5 h-3.5 text-white" />, color: 'bg-red-500', label: 'Extension Denied' };
+      case 'evaluation_scores_submitted':
+        return { icon: <FileCheck className="w-3.5 h-3.5 text-white" />, color: 'bg-purple-500', label: 'Evaluation Submitted' };
+      default:
+        return { icon: <History className="w-3.5 h-3.5 text-white" />, color: 'bg-slate-400', label: action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) };
+    }
+  };
 
   const getStatusStyle = (status: EvaluatorOption['status']) => {
     switch (status) {
@@ -665,6 +721,97 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                   <Users className="w-6 h-6 text-slate-400" />
                 </div>
                 <p className="text-slate-500 text-sm italic">No evaluators found.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Assignment History */}
+          <div className="bg-slate-50 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setHistoryOpen(!historyOpen)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-100 transition-colors rounded-xl"
+            >
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <History className="w-4 h-4 text-[#C8102E]" />
+                Assignment History
+                {historyItems.length > 0 && (
+                  <span className="text-xs font-bold text-white bg-slate-500 px-2 py-0.5 rounded-full">
+                    {historyItems.length}
+                  </span>
+                )}
+              </h3>
+              {historyOpen ? (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
+
+            {historyOpen && (
+              <div className="px-6 pb-6">
+                {historyLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex gap-3 animate-pulse">
+                        <div className="w-8 h-8 bg-slate-200 rounded-full shrink-0" />
+                        <div className="flex-1">
+                          <div className="h-4 bg-slate-200 rounded w-3/4" />
+                          <div className="h-3 bg-slate-100 rounded w-1/2 mt-1.5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : historyItems.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-sm">
+                    <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No assignment history found for this proposal.</p>
+                    <p className="text-xs mt-1">History will appear here as evaluators are assigned and respond.</p>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute left-4 top-4 bottom-4 w-px bg-slate-200" />
+
+                    <div className="space-y-4">
+                      {historyItems.map((item, idx) => {
+                        const { icon, color, label } = getHistoryDisplay(item.action);
+                        return (
+                          <div key={item.id || idx} className="flex gap-3 relative">
+                            {/* Timeline dot */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-white shadow-sm ${color}`}>
+                              {icon}
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <span className="text-sm font-semibold text-slate-800">{label}</span>
+                                  {item.evaluatorName && (
+                                    <span className="text-sm text-slate-600"> — {item.evaluatorName}</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 whitespace-nowrap shrink-0 mt-0.5">
+                                  {formatDate(item.timestamp)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                by {item.performedBy}
+                              </p>
+                              {item.remarks && (
+                                <div className="mt-1.5 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                                  <div className="flex items-start gap-1.5">
+                                    <MessageSquare className="w-3 h-3 mt-0.5 text-slate-400 shrink-0" />
+                                    <p className="text-xs text-slate-600 italic">"{item.remarks}"</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

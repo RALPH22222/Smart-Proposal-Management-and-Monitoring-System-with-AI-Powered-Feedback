@@ -380,14 +380,29 @@ export class ProposalService {
       return { error: insertv2Error, assignments: null };
     }
 
-    await logActivity(this.db, {
-      user_id: rnd_id,
-      action: "proposal_forwarded_to_evaluators",
-      category: "evaluation",
-      target_id: String(proposal_id),
-      target_type: "proposal",
-      details: { evaluator_count: evaluators.length },
-    });
+    // Fetch evaluator names for history logging
+    const evalIds = evaluators.map((ev) => ev.id);
+    const { data: evalUsers } = await this.db
+      .from("users")
+      .select("id, first_name, last_name")
+      .in("id", evalIds);
+    const evalNameMap = new Map((evalUsers || []).map((u) => [u.id, `${u.first_name || ""} ${u.last_name || ""}`.trim()]));
+
+    // Log one entry per evaluator for granular history
+    for (const ev of evaluators) {
+      await logActivity(this.db, {
+        user_id: rnd_id,
+        action: "evaluator_assigned",
+        category: "evaluation",
+        target_id: String(proposal_id),
+        target_type: "proposal",
+        details: {
+          evaluator_id: ev.id,
+          evaluator_name: evalNameMap.get(ev.id) || "Unknown",
+          evaluator_count: evaluators.length,
+        },
+      });
+    }
 
     return {
       error: null,
@@ -415,6 +430,22 @@ export class ProposalService {
       };
     }
 
+    // Fetch evaluator name before deletion for history logging
+    const { data: removedUser } = await this.db
+      .from("users")
+      .select("first_name, last_name")
+      .eq("id", evaluator_id)
+      .single();
+    const removedName = removedUser ? `${removedUser.first_name || ""} ${removedUser.last_name || ""}`.trim() : "Unknown";
+
+    // Fetch tracker remarks (decline reason) before deletion for history
+    const { data: trackerRecord } = await this.db
+      .from("proposal_assignment_tracker")
+      .select("status, remarks")
+      .eq("proposal_id", proposal_id)
+      .eq("evaluator_id", evaluator_id)
+      .single();
+
     // 1. Remove from proposal_evaluators
     const { error: evalError } = await this.db
       .from("proposal_evaluators")
@@ -439,7 +470,12 @@ export class ProposalService {
       category: "evaluation",
       target_id: String(proposal_id),
       target_type: "proposal",
-      details: { evaluator_id },
+      details: {
+        evaluator_id,
+        evaluator_name: removedName,
+        previous_status: trackerRecord?.status || null,
+        remarks: trackerRecord?.remarks || null,
+      },
     });
 
     return { error: null };
@@ -510,13 +546,27 @@ export class ProposalService {
       [AssignmentTracker.EXTEND]: "evaluator_extension_requested",
     };
 
+    // Fetch evaluator name for history logging
+    const { data: decisionUser } = await this.db
+      .from("users")
+      .select("first_name, last_name")
+      .eq("id", evaluator_id)
+      .single();
+    const decisionUserName = decisionUser ? `${decisionUser.first_name || ""} ${decisionUser.last_name || ""}`.trim() : "Unknown";
+
     await logActivity(this.db, {
       user_id: evaluator_id,
       action: decisionMap[input.status] || `evaluator_decision_${input.status}`,
       category: "evaluation",
       target_id: String(input.proposal_id),
       target_type: "proposal",
-      details: { decision: input.status },
+      details: {
+        decision: input.status,
+        evaluator_id,
+        evaluator_name: decisionUserName,
+        remarks: input.remarks || null,
+        requested_deadline: deadline_at || null,
+      },
     });
 
     return { insertedData };
@@ -885,13 +935,25 @@ export class ProposalService {
       }
     }
 
+    // Fetch evaluator name for history logging
+    const { data: scoreUser } = await this.db
+      .from("users")
+      .select("first_name, last_name")
+      .eq("id", evaluator_id)
+      .single();
+    const scoreUserName = scoreUser ? `${scoreUser.first_name || ""} ${scoreUser.last_name || ""}`.trim() : "Unknown";
+
     await logActivity(this.db, {
       user_id: evaluator_id,
       action: "evaluation_scores_submitted",
       category: "evaluation",
       target_id: String(input.proposal_id),
       target_type: "proposal",
-      details: { decision: status },
+      details: {
+        decision: status,
+        evaluator_id,
+        evaluator_name: scoreUserName,
+      },
     });
 
     return { data, error: null };
@@ -1378,7 +1440,8 @@ export class ProposalService {
         proposal_evaluators(
           evaluator_id,
           status,
-          deadline_at
+          deadline_at,
+          updated_at
         )
       `,
       )
@@ -1429,7 +1492,7 @@ export class ProposalService {
       // Updated to use new column structure: title, budget, timeline, comment
       this.db
         .from("evaluation_scores")
-        .select("proposal_id, evaluator_id, title, budget, timeline, comment")
+        .select("proposal_id, evaluator_id, title, budget, timeline, comment, created_at")
         .in("proposal_id", proposalIds),
       this.db
         .from("estimated_budget")
@@ -1468,10 +1531,13 @@ export class ProposalService {
         };
 
         // Map evaluator status to decision
-        let decision: "Approve" | "Revise" | "Reject" | "Pending" = "Pending";
+        let decision: "Approve" | "Revise" | "Reject" | "Pending" | "Declined" | "In Review" | "Extension Requested" = "Pending";
         if (ev.status === EvaluatorStatus.APPROVE) decision = "Approve";
         else if (ev.status === EvaluatorStatus.REVISE) decision = "Revise";
         else if (ev.status === EvaluatorStatus.REJECT) decision = "Reject";
+        else if (ev.status === EvaluatorStatus.DECLINE) decision = "Declined";
+        else if (ev.status === EvaluatorStatus.ACCEPT || ev.status === EvaluatorStatus.FOR_REVIEW) decision = "In Review";
+        else if (ev.status === EvaluatorStatus.EXTEND) decision = "Extension Requested";
 
         // Get evaluator name from lookup map
         const evaluator = usersMap.get(ev.evaluator_id);
@@ -1488,7 +1554,8 @@ export class ProposalService {
           evaluatorEmail: evaluator?.email || "N/A",
           decision,
           status: ev.status,
-          submittedDate: ev.deadline_at,
+          // Use evaluation submission date if available, then status change date, then deadline as last resort
+          submittedDate: evaluatorScore?.created_at || ev.updated_at || ev.deadline_at,
           ratings,
           comment: evaluatorScore?.comment || null,
         };
@@ -2219,6 +2286,14 @@ export class ProposalService {
       return { error: new Error("No pending extension request for this evaluator and proposal") };
     }
 
+    // Fetch evaluator name for history logging
+    const { data: extUser } = await this.db
+      .from("users")
+      .select("first_name, last_name")
+      .eq("id", evaluator_id)
+      .single();
+    const extUserName = extUser ? `${extUser.first_name || ""} ${extUser.last_name || ""}`.trim() : "Unknown";
+
     if (action === ExtensionDecision.APPROVED) {
       const newDeadline = tracker.request_deadline_at;
 
@@ -2256,7 +2331,7 @@ export class ProposalService {
         category: "evaluation",
         target_id: String(proposal_id),
         target_type: "proposal",
-        details: { evaluator_id, remarks: remarks || "Extension request approved" },
+        details: { evaluator_id, evaluator_name: extUserName, remarks: remarks || "Extension request approved" },
       });
 
       return { data: { proposal_id, evaluator_id, action }, error: null };
@@ -2285,13 +2360,62 @@ export class ProposalService {
         category: "evaluation",
         target_id: String(proposal_id),
         target_type: "proposal",
-        details: { evaluator_id, remarks: remarks || "Extension request denied" },
+        details: { evaluator_id, evaluator_name: extUserName, remarks: remarks || "Extension request denied" },
       });
 
       return { data: { proposal_id, evaluator_id, action }, error: null };
     }
 
     return { error: new Error("Invalid decision") };
+  }
+
+  // --- Assignment History ---
+
+  async getAssignmentHistory(proposal_id: number) {
+    const evaluationActions = [
+      "evaluator_assigned",
+      "evaluator_accepted",
+      "evaluator_declined",
+      "evaluator_extension_requested",
+      "evaluator_extension_approved",
+      "evaluator_extension_denied",
+      "evaluator_removed",
+      "evaluation_scores_submitted",
+      "proposal_forwarded_to_evaluators",
+    ];
+
+    const { data, error } = await this.db
+      .from("pms_logs")
+      .select("id, user_id, action, details, created_at")
+      .eq("target_id", String(proposal_id))
+      .eq("target_type", "proposal")
+      .in("action", evaluationActions)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Collect all user_ids to fetch names
+    const userIds = [...new Set((data || []).map((row: any) => row.user_id).filter(Boolean))];
+    const { data: users } = userIds.length > 0
+      ? await this.db.from("users").select("id, first_name, last_name").in("id", userIds)
+      : { data: [] };
+    const nameMap = new Map((users || []).map((u: any) => [u.id, `${u.first_name || ""} ${u.last_name || ""}`.trim()]));
+
+    const history = (data || []).map((row: any) => ({
+      id: row.id,
+      action: row.action,
+      performedBy: nameMap.get(row.user_id) || "System",
+      performedById: row.user_id,
+      evaluatorName: row.details?.evaluator_name || null,
+      evaluatorId: row.details?.evaluator_id || null,
+      remarks: row.details?.remarks || null,
+      decision: row.details?.decision || null,
+      timestamp: row.created_at,
+    }));
+
+    return { data: history, error: null };
   }
 
   // --- Proponent Extension Request Methods ---

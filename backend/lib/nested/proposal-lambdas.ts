@@ -49,6 +49,7 @@ export class ProposalLambdas extends NestedStack {
   public readonly getProposalVersions: NodejsFunction;
   public readonly handleExtensionRequest: NodejsFunction;
   public readonly getAssignmentTracker: NodejsFunction;
+  public readonly getAssignmentHistory: NodejsFunction;
   public readonly analyzeProposal: NodejsFunction;
   public readonly generateTags: NodejsFunction;
   public readonly requestProponentExtension: NodejsFunction;
@@ -109,6 +110,7 @@ export class ProposalLambdas extends NestedStack {
     this.getProposalVersions = simple("get-proposal-versions", "pms-get-proposal-versions", "get-proposal-versions.ts");
     this.handleExtensionRequest = simple("handle-extension-request", "pms-handle-extension-request", "handle-extension-request.ts");
     this.getAssignmentTracker = simple("get-assignment-tracker", "pms-get-assignment-tracker", "get-assignment-tracker.ts");
+    this.getAssignmentHistory = simple("get-assignment-history", "pms-get-assignment-history", "get-assignment-history.ts");
     this.requestProponentExtension = simple("request-proponent-extension", "pms-request-proponent-extension", "request-proponent-extension.ts");
     this.reviewProponentExtension = simple("review-proponent-extension", "pms-review-proponent-extension", "review-proponent-extension.ts");
     this.getProponentExtensionRequests = simple("get-proponent-extension-requests", "pms-get-proponent-extension-requests", "get-proponent-extension-requests.ts");

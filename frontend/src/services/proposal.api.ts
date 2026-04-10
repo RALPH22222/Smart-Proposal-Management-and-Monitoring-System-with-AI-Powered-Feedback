@@ -686,6 +686,26 @@ export const getAllAssignmentTrackers = async (): Promise<AssignmentTrackerItem[
   return data;
 };
 
+// --- Assignment History ---
+export type AssignmentHistoryItem = {
+  id: number;
+  action: string;
+  performedBy: string;
+  performedById: string;
+  evaluatorName: string | null;
+  evaluatorId: string | null;
+  remarks: string | null;
+  decision: string | null;
+  timestamp: string;
+};
+
+export const getAssignmentHistory = async (proposalId: number): Promise<AssignmentHistoryItem[]> => {
+  const { data } = await api.get<AssignmentHistoryItem[]>(`/proposal/assignment-history?proposal_id=${proposalId}`, {
+    withCredentials: true,
+  });
+  return data;
+};
+
 export type HandleExtensionPayload = {
   proposal_id: number;
   evaluator_id: string;

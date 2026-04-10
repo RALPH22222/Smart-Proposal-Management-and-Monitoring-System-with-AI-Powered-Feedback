@@ -388,6 +388,9 @@ export class BackendStack extends Stack {
       .addResource("assignment-tracker")
       .addMethod(HttpMethod.GET, integrate(proposalL.getAssignmentTracker), protectedRoute);
     proposal
+      .addResource("assignment-history")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getAssignmentHistory), protectedRoute);
+    proposal
       .addResource("request-proponent-extension")
       .addMethod(HttpMethod.POST, integrate(proposalL.requestProponentExtension), protectedRoute);
     proposal
