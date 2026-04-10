@@ -458,6 +458,9 @@ export class ProjectService {
     supabaseAdmin: SupabaseClient | null,
     redirectTo: string
   ) {
+    // Use admin client to bypass RLS for project_members writes
+    const adminDb = supabaseAdmin || this.db;
+
     // Verify caller is the project lead
     const { data: project, error: projectError } = await this.db
       .from("funded_projects")
@@ -493,7 +496,7 @@ export class ProjectService {
 
     if (existingUser) {
       // User exists — insert as active member
-      const { data: member, error: insertError } = await this.db
+      const { data: member, error: insertError } = await adminDb
         .from("project_members")
         .insert({
           funded_project_id: input.funded_project_id,
@@ -516,14 +519,14 @@ export class ProjectService {
       // Append lead_proponent role if not present
       const roles: string[] = existingUser.roles || [];
       if (!roles.includes("lead_proponent")) {
-        await this.db
+        await adminDb
           .from("users")
           .update({ roles: [...roles, "lead_proponent"] })
           .eq("id", existingUser.id);
       }
 
       // Send notification
-      await this.db.from("notifications").insert({
+      await adminDb.from("notifications").insert({
         user_id: existingUser.id,
         message: "You have been added as a co-lead to a funded project.",
         is_read: false,
@@ -557,7 +560,7 @@ export class ProjectService {
 
       // Insert as pending member (will be activated on profile completion)
       const newUserId = inviteData.user.id;
-      const { data: member, error: insertError } = await this.db
+      const { data: member, error: insertError } = await adminDb
         .from("project_members")
         .insert({
           funded_project_id: input.funded_project_id,
