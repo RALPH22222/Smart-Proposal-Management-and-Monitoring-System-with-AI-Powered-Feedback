@@ -71,6 +71,7 @@ export default function ProfileSetup() {
         case 'rnd': navigate('/users/rnd/rndMainLayout', { replace: true }); return;
         case 'admin': navigate('/users/admin/adminMainLayout', { replace: true }); return;
         case 'evaluator': navigate('/users/evaluator/evaluatorMainLayout', { replace: true }); return;
+        case 'lead_proponent': navigate('/users/co-lead/coLeadMainLayout', { replace: true }); return;
         default: navigate('/users/Proponent/ProponentMainLayout', { replace: true }); return;
       }
     }

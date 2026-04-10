@@ -14,8 +14,13 @@ const RedirectAuthenticated: React.FC = () => {
       return <Navigate to="/login" replace />;
     }
 
-    // Handle Proponents ( Lead + Co-Lead )
-    if (role === Role.LEAD_PROPONENT || role === Role.PROPONENT) {
+    // Co-lead only → co-lead dashboard
+    if (role === Role.LEAD_PROPONENT && !user.roles?.includes(Role.PROPONENT)) {
+      return <Navigate to="/users/co-lead/coLeadMainLayout" replace />;
+    }
+
+    // Proponent (may also have lead_proponent) → proponent dashboard
+    if (role === Role.PROPONENT || role === Role.LEAD_PROPONENT) {
       return <Navigate to="/users/Proponent/ProponentMainLayout" replace />;
     }
 
