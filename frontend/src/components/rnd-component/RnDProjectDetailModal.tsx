@@ -24,6 +24,7 @@ import {
   type ApiBudgetSummary,
   groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
+import { generateCertificatePDF } from '../../utils/certificate-generator';
 
 interface RnDProjectDetailModalProps {
   project: Project | null;
@@ -38,6 +39,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 }) => {
   const { user } = useAuthContext();
   const [details, setDetails] = useState<ProjectDetailData | null>(null);
+  const [rawDetail, setRawDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
   const [verifyingReportId, setVerifyingReportId] = useState<string | null>(null);
@@ -63,11 +65,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       ]);
       const detailData = buildDisplayReports(data, user?.id || '');
       setDetails(detailData);
+      setRawDetail(data);
       setFundRequests(frResponse.fund_requests);
       setBudgetSummary(frResponse.budget_summary || bs);
     } catch (err) {
       console.error('Error loading project details:', err);
-      setDetails({ reports: [], totalBudget: 0 });
+      setDetails({ reports: [], totalBudget: 0, certificateIssuedAt: null, certificateIssuedByName: null });
     } finally {
       setDetailLoading(false);
     }
@@ -95,6 +98,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   // --- CALCULATE FINANCIALS ---
   const totalBudget = budgetSummary?.total_budget ?? details.totalBudget;
   const isCompleted = project.status === 'Completed';
+  // Client requirement: completed projects must have 100% budget utilization
   const totalUsed = isCompleted
     ? totalBudget
     : budgetSummary?.total_approved ?? details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
@@ -179,6 +183,26 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     }
   };
 
+  const handleDownloadCertificate = async () => {
+    if (!project || !details) return;
+    try {
+      await generateCertificatePDF({
+        projectTitle: project.title,
+        programTitle: rawDetail?.proposal?.program_title || undefined,
+        projectLeader: project.principalInvestigator,
+        department: project.department,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        totalBudget: totalBudget,
+        issuedAt: details.certificateIssuedAt || new Date().toISOString(),
+        issuedByName: details.certificateIssuedByName || 'R&D Office',
+      });
+    } catch (err) {
+      console.error('Failed to generate certificate PDF:', err);
+      Swal.fire('Error', 'Failed to generate certificate PDF.', 'error');
+    }
+  };
+
   // Check if all 4 quarters are verified
   const allQuartersVerified = details?.reports
     ? details.reports.filter(r => r.status === 'Verified').length === 4
@@ -201,9 +225,30 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
              </div>
              <div>
                 <h3 className="text-2xl font-bold">Project Successfully Completed</h3>
-                <p className="text-blue-100 opacity-90 text-sm">All reports have been verified. Budget fully utilized.</p>
+                <p className="text-blue-100 opacity-90 text-sm">All quarterly reports have been verified and certificate has been issued.</p>
              </div>
           </div>
+          {details.certificateIssuedAt && (
+            <div className="relative z-10 mt-4 flex flex-wrap items-center gap-4 text-sm text-blue-100">
+              <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
+                <Calendar className="w-4 h-4" />
+                <span>Issued: {formatDate(details.certificateIssuedAt)}</span>
+              </div>
+              {details.certificateIssuedByName && (
+                <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
+                  <User className="w-4 h-4" />
+                  <span>Issued by: {details.certificateIssuedByName}</span>
+                </div>
+              )}
+              <button
+                onClick={handleDownloadCertificate}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 rounded-lg px-4 py-1.5 text-white font-medium transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Download Certificate
+              </button>
+            </div>
+          )}
           <Award className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10" />
        </div>
 

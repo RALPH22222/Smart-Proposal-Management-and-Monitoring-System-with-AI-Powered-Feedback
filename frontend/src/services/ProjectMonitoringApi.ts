@@ -102,6 +102,9 @@ export interface ApiProjectDetail {
   status: "on_going" | "completed" | "on_hold" | "blocked";
   funded_date: string;
   created_at: string;
+  certificate_issued_at: string | null;
+  certificate_issued_by: string | null;
+  certificate_issuer: { id: string; first_name: string; last_name: string } | null;
   proposal: {
     id: number;
     project_title: string;
@@ -288,6 +291,8 @@ export interface DisplayReport {
 export interface ProjectDetailData {
   reports: DisplayReport[];
   totalBudget: number;
+  certificateIssuedAt: string | null;
+  certificateIssuedByName: string | null;
 }
 
 /**
@@ -401,7 +406,15 @@ export function buildDisplayReports(
     0
   );
 
-  return { reports, totalBudget };
+  const issuer = detail.certificate_issuer;
+  const issuerName = issuer ? `${issuer.first_name || ""} ${issuer.last_name || ""}`.trim() : null;
+
+  return {
+    reports,
+    totalBudget,
+    certificateIssuedAt: detail.certificate_issued_at || null,
+    certificateIssuedByName: issuerName,
+  };
 }
 
 // ─── Cache ──────────────────────────────────────────────────────────

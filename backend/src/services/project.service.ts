@@ -159,6 +159,11 @@ export class ProjectService {
           last_name,
           email
         ),
+        certificate_issuer:users!certificate_issued_by (
+          id,
+          first_name,
+          last_name
+        ),
         project_reports (
           id,
           funded_project_id,

@@ -7,7 +7,7 @@ import {
   Search, Target, Clock, CheckCircle2, Play,
   FileText, Calendar, AlertTriangle,
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
-  Plus, Trash2, Award,
+  Plus, Trash2, Award, Download,
   Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
   ChevronUp, ChevronDown, DollarSign, Lock, Loader2
 } from 'lucide-react';
@@ -34,6 +34,7 @@ import {
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from "../../../utils/date-formatter";
+import { generateCertificatePDF } from "../../../utils/certificate-generator";
 import PageLoader from "../../../components/shared/PageLoader";
 
 
@@ -95,6 +96,8 @@ const MonitoringPage: React.FC = () => {
   const [budgetSummary, setBudgetSummary] = useState<ApiBudgetSummary | null>(null);
   const [quarters, setQuarters] = useState<QuarterData[]>([]);
   const [totalBudget, setTotalBudget] = useState(0);
+  const [certificateInfo, setCertificateInfo] = useState<{ issuedAt: string | null; issuedByName: string | null }>({ issuedAt: null, issuedByName: null });
+  const [rawProjectDetail, setRawProjectDetail] = useState<any>(null);
 
   // Fund request form
   const [breakdownItems, setBreakdownItems] = useState<FundRequestItem[]>([]);
@@ -166,6 +169,8 @@ const MonitoringPage: React.FC = () => {
       // Build quarters from detail + fund requests
       const displayData = buildDisplayReports(detail, user?.id || '');
       setTotalBudget(displayData.totalBudget);
+      setCertificateInfo({ issuedAt: displayData.certificateIssuedAt, issuedByName: displayData.certificateIssuedByName });
+      setRawProjectDetail(detail);
 
       const frByQuarter = new Map<string, ApiFundRequest>();
       for (const fr of frResponse.fund_requests) {
@@ -441,6 +446,26 @@ const MonitoringPage: React.FC = () => {
     setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
   };
 
+  const handleDownloadCertificate = async () => {
+    if (!activeProject) return;
+    try {
+      await generateCertificatePDF({
+        projectTitle: activeProject.title,
+        programTitle: rawProjectDetail?.proposal?.program_title || undefined,
+        projectLeader: activeProject.principalInvestigator,
+        department: activeProject.department,
+        startDate: activeProject.startDate,
+        endDate: activeProject.endDate,
+        totalBudget: totalBudget,
+        issuedAt: certificateInfo.issuedAt || new Date().toISOString(),
+        issuedByName: certificateInfo.issuedByName || 'R&D Office',
+      });
+    } catch (err) {
+      console.error('Failed to generate certificate PDF:', err);
+      Swal.fire('Error', 'Failed to generate certificate PDF.', 'error');
+    }
+  };
+
   // --- Filtered projects ---
   const filteredProjects = projects.filter(p =>
     (filterStatus === 'all' || p.status.toLowerCase() === filterStatus) &&
@@ -576,6 +601,27 @@ const MonitoringPage: React.FC = () => {
                         {formatDate(activeProject.startDate)} to {formatDate(activeProject.endDate)}
                       </span>
                     </div>
+                    {certificateInfo.issuedAt && (
+                      <div className="flex flex-wrap justify-center gap-3 mt-4">
+                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10 text-sm text-blue-100">
+                          <Calendar className="w-4 h-4 text-yellow-400" />
+                          <span>Certificate issued: {formatDate(certificateInfo.issuedAt)}</span>
+                        </div>
+                        {certificateInfo.issuedByName && (
+                          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10 text-sm text-blue-100">
+                            <Users className="w-4 h-4 text-yellow-400" />
+                            <span>Issued by: {certificateInfo.issuedByName}</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={handleDownloadCertificate}
+                          className="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold rounded-lg px-5 py-2 text-sm transition-colors shadow-lg"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download Certificate
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
