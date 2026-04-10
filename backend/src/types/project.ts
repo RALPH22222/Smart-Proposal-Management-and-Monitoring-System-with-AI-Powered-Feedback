@@ -54,7 +54,15 @@ export interface ProjectExpense {
   project_reports_id: number;
   expenses: number;
   desription: string; // Note: typo in DB schema (desription vs description)
+  fund_request_item_id: number | null;
+  approved_amount: number | null;
   created_at: string;
+}
+
+// Liquidation entry for quarterly report submission
+export interface LiquidationEntry {
+  fund_request_item_id: number;
+  actual_amount: number;
 }
 
 // Extended types for API responses
@@ -105,6 +113,7 @@ export interface SubmitReportInput {
   comment?: string;
   report_file_url?: string[];
   submitted_by_proponent_id: string;
+  liquidations?: LiquidationEntry[];
 }
 
 export interface VerifyReportInput {

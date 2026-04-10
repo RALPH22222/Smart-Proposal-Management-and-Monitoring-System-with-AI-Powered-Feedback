@@ -26,6 +26,14 @@ export const submitReportSchema = z.object({
   progress: z.number().int().min(0).max(100),
   comment: z.string().optional(),
   report_file_url: z.array(z.string().url()).optional(),
+  liquidations: z
+    .array(
+      z.object({
+        fund_request_item_id: z.number().int().positive(),
+        actual_amount: z.number().min(0),
+      })
+    )
+    .optional(),
 });
 
 // Full input including server-injected fields

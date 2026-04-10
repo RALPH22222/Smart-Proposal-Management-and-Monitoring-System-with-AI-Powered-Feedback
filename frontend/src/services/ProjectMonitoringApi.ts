@@ -146,6 +146,8 @@ export interface ApiProjectExpense {
   id: number;
   expenses: number;
   desription: string; // matches DB typo
+  fund_request_item_id: number | null;
+  approved_amount: number | null;
   created_at: string;
 }
 
@@ -281,8 +283,9 @@ export interface DisplayReport {
   dueDate: string;
   status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue";
   progress: number;
-  expenses: { id: string; description: string; amount: number }[];
+  expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
   totalExpense: number;
+  totalApproved: number;
   proofs: string[];
   submittedBy?: string;
   dateSubmitted?: string;
@@ -343,9 +346,11 @@ export function buildDisplayReports(
         id: String(e.id),
         description: e.desription || "Expense", // handle DB typo
         amount: e.expenses,
+        approvedAmount: e.approved_amount ?? null,
       }));
 
       const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const totalApproved = expenses.reduce((sum, e) => sum + (e.approvedAmount ?? e.amount), 0);
 
       return {
         id: q,
@@ -356,6 +361,7 @@ export function buildDisplayReports(
         progress: apiReport.progress || 0,
         expenses,
         totalExpense,
+        totalApproved,
         proofs: apiReport.report_file_url || [],
         submittedBy: undefined, // Could fetch from submitted_by_proponent_id if needed
         dateSubmitted: apiReport.created_at
@@ -381,6 +387,7 @@ export function buildDisplayReports(
         progress: 0,
         expenses: [],
         totalExpense: 0,
+        totalApproved: 0,
         proofs: [],
       };
     }
@@ -394,6 +401,7 @@ export function buildDisplayReports(
       progress: 0,
       expenses: [],
       totalExpense: 0,
+      totalApproved: 0,
       proofs: [],
       messages: [],
     };
@@ -514,6 +522,8 @@ export interface ApiBudgetSummary {
   total_approved: number;
   total_pending: number;
   remaining: number;
+  total_actual_spent: number;
+  total_for_return: number;
   budget_by_category: { ps: number; mooe: number; co: number };
   approved_by_category: { ps: number; mooe: number; co: number };
   pending_by_category: { ps: number; mooe: number; co: number };
@@ -647,7 +657,8 @@ export async function submitQuarterlyReport(
   quarterlyReport: string,
   progress: number,
   comment?: string,
-  reportFileUrl?: string[]
+  reportFileUrl?: string[],
+  liquidations?: { fund_request_item_id: number; actual_amount: number }[]
 ): Promise<any> {
   const { data } = await api.post(
     "/project/submit-report",
@@ -657,6 +668,7 @@ export async function submitQuarterlyReport(
       progress,
       comment,
       report_file_url: reportFileUrl,
+      liquidations,
     },
     { withCredentials: true }
   );

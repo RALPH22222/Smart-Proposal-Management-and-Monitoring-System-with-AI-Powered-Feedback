@@ -62,7 +62,7 @@ interface QuarterData {
   proofFiles: string[];
   submittedBy?: string;
   dateSubmitted?: string;
-  expenses: { id: string; description: string; amount: number }[];
+  expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
 }
 
 
@@ -109,6 +109,17 @@ const MonitoringPage: React.FC = () => {
   const [terminalReportFile, setTerminalReportFile] = useState<File | null>(null);
   const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
+  // Liquidation draft state
+  interface LiquidationDraft {
+    fund_request_item_id: number;
+    item_name: string;
+    category: string;
+    approved_amount: number;
+    selected: boolean;
+    actual_amount: string;
+  }
+  const [liquidationDraft, setLiquidationDraft] = useState<LiquidationDraft[]>([]);
 
   // Extension & additional fund modals
   const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
@@ -369,13 +380,30 @@ const MonitoringPage: React.FC = () => {
     setReceiptFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Reset file state when quarter changes
+  // Reset file state and initialize liquidation draft when quarter changes
   useEffect(() => {
     setReportFile(null);
     setTerminalReportFile(null);
     setReceiptFiles([]);
     setUploadProgress(null);
-  }, [currentReportIndex]);
+
+    // Initialize liquidation draft from approved fund request items
+    const report = quarters[currentReportIndex];
+    if (report?.fundRequest?.status === 'approved' && report.fundRequest.fund_request_items) {
+      setLiquidationDraft(
+        report.fundRequest.fund_request_items.map((item) => ({
+          fund_request_item_id: item.id,
+          item_name: item.item_name,
+          category: item.category,
+          approved_amount: item.amount,
+          selected: true,
+          actual_amount: String(item.amount),
+        }))
+      );
+    } else {
+      setLiquidationDraft([]);
+    }
+  }, [currentReportIndex, quarters]);
 
   const handleSubmitReport = async () => {
     if (!activeBackend || !currentReport || !user) return;
@@ -383,6 +411,20 @@ const MonitoringPage: React.FC = () => {
     if (localProgress <= prevReportProgress && localProgress !== 100) {
       Swal.fire('Update Progress', 'Please update the progress percentage.', 'warning');
       return;
+    }
+
+    // Validate liquidation entries
+    const selectedItems = liquidationDraft.filter(i => i.selected);
+    for (const item of selectedItems) {
+      const actual = parseFloat(item.actual_amount);
+      if (isNaN(actual) || actual < 0) {
+        Swal.fire('Invalid Amount', `Please enter a valid amount for "${item.item_name}".`, 'warning');
+        return;
+      }
+      if (actual > item.approved_amount) {
+        Swal.fire('Amount Exceeded', `Actual amount for "${item.item_name}" cannot exceed the approved amount of ${formatCurrency(item.approved_amount)}.`, 'warning');
+        return;
+      }
     }
 
     try {
@@ -413,12 +455,22 @@ const MonitoringPage: React.FC = () => {
       }
 
       setUploadProgress('Submitting report...');
+
+      // Build liquidation payload from draft
+      const liquidations = liquidationDraft
+        .filter(i => i.selected)
+        .map(i => ({
+          fund_request_item_id: i.fund_request_item_id,
+          actual_amount: parseFloat(i.actual_amount),
+        }));
+
       await submitQuarterlyReport(
         activeBackend.id,
         currentReport.quarter,
         localProgress,
         undefined,
-        fileUrls.length > 0 ? fileUrls : undefined
+        fileUrls.length > 0 ? fileUrls : undefined,
+        liquidations
       );
 
       // Reset file state
@@ -426,6 +478,7 @@ const MonitoringPage: React.FC = () => {
       setTerminalReportFile(null);
       setReceiptFiles([]);
       setUploadProgress(null);
+      setLiquidationDraft([]);
 
       Swal.fire('Submitted', 'Report submitted for verification!', 'success');
       await loadProjectDetail();
@@ -862,25 +915,96 @@ const MonitoringPage: React.FC = () => {
                     {/* EDITABLE CONTENT (due / overdue + fund request approved) */}
                     {isEditable && currentReport.fundRequest?.status === 'approved' && (
                       <div className="space-y-6">
-                        {/* Approved Fund Request Display */}
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                              <h5 className="font-bold text-emerald-800">Approved Fund Request</h5>
-                            </div>
-                            <span className="text-lg font-bold text-emerald-700">
-                              {formatCurrency(currentReport.fundRequest.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0)}
-                            </span>
+                        {/* Budget Item Liquidation */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            <h5 className="font-bold text-gray-800">Budget Item Liquidation</h5>
                           </div>
-                          <div className="space-y-1 mt-2">
-                            {currentReport.fundRequest.fund_request_items?.map(item => (
-                              <div key={item.id} className="flex justify-between text-sm">
-                                <span className="text-emerald-700">{item.item_name} <span className="text-xs text-gray-400">({item.category.toUpperCase()})</span></span>
-                                <span className="font-mono text-emerald-800">{formatCurrency(item.amount)}</span>
+                          <p className="text-xs text-gray-500 mb-4">Select the items you actually spent on this quarter and enter the actual amount spent.</p>
+
+                          <div className="space-y-3">
+                            {liquidationDraft.map((item, idx) => (
+                              <div key={item.fund_request_item_id} className={`rounded-lg border p-3 transition-colors ${item.selected ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-gray-50'}`}>
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.selected}
+                                    onChange={(e) => {
+                                      const updated = [...liquidationDraft];
+                                      updated[idx] = { ...updated[idx], selected: e.target.checked };
+                                      if (!e.target.checked) updated[idx].actual_amount = '';
+                                      else updated[idx].actual_amount = String(item.approved_amount);
+                                      setLiquidationDraft(updated);
+                                    }}
+                                    className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-semibold text-gray-800">{item.item_name}</span>
+                                      <span className="text-[10px] font-bold uppercase text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">{item.category}</span>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">Approved: <span className="font-mono font-semibold text-emerald-700">{formatCurrency(item.approved_amount)}</span></div>
+                                    {item.selected && (
+                                      <div className="mt-2 flex items-center gap-2">
+                                        <label className="text-xs text-gray-600 font-medium whitespace-nowrap">Actual Spent:</label>
+                                        <div className="relative flex-1">
+                                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">PHP</span>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={item.approved_amount}
+                                            step="0.01"
+                                            value={item.actual_amount}
+                                            onChange={(e) => {
+                                              const updated = [...liquidationDraft];
+                                              updated[idx] = { ...updated[idx], actual_amount: e.target.value };
+                                              setLiquidationDraft(updated);
+                                            }}
+                                            className="w-full pl-10 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                                          />
+                                        </div>
+                                        {item.actual_amount && parseFloat(item.actual_amount) < item.approved_amount && (
+                                          <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                                            Unspent: {formatCurrency(item.approved_amount - parseFloat(item.actual_amount))}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {!item.selected && (
+                                      <div className="mt-1 text-xs text-amber-600">For return: {formatCurrency(item.approved_amount)}</div>
+                                    )}
+                                  </div>
+                                </label>
                               </div>
                             ))}
                           </div>
+
+                          {/* Summary */}
+                          {liquidationDraft.length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-3">
+                              <div className="bg-blue-50 rounded-lg p-3 text-center">
+                                <p className="text-[10px] text-blue-500 uppercase font-bold">Total Spent</p>
+                                <p className="text-lg font-bold text-blue-700">
+                                  {formatCurrency(
+                                    liquidationDraft.filter(i => i.selected).reduce((sum, i) => sum + (parseFloat(i.actual_amount) || 0), 0)
+                                  )}
+                                </p>
+                              </div>
+                              <div className="bg-amber-50 rounded-lg p-3 text-center">
+                                <p className="text-[10px] text-amber-500 uppercase font-bold">For Return</p>
+                                <p className="text-lg font-bold text-amber-700">
+                                  {formatCurrency(
+                                    liquidationDraft.reduce((sum, i) => {
+                                      if (!i.selected) return sum + i.approved_amount;
+                                      const actual = parseFloat(i.actual_amount) || 0;
+                                      return sum + (i.approved_amount - actual);
+                                    }, 0)
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Progress Stepper */}

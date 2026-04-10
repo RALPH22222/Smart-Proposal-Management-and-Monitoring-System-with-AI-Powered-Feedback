@@ -169,7 +169,7 @@ export class ProjectService {
           report_file_url,
           submitted_by_proponent_id,
           created_at,
-          project_expenses (id, expenses, desription, created_at)
+          project_expenses (id, expenses, desription, fund_request_item_id, approved_amount, created_at)
         )
       `
       )
@@ -273,21 +273,69 @@ export class ProjectService {
       .single();
 
     if (!error && data) {
-      // Copy approved fund request items into project_expenses for this report
+      // Fetch approved fund request items for this quarter
       const { data: fundReqItems } = await this.db
         .from("fund_request_items")
-        .select("item_name, amount")
+        .select("id, item_name, amount")
         .eq("fund_request_id", fundRequest.id);
 
-      if (fundReqItems && fundReqItems.length > 0) {
-        const expenseRows = fundReqItems.map((item) => ({
-          project_reports_id: data.id,
-          expenses: item.amount,
-          desription: item.item_name, // matches DB typo
-          created_at: new Date().toISOString(),
-        }));
+      if (input.liquidations !== undefined) {
+        // Liquidation mode: proponent selected which items they spent on
+        if (input.liquidations.length > 0) {
+          const itemMap = new Map(
+            (fundReqItems || []).map((i) => [i.id, i])
+          );
 
-        await this.db.from("project_expenses").insert(expenseRows);
+          // Validate each liquidation entry
+          for (const entry of input.liquidations) {
+            const item = itemMap.get(entry.fund_request_item_id);
+            if (!item) {
+              return {
+                data: null,
+                error: {
+                  message: `Invalid fund request item ID: ${entry.fund_request_item_id}`,
+                  code: "INVALID_LIQUIDATION_ITEM",
+                },
+              };
+            }
+            if (entry.actual_amount > Number(item.amount)) {
+              return {
+                data: null,
+                error: {
+                  message: `Actual amount for "${item.item_name}" exceeds approved amount (${item.amount}).`,
+                  code: "AMOUNT_EXCEEDS_APPROVED",
+                },
+              };
+            }
+          }
+
+          const expenseRows = input.liquidations.map((entry) => {
+            const item = itemMap.get(entry.fund_request_item_id)!;
+            return {
+              project_reports_id: data.id,
+              expenses: entry.actual_amount,
+              approved_amount: Number(item.amount),
+              fund_request_item_id: entry.fund_request_item_id,
+              desription: item.item_name, // matches DB typo
+              created_at: new Date().toISOString(),
+            };
+          });
+
+          await this.db.from("project_expenses").insert(expenseRows);
+        }
+        // Empty liquidations array = proponent spent nothing this quarter (no rows inserted)
+      } else {
+        // Legacy path: auto-copy all items (backward compat)
+        if (fundReqItems && fundReqItems.length > 0) {
+          const expenseRows = fundReqItems.map((item) => ({
+            project_reports_id: data.id,
+            expenses: item.amount,
+            desription: item.item_name, // matches DB typo
+            created_at: new Date().toISOString(),
+          }));
+
+          await this.db.from("project_expenses").insert(expenseRows);
+        }
       }
 
       await logActivity(this.db, {
@@ -850,12 +898,41 @@ export class ProjectService {
 
     const remaining = totalBudget - totalApproved;
 
+    // Calculate actual spending from project_expenses (liquidation data)
+    const { data: reports } = await this.db
+      .from("project_reports")
+      .select("id")
+      .eq("funded_project_id", fundedProjectId);
+
+    let totalActualSpent = 0;
+    let totalForReturn = 0;
+
+    if (reports && reports.length > 0) {
+      const reportIds = reports.map((r) => r.id);
+      const { data: expenses } = await this.db
+        .from("project_expenses")
+        .select("expenses, approved_amount")
+        .in("project_reports_id", reportIds);
+
+      for (const exp of expenses || []) {
+        const actual = Number(exp.expenses) || 0;
+        const approved = Number(exp.approved_amount) || 0;
+        totalActualSpent += actual;
+        // Only count for-return on liquidated rows (approved_amount is set)
+        if (exp.approved_amount !== null) {
+          totalForReturn += approved - actual;
+        }
+      }
+    }
+
     return {
       data: {
         total_budget: totalBudget,
         total_approved: totalApproved,
         total_pending: totalPending,
         remaining,
+        total_actual_spent: totalActualSpent,
+        total_for_return: totalForReturn,
         budget_by_category: budgetByCategory,
         approved_by_category: approvedByCategory,
         pending_by_category: pendingByCategory,

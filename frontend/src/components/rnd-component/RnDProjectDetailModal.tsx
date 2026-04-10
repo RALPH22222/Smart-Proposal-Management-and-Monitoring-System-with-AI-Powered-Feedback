@@ -394,7 +394,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   </div>
                )}
 
-               <div className="grid grid-cols-2 gap-4">
+               <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                       <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
                       <div className="flex items-center gap-2 mt-2">
@@ -404,21 +404,64 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                          <span className="text-sm font-bold text-slate-700">{report.progress}%</span>
                       </div>
                   </div>
+                  {(() => {
+                    const hasLiquidation = report.expenses.some(e => e.approvedAmount !== null);
+                    const forReturn = hasLiquidation ? report.totalApproved - report.totalExpense : 0;
+                    return hasLiquidation ? (
+                      <>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                          <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
+                          <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
+                        </div>
+                      </>
+                    ) : null;
+                  })()}
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-xs text-slate-400 uppercase font-bold">Total Spent</p>
-                      <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalExpense.toLocaleString()}</p>
+                      <p className="text-xs text-slate-400 uppercase font-bold">Actual Spent</p>
+                      <p className="text-xl font-bold text-blue-700 mt-1">₱{report.totalExpense.toLocaleString()}</p>
                   </div>
+                  {report.expenses.some(e => e.approvedAmount !== null) && (
+                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
+                      <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                        ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                </div>
 
                {report.expenses.length > 0 ? (
                   <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                       <div className="bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200">Expense Breakdown</div>
-                      {report.expenses.map((exp, idx) => (
-                         <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                            <span className="text-slate-700">{idx+1}. {exp.description}</span>
-                            <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
-                         </div>
-                      ))}
+                      {report.expenses.some(e => e.approvedAmount !== null) ? (
+                        <>
+                          <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
+                            <span className="col-span-1">Item</span>
+                            <span className="text-right">Approved</span>
+                            <span className="text-right">Actual</span>
+                            <span className="text-right">Unspent</span>
+                          </div>
+                          {report.expenses.map((exp, idx) => (
+                            <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
+                              <span className="text-slate-700 col-span-1 truncate">{idx+1}. {exp.description}</span>
+                              <span className="font-mono text-right text-slate-500">₱{(exp.approvedAmount ?? exp.amount).toLocaleString()}</span>
+                              <span className="font-mono text-right font-medium text-blue-700">₱{exp.amount.toLocaleString()}</span>
+                              <span className={`font-mono text-right font-medium ${(exp.approvedAmount ?? exp.amount) - exp.amount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                                ₱{((exp.approvedAmount ?? exp.amount) - exp.amount).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          {report.expenses.map((exp, idx) => (
+                            <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
+                              <span className="text-slate-700">{idx+1}. {exp.description}</span>
+                              <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
                   </div>
                ) : (
                   <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">
@@ -668,6 +711,31 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full" style={{ width: `${totalBudget > 0 ? (totalPending / totalBudget) * 100 : 0}%` }}></div>
                           </div>
+                        </div>
+                      )}
+
+                      {(budgetSummary?.total_actual_spent ?? 0) > 0 && (
+                        <div className="pt-2 border-t border-slate-100 space-y-3">
+                          <div>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-slate-500 font-medium">Actual Spent</span>
+                              <span className="font-bold text-blue-700">₱{(budgetSummary?.total_actual_spent ?? 0).toLocaleString()}</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-blue-600 rounded-full" style={{ width: `${totalBudget > 0 ? ((budgetSummary?.total_actual_spent ?? 0) / totalBudget) * 100 : 0}%` }}></div>
+                            </div>
+                          </div>
+                          {(budgetSummary?.total_for_return ?? 0) > 0 && (
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-slate-500 font-medium">For Return</span>
+                                <span className="font-bold text-red-500">₱{(budgetSummary?.total_for_return ?? 0).toLocaleString()}</span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-400 rounded-full" style={{ width: `${totalBudget > 0 ? ((budgetSummary?.total_for_return ?? 0) / totalBudget) * 100 : 0}%` }}></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                    </div>
