@@ -21,7 +21,7 @@ export async function getSignedFileUrl(s3Url: string): Promise<string> {
 
   try {
     const url = new URL(s3Url);
-    const key = url.pathname.substring(1); // remove leading /
+    const key = decodeURIComponent(url.pathname.substring(1)); // remove leading / and decode %20 etc.
     const hostname = url.hostname;
 
     const bucket = hostname.includes("profile") ? "profiles" : "proposals";
