@@ -159,11 +159,6 @@ export class ProjectService {
           last_name,
           email
         ),
-        certificate_issuer:users!certificate_issued_by (
-          id,
-          first_name,
-          last_name
-        ),
         project_reports (
           id,
           funded_project_id,
@@ -181,7 +176,22 @@ export class ProjectService {
       .eq("id", input.project_id)
       .single();
 
-    return { data, error };
+    if (error || !data) {
+      return { data, error };
+    }
+
+    // Resolve certificate issuer name separately (avoids PostgREST schema cache issues with multiple FKs to users)
+    let certificate_issuer = null;
+    if (data.certificate_issued_by) {
+      const { data: issuer } = await this.db
+        .from("users")
+        .select("id, first_name, last_name")
+        .eq("id", data.certificate_issued_by)
+        .single();
+      certificate_issuer = issuer || null;
+    }
+
+    return { data: { ...data, certificate_issuer }, error: null };
   }
 
   /**
