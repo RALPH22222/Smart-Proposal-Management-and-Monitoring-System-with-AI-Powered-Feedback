@@ -74,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   }, [user?.first_name]);
 
   // Define navigation items with IDs
-  const mainLinks = [
+  const mainLinks: { id: string; label: string; icon: typeof LayoutDashboard; badge?: string }[] = [
     {
       id: "dashboard",
       label: "Dashboard",

@@ -406,7 +406,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   </div>
                   {(() => {
                     const hasLiquidation = report.expenses.some(e => e.approvedAmount !== null);
-                    const forReturn = hasLiquidation ? report.totalApproved - report.totalExpense : 0;
                     return hasLiquidation ? (
                       <>
                         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">

@@ -4,7 +4,7 @@ import Sidebar from '../../../components/rnd-component/RnDSidebar';
 import Dashboard from './RndDashboard';
 import ReviewPage from './RndProposalPage';
 import Monitoring from './RnDMonitoringPage';
-import Settings from './RndSettings';
+import Settings from './RnDSettings';
 import {
 	type Statistics,
 	type Activity
