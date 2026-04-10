@@ -60,7 +60,7 @@ const extractS3Key = (url: string): string | null => {
       segments.shift();
       path = segments.join('/');
     }
-    return path || null;
+    return decodeURIComponent(path) || null;
   } catch {
     return null;
   }
