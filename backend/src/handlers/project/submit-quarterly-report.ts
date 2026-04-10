@@ -43,12 +43,22 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     .single();
 
   if (!membership) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({
-        message: "You are not an active member of this project.",
-      }),
-    };
+    // Also check if user is the project lead (they may not be in project_members)
+    const { data: project } = await supabase
+      .from("funded_projects")
+      .select("id")
+      .eq("id", result.data.funded_project_id)
+      .eq("project_lead_id", submitterId)
+      .single();
+
+    if (!project) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({
+          message: "You are not an active member of this project.",
+        }),
+      };
+    }
   }
 
   const projectService = new ProjectService(supabase);
