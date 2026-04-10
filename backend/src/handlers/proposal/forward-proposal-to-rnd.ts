@@ -60,6 +60,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: rndId,
         message: `A new proposal "${title}" has been assigned to you for quality review.`,
         is_read: false,
+        link: "proposals",
       });
     }
   } catch (notifErr) {

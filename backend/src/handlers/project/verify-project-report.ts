@@ -90,6 +90,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: project.project_lead_id,
         message: `Your ${quarterLabel} quarterly report for "${projectTitle}" has been verified and approved by R&D.`,
         is_read: false,
+        link: "project-monitoring",
       });
 
       // Email notification

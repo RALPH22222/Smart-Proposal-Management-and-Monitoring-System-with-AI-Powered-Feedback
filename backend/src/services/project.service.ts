@@ -607,6 +607,7 @@ export class ProjectService {
         user_id: existingUser.id,
         message: "You have been added as a co-lead to a funded project.",
         is_read: false,
+        link: "project-monitoring",
       });
 
       await logActivity(this.db, {
@@ -729,6 +730,7 @@ export class ProjectService {
       user_id: member.user_id,
       message: "You have been removed from a funded project.",
       is_read: false,
+      link: "project-monitoring",
     });
 
     await logActivity(this.db, {
@@ -787,6 +789,7 @@ export class ProjectService {
       user_id: m.user_id,
       message: "Your co-lead access has been suspended because the project has been blocked.",
       is_read: false,
+      link: "project-monitoring",
     }));
 
     await this.db.from("notifications").insert(notifications);
@@ -818,6 +821,7 @@ export class ProjectService {
       user_id: m.user_id,
       message: "Your co-lead access has been restored. The project is no longer blocked.",
       is_read: false,
+      link: "project-monitoring",
     }));
 
     await this.db.from("notifications").insert(notifications);
@@ -1075,6 +1079,7 @@ export class ProjectService {
           user_id: rndAssignment.rnd_id,
           message: `A new fund request (${requestedAmount.toLocaleString()}) has been submitted for ${input.quarterly_report.replace("_", " ").toUpperCase()}.`,
           is_read: false,
+          link: "funding",
         });
       }
     }
@@ -1177,6 +1182,7 @@ export class ProjectService {
       user_id: data.requested_by,
       message: `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""}`,
       is_read: false,
+      link: "project-monitoring",
     });
 
     // Send email notification (fire-and-forget)
@@ -1304,6 +1310,7 @@ export class ProjectService {
       user_id: project.project_lead_id,
       message: "Congratulations! A completion certificate has been issued for your project.",
       is_read: false,
+      link: "project-monitoring",
     });
 
     // Send email notification (fire-and-forget)

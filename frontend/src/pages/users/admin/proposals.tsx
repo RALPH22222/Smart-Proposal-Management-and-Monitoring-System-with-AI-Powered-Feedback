@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
-  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare, CheckCircle
+  RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare, CheckCircle,
+  Send
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -15,7 +16,7 @@ import { adminProposalApi as proposalApi } from '../../../services/AdminProposal
 import ProposalModal from '../../../components/admin-component/AdminProposalModal';
 import DetailedProposalModal from '../../../components/admin-component/AdminViewModal';
 import ChangeRndModal from '../../../components/admin-component/changeRndModal';
-import { forwardProposalToRnd, fetchAgencies, type LookupItem } from '../../../services/proposal.api';
+import { forwardProposalToRnd, autoDistributeProposals, fetchAgencies, type LookupItem } from '../../../services/proposal.api';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 
@@ -258,6 +259,54 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
     }
   };
 
+  // Auto-distribute: single proposal or all pending
+  const handleAutoDistribute = async (proposalIds?: number[]) => {
+    const isBatch = !proposalIds;
+    const pendingCount = proposals.filter(p => p.status === 'Pending').length;
+
+    if (isBatch && pendingCount === 0) {
+      Swal.fire("No Pending Proposals", "There are no pending proposals to distribute.", "info");
+      return;
+    }
+
+    const confirmResult = await Swal.fire({
+      title: isBatch ? "Auto Distribute All?" : "Auto Distribute?",
+      text: isBatch
+        ? `This will distribute ${pendingCount} pending proposal(s) evenly to R&D staff by department.`
+        : "This will assign this proposal to the least-loaded R&D staff in the matching department.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#C8102E",
+      confirmButtonText: isBatch ? "Distribute All" : "Distribute",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      const result = await autoDistributeProposals(proposalIds);
+
+      const distributed = result.distributed || 0;
+      const errors = result.errors || [];
+
+      let message = `${distributed} proposal(s) distributed to R&D successfully.`;
+      if (errors.length > 0) {
+        message += `\n${errors.length} proposal(s) could not be distributed (no eligible R&D staff in department).`;
+      }
+
+      await Swal.fire({
+        title: distributed > 0 ? "Distributed!" : "No Proposals Distributed",
+        text: message,
+        icon: distributed > 0 ? "success" : "warning",
+      });
+
+      await loadProposals();
+      if (onStatsUpdate) onStatsUpdate();
+    } catch (error) {
+      console.error("Auto-distribute failed:", error);
+      Swal.fire("Error", "Failed to auto-distribute proposals.", "error");
+    }
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedProposal(null);
@@ -481,6 +530,16 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
                 Review and evaluate research proposals submitted to WMSU
               </p>
             </div>
+            {/* Auto Distribute All button */}
+            {proposals.filter(p => p.status === 'Pending').length > 0 && (
+              <button
+                onClick={() => handleAutoDistribute()}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24] transition-all duration-200 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                Auto Distribute ({proposals.filter(p => p.status === 'Pending').length})
+              </button>
+            )}
           </div>
         </header>
 
@@ -607,6 +666,18 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
                           >
                             <Eye className="w-3 h-3" />
                           </button>
+
+                          {/* Auto Distribute single proposal */}
+                          {proposal.status === 'Pending' && !proposal.assignedRdStaff && (
+                            <button
+                              onClick={() => handleAutoDistribute([parseInt(proposal.id)])}
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                              title="Auto-distribute to least-loaded R&D staff"
+                            >
+                              <Send className="w-3 h-3" />
+                              Distribute
+                            </button>
+                          )}
 
                           {/* Action Button */}
                           {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (

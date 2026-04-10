@@ -104,6 +104,7 @@ export const handler = buildCorsHeaders(async (event) => {
         user_id: rndAssignment.rnd_id,
         message: `A revised proposal "${title}" has been resubmitted by the proponent. Please review.`,
         is_read: false,
+        link: "proposals",
       });
 
       if (process.env.SMTP_USER) {

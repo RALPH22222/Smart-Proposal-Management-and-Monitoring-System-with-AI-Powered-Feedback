@@ -48,8 +48,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     // Notify both RNDs
     if (data) {
       const notifications = [
-        { user_id: data.from_rnd_id, message: `Admin has ${result.data.status} your transfer request for proposal #${data.proposal_id}.`, is_read: false },
-        { user_id: data.to_rnd_id, message: `Admin has ${result.data.status} a transfer of proposal #${data.proposal_id} to you.`, is_read: false },
+        { user_id: data.from_rnd_id, message: `Admin has ${result.data.status} your transfer request for proposal #${data.proposal_id}.`, is_read: false, link: "proposals" },
+        { user_id: data.to_rnd_id, message: `Admin has ${result.data.status} a transfer of proposal #${data.proposal_id} to you.`, is_read: false, link: "proposals" },
       ];
       await supabase.from("notifications").insert(notifications);
     }

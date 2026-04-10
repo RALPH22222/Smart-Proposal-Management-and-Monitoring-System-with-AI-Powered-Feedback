@@ -126,6 +126,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           user_id: rndAssignment.rnd_id,
           message: `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Please review and verify.`,
           is_read: false,
+          link: "monitoring",
         });
 
         // Email notification

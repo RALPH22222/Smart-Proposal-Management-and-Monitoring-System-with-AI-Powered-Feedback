@@ -86,38 +86,7 @@ export const handler = buildCorsHeaders(async (event) => {
     details: { project_title: data.project_title },
   });
 
-  // Auto-routing: try to assign to least-loaded RND in the same department
-  let autoRouted = false;
-  try {
-    const departmentId = proposal.department_id;
-    if (departmentId) {
-      const { data: rnd } = await proposalService.getLeastLoadedRnd(departmentId);
-      if (rnd) {
-        await proposalService.forwardToRnd({ proposal_id: proposal.id, rnd_id: [rnd.id] });
-        autoRouted = true;
-
-        await logActivity(supabase, {
-          user_id: rnd.id,
-          action: "proposal_auto_routed_to_rnd",
-          category: "proposal",
-          target_id: String(proposal.id),
-          target_type: "proposal",
-          details: { project_title: data.project_title, rnd_load: rnd.load },
-        });
-
-        // Notify the assigned RND
-        await supabase.from("notifications").insert({
-          user_id: rnd.id,
-          message: `A new proposal "${data.project_title}" has been auto-assigned to you for review.`,
-          is_read: false,
-        });
-      }
-    }
-  } catch (routeErr) {
-    console.error("Auto-routing failed (falling back to admin):", routeErr);
-  }
-
-  // Notify admin users (always for visibility; if not auto-routed, they need to manually assign)
+  // Notify admin users — proposal is pending and needs to be distributed to R&D
   try {
     const { data: admins } = await supabase
       .from("users")
@@ -125,13 +94,11 @@ export const handler = buildCorsHeaders(async (event) => {
       .contains("roles", ["admin"]);
 
     if (admins && admins.length > 0) {
-      const msg = autoRouted
-        ? `A new proposal "${data.project_title}" has been submitted and auto-assigned to R&D.`
-        : `A new proposal "${data.project_title}" has been submitted and is awaiting manual routing to R&D.`;
       const notifications = admins.map((admin) => ({
         user_id: admin.id,
-        message: msg,
+        message: `A new proposal "${data.project_title}" has been submitted and is pending distribution to R&D.`,
         is_read: false,
+        link: "proposals",
       }));
       await supabase.from("notifications").insert(notifications);
     }
@@ -142,10 +109,7 @@ export const handler = buildCorsHeaders(async (event) => {
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: autoRouted
-        ? "Proposal submitted and auto-assigned to R&D successfully"
-        : "Proposal submitted successfully",
-      auto_routed: autoRouted,
+      message: "Proposal submitted successfully",
     }),
   };
 });

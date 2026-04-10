@@ -74,6 +74,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: rndAssignment.rnd_id,
         message: `An evaluator has submitted evaluation scores for proposal "${title}".`,
         is_read: false,
+        link: "evaluators",
       });
     }
   } catch (notifErr) {

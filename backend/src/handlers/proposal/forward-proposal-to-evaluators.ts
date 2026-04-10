@@ -58,6 +58,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       user_id: ev.id,
       message: `You have been assigned to evaluate the proposal "${title}". Please review and respond.`,
       is_read: false,
+      link: "proposals",
     }));
 
     await supabase.from("notifications").insert(notifications);

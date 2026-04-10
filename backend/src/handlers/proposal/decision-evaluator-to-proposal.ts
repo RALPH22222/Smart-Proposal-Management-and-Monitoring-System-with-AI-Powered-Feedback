@@ -75,6 +75,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: rndAssignment.rnd_id,
         message: `An evaluator has submitted their decision (${data.status}) for proposal "${title}".`,
         is_read: false,
+        link: "evaluators",
       });
     }
   } catch (notifErr) {

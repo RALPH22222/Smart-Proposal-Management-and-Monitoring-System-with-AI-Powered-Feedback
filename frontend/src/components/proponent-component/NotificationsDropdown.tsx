@@ -6,6 +6,7 @@ interface Notification {
   title: string;
   time: string;
   read: boolean;
+  link?: string | null;
 }
 
 interface NotificationsDropdownProps {
@@ -16,6 +17,7 @@ interface NotificationsDropdownProps {
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void;
   onViewAll: () => void;
+  onNavigate?: (link: string) => void;
 }
 
 const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
@@ -24,20 +26,29 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
   onClose,
   onMarkAllRead,
   onMarkRead,
-  onViewAll
+  onViewAll,
+  onNavigate
 }) => {
   if (!isOpen) return null;
+
+  const handleNotificationClick = (notification: Notification) => {
+    onMarkRead(notification.id);
+    if (notification.link && onNavigate) {
+      onNavigate(notification.link);
+      onClose();
+    }
+  };
 
   return (
     // FIXED: Changed anchor from 'right' to 'left' for mobile to prevent cut-off
     // left-0 (mobile): Anchors left edge of dropdown to left edge of bell (expands right)
     // sm:left-auto sm:right-0 (desktop): Anchors right edge to right edge of bell (expands left)
-    <div className="absolute top-full mt-3 z-50 transform transition-all 
-                    left-0 sm:left-auto sm:right-0 
-                    w-[85vw] sm:w-80 max-w-[360px] 
-                    bg-white rounded-xl shadow-2xl border border-gray-100 
+    <div className="absolute top-full mt-3 z-50 transform transition-all
+                    left-0 sm:left-auto sm:right-0
+                    w-[85vw] sm:w-80 max-w-[360px]
+                    bg-white rounded-xl shadow-2xl border border-gray-100
                     origin-top-left sm:origin-top-right">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
         <div className="flex items-center gap-2">
@@ -78,18 +89,18 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
             <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
           </div>
         )}
-        
+
         {notifications.map((notification) => (
           <div
             key={notification.id}
             className={`group relative px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-start gap-3 transition-all border-b border-gray-50 last:border-0 ${
               notification.read ? 'bg-white opacity-70 hover:opacity-100' : 'bg-blue-50/30'
             }`}
-            onClick={() => onMarkRead(notification.id)}
+            onClick={() => handleNotificationClick(notification)}
           >
             {/* Status Dot */}
             <div className="mt-1.5 flex-shrink-0">
-               <div 
+               <div
                   className={`w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm transition-colors ${
                       notification.read ? 'bg-gray-200' : 'bg-[#C8102E]'
                   }`}
@@ -105,6 +116,15 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
                  {notification.time}
               </p>
             </div>
+
+            {/* Navigate indicator for notifications with links */}
+            {notification.link && (
+              <div className="mt-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            )}
           </div>
         ))}
       </div>

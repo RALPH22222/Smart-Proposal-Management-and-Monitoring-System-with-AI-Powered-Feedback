@@ -58,6 +58,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: proposal.proponent_id,
         message: `Your proposal "${proposal.project_title}" has been rejected. Please check the rejection summary for details.`,
         is_read: false,
+        link: "profile",
       });
 
       if (process.env.SMTP_USER) {

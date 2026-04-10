@@ -313,6 +313,9 @@ export class BackendStack extends Stack {
       .addResource("forward-proposal-to-rnd")
       .addMethod(HttpMethod.POST, integrate(proposalL.forwardToRnd), protectedRoute);
     proposal
+      .addResource("auto-distribute")
+      .addMethod(HttpMethod.POST, integrate(proposalL.autoDistribute), protectedRoute);
+    proposal
       .addResource("evaluator")
       .addMethod(HttpMethod.DELETE, integrate(proposalL.removeEvaluator), protectedRoute);
     proposal

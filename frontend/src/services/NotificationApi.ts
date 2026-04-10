@@ -6,6 +6,7 @@ export interface AppNotification {
   message: string;
   is_read: boolean;
   created_at: string;
+  link?: string | null;
 }
 
 export interface NotificationsResponse {

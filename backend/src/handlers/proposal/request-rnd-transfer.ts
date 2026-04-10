@@ -55,6 +55,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
             user_id: a.id,
             message: `An RND transfer request for proposal #${result.data.proposal_id} requires admin approval (second transfer).`,
             is_read: false,
+            link: "proposals",
           })),
         );
       }
@@ -63,6 +64,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: result.data.to_rnd_id,
         message: `You have a new proposal transfer request for proposal #${result.data.proposal_id}.`,
         is_read: false,
+        link: "proposals",
       });
     }
 

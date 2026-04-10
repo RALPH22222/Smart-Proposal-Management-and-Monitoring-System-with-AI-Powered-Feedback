@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
@@ -23,6 +24,7 @@ import PageLoader from "../../../components/shared/PageLoader";
 
 
 const Profile: React.FC = () => {
+  const [, setSearchParams] = useSearchParams();
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -476,6 +478,7 @@ const Profile: React.FC = () => {
     title: n.message,
     time: formatDateTime(n.created_at),
     read: n.is_read,
+    link: n.link,
   }));
 
   const handleMarkAllRead = () => {
@@ -797,6 +800,7 @@ const Profile: React.FC = () => {
                   onMarkAllRead={handleMarkAllRead}
                   onMarkRead={handleMarkRead}
                   onViewAll={() => setNotificationsOpen(false)}
+                  onNavigate={(link) => setSearchParams({ tab: link })}
                 />
               </div>
 

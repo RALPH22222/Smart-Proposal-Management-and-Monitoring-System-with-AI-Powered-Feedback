@@ -660,6 +660,109 @@ export class ProposalService {
   }
 
   /**
+   * Auto-distribute pending proposals to RND staff evenly per department.
+   * If proposalIds is provided, only those proposals are distributed.
+   * Otherwise, ALL proposals with status 'pending' are distributed.
+   */
+  async autoDistribute(proposalIds?: number[]) {
+    // 1. Fetch target proposals
+    let query = this.db
+      .from("proposals")
+      .select("id, department_id")
+      .eq("status", Status.PENDING);
+
+    if (proposalIds && proposalIds.length > 0) {
+      query = query.in("id", proposalIds);
+    }
+
+    const { data: proposals, error: fetchError } = await query;
+    if (fetchError) return { data: null, error: fetchError };
+    if (!proposals || proposals.length === 0) {
+      return { data: { distributed: 0, results: [] }, error: null };
+    }
+
+    // 2. Group proposals by department
+    const byDepartment = new Map<number, number[]>();
+    for (const p of proposals) {
+      if (!p.department_id) continue;
+      const list = byDepartment.get(p.department_id) || [];
+      list.push(p.id);
+      byDepartment.set(p.department_id, list);
+    }
+
+    // 3. For each department, distribute evenly across RND staff
+    const results: { proposal_id: number; rnd_id: string; rnd_load: number }[] = [];
+    const errors: { proposal_id: number; reason: string }[] = [];
+
+    for (const [departmentId, pIds] of byDepartment) {
+      // Get all eligible RND users for this department
+      const { data: rndUsers, error: rndError } = await this.db
+        .from("users")
+        .select("id")
+        .contains("roles", ["rnd"])
+        .eq("is_disabled", false)
+        .eq("department_id", departmentId);
+
+      if (rndError || !rndUsers || rndUsers.length === 0) {
+        for (const pid of pIds) {
+          errors.push({ proposal_id: pid, reason: "No eligible RND staff in department" });
+        }
+        continue;
+      }
+
+      // Build load map for each RND
+      const loadMap = new Map<string, number>();
+      for (const rnd of rndUsers) {
+        const { count } = await this.db
+          .from("proposal_rnd")
+          .select("proposals!inner(id, status)", { count: "exact", head: true })
+          .eq("rnd_id", rnd.id)
+          .in("proposals.status", ["review_rnd", "under_evaluation"]);
+        loadMap.set(rnd.id, count || 0);
+      }
+
+      // Assign each proposal to the least-loaded RND, updating load as we go
+      for (const pid of pIds) {
+        // Pick the RND with minimum load
+        let minLoad = Infinity;
+        let candidates: string[] = [];
+        for (const [id, load] of loadMap) {
+          if (load < minLoad) {
+            minLoad = load;
+            candidates = [id];
+          } else if (load === minLoad) {
+            candidates.push(id);
+          }
+        }
+
+        if (candidates.length === 0) {
+          errors.push({ proposal_id: pid, reason: "No eligible RND staff" });
+          continue;
+        }
+
+        const selectedId = candidates[Math.floor(Math.random() * candidates.length)];
+
+        // Forward the proposal
+        const { error: fwdError } = await this.forwardToRnd({ proposal_id: pid, rnd_id: [selectedId] });
+        if (fwdError) {
+          errors.push({ proposal_id: pid, reason: String(fwdError.message || fwdError) });
+          continue;
+        }
+
+        results.push({ proposal_id: pid, rnd_id: selectedId, rnd_load: minLoad });
+
+        // Increment load so the next proposal goes to the next-least-loaded RND
+        loadMap.set(selectedId, (loadMap.get(selectedId) || 0) + 1);
+      }
+    }
+
+    return {
+      data: { distributed: results.length, results, errors },
+      error: null,
+    };
+  }
+
+  /**
    * Request a transfer of a proposal from one RND to another.
    * If the proposal has already been transferred once, escalate to admin.
    */
@@ -2323,6 +2426,7 @@ export class ProposalService {
       await this.db.from("notifications").insert({
         user_id: evaluator_id,
         message: `Your extension request for proposal #${proposal_id} has been approved.`,
+        link: "proposals",
       });
 
       // 4. Insert log
@@ -2352,6 +2456,7 @@ export class ProposalService {
       await this.db.from("notifications").insert({
         user_id: evaluator_id,
         message: `Your extension request for proposal #${proposal_id} has been denied. You may accept with the original deadline or decline.`,
+        link: "proposals",
       });
 
       // 4. Insert log
@@ -2521,6 +2626,7 @@ export class ProposalService {
       const notifications = rndAssignments.map((a: { rnd_id: string }) => ({
         user_id: a.rnd_id,
         message: `Proponent has requested a deadline extension for proposal "${proposal.project_title}" (#${proposal_id}).`,
+        link: "proposals",
       }));
       await this.db.from("notifications").insert(notifications);
     }
@@ -2606,6 +2712,7 @@ export class ProposalService {
       await this.db.from("notifications").insert({
         user_id: proposal.proponent_id,
         message: `Your extension request for proposal "${proposal.project_title}" has been approved. You have ${new_deadline_days} day(s) to submit your revision.`,
+        link: "profile",
       });
 
       // 3d. Log
@@ -2649,6 +2756,7 @@ export class ProposalService {
       await this.db.from("notifications").insert({
         user_id: proposal.proponent_id,
         message: `Your extension request for proposal "${proposal.project_title}" has been rejected. The proposal has been closed.`,
+        link: "profile",
       });
 
       // 4d. Log
@@ -2758,6 +2866,7 @@ export class ProposalService {
             user_id: evalData.forwarded_by_rnd,
             message,
             is_read: false,
+            link: "proposals",
           });
         }
 
@@ -2770,7 +2879,7 @@ export class ProposalService {
         if (admins && admins.length > 0) {
           const adminNotifs = admins
             .filter((a) => a.id !== evalData?.forwarded_by_rnd) // avoid duplicate
-            .map((a) => ({ user_id: a.id, message, is_read: false }));
+            .map((a) => ({ user_id: a.id, message, is_read: false, link: "proposals" }));
 
           if (adminNotifs.length > 0) {
             await this.db.from("notifications").insert(adminNotifs);

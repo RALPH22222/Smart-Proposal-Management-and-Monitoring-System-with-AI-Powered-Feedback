@@ -51,6 +51,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         user_id: data.from_rnd_id,
         message: `Your transfer request for proposal #${data.proposal_id} was ${result.data.status}.`,
         is_read: false,
+        link: "proposals",
       });
     }
 

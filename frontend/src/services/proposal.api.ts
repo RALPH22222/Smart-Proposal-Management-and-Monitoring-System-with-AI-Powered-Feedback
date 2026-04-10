@@ -569,6 +569,20 @@ export const forwardProposalToRnd = async (proposalId: number, rndIds: string[])
   return data;
 };
 
+/**
+ * Auto-distribute pending proposals to R&D staff evenly per department.
+ * If proposalIds is provided, only those are distributed. Otherwise all pending.
+ */
+export const autoDistributeProposals = async (proposalIds?: number[]): Promise<any> => {
+  const { data } = await api.post(
+    "/proposal/auto-distribute",
+    proposalIds ? { proposal_ids: proposalIds } : {},
+    { withCredentials: true },
+  );
+  invalidateProposalCache();
+  return data;
+};
+
 export type ForwardToEvaluatorsPayload = {
   proposal_id: number;
   evaluators: { id: string; visibility: string }[];

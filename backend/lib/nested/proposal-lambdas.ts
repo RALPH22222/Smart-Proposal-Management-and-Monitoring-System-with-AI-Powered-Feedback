@@ -60,6 +60,7 @@ export class ProposalLambdas extends NestedStack {
   public readonly approveRndTransfer: NodejsFunction;
   public readonly getRndTransfers: NodejsFunction;
   public readonly checkEvaluatorDeadlines: NodejsFunction;
+  public readonly autoDistribute: NodejsFunction;
   public readonly reverseGeocode: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
@@ -118,6 +119,7 @@ export class ProposalLambdas extends NestedStack {
     this.respondRndTransfer = simple("respond-rnd-transfer", "pms-respond-rnd-transfer", "respond-rnd-transfer.ts");
     this.approveRndTransfer = simple("approve-rnd-transfer", "pms-approve-rnd-transfer", "approve-rnd-transfer.ts");
     this.getRndTransfers = simple("get-rnd-transfers", "pms-get-rnd-transfers", "get-rnd-transfers.ts");
+    this.autoDistribute = simple("auto-distribute", "pms-auto-distribute", "auto-distribute.ts");
     this.reverseGeocode = new NodejsFunction(this, "reverse-geocode", {
       ...defaults,
       functionName: "pms-reverse-geocode",
