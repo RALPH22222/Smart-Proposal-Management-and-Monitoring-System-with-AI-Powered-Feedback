@@ -15,13 +15,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Determine role from JWT (priority: rnd > admin > proponent)
+  // Determine role from JWT (priority: admin > rnd > proponent > co_lead)
   const roleFromJwt = auth.roles.includes("admin")
     ? "admin"
     : auth.roles.includes("rnd")
     ? "rnd"
     : auth.roles.includes("proponent")
     ? "proponent"
+    : auth.roles.includes("co_lead")
+    ? "co_lead"
     : undefined;
 
   // Parse query parameters (only non-identity fields)

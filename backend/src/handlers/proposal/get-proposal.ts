@@ -18,12 +18,20 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const user_sub = auth.userId;
   const roles = auth.roles;
 
-  if (!user_sub && !roles) {
+  if (!user_sub || !roles) {
     return {
       statusCode: 401,
       body: JSON.stringify({
         message: "Unauthorized: User ID or Roles not found in token",
       }),
+    };
+  }
+
+  // Co-leads don't own proposals — return empty
+  if (!roles.includes("proponent") && !roles.includes("admin") && !roles.includes("rnd")) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify([]),
     };
   }
 

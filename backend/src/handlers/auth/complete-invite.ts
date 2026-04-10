@@ -87,6 +87,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         department_id,
         photo_profile_url: photoUrl,
         profile_completed: true,
+        email_verified: true,
       })
       .eq("id", userId)
       .select()
