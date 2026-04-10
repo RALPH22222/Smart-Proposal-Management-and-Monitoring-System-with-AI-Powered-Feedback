@@ -22,15 +22,18 @@ interface SidebarProps {
   onPageChange: (_page: string) => void;
   statistics: Statistics;
   isCollapsed?: boolean;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (_open: boolean) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
   currentPage,
   onPageChange,
-  isCollapsed = false
+  isCollapsed = false,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen
 }) => {
   const { logos } = useLogos();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { logout, user } = useAuthContext();
 
   const getFullName = () => {

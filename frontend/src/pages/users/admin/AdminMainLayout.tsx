@@ -26,6 +26,7 @@ type ExtendedDashboardStats = DashboardStats & {
 const AdminLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "dashboard";
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const [stats, setStats] = React.useState<ExtendedDashboardStats | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -112,10 +113,10 @@ const AdminLayout: React.FC = () => {
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
       {/* Sidebar - Controlled by props */}
-      <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} />
+      <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">
+      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
         {renderContent()}
       </main>
     </div>

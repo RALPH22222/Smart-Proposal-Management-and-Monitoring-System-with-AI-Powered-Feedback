@@ -7,13 +7,14 @@ import SecureImage from "../shared/SecureImage";
 interface SidebarProps {
   currentPage: string;
   onPageChange: (_page: string) => void;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (_open: boolean) => void;
 }
 
 
 
-const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
+const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMobileMenuOpen, setIsMobileMenuOpen }) => {
   const { logos } = useLogos();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { logout, user } = useAuthContext();
 

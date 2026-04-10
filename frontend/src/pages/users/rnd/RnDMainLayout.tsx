@@ -17,6 +17,7 @@ import FundingPage from './RnDFundingPage';
 const MainLayout: React.FC = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const currentPage = searchParams.get("tab") || "dashboard";
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
 	const [statistics, setStatistics] = useState<Statistics>({
 		totalProposals: 0,
@@ -84,11 +85,13 @@ const MainLayout: React.FC = () => {
 					currentPage={currentPage}
 					onPageChange={handlePageChange}
 					statistics={statistics}
+					isMobileMenuOpen={isMobileMenuOpen}
+					setIsMobileMenuOpen={setIsMobileMenuOpen}
 				/>
 			</div>
 
 			{/* Main Content */}
-			<div className='flex-1 bg-gray-50 overflow-y-auto'>
+			<div className='flex-1 bg-gray-50 overflow-y-auto' onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
 				{renderCurrentPage()}
 			</div>
 		</div>

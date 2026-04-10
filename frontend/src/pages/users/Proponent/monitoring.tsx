@@ -85,6 +85,7 @@ const MonitoringPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   // Quarter navigation
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
@@ -153,6 +154,7 @@ const MonitoringPage: React.FC = () => {
     if (!activeBackend) return;
     try {
       setDetailLoading(true);
+      setDetailError(null);
       const [detail, frResponse, bs] = await Promise.all([
         fetchProjectDetail(activeBackend.id),
         fetchFundRequests(activeBackend.id),
@@ -227,8 +229,9 @@ const MonitoringPage: React.FC = () => {
         q => q.status === 'fund_request' || q.status === 'due' || q.status === 'overdue' || q.status === 'submitted'
       );
       setCurrentReportIndex(firstActionable >= 0 ? firstActionable : 0);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading project detail:', error);
+      setDetailError(error?.response?.data?.message || error?.message || 'Failed to load project details.');
     } finally {
       setDetailLoading(false);
     }
@@ -526,13 +529,19 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* --- RIGHT PANEL (Detail View) --- */}
-          <div className={`w-full lg:w-2/3 flex flex-col ${showMobileDetail ? 'flex' : 'hidden lg:flex'} transition-all duration-500 ${(loading || detailLoading) ? 'blur-[1.5px] pointer-events-none opacity-60' : ''}`}>
+          <div className={`w-full lg:w-2/3 flex flex-col ${showMobileDetail ? 'flex' : 'hidden lg:flex'} transition-all duration-500`}>
             <div className="lg:hidden mb-4">
               <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
             </div>
 
-            {(detailLoading) && !activeProject ? (
+            {detailLoading ? (
               <PageLoader mode="proponent-monitoring" />
+            ) : detailError ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-3 p-8">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+                <p className="text-sm text-center">{detailError}</p>
+                <button onClick={loadProjectDetail} className="text-sm text-[#C8102E] hover:underline font-medium">Try again</button>
+              </div>
             ) : activeProject && quarters.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
 
