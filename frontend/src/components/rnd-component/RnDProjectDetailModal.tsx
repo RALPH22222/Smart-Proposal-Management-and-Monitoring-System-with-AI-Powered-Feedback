@@ -22,7 +22,7 @@ import {
   type ProjectDetailData,
   type ApiFundRequest,
   type ApiBudgetSummary,
-  extractFileInfo,
+  groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
 
 interface RnDProjectDetailModalProps {
@@ -379,23 +379,22 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                )}
 
                {report.proofs.length > 0 ? (
-                  <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase mb-2">Proof of Accomplishment</p>
-                      <div className="flex flex-wrap gap-2">
-                         {report.proofs.map((file, i) => {
-                            const info = extractFileInfo(file);
-                            return (
-                              <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm" title={info.filename}>
-                                 <Paperclip className="w-4 h-4 flex-shrink-0"/>
-                                 <span className="flex flex-col leading-tight">
-                                   {info.label && <span className="text-[10px] font-bold text-slate-400 uppercase">{info.label}</span>}
-                                   <span className="font-medium truncate max-w-[200px]">{info.filename}</span>
-                                 </span>
-                                 <Download className="w-4 h-4 ml-1 opacity-70 flex-shrink-0"/>
+                  <div className="space-y-3">
+                      <p className="text-xs font-bold text-slate-500 uppercase">Proof of Accomplishment</p>
+                      {groupProofFiles(report.proofs).map((group) => (
+                        <div key={group.category}>
+                          <p className="text-[11px] font-bold text-slate-500 mb-1.5">{group.category}</p>
+                          <div className="space-y-1.5">
+                            {group.files.map((file, i) => (
+                              <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm" title={file.filename}>
+                                <Paperclip className="w-4 h-4 flex-shrink-0"/>
+                                <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
+                                <Download className="w-4 h-4 ml-auto opacity-70 flex-shrink-0"/>
                               </a>
-                            );
-                         })}
-                      </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                   </div>
                ) : (
                   <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">

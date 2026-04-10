@@ -201,6 +201,35 @@ export function extractFileInfo(url: string): { label: string; filename: string 
   return { label: '', filename: rawName };
 }
 
+/**
+ * Group proof files by their type prefix for categorized display.
+ * Matches the proponent upload sections: Quarterly Report, Terminal Report, Receipts.
+ */
+export function groupProofFiles(urls: string[]): { category: string; files: { url: string; filename: string }[] }[] {
+  const groups: Record<string, { url: string; filename: string }[]> = {
+    'Quarterly Accomplishment Report': [],
+    'Terminal Report (Expected Outputs)': [],
+    'Additional Proofs / Receipts': [],
+  };
+
+  for (const url of urls) {
+    const rawName = extractFilenameFromUrl(url);
+    const match = rawName.match(/^(QR|TR|RC)(\d*)__(.+)$/);
+    if (match) {
+      const [, type, , name] = match;
+      if (type === 'QR') groups['Quarterly Accomplishment Report'].push({ url, filename: name });
+      else if (type === 'TR') groups['Terminal Report (Expected Outputs)'].push({ url, filename: name });
+      else groups['Additional Proofs / Receipts'].push({ url, filename: name });
+    } else {
+      groups['Additional Proofs / Receipts'].push({ url, filename: rawName });
+    }
+  }
+
+  return Object.entries(groups)
+    .filter(([, files]) => files.length > 0)
+    .map(([category, files]) => ({ category, files }));
+}
+
 // ─── Quarter Helpers ────────────────────────────────────────────────
 
 const QUARTER_LABELS: Record<string, string> = {

@@ -30,7 +30,7 @@ import {
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
-  extractFileInfo,
+  groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from "../../../utils/date-formatter";
@@ -1003,22 +1003,21 @@ const MonitoringPage: React.FC = () => {
                           </div>
                         )}
                         {currentReport.proofFiles.length > 0 && (
-                          <div>
-                            <p className="text-xs font-bold text-gray-500 uppercase mb-2">Proof of Accomplishment</p>
-                            <div className="flex flex-wrap gap-2">
-                              {currentReport.proofFiles.map((file, i) => {
-                                const info = extractFileInfo(file);
-                                return (
-                                  <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file); }} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-100" title={info.filename}>
-                                    <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-                                    <span className="flex flex-col leading-tight">
-                                      {info.label && <span className="text-[10px] font-bold text-blue-500 uppercase">{info.label}</span>}
-                                      <span className="truncate max-w-[180px]">{info.filename}</span>
-                                    </span>
-                                  </a>
-                                );
-                              })}
-                            </div>
+                          <div className="space-y-3">
+                            <p className="text-xs font-bold text-gray-500 uppercase">Proof of Accomplishment</p>
+                            {groupProofFiles(currentReport.proofFiles).map((group) => (
+                              <div key={group.category}>
+                                <p className="text-[11px] font-bold text-gray-500 mb-1.5">{group.category}</p>
+                                <div className="space-y-1.5">
+                                  {group.files.map((file, i) => (
+                                    <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-100" title={file.filename}>
+                                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                                      <span className="truncate max-w-[180px]">{file.filename}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                         {currentReport.submittedBy && (

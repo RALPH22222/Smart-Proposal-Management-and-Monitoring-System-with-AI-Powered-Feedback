@@ -258,6 +258,23 @@ export class ProjectService {
       .single();
 
     if (!error && data) {
+      // Copy approved fund request items into project_expenses for this report
+      const { data: fundReqItems } = await this.db
+        .from("fund_request_items")
+        .select("item_name, amount")
+        .eq("fund_request_id", fundRequest.id);
+
+      if (fundReqItems && fundReqItems.length > 0) {
+        const expenseRows = fundReqItems.map((item) => ({
+          project_reports_id: data.id,
+          expenses: item.amount,
+          desription: item.item_name, // matches DB typo
+          created_at: new Date().toISOString(),
+        }));
+
+        await this.db.from("project_expenses").insert(expenseRows);
+      }
+
       await logActivity(this.db, {
         user_id: input.submitted_by_proponent_id,
         action: "quarterly_report_submitted",
