@@ -456,6 +456,12 @@ const Profile: React.FC = () => {
       fundingDocumentUrl: (Array.isArray(raw.funded_projects) && raw.funded_projects.length > 0)
         ? raw.funded_projects[0].funding_document_url
         : (raw.funded_projects?.funding_document_url || ""),
+      fundedProjectId: (Array.isArray(raw.funded_projects) && raw.funded_projects.length > 0)
+        ? raw.funded_projects[0].id
+        : raw.funded_projects?.id,
+      fundedProjectLeadId: (Array.isArray(raw.funded_projects) && raw.funded_projects.length > 0)
+        ? raw.funded_projects[0].project_lead_id
+        : raw.funded_projects?.project_lead_id,
     };
 
     setSelectedProject(proposal);

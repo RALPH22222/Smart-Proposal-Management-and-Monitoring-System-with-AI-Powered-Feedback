@@ -45,6 +45,8 @@ import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
+import TeamMembersSection from "./TeamMembersSection";
+import { useAuthContext } from "../../context/AuthContext";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -96,6 +98,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   departments = [],
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -153,7 +156,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       try {
         const key = extractS3Key(proposal.fundingDocumentUrl!);
         if (!key) {
-          setFundingSignedUrl(proposal.fundingDocumentUrl!);
+          setFundingSignedUrl(null);
+          setFundingUrlError('Invalid document URL.');
           return;
         }
         const { data } = await api.get<{ url: string }>('/files/signed-url', {
@@ -161,9 +165,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           withCredentials: true,
         });
         setFundingSignedUrl(data.url);
-      } catch {
-        setFundingSignedUrl(proposal.fundingDocumentUrl!);
-        setFundingUrlError('Could not generate a secure preview link.');
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 404) {
+          setFundingSignedUrl(null);
+          setFundingUrlError('The funding approval document is no longer available in storage. It may have been removed or was not uploaded successfully.');
+        } else {
+          setFundingSignedUrl(null);
+          setFundingUrlError('Could not generate a secure preview link.');
+        }
       } finally {
         setIsLoadingFundingUrl(false);
       }
@@ -1154,33 +1164,37 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       <FileText className="w-4 h-4 text-red-600" />
                       <span className="text-sm font-bold text-slate-800">Funding Approval Document</span>
                     </div>
-                    {fundingUrlError && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
-                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                        {fundingUrlError}
+                    {isLoadingFundingUrl ? (
+                      <div className="w-full bg-slate-100 relative flex flex-col items-center justify-center gap-3 py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
+                        <p className="text-sm text-slate-500">Preparing secure document preview…</p>
+                      </div>
+                    ) : fundingSignedUrl ? (
+                      <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
+                        <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 py-10 bg-slate-50">
+                        <AlertTriangle className="w-8 h-8 text-amber-400" />
+                        <p className="text-sm text-slate-500 text-center px-4">
+                          {fundingUrlError || 'No approval document attached.'}
+                        </p>
                       </div>
                     )}
-                    <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
-                      {isLoadingFundingUrl ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50">
-                          <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
-                          <p className="text-sm text-slate-500">Preparing secure document preview…</p>
-                        </div>
-                      ) : fundingSignedUrl ? (
-                        <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
-                      ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50">
-                          <AlertTriangle className="w-8 h-8 text-slate-400" />
-                          <p className="text-sm text-slate-500">No approval document attached.</p>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-green-300 bg-green-100/30 p-4 flex items-center gap-3 text-sm text-green-700">
                     <FileText className="w-5 h-5 text-green-500 flex-shrink-0" />
                     No approval document was attached by the R&D staff.
                   </div>
+                )}
+
+                {/* Co-Lead Proponents / Team Members */}
+                {proposal.fundedProjectId && (
+                  <TeamMembersSection
+                    fundedProjectId={proposal.fundedProjectId}
+                    isProjectLead={!!user && user.id === proposal.fundedProjectLeadId}
+                  />
                 )}
 
                 {/* Total Funded Amount + funded date — outside the card */}

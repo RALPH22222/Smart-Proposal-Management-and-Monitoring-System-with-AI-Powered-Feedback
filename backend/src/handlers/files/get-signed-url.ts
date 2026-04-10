@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
@@ -44,12 +44,24 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   let command;
   if (method.toUpperCase() === "PUT") {
-    command = new PutObjectCommand({ 
-      Bucket: bucketName, 
+    command = new PutObjectCommand({
+      Bucket: bucketName,
       Key: key,
       ContentType: contentType || "application/octet-stream",
     });
   } else {
+    // Verify the object exists before generating a signed GET URL
+    try {
+      await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
+    } catch (headErr: any) {
+      if (headErr.name === "NotFound" || headErr.$metadata?.httpStatusCode === 404) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ message: "File not found in storage" }),
+        };
+      }
+      // For other errors (permissions, etc.), fall through and let the signed URL attempt proceed
+    }
     command = new GetObjectCommand({ Bucket: bucketName, Key: key });
   }
 
