@@ -54,13 +54,18 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     try {
       await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: key }));
     } catch (headErr: any) {
-      if (headErr.name === "NotFound" || headErr.$metadata?.httpStatusCode === 404) {
+      const httpStatus = headErr.$metadata?.httpStatusCode;
+      if (headErr.name === "NotFound" || httpStatus === 404) {
         return {
           statusCode: 404,
           body: JSON.stringify({ message: "File not found in storage" }),
         };
       }
-      // For other errors (permissions, etc.), fall through and let the signed URL attempt proceed
+      // Any other S3 error (AccessDenied, etc.) — return it instead of generating a broken signed URL
+      return {
+        statusCode: httpStatus || 500,
+        body: JSON.stringify({ message: headErr.message || "Unable to access file in storage" }),
+      };
     }
     command = new GetObjectCommand({ Bucket: bucketName, Key: key });
   }

@@ -47,6 +47,7 @@ import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/Set
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
 import TeamMembersSection from "./TeamMembersSection";
 import { useAuthContext } from "../../context/AuthContext";
+import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -117,6 +118,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isLoadingFundingUrl, setIsLoadingFundingUrl] = useState(false);
   const [fundingUrlError, setFundingUrlError] = useState<string | null>(null);
 
+  // Resolved funded project data (fetched independently so it works even if getAll doesn't return it)
+  const [resolvedFundedProjectId, setResolvedFundedProjectId] = useState<number | null>(null);
+  const [resolvedProjectLeadId, setResolvedProjectLeadId] = useState<string | null>(null);
+
   // Extension request state
   const [extensionRequest, setExtensionRequest] = useState<ProponentExtensionRequest | null>(null);
   const [showExtensionForm, setShowExtensionForm] = useState(false);
@@ -180,6 +185,35 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     };
     fetchSignedUrl();
   }, [isOpen, isFundedForEffect, proposal?.fundingDocumentUrl]);
+
+  // Resolve funded project ID + lead — uses prop if available, otherwise fetches from /project/funded
+  useEffect(() => {
+    if (!isOpen || !isFundedForEffect || !proposal) {
+      setResolvedFundedProjectId(null);
+      setResolvedProjectLeadId(null);
+      return;
+    }
+    // If already passed from parent (backend includes id in getAll), use it directly
+    if (proposal.fundedProjectId) {
+      setResolvedFundedProjectId(proposal.fundedProjectId);
+      setResolvedProjectLeadId(proposal.fundedProjectLeadId || null);
+      return;
+    }
+    // Otherwise fetch funded projects and match by proposal_id
+    const resolve = async () => {
+      try {
+        const projects = await fetchFundedProjects();
+        const match = projects.find(p => String(p.proposal_id) === String(proposal.id));
+        if (match) {
+          setResolvedFundedProjectId(match.id);
+          setResolvedProjectLeadId(match.project_lead_id);
+        }
+      } catch {
+        // silently fail — co-leads section just won't show
+      }
+    };
+    resolve();
+  }, [isOpen, isFundedForEffect, proposal?.id, proposal?.fundedProjectId]);
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -1157,27 +1191,49 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-30 pointer-events-none z-0" />
                 </div>
 
-                {/* Inline Approval File — outside the card */}
+                {/* Funding Approval Document */}
                 {proposal.fundingDocumentUrl ? (
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-red-600" />
-                      <span className="text-sm font-bold text-slate-800">Funding Approval Document</span>
+                    <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-red-600" />
+                        <span className="text-sm font-bold text-slate-800">Funding Approval Document</span>
+                      </div>
+                      {fundingSignedUrl && (
+                        <button
+                          onClick={() => window.open(fundingSignedUrl, '_blank', 'noopener')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#C8102E] hover:bg-[#A50D26] rounded-lg transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Open Document
+                        </button>
+                      )}
                     </div>
                     {isLoadingFundingUrl ? (
-                      <div className="w-full bg-slate-100 relative flex flex-col items-center justify-center gap-3 py-12">
+                      <div className="flex flex-col items-center justify-center gap-3 py-12 bg-slate-50">
                         <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
-                        <p className="text-sm text-slate-500">Preparing secure document preview…</p>
+                        <p className="text-sm text-slate-500">Preparing document…</p>
                       </div>
                     ) : fundingSignedUrl ? (
-                      <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
-                        <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
-                      </div>
+                      (() => {
+                        const isPdf = (proposal.fundingDocumentUrl || '').toLowerCase().includes('.pdf');
+                        return isPdf ? (
+                          <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
+                            <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-3 py-10 bg-slate-50">
+                            <FileCheck className="w-10 h-10 text-emerald-500" />
+                            <p className="text-sm text-slate-600 font-medium">Document ready</p>
+                            <p className="text-xs text-slate-400">Click "Open Document" above to view or download.</p>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-3 py-10 bg-slate-50">
                         <AlertTriangle className="w-8 h-8 text-amber-400" />
                         <p className="text-sm text-slate-500 text-center px-4">
-                          {fundingUrlError || 'No approval document attached.'}
+                          {fundingUrlError || 'Unable to load the approval document.'}
                         </p>
                       </div>
                     )}
@@ -1190,10 +1246,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 )}
 
                 {/* Co-Lead Proponents / Team Members */}
-                {proposal.fundedProjectId && (
+                {resolvedFundedProjectId && (
                   <TeamMembersSection
-                    fundedProjectId={proposal.fundedProjectId}
-                    isProjectLead={!!user && user.id === proposal.fundedProjectLeadId}
+                    fundedProjectId={resolvedFundedProjectId}
+                    isProjectLead={!!user && user.id === resolvedProjectLeadId}
                   />
                 )}
 
