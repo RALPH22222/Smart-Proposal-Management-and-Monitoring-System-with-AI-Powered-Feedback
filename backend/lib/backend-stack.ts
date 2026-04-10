@@ -216,7 +216,7 @@ export class BackendStack extends Stack {
 
     // Gateway Responses for proper CORS headers on error responses
     const corsResponseHeaders = {
-      "Access-Control-Allow-Origin": "'http://localhost:5173'",
+      "Access-Control-Allow-Origin": "method.request.header.Origin",
       "Access-Control-Allow-Headers": "'Content-Type,Authorization,Cookie'",
       "Access-Control-Allow-Methods": "'GET,POST,DELETE,OPTIONS'",
       "Access-Control-Allow-Credentials": "'true'",

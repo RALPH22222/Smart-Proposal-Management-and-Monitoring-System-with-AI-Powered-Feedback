@@ -26,9 +26,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Only intercept 401s, skip if already retried or if this IS the refresh call
+    // Detect 401 OR CORS-blocked authorizer response (no response object = browser blocked it)
+    const is401 = error.response?.status === 401;
+    const isCorsBlocked = !error.response && error.message?.includes('Network Error');
+    const isAuthFailure = is401 || isCorsBlocked;
+
+    // Only intercept auth failures, skip if already retried or if this IS the refresh/login call
     if (
-      error.response?.status !== 401 ||
+      !isAuthFailure ||
       originalRequest._retry ||
       originalRequest.url?.includes('/auth/refresh-token') ||
       originalRequest.url?.includes('/auth/login')

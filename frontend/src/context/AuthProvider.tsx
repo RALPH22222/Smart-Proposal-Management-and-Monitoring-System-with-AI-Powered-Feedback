@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext, { type AuthUser } from "./AuthContext";
 import { api } from "@utils/axios";
@@ -72,6 +72,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   }, [navigate]);
+
+  // Proactive token refresh — refresh the access token before it expires (every 50 minutes)
+  // The access token TTL is 1 hour; refreshing at 50 min prevents 401s during normal usage.
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      // Not logged in — clear any existing timer
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Start the proactive refresh interval
+    refreshTimerRef.current = setInterval(async () => {
+      try {
+        await api.post('/auth/refresh-token', {}, { withCredentials: true });
+      } catch {
+        // Refresh failed — the reactive interceptor will handle it on the next API call
+      }
+    }, 50 * 60 * 1000); // 50 minutes
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [user]);
 
   const logout = useCallback(async () => {
     try {
