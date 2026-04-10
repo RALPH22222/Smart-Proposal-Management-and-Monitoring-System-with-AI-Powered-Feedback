@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../../../components/rnd-component/RnDSidebar';
-import Dashboard from './RndDashboard';
-import ReviewPage from './RndProposalPage';
+import Dashboard from './RnDDashboard';
+import ReviewPage from './RnDProposalPage';
 import Monitoring from './RnDMonitoringPage';
 import Settings from './RnDSettings';
 import {
