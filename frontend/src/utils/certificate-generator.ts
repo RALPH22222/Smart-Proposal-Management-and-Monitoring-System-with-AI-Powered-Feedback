@@ -98,13 +98,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<voi
   // === HEADER TEXT ===
   let y = height - 65;
 
-  const drawCenteredText = (
-    text: string,
-    yPos: number,
-    font: typeof timesRoman,
-    size: number,
-    color = darkGray
-  ) => {
+  const drawCenteredText = (text: string, yPos: number, font: typeof timesRoman, size: number, color = darkGray) => {
     const textWidth = font.widthOfTextAtSize(text, size);
     page.drawText(text, {
       x: (width - textWidth) / 2,
@@ -203,13 +197,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<voi
 
   // === ISSUED INFO ===
   y -= 25;
-  drawCenteredText(
-    `Issued on ${formatDate(data.issuedAt)}`,
-    y,
-    timesRoman,
-    11,
-    darkGray
-  );
+  drawCenteredText(`Issued on ${formatDate(data.issuedAt)}`, y, timesRoman, 11, darkGray);
 
   // === SIGNATURE AREA ===
   y -= 50;

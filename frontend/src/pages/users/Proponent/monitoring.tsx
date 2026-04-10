@@ -161,7 +161,10 @@ const MonitoringPage: React.FC = () => {
       setDetailError(null);
       const [detail, frResponse, bs] = await Promise.all([
         fetchProjectDetail(activeBackend.id),
-        fetchFundRequests(activeBackend.id),
+        fetchFundRequests(activeBackend.id).catch((err) => {
+          console.error('Error loading fund requests:', err);
+          return { fund_requests: [] as ApiFundRequest[], budget_summary: null };
+        }),
         fetchBudgetSummary(activeBackend.id).catch(() => null),
       ]);
       setBudgetSummary(frResponse.budget_summary || bs);

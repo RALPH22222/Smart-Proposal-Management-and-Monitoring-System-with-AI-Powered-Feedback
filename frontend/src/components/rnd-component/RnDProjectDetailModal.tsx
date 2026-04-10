@@ -60,7 +60,10 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     try {
       const [data, frResponse, bs] = await Promise.all([
         fetchProjectDetail(project.backendId),
-        fetchFundRequests(project.backendId),
+        fetchFundRequests(project.backendId).catch((err) => {
+          console.error('Error loading fund requests:', err);
+          return { fund_requests: [], budget_summary: null } as { fund_requests: ApiFundRequest[]; budget_summary: ApiBudgetSummary | null };
+        }),
         fetchBudgetSummary(project.backendId).catch(() => null),
       ]);
       const detailData = buildDisplayReports(data, user?.id || '');
