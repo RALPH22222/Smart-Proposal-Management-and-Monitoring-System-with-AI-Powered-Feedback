@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Mail } from "lucide-react";
 
 const ROLE_OPTIONS = [
@@ -41,8 +42,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
     onSubmit({ emails: parsedEmails, roles: [selectedRole] });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
         {/* Header */}
@@ -138,7 +139,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onSu
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

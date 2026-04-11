@@ -15,6 +15,8 @@ import {
   Gavel,
   CalendarClock,
   RefreshCw,
+  RotateCcw,
+  AlertCircle,
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
@@ -160,7 +162,7 @@ export default function Proposals() {
           tags: (proposalObj.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           raw: p,
           assignedDate: p.date_forwarded || p.created_at || proposalObj.created_at || null,
-          evaluatedDate: (p.status === 'decline' || p.status === 'rejected' || p.status === 'accepted' || p.status === 'approved') ? p.updated_at || proposalObj.updated_at : null,
+          evaluatedDate: (['decline', 'rejected', 'accepted', 'approved', 'approve', 'revise', 'reject'].includes(p.status)) ? p.updated_at || proposalObj.updated_at : null,
           remarks: p.remarks || null
         };
       });
@@ -197,7 +199,9 @@ export default function Proposals() {
     pending:             ["pending"],
     accepted:            ["accepted", "accept", "approve", "approved", "funded"],
     for_review:          ["for_review", "under_evaluation"],
-    decline:             ["decline", "reject", "rejected", "disapproved"],
+    decline:             ["reject", "rejected", "disapproved"],
+    declined:            ["decline"],
+    revise:              ["revise", "revision"],
     extension_approved:  ["extension_approved"],
     extension_requested: ["extension_requested", "extend"],
     extension_rejected:  ["extension_rejected"],
@@ -225,9 +229,13 @@ export default function Proposals() {
     accepted: 4,
     approve: 4,
     approved: 4,
-    rejected: 5,
-    decline: 5,
-    disapproved: 5,
+    revise: 5,
+    revision: 5,
+    rejected: 6,
+    reject: 6,
+    decline: 6,
+    disapproved: 6,
+    declined: 7,
   };
 
   const sortedFiltered = [...filtered].sort((a, b) => {
@@ -252,7 +260,7 @@ export default function Proposals() {
       return {
         bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-800",
         icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
-        label: "Reviewed",
+        label: "Proposal Approved",
       };
 
     if (s === "extension_approved")
@@ -262,11 +270,25 @@ export default function Proposals() {
         label: "Extension Approved",
       };
 
-    if (["reject", "rejected", "decline", "disapproved"].includes(s))
+    if (["reject", "rejected", "disapproved"].includes(s))
       return {
         bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
+        label: "Proposal Reject",
+      };
+
+    if (s === "decline")
+      return {
+        bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700",
+        icon: <XCircle className="w-3.5 h-3.5 text-slate-500" />,
         label: "Declined",
+      };
+
+    if (["revise", "revision"].includes(s))
+      return {
+        bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-800",
+        icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600" />,
+        label: "Proposal Revise",
       };
 
     if (s === "extension_rejected")
@@ -299,7 +321,7 @@ export default function Proposals() {
 
     return {
       bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700",
-      icon: <Clock className="w-3.5 h-3.5 text-slate-500" />,
+      icon: <AlertCircle className="w-3.5 h-3.5 text-slate-500" />,
       label: status.charAt(0).toUpperCase() + status.slice(1),
     };
   };
@@ -452,9 +474,11 @@ export default function Proposals() {
             {[
               { id: "All", label: "All", icon: Filter },
               { id: "pending", label: "Pending Review", icon: Clock },
-              { id: "accepted", label: "Reviewed", icon: CheckCircle },
+              { id: "accepted", label: "Proposal Approved", icon: CheckCircle },
               { id: "for_review", label: "Under Review", icon: RefreshCw },
-              { id: "decline", label: "Declined", icon: XCircle },
+              { id: "decline", label: "Proposal Reject", icon: XCircle },
+              { id: "declined", label: "Declined", icon: XCircle },
+              { id: "revise", label: "Proposal Revise", icon: RotateCcw },
               { id: "extension_approved", label: "Extension Approved", icon: CheckCircle },
               { id: "extension_requested", label: "Extension Requested", icon: CalendarClock },
               { id: "extension_rejected", label: "Extension Declined", icon: XCircle },

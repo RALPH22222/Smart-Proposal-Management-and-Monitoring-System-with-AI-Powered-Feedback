@@ -534,31 +534,29 @@ export default function ReviewModal({
                       <span className="text-red-500">*</span>
                     </label>
                   </div>
-                  <div className="flex gap-2 mb-3">
+                  <div className="flex flex-col gap-2">
                     {[5, 4, 3, 2, 1].map((num) => (
-                      <button
+                      <div
                         key={num}
                         onClick={() => handleRatingChange("title", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).title === num
-                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                          }`}
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                          (ratings as any).title === num
+                            ? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                        }`}
                       >
-                        {num}
-                      </button>
+                        <div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+                          (ratings as any).title === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-50 text-slate-400 border-slate-200"
+                        }`}>
+                          {num}
+                        </div>
+                        <p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+                          (ratings as any).title === num ? "text-slate-900" : "text-slate-500"
+                        }`}>
+                          {(RATING_CRITERIA.title.descriptions as any)[num]}
+                        </p>
+                      </div>
                     ))}
-                  </div>
-                  <div
-                    className={`text-xs p-3 rounded-lg border ${(ratings as any).title > 0
-                      ? getRatingColor((ratings as any).title)
-                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                      }`}
-                  >
-                    {(ratings as any).title > 0
-                      ? (RATING_CRITERIA.title.descriptions as any)[
-                      (ratings as any).title
-                      ]
-                      : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
 
@@ -570,31 +568,29 @@ export default function ReviewModal({
                       <span className="text-red-500">*</span>
                     </label>
                   </div>
-                  <div className="flex gap-2 mb-3">
+                  <div className="flex flex-col gap-2">
                     {[5, 4, 3, 2, 1].map((num) => (
-                      <button
+                      <div
                         key={num}
                         onClick={() => handleRatingChange("budget", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).budget === num
-                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                          }`}
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                          (ratings as any).budget === num
+                            ? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                        }`}
                       >
-                        {num}
-                      </button>
+                        <div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+                          (ratings as any).budget === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-50 text-slate-400 border-slate-200"
+                        }`}>
+                          {num}
+                        </div>
+                        <p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+                          (ratings as any).budget === num ? "text-slate-900" : "text-slate-500"
+                        }`}>
+                          {(RATING_CRITERIA.budget.descriptions as any)[num]}
+                        </p>
+                      </div>
                     ))}
-                  </div>
-                  <div
-                    className={`text-xs p-3 rounded-lg border ${(ratings as any).budget > 0
-                      ? getRatingColor((ratings as any).budget)
-                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                      }`}
-                  >
-                    {(ratings as any).budget > 0
-                      ? (RATING_CRITERIA.budget.descriptions as any)[
-                      (ratings as any).budget
-                      ]
-                      : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
 
@@ -606,31 +602,29 @@ export default function ReviewModal({
                       <span className="text-red-500">*</span>
                     </label>
                   </div>
-                  <div className="flex gap-2 mb-3">
+                  <div className="flex flex-col gap-2">
                     {[5, 4, 3, 2, 1].map((num) => (
-                      <button
+                      <div
                         key={num}
                         onClick={() => handleRatingChange("timeline", num)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 border cursor-pointer ${(ratings as any).timeline === num
-                          ? "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105"
-                          : "bg-white text-slate-500 border-slate-200 hover:border-[#C8102E] hover:text-[#C8102E]"
-                          }`}
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                          (ratings as any).timeline === num
+                            ? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+                            : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50"
+                        }`}
                       >
-                        {num}
-                      </button>
+                        <div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+                          (ratings as any).timeline === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-50 text-slate-400 border-slate-200"
+                        }`}>
+                          {num}
+                        </div>
+                        <p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+                          (ratings as any).timeline === num ? "text-slate-900" : "text-slate-500"
+                        }`}>
+                          {(RATING_CRITERIA.timeline.descriptions as any)[num]}
+                        </p>
+                      </div>
                     ))}
-                  </div>
-                  <div
-                    className={`text-xs p-3 rounded-lg border ${(ratings as any).timeline > 0
-                      ? getRatingColor((ratings as any).timeline)
-                      : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                      }`}
-                  >
-                    {(ratings as any).timeline > 0
-                      ? (RATING_CRITERIA.timeline.descriptions as any)[
-                      (ratings as any).timeline
-                      ]
-                      : "Select a rating (1-5) to view description."}
                   </div>
                 </div>
 

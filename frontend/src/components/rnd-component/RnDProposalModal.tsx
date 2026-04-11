@@ -1129,8 +1129,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       {/* Anonymity Selection Modal */}
       {showAnonymitySelection && (
         <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden'>
-            <div className='p-6'>
+          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
+            <div className='p-6 overflow-y-auto flex-1'>
               <div className='flex items-center gap-3 mb-4'>
                 <div className="p-3 bg-purple-100 rounded-full">
                   <Eye className='w-6 h-6 text-purple-600' />

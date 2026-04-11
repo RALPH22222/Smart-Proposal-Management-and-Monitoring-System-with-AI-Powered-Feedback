@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Clock,
@@ -370,9 +371,9 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     { key: 'overall', title: 'Overall Asessment', data: structuredComments.overall }
   ];
 
-  return (
+  return createPortal(
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
           {/* Header */}
@@ -818,8 +819,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       {/* Anonymity Selection Modal */}
       {showAnonymitySelection && (
         <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-in fade-in'>
-          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden'>
-            <div className='p-6'>
+          <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
+            <div className='p-6 overflow-y-auto flex-1'>
               <div className='flex items-center gap-3 mb-4'>
                 <div className="p-3 bg-purple-100 rounded-full">
                   <Eye className='w-6 h-6 text-purple-600' />
@@ -854,7 +855,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 };
 

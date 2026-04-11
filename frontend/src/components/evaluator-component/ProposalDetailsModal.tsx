@@ -239,32 +239,80 @@ export default function ProposalDetailsModal({
                           </label>
                         </div>
 
-                        {/* 1-5 Visual Indicators (Read-Only) */}
-                        <div className="flex gap-2 mb-3">
+                        {/* All Rating Rows - Read-Only, highlight selected */}
+                        <div className="flex flex-col gap-2">
                           {[5, 4, 3, 2, 1].map((num) => (
                             <div
                               key={num}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm border transition-all duration-200 cursor-default ${getButtonStyles(
+                              className={`flex items-start gap-3 p-3 rounded-lg border cursor-default ${
                                 ratingValue === num
-                              )}`}
+                                  ? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+                                  : "bg-white border-slate-200"
+                              }`}
                             >
-                              {num}
+                              <div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+                                ratingValue === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-50 text-slate-300 border-slate-200"
+                              }`}>
+                                {num}
+                              </div>
+                              <p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+                                ratingValue === num ? "text-slate-900" : "text-slate-400"
+                              }`}>
+                                {(RATING_CRITERIA[field].descriptions as any)[num]}
+                              </p>
                             </div>
                           ))}
-                        </div>
-
-                        {/* Rating Description ONLY */}
-                        <div
-                          className={`text-xs p-3 rounded-lg border ${ratingValue > 0
-                            ? getRatingColor(ratingValue)
-                            : "bg-slate-100 text-slate-500 border-slate-200 italic"
-                            }`}
-                        >
-                          {ratingDesc}
                         </div>
                       </div>
                     );
                   }
+                )}
+
+                {/* Total Assessment Score */}
+                {proposal.ratings && (
+                  <div className="bg-slate-100 rounded-xl p-5 border border-slate-300 mt-2">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-800">Total Assessment Score</h4>
+                          <p className="text-xs text-slate-500">Cumulative rating from all assessment criteria</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-3xl font-black text-[#C8102E]">
+                            {(proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)}
+                            <span className="text-lg text-slate-400 font-bold">/15</span>
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                            {(((proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)) / 15 * 100).toFixed(1)}% Accuracy Score
+                          </div>
+                        </div>
+                        {/* Visual Gauge */}
+                        <div className="relative w-14 h-14 hidden sm:block">
+                          <svg className="w-full h-full" viewBox="0 0 36 36">
+                            <path
+                              className="text-slate-200"
+                              strokeDasharray="100, 100"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3.5"
+                            />
+                            <path
+                              className="text-[#C8102E]"
+                              strokeDasharray={`${(((proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)) / 15 * 100).toFixed(0)}, 100`}
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Comments */}

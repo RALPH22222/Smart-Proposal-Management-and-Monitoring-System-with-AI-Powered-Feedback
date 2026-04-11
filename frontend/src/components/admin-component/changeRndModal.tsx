@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter, Search } from 'lucide-react';
 import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
@@ -134,8 +135,8 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
     return (isNotCurrentAssignee && isNotCurrentAssigneeByName) && matchesDepartment && matchesSearch;
   });
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
         {/* Header */}
@@ -318,7 +319,8 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

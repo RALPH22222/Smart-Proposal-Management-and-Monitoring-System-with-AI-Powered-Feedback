@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Edit2, CalendarFold } from "lucide-react";
 import type { User } from "../../types/admin";
 import { formatDate, formatTime } from "../../utils/date-formatter";
@@ -61,8 +62,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
         {/* Header */}
@@ -170,7 +171,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

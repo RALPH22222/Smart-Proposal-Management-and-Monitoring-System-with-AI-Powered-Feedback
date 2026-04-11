@@ -23,6 +23,7 @@ import {
   EyeOff,
   Lock,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
 
@@ -201,7 +202,7 @@ export default function ProposalModal({
         border: "border-emerald-200",
         text: "text-emerald-800",
         icon: <CheckCircle className="w-4 h-4 text-emerald-600" />,
-        label: "Reviewed",
+        label: "Proposal Approved",
       };
 
     if (["extension_approved"].includes(s))
@@ -220,7 +221,17 @@ export default function ProposalModal({
         border: "border-red-200",
         text: "text-red-800",
         icon: <XCircle className="w-4 h-4 text-red-600" />,
-        label: s.includes("extension") ? "Extension Declined" : "Declined",
+        label: s === "reject" ? "Proposal Reject" : s.includes("extension") ? "Extension Declined" : "Reject",
+      };
+
+    // Amber (Revise)
+    if (["revise", "revision"].includes(s))
+      return {
+        bg: "bg-amber-100",
+        border: "border-amber-200",
+        text: "text-amber-800",
+        icon: <RotateCcw className="w-4 h-4 text-amber-600" />,
+        label: "Proposal Revise",
       };
 
     // Blue (Extension Req)
@@ -331,15 +342,15 @@ export default function ProposalModal({
             </div>
           )}
 
-          {/* Accepted / Reviewed */}
+          {/* Accepted / Reviewed - Proposal Approved */}
           {["accepted", "accept", "approve", "approved", "funded"].includes((p.status || "").toLowerCase()) && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
               <div className="relative z-10">
                 <h3 className="text-lg font-bold text-emerald-800 mb-1 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-emerald-600" /> Evaluation Submitted
+                  <CheckCircle className="w-5 h-5 text-emerald-600" /> Proposal Approved
                 </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  You have completed your evaluation and submitted your recommendation for this proposal.
+                  You have completed your evaluation and recommended this proposal for approval.
                 </p>
                 {p.remarks && (
                   <div className="mt-3 bg-white p-3 rounded-lg border border-emerald-100">
@@ -350,11 +361,65 @@ export default function ProposalModal({
                 {p.evaluatedDate && (
                   <p className="text-xs text-emerald-700/80 mt-2 flex items-center gap-1.5">
                     <CalendarClock className="w-3.5 h-3.5" />
-                    Evaluated on: <span className="font-semibold ml-1">{p.evaluatedDate ? new Date(p.evaluatedDate).toLocaleDateString() : "N/A"}</span>
+                    Evaluated on: <span className="font-semibold ml-1">{new Date(p.evaluatedDate).toLocaleDateString()}</span>
                   </p>
                 )}
               </div>
               <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Proposal Revise */}
+          {["revise", "revision"].includes((p.status || "").toLowerCase()) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-amber-800 mb-1 flex items-center gap-2">
+                  <RotateCcw className="w-5 h-5 text-amber-600" /> Proposal Revise
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  You have completed your evaluation and recommended this proposal for revision before it can move forward.
+                </p>
+                {p.remarks && (
+                  <div className="mt-3 bg-white p-3 rounded-lg border border-amber-100">
+                    <p className="text-xs font-bold text-amber-700 mb-1">Your Remarks:</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{p.remarks}</p>
+                  </div>
+                )}
+                {p.evaluatedDate && (
+                  <p className="text-xs text-amber-700/80 mt-2 flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Evaluated on: <span className="font-semibold ml-1">{new Date(p.evaluatedDate).toLocaleDateString()}</span>
+                  </p>
+                )}
+              </div>
+              <RotateCcw className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Proposal Reject */}
+          {(p.status || "").toLowerCase() === "reject" && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-red-800 mb-1 flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-red-600" /> Proposal Reject
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  You have completed your evaluation and recommended this proposal for rejection.
+                </p>
+                {p.remarks && (
+                  <div className="mt-3 bg-white p-3 rounded-lg border border-red-100">
+                    <p className="text-xs font-bold text-red-700 mb-1">Your Remarks:</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{p.remarks}</p>
+                  </div>
+                )}
+                {p.evaluatedDate && (
+                  <p className="text-xs text-red-700/80 mt-2 flex items-center gap-1.5">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Evaluated on: <span className="font-semibold ml-1">{new Date(p.evaluatedDate).toLocaleDateString()}</span>
+                  </p>
+                )}
+              </div>
+              <XCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-red-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
 

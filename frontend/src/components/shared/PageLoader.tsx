@@ -101,6 +101,30 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
     );
   }
 
+  if (mode === 'how-it-works') {
+    return (
+      <div className={`space-y-8 ${className || ''}`}>
+        {[1, 2, 3, 4, 5].map((idx) => (
+          <div key={idx} className="flex gap-4 relative z-10">
+            <div className="relative flex flex-col items-center w-12 shrink-0">
+              <SkeletonPulse className="w-12 h-12 rounded-xl" />
+              {idx !== 5 && (
+                <div className="absolute top-12 -bottom-8 w-0.5 bg-slate-200 hidden sm:block z-0" />
+              )}
+            </div>
+            <div className="bg-white rounded-xl p-5 border-2 border-slate-100 flex-1 space-y-3 shadow-sm">
+              <SkeletonPulse className="h-6 w-1/3 rounded-lg" />
+              <div className="space-y-2">
+                <SkeletonPulse className="h-4 w-full rounded-md" />
+                <SkeletonPulse className="h-4 w-5/6 rounded-md opacity-60" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (mode === 'lookup') {
     return (
       <div className={`p-6 space-y-6 flex flex-col h-full bg-slate-50 ${className || ''} animate-pulse`}>

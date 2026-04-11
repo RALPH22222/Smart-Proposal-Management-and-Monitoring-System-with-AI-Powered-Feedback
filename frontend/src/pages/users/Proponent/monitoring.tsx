@@ -36,6 +36,7 @@ import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from "../../../utils/date-formatter";
 import { generateCertificatePDF } from "../../../utils/certificate-generator";
 import PageLoader from "../../../components/shared/PageLoader";
+import SkeletonPulse from "../../../components/shared/SkeletonPulse";
 
 
 
@@ -87,7 +88,6 @@ const MonitoringPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
   // Quarter navigation
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
@@ -169,7 +169,6 @@ const MonitoringPage: React.FC = () => {
     if (!activeBackend) return;
     try {
       setDetailLoading(true);
-      setDetailError(null);
       const [detail, frResponse, bs] = await Promise.all([
         fetchProjectDetail(activeBackend.id),
         fetchFundRequests(activeBackend.id).catch((err) => {
@@ -251,7 +250,6 @@ const MonitoringPage: React.FC = () => {
       setCurrentReportIndex(firstActionable >= 0 ? firstActionable : 0);
     } catch (error: any) {
       console.error('Error loading project detail:', error);
-      setDetailError(error?.response?.data?.message || error?.message || 'Failed to load project details.');
     } finally {
       setDetailLoading(false);
     }
@@ -552,17 +550,17 @@ const MonitoringPage: React.FC = () => {
 
         {/* --- STATS CARDS --- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
-            <div><p className="text-xs font-bold text-gray-500">Active Projects</p><p className="text-3xl font-bold text-emerald-600">{projects.filter(p => p.status === 'Active').length}</p></div>
-            <Play className="w-8 h-8 text-emerald-500" />
+          <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer flex justify-between items-center">
+            <div><p className="text-xs font-semibold text-slate-700 mb-2">Active Projects</p><p className="text-3xl font-bold text-emerald-600 tabular-nums">{projects.filter(p => p.status === 'Active').length}</p></div>
+            <Play className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform duration-300" />
           </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
-            <div><p className="text-xs font-bold text-gray-500">Delayed</p><p className="text-3xl font-bold text-amber-600">{projects.filter(p => p.status === 'Delayed').length}</p></div>
-            <AlertTriangle className="w-8 h-8 text-amber-500" />
+          <div className="bg-amber-50 shadow-xl rounded-2xl border border-amber-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer flex justify-between items-center">
+            <div><p className="text-xs font-semibold text-slate-700 mb-2">Delayed</p><p className="text-3xl font-bold text-amber-600 tabular-nums">{projects.filter(p => p.status === 'Delayed').length}</p></div>
+            <AlertTriangle className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform duration-300" />
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md transition-all">
-            <div><p className="text-xs font-bold text-gray-500">Completed</p><p className="text-3xl font-bold text-blue-600">{projects.filter(p => p.status === 'Completed').length}</p></div>
-            <CheckCircle2 className="w-8 h-8 text-blue-500" />
+          <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer flex justify-between items-center">
+            <div><p className="text-xs font-semibold text-slate-700 mb-2">Completed</p><p className="text-3xl font-bold text-blue-600 tabular-nums">{projects.filter(p => p.status === 'Completed').length}</p></div>
+            <CheckCircle2 className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
           </div>
         </div>
       </header>
@@ -590,24 +588,29 @@ const MonitoringPage: React.FC = () => {
               <p className="text-center text-sm text-gray-400 py-8">No projects found.</p>
             )}
 
-            {/* Show actual items (blurred if loading) */}
-            {(loading ? projects : filteredProjects).map((project) => (
+            {loading ? (
+              [1, 2, 3, 4, 5, 6].map((idx) => (
+                <div key={idx} className="w-full p-4 rounded-xl border border-slate-100 bg-white space-y-2 shadow-sm">
+                  <SkeletonPulse className="h-4 w-3/4 rounded" />
+                  <SkeletonPulse className="h-3 w-1/2 rounded opacity-50" />
+                </div>
+              ))
+            ) : filteredProjects.map((project) => (
               <button
                 key={project.id}
                 onClick={() => {
-                  if (loading) return; // Prevent interaction during loading
                   setActiveProjectId(project.id);
                   setShowMobileDetail(true);
                 }}
-                className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${loading ? 'blur-[1.5px] pointer-events-none opacity-60' : (activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200')}`}
+                className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200 shadow-sm' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}`}
               >
                 <div className="min-w-0">
                   <h4 className={`text-sm font-bold line-clamp-1 ${activeProjectId === project.id ? 'text-blue-800' : 'text-gray-700'}`}>{project.title}</h4>
                   <p className="text-xs text-gray-400 mt-1">{project.department}</p>
                 </div>
-                {project.status === 'Delayed' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
-                {project.status === 'Active' && <Play className="w-4 h-4 text-emerald-500" />}
-                {project.status === 'Completed' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
+                {project.status === 'Delayed' && <AlertTriangle className="w-4 h-4 text-amber-500 translate-x-0 group-hover:scale-110 transition-transform" />}
+                {project.status === 'Active' && <Play className="w-4 h-4 text-emerald-500 translate-x-0 group-hover:scale-110 transition-transform" />}
+                {project.status === 'Completed' && <CheckCircle2 className="w-4 h-4 text-blue-500 translate-x-0 group-hover:scale-110 transition-transform" />}
               </button>
             ))}
           </div>
@@ -619,13 +622,9 @@ const MonitoringPage: React.FC = () => {
               <button onClick={() => setShowMobileDetail(false)} className="flex items-center gap-2 text-gray-600 font-semibold hover:text-[#C8102E]"><ArrowLeft className="w-5 h-5" /> Back to Projects</button>
             </div>
 
-            {detailLoading ? (
-              <PageLoader mode="proponent-monitoring" />
-            ) : detailError ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-3 p-8">
-                <AlertTriangle className="w-8 h-8 text-amber-500" />
-                <p className="text-sm text-center">{detailError}</p>
-                <button onClick={loadProjectDetail} className="text-sm text-[#C8102E] hover:underline font-medium">Try again</button>
+            {(detailLoading || loading) ? (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex-1">
+                <PageLoader mode="proponent-monitoring" className="bg-transparent" />
               </div>
             ) : activeProject && quarters.length > 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
@@ -1216,8 +1215,12 @@ const MonitoringPage: React.FC = () => {
 
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-400">
-              {projects.length === 0 ? 'No funded projects yet.' : 'Select a project'}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex-1 flex flex-col items-center justify-center text-center animate-pulse min-h-[400px]">
+              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                <Target className="w-12 h-12 text-gray-200" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-300 mb-2">Select a Project</h3>
+              <p className="text-gray-200 text-sm max-w-xs">Complete project monitoring by selecting a funded project from the list on the left.</p>
             </div>
           )}
         </div>

@@ -91,7 +91,7 @@ const SendToRndModal: React.FC<SendToRndModalProps> = ({
     `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || 'Unknown';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b bg-slate-50">

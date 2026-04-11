@@ -10,7 +10,8 @@ import {
 	X,
 	User,
 	Building2,
-	Mail
+	Mail,
+	RefreshCw
 } from 'lucide-react';
 import { formatDate, formatTime } from '../../utils/date-formatter';
 
@@ -87,6 +88,8 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 				return 'text-red-600 bg-red-50 border-red-200';
 			case 'Pending':
 				return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+			case 'In Review':
+				return 'text-cyan-600 bg-cyan-50 border-cyan-200';
 			default:
 				return 'text-slate-600 bg-slate-50 border-slate-200';
 		}
@@ -102,6 +105,8 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 				return <XCircle className='w-4 h-4 sm:w-5 sm:h-5 text-red-600' />;
 			case 'Pending':
 				return <Clock className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-600' />;
+			case 'In Review':
+				return <RefreshCw className='w-4 h-4 sm:w-5 sm:h-5 text-cyan-600' />;
 			default:
 				return <FileText className='w-4 h-4 sm:w-5 sm:h-5 text-slate-600' />;
 		}
@@ -215,22 +220,38 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 									Evaluator Ratings
 								</h3>
 
-								{/* Objectives Rating */}
+								{/* Title Rating */}
 								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
 									<div className="flex items-center justify-between mb-3">
 										<label className="text-sm font-semibold text-slate-900">
 											{RATING_CRITERIA.title.label}
 										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.title}/5
-												</span>
-											</span>
-										</div>
+										<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+											{decision.ratings.title}/5
+										</span>
 									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.title)}`}>
-										{(RATING_CRITERIA.title.descriptions as Record<number, string>)[decision.ratings.title]}
+									<div className="flex flex-col gap-2">
+										{[5, 4, 3, 2, 1].map((num) => (
+											<div
+												key={num}
+												className={`flex items-start gap-3 p-3 rounded-lg border cursor-default ${
+													decision.ratings?.title === num
+														? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+														: "bg-white border-slate-200"
+												}`}
+											>
+												<div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+													decision.ratings?.title === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-100 text-slate-300 border-slate-200"
+												}`}>
+													{num}
+												</div>
+												<p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+													decision.ratings?.title === num ? "text-slate-900" : "text-slate-400"
+												}`}>
+													{(RATING_CRITERIA.title.descriptions as Record<number, string>)[num]}
+												</p>
+											</div>
+										))}
 									</div>
 								</div>
 
@@ -240,16 +261,32 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										<label className="text-sm font-semibold text-slate-900">
 											{RATING_CRITERIA.budget.label}
 										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.budget}/5
-												</span>
-											</span>
-										</div>
+										<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+											{decision.ratings.budget}/5
+										</span>
 									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
-										{(RATING_CRITERIA.budget.descriptions as Record<number, string>)[decision.ratings.budget]}
+									<div className="flex flex-col gap-2">
+										{[5, 4, 3, 2, 1].map((num) => (
+											<div
+												key={num}
+												className={`flex items-start gap-3 p-3 rounded-lg border cursor-default ${
+													decision.ratings?.budget === num
+														? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+														: "bg-white border-slate-200"
+												}`}
+											>
+												<div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+													decision.ratings?.budget === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-100 text-slate-300 border-slate-200"
+												}`}>
+													{num}
+												</div>
+												<p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+													decision.ratings?.budget === num ? "text-slate-900" : "text-slate-400"
+												}`}>
+													{(RATING_CRITERIA.budget.descriptions as Record<number, string>)[num]}
+												</p>
+											</div>
+										))}
 									</div>
 								</div>
 
@@ -259,16 +296,32 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										<label className="text-sm font-semibold text-slate-900">
 											{RATING_CRITERIA.timeline.label}
 										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.timeline}/5
-												</span>
-											</span>
-										</div>
+										<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
+											{decision.ratings.timeline}/5
+										</span>
 									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.timeline)}`}>
-										{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[decision.ratings.timeline]}
+									<div className="flex flex-col gap-2">
+										{[5, 4, 3, 2, 1].map((num) => (
+											<div
+												key={num}
+												className={`flex items-start gap-3 p-3 rounded-lg border cursor-default ${
+													decision.ratings?.timeline === num
+														? getRatingColor(num) + " shadow-sm ring-1 ring-current"
+														: "bg-white border-slate-200"
+												}`}
+											>
+												<div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
+													decision.ratings?.timeline === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-100 text-slate-300 border-slate-200"
+												}`}>
+													{num}
+												</div>
+												<p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
+													decision.ratings?.timeline === num ? "text-slate-900" : "text-slate-400"
+												}`}>
+													{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[num]}
+												</p>
+											</div>
+										))}
 									</div>
 								</div>
 

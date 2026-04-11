@@ -800,7 +800,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-blue-200",
         text: "text-blue-800",
         icon: <Signature className="w-5 h-5 text-blue-600" />,
-        label: "Endorsed for Funding",
+        label: "Endorsed",
       };
     if (["funded", "accepted", "approved"].includes(s))
       return {
@@ -808,7 +808,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-emerald-200",
         text: "text-emerald-800",
         icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
-        label: "Project Funded",
+        label: "Funded",
       };
 
     if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) {
@@ -839,7 +839,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-red-200",
         text: "text-red-800",
         icon: <XCircle className="w-5 h-5 text-red-600" />,
-        label: "Proposal Rejected",
+        label: "Rejected",
       };
 
     if (s === "not_submitted")
@@ -848,7 +848,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-red-300",
         text: "text-red-800",
         icon: <XCircle className="w-5 h-5 text-red-600" />,
-        label: "Deadline Expired",
+        label: "Not Submitted",
       };
 
     if (["review_rnd", "r&d evaluation"].includes(s))
@@ -857,7 +857,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-blue-200",
         text: "text-blue-800",
         icon: <Microscope className="w-5 h-5 text-blue-600" />,
-        label: "Under R&D Evaluation",
+        label: "R&D Evaluation",
       };
 
     if (["evaluators assessment", "under_evaluation"].includes(s))
@@ -866,7 +866,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         border: "border-purple-200",
         text: "text-purple-800",
         icon: <FileCheck className="w-5 h-5 text-purple-600" />,
-        label: "Under Evaluators Assessment",
+        label: "Evaluators Assessment",
       };
 
     if (["pending"].includes(s))
