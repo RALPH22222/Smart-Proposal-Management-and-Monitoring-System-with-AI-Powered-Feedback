@@ -1,114 +1,173 @@
 import React, { useEffect, useState } from 'react';
-import { Camera } from 'lucide-react';
-import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
+import {
+  Camera, User, GraduationCap, Lock,
+  Eye, EyeOff, CheckCircle, Mail, Calendar,
+  Shield
+} from 'lucide-react';
 import {
   changeMyPassword,
   getMyProfile,
   updateMyAvatar,
-  updateMyName,
-  type UserProfile
+  updateMyProfile,
+  updateMyEmail
 } from '../../../services/user/userService';
-import { SettingsApi, type NotificationPreferences } from '../../../services/admin/SettingsApi';
 import SecureImage from '../../../components/shared/SecureImage';
 import PageLoader from '../../../components/shared/PageLoader';
 
-// --- Constants from Profile Setup ---
+// --- Constants ---
 const DEPARTMENTS = [
   "College of Computing Studies",
   "College of Engineering",
   "College of Architecture",
   "College of Arts and Sciences",
-  "College of Business",
+  "College of Business Administration",
   "College of Education",
-  "College of Nursing"
+  "College of Nursing",
+  "College of Law",
+  "College of Agriculture",
+  "College of Fisheries and Ocean Technology",
 ];
 
-const ROLES = ["Lead Proponent", "Co-Lead Proponent"];
-
-// --- Extended Interface ---
-interface ExtendedUserProfile extends UserProfile {
+interface ExtendedUserProfile {
+  id?: string;
+  email?: string;
+  name?: string;
   firstName?: string;
   middleInitial?: string;
   lastName?: string;
   birthdate?: string;
   sex?: 'Male' | 'Female' | 'Prefer not to say' | '';
-  role?: 'Lead Proponent' | 'Co-Lead Proponent' | '';
   department?: string;
+  department_id?: string;
+  avatarUrl?: string | null;
 }
 
+// --- Password Strength Helper ---
+const getPasswordStrength = (password: string): { label: string; color: string; width: string } => {
+  if (!password) return { label: '', color: '', width: '0%' };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (score <= 1) return { label: 'Weak', color: 'bg-red-500', width: '25%' };
+  if (score <= 2) return { label: 'Fair', color: 'bg-orange-400', width: '50%' };
+  if (score <= 3) return { label: 'Good', color: 'bg-yellow-400', width: '75%' };
+  return { label: 'Strong', color: 'bg-green-500', width: '100%' };
+};
+
+// --- Section Header Component ---
+const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
+  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-[#C8102E] flex-shrink-0">
+      {icon}
+    </div>
+    <div>
+      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+    </div>
+  </div>
+);
+
+// --- Input Component ---
+const FormInput: React.FC<{
+  label: string;
+  type?: string;
+  name?: string;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  maxLength?: number;
+  suffix?: React.ReactNode;
+}> = ({ label, type = 'text', name, value, onChange, placeholder, readOnly, disabled, required, maxLength, suffix }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        disabled={disabled || readOnly}
+        maxLength={maxLength}
+        className={`block w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-200 outline-none
+          ${readOnly
+            ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-white border-gray-300 text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400'
+          }
+          ${suffix ? 'pr-10' : ''}
+        `}
+      />
+      {suffix && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          {suffix}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// --- Main Component ---
 const Settings: React.FC = () => {
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
-  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  // --- Profile Data State ---
+  // Profile form state
   const [formData, setFormData] = useState({
     firstName: '',
     middleInitial: '',
     lastName: '',
     birthdate: '',
     sex: '',
-    role: '',
     department: '',
   });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // --- Password State ---
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Email state
+  const [emailValue, setEmailValue] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ type: 'success' | 'error'; info: boolean; text: string } | null>(null);
 
+  // Password state
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const passwordStrength = getPasswordStrength(passwords.new);
+
+  // Load data
   useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true);
-        const [me, p] = await Promise.all([
-            getMyProfile() as Promise<ExtendedUserProfile>,
-            SettingsApi.getNotificationPreferences().catch(() => null)
-        ]);
-        
+        const me = await getMyProfile() as ExtendedUserProfile;
         setProfile(me);
-        setPrefs(p);
-        
+        setEmailValue(me.email || '');
         setFormData({
-            firstName: me.firstName || '',
-            middleInitial: me.middleInitial || '',
-            lastName: me.lastName || '',
-            birthdate: me.birthdate || '',
-            sex: me.sex || '',
-            role: me.role || '',
-            department: me.department || '',
+          firstName: me.firstName || '',
+          middleInitial: me.middleInitial || '',
+          lastName: me.lastName || '',
+          birthdate: me.birthdate || '',
+          sex: me.sex || '',
+          department: me.department || '',
         });
-
-      } catch (e) {
-        if (e instanceof Error) {
-          setError(e?.message || 'Failed to load profile');
-        }
+      } catch {
+        setProfileMsg({ type: 'error', text: 'Failed to load profile data. Please refresh the page.' });
       } finally {
-        setLoading(false);
+        setPageLoading(false);
       }
     };
     load();
   }, []);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const withFeedback = async (fn: () => Promise<any>, successMsg: string) => {
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-    try {
-      const res = await fn();
-      setSuccess(successMsg);
-      return res;
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e?.message || 'Something went wrong');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -117,317 +176,494 @@ const Settings: React.FC = () => {
 
   const onSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProfileMsg(null);
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError('First and Last Name are required');
+      setProfileMsg({ type: 'error', text: 'First and Last Name are required.' });
       return;
     }
+    setIsSavingProfile(true);
+    try {
+      await updateMyProfile(formData as any);
+      setProfile(prev => prev ? {
+        ...prev, ...formData,
+        sex: formData.sex as ExtendedUserProfile['sex'],
+        name: [formData.firstName, formData.middleInitial, formData.lastName].filter(Boolean).join(' ')
+      } : null);
+      setProfileMsg({ type: 'success', text: 'Profile updated successfully!' });
+    } catch {
+      setProfileMsg({ type: 'error', text: 'Failed to save profile changes. Please try again.' });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
-    const fullName = `${formData.firstName} ${formData.lastName}`;
-    const updated = await withFeedback(
-        () => updateMyName(fullName),
-        'Profile updated'
-    );
-
-    if (updated) {
-        setProfile((prev) => {
-            if (!prev) return null;
-            return {
-                ...prev,
-                ...formData,
-                // Fix: Cast generic string to specific Union Type
-                sex: formData.sex as ExtendedUserProfile['sex'],
-                role: formData.role as ExtendedUserProfile['role'],
-                name: fullName
-            };
-        });
+  const onSaveEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailMsg(null);
+    if (!emailValue.trim() || !emailValue.includes('@')) {
+      setEmailMsg({ type: 'error', info: false, text: 'Please enter a valid email address.' });
+      return;
+    }
+    setIsSavingEmail(true);
+    try {
+      await updateMyEmail(emailValue);
+      setEmailMsg({ type: 'success', info: true, text: 'Verification emails sent! Please check your old and new inbox to confirm the change. (It may take a few minutes)' });
+    } catch {
+      setEmailMsg({ type: 'error', info: false, text: 'Failed to update email. Please try again later.' });
+    } finally {
+      setIsSavingEmail(false);
     }
   };
 
   const onChangeAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await withFeedback(async () => {
+    try {
       const res = await updateMyAvatar(file);
-      setProfile((prev) =>
-        prev ? { ...prev, avatarUrl: res.avatarUrl } : prev
-      );
-      return res;
-    }, 'Profile picture updated');
+      setProfile(prev => prev ? { ...prev, avatarUrl: res.avatarUrl } : prev);
+    } catch {
+      setProfileMsg({ type: 'error', text: 'Failed to update profile picture.' });
+    }
     e.currentTarget.value = '';
   };
 
   const onChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword || !newPassword) {
-      setError('Please fill out current and new password');
+    setPasswordMsg(null);
+    if (!passwords.current || !passwords.new) {
+      setPasswordMsg({ type: 'error', text: 'Please fill in all password fields.' });
       return;
     }
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirm password do not match');
+    if (passwords.new !== passwords.confirm) {
+      setPasswordMsg({ type: 'error', text: 'New password and confirmation do not match.' });
       return;
     }
-    await withFeedback(
-      () => changeMyPassword(currentPassword, newPassword),
-      'Password changed successfully'
-    );
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    if (passwords.new.length < 8) {
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 8 characters.' });
+      return;
+    }
+    setIsSavingPassword(true);
+    try {
+      await changeMyPassword(passwords.current, passwords.new);
+      setPasswordMsg({ type: 'success', text: 'Password changed successfully!' });
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch {
+      setPasswordMsg({ type: 'error', text: 'Failed to change password. Please check your current password.' });
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
-
-  if (loading && !profile) {
+  if (pageLoading) {
     return <PageLoader mode="proponent-settings" />;
   }
 
+  const displayName = profile?.name || `${formData.firstName} ${formData.lastName}`.trim() || 'Proponent';
+  const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in">
-      <header className='mb-6'>
-        <h1 className='text-2xl font-bold text-gray-800'>Account Settings</h1>
-        <p className='text-sm text-gray-500'>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+
+      {/* ── Page Header ── */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
+        <p className="text-sm text-gray-500 mt-1">
           Manage your personal information, academic details, and security.
         </p>
-      </header>
+      </div>
 
-      {(error || success) && (
-        <div className='mb-4'>
-          {error && (
-            <div className='rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700'>
-              {error}
+      {/* ── Profile Header Card ── */}
+      <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 mb-6 text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-white/30 shadow-xl">
+              <SecureImage
+                src={profile?.avatarUrl ?? undefined}
+                fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=C8102E&color=fff&bold=true`}
+                alt="Avatar"
+                className="h-full w-full object-cover"
+              />
             </div>
-          )}
-          {success && (
-            <div className='rounded-md border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700'>
-              {success}
+            <label className="absolute -bottom-2 -right-2 bg-white text-[#C8102E] hover:bg-gray-50 p-2 rounded-xl cursor-pointer shadow-lg transition-all duration-200 hover:scale-110">
+              <Camera size={16} />
+              <input type="file" accept="image/*" className="hidden" onChange={onChangeAvatar} />
+            </label>
+          </div>
+
+          {/* Info */}
+          <div className="text-center sm:text-left flex-1">
+            <h2 className="text-xl font-bold">{displayName}</h2>
+            <p className="text-red-200 text-sm mt-0.5">{profile?.email || '—'}</p>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+              {formData.department && (
+                <span className="bg-white/15 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full border border-white/20 max-w-[200px] truncate">
+                  {formData.department}
+                </span>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Quick stats */}
+          <div className="flex sm:flex-col items-center gap-4 sm:gap-2 bg-white/10 rounded-xl px-4 py-3 text-center">
+            <div>
+              <div className="text-xl font-bold">Proponent</div>
+              <div className="text-red-200 text-xs">Account Role</div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* --- Profile Photo Section --- */}
-      <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6'>
-         <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-            <div className="relative group">
-                <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-gray-100 shadow-sm">
-                    <SecureImage
-                        src={profile?.avatarUrl ?? undefined}
-                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(formData.firstName || 'User')}&background=E5E7EB&color=111827`}
-                        alt='Avatar'
-                        className='h-full w-full object-cover'
-                    />
-                </div>
-                <label className="absolute bottom-0 right-0 bg-[#C8102E] hover:bg-[#A50D26] text-white p-2 rounded-full cursor-pointer shadow-md transition-transform transform hover:scale-105">
-                    <Camera size={16} />
-                    <input
-                        type='file'
-                        accept='image/*'
-                        className='hidden'
-                        onChange={onChangeAvatar}
-                    />
-                </label>
+      {/* ── Profile Form ── */}
+      <form onSubmit={onSaveProfile}>
+        {/* Personal Information */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <SectionHeader
+            icon={<User size={20} />}
+            title="Personal Information"
+            description="Your basic identity details on the system"
+          />
+
+          {profileMsg && (
+            <div className={`mb-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${
+              profileMsg.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              {profileMsg.type === 'success'
+                ? <CheckCircle size={16} className="flex-shrink-0" />
+                : <Shield size={16} className="flex-shrink-0" />
+              }
+              {profileMsg.text}
+            </div>
+          )}
+
+          {/* Name Row */}
+          <div className="grid grid-cols-12 gap-3 mb-4">
+            <div className="col-span-12 sm:col-span-5">
+              <FormInput
+                label="First Name"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                placeholder="e.g. Juan"
+                required
+              />
+            </div>
+            <div className="col-span-12 sm:col-span-2">
+              <FormInput
+                label="M.I."
+                name="middleInitial"
+                value={formData.middleInitial}
+                onChange={handleInputChange}
+                placeholder="e.g. D"
+                maxLength={2}
+              />
+            </div>
+            <div className="col-span-12 sm:col-span-5">
+              <FormInput
+                label="Last Name"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                placeholder="e.g. Dela Cruz"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                <Calendar size={13} className="text-gray-400" /> Birthdate
+              </label>
+              <input
+                type="date"
+                name="birthdate"
+                value={formData.birthdate}
+                onChange={handleInputChange}
+                className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
+              />
             </div>
             <div>
-                <h2 className='text-lg font-medium text-gray-900'>Profile Photo</h2>
-                <p className='text-sm text-gray-500'>
-                    Update your profile picture. Accepted formats: JPG, PNG.
-                </p>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Sex</label>
+              <select
+                name="sex"
+                value={formData.sex}
+                onChange={handleInputChange}
+                className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
+              >
+                <option value="" disabled>Select sex</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
             </div>
-         </div>
-      </section>
+          </div>
+        </div>
 
-      {/* --- Main Profile Form --- */}
-      <form onSubmit={onSaveProfile}>
-        
-        {/* Personal Info */}
-        <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6'>
-            <h2 className='text-lg font-medium text-gray-800 mb-4 border-b pb-2'>Personal Information</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
-                <div className="md:col-span-5">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                    <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                    />
-                </div>
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">M.I.</label>
-                    <input
-                        type="text"
-                        name="middleInitial"
-                        maxLength={2}
-                        value={formData.middleInitial}
-                        onChange={handleInputChange}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                    />
-                </div>
-                <div className="md:col-span-5">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                    <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                    />
-                </div>
-            </div>
+        {/* Academic Information */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <SectionHeader
+            icon={<GraduationCap size={20} />}
+            title="Academic Information"
+            description="Your department and role in the research project"
+          />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
-                    <input
-                        type="date"
-                        name="birthdate"
-                        value={formData.birthdate}
-                        onChange={handleInputChange}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sex</label>
-                    <select
-                        name="sex"
-                        value={formData.sex}
-                        onChange={handleInputChange}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                    >
-                        <option value="" disabled>Select Sex</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                </div>
-            </div>
-        </section>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Department / College</label>
+            <select
+              name="department"
+              value={formData.department}
+              onChange={handleInputChange}
+              className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
+            >
+              <option value="" disabled>Select your department</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Academic Info */}
-        <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6'>
-            <h2 className='text-lg font-medium text-gray-800 mb-4 border-b pb-2'>Academic Information</h2>
-            
-            <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Department / College</label>
-                <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30"
-                >
-                    <option value="" disabled>Select Department</option>
-                    {DEPARTMENTS.map((dept) => (
-                        <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role in Project</label>
-                <div className="flex gap-4">
-                    {ROLES.map((role) => (
-                        <label key={role} className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="role"
-                                value={role}
-                                checked={formData.role === role}
-                                onChange={handleInputChange}
-                                className="text-[#C8102E] focus:ring-[#C8102E]"
-                            />
-                            <span className="text-sm text-gray-700">{role}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-
-            <div className="flex justify-end">
-                <button
-                    type='submit'
-                    disabled={loading}
-                    className='px-6 py-2 rounded-md bg-[#C8102E] text-white font-medium hover:bg-[#A50D26] transition-colors shadow-sm disabled:opacity-50'
-                >
-                    {loading ? 'Saving...' : 'Save Profile Changes'}
-                </button>
-            </div>
-        </section>
-
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#A50D26] transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingProfile ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} /> Save Profile Changes
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </form>
 
-      {/* --- Notification Preferences Section --- */}
-      <section className='mb-6'>
-        <h2 className='text-lg font-medium text-gray-800 mb-4'>Notification Preferences</h2>
-        <NotificationPreferencesCard
-          initialPrefs={prefs || undefined}
-          visibleEvents={[
-            'proposal_endorsed',
-            'proposal_revision',
-            'fund_request_reviewed',
-            'certificate_issued',
-          ]}
-        />
-      </section>
-
-      {/* --- Security Section --- */}
-      <section className='bg-white rounded-lg shadow-sm border border-gray-100 p-6'>
-        <h2 className='text-lg font-medium text-gray-800 mb-4 border-b pb-2'>Security</h2>
-        <form
-          onSubmit={onChangePassword}
-          className='grid grid-cols-1 sm:grid-cols-2 gap-4'
-        >
-          <div className="sm:col-span-2">
-            <p className='text-sm text-gray-500 mb-2'>
-              Ensure your account is using a long, random password to stay secure.
-            </p>
-          </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Current password
-            </label>
-            <input
-              type='password'
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-            />
-          </div>
-          <div></div> 
+      {/* ── Change Email Form ── */}
+      <form onSubmit={onSaveEmail}>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <SectionHeader
+            icon={<Mail size={20} />}
+            title="Email Address"
+            description="Manage your primary login and communication email"
+          />
           
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              New password
-            </label>
-            <input
-              type='password'
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
+          {emailMsg && (
+            <div className={`mb-5 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${
+              emailMsg.type === 'success' && emailMsg.info 
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : emailMsg.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              {emailMsg.type === 'success' && emailMsg.info 
+                ? <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+              : emailMsg.type === 'success'
+                ? <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                : <Shield size={16} className="mt-0.5 flex-shrink-0" />
+              }
+              {emailMsg.text}
+            </div>
+          )}
+
+          <div className="mb-4">
+            <FormInput
+              label="Primary Email"
+              type="email"
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
+              placeholder="e.g. user@example.com"
+              required
+              suffix={<Mail size={15} className="text-gray-400" />}
             />
+            {profile?.email !== emailValue && (
+               <p className="text-xs text-orange-600 mt-1.5 ml-0.5 font-medium">
+                 Changes must be verified via confirmation link.
+               </p>
+            )}
           </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-1'>
-              Confirm new password
-            </label>
-            <input
-              type='password'
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/30'
-            />
+          
+          <div className="flex justify-end">
+             <button
+                type="submit"
+                disabled={isSavingEmail || profile?.email === emailValue}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingEmail ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Update Email
+                  </>
+                )}
+             </button>
           </div>
-          <div className='sm:col-span-2 flex justify-end mt-2'>
+        </div>
+      </form>
+
+      {/* ── Security / Change Password ── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <SectionHeader
+          icon={<Lock size={20} />}
+          title="Security"
+          description="Keep your account secure with a strong password"
+        />
+
+        <form onSubmit={onChangePassword}>
+          {passwordMsg && (
+            <div className={`mb-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${
+              passwordMsg.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              {passwordMsg.type === 'success'
+                ? <CheckCircle size={16} className="flex-shrink-0" />
+                : <Shield size={16} className="flex-shrink-0" />
+              }
+              {passwordMsg.text}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            {/* Current Password */}
+            <div className="sm:col-span-2">
+              <FormInput
+                label="Current Password"
+                type={showPasswords.current ? 'text' : 'password'}
+                value={passwords.current}
+                onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                placeholder="Enter your current password"
+                suffix={
+                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))} className="text-gray-400 hover:text-gray-600">
+                    {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+              />
+            </div>
+
+            {/* New Password */}
+            <div>
+              <FormInput
+                label="New Password"
+                type={showPasswords.new ? 'text' : 'password'}
+                value={passwords.new}
+                onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                placeholder="At least 8 characters"
+                suffix={
+                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="text-gray-400 hover:text-gray-600">
+                    {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+              />
+              {/* Strength Bar */}
+              {passwords.new && (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Password strength</span>
+                    <span className={`font-semibold ${
+                      passwordStrength.label === 'Strong' ? 'text-green-600' :
+                      passwordStrength.label === 'Good' ? 'text-yellow-600' :
+                      passwordStrength.label === 'Fair' ? 'text-orange-600' : 'text-red-600'
+                    }`}>{passwordStrength.label}</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${passwordStrength.color}`}
+                      style={{ width: passwordStrength.width }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <FormInput
+                label="Confirm New Password"
+                type={showPasswords.confirm ? 'text' : 'password'}
+                value={passwords.confirm}
+                onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                placeholder="Repeat new password"
+                suffix={
+                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="text-gray-400 hover:text-gray-600">
+                    {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+              />
+              {/* Match indicator */}
+              {passwords.confirm && (
+                <p className={`text-xs mt-1.5 font-medium flex items-center gap-1 ${
+                  passwords.new === passwords.confirm ? 'text-green-600' : 'text-red-500'
+                }`}>
+                  {passwords.new === passwords.confirm
+                    ? <><CheckCircle size={12} /> Passwords match</>
+                    : <><Shield size={12} /> Passwords do not match</>
+                  }
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5">
+            <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements</p>
+            <ul className="space-y-1">
+              {[
+                { check: passwords.new.length >= 8, text: 'At least 8 characters' },
+                { check: /[A-Z]/.test(passwords.new), text: 'One uppercase letter' },
+                { check: /[0-9]/.test(passwords.new), text: 'One number' },
+                { check: /[^A-Za-z0-9]/.test(passwords.new), text: 'One special character (!@#$...)' },
+              ].map(({ check, text }) => (
+                <li key={text} className={`flex items-center gap-2 text-xs font-medium ${check ? 'text-green-600' : 'text-gray-400'}`}>
+                  <CheckCircle size={12} className={check ? 'text-green-500' : 'text-gray-300'} />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex justify-end">
             <button
-              type='submit'
-              disabled={loading}
-              className='px-4 py-2 text-sm rounded-md border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50'
+              type="submit"
+              disabled={isSavingPassword}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Update Password
+              {isSavingPassword ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Lock size={15} /> Update Password
+                </>
+              )}
             </button>
           </div>
         </form>
-      </section>
+      </div>
 
+      {/* Spacer for bottom nav */}
+      <div className="h-8" />
     </div>
   );
 };

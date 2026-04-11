@@ -1,55 +1,82 @@
-import axios from "axios";
-
-// Reuse the same API base URL used by auth services
-const API_URL = "http://127.0.0.1:8000";
+import { api } from "../../utils/axios";
 
 export type UserProfile = {
-  id: number | string;
-  name: string;
+  id: string;
   email: string;
+  first_name: string;
+  last_name: string;
+  middle_ini?: string;
+  birth_date?: string;
+  sex?: 'Male' | 'Female' | 'Prefer not to say' | '';
+  department_id?: string;
+  name?: string; // computed name if needed
   avatarUrl?: string | null;
-  notificationsEnabled?: boolean;
+  photo_profile_url?: string | null; // backend name
+  departments?: { name: string };
 };
 
 // Fetch current user profile
 export const getMyProfile = async () => {
-  const res = await axios.get(`${API_URL}/users/me/`);
-  return res.data as UserProfile;
+  const res = await api.get<{ data?: UserProfile }>('/profile/me');
+  // Handle backend wrapping
+  const profile: any = res.data?.data || res.data;
+  if (!profile) throw new Error("Profile not found");
+
+  // Format data for legacy frontend expectations
+  return {
+    ...profile,
+    name: [profile.first_name, profile.middle_ini, profile.last_name].filter(Boolean).join(" "),
+    avatarUrl: profile.photo_profile_url,
+    firstName: profile.first_name,
+    lastName: profile.last_name,
+    middleInitial: profile.middle_ini,
+    birthdate: profile.birth_date,
+    sex: profile.sex,
+    department: profile.departments?.name, // extracted for UI
+  };
 };
 
-// Update display name
-export const updateMyName = async (name: string) => {
-  const res = await axios.patch(`${API_URL}/users/me/`, { name });
-  return res.data as UserProfile;
+export const updateMyProfile = async (data: Record<string, any>) => {
+  // Map frontend fields back to backend names if needed
+  const backendPayload = {
+    first_name: data.firstName || data.first_name,
+    last_name: data.lastName || data.last_name,
+    middle_ini: data.middleInitial !== undefined ? data.middleInitial : data.middle_ini,
+    birth_date: data.birthdate !== undefined ? data.birthdate : data.birth_date,
+    sex: data.sex,
+    department_id: data.department_id,
+  };
+  
+  const res = await api.patch('/profile/me', backendPayload);
+  return res.data;
+};
+
+// Backwards compatibility wrapper for older settings page code
+export const updateMyName = async (_name: string) => {
+  throw new Error("Use updateMyProfile instead");
 };
 
 // Update email
-export const updateMyEmail = async (email: string, currentPassword?: string) => {
-  const res = await axios.post(`${API_URL}/users/me/change-email/`, { email, current_password: currentPassword });
-  return res.data as { message: string };
+export const updateMyEmail = async (email: string) => {
+  const res = await api.post<{ message?: string }>('/profile/me/change-email', { email });
+  return res.data;
 };
 
 // Change password
-export const changeMyPassword = async (currentPassword: string, newPassword: string) => {
-  const res = await axios.post(`${API_URL}/users/me/change-password/`, {
-    current_password: currentPassword,
+export const changeMyPassword = async (_currentPassword: string, newPassword: string) => {
+  // We keep _currentPassword parameter so the UI signature won't break.
+  const res = await api.post<{ success?: boolean }>('/auth/change-password', {
     new_password: newPassword,
   });
-  return res.data as { message: string };
+  return res.data;
 };
 
 // Update avatar/profile picture
 export const updateMyAvatar = async (file: File) => {
   const formData = new FormData();
   formData.append("avatar", file);
-  const res = await axios.post(`${API_URL}/users/me/avatar/`, formData, {
+  const res = await api.post<{ avatarUrl: string }>('/profile/me/avatar', formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-  return res.data as { avatarUrl: string };
-};
-
-// Toggle notifications
-export const setMyNotifications = async (enabled: boolean) => {
-  const res = await axios.post(`${API_URL}/users/me/notifications/`, { enabled });
-  return res.data as { enabled: boolean };
+  return res.data;
 };

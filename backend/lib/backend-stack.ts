@@ -22,6 +22,7 @@ import { AuthLambdas } from "./nested/auth-lambdas";
 import { ProposalLambdas } from "./nested/proposal-lambdas";
 import { ProjectLambdas } from "./nested/project-lambdas";
 import { AdminLambdas } from "./nested/admin-lambdas";
+import { ProfileLambdas } from "./nested/profile-lambdas";
 
 const ALLOWED_STAGE_NAMES = ["dev", "prod"];
 
@@ -156,6 +157,14 @@ export class BackendStack extends Stack {
       supabaseSecretJwt: SUPABASE_SECRET_JWT,
       supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
       frontendUrl: FRONTEND_URL,
+    });
+
+    const profileL = new ProfileLambdas(this, "ProfileLambdas", {
+      sharedRole: authLambdaRole, // using same shared role as auth
+      profileSetupBucket: profile_setup_bucket,
+      supabaseKey: SUPABASE_KEY,
+      supabaseSecretJwt: SUPABASE_SECRET_JWT,
+      stageName,
     });
 
     // ========== SHARED LAMBDAS (not in nested stacks) ==========
@@ -542,5 +551,20 @@ export class BackendStack extends Stack {
     admin
       .addResource("manage-lookup")
       .addMethod(HttpMethod.POST, integrate(adminL.manageLookup), protectedRoute);
+
+    // ========== PROFILE ROUTES ==========
+    const profile = api.root.addResource("profile");
+    const profileMe = profile.addResource("me");
+
+    profileMe
+      .addMethod(HttpMethod.GET, integrate(profileL.getProfile), protectedRoute);
+    profileMe
+      .addMethod(HttpMethod.PATCH, integrate(profileL.updateProfile), protectedRoute);
+    profileMe
+      .addResource("change-email")
+      .addMethod(HttpMethod.POST, integrate(profileL.changeEmail), protectedRoute);
+    profileMe
+      .addResource("avatar")
+      .addMethod(HttpMethod.POST, integrate(profileL.updateAvatar), protectedRoute);
   }
 }
