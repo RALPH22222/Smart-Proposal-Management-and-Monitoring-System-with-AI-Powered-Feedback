@@ -4,7 +4,8 @@ import {
   AlertCircle, 
   CheckCircle, 
   XCircle, 
-  CalendarClock 
+  CalendarClock,
+  Loader2
 } from "lucide-react";
 
 interface DecisionModalProps {
@@ -12,6 +13,7 @@ interface DecisionModalProps {
   onClose: () => void;
   proposalTitle: string;
   onSubmit: (_status: "accepted" | "rejected" | "extension", _remarks: string, _newDeadline?: string) => void;
+  isLoading?: boolean;
 }
 
 export default function DecisionModal({
@@ -19,6 +21,7 @@ export default function DecisionModal({
   onClose,
   proposalTitle,
   onSubmit,
+  isLoading = false,
 }: DecisionModalProps) {
   const [remarks, setRemarks] = useState("");
   const [newDeadline, setNewDeadline] = useState("");
@@ -44,12 +47,13 @@ export default function DecisionModal({
     }
 
     onSubmit(decision, remarks, newDeadline);
-    
-    // Reset form
-    setRemarks("");
-    setNewDeadline("");
-    setDecision(null);
-    setError("");
+    // Note: Parent handles resets or closes if needed, but we keep resets here as well for safety
+    if (!isLoading) {
+      setRemarks("");
+      setNewDeadline("");
+      setDecision(null);
+      setError("");
+    }
   };
 
   return (
@@ -203,14 +207,21 @@ export default function DecisionModal({
 
           <button
             onClick={handleSubmit}
-            disabled={!decision}
-            className={`px-6 py-2 text-sm font-medium text-white rounded-lg transition-all shadow-sm flex items-center gap-2 ${
-              decision
+            disabled={!decision || isLoading}
+            className={`px-6 py-2 text-sm font-medium text-white rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 min-w-[140px] ${
+              decision && !isLoading
                 ? "bg-[#C8102E] hover:bg-[#A00C24] cursor-pointer"
-                : "bg-slate-300 cursor-not-allowed"
+                : "bg-slate-400 cursor-not-allowed opacity-80"
             }`}
           >
-            {decision === "extension" ? "Submit Request" : "Submit Evaluation"}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              decision === "extension" ? "Submit Request" : "Submit Evaluation"
+            )}
           </button>
         </div>
       </div>

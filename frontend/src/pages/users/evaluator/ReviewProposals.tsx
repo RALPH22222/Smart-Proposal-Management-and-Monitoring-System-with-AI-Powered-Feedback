@@ -13,6 +13,7 @@ export default function EndorsedProposals() {
 
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Helper to format currency
   const formatCurrency = (val: number | string) => {
@@ -178,7 +179,7 @@ export default function EndorsedProposals() {
   const handleSubmitReview = async (data: { decision: string; ratings: any; comments: string }) => {
     if (!selectedProposal) return;
 
-    // Show a loading indicator ideally, but for now just await
+    setIsSubmitting(true);
     try {
       await submitEvaluation({
         proposal_id: selectedProposal,
@@ -195,6 +196,8 @@ export default function EndorsedProposals() {
     } catch (error) {
       console.error("Failed to submit review:", error);
       alert("Failed to submit review. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -356,6 +359,7 @@ export default function EndorsedProposals() {
           proposal={proposal as any}
           onClose={closeModal}
           onSubmit={handleSubmitReview}
+          isLoading={isSubmitting}
         />
       )}
     </>

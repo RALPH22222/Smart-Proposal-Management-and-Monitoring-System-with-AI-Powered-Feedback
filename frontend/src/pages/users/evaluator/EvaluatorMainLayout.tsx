@@ -7,6 +7,7 @@ import ReviewedPage from './ReviewedProposals';
 import Proposals from './Proposals';
 import Notifications from './Notifications';
 import Settings from './Settings';
+import EvaluatorTopNavbar from '../../../components/evaluator-component/EvaluatorTopNavbar';
 
 const EvaluatorLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,10 +45,13 @@ const EvaluatorLayout: React.FC = () => {
         onPageChange={handlePageChange}
       />
 
-      {/* Main Content Area — each page manages its own real loading state */}
-      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300">
-        {renderContent()}
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen">
+        <EvaluatorTopNavbar onPageChange={handlePageChange} />
+        <main className="flex-1 overflow-y-auto relative transition-all duration-300">
+          {renderContent()}
+        </main>
+      </div>
     </div>
   );
 };

@@ -22,6 +22,7 @@ import {
   XCircle,
   FileCheck,
   Send,
+  Loader2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchDepartments, fetchUsersByRole, getAssignmentHistory, type UserItem, type AssignmentHistoryItem } from '../../services/proposal.api';
@@ -41,7 +42,7 @@ interface RnDEvaluatorPageModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentEvaluators?: EvaluatorOption[];
-  onReassign: (newEvaluators: EvaluatorOption[]) => void;
+  onReassign: (newEvaluators: EvaluatorOption[]) => Promise<void> | void;
   onExtensionAction?: (evaluatorId: string, action: 'Accept' | 'Reject') => void;
   proposalTitle: string;
   proposalId?: number | null;
@@ -98,6 +99,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [addSearch, setAddSearch] = useState('');
   const [addDeptFilter, setAddDeptFilter] = useState('All');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Assignment History States
   const [historyItems, setHistoryItems] = useState<AssignmentHistoryItem[]>([]);
@@ -243,7 +245,14 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
       confirmButtonText: 'Yes, Assign', cancelButtonText: 'Cancel', reverseButtons: true,
       customClass: { htmlContainer: 'text-left' }
     });
-    if (result.isConfirmed) onReassign(currentList);
+    if (result.isConfirmed) {
+      setIsSaving(true);
+      try {
+        await onReassign(currentList);
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -828,14 +837,21 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           {isEditable && (
             <button
               onClick={handleSaveClick}
-              disabled={!hasChanges}
-              className={`px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors text-sm ${
-                hasChanges
+              disabled={!hasChanges || isSaving}
+              className={`px-4 py-2 rounded-lg text-white font-medium shadow-sm transition-colors flex items-center justify-center gap-2 text-sm ${
+                hasChanges && !isSaving
                   ? 'bg-[#C8102E] hover:bg-[#A00E26] cursor-pointer'
-                  : 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-slate-400 cursor-not-allowed opacity-80'
               }`}
             >
-              Save Changes
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
           )}
         </div>

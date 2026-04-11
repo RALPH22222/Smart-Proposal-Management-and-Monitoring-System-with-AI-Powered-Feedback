@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Sidebar from '../../../components/rnd-component/RnDSidebar';
-import Dashboard from './RnDDashboard';
-import ReviewPage from './RnDProposalPage';
+import Dashboard from './RndDashboard';
+import ReviewPage from './RndProposalPage';
 import Monitoring from './RnDMonitoringPage';
-import Settings from './RnDSettings';
+import Settings from './RndSettings';
+import RnDTopNavbar from '../../../components/rnd-component/RnDTopNavbar';
 import {
 	type Statistics,
 	type Activity
@@ -91,8 +92,14 @@ const MainLayout: React.FC = () => {
 			</div>
 
 			{/* Main Content */}
-			<div className='flex-1 bg-gray-50 overflow-y-auto' onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
-				{renderCurrentPage()}
+			<div className='flex-1 bg-gray-50 flex flex-col min-w-0 h-screen'>
+				<RnDTopNavbar onPageChange={handlePageChange} />
+				<main 
+					className="flex-1 overflow-y-auto"
+					onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+				>
+					{renderCurrentPage()}
+				</main>
 			</div>
 		</div>
 	);

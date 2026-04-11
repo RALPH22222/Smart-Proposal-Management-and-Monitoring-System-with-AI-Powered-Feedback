@@ -33,6 +33,7 @@ export default function Proposals() {
 
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const itemsPerPage = 5;
 
@@ -402,6 +403,7 @@ export default function Proposals() {
       deadline_at: formattedDeadline,
     };
 
+    setIsSubmitting(true);
     try {
       await decisionEvaluatorToProposal(payload);
 
@@ -425,6 +427,8 @@ export default function Proposals() {
         title: "Error",
         text: err?.response?.data?.message || "Failed to submit evaluation decision.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -675,6 +679,7 @@ export default function Proposals() {
           onClose={closeDecisionModal}
           proposalTitle={evaluationProposal.title}
           onSubmit={handleSubmitDecision}
+          isLoading={isSubmitting}
         />
       )}
     </>

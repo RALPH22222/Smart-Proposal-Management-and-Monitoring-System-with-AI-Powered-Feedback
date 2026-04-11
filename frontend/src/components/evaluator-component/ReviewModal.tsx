@@ -24,6 +24,7 @@ import {
   Lock,
   EyeOff,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
 
@@ -116,6 +117,7 @@ interface ReviewModalProps {
     ratings: any;
     comments: string;
   }) => void;
+  isLoading?: boolean;
 }
 
 export default function ReviewModal({
@@ -123,6 +125,7 @@ export default function ReviewModal({
   onClose,
   proposal,
   onSubmit,
+  isLoading = false,
 }: ReviewModalProps) {
   const [decision, setDecision] = useState<
     "Approve" | "Revise" | "Reject" | null
@@ -710,19 +713,32 @@ export default function ReviewModal({
         <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            disabled={isLoading}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors border ${
+              isLoading 
+                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" 
+                : "text-slate-700 bg-white border-slate-300 hover:bg-slate-100 cursor-pointer"
+            }`}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isFormValid}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${!isFormValid
-              ? "bg-slate-400 cursor-not-allowed"
-              : "cursor-pointer bg-[#C8102E] hover:bg-[#A00E26]"
-              }`}
+            disabled={!isFormValid || isLoading}
+            className={`px-6 py-2 text-sm font-medium text-white rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 min-w-[140px] ${
+              !isFormValid || isLoading
+                ? "bg-slate-400 cursor-not-allowed opacity-80"
+                : "cursor-pointer bg-[#C8102E] hover:bg-[#A00E26]"
+            }`}
           >
-            Submit Review
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Review"
+            )}
           </button>
         </div>
       </div>
