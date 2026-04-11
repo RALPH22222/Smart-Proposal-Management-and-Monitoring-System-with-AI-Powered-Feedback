@@ -1091,8 +1091,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           </label>
 
           {/* Display Current Mode Badge */}
-          <span className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${(formData.cooperating_agencies?.length || 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-            <span className='font-bold'>Mode of Implementation:</span> {(formData.cooperating_agencies?.length || 0) > 0 ? 'Multiple Agency' : 'Single Agency'}
+          <span className={`text-xs px-2 py-1 rounded-full transition-all duration-300 ${(formData.cooperating_agencies?.length || 0) > 1 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+            <span className='font-bold'>Mode of Implementation:</span> {(formData.cooperating_agencies?.length || 0) > 1 ? 'Multiple Agency' : 'Single Agency'}
           </span>
         </div>
 
