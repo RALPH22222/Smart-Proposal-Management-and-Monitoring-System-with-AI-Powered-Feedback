@@ -45,7 +45,7 @@ import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
-import TeamMembersSection from "./TeamMembersSection";
+import InviteMemberModal from "./InviteMemberModal";
 import { useAuthContext } from "../../context/AuthContext";
 import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
 
@@ -121,6 +121,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   // Resolved funded project data (fetched independently so it works even if getAll doesn't return it)
   const [resolvedFundedProjectId, setResolvedFundedProjectId] = useState<number | null>(null);
   const [resolvedProjectLeadId, setResolvedProjectLeadId] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   // Extension request state
   const [extensionRequest, setExtensionRequest] = useState<ProponentExtensionRequest | null>(null);
@@ -1149,20 +1150,30 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       phase.
                     </p>
                     {/* Leader + co-leader + start button row */}
-                    <div className="flex flex-col md:flex-row gap-4 mb-5">
-                      <div className="flex-1 space-y-3">
+                    <div className="flex flex-col gap-5 mb-5">
+                      <div className="space-y-4">
                         <div>
                           <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-1.5">
                             <User className="w-3.5 h-3.5" /> Project Leader
                           </label>
-                          <div className="bg-white border border-green-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm">
+                          <div className="bg-white border border-green-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm w-full">
                             {proposal.proponent}
                           </div>
                         </div>
                         <div>
-                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-1.5">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader Proponent(s)
-                          </label>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase">
+                              <ShieldCheck className="w-3.5 h-3.5" /> Co-Leader Proponent(s)
+                            </label>
+                            {resolvedFundedProjectId && !!user && user.id === resolvedProjectLeadId && (
+                              <button
+                                onClick={() => setInviteOpen(true)}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-[12px] font-bold text-white bg-[#C8102E] hover:bg-[#A50D26] rounded-md transition-all shadow-sm"
+                              >
+                                <Plus className="w-4 h-4" /> Invite
+                              </button>
+                            )}
+                          </div>
                           {coProponentsList.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {coProponentsList.map((name, index) => (
@@ -1172,18 +1183,19 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               ))}
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-400 italic bg-white p-2 rounded border border-green-100">
+                            <div className="text-xs text-slate-400 italic bg-white p-2 rounded border border-green-100 w-full text-center py-4">
                               No co-lead proponent indicated.
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-end md:items-center">
+                      
+                      <div className="flex justify-center pt-2">
                         <button
                           onClick={handleStartImplementation}
-                          className="w-full md:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap shadow-lg shadow-emerald-100"
+                          className="px-12 py-4 bg-emerald-600 hover:bg-emerald-800 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-xl shadow-emerald-100/50 hover:scale-[1.02] active:scale-[0.98]"
                         >
-                          <Play className="w-4 h-4" /> Start Project Implementation
+                          <Play className="w-5 h-5" /> Start Project Implementation
                         </button>
                       </div>
                     </div>
@@ -1245,13 +1257,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </div>
                 )}
 
-                {/* Co-Lead Proponents / Team Members */}
-                {resolvedFundedProjectId && (
-                  <TeamMembersSection
-                    fundedProjectId={resolvedFundedProjectId}
-                    isProjectLead={!!user && user.id === resolvedProjectLeadId}
-                  />
-                )}
 
                 {/* Total Funded Amount + funded date — outside the card */}
                 <div className="rounded-xl bg-emerald-600 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-100">
@@ -2547,6 +2552,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         </div>
       )}
 
+      {resolvedFundedProjectId && (
+        <InviteMemberModal
+          fundedProjectId={resolvedFundedProjectId}
+          isOpen={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          onInvited={() => {
+            // Since we removed internal member tracking from this modal,
+            // we simply close the modal on successful invite.
+            // If the user needs to manage members, they should do it inside monitoring.
+          }}
+        />
+      )}
     </>
   );
 };

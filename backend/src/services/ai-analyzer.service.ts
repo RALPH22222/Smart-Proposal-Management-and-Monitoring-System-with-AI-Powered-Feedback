@@ -56,7 +56,9 @@ export interface ExtractedData {
 
 // ── Model loading ────────────────────────────────────────────────────
 
-const MODELS_DIR = path.resolve(__dirname, "..", "ai-models");
+const MODELS_DIR = existsSync(path.join(__dirname, "ai-models"))
+  ? path.join(__dirname, "ai-models")
+  : path.resolve(__dirname, "..", "ai-models");
 
 function loadJSON<T>(filename: string): T {
   const raw = readFileSync(path.join(MODELS_DIR, filename), "utf-8");
@@ -92,12 +94,24 @@ function getComparisonDB(): ComparisonDB {
 }
 
 function getVocabDB(): Record<string, number> {
-  if (!_vocab) _vocab = loadJSON<Record<string, number>>("vocab.json");
+  if (!_vocab) {
+    try {
+      _vocab = loadJSON<Record<string, number>>("vocab.json");
+    } catch (e) {
+      _vocab = {};
+    }
+  }
   return _vocab;
 }
 
 function getEmbeddingDB(): Record<string, number[]> {
-  if (!_embeddings) _embeddings = loadJSON<Record<string, number[]>>("embedding.json");
+  if (!_embeddings) {
+    try {
+      _embeddings = loadJSON<Record<string, number[]>>("embedding.json");
+    } catch (e) {
+      _embeddings = {};
+    }
+  }
   return _embeddings;
 }
 

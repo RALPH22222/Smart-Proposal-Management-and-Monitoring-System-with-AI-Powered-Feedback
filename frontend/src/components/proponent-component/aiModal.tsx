@@ -62,7 +62,17 @@ const AIModal: React.FC<AIModalProps> = ({
     ...(aiCheckResult || {}) 
   };
 
-  const isNovel = (finalResult.noveltyScore || 0) > 75;
+  // Prevent invalid/undetectable documents (which return noveltyScore: 0) from appearing as 100% similar
+  const similarityScore = finalResult.isValid ? 100 - (finalResult.noveltyScore || 0) : 0;
+  const isMatchDetected = similarityScore > 60;
+  
+  let similarityStatus = "Not Related";
+  if (!finalResult.isValid) similarityStatus = "N/A (Analysis failed)";
+  else if (similarityScore <= 20) similarityStatus = "Not Related";
+  else if (similarityScore <= 40) similarityStatus = "Slightly Related";
+  else if (similarityScore <= 60) similarityStatus = "Moderately Similar";
+  else if (similarityScore <= 80) similarityStatus = "Highly Similar";
+  else similarityStatus = "Very Similar";
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 sm:p-4">
@@ -135,21 +145,24 @@ const AIModal: React.FC<AIModalProps> = ({
                       <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
                         <FaFingerprint /> Research Novelty
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isNovel ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                        {isNovel ? 'High Uniqueness' : 'Similarity Detected'}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${!isMatchDetected ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                        {similarityStatus} ({similarityScore}%)
                       </span>
                     </div>
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden flex">
                       <div 
-                        className="bg-gradient-to-r from-[#C8102E] to-blue-600 h-2.5 rounded-full transition-all duration-1000" 
-                        style={{ width: `${finalResult.noveltyScore}%` }}
+                        className={`h-full rounded-full transition-all duration-1000 ${
+                          (finalResult.noveltyScore || 0) > 75 ? 'bg-blue-600' : 
+                          (finalResult.noveltyScore || 0) > 40 ? 'bg-amber-500' : 'bg-[#C8102E]'
+                        }`} 
+                        style={{ width: `${Math.min(100, Math.max(0, finalResult.noveltyScore || 0))}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs text-blue-800">
-                      {isNovel 
-                        ? "Great job! This research topic appears original in our database."
-                        : "This topic overlaps with existing projects. Consider refining your focus."}
+                    <p className="font-bold mt-2 text-xs text-blue-800">
+                      {!isMatchDetected 
+                        ? "RESULT: UNIQUE - No significantly similar projects found."
+                        : "RESULT: MATCH DETECTED - Consider rephrasing or clarifying novelty."}
                     </p>
                   </div>
                 </div>
@@ -175,14 +188,14 @@ const AIModal: React.FC<AIModalProps> = ({
                   </div>
 
                   {/* Similar Papers Check */}
-                  <div className={`rounded-xl p-4 border ${isNovel ? 'bg-blue-50 border-blue-100' : 'bg-white border-red-100 shadow-sm'}`}>
+                  <div className={`rounded-xl p-4 border ${!isMatchDetected ? 'bg-blue-50 border-blue-100' : 'bg-white border-red-100 shadow-sm'}`}>
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${isNovel ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-[#C8102E]'}`}>
-                        {isNovel ? <FaLightbulb /> : <FaBook />}
+                      <div className={`p-2 rounded-lg ${!isMatchDetected ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-[#C8102E]'}`}>
+                        {!isMatchDetected ? <FaLightbulb /> : <FaBook />}
                       </div>
                       <div>
-                        <h4 className={`font-bold text-sm ${isNovel ? 'text-blue-900' : 'text-gray-900'}`}>
-                          {isNovel ? 'Potential for Groundbreaking Research' : 'Similar Past Research Found'}
+                        <h4 className={`font-bold text-sm ${!isMatchDetected ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {!isMatchDetected ? 'Potential for Groundbreaking Research' : 'Titles similar to your uploaded file'}
                         </h4>
                         
                         {/* Safe Check for array length */}
@@ -197,10 +210,12 @@ const AIModal: React.FC<AIModalProps> = ({
                             ))}
                           </ul>
                         ) : (
-                          <p className={`mt-2 text-xs italic ${isNovel ? 'text-blue-700' : 'text-gray-500'}`}>
-                            {isNovel 
-                              ? "No significantly similar projects found. This looks highly original!" 
-                              : "Similarity detected, but no specific reference titles were flagged."}
+                          <p className={`mt-2 text-xs italic ${!isMatchDetected ? 'text-blue-700' : 'text-gray-500'}`}>
+                            {!finalResult.isValid
+                              ? "Similarity analysis cannot be completed on an invalid document."
+                              : !isMatchDetected 
+                                ? "UNIQUE - No significantly similar projects found." 
+                                : "Similarity detected, but no specific reference titles were flagged."}
                           </p>
                         )}
                       </div>
