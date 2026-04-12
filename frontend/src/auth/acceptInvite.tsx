@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { supabase } from '../config/supabaseClient';
 import { api } from '../utils/axios';
+import { broadcastAuthChange } from '../utils/auth-broadcast';
 import { useLogos } from '../context/LogoContext';
 import AuthBackground from '../assets/IMAGES/Auth-Background.jpg';
 
@@ -196,18 +197,32 @@ export default function AcceptInvite() {
         },
       });
 
-      // 3. Sign out so user logs in fresh (cookie-based session)
+      // 3. Sign out Supabase client session (used only for the magic link flow).
       await supabase.auth.signOut();
+
+      // 4. Clear any prior account's local session state. The backend's
+      //    complete-invite response already cleared the tk/rt cookies, but
+      //    localStorage and sessionStorage still hold whoever was signed in
+      //    before. Wipe them so the hard reload below cannot rehydrate a
+      //    stale user.
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("auth_verified");
+
+      // 5. Notify any other open tabs so they also reload and kick the
+      //    stale account out of their React state.
+      broadcastAuthChange();
 
       await Swal.fire({
         icon: 'success',
         title: 'Account Setup Complete',
-        text: 'You can now log in with your email and password.',
+        text: 'You can now log in with your new account.',
         timer: 2500,
         showConfirmButton: false,
       });
 
-      navigate('/login', { replace: true });
+      // 6. Hard reload to /login so every in-memory cache and React state
+      //    in this tab is wiped. The invited user logs in from a clean slate.
+      window.location.href = '/login';
     } catch (error: any) {
       const msg = error.response?.data?.message || error.message || 'Failed to complete registration.';
       Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#C8102E' });

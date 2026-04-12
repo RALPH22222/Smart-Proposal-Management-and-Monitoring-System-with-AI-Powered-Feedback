@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { completeInviteSchema } from "../../schemas/admin-schema";
 import { profileSetupSchema } from "../../schemas/auth-schema";
 import { buildCorsHeaders } from "../../utils/cors";
+import { setCookieString } from "../../utils/cookies";
 import { getAuthContext } from "../../utils/auth-context";
 import multipart from "lambda-multipart-parser";
 import { logActivity } from "../../utils/activity-logger";
@@ -126,6 +127,11 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       details: { first_name, last_name },
     });
 
+    // Clear whatever tk/rt cookies the browser was carrying before this
+    // request. If the inviter was still signed in as their own account
+    // when the invited user clicked the magic link, those cookies belong
+    // to the old account and must not survive into the "new user
+    // finished setup" state. Forces a clean /login for the invited user.
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -133,6 +139,12 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         data,
         photoUploaded: !!photoUrl,
       }),
+      multiValueHeaders: {
+        "Set-Cookie": [
+          setCookieString("tk", "", { maxAge: 0 }),
+          setCookieString("rt", "", { maxAge: 0 }),
+        ],
+      },
     };
   } catch (err: any) {
     console.error("Error completing invite:", err);
