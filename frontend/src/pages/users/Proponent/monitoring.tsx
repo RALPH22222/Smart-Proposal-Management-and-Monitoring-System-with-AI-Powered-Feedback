@@ -168,6 +168,33 @@ const MonitoringPage: React.FC = () => {
       if (!confirm.isConfirmed) return;
     }
 
+    // If the user holds an R&D / evaluator / admin role, warn them that
+    // accepting locks them out of approval/verification/certification
+    // actions for this project (separation of duties).
+    if (action === 'accept') {
+      const staffRoles = ['rnd', 'evaluator', 'admin'];
+      const userStaffRoles = (user?.roles || []).filter((r) => staffRoles.includes(r));
+      if (userStaffRoles.length > 0) {
+        const confirm = await Swal.fire({
+          icon: 'warning',
+          title: 'Heads up — conflict of interest',
+          html: `Because you hold the <b>${userStaffRoles.join(', ')}</b> role, accepting this invitation means:<br/><br/>
+            <ul style="text-align:left;display:inline-block;margin:0;padding-left:1.2em;">
+              <li>You <b>cannot</b> approve or reject fund requests for this project</li>
+              <li>You <b>cannot</b> verify quarterly reports for this project</li>
+              <li>You <b>cannot</b> issue the completion certificate</li>
+              <li>You <b>cannot</b> change this project's status</li>
+            </ul>
+            <br/>Another R&D officer or admin will need to handle those actions. Continue?`,
+          showCancelButton: true,
+          confirmButtonText: 'Accept anyway',
+          cancelButtonText: 'Cancel',
+          confirmButtonColor: '#C8102E',
+        });
+        if (!confirm.isConfirmed) return;
+      }
+    }
+
     try {
       setRespondingInvitationId(invitation.id);
       await respondToInvitation(invitation.id, action);

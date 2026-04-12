@@ -384,6 +384,30 @@ export class ProjectService {
    * Verify a quarterly report (RND/Admin action)
    */
   async verifyReport(input: VerifyReportInput) {
+    // COI guard — lookup the project this report belongs to first.
+    const { data: report } = await this.db
+      .from("project_reports")
+      .select("funded_project_id")
+      .eq("id", input.report_id)
+      .single();
+
+    if (!report) {
+      return { data: null, error: { message: "Project report not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.verified_by_id, report.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.verified_by_id,
+        action: "coi_block_verify_report",
+        category: "project",
+        target_id: String(input.report_id),
+        target_type: "report",
+        details: { funded_project_id: report.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
     const { data, error } = await this.db
       .from("project_reports")
       .update({
@@ -444,6 +468,20 @@ export class ProjectService {
    * Also handles co-lead suspension when project is blocked / restoration when unblocked
    */
   async updateProjectStatus(input: UpdateProjectStatusInput) {
+    // COI guard — updater must not be a member of the project.
+    const coi = await this.assertNoCoiOnProject(input.updated_by_id, input.project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.updated_by_id,
+        action: "coi_block_update_project_status",
+        category: "project",
+        target_id: String(input.project_id),
+        target_type: "funded_project",
+        details: { attempted_status: input.status },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
     // Fetch current status before updating
     const { data: current } = await this.db
       .from("funded_projects")
@@ -734,6 +772,33 @@ export class ProjectService {
     });
 
     return { data: updated, error: null };
+  }
+
+  /**
+   * Conflict-of-interest guard. Returns an error object if `userId` is a
+   * lead or co-lead on `fundedProjectId` (status active or pending). The
+   * caller is responsible for surfacing the error to the client and writing
+   * the audit log entry — this method does not log on its own so each
+   * decision endpoint can record its own action name.
+   */
+  async assertNoCoiOnProject(userId: string, fundedProjectId: number) {
+    const { data: membership } = await this.db
+      .from("project_members")
+      .select("id, role")
+      .eq("user_id", userId)
+      .eq("funded_project_id", fundedProjectId)
+      .in("status", [ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING])
+      .maybeSingle();
+
+    if (membership) {
+      return {
+        coi: true as const,
+        message:
+          "Conflict of interest: you are a member of this project and cannot perform this action. Another R&D officer or admin must handle it.",
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -1248,6 +1313,30 @@ export class ProjectService {
    * Review (approve/reject) a fund request - RND/Admin action
    */
   async reviewFundRequest(input: ReviewFundRequestInput) {
+    // COI guard — lookup the project this fund request belongs to first.
+    const { data: fundRequest } = await this.db
+      .from("fund_requests")
+      .select("funded_project_id")
+      .eq("id", input.fund_request_id)
+      .single();
+
+    if (!fundRequest) {
+      return { data: null, error: { message: "Fund request not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, fundRequest.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_review_fund_request",
+        category: "project",
+        target_id: String(input.fund_request_id),
+        target_type: "fund_request",
+        details: { funded_project_id: fundRequest.funded_project_id, attempted_status: input.status },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
     const { data, error } = await this.db
       .from("fund_requests")
       .update({
@@ -1325,6 +1414,20 @@ export class ProjectService {
    * Generate a completion certificate after all 4 quarterly reports are verified
    */
   async generateCertificate(input: GenerateCertificateInput) {
+    // COI guard — issuer must not be a member of the project being certified.
+    const coi = await this.assertNoCoiOnProject(input.issued_by, input.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.issued_by,
+        action: "coi_block_generate_certificate",
+        category: "project",
+        target_id: String(input.funded_project_id),
+        target_type: "funded_project",
+        details: {},
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
     // Verify all 4 quarterly reports exist and are verified
     const { data: reports, error: reportsError } = await this.db
       .from("project_reports")
