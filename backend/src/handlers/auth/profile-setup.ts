@@ -80,6 +80,25 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
+  // Self-heal: activate any pending project memberships for this user.
+  // Invited co-leads who fell back to /profile-setup (instead of /accept-invite)
+  // would otherwise stay stuck at status='pending' and never see their project.
+  const { data: activated, error: activateError } = await supabase
+    .from("project_members")
+    .update({ status: "active", accepted_at: new Date().toISOString() })
+    .eq("user_id", auth.userId)
+    .eq("status", "pending")
+    .select("id");
+
+  if (activateError) {
+    console.error("Failed to activate pending project memberships:", activateError);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Profile saved but failed to activate co-lead invitations." }),
+    };
+  }
+  console.log(`profile-setup: activated ${activated?.length ?? 0} pending membership(s) for user ${auth.userId}`);
+
   return {
     statusCode: 200,
     body: JSON.stringify({ message: "Profile setup completed successfully." }),

@@ -101,11 +101,21 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
 
     // Activate any pending project memberships for this user
-    await supabase
+    const { data: activated, error: activateError } = await supabase
       .from("project_members")
       .update({ status: "active", accepted_at: new Date().toISOString() })
       .eq("user_id", userId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id");
+
+    if (activateError) {
+      console.error("Failed to activate pending project memberships:", activateError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: "Profile updated but failed to activate co-lead invitations." }),
+      };
+    }
+    console.log(`complete-invite: activated ${activated?.length ?? 0} pending membership(s) for user ${userId}`);
 
     await logActivity(supabase, {
       user_id: userId,
