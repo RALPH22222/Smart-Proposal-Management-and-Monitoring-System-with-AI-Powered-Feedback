@@ -141,7 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       broadcastAuthChange();
       console.log("Successfully logged out...");
-      navigate("/");
+      // Hard reload instead of SPA nav so module-level caches (proposal.api
+      // lookupCache, ProjectMonitoringApi projectCache) and any lingering
+      // React state are fully wiped. Matches login's hardNavigate behavior.
+      window.location.href = "/";
     }
   }, [navigate]);
 

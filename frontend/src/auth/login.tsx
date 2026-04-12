@@ -53,10 +53,19 @@ export default function Login() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Hard navigation after login: full page reload so every module-level
+  // cache (proposal.api.ts lookupCache, ProjectMonitoringApi.ts projectCache,
+  // React state, any lingering Supabase client session) is wiped. Guarantees
+  // the new session starts from a clean slate with zero carry-over from
+  // whoever was signed in before.
+  const hardNavigate = (path: string) => {
+    window.location.href = path;
+  };
+
   const navigateBasedOnRole = async (role: string, passwordChangeRequired?: boolean) => {
     // If password change is required, redirect there first (applies to all roles)
     if (passwordChangeRequired) {
-      navigate("/change-password");
+      hardNavigate("/change-password");
       return;
     }
 
@@ -64,32 +73,32 @@ export default function Login() {
     try {
       const response = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>('/auth/profile-status');
       if (response.data.passwordChangeRequired) {
-        navigate("/change-password");
+        hardNavigate("/change-password");
         return;
       }
       if (!response.data.isCompleted) {
-        navigate("/profile-setup");
+        hardNavigate("/profile-setup");
         return;
       }
     } catch (error) {
       console.error("Failed to check profile status", error);
       // Default to profile setup if check fails
-      navigate("/profile-setup");
+      hardNavigate("/profile-setup");
       return;
     }
 
     switch (role.toLowerCase()) {
       case "proponent":
-        navigate("/users/Proponent/ProponentMainLayout");
+        hardNavigate("/users/Proponent/ProponentMainLayout");
         break;
       case "rnd":
-        navigate("/users/rnd/rndMainLayout");
+        hardNavigate("/users/rnd/rndMainLayout");
         break;
       case "admin":
-        navigate("/users/admin/adminMainLayout");
+        hardNavigate("/users/admin/adminMainLayout");
         break;
       case "evaluator":
-        navigate("/users/evaluator/evaluatorMainLayout");
+        hardNavigate("/users/evaluator/evaluatorMainLayout");
         break;
       default:
         Swal.fire({

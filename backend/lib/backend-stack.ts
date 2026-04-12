@@ -256,7 +256,14 @@ export class BackendStack extends Stack {
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
       handler: auth.authorizer,
       identitySources: [IdentitySource.header("Cookie")],
-      resultsCacheTtl: Duration.seconds(300),
+      // Caching must be disabled. The cache key is only the Cookie header,
+      // so two requests with the same cookie but different Authorization
+      // headers (e.g. /accept-invite submitting with a Supabase Bearer token
+      // while the user still has another account's tk cookie) would share a
+      // cache entry — causing the authorizer's Bearer-vs-cookie logic to be
+      // bypassed and the wrong user_sub to be returned. Running the
+      // authorizer per request is the correct tradeoff here.
+      resultsCacheTtl: Duration.seconds(0),
       assumeRole: apiRole,
     });
 
