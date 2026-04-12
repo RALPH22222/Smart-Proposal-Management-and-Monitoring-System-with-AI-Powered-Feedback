@@ -49,3 +49,38 @@ export const removeMember = async (
     { withCredentials: true }
   );
 };
+
+export interface PendingInvitation {
+  id: number;
+  funded_project_id: number;
+  invited_at: string;
+  funded_project: {
+    id: number;
+    proposal: { project_title: string } | null;
+  } | null;
+  inviter: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+}
+
+export const fetchPendingInvitations = async (): Promise<PendingInvitation[]> => {
+  const { data } = await api.get<{ data: PendingInvitation[] }>(
+    "/project/pending-invitations",
+    { withCredentials: true }
+  );
+  return data.data;
+};
+
+export const respondToInvitation = async (
+  memberId: number,
+  action: "accept" | "decline"
+): Promise<void> => {
+  await api.post(
+    "/project/respond-to-invitation",
+    { member_id: memberId, action },
+    { withCredentials: true }
+  );
+};

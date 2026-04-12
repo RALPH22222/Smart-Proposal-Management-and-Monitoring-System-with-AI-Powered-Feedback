@@ -9,7 +9,7 @@ import {
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
   Plus, Trash2, Award, Download,
   Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
-  ChevronUp, ChevronDown, DollarSign, Lock, Loader2
+  ChevronUp, ChevronDown, DollarSign, Lock, Loader2, Mail, Check
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../../utils/signed-url';
@@ -32,6 +32,11 @@ import {
   type ApiBudgetSummary,
   groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
+import {
+  fetchPendingInvitations,
+  respondToInvitation,
+  type PendingInvitation,
+} from '../../../services/ProjectMemberApi';
 import { type Project } from '../../../types/InterfaceProject';
 import { formatDate } from "../../../utils/date-formatter";
 import { generateCertificatePDF } from "../../../utils/certificate-generator";
@@ -127,10 +132,74 @@ const MonitoringPage: React.FC = () => {
   const [extensionDate, setExtensionDate] = useState('');
   const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
 
+  // Pending co-lead invitations
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [respondingInvitationId, setRespondingInvitationId] = useState<number | null>(null);
+
   // --- Load Projects ---
   useEffect(() => {
     loadProjects();
+    loadPendingInvitations();
   }, []);
+
+  const loadPendingInvitations = async () => {
+    try {
+      const invitations = await fetchPendingInvitations();
+      setPendingInvitations(invitations);
+    } catch (error) {
+      console.error('Error loading pending invitations:', error);
+    }
+  };
+
+  const handleRespondToInvitation = async (
+    invitation: PendingInvitation,
+    action: 'accept' | 'decline'
+  ) => {
+    if (action === 'decline') {
+      const confirm = await Swal.fire({
+        icon: 'warning',
+        title: 'Decline invitation?',
+        text: 'You will not be added as a co-lead. The project lead can re-invite you later if this was a mistake.',
+        showCancelButton: true,
+        confirmButtonText: 'Decline',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#C8102E',
+      });
+      if (!confirm.isConfirmed) return;
+    }
+
+    try {
+      setRespondingInvitationId(invitation.id);
+      await respondToInvitation(invitation.id, action);
+
+      setPendingInvitations((prev) => prev.filter((inv) => inv.id !== invitation.id));
+
+      if (action === 'accept') {
+        await loadProjects();
+        setActiveProjectId(String(invitation.funded_project_id));
+        setShowMobileDetail(true);
+        await Swal.fire({
+          icon: 'success',
+          title: 'Invitation accepted',
+          text: 'You are now a co-lead on this project.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } else {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Invitation declined',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.message || 'Failed to respond to invitation.';
+      Swal.fire({ icon: 'error', title: 'Error', text: msg, confirmButtonColor: '#C8102E' });
+    } finally {
+      setRespondingInvitationId(null);
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -564,6 +633,63 @@ const MonitoringPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* --- PENDING CO-LEAD INVITATIONS --- */}
+      {pendingInvitations.length > 0 && (
+        <section className="mb-8">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-amber-200 bg-amber-100/50">
+              <div className="p-2 bg-amber-500 rounded-lg shadow-sm">
+                <Mail className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-900 text-sm">
+                  {pendingInvitations.length} Pending Co-Lead Invitation{pendingInvitations.length === 1 ? '' : 's'}
+                </h3>
+                <p className="text-xs text-amber-700">Review and respond to project invitations from other proponents.</p>
+              </div>
+            </div>
+            <ul className="divide-y divide-amber-100">
+              {pendingInvitations.map((invitation) => {
+                const inviterName = invitation.inviter
+                  ? `${invitation.inviter.first_name} ${invitation.inviter.last_name}`.trim() || invitation.inviter.email
+                  : 'A project lead';
+                const projectTitle = invitation.funded_project?.proposal?.project_title || 'Untitled project';
+                const isResponding = respondingInvitationId === invitation.id;
+                return (
+                  <li key={invitation.id} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-1">{projectTitle}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Invited by <span className="font-medium text-gray-800">{inviterName}</span>
+                        <span className="text-gray-400"> · {formatDate(invitation.invited_at)}</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleRespondToInvitation(invitation, 'accept')}
+                        disabled={isResponding}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isResponding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleRespondToInvitation(invitation, 'decline')}
+                        disabled={isResponding}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Decline
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* --- MAIN CONTENT --- */}
       <section className="flex flex-col lg:flex-row gap-6">

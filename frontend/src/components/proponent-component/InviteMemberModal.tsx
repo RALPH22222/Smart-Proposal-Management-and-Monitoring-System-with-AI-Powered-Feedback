@@ -35,9 +35,9 @@ const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
       Swal.fire({
         icon: "success",
-        title: "Invited!",
-        text: `Co-lead invitation sent to ${email}.`,
-        timer: 2500,
+        title: "Invitation sent",
+        text: `${email} will be notified to accept or decline. They become a co-lead only after accepting.`,
+        timer: 3500,
         showConfirmButton: false,
       });
 

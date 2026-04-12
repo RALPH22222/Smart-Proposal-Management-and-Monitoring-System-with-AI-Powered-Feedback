@@ -31,6 +31,8 @@ export class ProjectLambdas extends NestedStack {
   public readonly inviteMember: NodejsFunction;
   public readonly removeMember: NodejsFunction;
   public readonly getProjectMembers: NodejsFunction;
+  public readonly getPendingInvitations: NodejsFunction;
+  public readonly respondToInvitation: NodejsFunction;
   public readonly createFundRequest: NodejsFunction;
   public readonly getFundRequests: NodejsFunction;
   public readonly reviewFundRequest: NodejsFunction;
@@ -69,6 +71,8 @@ export class ProjectLambdas extends NestedStack {
     this.getOverdueReports = simple("get-overdue-reports", "pms-get-overdue-reports", "get-overdue-reports.ts");
     this.removeMember = simple("remove-member", "pms-remove-member", "remove-member.ts");
     this.getProjectMembers = simple("get-project-members", "pms-get-project-members", "get-project-members.ts");
+    this.getPendingInvitations = simple("get-pending-invitations", "pms-get-pending-invitations", "get-pending-invitations.ts");
+    this.respondToInvitation = simple("respond-to-invitation", "pms-respond-to-invitation", "respond-to-invitation.ts");
     this.createFundRequest = simple("create-fund-request", "pms-create-fund-request", "create-fund-request.ts");
     this.getFundRequests = simple("get-fund-requests", "pms-get-fund-requests", "get-fund-requests.ts");
     this.reviewFundRequest = simple("review-fund-request", "pms-review-fund-request", "review-fund-request.ts");

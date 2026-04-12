@@ -114,6 +114,17 @@ export const getProjectMembersSchema = z.object({
 
 export type GetProjectMembersInput = z.infer<typeof getProjectMembersSchema>;
 
+// Respond to Invitation Schema
+// Note: user_id is injected by handler from JWT, not from request body
+export const respondToInvitationSchema = z.object({
+  member_id: z.number().int().positive(),
+  action: z.enum(["accept", "decline"]),
+});
+
+export type RespondToInvitationInput = z.infer<typeof respondToInvitationSchema> & {
+  user_id: string;
+};
+
 // ===================== FUND REQUESTS =====================
 
 export const fundRequestStatusSchema = z.enum(["pending", "approved", "rejected"]);

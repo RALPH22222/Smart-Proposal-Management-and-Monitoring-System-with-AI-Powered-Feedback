@@ -572,16 +572,16 @@ export class ProjectService {
       .single();
 
     if (existingUser) {
-      // User exists — insert as active member
+      // User exists — insert as PENDING; they must accept via the in-app
+      // Pending Invitations panel before becoming an active co-lead.
       const { data: member, error: insertError } = await this.db
         .from("project_members")
         .insert({
           funded_project_id: input.funded_project_id,
           user_id: existingUser.id,
           role: ProjectMemberRole.CO_LEAD,
-          status: ProjectMemberStatus.ACTIVE,
+          status: ProjectMemberStatus.PENDING,
           invited_by: input.invited_by,
-          accepted_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -593,19 +593,10 @@ export class ProjectService {
         return { data: null, error: insertError };
       }
 
-      // Ensure user has proponent role
-      const roles: string[] = existingUser.roles || [];
-      if (!roles.includes("proponent")) {
-        await this.db
-          .from("users")
-          .update({ roles: [...roles, "proponent"] })
-          .eq("id", existingUser.id);
-      }
-
-      // Send notification
+      // Send notification — proponent role is granted only on accept.
       await this.db.from("notifications").insert({
         user_id: existingUser.id,
-        message: "You have been added as a co-lead to a funded project.",
+        message: "You have a pending co-lead invitation. Open Project Monitoring to accept or decline.",
         is_read: false,
         link: "project-monitoring",
       });
@@ -762,6 +753,125 @@ export class ProjectService {
       .order("role", { ascending: true });
 
     return { data, error };
+  }
+
+  /**
+   * Get all pending co-lead invitations for a user.
+   * Returns rows joined with the funded project (title) and inviter user.
+   */
+  async getPendingInvitations(userId: string) {
+    const { data, error } = await this.db
+      .from("project_members")
+      .select(
+        `
+        id,
+        funded_project_id,
+        invited_at,
+        funded_project:funded_projects!funded_project_id (
+          id,
+          proposal:proposals (project_title)
+        ),
+        inviter:users!invited_by (id, first_name, last_name, email)
+      `
+      )
+      .eq("user_id", userId)
+      .eq("status", ProjectMemberStatus.PENDING)
+      .order("invited_at", { ascending: false });
+
+    return { data, error };
+  }
+
+  /**
+   * Respond to a pending co-lead invitation.
+   * - On accept: flip to active, set accepted_at, ensure proponent role.
+   * - On decline: hard-delete the row so the lead can re-invite later.
+   */
+  async respondToInvitation(input: {
+    member_id: number;
+    user_id: string;
+    action: "accept" | "decline";
+  }) {
+    const { data: member, error: fetchError } = await this.db
+      .from("project_members")
+      .select("id, user_id, status, funded_project_id")
+      .eq("id", input.member_id)
+      .single();
+
+    if (fetchError || !member) {
+      return { data: null, error: { message: "Invitation not found." } };
+    }
+
+    if (member.user_id !== input.user_id) {
+      return { data: null, error: { message: "You are not authorized to respond to this invitation." } };
+    }
+
+    if (member.status !== ProjectMemberStatus.PENDING) {
+      return { data: null, error: { message: "This invitation is no longer pending." } };
+    }
+
+    if (input.action === "accept") {
+      const { data: updated, error: updateError } = await this.db
+        .from("project_members")
+        .update({
+          status: ProjectMemberStatus.ACTIVE,
+          accepted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.member_id)
+        .select()
+        .single();
+
+      if (updateError) {
+        return { data: null, error: updateError };
+      }
+
+      // Ensure the user has the proponent role.
+      const { data: user } = await this.db
+        .from("users")
+        .select("roles")
+        .eq("id", input.user_id)
+        .single();
+
+      const roles: string[] = user?.roles || [];
+      if (!roles.includes("proponent")) {
+        await this.db
+          .from("users")
+          .update({ roles: [...roles, "proponent"] })
+          .eq("id", input.user_id);
+      }
+
+      await logActivity(this.db, {
+        user_id: input.user_id,
+        action: "project_invitation_accepted",
+        category: "project",
+        target_id: String(member.funded_project_id),
+        target_type: "funded_project",
+        details: { member_id: input.member_id },
+      });
+
+      return { data: updated, error: null };
+    }
+
+    // Decline — hard delete so the lead can re-invite if needed.
+    const { error: deleteError } = await this.db
+      .from("project_members")
+      .delete()
+      .eq("id", input.member_id);
+
+    if (deleteError) {
+      return { data: null, error: deleteError };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.user_id,
+      action: "project_invitation_declined",
+      category: "project",
+      target_id: String(member.funded_project_id),
+      target_type: "funded_project",
+      details: { member_id: input.member_id },
+    });
+
+    return { data: { id: input.member_id, declined: true }, error: null };
   }
 
   /**

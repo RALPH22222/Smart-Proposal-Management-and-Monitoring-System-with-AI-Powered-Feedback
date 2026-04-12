@@ -471,6 +471,12 @@ export class BackendStack extends Stack {
       .addResource("members")
       .addMethod(HttpMethod.GET, integrate(projectL.getProjectMembers), protectedRoute);
     project
+      .addResource("pending-invitations")
+      .addMethod(HttpMethod.GET, integrate(projectL.getPendingInvitations), protectedRoute);
+    project
+      .addResource("respond-to-invitation")
+      .addMethod(HttpMethod.POST, integrate(projectL.respondToInvitation), protectedRoute);
+    project
       .addResource("create-fund-request")
       .addMethod(HttpMethod.POST, integrate(projectL.createFundRequest), protectedRoute);
     project
