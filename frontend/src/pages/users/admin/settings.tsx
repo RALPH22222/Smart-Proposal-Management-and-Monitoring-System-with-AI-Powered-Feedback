@@ -1,358 +1,116 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  Camera, User, Lock,
+  Eye, EyeOff, CheckCircle, Mail,
+  Calendar, Shield, Settings as SettingsIcon,
+} from 'lucide-react';
 import Swal from 'sweetalert2';
+import {
+  changeMyPassword,
+  getMyProfile,
+  updateMyAvatar,
+  updateMyProfile,
+  updateMyEmail,
+} from '../../../services/user/userService';
 import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
+import SecureImage from '../../../components/shared/SecureImage';
+import PageLoader from '../../../components/shared/PageLoader';
 import { formatDateTime } from '../../../utils/date-formatter';
-import NotificationPreferencesCard from '../../../components/shared/NotificationPreferencesCard';
 import { ContactsSection } from './components/ContactsSection';
 
-const TABS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'security', label: 'Security' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'preferences', label: 'Preferences' },
-  { id: 'system', label: 'System' }
-] as const;
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface ExtendedUserProfile {
+  id?: string;
+  email?: string;
+  name?: string;
+  firstName?: string;
+  middleInitial?: string;
+  lastName?: string;
+  birthdate?: string;
+  sex?: 'Male' | 'Female' | 'Prefer not to say' | '';
+  avatarUrl?: string | null;
+}
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+const getPasswordStrength = (password: string): { label: string; color: string; width: string } => {
+  if (!password) return { label: '', color: '', width: '0%' };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  if (score <= 1) return { label: 'Weak', color: 'bg-red-500', width: '25%' };
+  if (score <= 2) return { label: 'Fair', color: 'bg-orange-400', width: '50%' };
+  if (score <= 3) return { label: 'Good', color: 'bg-yellow-400', width: '75%' };
+  return { label: 'Strong', color: 'bg-green-500', width: '100%' };
+};
 
-const PRIMARY = '#C8102E';
-
-const Card: React.FC<{ title?: string } & { children?: React.ReactNode }> = ({
-  title,
-  children
-}) => (
-  <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
-    {title && (
-      <h3 className='text-sm font-medium text-gray-700 mb-3'>{title}</h3>
-    )}
-    {children}
+// ── Shared UI Components ───────────────────────────────────────────────────────
+const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
+  <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+    <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-[#C8102E] flex-shrink-0">
+      {icon}
+    </div>
+    <div>
+      <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+      <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+    </div>
   </div>
 );
 
-const AdminSettings: React.FC = () => {
-  const [activeTab, setActiveTab] =
-    useState<(typeof TABS)[number]['id']>('profile');
-
-  return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden">
-      {/* Header */}
-      <header className="flex-shrink-0 pt-11 sm:pt-0 pb-4 sm:pb-6">
-        <h1 className='text-xl sm:text-2xl font-bold text-red-700'>Admin Settings</h1>
-        <p className='text-gray-600 mt-1 text-sm sm:text-base'>
-          Manage your account, security and preferences.
-        </p>
-      </header>
-
-      {/* Tabs */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6 flex-shrink-0'>
-        <nav className='flex gap-4 sm:gap-6 px-3 sm:px-5 overflow-x-auto'>
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`py-3 text-xs sm:text-sm border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                activeTab === t.id
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'profile' && <ProfileSection />}
-        {activeTab === 'security' && <SecuritySection />}
-        {activeTab === 'notifications' && <NotificationsSection />}
-        {activeTab === 'preferences' && <PreferencesSection />}
-        {activeTab === 'system' && <SystemSection />}
-      </div>
-    </div>
-  );
-};
-
-const AvatarUpload: React.FC = () => {
-  return (
-    <div className='flex flex-col items-center gap-3'>
-      <div className='w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-gray-200 flex items-center justify-center text-gray-500'>
-        IMG
-      </div>
-      <div className='flex flex-col sm:flex-row gap-2 w-full'>
-        <button
-          className='px-3 py-2 text-sm rounded-md text-white w-full sm:w-auto'
-          style={{ background: PRIMARY }}
-        >
-          Upload
-        </button>
-        <button className='px-3 py-2 text-sm rounded-md border border-gray-300 text-gray-700 w-full sm:w-auto'>
-          Remove
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const ProfileSection: React.FC = () => {
-  const [form, setForm] = useState({
-    firstName: 'Robert',
-    lastName: 'William',
-    email: 'admin@example.com',
-    phone: '+63 900 000 0000',
-    organization: 'WMSU',
-    title: 'System Administrator'
-  });
-
-  return (
-    <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6'>
-      <Card title='Avatar'>
-        <AvatarUpload />
-      </Card>
-
-      <div className='lg:col-span-2'>
-        <Card title='Personal Information'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>
-                First name
-              </label>
-              <input
-                value={form.firstName}
-                onChange={(e) =>
-                  setForm({ ...form, firstName: e.target.value })
-                }
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>
-                Last name
-              </label>
-              <input
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className='block text-sm text-gray-600 mb-1'>Email</label>
-              <input
-                type='email'
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>Phone</label>
-              <input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>
-                Organization
-              </label>
-              <input
-                value={form.organization}
-                onChange={(e) =>
-                  setForm({ ...form, organization: e.target.value })
-                }
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>Title</label>
-              <input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-          </div>
-          <div className='mt-4 flex gap-2 flex-wrap'>
-            <button
-              className='px-4 py-2 rounded-lg text-white text-sm sm:text-base w-full sm:w-auto'
-              style={{ background: PRIMARY }}
-            >
-              Save changes
-            </button>
-            <button className='px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm sm:text-base w-full sm:w-auto'>
-              Cancel
-            </button>
-          </div>
-        </Card>
-      </div>
-
-      <div className='lg:col-span-3'>
-        <Card title='Contact & Address'>
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4'>
-            <div className="sm:col-span-2 lg:col-span-1">
-              <label className='block text-sm text-gray-600 mb-1'>
-                Address
-              </label>
-              <input
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-                placeholder='Street, Barangay'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>City</label>
-              <input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm' />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>Zip</label>
-              <input className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm' />
-            </div>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-};
-
-const SecuritySection: React.FC = () => {
-  const [twoFA, setTwoFA] = useState(false);
-  const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' });
-  return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-      <Card title='Password'>
-        <div className='space-y-3'>
-          <div>
-            <label className='block text-sm text-gray-600 mb-1'>
-              Current password
-            </label>
-            <input
-              type='password'
-              value={pwd.current}
-              onChange={(e) => setPwd({ ...pwd, current: e.target.value })}
-              className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-            />
-          </div>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>
-                New password
-              </label>
-              <input
-                type='password'
-                value={pwd.next}
-                onChange={(e) => setPwd({ ...pwd, next: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-            <div>
-              <label className='block text-sm text-gray-600 mb-1'>
-                Confirm password
-              </label>
-              <input
-                type='password'
-                value={pwd.confirm}
-                onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })}
-                className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-              />
-            </div>
-          </div>
-          <button
-            className='mt-2 px-4 py-2 rounded-lg text-white text-sm sm:text-base w-full sm:w-auto'
-            style={{ background: PRIMARY }}
-          >
-            Update password
-          </button>
+const FormInput: React.FC<{
+  label: string;
+  type?: string;
+  name?: string;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  maxLength?: number;
+  suffix?: React.ReactNode;
+}> = ({ label, type = 'text', name, value, onChange, placeholder, readOnly, disabled, required, maxLength, suffix }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        disabled={disabled || readOnly}
+        maxLength={maxLength}
+        className={`block w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-200 outline-none
+          ${readOnly
+            ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed'
+            : 'bg-white border-gray-300 text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400'
+          }
+          ${suffix ? 'pr-10' : ''}
+        `}
+      />
+      {suffix && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          {suffix}
         </div>
-      </Card>
-
-      <Card title='Two‑Factor Authentication (2FA)'>
-        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
-          <p className='text-sm text-gray-600 flex-1'>
-            Protect your account by requiring a code when signing in.
-          </p>
-          <label className='inline-flex items-center cursor-pointer flex-shrink-0'>
-            <input
-              type='checkbox'
-              className='sr-only'
-              checked={twoFA}
-              onChange={(e) => setTwoFA(e.target.checked)}
-            />
-            <span
-              className={`w-10 h-6 flex items-center bg-gray-200 rounded-full p-1 transition ${
-                twoFA ? 'bg-red-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`bg-white w-4 h-4 rounded-full transform transition ${
-                  twoFA ? 'translate-x-4' : ''
-                }`}
-              />
-            </span>
-          </label>
-        </div>
-      </Card>
+      )}
     </div>
-  );
-};
-
-const NotificationsSection: React.FC = () => (
-  <NotificationPreferencesCard
-    visibleEvents={[
-      'proposal_endorsed',
-      'proposal_revision',
-      'fund_request_reviewed',
-      'certificate_issued',
-      'evaluator_assigned',
-    ]}
-  />
+  </div>
 );
 
-const PreferencesSection: React.FC = () => {
-  const [pref, setPref] = useState({ density: 'comfortable', theme: 'light' });
-  return (
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-      <Card title='Appearance'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-          <div>
-            <label className='block text-sm text-gray-600 mb-1'>Theme</label>
-            <select
-              value={pref.theme}
-              onChange={(e) => setPref({ ...pref, theme: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-            >
-              <option value='light'>Light</option>
-              <option value='system'>System</option>
-            </select>
-          </div>
-          <div>
-            <label className='block text-sm text-gray-600 mb-1'>Density</label>
-            <select
-              value={pref.density}
-              onChange={(e) => setPref({ ...pref, density: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-            >
-              <option value='comfortable'>Comfortable</option>
-              <option value='compact'>Compact</option>
-            </select>
-          </div>
-        </div>
-      </Card>
-      <Card title='Session'>
-        <div className='text-sm text-gray-600 space-y-2'>
-          <div>Last login: 2 hours ago</div>
-          <div>Active sessions: 2 devices</div>
-          <button
-            className='mt-2 px-3 py-2 rounded-md text-white text-sm w-full sm:w-auto'
-            style={{ background: PRIMARY }}
-          >
-            Sign out of all devices
-          </button>
-        </div>
-      </Card>
-    </div>
-  );
-};
+const SpinnerIcon = () => (
+  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+  </svg>
+);
 
+// ── Tab: System ────────────────────────────────────────────────────────────────
 const SystemSection: React.FC = () => {
   const [policy, setPolicy] = useState<LateSubmissionPolicy>({ enabled: false });
   const [loading, setLoading] = useState(true);
@@ -360,9 +118,7 @@ const SystemSection: React.FC = () => {
   const [lateType, setLateType] = useState<'until_date' | 'indefinite'>('until_date');
   const [deadline, setDeadline] = useState('');
 
-  useEffect(() => {
-    loadPolicy();
-  }, []);
+  useEffect(() => { loadPolicy(); }, []);
 
   const loadPolicy = async () => {
     try {
@@ -370,12 +126,10 @@ const SystemSection: React.FC = () => {
       setPolicy(data);
       if (data.enabled) {
         setLateType(data.type);
-        if (data.type === 'until_date') {
-          setDeadline(data.deadline.slice(0, 16));
-        }
+        if (data.type === 'until_date') setDeadline(data.deadline.slice(0, 16));
       }
     } catch {
-      // Default to disabled if fetch fails
+      // use defaults
     } finally {
       setLoading(false);
     }
@@ -383,19 +137,14 @@ const SystemSection: React.FC = () => {
 
   const handleSave = async () => {
     let newPolicy: LateSubmissionPolicy;
-
     if (!policy.enabled) {
       newPolicy = { enabled: false };
     } else if (lateType === 'until_date') {
-      if (!deadline) {
-        Swal.fire('Validation Error', 'Please select a deadline date.', 'warning');
-        return;
-      }
+      if (!deadline) { Swal.fire('Validation Error', 'Please select a deadline date.', 'warning'); return; }
       newPolicy = { enabled: true, type: 'until_date', deadline: new Date(deadline).toISOString() };
     } else {
       newPolicy = { enabled: true, type: 'indefinite' };
     }
-
     setSaving(true);
     try {
       const updated = await SettingsApi.updateLateSubmissionPolicy(newPolicy);
@@ -408,29 +157,27 @@ const SystemSection: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C8102E]" />
+    </div>
+  );
 
   return (
-    <div className='space-y-6'>
-    <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'>
-      <Card title='Late Submission Policy'>
-        <p className='text-sm text-gray-500 mb-4'>
-          Allow proponents to submit proposals after the regular submission deadline.
-        </p>
-
-        {/* Enable/Disable toggle */}
-        <div className='flex items-center justify-between mb-4'>
-          <span className='text-sm text-gray-700'>Allow late submissions</span>
-          <label className='inline-flex items-center cursor-pointer'>
+    <div className="grid gap-6 md:grid-cols-2">
+      {/* Late Submission Policy */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:col-span-2 lg:col-span-1">
+        <SectionHeader
+          icon={<SettingsIcon size={20} />}
+          title="Late Submission Policy"
+          description="Allow proponents to submit after the regular deadline"
+        />
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-slate-700">Allow late submissions</span>
+          <label className="inline-flex items-center cursor-pointer">
             <input
-              type='checkbox'
-              className='sr-only'
+              type="checkbox"
+              className="sr-only"
               checked={policy.enabled}
               onChange={(e) => {
                 if (e.target.checked) {
@@ -440,102 +187,411 @@ const SystemSection: React.FC = () => {
                 }
               }}
             />
-            <span
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition ${
-                policy.enabled ? 'bg-red-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`bg-white w-4 h-4 rounded-full transform transition ${
-                  policy.enabled ? 'translate-x-4' : ''
-                }`}
-              />
+            <span className={`w-10 h-6 flex items-center rounded-full p-1 transition ${policy.enabled ? 'bg-[#C8102E]' : 'bg-gray-300'}`}>
+              <span className={`bg-white w-4 h-4 rounded-full transform transition ${policy.enabled ? 'translate-x-4' : ''}`} />
             </span>
           </label>
         </div>
 
-        {/* Options when enabled */}
         {policy.enabled && (
-          <div className='space-y-4 border-t border-gray-100 pt-4'>
-            <div className='space-y-2'>
-              <label className='flex items-center gap-2 text-sm cursor-pointer'>
-                <input
-                  type='radio'
-                  name='lateType'
-                  value='until_date'
-                  checked={lateType === 'until_date'}
-                  onChange={() => setLateType('until_date')}
-                  className='accent-red-600'
-                />
-                <span className='text-gray-700'>Until a specific date</span>
+          <div className="space-y-4 border-t border-slate-100 pt-4">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="lateType" value="until_date" checked={lateType === 'until_date'} onChange={() => setLateType('until_date')} className="accent-[#C8102E]" />
+                <span className="text-slate-700">Until a specific date</span>
               </label>
-
               {lateType === 'until_date' && (
-                <div className='ml-6'>
-                  <input
-                    type='datetime-local'
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className='w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm'
-                  />
+                <div className="ml-6">
+                  <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] text-sm" />
                 </div>
               )}
-
-              <label className='flex items-center gap-2 text-sm cursor-pointer'>
-                <input
-                  type='radio'
-                  name='lateType'
-                  value='indefinite'
-                  checked={lateType === 'indefinite'}
-                  onChange={() => setLateType('indefinite')}
-                  className='accent-red-600'
-                />
-                <span className='text-gray-700'>Indefinite (no deadline)</span>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="lateType" value="indefinite" checked={lateType === 'indefinite'} onChange={() => setLateType('indefinite')} className="accent-[#C8102E]" />
+                <span className="text-slate-700">Indefinite (no deadline)</span>
               </label>
             </div>
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className='px-4 py-2 rounded-lg text-white text-sm disabled:opacity-50 w-full sm:w-auto'
-              style={{ background: PRIMARY }}
-            >
-              {saving ? 'Saving...' : 'Save Policy'}
-            </button>
           </div>
         )}
 
-        {/* Save when disabling */}
-        {!policy.enabled && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className='px-4 py-2 rounded-lg text-white text-sm disabled:opacity-50 w-full sm:w-auto'
-            style={{ background: PRIMARY }}
-          >
-            {saving ? 'Saving...' : 'Save Policy'}
-          </button>
-        )}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#A50D26] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? <><SpinnerIcon /> Saving...</> : 'Save Policy'}
+        </button>
 
-        {/* Current status */}
-        <div className='mt-4 p-3 bg-gray-50 rounded-md'>
-          <p className='text-xs text-gray-500 font-medium mb-1'>Current Status</p>
-          {!policy.enabled && (
-            <p className='text-sm text-gray-700'>Late submissions are <span className='font-semibold text-red-600'>disabled</span>.</p>
-          )}
-          {policy.enabled && policy.type === 'indefinite' && (
-            <p className='text-sm text-gray-700'>Late submissions are <span className='font-semibold text-green-600'>allowed indefinitely</span>.</p>
-          )}
+        <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <p className="text-xs text-slate-500 font-medium mb-1">Current Status</p>
+          {!policy.enabled && <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-red-600">disabled</span>.</p>}
+          {policy.enabled && policy.type === 'indefinite' && <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-green-600">allowed indefinitely</span>.</p>}
           {policy.enabled && policy.type === 'until_date' && (
-            <p className='text-sm text-gray-700'>
-              Late submissions are <span className='font-semibold text-green-600'>allowed</span> until{' '}
-              <span className='font-semibold'>{formatDateTime(policy.deadline)}</span>.
-            </p>
+            <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-green-600">allowed</span> until <span className="font-semibold">{formatDateTime(policy.deadline)}</span>.</p>
           )}
         </div>
-      </Card>
+      </div>
+
+      <div className="md:col-span-2 lg:col-span-2">
+        <ContactsSection />
+      </div>
     </div>
-    <ContactsSection />
+  );
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+type TabId = 'profile' | 'email' | 'security' | 'system';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'profile', label: 'Profile' },
+  { id: 'email', label: 'Email' },
+  { id: 'security', label: 'Security' },
+  { id: 'system', label: 'System' },
+];
+
+const AdminSettings: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabId>('profile');
+  const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  // Profile form
+  const [formData, setFormData] = useState({ firstName: '', middleInitial: '', lastName: '', birthdate: '', sex: '' });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Email
+  const [emailValue, setEmailValue] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ type: 'success' | 'error'; info: boolean; text: string } | null>(null);
+
+  // Password
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const passwordStrength = getPasswordStrength(passwords.new);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const me = await getMyProfile() as ExtendedUserProfile;
+        setProfile(me);
+        setEmailValue(me.email || '');
+        setFormData({
+          firstName: me.firstName || '',
+          middleInitial: me.middleInitial || '',
+          lastName: me.lastName || '',
+          birthdate: me.birthdate || '',
+          sex: me.sex || '',
+        });
+      } catch {
+        setProfileMsg({ type: 'error', text: 'Failed to load profile data. Please refresh the page.' });
+      } finally {
+        setPageLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const onSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileMsg(null);
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setProfileMsg({ type: 'error', text: 'First and Last Name are required.' }); return;
+    }
+    setIsSavingProfile(true);
+    try {
+      await updateMyProfile(formData as any);
+      setProfile(prev => prev ? { ...prev, ...formData, sex: formData.sex as ExtendedUserProfile['sex'], name: [formData.firstName, formData.middleInitial, formData.lastName].filter(Boolean).join(' ') } : null);
+      setProfileMsg({ type: 'success', text: 'Profile updated successfully!' });
+    } catch {
+      setProfileMsg({ type: 'error', text: 'Failed to save profile changes. Please try again.' });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const onSaveEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailMsg(null);
+    if (!emailValue.trim() || !emailValue.includes('@')) {
+      setEmailMsg({ type: 'error', info: false, text: 'Please enter a valid email address.' }); return;
+    }
+    setIsSavingEmail(true);
+    try {
+      await updateMyEmail(emailValue);
+      setEmailMsg({ type: 'success', info: true, text: 'Verification emails sent! Check your old and new inbox to confirm the change.' });
+    } catch {
+      setEmailMsg({ type: 'error', info: false, text: 'Failed to update email. Please try again later.' });
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const onChangeAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await updateMyAvatar(file);
+      setProfile(prev => prev ? { ...prev, avatarUrl: res.avatarUrl } : prev);
+    } catch {
+      setProfileMsg({ type: 'error', text: 'Failed to update profile picture.' });
+    }
+    e.currentTarget.value = '';
+  };
+
+  const onChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg(null);
+    if (!passwords.current || !passwords.new) { setPasswordMsg({ type: 'error', text: 'Please fill in all password fields.' }); return; }
+    if (passwords.new !== passwords.confirm) { setPasswordMsg({ type: 'error', text: 'New password and confirmation do not match.' }); return; }
+    if (passwords.new.length < 8) { setPasswordMsg({ type: 'error', text: 'New password must be at least 8 characters.' }); return; }
+    setIsSavingPassword(true);
+    try {
+      await changeMyPassword(passwords.current, passwords.new);
+      setPasswordMsg({ type: 'success', text: 'Password changed successfully!' });
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch {
+      setPasswordMsg({ type: 'error', text: 'Failed to change password. Please check your current password.' });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  if (pageLoading) return <PageLoader mode="proponent-settings" />;
+
+  const displayName = profile?.name || `${formData.firstName} ${formData.lastName}`.trim() || 'Administrator';
+  const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+
+      {/* ── Page Header ── */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Settings</h1>
+        <p className="text-sm text-gray-500 mt-1">Manage your administrator account, system policies, and security.</p>
+      </div>
+
+      {/* ── Profile Header Card ── */}
+      <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 mb-6 text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-white/30 shadow-xl">
+              <SecureImage
+                src={profile?.avatarUrl ?? undefined}
+                fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=C8102E&color=fff&bold=true`}
+                alt="Avatar"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <label className="absolute -bottom-2 -right-2 bg-white text-[#C8102E] hover:bg-gray-50 p-2 rounded-xl cursor-pointer shadow-lg transition-all duration-200 hover:scale-110">
+              <Camera size={16} />
+              <input type="file" accept="image/*" className="hidden" onChange={onChangeAvatar} />
+            </label>
+          </div>
+
+          {/* Info */}
+          <div className="text-center sm:text-left flex-1">
+            <h2 className="text-xl font-bold">{displayName}</h2>
+            <p className="text-red-200 text-sm mt-0.5">{profile?.email || '—'}</p>
+          </div>
+
+          {/* Role Badge */}
+          <div className="flex sm:flex-col items-center gap-4 sm:gap-2 bg-white/10 rounded-xl px-4 py-3 text-center">
+            <div>
+              <div className="text-xl font-bold">System Admin</div>
+              <div className="text-red-200 text-xs">Account Role</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-x-auto">
+        <nav className="flex gap-1 px-4 pt-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`py-3 px-4 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap rounded-t-lg ${
+                activeTab === t.id
+                  ? 'border-[#C8102E] text-[#C8102E]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* ── Tab Content ── */}
+
+      {/* Profile Tab */}
+      {activeTab === 'profile' && (
+        <form onSubmit={onSaveProfile}>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <SectionHeader icon={<User size={20} />} title="Personal Information" description="Your basic identity details on the system" />
+
+            {profileMsg && (
+              <div className={`mb-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${profileMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                {profileMsg.type === 'success' ? <CheckCircle size={16} className="flex-shrink-0" /> : <Shield size={16} className="flex-shrink-0" />}
+                {profileMsg.text}
+              </div>
+            )}
+
+            {/* Name Row */}
+            <div className="grid grid-cols-12 gap-3 mb-4">
+              <div className="col-span-12 sm:col-span-5">
+                <FormInput label="First Name" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="e.g. Juan" required />
+              </div>
+              <div className="col-span-12 sm:col-span-2">
+                <FormInput label="M.I." name="middleInitial" value={formData.middleInitial} onChange={handleInputChange} placeholder="e.g. D" maxLength={2} />
+              </div>
+              <div className="col-span-12 sm:col-span-5">
+                <FormInput label="Last Name" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="e.g. Dela Cruz" required />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                  <Calendar size={13} className="text-gray-400" /> Birthdate
+                </label>
+                <input type="date" name="birthdate" value={formData.birthdate} onChange={handleInputChange}
+                  className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Sex</label>
+                <select name="sex" value={formData.sex} onChange={handleInputChange}
+                  className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
+                >
+                  <option value="" disabled>Select sex</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" disabled={isSavingProfile} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#A50D26] transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSavingProfile ? <><SpinnerIcon /> Saving...</> : <><CheckCircle size={16} /> Save Changes</>}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Email Tab */}
+      {activeTab === 'email' && (
+        <form onSubmit={onSaveEmail}>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <SectionHeader icon={<Mail size={20} />} title="Email Address" description="Manage your primary login and communication email" />
+
+            {emailMsg && (
+              <div className={`mb-5 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${emailMsg.type === 'success' && emailMsg.info ? 'bg-blue-50 border-blue-200 text-blue-700' : emailMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                {emailMsg.text}
+              </div>
+            )}
+
+            <div className="mb-4">
+              <FormInput label="Primary Email" type="email" value={emailValue} onChange={(e) => setEmailValue(e.target.value)} placeholder="e.g. user@example.com" required suffix={<Mail size={15} className="text-gray-400" />} />
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" disabled={isSavingEmail || profile?.email === emailValue} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSavingEmail ? <><SpinnerIcon /> Processing...</> : 'Update Email'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <SectionHeader icon={<Lock size={20} />} title="Security" description="Keep your account secure with a strong password" />
+
+          <form onSubmit={onChangePassword}>
+            {passwordMsg && (
+              <div className={`mb-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${passwordMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                {passwordMsg.type === 'success' ? <CheckCircle size={16} className="flex-shrink-0" /> : <Shield size={16} className="flex-shrink-0" />}
+                {passwordMsg.text}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              <div className="sm:col-span-2">
+                <FormInput label="Current Password" type={showPasswords.current ? 'text' : 'password'} value={passwords.current} onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))} placeholder="Enter your current password"
+                  suffix={<button type="button" onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))} className="text-gray-400 hover:text-gray-600">{showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
+                />
+              </div>
+              <div>
+                <FormInput label="New Password" type={showPasswords.new ? 'text' : 'password'} value={passwords.new} onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))} placeholder="At least 8 characters"
+                  suffix={<button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="text-gray-400 hover:text-gray-600">{showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
+                />
+                {passwords.new && (
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Password strength</span>
+                      <span className={`font-semibold ${passwordStrength.label === 'Strong' ? 'text-green-600' : passwordStrength.label === 'Good' ? 'text-yellow-600' : passwordStrength.label === 'Fair' ? 'text-orange-600' : 'text-red-600'}`}>{passwordStrength.label}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${passwordStrength.color}`} style={{ width: passwordStrength.width }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <FormInput label="Confirm New Password" type={showPasswords.confirm ? 'text' : 'password'} value={passwords.confirm} onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))} placeholder="Repeat new password"
+                  suffix={<button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="text-gray-400 hover:text-gray-600">{showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}</button>}
+                />
+                {passwords.confirm && (
+                  <p className={`text-xs mt-1.5 font-medium flex items-center gap-1 ${passwords.new === passwords.confirm ? 'text-green-600' : 'text-red-500'}`}>
+                    {passwords.new === passwords.confirm ? <><CheckCircle size={12} /> Passwords match</> : <><Shield size={12} /> Passwords do not match</>}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5">
+              <p className="text-xs font-semibold text-gray-600 mb-2">Password requirements</p>
+              <ul className="space-y-1">
+                {[
+                  { check: passwords.new.length >= 8, text: 'At least 8 characters' },
+                  { check: /[A-Z]/.test(passwords.new), text: 'One uppercase letter' },
+                  { check: /[0-9]/.test(passwords.new), text: 'One number' },
+                  { check: /[^A-Za-z0-9]/.test(passwords.new), text: 'One special character (!@#$...)' },
+                ].map(({ check, text }) => (
+                  <li key={text} className={`flex items-center gap-2 text-xs font-medium ${check ? 'text-green-600' : 'text-gray-400'}`}>
+                    <CheckCircle size={12} className={check ? 'text-green-500' : 'text-gray-300'} />{text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" disabled={isSavingPassword} className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSavingPassword ? <><SpinnerIcon /> Updating...</> : <><Lock size={15} /> Update Password</>}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* System Tab */}
+      {activeTab === 'system' && <SystemSection />}
+
+      <div className="h-8" />
     </div>
   );
 };
