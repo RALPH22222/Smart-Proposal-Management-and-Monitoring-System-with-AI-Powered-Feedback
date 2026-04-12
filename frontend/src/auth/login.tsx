@@ -2,6 +2,7 @@ import { useAuthContext } from "../context/AuthContext";
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { api } from "@utils/axios";
+import { broadcastAuthChange } from "@utils/auth-broadcast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
 import { useLogos } from "../context/LogoContext";
@@ -137,6 +138,7 @@ export default function Login() {
 
       setUser(hydratedUser);
       localStorage.setItem("user", JSON.stringify(hydratedUser));
+      broadcastAuthChange();
 
       Swal.fire({
         icon: "success",

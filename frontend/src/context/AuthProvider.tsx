@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext, { type AuthUser } from "./AuthContext";
 import { api } from "@utils/axios";
+import { broadcastAuthChange, onAuthChange } from "@utils/auth-broadcast";
 import Swal from "sweetalert2";
 
 type VerifyTokenResponse = {
@@ -73,6 +74,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [navigate]);
 
+  // Cross-tab session sync: if another tab signs in or out, this tab's
+  // cached React state is now stale and would happily speak for the wrong
+  // user. Show a brief notice and hard-reload so we re-hydrate from the
+  // current cookie/localStorage (which the other tab just updated).
+  useEffect(() => {
+    return onAuthChange(() => {
+      Swal.fire({
+        icon: "info",
+        title: "Session changed",
+        text: "You signed in or out in another tab. This tab will reload.",
+        timer: 2000,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+      }).then(() => {
+        window.location.href = "/login";
+      });
+    });
+  }, []);
+
   // Proactive token refresh — refresh the access token before it expires (every 50 minutes)
   // The access token TTL is 1 hour; refreshing at 50 min prevents 401s during normal usage.
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -119,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem("user");
       sessionStorage.removeItem("auth_verified");
       setUser(null);
+      broadcastAuthChange();
       console.log("Successfully logged out...");
       navigate("/");
     }
