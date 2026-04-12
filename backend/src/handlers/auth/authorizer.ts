@@ -32,7 +32,13 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
   const authHeader = event.headers?.Authorization || event.headers?.authorization || "";
   const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-  const token = cookies.tk || bearer;
+  // Bearer takes priority over the cookie. The Bearer header is an explicit
+  // auth signal from the caller (e.g. /accept-invite sends the invited user's
+  // Supabase access token), whereas the `tk` cookie is ambient and may belong
+  // to a different account if the browser already has a session. Preferring
+  // the cookie caused complete-invite to write the invited user's profile
+  // data onto whichever account's cookie happened to be in the browser.
+  const token = bearer || cookies.tk;
 
   if (!token) {
     throw "Unauthorized";
