@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Camera, User, Lock,
   Eye, EyeOff, CheckCircle, Mail,
-  Calendar, Shield, Settings as SettingsIcon,
+  Calendar, Shield,
 } from 'lucide-react';
-import Swal from 'sweetalert2';
 import {
   changeMyPassword,
   getMyProfile,
@@ -12,11 +11,9 @@ import {
   updateMyProfile,
   updateMyEmail,
 } from '../../../services/user/userService';
-import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
+import { fetchDepartments, type LookupItem } from '../../../services/proposal.api';
 import SecureImage from '../../../components/shared/SecureImage';
 import PageLoader from '../../../components/shared/PageLoader';
-import { formatDateTime } from '../../../utils/date-formatter';
-import { ContactsSection } from './components/ContactsSection';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface ExtendedUserProfile {
@@ -110,151 +107,36 @@ const SpinnerIcon = () => (
   </svg>
 );
 
-// ── Tab: System ────────────────────────────────────────────────────────────────
-const SystemSection: React.FC = () => {
-  const [policy, setPolicy] = useState<LateSubmissionPolicy>({ enabled: false });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [lateType, setLateType] = useState<'until_date' | 'indefinite'>('until_date');
-  const [deadline, setDeadline] = useState('');
-
-  useEffect(() => { loadPolicy(); }, []);
-
-  const loadPolicy = async () => {
-    try {
-      const data = await SettingsApi.getLateSubmissionPolicy();
-      setPolicy(data);
-      if (data.enabled) {
-        setLateType(data.type);
-        if (data.type === 'until_date') setDeadline(data.deadline.slice(0, 16));
-      }
-    } catch {
-      // use defaults
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    let newPolicy: LateSubmissionPolicy;
-    if (!policy.enabled) {
-      newPolicy = { enabled: false };
-    } else if (lateType === 'until_date') {
-      if (!deadline) { Swal.fire('Validation Error', 'Please select a deadline date.', 'warning'); return; }
-      newPolicy = { enabled: true, type: 'until_date', deadline: new Date(deadline).toISOString() };
-    } else {
-      newPolicy = { enabled: true, type: 'indefinite' };
-    }
-    setSaving(true);
-    try {
-      const updated = await SettingsApi.updateLateSubmissionPolicy(newPolicy);
-      setPolicy(updated);
-      Swal.fire('Saved', 'Late submission policy updated successfully.', 'success');
-    } catch {
-      Swal.fire('Error', 'Failed to update late submission policy.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-12">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#C8102E]" />
-    </div>
-  );
-
-  return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Late Submission Policy */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:col-span-2 lg:col-span-1">
-        <SectionHeader
-          icon={<SettingsIcon size={20} />}
-          title="Late Submission Policy"
-          description="Allow proponents to submit after the regular deadline"
-        />
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-slate-700">Allow late submissions</span>
-          <label className="inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={policy.enabled}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setPolicy({ enabled: true, type: lateType, ...(lateType === 'until_date' ? { deadline: deadline ? new Date(deadline).toISOString() : '' } : {}) } as LateSubmissionPolicy);
-                } else {
-                  setPolicy({ enabled: false });
-                }
-              }}
-            />
-            <span className={`w-10 h-6 flex items-center rounded-full p-1 transition ${policy.enabled ? 'bg-[#C8102E]' : 'bg-gray-300'}`}>
-              <span className={`bg-white w-4 h-4 rounded-full transform transition ${policy.enabled ? 'translate-x-4' : ''}`} />
-            </span>
-          </label>
-        </div>
-
-        {policy.enabled && (
-          <div className="space-y-4 border-t border-slate-100 pt-4">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name="lateType" value="until_date" checked={lateType === 'until_date'} onChange={() => setLateType('until_date')} className="accent-[#C8102E]" />
-                <span className="text-slate-700">Until a specific date</span>
-              </label>
-              {lateType === 'until_date' && (
-                <div className="ml-6">
-                  <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] text-sm" />
-                </div>
-              )}
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name="lateType" value="indefinite" checked={lateType === 'indefinite'} onChange={() => setLateType('indefinite')} className="accent-[#C8102E]" />
-                <span className="text-slate-700">Indefinite (no deadline)</span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#A50D26] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? <><SpinnerIcon /> Saving...</> : 'Save Policy'}
-        </button>
-
-        <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-          <p className="text-xs text-slate-500 font-medium mb-1">Current Status</p>
-          {!policy.enabled && <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-red-600">disabled</span>.</p>}
-          {policy.enabled && policy.type === 'indefinite' && <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-green-600">allowed indefinitely</span>.</p>}
-          {policy.enabled && policy.type === 'until_date' && (
-            <p className="text-sm text-slate-700">Late submissions are <span className="font-semibold text-green-600">allowed</span> until <span className="font-semibold">{formatDateTime(policy.deadline)}</span>.</p>
-          )}
-        </div>
-      </div>
-
-      <div className="md:col-span-2 lg:col-span-2">
-        <ContactsSection />
-      </div>
-    </div>
-  );
-};
-
 // ── Main Component ─────────────────────────────────────────────────────────────
-type TabId = 'profile' | 'email' | 'security' | 'system';
+type TabId = 'profile' | 'email' | 'security';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'email', label: 'Email' },
   { id: 'security', label: 'Security' },
-  { id: 'system', label: 'System' },
 ];
 
 const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [departments, setDepartments] = useState<LookupItem[]>([]);
+  const [isDeptOpen, setIsDeptOpen] = useState(false);
+  const deptDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dept dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target as Node)) {
+        setIsDeptOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // Profile form
-  const [formData, setFormData] = useState({ firstName: '', middleInitial: '', lastName: '', birthdate: '', sex: '' });
+  const [formData, setFormData] = useState({ firstName: '', middleInitial: '', lastName: '', birthdate: '', sex: '', department_id: '' });
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -274,8 +156,12 @@ const AdminSettings: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const me = await getMyProfile() as ExtendedUserProfile;
+        const [me, depts] = await Promise.all([
+          getMyProfile() as Promise<ExtendedUserProfile>,
+          fetchDepartments(),
+        ]);
         setProfile(me);
+        setDepartments(depts);
         setEmailValue(me.email || '');
         setFormData({
           firstName: me.firstName || '',
@@ -283,6 +169,7 @@ const AdminSettings: React.FC = () => {
           lastName: me.lastName || '',
           birthdate: me.birthdate || '',
           sex: me.sex || '',
+          department_id: (me as any).department_id ? String((me as any).department_id) : '',
         });
       } catch {
         setProfileMsg({ type: 'error', text: 'Failed to load profile data. Please refresh the page.' });
@@ -459,7 +346,7 @@ const AdminSettings: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
                   <Calendar size={13} className="text-gray-400" /> Birthdate
@@ -479,6 +366,44 @@ const AdminSettings: React.FC = () => {
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
+            </div>
+
+            <div className="mb-6 relative" ref={deptDropdownRef}>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Department / Station</label>
+              <button
+                type="button"
+                onClick={() => setIsDeptOpen(prev => !prev)}
+                className={`block w-full text-left rounded-lg border px-3.5 py-2.5 text-sm bg-white transition-all outline-none ${
+                  formData.department_id
+                    ? 'text-gray-900 border-gray-300 hover:border-gray-400 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15'
+                    : 'text-gray-400 border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                {formData.department_id
+                  ? departments.find(d => String(d.id) === formData.department_id)?.name || 'Select your department'
+                  : 'Select your department'
+                }
+              </button>
+              {isDeptOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {departments.map((dept) => (
+                    <div
+                      key={dept.id}
+                      className={`px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                        String(dept.id) === formData.department_id
+                          ? 'bg-[#C8102E]/10 text-[#C8102E] font-medium'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, department_id: String(dept.id) }));
+                        setIsDeptOpen(false);
+                      }}
+                    >
+                      {dept.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end">
@@ -588,8 +513,7 @@ const AdminSettings: React.FC = () => {
         </div>
       )}
 
-      {/* System Tab */}
-      {activeTab === 'system' && <SystemSection />}
+
 
       <div className="h-8" />
     </div>
