@@ -7,7 +7,8 @@ import {
   FaFingerprint,
   FaBook,
   FaLightbulb,
-  FaGlobeAmericas
+  FaGlobeAmericas,
+  FaCheckCircle
 } from 'react-icons/fa';
 
 // 1. Strict Type Definition
@@ -159,11 +160,19 @@ const AIModal: React.FC<AIModalProps> = ({
                         style={{ width: `${Math.min(100, Math.max(0, finalResult.noveltyScore || 0))}%` }}
                       ></div>
                     </div>
-                    <p className="font-bold mt-2 text-xs text-blue-800">
-                      {!isMatchDetected 
-                        ? "RESULT: UNIQUE - No significantly similar projects found."
-                        : "RESULT: MATCH DETECTED - Consider rephrasing or clarifying novelty."}
-                    </p>
+                    <div className="font-bold mt-2 text-xs text-blue-800 flex items-start gap-2">
+                      {!isMatchDetected ? (
+                        <>
+                          <FaCheckCircle className="text-emerald-600 text-sm mt-0.5 flex-shrink-0" aria-hidden />
+                          <span>Unique — No significantly similar projects found.</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaExclamationTriangle className="text-amber-500 text-sm mt-0.5 flex-shrink-0" aria-hidden />
+                          <span>Match Detected — Consider rephrasing or clarifying novelty.</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
