@@ -252,13 +252,14 @@ const RndSettings: React.FC = () => {
     }
   };
 
-  if (pageLoading) return <PageLoader mode="proponent-settings" />;
+  if (pageLoading) return <PageLoader mode="account-settings-tabs" />;
 
   const displayName = profile?.name || `${formData.firstName} ${formData.lastName}`.trim() || 'R&D Staff';
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-fade-in">
+      <div className="flex flex-col min-w-0">
 
       {/* ── Page Header ── */}
       <div className="mb-8">
@@ -528,6 +529,7 @@ const RndSettings: React.FC = () => {
 
 
       <div className="h-8" />
+      </div>
     </div>
   );
 };

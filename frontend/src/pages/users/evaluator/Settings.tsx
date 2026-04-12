@@ -252,13 +252,14 @@ const EvaluatorSettings: React.FC = () => {
     }
   };
 
-  if (pageLoading) return <PageLoader mode="proponent-settings" />;
+  if (pageLoading) return <PageLoader mode="account-settings-tabs" />;
 
-  const displayName = profile?.name || `${formData.firstName} ${formData.lastName}`.trim() || 'Project Evaluator';
+  const displayName = profile?.name || `${formData.firstName} ${formData.lastName}`.trim() || 'Evaluator';
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-fade-in">
+      <div className="flex flex-col min-w-0">
 
       {/* ── Page Header ── */}
       <div className="mb-8">
@@ -301,7 +302,7 @@ const EvaluatorSettings: React.FC = () => {
           {/* Role Badge */}
           <div className="flex sm:flex-col items-center gap-4 sm:gap-2 bg-white/10 rounded-xl px-4 py-3 text-center">
             <div>
-              <div className="text-xl font-bold">Project Evaluator</div>
+              <div className="text-xl font-bold">Evaluator</div>
               <div className="text-red-200 text-xs">Account Role</div>
             </div>
           </div>
@@ -523,6 +524,7 @@ const EvaluatorSettings: React.FC = () => {
       )}
 
       <div className="h-8" />
+      </div>
     </div>
   );
 };

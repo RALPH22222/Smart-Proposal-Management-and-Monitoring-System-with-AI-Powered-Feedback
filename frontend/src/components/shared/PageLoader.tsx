@@ -4,7 +4,7 @@ import SkeletonPulse from './SkeletonPulse';
 interface PageLoaderProps {
   text?: string;
   className?: string;
-  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | string;
+  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | string;
 }
 
 
@@ -334,69 +334,223 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
     );
   }
 
+  if (mode === 'account-settings-tabs') {
+    return (
+      <div className={`bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-pulse ${className || ''}`}>
+        <div className="flex flex-col min-w-0">
+          <div className="mb-8 space-y-2">
+            <SkeletonPulse className="h-8 w-56 max-w-full" />
+            <SkeletonPulse className="h-4 w-full max-w-xl opacity-60" />
+          </div>
+
+          <div className="rounded-2xl p-6 mb-6 bg-gradient-to-br from-[#C8102E] to-[#8B0C20] shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+              <div className="relative flex-shrink-0">
+                <div className="h-24 w-24 rounded-2xl bg-white/25 animate-pulse border-4 border-white/20" />
+                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-white/90 animate-pulse" />
+              </div>
+              <div className="flex-1 w-full sm:w-auto space-y-2 text-center sm:text-left">
+                <div className="h-6 w-44 max-w-full mx-auto sm:mx-0 bg-white/30 rounded animate-pulse" />
+                <div className="h-4 w-56 max-w-full mx-auto sm:mx-0 bg-white/20 rounded animate-pulse" />
+                <div className="h-6 w-32 rounded-full mx-auto sm:mx-0 bg-white/15 animate-pulse mt-2" />
+              </div>
+              <div className="rounded-xl px-4 py-3 bg-white/10 w-full sm:w-auto min-w-[140px] space-y-2">
+                <div className="h-6 w-24 mx-auto bg-white/25 rounded animate-pulse" />
+                <div className="h-3 w-20 mx-auto bg-white/20 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
+            <div className="flex gap-1 px-4 pt-2">
+              <SkeletonPulse className="h-11 w-20 rounded-t-lg shrink-0" />
+              <SkeletonPulse className="h-11 w-16 rounded-t-lg shrink-0 opacity-80" />
+              <SkeletonPulse className="h-11 w-24 rounded-t-lg shrink-0 opacity-60" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+              <SkeletonPulse className="h-10 w-10 rounded-xl shrink-0" />
+              <div className="space-y-2 flex-1 min-w-0">
+                <SkeletonPulse className="h-4 w-44 max-w-full" />
+                <SkeletonPulse className="h-3 w-64 max-w-full opacity-60" />
+              </div>
+            </div>
+            <div className="grid grid-cols-12 gap-3 mb-4">
+              <div className="col-span-12 sm:col-span-5 space-y-2">
+                <SkeletonPulse className="h-3.5 w-20" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+              </div>
+              <div className="col-span-12 sm:col-span-2 space-y-2">
+                <SkeletonPulse className="h-3.5 w-10" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+              </div>
+              <div className="col-span-12 sm:col-span-5 space-y-2">
+                <SkeletonPulse className="h-3.5 w-20" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <SkeletonPulse className="h-3.5 w-24" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+              </div>
+              <div className="space-y-2">
+                <SkeletonPulse className="h-3.5 w-8" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+              </div>
+            </div>
+            <div className="space-y-2 mb-6">
+              <SkeletonPulse className="h-3.5 w-40" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="flex justify-end">
+              <SkeletonPulse className="h-10 w-36 rounded-xl" />
+            </div>
+          </div>
+
+          <div className="h-8" />
+        </div>
+      </div>
+    );
+  }
+
   if (mode === 'proponent-settings') {
     return (
-      <div className={`max-w-5xl mx-auto px-4 py-8 space-y-8 animate-pulse ${className || ''}`}>
-        <div className="space-y-3">
-          <SkeletonPulse className="h-8 w-64" />
-          <SkeletonPulse className="h-4 w-96 opacity-50" />
+      <div className={`max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-pulse ${className || ''}`}>
+        <div className="mb-8 space-y-2">
+          <SkeletonPulse className="h-8 w-52 max-w-full" />
+          <SkeletonPulse className="h-4 w-full max-w-lg opacity-60" />
         </div>
-        <div className="bg-white rounded-lg border border-gray-100 p-6 flex items-center gap-6 shadow-sm">
-           <SkeletonPulse className="h-24 w-24 rounded-full" />
-           <div className="space-y-3 flex-1"><SkeletonPulse className="h-5 w-32"/><SkeletonPulse className="h-4 w-64 opacity-50"/></div>
+
+        <div className="rounded-2xl p-6 mb-6 bg-gradient-to-br from-[#C8102E] to-[#8B0C20] shadow-lg">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+            <div className="relative flex-shrink-0">
+              <div className="h-24 w-24 rounded-2xl bg-white/25 animate-pulse border-4 border-white/20" />
+              <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-white/90 animate-pulse" />
+            </div>
+            <div className="flex-1 w-full sm:w-auto space-y-2 text-center sm:text-left">
+              <div className="h-6 w-40 max-w-full mx-auto sm:mx-0 bg-white/30 rounded animate-pulse" />
+              <div className="h-4 w-52 max-w-full mx-auto sm:mx-0 bg-white/20 rounded animate-pulse" />
+              <div className="h-6 w-36 rounded-full mx-auto sm:mx-0 bg-white/15 animate-pulse mt-2" />
+            </div>
+            <div className="rounded-xl px-4 py-3 bg-white/10 w-full sm:w-auto min-w-[140px] space-y-2">
+              <div className="h-6 w-28 mx-auto bg-white/25 rounded animate-pulse" />
+              <div className="h-3 w-24 mx-auto bg-white/20 rounded animate-pulse" />
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-100 p-6 space-y-6 shadow-sm">
-           <SkeletonPulse className="h-6 w-48 border-b pb-2"/>
-           <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 md:col-span-5 space-y-2"><SkeletonPulse className="h-4 w-20"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="col-span-12 md:col-span-2 space-y-2"><SkeletonPulse className="h-4 w-8"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="col-span-12 md:col-span-5 space-y-2"><SkeletonPulse className="h-4 w-20"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><SkeletonPulse className="h-4 w-20"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="space-y-2"><SkeletonPulse className="h-4 w-12"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-           </div>
+
+        {/* Personal Information */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+            <SkeletonPulse className="h-10 w-10 rounded-xl shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <SkeletonPulse className="h-4 w-48 max-w-full" />
+              <SkeletonPulse className="h-3 w-72 max-w-full opacity-60" />
+            </div>
+          </div>
+          <div className="grid grid-cols-12 gap-3 mb-4">
+            <div className="col-span-12 sm:col-span-5 space-y-2">
+              <SkeletonPulse className="h-3.5 w-20" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="col-span-12 sm:col-span-2 space-y-2">
+              <SkeletonPulse className="h-3.5 w-10" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="col-span-12 sm:col-span-5 space-y-2">
+              <SkeletonPulse className="h-3.5 w-20" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <SkeletonPulse className="h-3.5 w-20" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <SkeletonPulse className="h-3.5 w-8" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+          </div>
         </div>
-        {/* Academic Information skeleton */}
-        <div className="bg-white rounded-lg border border-gray-100 p-6 space-y-6 shadow-sm">
-           <SkeletonPulse className="h-6 w-48 border-b pb-2"/>
-           <div className="space-y-4">
-              <div className="space-y-2"><SkeletonPulse className="h-4 w-32"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="space-y-3">
-                 <SkeletonPulse className="h-4 w-24"/>
-                 <div className="flex gap-6"><div className="flex items-center gap-2"><SkeletonPulse className="h-4 w-4 rounded-full"/><SkeletonPulse className="h-4 w-32"/></div><div className="flex items-center gap-2"><SkeletonPulse className="h-4 w-4 rounded-full"/><SkeletonPulse className="h-4 w-32"/></div></div>
+
+        {/* Academic Information */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+            <SkeletonPulse className="h-10 w-10 rounded-xl shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <SkeletonPulse className="h-4 w-44 max-w-full" />
+              <SkeletonPulse className="h-3 w-64 max-w-full opacity-60" />
+            </div>
+          </div>
+          <div className="space-y-2 mb-6">
+            <SkeletonPulse className="h-3.5 w-36" />
+            <SkeletonPulse className="h-10 w-full rounded-lg" />
+          </div>
+          <div className="flex justify-end">
+            <SkeletonPulse className="h-10 w-44 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+            <SkeletonPulse className="h-10 w-10 rounded-xl shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <SkeletonPulse className="h-4 w-36 max-w-full" />
+              <SkeletonPulse className="h-3 w-80 max-w-full opacity-60" />
+            </div>
+          </div>
+          <div className="space-y-2 mb-4">
+            <SkeletonPulse className="h-3.5 w-28" />
+            <SkeletonPulse className="h-10 w-full rounded-lg" />
+          </div>
+          <div className="flex justify-end">
+            <SkeletonPulse className="h-10 w-32 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Security */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+            <SkeletonPulse className="h-10 w-10 rounded-xl shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <SkeletonPulse className="h-4 w-24 max-w-full" />
+              <SkeletonPulse className="h-3 w-56 max-w-full opacity-60" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            <div className="sm:col-span-2 space-y-2">
+              <SkeletonPulse className="h-3.5 w-32" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <SkeletonPulse className="h-3.5 w-28" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="space-y-2">
+              <SkeletonPulse className="h-3.5 w-36" />
+              <SkeletonPulse className="h-10 w-full rounded-lg" />
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5 space-y-2">
+            <SkeletonPulse className="h-3.5 w-40" />
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-2">
+                <SkeletonPulse className="h-3 w-3 rounded-full shrink-0" />
+                <SkeletonPulse className="h-3 flex-1 max-w-xs opacity-70" />
               </div>
-           </div>
-           <div className="flex justify-end pt-4"><SkeletonPulse className="h-10 w-48 rounded-md opacity-20"/></div>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <SkeletonPulse className="h-10 w-40 rounded-xl" />
+          </div>
         </div>
-        {/* Notification Preferences skeleton grid */}
-        <div className="space-y-4">
-           <SkeletonPulse className="h-6 w-48"/>
-           <div className="grid gap-6 md:grid-cols-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-100 p-6 space-y-4 shadow-sm">
-                  <SkeletonPulse className="h-5 w-40 mb-2"/>
-                  <div className="space-y-3">
-                    {[1, 2, 3, 4].map((j) => (
-                      <div key={j} className="flex items-center gap-3">
-                        <SkeletonPulse className="h-4 w-4 rounded"/><SkeletonPulse className="h-3 w-48 opacity-50"/>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-           </div>
-        </div>
-        {/* Security Section skeleton */}
-        <div className="bg-white rounded-lg border border-gray-100 p-6 space-y-6 shadow-sm">
-           <SkeletonPulse className="h-6 w-48 border-b pb-2"/>
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="space-y-2"><SkeletonPulse className="h-4 w-32"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="sm:col-start-1 space-y-2"><SkeletonPulse className="h-4 w-32"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-              <div className="space-y-2"><SkeletonPulse className="h-4 w-40"/><SkeletonPulse className="h-10 w-full rounded-md"/></div>
-           </div>
-           <div className="flex justify-end pt-2"><SkeletonPulse className="h-10 w-32 rounded-md opacity-30"/></div>
-        </div>
+
+        <div className="h-8" />
       </div>
     );
   }

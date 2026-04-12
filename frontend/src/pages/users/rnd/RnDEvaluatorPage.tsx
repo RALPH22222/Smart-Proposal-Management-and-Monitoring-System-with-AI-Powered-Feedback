@@ -475,7 +475,7 @@ export const RnDEvaluatorPage: React.FC = () => {
   // Helper: get display label for proposal status
   const getProposalStatusLabel = (status: string) => {
     switch (status) {
-      case "under_evaluation": return "Under Evaluation";
+      case "under_evaluation": return "Under Evaluators Assessment";
       case "endorsed_for_funding": return "Endorsed";
       case "funded": return "Funded";
       case "review_rnd": return "Pending Review";
@@ -491,8 +491,8 @@ export const RnDEvaluatorPage: React.FC = () => {
   // Helper: get style for proposal status badge
   const getProposalStatusStyle = (status: string) => {
     switch (status) {
-      case "under_evaluation": return "bg-blue-50 text-blue-700 border-blue-200";
-      case "endorsed_for_funding": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "under_evaluation": return "bg-purple-50 text-purple-800 border-purple-200";
+      case "endorsed_for_funding": return "bg-blue-50 text-blue-800 border-blue-200";
       case "funded": return "bg-green-50 text-green-700 border-green-200";
       case "rejected_rnd": case "rejected_funding": return "bg-red-50 text-red-700 border-red-200";
       case "revision_rnd": case "revision_funding": return "bg-amber-50 text-amber-700 border-amber-200";

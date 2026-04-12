@@ -21,7 +21,7 @@ import {
   XCircle,
   FileCheck,
   Send,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchDepartments, fetchUsersByRole, getAssignmentHistory, type UserItem, type AssignmentHistoryItem } from '../../services/proposal.api';
@@ -81,11 +81,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     }
   };
 
-  /** Header status pill — Funded = emerald; under evaluation = purple; editable otherwise blue; read-only default amber */
+  /** Header status pill — Endorsed = dark blue on light blue (matches RnDFundingPage text-blue-800/bg-blue-50); Funded = emerald; under evaluation = purple; editable = blue; default amber */
   const getProposalStatusBadgeClass = (status: string) => {
     switch (status) {
       case "funded":
         return "bg-emerald-50 text-emerald-800 border-emerald-200";
+      case "endorsed_for_funding":
+        return "bg-blue-50 text-blue-800 border-blue-200";
       case "under_evaluation":
         return "bg-purple-50 text-purple-800 border-purple-200";
       case "review_rnd":
@@ -404,13 +406,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
           {/* Read-only banner when proposal is past evaluation */}
           {!isEditable && proposalStatus && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
-              <div className="p-1.5 bg-emerald-100 rounded-lg">
-                <Users className="w-4 h-4 text-emerald-600" />
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-slate-100 rounded-lg">
+                <Users className="w-4 h-4 text-red-700" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-emerald-900">View Only</p>
-                <p className="text-xs text-emerald-700">
+                <p className="text-sm font-semibold text-slate-900">View Only</p>
+                <p className="text-xs text-slate-700">
                   This proposal is <strong>{getProposalStatusLabel(proposalStatus).toLowerCase()}</strong>. Evaluator assignments can no longer be modified.
                 </p>
               </div>
