@@ -60,9 +60,14 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      // Refresh failed — clear storage and redirect to login
+      // Refresh failed — session is gone (cookies cleared, expired, or
+      // invalidated because another tab completed an invite / logged in
+      // as a different account). Leave a flag for /login to read so the
+      // user gets a clear "you were signed out" notice instead of a
+      // silent redirect.
       localStorage.removeItem('user');
       sessionStorage.removeItem('auth_verified');
+      sessionStorage.setItem('auth_redirect_reason', 'session_ended');
       window.location.href = '/login';
       return Promise.reject(refreshError);
     } finally {

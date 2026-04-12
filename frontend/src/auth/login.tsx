@@ -51,6 +51,20 @@ export default function Login() {
       });
       setSearchParams({}, { replace: true });
     }
+
+    // If another tab ended this session (invite completion, logout, or
+    // explicit re-login as a different account), show a friendly notice
+    // instead of the generic "Unauthorized" error the old flow produced.
+    const redirectReason = sessionStorage.getItem("auth_redirect_reason");
+    if (redirectReason === "session_ended") {
+      sessionStorage.removeItem("auth_redirect_reason");
+      Swal.fire({
+        icon: "info",
+        title: "Signed out",
+        text: "Your session ended in another tab. Please sign in again.",
+        confirmButtonColor: "#C8102E",
+      });
+    }
   }, [searchParams, setSearchParams]);
 
   // Hard navigation after login: full page reload so every module-level

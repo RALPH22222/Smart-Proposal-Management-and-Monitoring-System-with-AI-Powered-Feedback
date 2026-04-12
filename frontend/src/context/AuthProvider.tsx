@@ -63,12 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("verifyToken failed:", error);
       setUser(null);
       localStorage.removeItem("user");
+      // Let /login show a friendly "session ended" notice instead of a
+      // red error. Covers the case where this tab was idle while another
+      // tab invalidated the session (invite completion, logout, etc.).
+      sessionStorage.setItem("auth_redirect_reason", "session_ended");
       navigate("/login");
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Unauthorized access",
-      });
     } finally {
       setLoading(false);
     }
