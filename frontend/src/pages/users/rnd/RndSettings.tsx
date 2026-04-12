@@ -290,9 +290,9 @@ const RndSettings: React.FC = () => {
             <h2 className="text-xl font-bold">{displayName}</h2>
             <p className="text-red-200 text-sm mt-0.5">{profile?.email || '—'}</p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
-              {profile?.department && (
-                <span className="bg-white/15 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full border border-white/20 max-w-[220px] truncate">
-                  {profile.department}
+              {departments.find(d => String(d.id) === formData.department_id) && (
+                <span className="bg-white/10 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full border border-white/20 max-w-[250px] truncate">
+                  {departments.find(d => String(d.id) === formData.department_id)?.name}
                 </span>
               )}
             </div>
