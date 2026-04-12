@@ -18,6 +18,7 @@ interface NotificationsDropdownProps {
   onMarkRead: (id: string) => void;
   onViewAll: () => void;
   onNavigate?: (link: string) => void;
+  position?: 'top' | 'bottom';
 }
 
 const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
@@ -27,7 +28,8 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
   onMarkAllRead,
   onMarkRead,
   onViewAll,
-  onNavigate
+  onNavigate,
+  position = 'top'
 }) => {
   if (!isOpen) return null;
 
@@ -43,11 +45,11 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
     // FIXED: Changed anchor from 'right' to 'left' for mobile to prevent cut-off
     // left-0 (mobile): Anchors left edge of dropdown to left edge of bell (expands right)
     // sm:left-auto sm:right-0 (desktop): Anchors right edge to right edge of bell (expands left)
-    <div className="absolute top-full mt-3 z-50 transform transition-all
+    <div className={`absolute z-50 transform transition-all
+                    ${position === 'top' ? 'top-full mt-3 origin-top-left sm:origin-top-right' : 'bottom-full mb-3 origin-bottom-left sm:origin-bottom-right'}
                     left-0 sm:left-auto sm:right-0
                     w-[85vw] sm:w-80 max-w-[360px]
-                    bg-white rounded-xl shadow-2xl border border-gray-100
-                    origin-top-left sm:origin-top-right">
+                    bg-white rounded-xl shadow-2xl border border-gray-100`}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">

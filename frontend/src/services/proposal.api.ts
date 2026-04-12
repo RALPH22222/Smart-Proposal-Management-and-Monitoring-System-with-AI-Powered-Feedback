@@ -545,7 +545,9 @@ export type UserItem = {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  /** Presigned / public profile image URL (from `photo_profile_url` on user) */
   profile_picture?: string;
+  photo_profile_url?: string | null;
   department_id?: number;
   departments: { id: number; name: string }[];
 };
@@ -663,6 +665,7 @@ export type AssignmentTrackerItem = {
     first_name: string;
     last_name: string;
     email: string;
+    photo_profile_url?: string | null;
     department_id: {
       name: string;
     };

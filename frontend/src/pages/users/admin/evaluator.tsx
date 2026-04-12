@@ -299,6 +299,7 @@ export const EvaluatorPage: React.FC = () => {
           comment: item.remarks || "",
           extensionDate,
           extensionReason,
+          photo_profile_url: item.evaluator_id.photo_profile_url ?? null,
         };
       });
 

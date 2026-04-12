@@ -332,6 +332,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           comment: item.remarks || "", // potential overlap with extension reason, but ok
           extensionDate,
           extensionReason,
+          photo_profile_url: item.evaluator_id.photo_profile_url ?? null,
         };
       });
 

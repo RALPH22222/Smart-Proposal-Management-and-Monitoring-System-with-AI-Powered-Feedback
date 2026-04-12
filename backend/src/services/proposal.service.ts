@@ -1123,6 +1123,7 @@ export class ProposalService {
           last_name: u.last_name,
           email: u.email,
           profile_picture: u.photo_profile_url, // map to frontend expected key
+          photo_profile_url: u.photo_profile_url,
           department_id: u.department_id, // Pass raw ID for frontend lookup
           departments: depts,
         };
@@ -2306,7 +2307,7 @@ export class ProposalService {
             tags:tags(name)
           )
         ),
-        evaluator_id:users(id, first_name, last_name, middle_ini, email, department_id:departments(name)),
+        evaluator_id:users(id, first_name, last_name, middle_ini, email, photo_profile_url, department_id:departments(name)),
         deadline_at,
         request_deadline_at,
         remarks,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  User as UserIcon,
   Check,
   Search,
   MessageSquare,
@@ -27,6 +26,7 @@ import {
 import Swal from 'sweetalert2';
 import { fetchDepartments, fetchUsersByRole, getAssignmentHistory, type UserItem, type AssignmentHistoryItem } from '../../services/proposal.api';
 import { formatDate } from '../../utils/date-formatter';
+import SecureImage from '../shared/SecureImage';
 
 export interface EvaluatorOption {
   id: string;
@@ -36,6 +36,8 @@ export interface EvaluatorOption {
   comment?: string;
   extensionDate?: string;
   extensionReason?: string;
+  /** Profile image URL (matches users.photo_profile_url from API) */
+  photo_profile_url?: string | null;
 }
 
 interface RnDEvaluatorPageModalProps {
@@ -66,7 +68,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
   const getProposalStatusLabel = (status: string) => {
     switch (status) {
-      case "under_evaluation": return "Under Evaluation";
+      case "under_evaluation": return "Under Evaluators Assessment";
       case "endorsed_for_funding": return "Endorsed";
       case "funded": return "Funded";
       case "review_rnd": return "Pending Review";
@@ -76,6 +78,22 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
       case "rejected_funding": return "Rejected (Funding)";
       case "revision_funding": return "Revision (Funding)";
       default: return status;
+    }
+  };
+
+  /** Header status pill — Funded = emerald; under evaluation = purple; editable otherwise blue; read-only default amber */
+  const getProposalStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "funded":
+        return "bg-emerald-50 text-emerald-800 border-emerald-200";
+      case "under_evaluation":
+        return "bg-purple-50 text-purple-800 border-purple-200";
+      case "review_rnd":
+      case "pending":
+      case "revised_proposal":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      default:
+        return "bg-amber-50 text-amber-800 border-amber-200";
     }
   };
   const [departments, setDepartments] = useState<string[]>([]);
@@ -181,7 +199,8 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           id: newEvaluatorUser.id,
           name: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}`.trim(),
           department: newEvaluatorUser.departments[0]?.name || "Unknown Dept",
-          status: 'Pending'
+          status: 'Pending',
+          photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         } : ev));
         Swal.fire({ title: 'Replaced!', text: 'Evaluator successfully replaced.', icon: 'success', timer: 2000, showConfirmButton: false });
         setReplacementTargetId(null);
@@ -213,6 +232,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           name: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}`.trim(),
           department: newEvaluatorUser.departments[0]?.name || "Unknown Dept",
           status: 'Pending',
+          photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         },
       ]);
       Swal.fire({ title: 'Added!', text: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name} has been added.`, icon: 'success', timer: 2000, showConfirmButton: false });
@@ -256,6 +276,18 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const evaluatorPhotoFallback = (displayName: string) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName || "?")}&background=7c3aed&color=fff&size=128`;
+
+  const resolveEvaluatorPhoto = (ev: EvaluatorOption): string | undefined => {
+    if (ev.photo_profile_url) return ev.photo_profile_url;
+    const u = allEvaluators.find((x) => x.id === ev.id);
+    return (u?.photo_profile_url ?? u?.profile_picture) || undefined;
+  };
+
+  const resolveUserPhoto = (u: UserItem): string | undefined =>
+    (u.photo_profile_url ?? u.profile_picture) || undefined;
 
   const getHistoryDisplay = (action: string): { icon: React.ReactNode; color: string; label: string } => {
     switch (action) {
@@ -351,9 +383,9 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
               <h2 className="text-xl font-bold text-gray-900 leading-tight">Evaluator Assignment Status</h2>
               <p className="text-sm text-slate-500 mt-1 leading-snug line-clamp-2">{proposalTitle}</p>
               {proposalStatus && (
-                <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                  isEditable ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
+                <span
+                  className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getProposalStatusBadgeClass(proposalStatus)}`}
+                >
                   {getProposalStatusLabel(proposalStatus)}
                 </span>
               )}
@@ -372,13 +404,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
           {/* Read-only banner when proposal is past evaluation */}
           {!isEditable && proposalStatus && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
-              <div className="p-1.5 bg-amber-100 rounded-lg">
-                <Users className="w-4 h-4 text-amber-600" />
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-emerald-100 rounded-lg">
+                <Users className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-800">View Only</p>
-                <p className="text-xs text-amber-600">
+                <p className="text-sm font-semibold text-emerald-900">View Only</p>
+                <p className="text-xs text-emerald-700">
                   This proposal is <strong>{getProposalStatusLabel(proposalStatus).toLowerCase()}</strong>. Evaluator assignments can no longer be modified.
                 </p>
               </div>
@@ -430,8 +462,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                     replaceCandidates.map((user) => (
                       <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
                         <div className="flex items-center gap-3 w-full">
-                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                            <UserIcon className="w-5 h-5 text-purple-600" />
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
+                            <SecureImage
+                              src={resolveUserPhoto(user)}
+                              fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
+                              alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
@@ -457,35 +494,35 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             </div>
           )}
 
-          {/* Add Evaluator Overlay */}
+          {/* Add Evaluator Overlay — purple theme (matches Replace mini modal) */}
           {showAddPanel && (
             <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(200,16,46,0.25)] ring-1 ring-red-100 w-full max-w-xl overflow-hidden flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-red-100 bg-red-50 flex items-center justify-between">
-                  <h3 className="font-bold text-red-900 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-[#C8102E]" />
+              <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.25)] ring-1 ring-purple-100 w-full max-w-xl overflow-hidden flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200">
+                <div className="p-4 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
+                  <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-purple-600" />
                     Add Evaluator
                   </h3>
-                  <button onClick={() => { setShowAddPanel(false); setAddSearch(''); setAddDeptFilter('All'); }} className="p-1 hover:bg-red-200 text-red-400 hover:text-red-600 rounded-lg transition-colors">
+                  <button onClick={() => { setShowAddPanel(false); setAddSearch(''); setAddDeptFilter('All'); }} className="p-1 hover:bg-purple-200 text-purple-400 hover:text-purple-600 rounded-lg transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
                 {/* Filters */}
                 <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-300" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300" />
                     <input
                       type="text"
                       placeholder="Search name, email, or dept..."
                       value={addSearch}
                       onChange={(e) => setAddSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-red-50/30 border border-red-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all"
+                      className="w-full pl-9 pr-3 py-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
                     />
                   </div>
                   <select
                     value={addDeptFilter}
                     onChange={(e) => setAddDeptFilter(e.target.value)}
-                    className="w-full sm:w-48 p-2 bg-red-50/30 border border-red-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#C8102E] transition-all text-red-900"
+                    className="w-full sm:w-48 p-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 transition-all text-purple-900"
                   >
                     <option value="All">All Departments</option>
                     {departments.map((d) => (
@@ -499,10 +536,15 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                     <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
                   ) : (
                     addCandidates.map((user) => (
-                      <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-red-300 hover:shadow-md transition-all">
+                      <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
                         <div className="flex items-center gap-3 w-full">
-                          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                            <UserIcon className="w-5 h-5 text-[#C8102E]" />
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
+                            <SecureImage
+                              src={resolveUserPhoto(user)}
+                              fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
+                              alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
@@ -515,7 +557,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                           </div>
                           <button
                             onClick={() => confirmAdd(user.id)}
-                            className="bg-red-50 hover:bg-[#C8102E] text-[#C8102E] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                            className="bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                           >
                             Add
                           </button>
@@ -644,8 +686,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                           {/* Name & Department */}
                           <td className="px-4 py-3 align-top">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                                <UserIcon className="w-4 h-4 text-purple-600" />
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
+                                <SecureImage
+                                  src={resolveEvaluatorPhoto(ev)}
+                                  fallbackSrc={evaluatorPhotoFallback(ev.name)}
+                                  alt={ev.name}
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
                               <div>
                                 <div className="font-semibold text-slate-800 text-sm">{ev.name}</div>

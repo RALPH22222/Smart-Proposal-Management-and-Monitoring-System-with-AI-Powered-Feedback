@@ -341,7 +341,7 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
       keywords: ["Undetectable"],
       similarPapers: [],
       issues: [
-        "❌ Cannot detect proposal content. Please try again.",
+        "Cannot detect proposal content. Please try again.",
         "",
         "Your PDF must follow the standard VAWC Capsule Proposal format:",
         "",
@@ -381,7 +381,7 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
       keywords: ["Undetectable"],
       similarPapers: [],
       issues: [
-        "❌ Proposal content could not be detected or analyzed.",
+        "Proposal content could not be detected or analyzed.",
         "The uploaded PDF/document may be:",
         "  • Empty or contains only images",
         "  • Scanned without OCR (text not extractable)",
@@ -412,7 +412,7 @@ export async function analyzeProposal(extracted: ExtractedData): Promise<Analysi
       keywords: ["Incomplete"],
       similarPapers: [],
       issues: [
-        "❌ Proposal title is too short or incomplete.",
+        "Proposal title is too short or incomplete.",
         `Detected title: "${extracted.title}"`,
         "",
         "A valid research proposal should have:",

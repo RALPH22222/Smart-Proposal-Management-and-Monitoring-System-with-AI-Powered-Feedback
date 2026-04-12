@@ -5,7 +5,7 @@ import Dashboard from './RndDashboard';
 import ReviewPage from './RndProposalPage';
 import Monitoring from './RnDMonitoringPage';
 import Settings from './RndSettings';
-import RnDTopNavbar from '../../../components/rnd-component/RnDTopNavbar';
+import RnDFloatingNotification from '../../../components/rnd-component/RnDFloatingNotification';
 import {
 	type Statistics,
 	type Activity
@@ -92,14 +92,14 @@ const MainLayout: React.FC = () => {
 			</div>
 
 			{/* Main Content */}
-			<div className='flex-1 bg-gray-50 flex flex-col min-w-0 h-screen'>
-				<RnDTopNavbar onPageChange={handlePageChange} />
+			<div className='flex-1 bg-gray-50 flex min-w-0 h-screen relative'>
 				<main 
 					className="flex-1 overflow-y-auto"
 					onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
 				>
 					{renderCurrentPage()}
 				</main>
+				<RnDFloatingNotification onPageChange={handlePageChange} />
 			</div>
 		</div>
 	);

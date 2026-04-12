@@ -7,7 +7,7 @@ import ReviewedPage from './ReviewedProposals';
 import Proposals from './Proposals';
 import Notifications from './Notifications';
 import Settings from './Settings';
-import EvaluatorTopNavbar from '../../../components/evaluator-component/EvaluatorTopNavbar';
+import EvaluatorFloatingNotification from '../../../components/evaluator-component/EvaluatorFloatingNotification';
 
 const EvaluatorLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,11 +46,11 @@ const EvaluatorLayout: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen">
-        <EvaluatorTopNavbar onPageChange={handlePageChange} />
+      <div className="flex-1 flex min-w-0 h-screen relative">
         <main className="flex-1 overflow-y-auto relative transition-all duration-300">
           {renderContent()}
         </main>
+        <EvaluatorFloatingNotification onPageChange={handlePageChange} />
       </div>
     </div>
   );
