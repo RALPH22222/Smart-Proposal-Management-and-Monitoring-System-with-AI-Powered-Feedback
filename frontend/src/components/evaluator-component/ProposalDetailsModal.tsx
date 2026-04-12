@@ -145,13 +145,6 @@ export default function ProposalDetailsModal({
     return "bg-amber-100 text-amber-700 border-amber-200";
   };
 
-  const getButtonStyles = (isSelected: boolean) => {
-    if (isSelected) {
-      return "bg-[#C8102E] text-white border-[#C8102E] shadow-md scale-105 font-bold";
-    }
-    return "bg-slate-50 text-slate-300 border-slate-100";
-  };
-
   // Helper to format string for display
   const formatString = (str: string) => {
     if (!str) return "N/A";
@@ -223,10 +216,6 @@ export default function ProposalDetailsModal({
                     const field = key as keyof typeof RATING_CRITERIA;
                     // Safe access with fallback 0
                     const ratingValue = proposal.ratings?.[field] || 0;
-                    const ratingDesc =
-                      (RATING_CRITERIA[field].descriptions as any)[
-                      ratingValue
-                      ] || "No rating provided.";
 
                     return (
                       <div
