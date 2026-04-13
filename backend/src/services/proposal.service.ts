@@ -1237,7 +1237,7 @@ export class ProposalService {
       agency:agencies(name),
       agency_address(id,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
-      proposal_version(id,file_url),
+      proposal_version!proposal_version_proposal_id_fkey(id,file_url),
       funded_projects(id,funding_document_url,project_lead_id),
       proposal_rnd(users(first_name,last_name,email,department:departments(name)))
     `);
@@ -1457,7 +1457,7 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
-          proposal_version(id,file_url,created_at)
+          proposal_version!proposal_version_proposal_id_fkey(id,file_url,created_at)
         )
       `,
       )
@@ -1553,7 +1553,7 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
-          proposal_version(id,file_url,created_at),
+          proposal_version!proposal_version_proposal_id_fkey(id,file_url,created_at),
           funded_projects(id,funding_document_url,project_lead_id)
         )
       `,
