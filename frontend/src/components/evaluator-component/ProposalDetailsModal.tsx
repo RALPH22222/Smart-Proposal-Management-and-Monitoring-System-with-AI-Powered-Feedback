@@ -22,6 +22,7 @@ import {
   Lock,
   EyeOff,
 } from "lucide-react";
+import { openProposalFile } from "../../utils/signed-url";
 
 // --- Data Constants ---
 const RATING_CRITERIA = {
@@ -125,9 +126,8 @@ export default function ProposalDetailsModal({
 }: ProposalDetailsModalProps) {
   if (!isOpen || !proposal) return null;
 
-  const handleDownload = (fileName: string) => {
-    console.log("[v0] Downloading file:", fileName);
-    alert(`Downloading ${fileName}`);
+  const handleViewFile = (fileUrl?: string) => {
+    openProposalFile(fileUrl);
   };
 
   const isNameVisible = (proposal.proponentInfoVisibility === 'both' || proposal.proponentInfoVisibility === 'name' || !proposal.proponentInfoVisibility);
@@ -381,7 +381,7 @@ export default function ProposalDetailsModal({
               </div>
               <div
                 className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer"
-                onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
+                onClick={() => handleViewFile(proposal.projectFile)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">

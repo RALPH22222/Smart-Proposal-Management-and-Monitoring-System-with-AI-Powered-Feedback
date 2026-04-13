@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
 import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
+import { openProposalFile } from "../../utils/signed-url";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -284,9 +285,9 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
 
   if (!isOpen || !proposal) return null;
 
-  // --- DOWNLOAD HANDLER ---
-  const handleDownload = (fileName: string) => {
-    alert(`Downloading ${fileName}...`);
+  // --- VIEW HANDLER ---
+  const handleViewFile = (fileUrl: string) => {
+    openProposalFile(fileUrl);
   };
 
   // --- THEME HELPER ---
@@ -680,7 +681,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     const isLatest = reversedIndex === 0;
                     const originalIndex = projectFiles.length - 1 - reversedIndex;
                     return (
-                      <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${isLatest && projectFiles.length > 1 ? 'border-green-200 shadow-sm' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors cursor-pointer`} onClick={() => handleDownload(fileUrl)}>
+                      <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${isLatest && projectFiles.length > 1 ? 'border-green-200 shadow-sm' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors cursor-pointer`} onClick={() => handleViewFile(fileUrl)}>
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 ${isLatest && projectFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
                             <FileCheck className={`w-5 h-5 ${isLatest && projectFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />

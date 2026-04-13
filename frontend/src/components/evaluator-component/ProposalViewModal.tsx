@@ -26,6 +26,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
+import { openProposalFile } from "../../utils/signed-url";
 
 // --- LOCAL INTERFACES ---
 interface Site {
@@ -187,8 +188,8 @@ export default function ProposalModal({
     budgetTotal: budgetTotal || "0.00"
   };
 
-  const handleDownload = (file: string) => {
-    alert(`Downloading ${file}...`);
+  const handleViewFile = (fileUrl?: string) => {
+    openProposalFile(fileUrl);
   };
 
   // --- THEME HELPER (Matched to RndViewModal style) ---
@@ -529,7 +530,7 @@ export default function ProposalModal({
             </div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer"
-                onClick={() => handleDownload(p.projectFile || "Project_Proposal.pdf")}>
+                onClick={() => handleViewFile(p.projectFile)}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                     <FileCheck className="w-5 h-5 text-[#C8102E]" />

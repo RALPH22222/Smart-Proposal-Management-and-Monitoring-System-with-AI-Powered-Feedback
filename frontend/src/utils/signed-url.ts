@@ -46,3 +46,39 @@ export async function openSignedUrl(s3Url: string): Promise<void> {
   const url = await getSignedFileUrl(s3Url);
   window.open(url, "_blank", "noopener,noreferrer");
 }
+
+/**
+ * Open a proposal document for in-browser viewing in a new tab.
+ * - PDF: opens the presigned URL directly (browsers render inline).
+ * - DOC/DOCX: routes through Microsoft Office Online viewer so the user
+ *   can preview without downloading. The presigned URL is sent to
+ *   view.officeapps.live.com, which fetches and renders it.
+ * Falls back to a direct open for unknown extensions.
+ */
+export async function openProposalFile(s3Url: string | null | undefined): Promise<void> {
+  if (!s3Url) {
+    alert("No file uploaded for this proposal.");
+    return;
+  }
+
+  const ext = (() => {
+    try {
+      const path = decodeURIComponent(new URL(s3Url).pathname);
+      const match = path.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+      return match ? match[1].toLowerCase() : "";
+    } catch {
+      const match = s3Url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+      return match ? match[1].toLowerCase() : "";
+    }
+  })();
+
+  const presigned = await getSignedFileUrl(s3Url);
+
+  if (ext === "doc" || ext === "docx") {
+    const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(presigned)}`;
+    window.open(viewerUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  window.open(presigned, "_blank", "noopener,noreferrer");
+}

@@ -27,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
+import { openProposalFile } from "../../utils/signed-url";
 
 const RATING_CRITERIA = {
   title: {
@@ -158,9 +159,8 @@ export default function ReviewModal({
     ratings.budget > 0 &&
     ratings.timeline > 0;
 
-  const handleDownload = (fileName: string) => {
-    console.log("Downloading:", fileName);
-    alert(`Downloading ${fileName}`);
+  const handleViewFile = (fileUrl?: string) => {
+    openProposalFile(fileUrl);
   };
 
   const isNameVisible = (proposal?.proponentInfoVisibility === 'both' || proposal?.proponentInfoVisibility === 'name' || !proposal?.proponentInfoVisibility);
@@ -266,7 +266,7 @@ export default function ReviewModal({
               </div>
               <div
                 className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer"
-                onClick={() => handleDownload(proposal.projectFile || "Full Project Proposal.pdf")}
+                onClick={() => handleViewFile(proposal.projectFile)}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
