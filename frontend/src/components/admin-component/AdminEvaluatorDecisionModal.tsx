@@ -219,67 +219,62 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 						{/* Ratings Section */}
 						{decision.ratings && (
 							<div className="space-y-4">
-								<h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-									<MessageSquare className="w-5 h-5 text-[#C8102E]" />
-									Evaluator Ratings
-								</h3>
-
-								{/* Title Rating */}
-								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-									<div className="flex items-center justify-between mb-3">
-										<label className="text-sm font-semibold text-slate-900">
-											{RATING_CRITERIA.title.label}
-										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.title}/5
-												</span>
-											</span>
-										</div>
-									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.title)}`}>
-										{(RATING_CRITERIA.title.descriptions as Record<number, string>)[decision.ratings.title]}
-									</div>
+								<div>
+									<h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+										<MessageSquare className="w-5 h-5 text-[#C8102E]" />
+										Evaluator Ratings
+									</h3>
+									<p className="text-xs text-slate-500 mt-1">
+										Each criterion is scored from <span className="font-semibold text-slate-700">1 (Poor)</span> to{" "}
+										<span className="font-semibold text-slate-700">5 (Excellent)</span>. The highlighted number
+										shows what the evaluator selected; the text below explains that rating.
+									</p>
 								</div>
 
-								{/* Budget Rating */}
-								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-									<div className="flex items-center justify-between mb-3">
-										<label className="text-sm font-semibold text-slate-900">
-											{RATING_CRITERIA.budget.label}
-										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.budget}/5
+								{(["title", "budget", "timeline"] as const).map((criterionKey) => {
+									const criterion = RATING_CRITERIA[criterionKey];
+									const value = (decision.ratings as any)[criterionKey] ?? 0;
+									return (
+										<div key={criterionKey} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+											<div className="flex items-center justify-between mb-2 gap-2">
+												<label className="text-sm font-semibold text-slate-900">
+													{criterion.label}
+												</label>
+												<span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+													1 Poor · 5 Excellent
 												</span>
-											</span>
+											</div>
+											<div className="flex items-center gap-2">
+												{[1, 2, 3, 4, 5].map((num) => {
+													const selected = value === num;
+													return (
+														<div
+															key={num}
+															className={`flex-1 h-11 rounded-lg border font-bold text-base flex items-center justify-center cursor-default ${
+																selected
+																	? `${getRatingColor(num)} shadow-sm ring-2 ring-current`
+																	: "bg-white border-slate-200 text-slate-300"
+															}`}
+															aria-label={`${criterion.label}: ${num}${selected ? " (selected)" : ""}`}
+														>
+															{num}
+														</div>
+													);
+												})}
+											</div>
+											{value > 0 && (
+												<div
+													className={`mt-3 text-xs leading-relaxed p-3 rounded-lg border font-medium ${getRatingColor(
+														value,
+													)}`}
+												>
+													<span className="font-bold">{value}/5:</span>{" "}
+													{(criterion.descriptions as Record<number, string>)[value]}
+												</div>
+											)}
 										</div>
-									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.budget)}`}>
-										{(RATING_CRITERIA.budget.descriptions as Record<number, string>)[decision.ratings.budget]}
-									</div>
-								</div>
-
-								{/* Timeline Rating */}
-								<div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-									<div className="flex items-center justify-between mb-3">
-										<label className="text-sm font-semibold text-slate-900">
-											{RATING_CRITERIA.timeline.label}
-										</label>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-bold text-slate-700">
-												<span className="inline-flex items-center justify-center w-8 h-8 text-white bg-[#C8102E] rounded-full text-sm font-semibold">
-													{decision.ratings.timeline}/5
-												</span>
-											</span>
-										</div>
-									</div>
-									<div className={`text-xs p-3 rounded-lg border ${getRatingColor(decision.ratings.timeline)}`}>
-										{(RATING_CRITERIA.timeline.descriptions as Record<number, string>)[decision.ratings.timeline]}
-									</div>
-								</div>
+									);
+								})}
 
 								{/* Total Score Section */}
 								<div className="bg-slate-100 rounded-xl p-5 border-1 border-slate-300 mt-6">

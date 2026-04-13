@@ -286,7 +286,8 @@ export class ProposalService {
     return { data: insertRes.data, error: insertRes.error };
   }
 
-  // Saves link from aws S3 to proposal version
+  // Saves link from aws S3 to proposal version and points the proposal at it
+  // as the current version, so active-side queries always see this row as live.
   async createVersion(payload: ProposalVersionInput) {
     const { data, error } = await this.db
       .from("proposal_version")
@@ -297,16 +298,30 @@ export class ProposalService {
       .select()
       .single();
 
-    return { data, error };
+    if (error || !data) {
+      return { data, error };
+    }
+
+    const { error: pointerError } = await this.db
+      .from("proposals")
+      .update({ current_version_id: data.id })
+      .eq("id", payload.proposal_id);
+
+    if (pointerError) {
+      return { data: null, error: pointerError };
+    }
+
+    return { data, error: null };
   }
 
   async forwardToEvaluators(input: ForwardToEvaluatorsInput, rnd_id: string) {
     const { proposal_id, evaluators, deadline_at, commentsForEvaluators, anonymized_file_url } = input;
 
-    // Validate proposal status — only allow forwarding when proposal is in an eligible status
+    // Validate proposal status + capture current_version_id so every inserted
+    // assignment row is scoped to the version R&D is forwarding for review.
     const { data: proposal, error: fetchError } = await this.db
       .from("proposals")
-      .select("status")
+      .select("status, current_version_id")
       .eq("id", proposal_id)
       .single();
 
@@ -330,11 +345,21 @@ export class ProposalService {
       };
     }
 
+    if (!proposal.current_version_id) {
+      return {
+        error: new Error("Proposal has no current version — cannot forward to evaluators."),
+        assignments: null,
+      };
+    }
+
+    const currentVersionId = proposal.current_version_id as number;
+
     const deadline_number_weeks = new Date();
     deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
 
     const assignmentsPayload = evaluators.map((ev) => ({
       proposal_id: proposal_id,
+      proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
       forwarded_by_rnd: rnd_id,
       deadline_at: deadline_number_weeks.toISOString(),
@@ -367,6 +392,7 @@ export class ProposalService {
 
     const assignmentsTrackerPayload = evaluators.map((ev) => ({
       proposal_id: proposal_id,
+      proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
       deadline_at: deadline_number_weeks.toISOString(),
       status: AssignmentTracker.PENDING,
@@ -411,10 +437,12 @@ export class ProposalService {
   }
 
   async removeEvaluator(proposal_id: number, evaluator_id: string) {
-    // Validate proposal status — only allow removal when still under evaluation
+    // Validate proposal status + capture current version so the removal only
+    // affects the live assignment, never a historical v1 row for the same
+    // (proposal, evaluator).
     const { data: proposal, error: fetchError } = await this.db
       .from("proposals")
-      .select("status")
+      .select("status, current_version_id")
       .eq("id", proposal_id)
       .single();
 
@@ -430,6 +458,12 @@ export class ProposalService {
       };
     }
 
+    if (!proposal.current_version_id) {
+      return { error: new Error("Proposal has no current version.") };
+    }
+
+    const currentVersionId = proposal.current_version_id as number;
+
     // Fetch evaluator name before deletion for history logging
     const { data: removedUser } = await this.db
       .from("users")
@@ -444,23 +478,26 @@ export class ProposalService {
       .select("status, remarks")
       .eq("proposal_id", proposal_id)
       .eq("evaluator_id", evaluator_id)
+      .eq("proposal_version_id", currentVersionId)
       .single();
 
-    // 1. Remove from proposal_evaluators
+    // 1. Remove from proposal_evaluators — current version only
     const { error: evalError } = await this.db
       .from("proposal_evaluators")
       .delete()
       .eq("proposal_id", proposal_id)
-      .eq("evaluator_id", evaluator_id);
+      .eq("evaluator_id", evaluator_id)
+      .eq("proposal_version_id", currentVersionId);
 
     if (evalError) return { error: evalError };
 
-    // 2. Remove from proposal_assignment_tracker
+    // 2. Remove from proposal_assignment_tracker — current version only
     const { error: trackerError } = await this.db
       .from("proposal_assignment_tracker")
       .delete()
       .eq("proposal_id", proposal_id)
-      .eq("evaluator_id", evaluator_id);
+      .eq("evaluator_id", evaluator_id)
+      .eq("proposal_version_id", currentVersionId);
 
     if (trackerError) return { error: trackerError };
 
@@ -486,11 +523,29 @@ export class ProposalService {
     evaluator_id: string,
     deadline_at?: string,
   ) {
+    // Scope this evaluator's decision to the CURRENT proposal version, so old
+    // v1 rows are never accidentally updated when the evaluator accepts or
+    // declines v2.
+    const { data: proposalRow, error: proposalErr } = await this.db
+      .from("proposals")
+      .select("current_version_id")
+      .eq("id", input.proposal_id)
+      .single();
+
+    if (proposalErr || !proposalRow?.current_version_id) {
+      return {
+        error: proposalErr || new Error("Proposal has no current version."),
+      };
+    }
+
+    const currentVersionId = proposalRow.current_version_id as number;
+
     const { data: insertedData, error: insertError } = await this.db
       .from("proposal_assignment_tracker")
       .update({ ...input, evaluator_id })
       .eq("evaluator_id", evaluator_id)
-      .eq("proposal_id", input.proposal_id);
+      .eq("proposal_id", input.proposal_id)
+      .eq("proposal_version_id", currentVersionId);
 
     if (insertError) {
       return { error: insertError };
@@ -501,7 +556,8 @@ export class ProposalService {
         .from("proposal_assignment_tracker")
         .update({ request_deadline_at: deadline_at })
         .eq("evaluator_id", evaluator_id)
-        .eq("proposal_id", input.proposal_id);
+        .eq("proposal_id", input.proposal_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (insertError) {
         return { error: insertError };
@@ -513,7 +569,8 @@ export class ProposalService {
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.FOR_REVIEW })
         .eq("evaluator_id", evaluator_id)
-        .eq("proposal_id", input.proposal_id);
+        .eq("proposal_id", input.proposal_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (updateError) {
         return { error: updateError };
@@ -523,7 +580,8 @@ export class ProposalService {
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.EXTEND })
         .eq("evaluator_id", evaluator_id)
-        .eq("proposal_id", input.proposal_id);
+        .eq("proposal_id", input.proposal_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (updateError) {
         return { error: updateError };
@@ -533,7 +591,8 @@ export class ProposalService {
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.DECLINE })
         .eq("evaluator_id", evaluator_id)
-        .eq("proposal_id", input.proposal_id);
+        .eq("proposal_id", input.proposal_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (updateError) {
         return { error: updateError };
@@ -942,7 +1001,12 @@ export class ProposalService {
     const created_at = new Date().toISOString();
     const { data, error: insertError } = await this.db
       .from("proposal_revision_summary")
-      .insert({ ...input, rnd_id, created_at });
+      .insert({
+        ...input,
+        included_evaluator_ids: input.included_evaluator_ids ?? [],
+        rnd_id,
+        created_at,
+      });
 
     if (insertError) return { error: insertError };
 
@@ -1013,15 +1077,43 @@ export class ProposalService {
     status: EvaluatorFinalDecision,
     evaluator_id: string,
   ) {
-    // Insert evaluation score
-    const { data, error } = await this.db.from("evaluation_scores").insert({ ...input, evaluator_id });
+    // Look up the evaluator's live assignment row so the score attaches to the
+    // exact version they were asked to review. Without this, a late v1 submission
+    // could silently land against v2 after a revision.
+    const { data: assignment, error: assignmentError } = await this.db
+      .from("proposal_evaluators")
+      .select("id, proposal_version_id")
+      .eq("proposal_id", input.proposal_id)
+      .eq("evaluator_id", evaluator_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (assignmentError) {
+      return { data: null, error: assignmentError };
+    }
+
+    if (!assignment || !assignment.proposal_version_id) {
+      return {
+        data: null,
+        error: new Error("Evaluator has no active assignment for this proposal."),
+      };
+    }
+
+    const proposal_version_id = assignment.proposal_version_id as number;
+
+    // Insert evaluation score tagged with the version the assignment was made for.
+    const { data, error } = await this.db
+      .from("evaluation_scores")
+      .insert({ ...input, evaluator_id, proposal_version_id });
 
     if (error) {
       return { data: null, error };
     }
 
-    // Update proposal_evaluators status to approve/revise/reject
-    // Only update if status is one of the final decisions
+    // Update proposal_evaluators status to approve/revise/reject.
+    // Scope the update to the specific assignment row (via its id) so historical
+    // rows for earlier versions of the same proposal are never touched.
     if (
       status === EvaluatorFinalDecision.APPROVE ||
       status === EvaluatorFinalDecision.REVISE ||
@@ -1030,8 +1122,7 @@ export class ProposalService {
       const { error: updateError } = await this.db
         .from("proposal_evaluators")
         .update({ status: status, updated_at: new Date().toISOString() })
-        .eq("proposal_id", input.proposal_id)
-        .eq("evaluator_id", evaluator_id);
+        .eq("id", assignment.id);
 
       if (updateError) {
         return { data: null, error: updateError };
@@ -1350,6 +1441,7 @@ export class ProposalService {
         comments_for_evaluators,
         proponent_info_visibility,
         anonymized_file_url,
+        proposal_version_id,
         evaluator_id(first_name,last_name),
         forwarded_by_rnd(first_name,last_name),
         proposal_id(
@@ -1365,7 +1457,7 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
-          proposal_version(id,file_url)
+          proposal_version(id,file_url,created_at)
         )
       `,
       )
@@ -1527,9 +1619,11 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getProposalsForEndorsement(search?: string, rnd_id?: string) {
-    // 1. Get proposals in under_evaluation status assigned to this RND user
-    // Use !inner join with proposal_rnd to filter by rnd_id
+  async getProposalsForEndorsement(search?: string, rnd_id?: string, statuses?: Status[]) {
+    // 1. Get proposals in the requested status(es) assigned to this RND user.
+    // Default = UNDER_EVALUATION (the "active" endorsement queue); callers can pass
+    // [REVISION_RND] or [REJECTED_RND] to load the history tabs.
+    const statusFilter = statuses && statuses.length > 0 ? statuses : [Status.UNDER_EVALUATION];
     let query = this.db
       .from("proposals")
       .select(
@@ -1540,16 +1634,19 @@ export class ProposalService {
         department_id,
         status,
         created_at,
+        updated_at,
+        current_version_id,
         proposal_rnd!inner(rnd_id),
         proposal_evaluators(
           evaluator_id,
           status,
           deadline_at,
-          updated_at
+          updated_at,
+          proposal_version_id
         )
       `,
       )
-      .eq("status", Status.UNDER_EVALUATION);
+      .in("status", statusFilter);
 
     // Filter by RND user - only show proposals assigned to this RND
     if (rnd_id) {
@@ -1568,6 +1665,16 @@ export class ProposalService {
 
     if (!proposals || proposals.length === 0) {
       return { data: [], error: null };
+    }
+
+    // Version-scope: keep only evaluator assignment rows tied to each proposal's
+    // CURRENT version. Historical rows from earlier versions stay in the DB
+    // (audit trail) but never influence the active endorsement page.
+    for (const p of proposals as any[]) {
+      const currentVersionId = p.current_version_id;
+      p.proposal_evaluators = (p.proposal_evaluators || []).filter(
+        (ev: any) => ev.proposal_version_id === currentVersionId,
+      );
     }
 
     const proposalIds = proposals.map((p) => p.id);
@@ -1593,10 +1700,11 @@ export class ProposalService {
       departmentIds.length > 0
         ? this.db.from("departments").select("id, name").in("id", departmentIds)
         : { data: [], error: null },
-      // Updated to use new column structure: title, budget, timeline, comment
+      // Updated to use new column structure: title, budget, timeline, comment.
+      // Version-scope via proposal_version_id so v1 scores don't leak into v2.
       this.db
         .from("evaluation_scores")
-        .select("proposal_id, evaluator_id, title, budget, timeline, comment, created_at")
+        .select("proposal_id, evaluator_id, title, budget, timeline, comment, created_at, proposal_version_id")
         .in("proposal_id", proposalIds),
       this.db
         .from("estimated_budget")
@@ -1618,9 +1726,14 @@ export class ProposalService {
     // 5. Transform data for frontend
     const endorsementProposals = proposals.map((proposal) => {
       const evaluators = proposal.proposal_evaluators || [];
+      const currentVersionId = (proposal as any).current_version_id;
 
-      // Get scores for this proposal grouped by evaluator
-      const proposalScores = allScores.filter((s) => s.proposal_id === proposal.id);
+      // Scope evaluation scores to the proposal's CURRENT version only — same
+      // reasoning as the proposal_evaluators filter above. Old scores stay in
+      // the DB for audit but never feed the active endorsement UI.
+      const proposalScores = allScores.filter(
+        (s) => s.proposal_id === proposal.id && (s as any).proposal_version_id === currentVersionId,
+      );
 
       // Build evaluator decisions
       const evaluatorDecisions = evaluators.map((ev: any) => {
@@ -1710,6 +1823,8 @@ export class ProposalService {
           ? `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown"
           : "Unknown",
         department: department?.name || "Unknown",
+        status: proposal.status,
+        actionDate: proposal.updated_at || proposal.created_at,
         evaluatorDecisions,
         overallRecommendation,
         readyForEndorsement,
@@ -2029,14 +2144,19 @@ export class ProposalService {
       return { error: versionError };
     }
 
-    // 6. Update proposal status based on which revision flow it came from
-    const targetStatus = proposal.status === Status.REVISION_FUNDING
-      ? Status.ENDORSED_FOR_FUNDING  // Back to Funding page
-      : Status.REVISED_PROPOSAL;     // Back to RND review
+    // 6. Update proposal status + advance current_version_id to the new row.
+    // Setting current_version_id is what makes v1's evaluator state fall out of
+    // active-side queries (endorsement page, evaluator active queue) without
+    // deleting any history. v1 rows stay in the DB for audit / Completed Reviews.
+    const isRndRevision = proposal.status === Status.REVISION_RND;
+    const targetStatus = isRndRevision
+      ? Status.REVISED_PROPOSAL          // Back to RND review (fresh quality check)
+      : Status.ENDORSED_FOR_FUNDING;     // Funding revision — back to Funding page
 
     const updatePayload: Record<string, any> = {
       status: targetStatus,
       updated_at: new Date().toISOString(),
+      current_version_id: versionData.id,
     };
 
     if (project_title) updatePayload.project_title = project_title;
@@ -2168,6 +2288,62 @@ export class ProposalService {
       }
     }
 
+    // 4. Build anonymized evaluator comments block if R&D opted to include any.
+    // Order is assignment order (earliest-assigned evaluator = "Evaluator 1").
+    // Never return evaluator real names to this endpoint — proponents read it.
+    // Version-scope to the proposal's current version so repeat evaluators
+    // across versions don't collide on the same label or comment.
+    const includedIds: string[] = Array.isArray(data.included_evaluator_ids)
+      ? data.included_evaluator_ids
+      : [];
+
+    let evaluator_comments: { label: string; comment: string }[] = [];
+    if (includedIds.length > 0) {
+      const { data: proposalRow } = await this.db
+        .from("proposals")
+        .select("current_version_id")
+        .eq("id", proposal_id)
+        .single();
+
+      const currentVersionId = (proposalRow as any)?.current_version_id ?? null;
+
+      let assignmentQuery = this.db
+        .from("proposal_evaluators")
+        .select("evaluator_id, created_at")
+        .eq("proposal_id", proposal_id)
+        .order("created_at", { ascending: true });
+      if (currentVersionId) assignmentQuery = assignmentQuery.eq("proposal_version_id", currentVersionId);
+      const { data: assignments } = await assignmentQuery;
+
+      const orderIndex = new Map<string, number>();
+      (assignments ?? []).forEach((row: { evaluator_id: string }, idx: number) => {
+        if (!orderIndex.has(row.evaluator_id)) orderIndex.set(row.evaluator_id, idx + 1);
+      });
+
+      let scoreQuery = this.db
+        .from("evaluation_scores")
+        .select("evaluator_id, comment")
+        .eq("proposal_id", proposal_id)
+        .in("evaluator_id", includedIds);
+      if (currentVersionId) scoreQuery = scoreQuery.eq("proposal_version_id", currentVersionId);
+      const { data: scores } = await scoreQuery;
+
+      const scoreByEvaluator = new Map<string, string>();
+      (scores ?? []).forEach((row: { evaluator_id: string; comment: string | null }) => {
+        if (row.comment) scoreByEvaluator.set(row.evaluator_id, row.comment);
+      });
+
+      evaluator_comments = includedIds
+        .map((evId) => ({
+          label: `Evaluator ${orderIndex.get(evId) ?? "?"}`,
+          comment: scoreByEvaluator.get(evId) ?? "",
+          order: orderIndex.get(evId) ?? Number.MAX_SAFE_INTEGER,
+        }))
+        .filter((e) => e.comment.trim().length > 0)
+        .sort((a, b) => a.order - b.order)
+        .map(({ label, comment }) => ({ label, comment }));
+    }
+
     return {
       data: {
         proposal_id: data.proposal_id,
@@ -2179,6 +2355,7 @@ export class ProposalService {
         overall_comment: data.overall_comment,
         deadline: data.deadline,
         created_at: data.created_at,
+        evaluator_comments,
       },
       error: null,
     };
@@ -2299,10 +2476,12 @@ export class ProposalService {
     let query = this.db.from("proposal_assignment_tracker").select(
       `
         id,
+        proposal_version_id,
         proposals:proposals(
           id,
           project_title,
           status,
+          current_version_id,
           proposal_tags(
             tags:tags(name)
           )
@@ -2326,8 +2505,17 @@ export class ProposalService {
       return { data: null, error };
     }
 
+    // Version-scope: the tracker has one row per (evaluator, version). R&D's
+    // "evaluator assignment tracker" UI must only show live rows for each
+    // proposal's CURRENT version — old v1 rows stay in the DB for audit but
+    // must not appear alongside the freshly-forwarded v2 assignments.
+    const versionFiltered = (trackerData || []).filter((row: any) => {
+      const currentVersionId = row.proposals?.current_version_id;
+      return !currentVersionId || row.proposal_version_id === currentVersionId;
+    });
+
     // Admin sees all tracker records; RND only sees evaluators they assigned
-    let filtered = trackerData || [];
+    let filtered = versionFiltered;
 
     // Filter by RND assignments if not admin
     if (!isAdmin) {
@@ -2375,12 +2563,27 @@ export class ProposalService {
   async handleExtensionRequest(input: HandleExtensionRequestInput, rnd_id: string) {
     const { proposal_id, evaluator_id, action, remarks } = input;
 
+    // Scope extension handling to the CURRENT version so we never accidentally
+    // reopen a historical v1 row when acting on a v2 extension request.
+    const { data: proposalRow, error: proposalErr } = await this.db
+      .from("proposals")
+      .select("current_version_id")
+      .eq("id", proposal_id)
+      .single();
+
+    if (proposalErr || !proposalRow?.current_version_id) {
+      return { error: proposalErr || new Error("Proposal has no current version.") };
+    }
+
+    const currentVersionId = proposalRow.current_version_id as number;
+
     // Fetch the tracker record to get the requested deadline
     const { data: tracker, error: fetchError } = await this.db
       .from("proposal_assignment_tracker")
       .select("id, deadline_at, request_deadline_at, status")
       .eq("proposal_id", proposal_id)
       .eq("evaluator_id", evaluator_id)
+      .eq("proposal_version_id", currentVersionId)
       .single();
 
     if (fetchError || !tracker) {
@@ -2407,7 +2610,8 @@ export class ProposalService {
         .from("proposal_assignment_tracker")
         .update({ status: AssignmentTracker.ACCEPT, deadline_at: newDeadline })
         .eq("proposal_id", proposal_id)
-        .eq("evaluator_id", evaluator_id);
+        .eq("evaluator_id", evaluator_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (trackerError) return { error: trackerError };
 
@@ -2419,7 +2623,8 @@ export class ProposalService {
           deadline_at: newDeadline,
         })
         .eq("proposal_id", proposal_id)
-        .eq("evaluator_id", evaluator_id);
+        .eq("evaluator_id", evaluator_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (evalError) return { error: evalError };
 
@@ -2447,7 +2652,8 @@ export class ProposalService {
         .from("proposal_assignment_tracker")
         .update({ status: AssignmentTracker.PENDING, request_deadline_at: null })
         .eq("proposal_id", proposal_id)
-        .eq("evaluator_id", evaluator_id);
+        .eq("evaluator_id", evaluator_id)
+        .eq("proposal_version_id", currentVersionId);
 
       if (trackerError) return { error: trackerError };
 
@@ -2801,10 +3007,13 @@ export class ProposalService {
   }> {
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD in PH time (TZ set)
 
-    // Find pending assignments past their deadline
+    // Find pending assignments past their deadline.
+    // Include proposal_version_id so the corresponding proposal_evaluators
+    // update can be version-scoped — otherwise a stale v1 row could also get
+    // auto-declined alongside the live v2 row.
     const { data: overdueRecords, error: fetchError } = await this.db
       .from("proposal_assignment_tracker")
-      .select("id, proposal_id, evaluator_id, deadline_at")
+      .select("id, proposal_id, evaluator_id, deadline_at, proposal_version_id")
       .eq("status", AssignmentTracker.PENDING)
       .lt("deadline_at", today);
 
@@ -2832,20 +3041,27 @@ export class ProposalService {
           .eq("id", record.id);
 
         // 2. Update proposal_evaluators status to decline (only if still pending)
-        await this.db
-          .from("proposal_evaluators")
-          .update({ status: EvaluatorStatus.DECLINE })
-          .eq("proposal_id", record.proposal_id)
-          .eq("evaluator_id", record.evaluator_id)
-          .eq("status", EvaluatorStatus.PENDING);
+        //    — scoped to the same version this tracker row points at.
+        const versionFilter = (record as any).proposal_version_id;
+        {
+          let pe = this.db
+            .from("proposal_evaluators")
+            .update({ status: EvaluatorStatus.DECLINE })
+            .eq("proposal_id", record.proposal_id)
+            .eq("evaluator_id", record.evaluator_id)
+            .eq("status", EvaluatorStatus.PENDING);
+          if (versionFilter) pe = pe.eq("proposal_version_id", versionFilter);
+          await pe;
+        }
 
         // 3. Fetch evaluator info and RND user who assigned them
-        const { data: evalData } = await this.db
+        let evalDataQuery = this.db
           .from("proposal_evaluators")
           .select("forwarded_by_rnd, proposal_id(project_title)")
           .eq("proposal_id", record.proposal_id)
-          .eq("evaluator_id", record.evaluator_id)
-          .single();
+          .eq("evaluator_id", record.evaluator_id);
+        if (versionFilter) evalDataQuery = evalDataQuery.eq("proposal_version_id", versionFilter);
+        const { data: evalData } = await evalDataQuery.single();
 
         const { data: evaluator } = await this.db
           .from("users")

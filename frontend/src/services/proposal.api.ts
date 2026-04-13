@@ -339,6 +339,7 @@ export type RevisionSummary = {
   overall_comment: string | null;
   deadline: number | null;
   created_at: string;
+  evaluator_comments?: { label: string; comment: string }[];
 };
 
 export type RejectionSummary = {
@@ -530,9 +531,12 @@ export const getEvaluationScoresFromProposal = async (): Promise<any[]> => {
   return data;
 };
 
-// New API for R&D to getting proposals ready for endorsement (with all scores)
-export const getProposalsForEndorsement = async (): Promise<any[]> => {
-  const { data } = await api.get<any[]>("/proposal/view-for-endorsement", {
+// New API for R&D to getting proposals ready for endorsement (with all scores).
+// `filter` selects which tab to load: "active" (default), "revised", or "rejected".
+export type EndorsementFilter = "active" | "revised" | "rejected";
+
+export const getProposalsForEndorsement = async (filter: EndorsementFilter = "active"): Promise<any[]> => {
+  const { data } = await api.get<any[]>(`/proposal/view-for-endorsement?filter=${filter}`, {
     withCredentials: true,
   });
   return data;
@@ -608,6 +612,7 @@ export type RequestRevisionPayload = {
   timeline_comment?: string;
   overall_comment?: string;
   deadline: number;
+  included_evaluator_ids?: string[];
 };
 
 export const requestRevision = async (input: RequestRevisionPayload): Promise<any> => {
