@@ -122,7 +122,7 @@ export interface Proposal {
   created_at?: string;
   project_title: string;
   program_title?: string;
-  school_year?: string;
+  year?: number;
   proponent_id: string; // UUID
 
   // Classification

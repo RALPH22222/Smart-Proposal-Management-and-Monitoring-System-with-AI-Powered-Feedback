@@ -233,7 +233,7 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
     plan_end_date: endDate,
     budget: formData.budgetItems,
     file_url: fileUrl,
-    school_year: formData.schoolYear ?? "",
+    year: formData.year ?? new Date().getFullYear(),
     agency_address: {
       street: formData.agencyAddress.street,
       barangay: formData.agencyAddress.barangay,

@@ -109,7 +109,10 @@ export const proposalSchema = z.object({
       city: z.string().min(1, "City is required").max(256, "City name is too long"),
     }),
   ),
-  school_year: z.string(),
+  year: z.coerce
+    .string()
+    .regex(/^\d+$/, "Year must contain digits only")
+    .transform((value) => Number(value)),
   program_title: z.string().max(256, "program title is too long"), // Changed from program_title
   project_title: z.string().min(1, "Project title is required").max(256, "project title is too long"), // Changed from project_title
 

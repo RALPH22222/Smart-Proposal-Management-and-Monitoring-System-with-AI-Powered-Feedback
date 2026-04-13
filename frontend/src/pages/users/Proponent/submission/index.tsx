@@ -32,6 +32,7 @@ const MONTH_MAP: Record<string, number> = {
 };
 
 const Submission: React.FC = () => {
+  const YEAR_REGEX = /^\d+$/;
   // Auth Context
   const { user } = useAuthContext();
   const lookups = useLookups();
@@ -72,7 +73,7 @@ const Submission: React.FC = () => {
     cooperating_agencies: [],
     researchStation: "", // Display name for UI
     sectorCommodity: "", // Display name for UI
-    schoolYear: "",
+    year: null,
     classification_type: "",
     class_input: "",
     implementation_site: [{ site: "", city: "" }],
@@ -143,7 +144,7 @@ const Submission: React.FC = () => {
     const {
       program_title,
       project_title,
-      schoolYear,
+      year,
       plannedStartDate,
       plannedEndDate,
       duration,
@@ -157,7 +158,7 @@ const Submission: React.FC = () => {
     const missingFields: string[] = [];
     if (!program_title?.trim()) missingFields.push("Program Title");
     if (!project_title?.trim()) missingFields.push("Project Title");
-    if (!schoolYear?.trim() || schoolYear.length < 9) missingFields.push("School Year (YYYY-YYYY)");
+    if (!YEAR_REGEX.test(String(year ?? ""))) missingFields.push("Year (digits only)");
     if (!plannedStartDate) missingFields.push("Planned Start Date");
     if (!plannedEndDate) missingFields.push("Planned End Date");
     if (!duration) missingFields.push("Duration");
@@ -305,7 +306,7 @@ const Submission: React.FC = () => {
     const {
       program_title,
       project_title,
-      schoolYear,
+      year,
       plannedStartDate,
       plannedEndDate,
       duration,
@@ -319,8 +320,7 @@ const Submission: React.FC = () => {
     return !!(
       program_title?.trim() &&
       project_title?.trim() &&
-      schoolYear?.trim() &&
-      schoolYear.length >= 9 &&
+      YEAR_REGEX.test(String(year ?? "")) &&
       plannedStartDate &&
       plannedEndDate &&
       duration &&

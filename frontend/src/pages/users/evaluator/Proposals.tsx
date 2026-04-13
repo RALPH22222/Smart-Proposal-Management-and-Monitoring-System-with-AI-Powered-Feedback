@@ -150,7 +150,7 @@ export default function Proposals() {
           sector: proposalObj.sector?.name || "N/A",
           discipline: proposalObj.discipline?.name || "N/A",
           duration: proposalObj.duration ? `${proposalObj.duration} months` : "N/A",
-          schoolYear: proposalObj.school_year || "N/A",
+          year: proposalObj.year || "N/A",
           startDate: proposalObj.plan_start_date || "N/A",
           endDate: proposalObj.plan_end_date || "N/A",
           budgetSources,

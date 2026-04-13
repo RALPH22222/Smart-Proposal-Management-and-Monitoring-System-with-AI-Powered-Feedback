@@ -100,7 +100,7 @@ interface Proposal {
   priorityAreas: string;
   sector: string;
   discipline: string;
-  schoolYear: string;
+  year: number;
   duration: string;
   startDate: string;
   endDate: string;

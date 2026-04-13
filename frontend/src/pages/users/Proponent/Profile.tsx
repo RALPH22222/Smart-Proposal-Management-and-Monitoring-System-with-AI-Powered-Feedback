@@ -381,7 +381,7 @@ const Profile: React.FC = () => {
       department: raw.department?.name
         ? raw.department.name
         : departments.find((d) => Number(d.id) === Number(raw.department_id))?.name || "",
-      schoolYear: val(raw.school_year),
+      year: val(raw.year),
       address: raw.agency_address
         ? [raw.agency_address.street, raw.agency_address.barangay, raw.agency_address.city]
           .map((part) => val(part))

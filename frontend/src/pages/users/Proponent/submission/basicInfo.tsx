@@ -37,6 +37,7 @@ interface BasicInformationProps {
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate, autoFilledFields = new Set() }) => {
+  const YEAR_REGEX = /^\d+$/;
   const { user } = useAuthContext();
   const lookups = useLookups();
 
@@ -250,14 +251,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   }, []);
 
-  // Default School Year
+  // Default Year
   useEffect(() => {
-    if (!formData.schoolYear) {
+    if (!formData.year) {
       const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const startYear = currentMonth >= 5 ? currentYear : currentYear - 1;
-      const endYear = startYear + 1;
-      onUpdate("schoolYear", `${startYear}-${endYear}`);
+      onUpdate("year", currentYear);
     }
   }, []);
 
@@ -631,9 +629,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const isBasicInfoComplete = Boolean(
     formData.program_title?.trim() &&
     formData.project_title?.trim() &&
-    formData.schoolYear?.trim() &&
-    formData.schoolYear.includes("-") &&
-    formData.schoolYear.split("-").every(y => y.length === 4) &&
+    YEAR_REGEX.test(String(formData.year ?? "")) &&
     formData.plannedStartDate &&
     formData.plannedEndDate &&
     formData.duration &&
@@ -660,7 +656,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         </div>
       </div>
 
-      {/* Program, Project, School Year */}
+      {/* Program, Project, Year */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.program_title ? 'text-green-600' : 'text-gray-700'}`}>
@@ -697,39 +693,24 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           />
         </div>
         <div className="space-y-2">
-          <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.schoolYear?.split("-").every(y => y.length === 4) ? 'text-green-600' : 'text-gray-700'}`}>
-            <Calendar1 className={`${formData.schoolYear?.split("-").every(y => y.length === 4) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
-            School Year <span className="text-red-500">*</span>
-            <Tooltip content="Please enter the academic year (e.g., 2025 - 2026)" />
-            <AutoFillBadge fieldName="schoolYear" autoFilledFields={autoFilledFields} />
+          <label className={`block text-sm font-semibold flex items-center gap-2 ${YEAR_REGEX.test(String(formData.year ?? "")) ? 'text-green-600' : 'text-gray-700'}`}>
+            <Calendar1 className={`${YEAR_REGEX.test(String(formData.year ?? "")) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
+             Year <span className="text-red-500">*</span>
+            <Tooltip content="Please enter the year (e.g., 2026)" />
+            <AutoFillBadge fieldName="year" autoFilledFields={autoFilledFields} />
           </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              maxLength={4}
-              value={(formData.schoolYear || "").split("-")[0] || ""}
-              onChange={(e) => {
-                const start = e.target.value.replace(/\D/g, "");
-                const end = (formData.schoolYear || "").split("-")[1] || "";
-                onUpdate("schoolYear", `${start}-${end}`);
-              }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
-              placeholder="YYYY"
-            />
-            <span className="text-gray-400 font-bold text-xl">–</span>
-            <input
-              type="text"
-              maxLength={4}
-              value={(formData.schoolYear || "").split("-")[1] || ""}
-              onChange={(e) => {
-                const start = (formData.schoolYear || "").split("-")[0] || "";
-                const end = e.target.value.replace(/\D/g, "");
-                onUpdate("schoolYear", `${start}-${end}`);
-              }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
-              placeholder="YYYY"
-            />
-          </div>
+          <input
+            type="number"
+            min={1000}
+            max={9999}
+            value={formData.year ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              onUpdate("year", v === "" ? null : Number(v));
+            }}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
+            placeholder="YYYY"
+          />
         </div>
 
         {/* Dates & Duration */}

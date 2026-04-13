@@ -109,7 +109,7 @@ export default function ReviewedProposals() {
           sector: p.sector?.name || "N/A",
           discipline: p.discipline?.name || "N/A",
           duration: p.duration ? `${p.duration} months` : "N/A",
-          schoolYear: p.school_year || "N/A",
+          year: p.year || "N/A",
           startDate: p.plan_start_date || "N/A",
           endDate: p.plan_end_date || "N/A",
           budgetSources,

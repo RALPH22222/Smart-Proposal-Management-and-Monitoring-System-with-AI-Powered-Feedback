@@ -29,7 +29,7 @@ export interface FormData {
   sector: number | string; // ID or name for lookup
   agency: number | string;
   agencyAddress: AgencyAddress;
-  schoolYear: string;
+  year: number | null;
   tags: number[]; // Array of tag IDs
   email: string;
   telephone: string;

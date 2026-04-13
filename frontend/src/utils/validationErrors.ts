@@ -22,7 +22,7 @@ const FIELD_LABELS: Record<string, string> = {
   "agency_address.street": "Agency Street",
   "agency_address.barangay": "Agency Barangay",
   "agency_address.city": "Agency City",
-  school_year: "School Year",
+  year: "Year",
   program_title: "Program Title",
   project_title: "Project Title",
   email: "Email",

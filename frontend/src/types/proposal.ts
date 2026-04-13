@@ -52,7 +52,7 @@ export interface Proposal {
   // Basic Info
   project_title: string;
   program_title?: string;
-  school_year?: string;
+  year?: number;
   
   // Relationships
   proponent_id: string; // UUID

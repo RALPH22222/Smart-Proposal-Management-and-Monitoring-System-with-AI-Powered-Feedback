@@ -61,7 +61,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
     if (!formData.telephone?.trim()) return false;
     if (!formData.email?.trim()) return false;
     if (!formData.agency) return false;
-    if (!formData.schoolYear?.trim()) return false;
+    if (!Number.isInteger(formData.year)) return false;
     if (!formData.tags || formData.tags.length === 0) return false;
 
     // 3. Check Research Details
@@ -316,9 +316,9 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </div>
 
             {/* Basic Info Status */}
-            <div className={`flex items-center ${(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
+            <div className={`flex items-center ${(formData.program_title?.trim() && formData.project_title?.trim() && Number.isInteger(formData.year) && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? 'text-green-700 font-medium' : 'text-gray-500'
               }`}>
-              {(formData.program_title?.trim() && formData.project_title?.trim() && formData.schoolYear?.trim() && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
+              {(formData.program_title?.trim() && formData.project_title?.trim() && Number.isInteger(formData.year) && formData.duration?.trim() && formData.agency && formData.agencyAddress?.city?.trim() && formData.telephone?.trim() && formData.email?.trim() && formData.tags?.length > 0) ? <Check className="w-3 h-3 mr-2" /> : <Circle className="w-2 h-2 mr-2 opacity-50" />}
               <span>Basic Information</span>
             </div>
 

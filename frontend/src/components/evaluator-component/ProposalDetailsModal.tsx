@@ -97,7 +97,7 @@ interface Proposal {
   sector: string;
   discipline: string;
   duration: string;
-  schoolYear: string;
+  year: number;
   startDate: string;
   endDate: string;
   budgetSources: BudgetSource[];

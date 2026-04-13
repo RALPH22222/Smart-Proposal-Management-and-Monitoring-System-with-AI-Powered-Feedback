@@ -51,7 +51,7 @@ export interface Proposal {
   gender: string;
   agency: string;
   department?: string;
-  schoolYear: string;
+  year: number;
   address: string;
   agency_address?: {
     id: string;
