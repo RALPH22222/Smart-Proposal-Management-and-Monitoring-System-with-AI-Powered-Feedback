@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://ilutdlvlhjpxsyvedyxf.supabase.co";
-const supabaseKey = process.env.SUPABASE_KEY;
+export const supabaseUrl = "https://ilutdlvlhjpxsyvedyxf.supabase.co";
+export const supabaseKey = process.env.SUPABASE_KEY;
 if (!supabaseKey) {
   throw new Error("Missing environment variable SUPABASE_KEY.");
 }

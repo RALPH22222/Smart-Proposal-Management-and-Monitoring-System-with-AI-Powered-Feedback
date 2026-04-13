@@ -245,8 +245,9 @@ const RndSettings: React.FC = () => {
       await changeMyPassword(passwords.current, passwords.new);
       setPasswordMsg({ type: 'success', text: 'Password changed successfully!' });
       setPasswords({ current: '', new: '', confirm: '' });
-    } catch {
-      setPasswordMsg({ type: 'error', text: 'Failed to change password. Please check your current password.' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to change password. Please check your current password.';
+      setPasswordMsg({ type: 'error', text: msg });
     } finally {
       setIsSavingPassword(false);
     }

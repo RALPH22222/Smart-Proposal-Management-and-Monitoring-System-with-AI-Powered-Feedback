@@ -1,4 +1,5 @@
-import { supabase, supabaseAdmin } from "../../lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseUrl, supabaseKey } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { changePasswordSchema } from "../../schemas/auth-schema";
@@ -25,28 +26,32 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  // 1. Verify current password using the anon client (signInWithPassword works with anon key)
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  // 1. Verify current password — sign in as the user with their credentials.
+  //    Using the anon-key client (supabase) which is correct for signInWithPassword.
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email: auth.email,
     password: parsed.data.current_password,
   });
 
-  if (signInError) {
+  if (signInError || !signInData?.session) {
     return {
       statusCode: 401,
       body: JSON.stringify({ message: "Current password is incorrect." }),
     };
   }
 
-  // 2. Admin client is required to change another user's password server-side
-  if (!supabaseAdmin) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Server configuration error." }),
-    };
-  }
+  // 2. Update the password using a user-scoped client built from the sign-in
+  //    access token. This requires NO service-role key — just the anon key.
+  const userClient = createClient(supabaseUrl, supabaseKey!, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${signInData.session.access_token}`,
+      },
+    },
+    auth: { persistSession: false },
+  });
 
-  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(auth.userId, {
+  const { error: updateError } = await userClient.auth.updateUser({
     password: parsed.data.new_password,
   });
 
@@ -58,11 +63,15 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  // 3. Clear the password_change_required flag
-  await supabaseAdmin
-    .from("users")
-    .update({ password_change_required: false })
-    .eq("id", auth.userId);
+  // 3. Clear password_change_required flag (best-effort — skip if it fails)
+  try {
+    await supabase
+      .from("users")
+      .update({ password_change_required: false })
+      .eq("id", auth.userId);
+  } catch (_) {
+    // Non-critical — don't fail the whole request
+  }
 
   return {
     statusCode: 200,
