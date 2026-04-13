@@ -370,9 +370,6 @@ const Submission: React.FC = () => {
   const isBudgetComplete = isBudgetValid;
 
   const handleNextSection = () => {
-    if (activeSection === "basic-info" && !validateBasicInfo()) return;
-    if (activeSection === "research-details" && !validateResearchDetails()) return;
-
     const nextIndex = currentSectionIndex + 1;
     if (nextIndex >= sectionOrder.length) return;
     setActiveSection(sectionOrder[nextIndex]);
@@ -837,8 +834,7 @@ const Submission: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleNextSection}
-                    disabled={!canGoNext}
-                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#C8102E] hover:bg-[#a00c24] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#C8102E] hover:bg-[#a00c24] inline-flex items-center gap-1.5"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
