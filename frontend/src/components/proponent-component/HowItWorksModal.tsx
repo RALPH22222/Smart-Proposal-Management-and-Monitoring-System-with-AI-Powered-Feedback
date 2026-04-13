@@ -66,7 +66,7 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
-                How the Process Works
+                Submission Workflow
               </h2>
               <p className="text-slate-500 text-xs mt-0.5 font-normal">
                 Comprehensive guide to DOST project proposal submission, evaluation, and monitoring.
@@ -127,4 +127,4 @@ const HowItWorksModal: React.FC<HowItWorksModalProps> = ({ isOpen, onClose }) =>
   );
 };
 
-export default HowItWorksModal;
+export default HowItWorksModal;

@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import ProponentNavbar from "../../../components/proponent-component/Proponent-navbar";
+import ProponentNavbar from "../../../components/proponent-component/Proponent-sidebar";
+import ProponentFloatingNotification from "../../../components/proponent-component/ProponentFloatingNotification";
 import { LookupProvider } from "../../../context/LookupContext";
 
 // Import Page Components
@@ -10,6 +12,7 @@ import Monitoring from "./monitoring";
 
 const ProponentMainLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const currentTab = searchParams.get("tab") || "profile";
 
@@ -34,12 +37,25 @@ const ProponentMainLayout: React.FC = () => {
 
   return (
     <LookupProvider>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Navbar controls the URL params */}
-        <ProponentNavbar currentPage={currentTab} onPageChange={handlePageChange} />
+      <div className="min-h-screen bg-gray-50 flex">
+        <div className="w-auto">
+          <ProponentNavbar
+            currentPage={currentTab}
+            onPageChange={handlePageChange}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+          />
+        </div>
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full h-full pt-20">{renderContent()}</main>
+        <div className="flex-1 bg-gray-50 flex min-w-0 h-screen relative">
+          <main
+            className="flex-1 overflow-y-auto pt-14 lg:pt-0"
+            onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+          >
+            {renderContent()}
+          </main>
+          <ProponentFloatingNotification onPageChange={handlePageChange} />
+        </div>
       </div>
     </LookupProvider>
   );

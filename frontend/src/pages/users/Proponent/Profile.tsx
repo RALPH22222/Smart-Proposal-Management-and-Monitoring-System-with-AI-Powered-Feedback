@@ -1,13 +1,10 @@
 import React, { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import NotificationsDropdown from "../../../components/proponent-component/NotificationsDropdown";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
-import { FaListAlt, FaBell, FaTablet } from "react-icons/fa";
+import { FaListAlt, FaTablet } from "react-icons/fa";
 import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
-import { useNotifications } from "../../../context/NotificationContext";
 import {
   getStatusColorByIndex,
   getStageIcon,
@@ -17,14 +14,10 @@ import {
 import { getProposals } from "../../../services/proposal.api";
 import { useLookups } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
-import SecureImage from "../../../components/shared/SecureImage";
-import { formatDateTime } from "../../../utils/date-formatter";
-import PageLoader from "../../../components/shared/PageLoader";
 
 
 
 const Profile: React.FC = () => {
-  const [, setSearchParams] = useSearchParams();
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -45,18 +38,12 @@ const Profile: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, typeFilter, sortOrder]);
 
-  // Notifications from Realtime context
-  const { notifications: rawNotifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-
   const [proposals, setProposals] = useState<Project[]>([]);
   const [rawProposals, setRawProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Lookup data from context (fetched once at layout level)
   const { agencies, sectors, disciplines, priorities, stations, tags, departments } = useLookups();
-
-  const notifRef = React.useRef<HTMLDivElement | null>(null);
 
   // Fetch proposals on mount
   React.useEffect(() => {
@@ -155,28 +142,17 @@ const Profile: React.FC = () => {
   }, [user]);
 
 
-  // Close notifications when clicking outside
-  React.useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (!notifRef.current) return;
-      if (!notifRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false);
-      }
-    };
-
-    if (notificationsOpen) {
-      document.addEventListener("mousedown", onDocClick);
-    }
-
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [notificationsOpen]);
-
   // Compute counts based on rawStatus for accuracy
   const pendingCount = proposals.filter((p) => (p as any).rawStatus === "pending").length;
   const rdEvalCount = proposals.filter((p) => ["review_rnd", "r&d evaluation"].includes((p as any).rawStatus || "")).length;
   const evaluatorsAssessmentCount = proposals.filter((p) => ["under_evaluation", "evaluators assessment"].includes((p as any).rawStatus || "")).length;
   const revisionCount = proposals.filter((p) => ["revision_rnd", "revise", "revision", "revision_funding"].includes((p as any).rawStatus || "")).length;
   const fundedCount = proposals.filter((p) => (p as any).rawStatus === "endorsed_for_funding" || (p as any).rawStatus === "funded").length;
+
+  const getProgressBarClass = (project: any) => {
+    const s = ((project as any).rawStatus || "").toLowerCase();
+    return s === "funded" ? "bg-emerald-500" : "bg-[#C8102E]";
+  };
 
 
 
@@ -296,7 +272,7 @@ const Profile: React.FC = () => {
     const firstName = user.first_name || 'User';
     const targetPrefix = isNewUser ? 'Welcome to RDEC, ' : 'Welcome back, ';
     const targetName = firstName;
-    const targetSuffix = !isNewUser ? '.⁠' : '';
+    const targetSuffix = !isNewUser ? '!⁠' : '';
 
     const totalLength = targetPrefix.length + targetName.length + targetSuffix.length;
     let charIndex = 0;
@@ -473,28 +449,6 @@ const Profile: React.FC = () => {
     setDetailedModalOpen(false);
   };
 
-  const toggleNotifications = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setNotificationsOpen((v) => !v);
-  };
-
-  // Transform real notifications to dropdown format
-  const dropdownNotifications = rawNotifs.map((n) => ({
-    id: String(n.id),
-    title: n.message,
-    time: formatDateTime(n.created_at),
-    read: n.is_read,
-    link: n.link,
-  }));
-
-  const handleMarkAllRead = () => {
-    markAllAsRead();
-  };
-
-  const handleMarkRead = (id: string) => {
-    markAsRead([parseInt(id)]);
-  };
-
   const filteredProjects = proposals
     .filter((project: Project) => {
       const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -525,20 +479,50 @@ const Profile: React.FC = () => {
 
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
-      {/* If NOT loading and we have no data found after filter */}
-      {!loading && filteredProjects.length === 0 && (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={`grid-skeleton-${idx}`} className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 animate-pulse flex flex-col">
+              <div className="flex items-start justify-between mb-3">
+                <div className="h-5 bg-gray-200 rounded w-3/4" />
+              </div>
+              <div className="flex gap-2 mb-3">
+                <div className="h-5 w-16 bg-gray-100 rounded-full border border-gray-200" />
+                <div className="h-5 w-20 bg-gray-100 rounded-full border border-gray-200" />
+              </div>
+              <div className="space-y-2 mb-4 mt-auto">
+                <div className="flex items-center justify-between">
+                  <div className="h-3 w-12 bg-gray-100 rounded" />
+                  <div className="h-3 w-20 bg-gray-200 rounded" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="h-3 w-14 bg-gray-100 rounded" />
+                  <div className="h-3 w-16 bg-gray-200 rounded" />
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="h-3 w-12 bg-gray-100 rounded" />
+                  <div className="h-3 w-8 bg-gray-100 rounded hidden sm:block" />
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="h-2 w-1/3 bg-gray-300 rounded-full" />
+                </div>
+              </div>
+              <div className="h-6 w-28 bg-gray-100 rounded-full border border-gray-200" />
+            </div>
+          ))}
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
             <FileText className="w-8 h-8 text-slate-400" />
           </div>
           <p>No projects found matching your criteria.</p>
         </div>
-      )}
-
-      {/* If we have data (blurred if loading) */}
-      {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).length > 0 && (
-        <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink ${loading ? 'blur-[2px] pointer-events-none opacity-60 transition-all duration-500' : ''}`}>
-          {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).map((project: any) => {
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
+          {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
             const progress = loading ? 0 : getLocalProgress(project);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
@@ -587,7 +571,7 @@ const Profile: React.FC = () => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                      className={`${getProgressBarClass(project)} h-2 rounded-full transition-all duration-300`}
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
@@ -628,18 +612,29 @@ const Profile: React.FC = () => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {/* If loading and we have NO data: show skeletons */}
-          {loading && proposals.length === 0 && (
+          {loading && (
             [1, 2, 3, 4, 5].map((idx) => (
-              <tr key={idx} className="animate-pulse blur-[1px]">
-                <td className="px-6 py-4 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/4"></div>
+              <tr key={idx} className="animate-pulse">
+                <td className="px-4 lg:px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gray-100 w-9 h-9"></div>
+                    <div className="space-y-2 w-full max-w-[420px]">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-100 rounded w-1/3"></div>
+                    </div>
+                  </div>
                 </td>
-                <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded-full w-20"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-12"></div></td>
-                <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded-full w-24"></div></td>
+                <td className="px-4 lg:px-6 py-4"><div className="h-6 bg-gray-100 rounded-full w-28 border border-gray-200"></div></td>
+                <td className="px-4 lg:px-6 py-4 hidden lg:table-cell"><div className="h-4 bg-gray-100 rounded w-20"></div></td>
+                <td className="px-4 lg:px-6 py-4 hidden md:table-cell"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
+                <td className="px-4 lg:px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
+                      <div className="h-2 w-1/3 bg-gray-300 rounded-full"></div>
+                    </div>
+                    <div className="h-3 w-8 bg-gray-100 rounded"></div>
+                  </div>
+                </td>
               </tr>
             ))
           )}
@@ -656,8 +651,7 @@ const Profile: React.FC = () => {
             </tr>
           )}
 
-          {/* Show actual items (blurred if loading) */}
-          {(loading ? proposals : filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage)).map((project: any) => {
+          {!loading && filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
             const progress = loading ? 0 : getProgressPercentageByIndex(project.currentIndex);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
@@ -665,7 +659,7 @@ const Profile: React.FC = () => {
             return (
               <tr
                 key={project.id}
-                className={`transition-all duration-500 ${loading ? 'blur-[1.5px] pointer-events-none opacity-60' : 'hover:bg-gray-50 cursor-pointer group'}`}
+                className="transition-all duration-500 hover:bg-gray-50 cursor-pointer group"
                 onClick={() => !loading && handleCardClick(project as any)}
               >
                 <td className="px-4 lg:px-6 py-4">
@@ -707,7 +701,7 @@ const Profile: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-[#C8102E] h-2 rounded-full transition-all duration-300"
+                          className={`${getProgressBarClass(project)} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
@@ -723,17 +717,6 @@ const Profile: React.FC = () => {
     </div>
   );
 
-  const getFullName = () => {
-    if (!user) return "User";
-    const u: any = user;
-    if (!u.first_name && !u.last_name) return u.email || "User";
-    return `${u.first_name || ''} ${u.middle_ini ? u.middle_ini + ' ' : ''}${u.last_name || ''}`.trim();
-  };
-
-  if (loading && proposals.length === 0) {
-    return <PageLoader mode="proponent-dashboard" />;
-  }
-
   return (
     <>
       <style>{`
@@ -743,95 +726,53 @@ const Profile: React.FC = () => {
           95%, 100% { transform: translateX(0); }
         }
       `}</style>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-fade-in">
+      <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
 
         {/* --- HEADER --- */}
         <header className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative group overflow-visible">
-                {/* Main square container with hover lift animation */}
-                <div className="relative w-20 h-20 bg-white rounded-xl p-[2px] shadow-md border border-gray-100 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl group-hover:border-[#C8102E]/30">
-                  {/* Thin inner gradient border */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[#C8102E] to-[#E03A52] p-[2px]">
-                    <div className="h-full w-full bg-white rounded-[10px] overflow-hidden">
-                      <SecureImage
-                        src={user?.profile_photo_url}
-                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName())}&background=C8102E&color=fff&size=128`}
-                        alt={getFullName()}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
+          {loading ? (
+            <>
+              <div className="animate-pulse flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                <div className="space-y-3">
+                  <div className="h-8 w-80 max-w-[90vw] bg-gray-200 rounded-lg" />
+                  <div className="h-4 w-64 max-w-[75vw] bg-gray-100 rounded" />
+                </div>
+                <div className="h-10 w-32 bg-gray-100 border border-gray-200 rounded-lg" />
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4 animate-pulse">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={`metric-skeleton-${idx}`} className="bg-white rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="h-3 w-20 bg-gray-100 rounded" />
+                        <div className="h-6 w-12 bg-gray-200 rounded" />
+                      </div>
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg" />
                     </div>
                   </div>
-
-                  {/* Decorative corner accents with hover animation */}
-                  <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#C8102E] rounded-tl-md transition-all duration-300 group-hover:-top-2 group-hover:-left-2"></div>
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#C8102E] rounded-br-md transition-all duration-300 group-hover:-bottom-2 group-hover:-right-2"></div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
+                    {displayedText.prefix}
+                    <span className="text-[#C8102E]">{displayedText.name}</span>
+                    {displayedText.suffix}
+                  </h1>
+                  <p className="text-gray-600 text-sm lg:text-base">
+                    Monitor your research proposals through the entire lifecycle
+                  </p>
                 </div>
+
+                <div />
               </div>
 
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
-                  {displayedText.prefix}
-                  <span className="text-[#C8102E]">{displayedText.name}</span>
-                  {displayedText.suffix}
-                </h1>
-                <p className="text-gray-600 text-sm lg:text-base">
-                  Monitor your research proposals through the entire lifecycle
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Notification bell */}
-              <div className="relative z-40" ref={notifRef}>
-                <button
-                  onClick={toggleNotifications}
-                  className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
-                  title="Notifications"
-                >
-                  <FaBell className="text-lg" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                <NotificationsDropdown
-                  isOpen={notificationsOpen}
-                  notifications={dropdownNotifications}
-                  unreadCount={unreadCount}
-                  onClose={() => setNotificationsOpen(false)}
-                  onMarkAllRead={handleMarkAllRead}
-                  onMarkRead={handleMarkRead}
-                  onViewAll={() => setNotificationsOpen(false)}
-                  onNavigate={(link) => setSearchParams({ tab: link })}
-                />
-              </div>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                    }`}
-                >
-                  <FaTablet className="text-sm" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                    }`}
-                >
-                  <FaListAlt className="text-sm" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+              {/* Stats Overview */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
             {/* Total Projects Card */}
             <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
               <div className="flex items-center justify-between">
@@ -897,56 +838,41 @@ const Profile: React.FC = () => {
                 <CheckCircle className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
-          </div>
+              </div>
+            </>
+          )}
         </header>
 
-        {/* All Projects Section */}
-        <section>
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <FaListAlt className="text-[#C8102E]" />
-                    Project Portfolio
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">Complete overview of all your research proposals</p>
-                </div>
-
-                <div className="flex items-center">
-                  <button
-                    onClick={() => setHowItWorksOpen(true)}
-                    className="relative flex items-center gap-2 px-4 py-2 bg-white text-red-600 hover:text-[#C8102E] hover:border-[#C8102E] rounded-lg transition-all duration-300 text-sm font-bold border border-red-300 shadow-sm hover:shadow group"
-                  >
-                    <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#C8102E]"></span>
-                    </span>
-                    <Info className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-                    How It Works
-                  </button>
-                </div>
+        {/* SEARCH & FILTER CONTROLS */}
+        <div className={`mb-6 px-4 lg:px-6 py-4 bg-white rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 ${loading ? "animate-pulse" : ""}`}>
+          {/* Search Control on Left */}
+          {loading ? (
+            <div className="flex-1 h-10 bg-gray-100 rounded-xl border border-gray-200" />
+          ) : (
+            <div className="relative flex-1 group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[#C8102E] transition-colors" />
               </div>
+              <input
+                type="text"
+                placeholder="Search projects by title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] focus:bg-white transition-all"
+              />
             </div>
+          )}
 
-            {/* SEARCH & FILTER CONTROLS */}
-            <div className="px-4 lg:px-6 py-4 border-b border-gray-100 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-              {/* Search Control on Left */}
-              <div className="relative flex-1 group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[#C8102E] transition-colors" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search projects by title..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] focus:bg-white transition-all"
-                />
-              </div>
-
-              {/* Filter Controls on Right */}
-              <div className="flex flex-wrap items-center gap-3">
+          {/* Filter Controls on Right */}
+          <div className="flex flex-wrap items-center gap-3">
+            {loading ? (
+              <>
+                <div className="h-10 w-40 bg-gray-100 rounded-xl border border-gray-200" />
+                <div className="h-10 w-44 bg-gray-100 rounded-xl border border-gray-200" />
+                <div className="h-10 w-24 bg-gray-100 rounded-xl border border-gray-200" />
+              </>
+            ) : (
+              <>
                 {/* Status Filter */}
                 <div className="relative">
                   <select
@@ -991,6 +917,62 @@ const Profile: React.FC = () => {
                     <ChevronDown className="h-4 w-4 text-slate-400" />
                   </div>
                 </div>
+
+                {/* View Toggle (Segmented Control) */}
+                <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    <FaTablet className="text-sm" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    <FaListAlt className="text-sm" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* All Projects Section */}
+        <section>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className={`bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200 ${loading ? "animate-pulse" : ""}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {loading ? (
+                  <>
+                    <div className="h-6 w-48 bg-gray-200 rounded" />
+                    <div className="h-9 w-36 bg-gray-100 border border-gray-200 rounded-lg" />
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <FileText className="text-[#C8102E]" />
+                        Project Portfolio
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setHowItWorksOpen(true)}
+                        className="relative flex items-center gap-2 px-4 py-2 bg-white text-red-600 hover:text-[#C8102E] hover:border-[#C8102E] rounded-lg transition-all duration-300 text-sm font-bold border border-red-300 shadow-sm hover:shadow group"
+                      >
+                        <span className="relative inline-flex items-center justify-center">
+                          <span className="absolute inline-flex h-7 w-7 rounded-full bg-[#C8102E]/20 animate-pulse"></span>
+                          <Info className="relative w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                        </span>
+                        Process Guide
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
