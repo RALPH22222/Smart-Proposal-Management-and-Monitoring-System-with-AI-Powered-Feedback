@@ -40,6 +40,22 @@ export async function getSignedFileUrl(s3Url: string): Promise<string> {
 }
 
 /**
+ * Extract a human-readable filename from an S3 URL or path.
+ * Returns a sensible fallback if the input is empty or unparseable.
+ */
+export function getFileName(url: string | null | undefined): string {
+  if (!url) return "Document.pdf";
+  try {
+    const decoded = decodeURIComponent(url);
+    const withoutQuery = decoded.split("?")[0];
+    const parts = withoutQuery.split(/[/\\]/);
+    return parts[parts.length - 1] || "Document.pdf";
+  } catch {
+    return "Document.pdf";
+  }
+}
+
+/**
  * Open a signed URL in a new tab. Use for file download links.
  */
 export async function openSignedUrl(s3Url: string): Promise<void> {

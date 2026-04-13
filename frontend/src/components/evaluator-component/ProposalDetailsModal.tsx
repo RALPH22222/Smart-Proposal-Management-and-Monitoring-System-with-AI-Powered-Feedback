@@ -22,7 +22,7 @@ import {
   Lock,
   EyeOff,
 } from "lucide-react";
-import { openProposalFile } from "../../utils/signed-url";
+import { openProposalFile, getFileName } from "../../utils/signed-url";
 
 // --- Data Constants ---
 const RATING_CRITERIA = {
@@ -388,8 +388,8 @@ export default function ProposalDetailsModal({
                     <FileText className="w-5 h-5 text-[#C8102E]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
-                      {proposal.projectFile || "Full Project Proposal.pdf"}
+                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(proposal.projectFile)}>
+                      {getFileName(proposal.projectFile)}
                     </p>
                     <p className="text-xs text-slate-500">
                       PDF Document

@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
-import { openProposalFile } from "../../utils/signed-url";
+import { openProposalFile, getFileName } from "../../utils/signed-url";
 
 const RATING_CRITERIA = {
   title: {
@@ -273,8 +273,8 @@ export default function ReviewModal({
                     <FileCheck className="w-5 h-5 text-[#C8102E]" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors">
-                      {proposal.projectFile || "Full Project Proposal.pdf"}
+                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(proposal.projectFile)}>
+                      {getFileName(proposal.projectFile)}
                     </p>
                     <p className="text-xs text-slate-500">
                       PDF Document
