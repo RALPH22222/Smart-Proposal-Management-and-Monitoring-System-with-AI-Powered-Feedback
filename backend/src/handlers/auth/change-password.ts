@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { supabase, supabaseUrl, supabaseKey } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { changePasswordSchema } from "../../schemas/auth-schema";
@@ -27,7 +26,8 @@ export const handler = buildCorsHeaders(async (event) => {
       };
     }
 
-    // 1. Verify current password by signing in as the user
+    // 1. Sign in with current password — this both VERIFIES the current password
+    //    AND sets the active session on the supabase client instance.
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: auth.email,
       password: parsed.data.current_password,
@@ -41,18 +41,9 @@ export const handler = buildCorsHeaders(async (event) => {
       };
     }
 
-    // 2. Use the sign-in access token to update the password as the user.
-    //    This requires NO service-role key — just the anon key.
-    const userClient = createClient(supabaseUrl, supabaseKey!, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${signInData.session.access_token}`,
-        },
-      },
-      auth: { persistSession: false },
-    });
-
-    const { error: updateError } = await userClient.auth.updateUser({
+    // 2. signInWithPassword set the session on the client, so updateUser will
+    //    use it automatically — no admin/service-role key needed.
+    const { error: updateError } = await supabase.auth.updateUser({
       password: parsed.data.new_password,
     });
 
