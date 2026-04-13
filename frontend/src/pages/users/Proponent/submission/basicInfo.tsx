@@ -704,11 +704,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             min={1000}
             max={9999}
             value={formData.year ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              onUpdate("year", v === "" ? null : Number(v));
-            }}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-center"
+            readOnly
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed text-center"
             placeholder="YYYY"
           />
         </div>

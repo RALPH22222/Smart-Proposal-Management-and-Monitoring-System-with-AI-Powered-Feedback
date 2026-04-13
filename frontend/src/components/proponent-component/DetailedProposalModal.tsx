@@ -2253,23 +2253,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing
                   Schedule
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Year</p>
-                    {canEditOtherFields ? (
-                      <input
-                        type="text"
-                        value={currentData.year}
-                        className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600"
-                      />
-                    ) : (
-                      renderFundedField(
-                        <p className="text-sm font-semibold text-slate-900">
-                          {currentData.year}
-                        </p>
-                      )
-                    )}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-slate-500 mb-1">Duration</p>
                     {canEditOtherFields ? (

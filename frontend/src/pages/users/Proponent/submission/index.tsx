@@ -484,6 +484,8 @@ const Submission: React.FC = () => {
 
       const payload: FormData = {
         ...localFormData,
+        // Security hardening: always enforce current year on submit.
+        year: new Date().getFullYear(),
         // Ensure agency is string
         agency: String(localFormData.agency || ""),
       };

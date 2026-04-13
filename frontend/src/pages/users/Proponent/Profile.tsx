@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import { FaListAlt, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info } from "lucide-react";
+import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import {
@@ -18,6 +18,18 @@ import { useAuthContext } from "../../../context/AuthContext";
 
 
 const Profile: React.FC = () => {
+  const formatDurationDisplay = (rawDuration: unknown) => {
+    const durationValue = Number(rawDuration);
+    if (!Number.isFinite(durationValue) || durationValue <= 0) return "N/A";
+
+    if (durationValue < 1) {
+      const days = Math.max(1, Math.round(durationValue * 30));
+      return `${days} ${days === 1 ? "day" : "days"}`;
+    }
+
+    return `${durationValue} ${durationValue === 1 ? "month" : "months"}`;
+  };
+
   const { user } = useAuthContext();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -120,7 +132,7 @@ const Profile: React.FC = () => {
             lastUpdated: new Date(p.updated_at || p.created_at).toISOString().split("T")[0],
             rawCreatedAt: p.created_at,
             budget: budgetStr,
-            duration: p.duration || "N/A",
+            duration: formatDurationDisplay(p.duration),
             priority: "medium",
             evaluators: p.proposal_evaluators?.length || 0,
             proponent: (function () {
@@ -173,6 +185,12 @@ const Profile: React.FC = () => {
     }
 
     return tags;
+  };
+
+  const getProjectYear = (id: string | number) => {
+    const raw = rawProposals.find((p) => String(p.id) === String(id));
+    if (!raw?.year) return null;
+    return String(raw.year);
   };
 
   const getLocalStatusLabel = (project: any) => {
@@ -526,6 +544,7 @@ const Profile: React.FC = () => {
             const progress = loading ? 0 : getLocalProgress(project);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
+            const yearTag = getProjectYear(project.id);
 
             return (
               <div
@@ -542,6 +561,12 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
+                  {yearTag && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-white text-[#C8102E] border-[#C8102E]/40">
+                      <CalendarDays className="w-3 h-3" />
+                      {yearTag}
+                    </span>
+                  )}
                   {tags.map((tag, idx) => (
                     <span
                       key={idx}
@@ -655,6 +680,7 @@ const Profile: React.FC = () => {
             const progress = loading ? 0 : getProgressPercentageByIndex(project.currentIndex);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
+            const yearTag = getProjectYear(project.id);
 
             return (
               <tr
@@ -674,6 +700,12 @@ const Profile: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
+                        {yearTag && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border bg-[#C8102E]/10 text-[#C8102E] border-[#C8102E]/30">
+                            <CalendarDays className="w-3 h-3" />
+                            Year {yearTag}
+                          </span>
+                        )}
                         {tags.slice(0, 1).map((tag, i) => (
                           <span
                             key={i}
