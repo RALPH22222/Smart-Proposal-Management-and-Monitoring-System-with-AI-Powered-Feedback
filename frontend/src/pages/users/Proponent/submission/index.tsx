@@ -359,12 +359,6 @@ const Submission: React.FC = () => {
     );
   }, [localFormData]);
 
-  const canGoNext =
-    activeSection === "basic-info"
-      ? canGoNextFromBasicInfo
-      : activeSection === "research-details"
-        ? canGoNextFromResearchDetails
-        : false;
   const isBasicInfoComplete = canGoNextFromBasicInfo;
   const isResearchDetailsComplete = canGoNextFromResearchDetails;
   const isBudgetComplete = isBudgetValid;
