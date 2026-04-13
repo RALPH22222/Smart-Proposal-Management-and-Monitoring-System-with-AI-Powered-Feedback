@@ -7,9 +7,11 @@ import {
   RotateCcw,
   AlertTriangle, // Added for confirmation warning
   Building2,
-  Mail
+  Mail,
+  MessageSquare,
+  Users
 } from "lucide-react";
-import type { BudgetRow } from "../../types/evaluator";
+import type { BudgetRow, EvaluatorDecision } from "../../types/evaluator";
 
 
 
@@ -20,7 +22,13 @@ interface DecisionModalProps {
   department?: string;
   email?: string;
   budgetData?: BudgetRow[]; // Added optional budget data
-  onSubmit: (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => void;
+  evaluatorDecisions?: EvaluatorDecision[];
+  onSubmit: (
+    status: "endorsed" | "revised" | "rejected",
+    remarks: string,
+    revisionDeadline?: string,
+    includedEvaluatorIds?: string[],
+  ) => void;
 }
 
 // Define the default structured sections
@@ -60,6 +68,7 @@ export default function EndorsementDecisionModal({
   department,
   email,
   budgetData = [], // Default to empty array if not provided
+  evaluatorDecisions = [],
   onSubmit,
 }: DecisionModalProps) {
   const [decision, setDecision] = useState<"endorsed" | "revised" | "rejected">("endorsed");
@@ -71,6 +80,10 @@ export default function EndorsementDecisionModal({
   const [activeTab, setActiveTab] = useState(DEFAULT_SECTIONS[0]);
   const [revisionDeadline, setRevisionDeadline] = useState("2 Weeks (Default)");
 
+  // Evaluator comments R&D chose to forward to the proponent (anonymized downstream).
+  // Only shown/relevant when decision === "revised".
+  const [selectedEvaluatorIds, setSelectedEvaluatorIds] = useState<string[]>([]);
+
   // Confirmation Logic
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -78,6 +91,16 @@ export default function EndorsementDecisionModal({
 
   // Calculate Grand Total for Budget
   const grandTotal = budgetData.reduce((acc, row) => acc + row.total, 0);
+
+  // Evaluators whose comment is actually worth including (has content + a non-pending decision).
+  const includableEvaluators = evaluatorDecisions.filter(
+    (d) =>
+      (d.comments || "").trim().length > 0 &&
+      (d.comments || "").trim().toLowerCase() !== "no comment provided" &&
+      !["pending", "in review", "declined", "extension requested"].includes(
+        (d.decision || "").toLowerCase(),
+      ),
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -87,10 +110,17 @@ export default function EndorsementDecisionModal({
       setSections(DEFAULT_SECTIONS);
       setActiveTab(DEFAULT_SECTIONS[0]);
       setRevisionDeadline("2 Weeks (Default)");
+      setSelectedEvaluatorIds([]);
       setError("");
       setShowConfirmation(false); // Reset confirmation
     }
   }, [isOpen]);
+
+  const toggleEvaluatorSelection = (evaluatorId: string) => {
+    setSelectedEvaluatorIds((prev) =>
+      prev.includes(evaluatorId) ? prev.filter((id) => id !== evaluatorId) : [...prev, evaluatorId],
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -124,7 +154,12 @@ export default function EndorsementDecisionModal({
       finalRemarks = remarks;
     }
 
-    onSubmit(decision, finalRemarks, decision === "revised" ? revisionDeadline : undefined);
+    onSubmit(
+      decision,
+      finalRemarks,
+      decision === "revised" ? revisionDeadline : undefined,
+      decision === "revised" ? selectedEvaluatorIds : undefined,
+    );
     onClose();
   };
 
@@ -280,7 +315,7 @@ export default function EndorsementDecisionModal({
           {/* Conditional Content Area */}
           <div className="animate-in fade-in duration-300">
             {decision === "revised" ? (
-              /* --- REVISED VIEW (Unchanged) --- */
+              /* --- REVISED VIEW --- */
               <div className="space-y-6">
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                   <h4 className="text-sm font-bold text-slate-800 mb-2">Revision Time Limit</h4>
@@ -294,6 +329,61 @@ export default function EndorsementDecisionModal({
                     ))}
                   </select>
                 </div>
+
+                {/* --- Evaluator comment forwarding (anonymized to proponent) --- */}
+                {includableEvaluators.length > 0 && (
+                  <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200">
+                    <div className="flex items-start gap-2 mb-1">
+                      <Users className="w-4 h-4 text-amber-700 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          Forward Evaluator Comments
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Check any evaluator comments you want the proponent to see alongside your
+                          own. The proponent will see them labeled as "Evaluator 1", "Evaluator 2",
+                          never by name.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {includableEvaluators.map((ev) => {
+                        const checked = selectedEvaluatorIds.includes(ev.evaluatorId);
+                        return (
+                          <label
+                            key={ev.evaluatorId}
+                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                              checked
+                                ? "border-amber-400 bg-white shadow-sm ring-1 ring-amber-300"
+                                : "border-slate-200 bg-white hover:border-amber-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleEvaluatorSelection(ev.evaluatorId)}
+                              className="mt-1 h-4 w-4 accent-[#C8102E] cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-slate-800 truncate">
+                                  {ev.evaluatorName}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                                  {ev.decision}
+                                </span>
+                              </div>
+                              <div className="mt-1.5 flex items-start gap-1.5 text-xs text-slate-600">
+                                <MessageSquare className="w-3 h-3 mt-0.5 text-slate-400 flex-shrink-0" />
+                                <p className="line-clamp-3 whitespace-pre-wrap">{ev.comments}</p>
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

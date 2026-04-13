@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Gavel,
   Building2,
-  Signature
+  Signature,
+  Archive
 } from 'lucide-react';
 import {
   type EndorsementProposal,
@@ -26,12 +27,13 @@ import {
   endorseProposal,
   requestRevision,
   rejectProposal,
-  fetchDepartments
+  fetchDepartments,
+  type EndorsementFilter
 } from '../../../services/proposal.api';
 import Swal from 'sweetalert2';
 import { useAuthContext } from '../../../context/AuthContext';
 import PageLoader from '../../../components/shared/PageLoader';
-import { formatDate } from '../../../utils/date-formatter';
+import { formatDate, formatDateTime } from '../../../utils/date-formatter';
 
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
@@ -39,6 +41,7 @@ const EndorsePage: React.FC = () => {
   const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
 
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
@@ -54,6 +57,7 @@ const EndorsePage: React.FC = () => {
     budget?: BudgetRow[];
     department?: string;
     email?: string;
+    evaluatorDecisions?: EvaluatorDecision[];
   } | null>(null);
 
   // --- Budget transformer: raw estimated_budget items → grouped BudgetRow[] with breakdowns ---
@@ -104,13 +108,15 @@ const EndorsePage: React.FC = () => {
 
   useEffect(() => {
     loadEndorsementProposals();
-  }, []);
+    setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const loadEndorsementProposals = async () => {
     try {
       setLoading(true);
       const [data, depts] = await Promise.all([
-        getProposalsForEndorsement(),
+        getProposalsForEndorsement(activeTab),
         fetchDepartments()
       ]);
       console.log('Fetched endorsement proposals:', data);
@@ -154,7 +160,9 @@ const EndorsePage: React.FC = () => {
           overallRecommendation: p.overallRecommendation,
           readyForEndorsement: p.readyForEndorsement,
           department: deptName || p.proponent_id?.department?.name || "N/A",
-          proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || ''
+          proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
+          status: p.status,
+          actionDate: p.actionDate
         };
       });
 
@@ -181,13 +189,21 @@ const EndorsePage: React.FC = () => {
   };
 
   // --- Handlers for Decision Modal ---
-  const handleOpenDecisionModal = (proposalTitle: string, proposalId: string, budgetData?: BudgetRow[], department?: string, email?: string) => {
+  const handleOpenDecisionModal = (
+    proposalTitle: string,
+    proposalId: string,
+    budgetData?: BudgetRow[],
+    department?: string,
+    email?: string,
+    evaluatorDecisions?: EvaluatorDecision[],
+  ) => {
     setSelectedProposal({
       title: proposalTitle,
       id: proposalId,
       budget: budgetData,
       department: department,
-      email: email
+      email: email,
+      evaluatorDecisions,
     });
     setIsDecisionModalOpen(true);
   };
@@ -196,14 +212,19 @@ const EndorsePage: React.FC = () => {
     setIsDecisionModalOpen(false);
   };
 
-  const handleDecisionSubmit = (status: "endorsed" | "revised" | "rejected", remarks: string, revisionDeadline?: string) => {
+  const handleDecisionSubmit = (
+    status: "endorsed" | "revised" | "rejected",
+    remarks: string,
+    revisionDeadline?: string,
+    includedEvaluatorIds?: string[],
+  ) => {
     if (!selectedProposal) return; // Should not happen
 
     // Route to logic based on status
     if (status === 'endorsed') {
       handleEndorseProposal(selectedProposal.id, remarks);
     } else if (status === 'revised') {
-      handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline);
+      handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline, includedEvaluatorIds);
     } else if (status === 'rejected') {
       handleRejectForClarification(selectedProposal.id, remarks);
     }
@@ -252,7 +273,12 @@ const EndorsePage: React.FC = () => {
     }
   };
 
-  const handleReturnForRevision = async (proposalId: string, remarks: string, deadlineStr?: string) => {
+  const handleReturnForRevision = async (
+    proposalId: string,
+    remarks: string,
+    deadlineStr?: string,
+    includedEvaluatorIds?: string[],
+  ) => {
     try {
       Swal.fire({
         title: 'Sending for Revision...',
@@ -263,7 +289,9 @@ const EndorsePage: React.FC = () => {
         }
       });
 
-      // 1. Calculate Deadline Timestamp
+      // 1. Calculate deadline in DAYS. The proponent-side view reconstructs the
+      // absolute deadline as `created_at + deadline * 86400000`, so `deadline`
+      // must be a day count, not an absolute timestamp.
       let days = 14; // Default 2 weeks
       if (deadlineStr) {
         if (deadlineStr.includes("1 Week")) days = 7;
@@ -272,7 +300,6 @@ const EndorsePage: React.FC = () => {
         else if (deadlineStr.includes("6 Weeks")) days = 42;
         else if (deadlineStr.includes("2 Months")) days = 60;
       }
-      const deadlineTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
 
       // 2. Parse Structured Remarks
       let title_comment: string | undefined,
@@ -295,11 +322,12 @@ const EndorsePage: React.FC = () => {
 
       await requestRevision({
         proposal_id: parseInt(proposalId),
-        deadline: deadlineTimestamp,
+        deadline: days,
         title_comment,
         budget_comment,
         timeline_comment,
         overall_comment,
+        included_evaluator_ids: includedEvaluatorIds && includedEvaluatorIds.length > 0 ? includedEvaluatorIds : undefined,
       });
 
       await Swal.fire({
@@ -447,6 +475,7 @@ const EndorsePage: React.FC = () => {
         department={selectedProposal?.department}
         email={selectedProposal?.email}
         budgetData={selectedProposal?.budget}
+        evaluatorDecisions={selectedProposal?.evaluatorDecisions}
         onSubmit={handleDecisionSubmit}
       />
     <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
@@ -465,7 +494,8 @@ const EndorsePage: React.FC = () => {
           </div>
         </header>
 
-        {/* Stats Cards */}
+        {/* Stats Cards — only meaningful on the active queue */}
+        {activeTab === 'active' && (
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-400 p-4">
             <div className="flex items-center justify-between">
@@ -515,6 +545,42 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
         </section>
+        )}
+
+        {/* Tab bar — switches between active queue and history tabs */}
+        <section className="flex-shrink-0">
+          <div className="inline-flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+            {([
+              { key: 'active', label: 'Active', icon: Gavel },
+              { key: 'revised', label: 'Revised', icon: RotateCcw },
+              { key: 'rejected', label: 'Rejected', icon: XCircle },
+            ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              const activeColor =
+                tab.key === 'active' ? 'bg-[#C8102E] text-white' :
+                tab.key === 'revised' ? 'bg-amber-500 text-white' :
+                'bg-red-600 text-white';
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                    isActive ? activeColor : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                  {isActive && (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-white/20 rounded-full">
+                      {endorsementProposals.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Proposals List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
@@ -523,7 +589,11 @@ const EndorsePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#C8102E]" />
-                Endorsement Proposals
+                {activeTab === 'active'
+                  ? 'Endorsement Proposals'
+                  : activeTab === 'revised'
+                  ? 'Revised Proposals (History)'
+                  : 'Rejected Proposals (History)'}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
@@ -536,13 +606,25 @@ const EndorsePage: React.FC = () => {
             {endorsementProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <Gavel className="w-8 h-8 text-slate-400" />
+                  {activeTab === 'active' ? (
+                    <Gavel className="w-8 h-8 text-slate-400" />
+                  ) : (
+                    <Archive className="w-8 h-8 text-slate-400" />
+                  )}
                 </div>
                 <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No proposals ready for endorsement
+                  {activeTab === 'active'
+                    ? 'No proposals ready for endorsement'
+                    : activeTab === 'revised'
+                    ? 'No proposals sent for revision yet'
+                    : 'No rejected proposals yet'}
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
-                  Proposals will appear here once evaluators complete their reviews.
+                  {activeTab === 'active'
+                    ? 'Proposals will appear here once evaluators complete their reviews.'
+                    : activeTab === 'revised'
+                    ? 'Proposals you send back for revision will appear here.'
+                    : 'Proposals you reject will appear here.'}
                 </p>
               </div>
             ) : (
@@ -653,8 +735,8 @@ const EndorsePage: React.FC = () => {
                               </div>
                             ))}
 
-                            {/* Show missing evaluators */}
-                            {proposal.evaluatorDecisions.length < 2 && (
+                            {/* Show missing evaluators — active queue only */}
+                            {activeTab === 'active' && proposal.evaluatorDecisions.length < 2 && (
                               <div className="border-2 border-dashed border-slate-300 rounded-lg p-4 flex items-center justify-center">
                                 <div className="text-center text-slate-500">
                                   <User className="w-6 h-6 mx-auto mb-2 opacity-50" />
@@ -669,16 +751,33 @@ const EndorsePage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Single Action Button Implementation */}
-                      {proposal.readyForEndorsement && (
+                      {/* Single Action Button — only on active tab */}
+                      {activeTab === 'active' && proposal.readyForEndorsement && (
                         <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail)}
+                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail, proposal.evaluatorDecisions)}
                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3 h-3" />
                             Action
                           </button>
+                        </div>
+                      )}
+
+                      {/* History tab — show when this R&D took the action */}
+                      {activeTab !== 'active' && proposal.actionDate && (
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
+                            activeTab === 'revised'
+                              ? 'bg-amber-50 border-amber-200 text-amber-700'
+                              : 'bg-red-50 border-red-200 text-red-700'
+                          }`}>
+                            {activeTab === 'revised' ? <RotateCcw className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                            {activeTab === 'revised' ? 'Revision Sent' : 'Rejected'}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            {formatDateTime(proposal.actionDate)}
+                          </span>
                         </div>
                       )}
                     </div>

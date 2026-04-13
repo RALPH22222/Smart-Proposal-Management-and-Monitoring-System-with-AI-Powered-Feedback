@@ -67,6 +67,8 @@ export interface EndorsementProposal {
 	readyForEndorsement: boolean;
 	budget?: BudgetRow[];
 	department?: string;
+	status?: string;
+	actionDate?: string;
 }
 
 export interface EvaluatorDecision {

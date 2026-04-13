@@ -180,6 +180,7 @@ export const revisionProposalToProponentSchema = z.object({
   timeline_comment: z.string().max(2000, "Comments are too long").optional(),
   overall_comment: z.string().max(2000, "Comments are too long").optional(),
   deadline: z.coerce.number(),
+  included_evaluator_ids: z.array(z.string().uuid()).optional(),
 });
 
 export const rejectProposalToProponentSchema = z.object({

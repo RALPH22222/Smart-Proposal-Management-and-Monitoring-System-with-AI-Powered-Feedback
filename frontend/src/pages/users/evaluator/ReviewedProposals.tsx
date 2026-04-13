@@ -45,11 +45,37 @@ export default function ReviewedProposals() {
       const completedStatuses = ['approve', 'revise', 'reject', 'decline'];
       const filtered = data.filter((item: any) => completedStatuses.includes(item.status));
 
-      const scoresMap = new Map(scores.map((s: any) => [s.proposal_id, s]));
+      // Scores are now version-scoped — match by (proposal_id, proposal_version_id)
+      // so v1 scores don't attach to a v2 review entry of the same proposal.
+      const scoreKey = (proposalId: any, versionId: any) => `${proposalId}::${versionId ?? 'null'}`;
+      const scoresMap = new Map(
+        scores.map((s: any) => [scoreKey(s.proposal_id, s.proposal_version_id), s]),
+      );
+
+      // Per-proposal version numbering: oldest proposal_version row = v1.
+      // This runs against each proposal's own proposal_version list and lets us
+      // render "Project Foo (v1)", "(v2)", etc. for repeat reviews of the same title.
+      const versionRankByProposal = new Map<any, Map<any, number>>();
+      filtered.forEach((item: any) => {
+        const p = item.proposal_id || {};
+        if (versionRankByProposal.has(p.id)) return;
+        const versions = (p.proposal_version || [])
+          .slice()
+          .sort((a: any, b: any) => {
+            const at = new Date(a.created_at || 0).getTime();
+            const bt = new Date(b.created_at || 0).getTime();
+            if (at !== bt) return at - bt;
+            return (a.id || 0) - (b.id || 0);
+          });
+        const rankMap = new Map<any, number>();
+        versions.forEach((v: any, idx: number) => rankMap.set(v.id, idx + 1));
+        versionRankByProposal.set(p.id, rankMap);
+      });
 
       const mapped = filtered.map((item: any) => {
         const p = item.proposal_id || {};
-        const evaluationScore = scoresMap.get(p.id);
+        const evaluationScore = scoresMap.get(scoreKey(p.id, item.proposal_version_id));
+        const versionNumber = versionRankByProposal.get(p.id)?.get(item.proposal_version_id) ?? 1;
         const proponent = p.proponent_id || {};
         const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
 
@@ -91,6 +117,8 @@ export default function ReviewedProposals() {
 
         return {
           id: p.id,
+          proposalVersionId: item.proposal_version_id,
+          versionNumber,
           title: p.project_title || "Untitled",
           reviewedDate: evaluationScore?.created_at ? formatDate(evaluationScore.created_at) : (item.updated_at ? formatDate(item.updated_at) : "N/A"),
           proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
@@ -127,16 +155,21 @@ export default function ReviewedProposals() {
         };
       });
 
-      // Deduplicate mapped proposals using string ID
+      // Dedupe by (proposal.id, proposal_version_id). Earlier code keyed by
+      // proposal.id alone, which would hide an older version when the same
+      // evaluator reviewed both v1 and v2 of the same title. With version
+      // scoping, each version is a legitimate separate completed review.
       const uniqueProposalsMap = new Map();
       mapped.forEach((p: any) => {
-        const key = String(p.id);
+        const key = `${p.id}::${p.proposalVersionId ?? 'null'}`;
         if (!uniqueProposalsMap.has(key)) {
           uniqueProposalsMap.set(key, p);
         }
       });
 
-      const uniqueProposals = Array.from(uniqueProposalsMap.values());
+      const uniqueProposals = Array.from(uniqueProposalsMap.values())
+        .sort((a: any, b: any) => (a.versionNumber || 0) - (b.versionNumber || 0))
+        .sort((a: any, b: any) => String(a.title).localeCompare(String(b.title)));
 
       setProposals(uniqueProposals);
 
@@ -273,14 +306,17 @@ export default function ReviewedProposals() {
             <div className="divide-y divide-slate-100">
               {paginatedProposals.map((proposal) => (
                 <article
-                  key={proposal.id}
+                  key={`${proposal.id}-${proposal.proposalVersionId ?? 'null'}`}
                   className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                 >
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
-                          {proposal.title}
+                        <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200 flex items-center gap-2 flex-wrap">
+                          <span>{proposal.title}</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-200 bg-slate-50 text-slate-600">
+                            v{proposal.versionNumber}
+                          </span>
                         </h2>
 
                         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
