@@ -48,6 +48,7 @@ import { formatDate, formatDateTime } from "../../utils/date-formatter";
 import InviteMemberModal from "./InviteMemberModal";
 import { useAuthContext } from "../../context/AuthContext";
 import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
+import { fetchProjectMembers, type ProjectMemberData } from "../../services/ProjectMemberApi";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -121,6 +122,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   // Resolved funded project data (fetched independently so it works even if getAll doesn't return it)
   const [resolvedFundedProjectId, setResolvedFundedProjectId] = useState<number | null>(null);
   const [resolvedProjectLeadId, setResolvedProjectLeadId] = useState<string | null>(null);
+  const [projectMembers, setProjectMembers] = useState<ProjectMemberData[]>([]);
+  const [isLoadingProjectMembers, setIsLoadingProjectMembers] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   // Extension request state
@@ -192,6 +195,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     if (!isOpen || !isFundedForEffect || !proposal) {
       setResolvedFundedProjectId(null);
       setResolvedProjectLeadId(null);
+      setProjectMembers([]);
       return;
     }
     // If already passed from parent (backend includes id in getAll), use it directly
@@ -215,6 +219,28 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     };
     resolve();
   }, [isOpen, isFundedForEffect, proposal?.id, proposal?.fundedProjectId]);
+
+  useEffect(() => {
+    if (!isOpen || !resolvedFundedProjectId) {
+      setProjectMembers([]);
+      setIsLoadingProjectMembers(false);
+      return;
+    }
+
+    const loadMembers = async () => {
+      setIsLoadingProjectMembers(true);
+      try {
+        const members = await fetchProjectMembers(resolvedFundedProjectId);
+        setProjectMembers(members);
+      } catch {
+        setProjectMembers([]);
+      } finally {
+        setIsLoadingProjectMembers(false);
+      }
+    };
+
+    loadMembers();
+  }, [isOpen, resolvedFundedProjectId]);
 
   useEffect(() => {
     const fetchRejection = async () => {
@@ -792,6 +818,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       .map((s) => s.trim())
       .filter(Boolean)
     : [];
+  const activeCoLeads = projectMembers.filter(
+    (member) => member.role === "co_lead" && member.status === "active"
+  );
+  const pendingCoLeads = projectMembers.filter(
+    (member) => member.role === "co_lead" && member.status === "pending"
+  );
 
   const getStatusTheme = (status: string | undefined) => {
     const s = (status || "").toLowerCase();
@@ -1174,12 +1206,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               </button>
                             )}
                           </div>
-                          {coProponentsList.length > 0 ? (
+                          {isLoadingProjectMembers ? (
+                            <div className="bg-white border border-green-100 px-3 py-3 rounded-md text-sm text-slate-500 flex items-center justify-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-[#C8102E]" />
+                              Loading co-lead members...
+                            </div>
+                          ) : (activeCoLeads.length > 0 || pendingCoLeads.length > 0 || coProponentsList.length > 0) ? (
                             <div className="flex flex-wrap gap-2">
-                              {coProponentsList.map((name, index) => (
+                              {activeCoLeads.length > 0 ? activeCoLeads.map((member) => (
+                                <div key={member.id} className="inline-flex flex-col bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200">
+                                  <span>{member.user.first_name} {member.user.last_name}</span>
+                                  <span className="text-[10px] text-green-700/90">{member.user.email}</span>
+                                </div>
+                              )) : coProponentsList.map((name, index) => (
                                 <span key={index} className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-green-200">
                                   {name}
                                 </span>
+                              ))}
+                              {pendingCoLeads.map((member) => (
+                                <div
+                                  key={`pending-${member.id}`}
+                                  className="inline-flex flex-col bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1.5 rounded-md border border-amber-200"
+                                >
+                                  <span>{member.user.first_name} {member.user.last_name} (Invited)</span>
+                                  <span className="text-[10px] text-amber-700/90">{member.user.email}</span>
+                                </div>
                               ))}
                             </div>
                           ) : (
@@ -2558,9 +2609,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           isOpen={inviteOpen}
           onClose={() => setInviteOpen(false)}
           onInvited={() => {
-            // Since we removed internal member tracking from this modal,
-            // we simply close the modal on successful invite.
-            // If the user needs to manage members, they should do it inside monitoring.
+            if (!resolvedFundedProjectId) return;
+            setIsLoadingProjectMembers(true);
+            fetchProjectMembers(resolvedFundedProjectId)
+              .then((members) => setProjectMembers(members))
+              .catch(() => setProjectMembers([]))
+              .finally(() => setIsLoadingProjectMembers(false));
           }}
         />
       )}

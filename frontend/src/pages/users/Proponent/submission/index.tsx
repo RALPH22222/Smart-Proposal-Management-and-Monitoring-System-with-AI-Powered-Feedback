@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Component Imports
 import BasicInformation from "./basicInfo";
@@ -55,6 +56,7 @@ const Submission: React.FC = () => {
 
   // Track which fields were auto-filled from the uploaded document
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+  const sectionOrder = ["basic-info", "research-details", "budget"] as const;
 
   // --- FIX 1: UPDATE INITIAL STATE STRUCTURE ---
   const [localFormData, setLocalFormData] = useState<FormData>({
@@ -296,6 +298,90 @@ const Submission: React.FC = () => {
 
   const handleSectionChange = (nextSection: string) => {
     setActiveSection(nextSection);
+  };
+
+  const currentSectionIndex = sectionOrder.indexOf(activeSection as (typeof sectionOrder)[number]);
+  const canGoNextFromBasicInfo = useMemo(() => {
+    const {
+      program_title,
+      project_title,
+      schoolYear,
+      plannedStartDate,
+      plannedEndDate,
+      duration,
+      agency,
+      agencyAddress,
+      telephone,
+      email,
+      tags,
+    } = localFormData;
+
+    return !!(
+      program_title?.trim() &&
+      project_title?.trim() &&
+      schoolYear?.trim() &&
+      schoolYear.length >= 9 &&
+      plannedStartDate &&
+      plannedEndDate &&
+      duration &&
+      agency &&
+      agencyAddress?.city?.trim() &&
+      telephone?.trim() &&
+      email?.trim() &&
+      tags?.length
+    );
+  }, [localFormData]);
+
+  const canGoNextFromResearchDetails = useMemo(() => {
+    const {
+      researchStation,
+      sectorCommodity,
+      disciplineName,
+      priorities_id,
+      classification_type,
+      class_input,
+      implementation_site,
+    } = localFormData;
+
+    const sites = implementation_site || [];
+    const hasValidSite = sites.some((s: { site: string; city: string }) => s.site?.trim() && s.city?.trim());
+    const hasInvalidSite = sites.some((s: { site: string; city: string }) => !s.site?.trim() || !s.city?.trim());
+
+    return !!(
+      researchStation?.trim() &&
+      sectorCommodity?.trim() &&
+      disciplineName?.trim() &&
+      priorities_id?.length &&
+      classification_type &&
+      class_input?.trim() &&
+      hasValidSite &&
+      !hasInvalidSite
+    );
+  }, [localFormData]);
+
+  const canGoNext =
+    activeSection === "basic-info"
+      ? canGoNextFromBasicInfo
+      : activeSection === "research-details"
+        ? canGoNextFromResearchDetails
+        : false;
+  const isBasicInfoComplete = canGoNextFromBasicInfo;
+  const isResearchDetailsComplete = canGoNextFromResearchDetails;
+  const isBudgetComplete = isBudgetValid;
+
+  const handleNextSection = () => {
+    if (activeSection === "basic-info" && !validateBasicInfo()) return;
+    if (activeSection === "research-details" && !validateResearchDetails()) return;
+
+    const nextIndex = currentSectionIndex + 1;
+    if (nextIndex >= sectionOrder.length) return;
+    setActiveSection(sectionOrder[nextIndex]);
+  };
+
+  const handlePreviousSection = () => {
+    const previousIndex = currentSectionIndex - 1;
+    if (previousIndex < 0) return;
+    setActiveSection(sectionOrder[previousIndex]);
   };
 
   // --- FIX 2: UPDATE BUDGET HANDLERS ---
@@ -657,9 +743,16 @@ const Submission: React.FC = () => {
                 <span className="flex items-center gap-2 justify-center w-full text-center">
                   Basic Information
                 </span>
-                {activeSection === "basic-info" && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-                )}
+                {isBasicInfoComplete ? (
+                  <span className="absolute top-2 right-2 z-10">
+                    <CheckCircle2 className={`w-4 h-4 ${activeSection === "basic-info" ? "text-white" : "text-[#C8102E]"}`} />
+                  </span>
+                ) : activeSection === "basic-info" ? (
+                  <span className="absolute top-2 right-2 flex h-3.5 w-3.5 z-10">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-100 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-100"></span>
+                  </span>
+                ) : null}
               </button>
               <button
                 onClick={() => handleSectionChange("research-details")}
@@ -668,9 +761,16 @@ const Submission: React.FC = () => {
                 <span className="flex items-center gap-2 justify-center w-full text-center">
                   Research Details
                 </span>
-                {activeSection === "research-details" && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-                )}
+                {isResearchDetailsComplete ? (
+                  <span className="absolute top-2 right-2 z-10">
+                    <CheckCircle2 className={`w-4 h-4 ${activeSection === "research-details" ? "text-white" : "text-[#C8102E]"}`} />
+                  </span>
+                ) : activeSection === "research-details" ? (
+                  <span className="absolute top-2 right-2 flex h-3.5 w-3.5 z-10">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-100 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-100"></span>
+                  </span>
+                ) : null}
               </button>
               <button
                 onClick={() => handleSectionChange("budget")}
@@ -679,9 +779,16 @@ const Submission: React.FC = () => {
                 <span className="flex items-center gap-2 justify-center w-full text-center">
                   Budget Section
                 </span>
-                {activeSection === "budget" && (
-                  <span className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse z-10 border border-white"></span>
-                )}
+                {isBudgetComplete ? (
+                  <span className="absolute top-2 right-2 z-10">
+                    <CheckCircle2 className={`w-4 h-4 ${activeSection === "budget" ? "text-white" : "text-[#C8102E]"}`} />
+                  </span>
+                ) : activeSection === "budget" ? (
+                  <span className="absolute top-2 right-2 flex h-3.5 w-3.5 z-10">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-100 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-slate-100"></span>
+                  </span>
+                ) : null}
               </button>
             </div>
 
@@ -711,6 +818,31 @@ const Submission: React.FC = () => {
                   onOpenBudgetModal={(itemId: number, category: 'ps' | 'mooe' | 'co') => setActiveBudgetModal({ itemId, category })}
                 />
               )}
+
+              <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
+                {currentSectionIndex > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handlePreviousSection}
+                    className="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 inline-flex items-center gap-1.5"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+                ) : <div />}
+
+                {activeSection !== "budget" ? (
+                  <button
+                    type="button"
+                    onClick={handleNextSection}
+                    disabled={!canGoNext}
+                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-[#C8102E] hover:bg-[#a00c24] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : <div />}
+              </div>
             </div>
           </div>
 
