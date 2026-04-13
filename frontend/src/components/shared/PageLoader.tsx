@@ -343,20 +343,20 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
             <SkeletonPulse className="h-4 w-full max-w-xl opacity-60" />
           </div>
 
-          <div className="rounded-2xl p-6 mb-6 bg-gradient-to-br from-[#C8102E] to-[#8B0C20] shadow-lg">
+          <div className="rounded-2xl p-6 mb-6 bg-gray-200 shadow-lg">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
               <div className="relative flex-shrink-0">
-                <div className="h-24 w-24 rounded-2xl bg-white/25 animate-pulse border-4 border-white/20" />
-                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-white/90 animate-pulse" />
+                <div className="h-24 w-24 rounded-2xl bg-gray-300 animate-pulse border-4 border-gray-100" />
+                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-gray-100 animate-pulse" />
               </div>
               <div className="flex-1 w-full sm:w-auto space-y-2 text-center sm:text-left">
-                <div className="h-6 w-44 max-w-full mx-auto sm:mx-0 bg-white/30 rounded animate-pulse" />
-                <div className="h-4 w-56 max-w-full mx-auto sm:mx-0 bg-white/20 rounded animate-pulse" />
-                <div className="h-6 w-32 rounded-full mx-auto sm:mx-0 bg-white/15 animate-pulse mt-2" />
+                <div className="h-6 w-44 max-w-full mx-auto sm:mx-0 bg-gray-300 rounded animate-pulse" />
+                <div className="h-4 w-56 max-w-full mx-auto sm:mx-0 bg-gray-300/70 rounded animate-pulse" />
+                <div className="h-6 w-32 rounded-full mx-auto sm:mx-0 bg-gray-300/50 animate-pulse mt-2" />
               </div>
-              <div className="rounded-xl px-4 py-3 bg-white/10 w-full sm:w-auto min-w-[140px] space-y-2">
-                <div className="h-6 w-24 mx-auto bg-white/25 rounded animate-pulse" />
-                <div className="h-3 w-20 mx-auto bg-white/20 rounded animate-pulse" />
+              <div className="rounded-xl px-4 py-3 bg-gray-300/50 w-full sm:w-auto min-w-[140px] space-y-2">
+                <div className="h-6 w-24 mx-auto bg-gray-300 rounded animate-pulse" />
+                <div className="h-3 w-20 mx-auto bg-gray-300/70 rounded animate-pulse" />
               </div>
             </div>
           </div>

@@ -204,7 +204,26 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: string, newPassword: string) {
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    // 1. Fetch the user's email so we can re-authenticate
+    const { data: { user }, error: getUserError } = await this.db!.auth.admin.getUserById(userId);
+    if (getUserError || !user?.email) {
+      return { data: null, error: getUserError ?? { message: "User not found" } };
+    }
+
+    // 2. Verify current password by attempting a sign-in
+    const { error: signInError } = await this.db!.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (signInError) {
+      return {
+        data: null,
+        error: { message: "Current password is incorrect.", status: 401 },
+      };
+    }
+
+    // 3. Update the password via admin API
     const { error: authError } = await this.db!.auth.admin.updateUserById(userId, {
       password: newPassword,
     });

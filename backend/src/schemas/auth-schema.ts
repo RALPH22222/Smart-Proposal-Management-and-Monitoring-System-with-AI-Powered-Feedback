@@ -76,7 +76,8 @@ export const signUpWithProfileSchema = z.object({
 });
 
 export const changePasswordSchema = z.object({
-  new_password: z.string().min(6, "Password must be at least 6 characters"),
+  current_password: z.string().min(1, "Current password is required"),
+  new_password: z.string().min(6, "New password must be at least 6 characters"),
 });
 
 export type Role = z.infer<typeof RoleEnum>;

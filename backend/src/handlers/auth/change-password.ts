@@ -27,13 +27,14 @@ export const handler = buildCorsHeaders(async (event) => {
   }
 
   const authService = new AuthService(supabase);
-  const { error } = await authService.changePassword(auth.userId, parsed.data.new_password);
+  const { error } = await authService.changePassword(auth.userId, parsed.data.current_password, parsed.data.new_password);
 
   if (error) {
     console.error("Change password error:", JSON.stringify(error, null, 2));
+    const status = (error as any).status ?? 500;
     return {
-      statusCode: 500,
-      body: JSON.stringify({ message: error.message || "Failed to change password" }),
+      statusCode: status,
+      body: JSON.stringify({ message: (error as any).message || "Failed to change password" }),
     };
   }
 
