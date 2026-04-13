@@ -1,13 +1,12 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, supabaseAdmin } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
-import { AuthService } from "../../services/auth.service";
 import { changePasswordSchema } from "../../schemas/auth-schema";
 
 export const handler = buildCorsHeaders(async (event) => {
   const auth = getAuthContext(event);
 
-  if (!auth.userId) {
+  if (!auth.userId || !auth.email) {
     return {
       statusCode: 401,
       body: JSON.stringify({ message: "Unauthorized" }),
@@ -26,17 +25,44 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const authService = new AuthService(supabase);
-  const { error } = await authService.changePassword(auth.userId, parsed.data.current_password, parsed.data.new_password);
+  // 1. Verify current password using the anon client (signInWithPassword works with anon key)
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: auth.email,
+    password: parsed.data.current_password,
+  });
 
-  if (error) {
-    console.error("Change password error:", JSON.stringify(error, null, 2));
-    const status = (error as any).status ?? 500;
+  if (signInError) {
     return {
-      statusCode: status,
-      body: JSON.stringify({ message: (error as any).message || "Failed to change password" }),
+      statusCode: 401,
+      body: JSON.stringify({ message: "Current password is incorrect." }),
     };
   }
+
+  // 2. Admin client is required to change another user's password server-side
+  if (!supabaseAdmin) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Server configuration error." }),
+    };
+  }
+
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(auth.userId, {
+    password: parsed.data.new_password,
+  });
+
+  if (updateError) {
+    console.error("Change password update error:", JSON.stringify(updateError, null, 2));
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: updateError.message || "Failed to update password." }),
+    };
+  }
+
+  // 3. Clear the password_change_required flag
+  await supabaseAdmin
+    .from("users")
+    .update({ password_change_required: false })
+    .eq("id", auth.userId);
 
   return {
     statusCode: 200,
