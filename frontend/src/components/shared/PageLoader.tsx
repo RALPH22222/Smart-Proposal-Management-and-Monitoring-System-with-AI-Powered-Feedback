@@ -418,10 +418,12 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'proponent-settings') {
     return (
-      <div className={`max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-pulse ${className || ''}`}>
-        <div className="mb-8 space-y-2">
-          <SkeletonPulse className="h-8 w-52 max-w-full" />
-          <SkeletonPulse className="h-4 w-full max-w-lg opacity-60" />
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-pulse ${className || ''}`}>
+        <div className="mb-8">
+          <div className="mb-6 space-y-2">
+            <SkeletonPulse className="h-10 w-56 max-w-full" />
+            <SkeletonPulse className="h-4 w-full max-w-lg opacity-60" />
+          </div>
         </div>
 
         <div className="rounded-2xl p-6 mb-6 bg-gradient-to-br from-[#C8102E] to-[#8B0C20] shadow-lg">

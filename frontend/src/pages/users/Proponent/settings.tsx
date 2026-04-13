@@ -38,7 +38,6 @@ interface ExtendedUserProfile {
   birthdate?: string;
   sex?: 'Male' | 'Female' | 'Prefer not to say' | '';
   department?: string;
-  department_id?: string;
   avatarUrl?: string | null;
 }
 
@@ -113,6 +112,13 @@ const FormInput: React.FC<{
       )}
     </div>
   </div>
+);
+
+const SpinnerIcon = () => (
+  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden>
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+  </svg>
 );
 
 // --- Main Component ---
@@ -262,15 +268,16 @@ const Settings: React.FC = () => {
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-fade-in">
 
-      {/* ── Page Header ── */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Manage your personal information, academic details, and security.
-        </p>
-      </div>
+      <header className="mb-8">
+        <div className="mb-6">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1">Account Settings</h1>
+          <p className="text-gray-600 text-sm lg:text-base">
+            Manage your personal information, academic details, and security.
+          </p>
+        </div>
+      </header>
 
       {/* ── Profile Header Card ── */}
       <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 mb-6 text-white shadow-lg">
@@ -433,10 +440,7 @@ const Settings: React.FC = () => {
             >
               {isSavingProfile ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
+                  <SpinnerIcon />
                   Saving...
                 </>
               ) : (
@@ -460,18 +464,17 @@ const Settings: React.FC = () => {
           
           {emailMsg && (
             <div className={`mb-5 flex items-start gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${
-              emailMsg.type === 'success' && emailMsg.info 
+              emailMsg.type === 'success' && emailMsg.info
                 ? 'bg-blue-50 border-blue-200 text-blue-700'
-              : emailMsg.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-700'
-                : 'bg-red-50 border-red-200 text-red-700'
+                : emailMsg.type === 'success'
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : 'bg-red-50 border-red-200 text-red-700'
             }`}>
-              {emailMsg.type === 'success' && emailMsg.info 
-                ? <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-              : emailMsg.type === 'success'
-                ? <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
-                : <Shield size={16} className="mt-0.5 flex-shrink-0" />
-              }
+              {emailMsg.type === 'success' ? (
+                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+              ) : (
+                <Shield size={16} className="mt-0.5 flex-shrink-0" />
+              )}
               {emailMsg.text}
             </div>
           )}
@@ -494,31 +497,28 @@ const Settings: React.FC = () => {
           </div>
           
           <div className="flex justify-end">
-             <button
-                type="submit"
-                disabled={isSavingEmail || profile?.email === emailValue}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSavingEmail ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Update Email
-                  </>
-                )}
-             </button>
+            <button
+              type="submit"
+              disabled={isSavingEmail || profile?.email === emailValue}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingEmail ? (
+                <>
+                  <SpinnerIcon />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Update Email
+                </>
+              )}
+            </button>
           </div>
         </div>
       </form>
 
       {/* ── Security / Change Password ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
         <SectionHeader
           icon={<Lock size={20} />}
           title="Security"
@@ -550,7 +550,7 @@ const Settings: React.FC = () => {
                 onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
                 placeholder="Enter your current password"
                 suffix={
-                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))} className="text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))} className="text-gray-400 hover:text-gray-600">
                     {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 }
@@ -566,7 +566,7 @@ const Settings: React.FC = () => {
                 onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
                 placeholder="At least 8 characters"
                 suffix={
-                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))} className="text-gray-400 hover:text-gray-600">
                     {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 }
@@ -601,7 +601,7 @@ const Settings: React.FC = () => {
                 onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
                 placeholder="Repeat new password"
                 suffix={
-                  <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="text-gray-400 hover:text-gray-600">
+                  <button type="button" onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))} className="text-gray-400 hover:text-gray-600">
                     {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 }
@@ -646,10 +646,7 @@ const Settings: React.FC = () => {
             >
               {isSavingPassword ? (
                 <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
+                  <SpinnerIcon />
                   Updating...
                 </>
               ) : (
