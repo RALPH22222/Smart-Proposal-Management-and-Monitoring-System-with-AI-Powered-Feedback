@@ -1,6 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, Callback, Context } from "aws-lambda";
 
-const allowedOrigins = ["http://localhost:5173", "https://wmsu-spmams.vercel.app"];
+// Keep this list in sync with ALLOWED_ORIGINS in backend/lib/backend-stack.ts. Both need to
+// match or the API Gateway preflight will succeed while the Lambda's per-response CORS
+// header is wrong (or vice versa), and the browser will silently block the actual request.
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://www.wmsu-rdec.com",
+  "https://wmsu-rdec.com",
+];
 
 export const buildCorsHeaders = (cb: APIGatewayProxyHandler) => {
   // build cors headers first function call

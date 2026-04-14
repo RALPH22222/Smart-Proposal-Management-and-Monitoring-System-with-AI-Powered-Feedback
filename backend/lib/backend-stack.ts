@@ -50,7 +50,19 @@ export class BackendStack extends Stack {
     const GEMINI_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/GEMINI_API_KEY");
     const ORS_API_KEY = StringParameter.valueForStringParameter(this, "/pms/backend/ORS_API_KEY");
 
-    const FRONTEND_URL = "https://wmsu-spmams.vercel.app";
+    // Production frontend. Used by the invite-email redirects and propagated to every
+    // Lambda stack via the `frontendUrl` prop. www form is canonical per the groupmate's
+    // Vercel/DNS setup (2026-04-14 domain swap from the old wmsu-spmams.vercel.app
+    // deployment, which has been removed).
+    const FRONTEND_URL = "https://www.wmsu-rdec.com";
+    // CORS allowlist — covers canonical www, naked apex (in case DNS serves either),
+    // and localhost for local dev. Keep both forms so a DNS/Vercel setting flip doesn't
+    // silently break browser requests.
+    const ALLOWED_ORIGINS = [
+      "https://www.wmsu-rdec.com",
+      "https://wmsu-rdec.com",
+      "http://localhost:5173",
+    ];
 
     // ========== S3 BUCKETS ==========
     const proposal_attachments_bucket = new Bucket(this, `pms-proposal-attachments-bucket-${stageName}`, {
@@ -61,7 +73,7 @@ export class BackendStack extends Stack {
         {
           allowedHeaders: ["*"],
           allowedMethods: [HttpMethods.PUT],
-          allowedOrigins: ["https://wmsu-spmams.vercel.app", "http://localhost:5173"],
+          allowedOrigins: ALLOWED_ORIGINS,
           maxAge: 3000,
         },
       ],
@@ -87,7 +99,7 @@ export class BackendStack extends Stack {
         {
           allowedHeaders: ["*"],
           allowedMethods: [HttpMethods.PUT, HttpMethods.GET],
-          allowedOrigins: ["https://wmsu-spmams.vercel.app", "http://localhost:5173"],
+          allowedOrigins: ALLOWED_ORIGINS,
           maxAge: 3000,
         },
       ],
@@ -195,7 +207,7 @@ export class BackendStack extends Stack {
       },
       binaryMediaTypes: ["multipart/form-data"],
       defaultCorsPreflightOptions: {
-        allowOrigins: ["http://localhost:5173", "https://wmsu-spmams.vercel.app"],
+        allowOrigins: ALLOWED_ORIGINS,
         allowMethods: Cors.ALL_METHODS,
         allowHeaders: ["Content-Type", "Authorization", "Cookie"],
         allowCredentials: true,
