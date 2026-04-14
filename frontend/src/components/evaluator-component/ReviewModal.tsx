@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import {
   X,
   FileText,
@@ -158,6 +158,10 @@ export default function ReviewModal({
     ratings.title > 0 &&
     ratings.budget > 0 &&
     ratings.timeline > 0;
+  const ratingKeys = ["title", "budget", "timeline"] as const;
+  const totalScore = ratings.title + ratings.budget + ratings.timeline;
+  const maxScore = ratingKeys.length * 5;
+  const completionCount = ratingKeys.filter((key) => ratings[key] > 0).length;
 
   const handleViewFile = (fileUrl?: string) => {
     openProposalFile(fileUrl);
@@ -190,10 +194,26 @@ export default function ReviewModal({
   };
 
   const getRatingColor = (value: number) => {
-    if (value >= 4) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    if (value === 3) return "bg-blue-100 text-blue-700 border-blue-200";
-    return "bg-amber-100 text-amber-700 border-amber-200";
+    if (value >= 4) return "bg-emerald-600 text-white border-emerald-600";
+    if (value === 3) return "bg-amber-500 text-white border-amber-500";
+    return "bg-red-600 text-white border-red-600";
   };
+
+  const getFeedbackCardColor = (value: number) => {
+    if (value >= 4) return "bg-emerald-50 border-emerald-200 text-emerald-900";
+    if (value === 3) return "bg-amber-50 border-amber-200 text-amber-900";
+    return "bg-red-50 border-red-200 text-red-900";
+  };
+
+  const getRatingLabel = (value: number) => {
+    if (value === 1) return "Poor";
+    if (value === 2) return "Fair";
+    if (value === 3) return "Good";
+    if (value === 4) return "Very Good";
+    if (value === 5) return "Excellent";
+    return "Not Rated";
+  };
+
 
   // Helper to format string for display
   const formatString = (str: string) => {
@@ -527,60 +547,103 @@ export default function ReviewModal({
                 <MessageSquare className="w-5 h-5 text-[#C8102E]" />
                 Evaluator Comments & Ratings
               </h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Rate each criterion from <span className="font-semibold text-slate-700">1 (Poor)</span> to{" "}
-                <span className="font-semibold text-slate-700">5 (Excellent)</span>. A short explanation of
-                the selected rating appears beneath each row.
+              <p className="text-sm text-slate-500 mb-4">
+                Use the matrix below to rate each criterion from <span className="font-semibold text-slate-700">1 (Poor)</span> to{" "}
+                <span className="font-semibold text-slate-700">5 (Excellent)</span>. Select one rating per criterion row.
               </p>
 
               <div className="space-y-6">
-                {(["title", "budget", "timeline"] as const).map((criterionKey) => {
-                  const criterion = RATING_CRITERIA[criterionKey];
-                  const value = (ratings as any)[criterionKey] ?? 0;
-                  return (
-                    <div key={criterionKey} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                      <div className="flex items-center justify-between mb-2 gap-2">
-                        <label className="block text-sm font-bold text-slate-900">
-                          {criterion.label} <span className="text-red-500">*</span>
-                        </label>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                          1 Poor · 5 Excellent
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {[1, 2, 3, 4, 5].map((num) => {
-                          const selected = value === num;
+                <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Overall Score</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">
+                      {totalScore}
+                      <span className="text-base font-bold text-slate-400">/{maxScore}</span>
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Average Rating</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">
+                      {(totalScore / ratingKeys.length).toFixed(1)}
+                      <span className="text-base font-bold text-slate-400">/5</span>
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">Rated {completionCount}/{ratingKeys.length} criteria</p>
+
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-bold text-slate-700 min-w-[220px]">Criterion</th>
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <th key={num} className="text-center px-2 py-3 font-bold text-slate-700 min-w-[90px]">
+                              <div className="leading-tight">
+                                <div className="text-base">{num}</div>
+                                <div className="text-xs font-bold text-slate-600">
+                                  {num === 1 ? "Poor" : num === 2 ? "Fair" : num === 3 ? "Good" : num === 4 ? "Very Good" : "Excellent"}
+                                </div>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ratingKeys.map((criterionKey) => {
+                          const criterion = RATING_CRITERIA[criterionKey];
+                          const value = (ratings as any)[criterionKey] ?? 0;
                           return (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => handleRatingChange(criterionKey, num)}
-                              className={`flex-1 h-11 rounded-lg border font-bold text-base transition-all cursor-pointer ${
-                                selected
-                                  ? `${getRatingColor(num)} shadow-sm ring-2 ring-current`
-                                  : "bg-white border-slate-200 text-slate-400 hover:border-slate-400 hover:bg-white"
-                              }`}
-                              aria-pressed={selected}
-                              aria-label={`${criterion.label}: ${num}`}
-                            >
-                              {num}
-                            </button>
+                            <Fragment key={criterionKey}>
+                              <tr key={criterionKey} className="border-b border-slate-100">
+                                <td className="px-4 py-3 align-middle bg-slate-50/50">
+                                  <div className="font-semibold text-slate-900">{criterion.label} <span className="text-red-500">*</span></div>
+                                  {value > 0 && (
+                                    <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${getRatingColor(value)}`}>
+                                      {getRatingLabel(value)}
+                                    </span>
+                                  )}
+                                </td>
+                                {[1, 2, 3, 4, 5].map((num) => {
+                                  const selected = value === num;
+                                  return (
+                                    <td key={num} className="px-0 py-0 text-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRatingChange(criterionKey, num)}
+                                        className={`w-full h-12 border-r border-slate-200 text-sm font-bold transition-all duration-200 ease-out cursor-pointer active:scale-95 ${
+                                          selected
+                                            ? `${getRatingColor(num)} shadow-inner scale-[1.02]`
+                                            : "bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-800 hover:-translate-y-[1px] hover:shadow-sm"
+                                        }`}
+                                        aria-pressed={selected}
+                                        aria-label={`${criterion.label}: ${num}`}
+                                      >
+                                        {num}
+                                      </button>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                              {value > 0 && (
+                                <tr className="border-b border-slate-100 last:border-b-0">
+                                  <td colSpan={6} className="px-4 py-3 bg-white">
+                                    <div className={`text-sm leading-relaxed p-3 rounded-lg border ${getFeedbackCardColor(value)}`}>
+                                      <span className="font-bold">{getRatingLabel(value)} ({value}/5):</span>{" "}
+                                      {(criterion.descriptions as Record<number, string>)[value]}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           );
                         })}
-                      </div>
-                      {value > 0 && (
-                        <div
-                          className={`mt-3 text-xs leading-relaxed p-3 rounded-lg border font-medium ${getRatingColor(
-                            value,
-                          )}`}
-                        >
-                          <span className="font-bold">{value}/5:</span>{" "}
-                          {(criterion.descriptions as Record<number, string>)[value]}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                </div>
 
                 {/* 5. Comments (Optional) */}
                 <div>
