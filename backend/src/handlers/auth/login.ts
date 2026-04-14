@@ -25,6 +25,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   const user_roles = (data as any)?.roles ?? [];
   const password_change_required = (data as any)?.password_change_required === true;
+  const account_type = ((data as any)?.account_type ?? "internal") as "internal" | "external";
 
   if (data.user) {
     await logActivity(supabase, {
@@ -53,6 +54,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         email: data.user?.email,
         roles: user_roles,
         password_change_required,
+        account_type,
       },
       access_token: data.session!.access_token,
       refresh_token: data.session!.refresh_token,

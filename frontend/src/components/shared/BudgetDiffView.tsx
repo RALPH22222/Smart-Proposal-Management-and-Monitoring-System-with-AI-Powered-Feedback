@@ -10,15 +10,16 @@ import type { BudgetItemDto, BudgetVersionDto } from '../../services/ProjectMoni
 // via the `proposedItems` fallback prop.
 //
 // Classification:
-//   - REMOVED: present in `from` (matched by `display_order` + `category` + `item_name`) but
-//              absent in `to`
-//   - ADDED:   present in `to` but absent in `from`
-//   - MODIFIED: present in both, but quantity / spec / unit / unit_price / total differs
+//   - REMOVED:   present in `from` (matched by category + item_name + spec) but absent in `to`
+//   - ADDED:     present in `to` but absent in `from`
+//   - MODIFIED:  present in both, but quantity / unit / unit_price / total differs
 //   - UNCHANGED: present in both with identical fields
 //
 // We intentionally do NOT match by the database `id` because pending realignments don't
-// have DB rows yet on the "to" side. Matching by display_order + category + item_name is
-// good enough for typical LIB documents (proponents don't reorder rows mid-edit).
+// have DB rows yet on the "to" side. Matching by (category, item_name, spec) is good
+// enough for typical LIB documents. Known edge case: duplicate items with the exact same
+// (category, item_name, spec) collapse in the map and show as a single row — acceptable
+// for LIBs, where duplicates are extremely rare.
 
 type DiffStatus = 'unchanged' | 'modified' | 'added' | 'removed';
 

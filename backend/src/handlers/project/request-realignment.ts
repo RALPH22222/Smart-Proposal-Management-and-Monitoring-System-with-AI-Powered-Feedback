@@ -5,12 +5,15 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { requestRealignmentSchema } from "../../schemas/realignment-schema";
 
-// POST /project/realignment/request — proponent submits a budget realignment proposal.
+// POST /project/realignment/request — project LEADER submits a budget realignment proposal.
 // Identity from JWT. The service layer enforces:
 //   - new grand total ≤ baseline ceiling
 //   - one pending realignment per project (concurrency)
-// COI is enforced by the existing assertNoCoiOnProject helper at the project-membership
-// level — the proponent can only request realignment for projects they're a member of.
+//   - per-line floors vs already-approved fund requests (Phase 4)
+//
+// Per teacher consultation: budget control belongs to the project lead only. Co-leads can
+// collaborate on the project (team, reports, etc.) but cannot modify the budget. We look up
+// proposals.proponent_id directly instead of accepting project_members rows.
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const auth = getAuthContext(event);
   if (!auth.userId) {
@@ -32,35 +35,25 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Verify the caller is on the project (project leader or accepted co-lead). We use the
-  // project_members table — if the user isn't on it we reject before touching budgets.
   const projectService = new ProjectService(supabase);
-  const { data: membership } = await supabase
-    .from("project_members")
-    .select("id, status, role")
-    .eq("funded_project_id", validation.data.funded_project_id)
-    .eq("user_id", auth.userId)
-    .in("status", ["accepted", "active"])
+
+  // Lead-only: the caller must be the proposal's proponent (= project leader). Co-leads
+  // in project_members are NOT allowed to touch the budget.
+  const { data: project } = await supabase
+    .from("funded_projects")
+    .select("proposal_id, proposals!inner(proponent_id)")
+    .eq("id", validation.data.funded_project_id)
     .maybeSingle();
 
-  // Also accept the project leader (proponent_id on funded_projects). Leader rows aren't
-  // always mirrored into project_members.
-  if (!membership) {
-    const { data: project } = await supabase
-      .from("funded_projects")
-      .select("proposal_id, proposals!inner(proponent_id)")
-      .eq("id", validation.data.funded_project_id)
-      .maybeSingle();
-
-    const leaderId = (project as any)?.proposals?.proponent_id;
-    if (leaderId !== auth.userId) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({
-          message: "Only the project leader or accepted co-leads can request a budget realignment.",
-        }),
-      };
-    }
+  const leaderId = (project as any)?.proposals?.proponent_id;
+  if (leaderId !== auth.userId) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message:
+          "Only the project lead can request a budget realignment. Co-leads can collaborate on the project but cannot modify the budget.",
+      }),
+    };
   }
 
   const { data, error } = await projectService.requestRealignment({

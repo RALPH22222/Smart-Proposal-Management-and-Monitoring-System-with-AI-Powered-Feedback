@@ -690,6 +690,24 @@ export class ProjectService {
 
       // Insert as pending member (will be activated on profile completion)
       const newUserId = inviteData.user.id;
+
+      // Tag the freshly-created user as external/internal based on invite email domain.
+      // Default column value is 'internal' so we only write for non-WMSU invitees. The
+      // public.users row was auto-created by Supabase's trigger when inviteUserByEmail ran.
+      const inviteEmail = input.email.trim().toLowerCase();
+      if (!inviteEmail.endsWith("@wmsu.edu.ph")) {
+        const { error: accountTypeError } = await this.db
+          .from("users")
+          .update({ account_type: "external" })
+          .eq("id", newUserId);
+        if (accountTypeError) {
+          console.error(
+            "Failed to set account_type=external on invited user (non-critical):",
+            accountTypeError,
+          );
+        }
+      }
+
       const { data: member, error: insertError } = await this.db
         .from("project_members")
         .insert({
@@ -1136,6 +1154,30 @@ export class ProjectService {
    * (total budget from estimated_budget minus already-approved fund requests).
    */
   async createFundRequest(input: CreateFundRequestInput) {
+    // Phase 4 of LIB feature: block fund-request creation while a realignment is pending
+    // R&D review. Otherwise the fund_request_items.budget_item_id would point to an item
+    // in the old budget version — once the realignment is approved, that budget line is
+    // no longer the active one, and the per-line floor validation on future realignments
+    // wouldn't see that committed spend. Revision_requested is NOT blocked since the
+    // realignment can't be approved without the proponent resubmitting first.
+    const { data: pendingRealignment } = await this.db
+      .from("budget_realignments")
+      .select("id")
+      .eq("funded_project_id", input.funded_project_id)
+      .eq("status", "pending_review")
+      .maybeSingle();
+
+    if (pendingRealignment) {
+      return {
+        data: null,
+        error: {
+          message:
+            "Cannot submit a fund request while a budget realignment is under R&D review. Wait for the realignment decision first.",
+          code: "REALIGNMENT_IN_PROGRESS",
+        },
+      };
+    }
+
     // Check for duplicate fund request for same project + quarter
     const { data: existing } = await this.db
       .from("fund_requests")
@@ -1779,25 +1821,109 @@ export class ProjectService {
       }
     }
 
-    // Friendly check before the unique index slams the door (the index is the source of
-    // truth — this is just for a better error message in the common race-free case).
+    // Friendly check before the unique index slams the door. Two branches:
+    //   - pending_review  → reject outright; R&D still has it in their queue
+    //   - revision_requested → update the existing row in place, flip back to pending_review.
+    //     This is how proponents respond to R&D's "please revise" feedback — same realignment
+    //     row (so the diff history stays simple), new items, new reason, cleared review trail.
     const { data: existingPending } = await this.db
       .from("budget_realignments")
-      .select("id, status")
+      .select("id, status, requested_by")
       .eq("funded_project_id", input.funded_project_id)
       .in("status", ["pending_review", "revision_requested"])
       .maybeSingle();
 
-    if (existingPending) {
+    if (existingPending?.status === "pending_review") {
       return {
         data: null,
         error: new Error(
-          "There is already a realignment in progress for this project. Wait for it to be reviewed first.",
+          "There is already a realignment pending review for this project. Wait for R&D to respond first.",
         ),
       };
     }
 
     const newGrandTotal = newGrandTotalCents / 100;
+
+    if (existingPending?.status === "revision_requested") {
+      // Lock down re-submission to the original requester so one co-lead can't hijack another's
+      // revision in flight. In practice the UI only surfaces the revise button on projects the
+      // user is a member of, but better to enforce it here too.
+      if (existingPending.requested_by && existingPending.requested_by !== requested_by) {
+        return {
+          data: null,
+          error: new Error(
+            "Only the proponent who submitted the original realignment can resubmit this revision.",
+          ),
+        };
+      }
+
+      const { data: updated, error: updateError } = await this.db
+        .from("budget_realignments")
+        .update({
+          status: "pending_review",
+          from_version_id: fromVersion.id,
+          reason: input.reason,
+          file_url: input.file_url ?? null,
+          proposed_payload: { items: input.items, grand_total: newGrandTotal },
+          reviewed_by: null,
+          reviewed_at: null,
+          review_note: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingPending.id)
+        .select()
+        .single();
+
+      if (updateError || !updated) {
+        return {
+          data: null,
+          error: updateError ?? new Error("Failed to resubmit the revised realignment"),
+        };
+      }
+
+      // Notify R&D again so they know it's back in their queue.
+      try {
+        const { data: rndUsers } = await this.db
+          .from("users")
+          .select("id")
+          .contains("roles", ["rnd"]);
+
+        const { data: projectInfo } = await this.db
+          .from("funded_projects")
+          .select("proposal_id, proposals!inner(project_title)")
+          .eq("id", input.funded_project_id)
+          .single();
+
+        const projectTitle = (projectInfo as any)?.proposals?.project_title ?? "a funded project";
+
+        if (rndUsers && rndUsers.length > 0) {
+          const notifications = rndUsers.map((u) => ({
+            user_id: u.id,
+            message: `A revised budget realignment has been resubmitted for "${projectTitle}".`,
+            is_read: false,
+            link: "funding",
+          }));
+          await this.db.from("notifications").insert(notifications);
+        }
+      } catch (notifErr) {
+        console.error("Realignment resubmit notification failed (non-blocking):", notifErr);
+      }
+
+      await logActivity(this.db, {
+        user_id: requested_by,
+        action: "budget_realignment_resubmitted",
+        category: "project",
+        target_id: String(updated.id),
+        target_type: "budget_realignment",
+        details: {
+          funded_project_id: input.funded_project_id,
+          from_version_id: fromVersion.id,
+          proposed_grand_total: newGrandTotal,
+        },
+      });
+
+      return { data: updated, error: null };
+    }
 
     const { data: inserted, error: insertError } = await this.db
       .from("budget_realignments")

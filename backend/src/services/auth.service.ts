@@ -8,6 +8,15 @@ type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
   photo_profile_url: string | null; // Photo is optional
 };
 
+// External-collaborator detection. WMSU employees and students register with @wmsu.edu.ph;
+// anyone else (industry partners, collaborators from other schools, etc.) gets the
+// 'external' flag and is gated to the monitoring-only UI. The authorizer auto-upgrades on
+// the next login if the user has since switched their email to a WMSU one.
+export function deriveAccountType(email: string | null | undefined): "internal" | "external" {
+  if (!email) return "external";
+  return email.trim().toLowerCase().endsWith("@wmsu.edu.ph") ? "internal" : "external";
+}
+
 export class AuthService {
   constructor(private db?: SupabaseClient) { }
 
@@ -18,7 +27,7 @@ export class AuthService {
     const userId = data.user.id;
 
     const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles, email_verified, is_disabled, password_change_required")
+      .select("roles, email_verified, is_disabled, password_change_required, account_type")
       .eq("id", userId)
       .maybeSingle();
 
@@ -48,7 +57,22 @@ export class AuthService {
     const roles = row?.roles ?? [];
     const password_change_required = row?.password_change_required === true;
 
-    return { data: { ...data, roles, password_change_required }, error: null };
+    // Self-heal account_type on login too (same rule as verifyToken): if the user's
+    // current email is a WMSU address but the DB still says external, upgrade them
+    // on the spot so the login response reflects their real permissions.
+    let account_type = (row?.account_type as "internal" | "external" | null) ?? "internal";
+    const currentEmail = (data.user.email ?? "").trim().toLowerCase();
+    if (account_type === "external" && currentEmail.endsWith("@wmsu.edu.ph")) {
+      const { error: upgradeError } = await this.db!
+        .from("users")
+        .update({ account_type: "internal", email: currentEmail })
+        .eq("id", userId);
+      if (!upgradeError) {
+        account_type = "internal";
+      }
+    }
+
+    return { data: { ...data, roles, password_change_required, account_type }, error: null };
   }
 
   async signup({ email, password, roles, first_name, last_name, middle_ini, platform }: SignUpInput) {
@@ -68,6 +92,20 @@ export class AuthService {
 
     if (error || !data.user) {
       return { data, error };
+    }
+
+    // Tag the new user's account_type based on email domain. Default column value is
+    // 'internal' so we only need to UPDATE when it's external — skipping the write for
+    // internal users avoids a second DB round trip.
+    const accountType = deriveAccountType(email);
+    if (accountType === "external") {
+      const { error: typeError } = await this.db!
+        .from("users")
+        .update({ account_type: "external" })
+        .eq("id", data.user.id);
+      if (typeError) {
+        console.error("Failed to set account_type on signup (non-critical):", typeError);
+      }
     }
 
     // TODO: Re-enable when email verification provider is configured
@@ -112,7 +150,7 @@ export class AuthService {
       return { data: null, error: { message: "Email already exists.", status: 409 } };
     }
 
-    // 3. Update the users row with profile data + mark profile as completed
+    // 3. Update the users row with profile data + account_type + mark profile as completed
     const { error: profileError } = await this.db!
       .from("users")
       .update({
@@ -121,6 +159,7 @@ export class AuthService {
         department_id,
         photo_profile_url: photoUrl,
         profile_completed: true,
+        account_type: deriveAccountType(email),
       })
       .eq("id", data.user.id);
 
@@ -255,7 +294,7 @@ export class AuthService {
       const userId = decoded.sub;
 
       const { data: row, error: rolesError } = await this.db!.from("users")
-        .select("roles,email,first_name,last_name,photo_profile_url,department_id,departments(id,name)")
+        .select("roles,email,first_name,last_name,photo_profile_url,department_id,account_type,departments(id,name)")
         .eq("id", userId)
         .maybeSingle();
 
@@ -264,15 +303,38 @@ export class AuthService {
       const roles = Array.isArray(row?.roles) ? row.roles : [];
       const dept = row?.departments as unknown as { id: number; name: string } | null;
 
+      // Self-healing upgrade: if the user's current email is a WMSU address but their
+      // account_type is still 'external' (e.g. they just swapped emails via Supabase's
+      // email change flow), promote them on the spot so the new session gets full access.
+      // We never downgrade — internal accounts with non-WMSU emails (legacy admins) stay
+      // internal. We also mirror the fresh email onto public.users.email so any code path
+      // that reads that column (display, notifications, etc.) sees the current address
+      // instead of the pre-change one.
+      const currentEmail = (decoded.email ?? row?.email ?? "") as string;
+      const normalizedEmail = currentEmail.trim().toLowerCase();
+      let accountType = (row?.account_type as "internal" | "external" | null) ?? "internal";
+      if (accountType === "external" && normalizedEmail.endsWith("@wmsu.edu.ph")) {
+        const { error: upgradeError } = await this.db!
+          .from("users")
+          .update({ account_type: "internal", email: normalizedEmail })
+          .eq("id", userId);
+        if (!upgradeError) {
+          accountType = "internal";
+        } else {
+          console.error("Failed to auto-upgrade account_type (non-critical):", upgradeError);
+        }
+      }
+
       return {
         data: {
           session: { exp: decoded.exp, iat: decoded.iat },
           user: {
             id: userId,
-            email: decoded.email ?? (row?.email as string),
+            email: currentEmail,
             first_name: (row?.first_name as string) ?? null,
             last_name: (row?.last_name as string) ?? null,
             roles,
+            account_type: accountType,
             profile_photo_url: (row?.photo_profile_url as string) ?? null,
             department_id: dept?.id ?? null,
             department_name: dept?.name ?? null,

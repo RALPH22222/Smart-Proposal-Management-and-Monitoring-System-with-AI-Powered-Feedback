@@ -241,10 +241,12 @@ export class ProposalService {
         throw new Error(`implementation_site insert failed: ${implementation_join.error.message}`);
     }
 
-    // BUDGET JOIN — Phase 4 of LIB feature.
-    // The new structured tables (proposal_budget_versions + proposal_budget_items) are now
-    // the sole source of truth. The legacy estimated_budget table is no longer written to —
-    // existing rows remain as audit history but new proposals don't append to it.
+    // BUDGET JOIN — Phase 1 of LIB feature (with Phase 4 legacy-write retained).
+    // Writes to the new structured tables (proposal_budget_versions + proposal_budget_items) AND
+    // mirrors to the legacy estimated_budget table. The mirror is kept because ~15 proposal read
+    // paths (R&D endorsement, evaluator views, admin proposals, proponent Profile, etc.) still
+    // SELECT estimated_budget. Migrating those reads is its own follow-up; until then, dropping
+    // the write here would make every new proposal show ₱0 on those screens.
     if (Array.isArray(budget) && budget.length > 0) {
       const categories = [Budget.PS, Budget.MOOE, Budget.CO] as const;
 
@@ -305,6 +307,26 @@ export class ProposalService {
         if (itemInsert.error) {
           throw new Error(`proposal_budget_items insert failed: ${itemInsert.error.message}`);
         }
+      }
+
+      // Legacy mirror so existing read paths keep returning the budget for new proposals
+      // until every consumer is migrated to read from proposal_budget_items instead.
+      const legacy_rows = budget.flatMap((entry) => {
+        const source = entry.source;
+        const toRows = (category: Budget) =>
+          (entry.budget[category] ?? []).map((line) => ({
+            proposal_id,
+            source,
+            budget: category,
+            item: line.itemName,
+            amount: line.totalAmount,
+          }));
+        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
+      });
+
+      if (legacy_rows.length > 0) {
+        const legacy_join = await this.db.from("estimated_budget").insert(legacy_rows);
+        if (legacy_join.error) throw new Error(`estimated_budget insert failed: ${legacy_join.error.message}`);
       }
     }
 
@@ -1076,8 +1098,6 @@ export class ProposalService {
   }
 
   async rejectProposalToProponent(input: rejectProposalToProponentInput, rnd_id: string) {
-    console.log("Rejecting proposal:", input.proposal_id, "by RND:", rnd_id);
-
     // Explicitly construct payload to avoid schema mismatches
     const insertPayload = {
       proposal_id: input.proposal_id,
@@ -2018,6 +2038,18 @@ export class ProposalService {
         return { error: updateError };
       }
 
+      // Phase 4 of LIB feature: look up the proposal's latest budget version and set it as
+      // the funded project's active version at creation time. This eliminates the lazy
+      // backfill in getActiveBudgetVersion (which writes on every read when NULL) and makes
+      // the pointer correct from the moment the project becomes funded.
+      const { data: latestBudgetVersion } = await this.db
+        .from("proposal_budget_versions")
+        .select("id")
+        .eq("proposal_id", proposal_id)
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       // Create funded_projects record
       const { data: fundedProject, error: insertError } = await this.db
         .from("funded_projects")
@@ -2027,6 +2059,7 @@ export class ProposalService {
           status: ProjectsStatus.ON_GOING,
           funded_date: new Date().toISOString().split("T")[0],
           funding_document_url: file_url || null,
+          current_budget_version_id: latestBudgetVersion?.id ?? null,
         })
         .select()
         .single();
@@ -2216,9 +2249,19 @@ export class ProposalService {
     // 6b. Replace budget if provided. Revision happens before funding approval, so there's only
     // ever a v1 to replace — destructive replace is fine here. Realignment-style versioning
     // (Phase 3) only kicks in after the project is funded.
-    // Phase 4 of LIB feature: legacy estimated_budget writes removed; new tables only.
+    // Writes to both the new tables AND the legacy estimated_budget mirror — dropping the
+    // mirror would make resubmitted proposals show ₱0 on every downstream read path.
     if (Array.isArray(budget) && budget.length > 0) {
-      // Wipe the existing version. CASCADE on proposal_budget_versions takes the items with it.
+      // Wipe both sides so the replace is consistent. CASCADE on proposal_budget_versions
+      // takes the items with it.
+      const { error: deleteLegacyError } = await this.db
+        .from("estimated_budget")
+        .delete()
+        .eq("proposal_id", proposal_id);
+      if (deleteLegacyError) {
+        return { error: deleteLegacyError };
+      }
+
       const { error: deleteVersionsError } = await this.db
         .from("proposal_budget_versions")
         .delete()
@@ -2283,6 +2326,27 @@ export class ProposalService {
         const itemInsert = await this.db.from("proposal_budget_items").insert(item_rows);
         if (itemInsert.error) {
           return { error: itemInsert.error };
+        }
+      }
+
+      // Legacy mirror — see the matching comment in create() for why this stays.
+      const legacy_rows = budget.flatMap((entry) => {
+        const source = entry.source;
+        const toRows = (category: Budget) =>
+          (entry.budget[category] ?? []).map((line) => ({
+            proposal_id,
+            source,
+            budget: category,
+            item: line.itemName,
+            amount: line.totalAmount,
+          }));
+        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
+      });
+
+      if (legacy_rows.length > 0) {
+        const { error: budgetError } = await this.db.from("estimated_budget").insert(legacy_rows);
+        if (budgetError) {
+          return { error: budgetError };
         }
       }
     }

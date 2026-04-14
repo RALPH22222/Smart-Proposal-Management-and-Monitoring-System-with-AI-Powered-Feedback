@@ -291,6 +291,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 // Subcategory dropdown is admin-managed; choosing "Other" reveals a free-text label field.
 
 const OTHER_SUBCATEGORY_CODE = 'other';
+// Hide the browser's default number-input spinner — applied to price/amount inputs only
+// because the teacher only wants the up/down arrow on counting fields (quantity), not on
+// price fields where a nudge of 1 would silently overwrite a carefully-typed decimal.
+const NO_SPINNER_CLASS =
+  '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 const newRow = (): ExpenseItem => ({
   uid: `row_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
   subcategoryId: null,
@@ -298,7 +303,7 @@ const newRow = (): ExpenseItem => ({
   itemName: '',
   spec: '',
   quantity: 1,
-  unit: '',
+  unit: 'pcs',
   unitPrice: 0,
   totalAmount: 0,
 });
@@ -517,16 +522,17 @@ export const BudgetBreakdownModal: React.FC<{
                         />
                       </div>
 
-                      {/* Unit price */}
+                      {/* Unit price — spinner hidden; prices should be typed, not nudged */}
                       <div className="md:col-span-1">
                         <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Unit ₱ *</label>
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          inputMode="decimal"
                           value={row.unitPrice || ''}
                           onChange={(e) => handleRowChange(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right focus:ring-2 focus:ring-[#C8102E] outline-none"
+                          className={`w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right focus:ring-2 focus:ring-[#C8102E] outline-none ${NO_SPINNER_CLASS}`}
                         />
                       </div>
 

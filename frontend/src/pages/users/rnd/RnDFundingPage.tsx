@@ -22,6 +22,7 @@ import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 import DocumentViewerModal from '../../../components/shared/DocumentViewerModal';
 import RealignmentReviewModal from '../../../components/shared/RealignmentReviewModal';
+import ProjectBudgetViewerModal from '../../../components/shared/ProjectBudgetViewerModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 import { transformProposalForModal } from '../../../utils/proposal-transform';
@@ -47,6 +48,12 @@ const FundingPage: React.FC = () => {
   const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
   const [realignmentsLoading, setRealignmentsLoading] = useState(false);
   const [activeRealignmentId, setActiveRealignmentId] = useState<number | null>(null);
+
+  // Phase 4 follow-up: budget money tracker modal (for Funded projects)
+  const [budgetViewerProject, setBudgetViewerProject] = useState<{
+    fundedProjectId: number;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     loadFundingProposals();
@@ -434,18 +441,37 @@ const FundingPage: React.FC = () => {
                             <Gavel className="w-3.5 h-3.5" />
                             Action
                           </button>
-                        ) : proposal.status === 'Funded' && (proposal as any).fundingDocumentUrl ? (
-                          <button
-                            onClick={() => {
-                              setActiveProposal(proposal);
-                              setActiveProposalRaw((proposal as any)._raw);
-                              setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View File
-                          </button>
+                        ) : proposal.status === 'Funded' ? (
+                          <div className="flex items-center gap-2">
+                            {(proposal as any).fundedProjectId && (
+                              <button
+                                onClick={() => {
+                                  setBudgetViewerProject({
+                                    fundedProjectId: (proposal as any).fundedProjectId,
+                                    title: proposal.title,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                                title="View line-item budget and utilization"
+                              >
+                                <Banknote className="w-3.5 h-3.5" />
+                                Budget Tracker
+                              </button>
+                            )}
+                            {(proposal as any).fundingDocumentUrl && (
+                              <button
+                                onClick={() => {
+                                  setActiveProposal(proposal);
+                                  setActiveProposalRaw((proposal as any)._raw);
+                                  setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                View File
+                              </button>
+                            )}
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -514,6 +540,14 @@ const FundingPage: React.FC = () => {
             loadRealignments();
             loadFundingProposals();
           }}
+        />
+      )}
+
+      {budgetViewerProject && (
+        <ProjectBudgetViewerModal
+          fundedProjectId={budgetViewerProject.fundedProjectId}
+          projectTitle={budgetViewerProject.title}
+          onClose={() => setBudgetViewerProject(null)}
         />
       )}
     </>

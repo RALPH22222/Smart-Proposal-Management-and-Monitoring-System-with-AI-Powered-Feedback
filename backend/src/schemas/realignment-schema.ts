@@ -41,7 +41,11 @@ export const requestRealignmentSchema = z.object({
     .string()
     .min(10, "Please describe why the realignment is needed (at least 10 characters)")
     .max(2000, "Reason is too long"),
-  file_url: z.string().url("A revised LIB document is required").nullable().optional(),
+  // Required: R&D and higher-ups need the supporting document to verify the proposed
+  // changes against the revised LIB. In revise-mode resubmissions the frontend passes
+  // the previously-uploaded file_url through (so the proponent isn't forced to re-upload
+  // an unchanged file).
+  file_url: z.string().url("A revised LIB document is required"),
   items: z
     .array(realignmentLineSchema)
     .min(1, "At least one budget line item is required")

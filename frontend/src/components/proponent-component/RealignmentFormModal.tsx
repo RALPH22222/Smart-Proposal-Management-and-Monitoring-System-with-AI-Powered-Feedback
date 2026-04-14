@@ -19,6 +19,7 @@ import {
   ArrowRight,
   FileUp,
   Save,
+  MessageSquareWarning,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -27,11 +28,15 @@ import {
   uploadReportFile,
   type BudgetItemDto,
   type RealignmentLineInput,
+  type RealignmentRecord,
 } from '../../services/ProjectMonitoringApi';
 
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPHP = (n: number) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(n || 0);
+// See budgetSection.tsx for rationale — hide browser spinner on price fields only.
+const NO_SPINNER_CLASS =
+  '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
 
 const CATEGORY_LABEL: Record<'ps' | 'mooe' | 'co', string> = {
   ps: 'Personnel Services',
@@ -72,31 +77,58 @@ function dtoToEditable(item: BudgetItemDto): EditableRow {
   };
 }
 
+// Proposed-payload items (from a revision_requested realignment) come in camelCase from the
+// Zod schema. Normalize them back to the editable-row shape so we can seed the form state.
+function proposedToEditable(raw: any): EditableRow {
+  return {
+    uid: `revise_${Math.random().toString(36).slice(2)}_${Date.now()}`,
+    source: raw.source ?? '',
+    category: (raw.category ?? 'mooe') as 'ps' | 'mooe' | 'co',
+    subcategoryId: raw.subcategoryId ?? null,
+    customSubcategoryLabel: raw.customSubcategoryLabel ?? null,
+    itemName: raw.itemName ?? '',
+    spec: raw.spec ?? '',
+    quantity: Number(raw.quantity) || 0,
+    unit: raw.unit ?? '',
+    unitPrice: Number(raw.unitPrice) || 0,
+    totalAmount: Number(raw.totalAmount) || 0,
+  };
+}
+
 interface RealignmentFormModalProps {
   fundedProjectId: number;
+  // When set, the modal opens in revise mode: seeded from the existing realignment's
+  // proposed_payload instead of the current active budget, with the review_note surfaced
+  // at the top so the proponent can see what R&D asked for. Submission updates the
+  // existing row in place (backend routes the UPDATE vs INSERT internally).
+  existingRealignment?: RealignmentRecord | null;
   onClose: () => void;
   onSubmitted?: () => void;
 }
 
 export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   fundedProjectId,
+  existingRealignment,
   onClose,
   onSubmitted,
 }) => {
+  const isReviseMode = !!existingRealignment && existingRealignment.status === 'revision_requested';
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [baselineTotal, setBaselineTotal] = useState(0);
   const [versionNumber, setVersionNumber] = useState<number | null>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
 
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState(isReviseMode ? (existingRealignment?.reason ?? '') : '');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Load the active budget version on mount
+  // Always fetch the active version for the ceiling check. In revise mode we additionally
+  // seed the editable rows from the *existing realignment's* proposed_payload so the
+  // proponent continues editing their previous attempt instead of starting over.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -107,6 +139,20 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         if (cancelled) return;
         setBaselineTotal(Number(res.version.grand_total) || 0);
         setVersionNumber(res.version.version_number);
+
+        if (isReviseMode && existingRealignment?.proposed_payload?.items?.length) {
+          const proposed = existingRealignment.proposed_payload.items
+            .map(proposedToEditable)
+            .sort((a, b) => {
+              if (a.category !== b.category) {
+                return ['ps', 'mooe', 'co'].indexOf(a.category) - ['ps', 'mooe', 'co'].indexOf(b.category);
+              }
+              return 0;
+            });
+          setRows(proposed);
+          return;
+        }
+
         const items = (res.version.items ?? []).slice().sort((a, b) => {
           if (a.category !== b.category) {
             return ['ps', 'mooe', 'co'].indexOf(a.category) - ['ps', 'mooe', 'co'].indexOf(b.category);
@@ -130,7 +176,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [fundedProjectId]);
+  }, [fundedProjectId, isReviseMode, existingRealignment]);
 
   const newTotal = useMemo(() => rows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0), [rows]);
   const delta = newTotal - baselineTotal;
@@ -166,7 +212,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         itemName: '',
         spec: '',
         quantity: 1,
-        unit: '',
+        unit: 'pcs',
         unitPrice: 0,
         totalAmount: 0,
         isNew: true,
@@ -221,13 +267,31 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
       }
     }
 
+    // File is required end-to-end. In revise mode we accept the previously-uploaded
+    // file_url as-is if the proponent didn't pick a new one (so they don't have to
+    // re-upload an unchanged document); otherwise they must upload now.
+    const existingFileUrl = existingRealignment?.file_url ?? null;
+    if (!file && !existingFileUrl) {
+      setSubmitError(
+        "A revised LIB document is required so R&D can verify the proposed changes. Please attach the file.",
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
-      let uploadedUrl: string | null = null;
+      let fileUrlForSubmit: string | null = existingFileUrl;
       if (file) {
         setUploading(true);
-        uploadedUrl = await uploadReportFile(file);
+        fileUrlForSubmit = await uploadReportFile(file);
         setUploading(false);
+      }
+
+      if (!fileUrlForSubmit) {
+        // Safety net — the file check above should have caught this.
+        setSubmitError("A revised LIB document is required.");
+        setSubmitting(false);
+        return;
       }
 
       const items: RealignmentLineInput[] = rows.map((row, idx) => ({
@@ -248,7 +312,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
       await requestBudgetRealignment({
         fundedProjectId,
         reason: reason.trim(),
-        fileUrl: uploadedUrl,
+        fileUrl: fileUrlForSubmit,
         items,
       });
 
@@ -275,9 +339,13 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl flex flex-col max-h-[94vh]">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white">
           <div>
-            <h3 className="font-bold text-lg">Request Budget Realignment</h3>
+            <h3 className="font-bold text-lg">
+              {isReviseMode ? 'Revise Budget Realignment' : 'Request Budget Realignment'}
+            </h3>
             <p className="text-xs text-white/80">
-              Move money between line items without exceeding the original ceiling.
+              {isReviseMode
+                ? 'Update your previous submission based on the R&D feedback below.'
+                : 'Move money between line items without exceeding the original ceiling.'}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -286,6 +354,15 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {isReviseMode && existingRealignment?.review_note && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm flex items-start gap-2">
+              <MessageSquareWarning className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
+              <div className="flex-1">
+                <p className="font-bold text-blue-800 mb-1">R&D requested a revision</p>
+                <p className="text-blue-700 whitespace-pre-wrap">{existingRealignment.review_note}</p>
+              </div>
+            </div>
+          )}
           {loading && (
             <div className="flex items-center justify-center py-10 text-gray-500">
               <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading current budget...
@@ -373,10 +450,11 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                                 type="number"
                                 min="0"
                                 step="0.01"
+                                inputMode="decimal"
                                 placeholder="Unit ₱"
                                 value={row.unitPrice || ''}
                                 onChange={(e) => updateRow(row.uid, { unitPrice: parseFloat(e.target.value) || 0 })}
-                                className="col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className={`col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-[#C8102E] outline-none ${NO_SPINNER_CLASS}`}
                               />
                               <div className="col-span-1 px-2 py-1.5 border border-gray-200 bg-gray-50 rounded text-xs font-mono text-right truncate" title={formatPHP(row.totalAmount)}>
                                 {formatPHP(row.totalAmount)}
@@ -418,24 +496,49 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                 <p className="text-[11px] text-gray-400 mt-1">{reason.length}/2000 characters</p>
               </div>
 
-              {/* File upload */}
+              {/* File upload — required so R&D and higher-ups can verify the proposed
+                  changes against the revised LIB. In revise mode, the previously-uploaded
+                  file is kept unless the proponent explicitly replaces it. */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">
-                  Revised LIB document (optional but recommended)
+                  Revised LIB document <span className="text-red-500">*</span>
                 </label>
-                <div className="border border-dashed border-gray-300 rounded-lg p-3 flex items-center gap-3">
+                <div
+                  className={`border border-dashed rounded-lg p-3 flex items-center gap-3 ${
+                    !file && !existingRealignment?.file_url ? 'border-red-300 bg-red-50/30' : 'border-gray-300'
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50 flex items-center gap-1"
+                    className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50 flex items-center gap-1 shrink-0"
                   >
-                    <FileUp className="w-3 h-3" /> Choose file
+                    <FileUp className="w-3 h-3" />
+                    {existingRealignment?.file_url && !file ? 'Replace file' : 'Choose file'}
                   </button>
-                  <span className="text-xs text-gray-500 truncate">
-                    {file ? file.name : 'No file selected. PDF / Word / image, max 5 MB.'}
+                  <span className="text-xs text-gray-600 truncate flex-1">
+                    {file ? (
+                      <>
+                        <strong>{file.name}</strong>
+                        <span className="text-gray-400 ml-1">(new upload)</span>
+                      </>
+                    ) : existingRealignment?.file_url ? (
+                      <>
+                        <span className="text-emerald-600">Previously uploaded file kept.</span>{' '}
+                        <span className="text-gray-400">Click "Replace file" to upload a new one.</span>
+                      </>
+                    ) : (
+                      <span className="text-red-600">
+                        Required. PDF / Word / image, max 5 MB.
+                      </span>
+                    )}
                   </span>
                   {file && (
-                    <button onClick={() => setFile(null)} className="ml-auto text-gray-300 hover:text-red-500">
+                    <button
+                      onClick={() => setFile(null)}
+                      className="text-gray-300 hover:text-red-500 shrink-0"
+                      aria-label="Clear selected file"
+                    >
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -495,7 +598,13 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || uploading || overCeiling || rows.length === 0}
+                  disabled={
+                    submitting ||
+                    uploading ||
+                    overCeiling ||
+                    rows.length === 0 ||
+                    (!file && !existingRealignment?.file_url)
+                  }
                   className="px-5 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {submitting || uploading ? (

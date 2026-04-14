@@ -154,12 +154,15 @@ export default function Login() {
       }
 
       const passwordChangeRequired = res.data.user.password_change_required === true;
+      const accountType =
+        (res.data.user as { account_type?: "internal" | "external" }).account_type ?? "internal";
 
       const hydratedUser = {
         id: res.data.user.id,
         email: res.data.user.email,
         roles: userRoles,
         password_change_required: passwordChangeRequired,
+        account_type: accountType,
       };
 
       setUser(hydratedUser);

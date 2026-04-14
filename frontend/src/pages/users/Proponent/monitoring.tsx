@@ -14,7 +14,8 @@ import {
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../../utils/signed-url';
 import TeamMembersSection from '../../../components/proponent-component/TeamMembersSection';
-import { useAuthContext } from '../../../context/AuthContext';
+import { useAuthContext, isExternalAccount } from '../../../context/AuthContext';
+import { supabase as supabaseClient } from '../../../config/supabaseClient';
 import {
   fetchFundedProjects,
   fetchProjectDetail,
@@ -153,6 +154,15 @@ const MonitoringPage: React.FC = () => {
 
   // Phase 4 of LIB feature: active budget items for the fund-request dropdown
   const [budgetItemsForProject, setBudgetItemsForProject] = useState<BudgetItemDto[]>([]);
+
+  // External-collaborator email binding: when an external co-lead wants to upgrade to a
+  // full internal account, they enter their new @wmsu.edu.ph email here. Supabase sends a
+  // verification link; after they click it and log back in, the authorizer auto-upgrades
+  // their account_type.
+  const isExternalUser = isExternalAccount(user);
+  const [showLinkEmailModal, setShowLinkEmailModal] = useState(false);
+  const [linkEmailInput, setLinkEmailInput] = useState('');
+  const [linkEmailSubmitting, setLinkEmailSubmitting] = useState(false);
 
   // --- Load Projects ---
   useEffect(() => {
@@ -422,6 +432,85 @@ const MonitoringPage: React.FC = () => {
   useEffect(() => {
     loadBudgetItems();
   }, [loadBudgetItems]);
+
+  // External-collaborator → WMSU email binding. Calls Supabase's built-in email change
+  // endpoint (sends a verification link to the new address). Once confirmed and the user
+  // logs back in, the backend authorizer auto-upgrades account_type from external → internal.
+  const handleLinkWmsuEmail = async () => {
+    const raw = linkEmailInput.trim().toLowerCase();
+    if (!raw) {
+      Swal.fire({ icon: 'warning', title: 'Email required', text: 'Enter your WMSU email address.' });
+      return;
+    }
+    if (!raw.endsWith('@wmsu.edu.ph')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'WMSU email required',
+        text: 'The new email must end with @wmsu.edu.ph. That domain is how the system recognizes WMSU employees and students.',
+      });
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      icon: 'question',
+      title: 'Link this email?',
+      html: `<p>We'll send a verification link to <strong>${raw}</strong>. After you click it, log back in with the new email to unlock the full proponent UI.</p>`,
+      showCancelButton: true,
+      confirmButtonText: 'Send verification link',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#C8102E',
+      reverseButtons: true,
+    });
+    if (!confirm.isConfirmed) return;
+
+    setLinkEmailSubmitting(true);
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ email: raw });
+      if (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Could not link email',
+          text:
+            error.message ||
+            'Supabase rejected the email change. If this email already has an SPMAMS account, contact admin for help.',
+        });
+        return;
+      }
+      setShowLinkEmailModal(false);
+      setLinkEmailInput('');
+      Swal.fire({
+        icon: 'success',
+        title: 'Check your WMSU inbox',
+        html:
+          '<p>We sent a verification link to your new email.</p>' +
+          '<p style="margin-top:8px;">Click the link, then log back in with your WMSU email to unlock full proponent access.</p>',
+        confirmButtonColor: '#C8102E',
+      });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Unexpected error', text: err?.message || 'Try again later.' });
+    } finally {
+      setLinkEmailSubmitting(false);
+    }
+  };
+
+  // Phase 4 of LIB feature: refetch realignment + budget items when the tab regains focus so
+  // a proponent who had the page open while R&D approved/revised their request sees the fresh
+  // state without needing a hard refresh. Keeps the fund-request dropdown in sync with any
+  // version flip that happened in the background.
+  useEffect(() => {
+    if (!activeBackend) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadActiveRealignment();
+      loadBudgetItems();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [activeBackend, loadActiveRealignment, loadBudgetItems]);
 
   // --- Helpers ---
   const formatCurrency = (amount: number) =>
@@ -941,17 +1030,38 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {isExternalUser && (
+                        <button
+                          onClick={() => setShowLinkEmailModal(true)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-bold"
+                          title="Link your @wmsu.edu.ph email to unlock full proponent access"
+                        >
+                          <Mail className="w-4 h-4" /> Link WMSU Email
+                        </button>
+                      )}
+                      {/* Phase 3 of LIB feature: the button doubles as "Revise realignment"
+                          when R&D has sent one back — the modal seeds from the existing row
+                          and the backend UPDATEs it in place. pending_review is still locked. */}
                       <button
                         onClick={() => setShowRealignmentModal(true)}
-                        disabled={!!activeRealignment}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={activeRealignment?.status === 'pending_review'}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
+                          activeRealignment?.status === 'revision_requested'
+                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }`}
                         title={
-                          activeRealignment
-                            ? `A realignment request is already ${activeRealignment.status.replace('_', ' ')}`
-                            : 'Request a budget realignment for this project'
+                          activeRealignment?.status === 'pending_review'
+                            ? 'A realignment request is already pending R&D review'
+                            : activeRealignment?.status === 'revision_requested'
+                              ? "R&D asked for changes — click to revise and resubmit"
+                              : 'Request a budget realignment for this project'
                         }
                       >
-                        <Banknote className="w-4 h-4" /> Realign Budget
+                        <Banknote className="w-4 h-4" />
+                        {activeRealignment?.status === 'revision_requested'
+                          ? 'Revise Realignment'
+                          : 'Realign Budget'}
                       </button>
                       <button
                         onClick={() => setIsExtensionModalOpen(true)}
@@ -964,15 +1074,32 @@ const MonitoringPage: React.FC = () => {
                   </div>
 
                   {activeRealignment && (
-                    <div className="mb-4 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg p-3 text-xs flex items-start gap-2">
+                    <div
+                      className={`mb-4 border rounded-lg p-3 text-xs flex items-start gap-2 ${
+                        activeRealignment.status === 'pending_review'
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                          : 'bg-blue-50 border-blue-200 text-blue-800'
+                      }`}
+                    >
                       <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold">
-                          Budget realignment {activeRealignment.status === 'pending_review' ? 'under R&D review' : 'awaiting your revisions'}
+                          Budget realignment{' '}
+                          {activeRealignment.status === 'pending_review'
+                            ? 'under R&D review'
+                            : 'needs your revision'}
                         </div>
                         <div className="opacity-80 mt-0.5">
-                          Submitted {formatDate(activeRealignment.created_at)}. R&D will review the proposed changes on the Project Funding page.
+                          Submitted {formatDate(activeRealignment.created_at)}.{' '}
+                          {activeRealignment.status === 'pending_review'
+                            ? 'R&D will review the proposed changes on the Project Funding page.'
+                            : 'Click "Revise Realignment" above to update your submission based on their feedback.'}
                         </div>
+                        {activeRealignment.status === 'revision_requested' && activeRealignment.review_note && (
+                          <div className="mt-2 pt-2 border-t border-blue-200/60">
+                            <span className="font-bold">R&D note:</span> {activeRealignment.review_note}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1255,9 +1382,10 @@ const MonitoringPage: React.FC = () => {
                                     </span>
                                     <input
                                       type="number"
+                                      inputMode="decimal"
                                       value={item.amount || ''}
                                       onChange={(e) => updateBreakdownItem(item.id, 'amount', parseFloat(e.target.value) || 0)}
-                                      className="flex-1 sm:w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right"
+                                      className="flex-1 sm:w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="Amount"
                                     />
                                     <button onClick={() => removeBreakdownItem(item.id)} className="text-gray-400 hover:text-red-500 p-2">
@@ -1649,15 +1777,90 @@ const MonitoringPage: React.FC = () => {
         </div>
       )}
 
-      {/* Phase 3 of LIB feature: budget realignment modal */}
+      {/* Phase 3 of LIB feature: budget realignment modal. Pass existingRealignment when
+          R&D has sent it back for revision so the modal seeds from the previous attempt. */}
       {showRealignmentModal && activeBackend && (
         <RealignmentFormModal
           fundedProjectId={activeBackend.id}
+          existingRealignment={
+            activeRealignment?.status === 'revision_requested' ? activeRealignment : null
+          }
           onClose={() => setShowRealignmentModal(false)}
           onSubmitted={() => {
             loadActiveRealignment();
+            loadBudgetItems();
           }}
         />
+      )}
+
+      {/* External → internal upgrade: enter new WMSU email, Supabase sends verification
+          link, authorizer auto-upgrades account_type on next login */}
+      {showLinkEmailModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-t-2xl">
+              <div>
+                <h3 className="font-bold text-lg">Link your WMSU email</h3>
+                <p className="text-xs text-white/80">Unlock full proponent access after verification.</p>
+              </div>
+              <button
+                onClick={() => setShowLinkEmailModal(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3 text-sm text-gray-700">
+              <p>
+                If you're now employed at or studying at WMSU and have an{' '}
+                <strong>@wmsu.edu.ph</strong> email, enter it below. We'll send a
+                verification link to that address. Once you click it and log back in,
+                you'll see the full proponent UI instead of just the monitoring page.
+              </p>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">
+                  WMSU Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={linkEmailInput}
+                  onChange={(e) => setLinkEmailInput(e.target.value)}
+                  placeholder="yourname@wmsu.edu.ph"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  disabled={linkEmailSubmitting}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Note: if that email already has an SPMAMS account, the link will fail
+                and you'll need to contact admin for an account merge.
+              </p>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2 rounded-b-2xl">
+              <button
+                onClick={() => setShowLinkEmailModal(false)}
+                disabled={linkEmailSubmitting}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLinkWmsuEmail}
+                disabled={linkEmailSubmitting || !linkEmailInput.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              >
+                {linkEmailSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" /> Send verification link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

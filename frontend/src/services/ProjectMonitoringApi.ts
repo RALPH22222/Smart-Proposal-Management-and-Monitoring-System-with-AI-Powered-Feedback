@@ -789,7 +789,9 @@ export async function fetchActiveBudgetVersion(
 export async function requestBudgetRealignment(args: {
   fundedProjectId: number;
   reason: string;
-  fileUrl: string | null;
+  // Required: the server rejects submissions without a supporting document. In revise-mode
+  // the caller can pass the previously-uploaded URL to avoid forcing a re-upload.
+  fileUrl: string;
   items: RealignmentLineInput[];
 }): Promise<{ message: string; data: RealignmentRecord }> {
   const { data } = await api.post(

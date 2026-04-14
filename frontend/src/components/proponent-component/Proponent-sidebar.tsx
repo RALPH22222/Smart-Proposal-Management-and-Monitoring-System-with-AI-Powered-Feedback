@@ -1,6 +1,6 @@
 import React from "react";
 import { useLogos } from "../../context/LogoContext";
-import { useAuthContext } from "../../context/AuthContext";
+import { useAuthContext, isExternalAccount } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
 import {
   User,
@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  FlaskConical
+  FlaskConical,
+  UserCheck,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -28,16 +29,25 @@ const ProponentNavbar: React.FC<NavbarProps> = ({
 }) => {
   const { logos } = useLogos();
   const { logout, user } = useAuthContext();
+  const isExternal = isExternalAccount(user);
 
   const handleLogout = () => {
     logout();
   };
 
-  const navItems = [
-    { id: "profile", name: "Profile", icon: User },
-    { id: "submission", name: "Submission", icon: FileText },
-    { id: "monitoring", name: "Monitoring", icon: BarChart3 },
-  ];
+  // External collaborators (invited co-leads with non-WMSU email) don't get the
+  // Submission nav item — they can only monitor projects they've been invited to.
+  // WMSU-email users see the full proponent navigation.
+  const navItems = isExternal
+    ? [
+        { id: "monitoring", name: "My Projects", icon: BarChart3 },
+        { id: "profile", name: "Profile", icon: User },
+      ]
+    : [
+        { id: "profile", name: "Profile", icon: User },
+        { id: "submission", name: "Submission", icon: FileText },
+        { id: "monitoring", name: "Monitoring", icon: BarChart3 },
+      ];
 
   const bottomLinks = [
     { id: "settings", name: "Settings", icon: Settings },
@@ -100,10 +110,20 @@ const ProponentNavbar: React.FC<NavbarProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-gray-900 truncate transition-colors duration-300 group-hover:text-[#C8102E]">{getFullName()}</p>
-                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-red-100 text-[#C8102E] border border-red-200 shadow-sm transition-all duration-300 group-hover:bg-[#C8102E] group-hover:text-white group-hover:border-[#C8102E]">
-                  <FlaskConical className="w-2.5 h-2.5" />
-                  Proponent
-                </span>
+                {isExternal ? (
+                  <span
+                    className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm"
+                    title="You were invited as a co-lead with a non-WMSU email. Link a @wmsu.edu.ph email to unlock full access."
+                  >
+                    <UserCheck className="w-2.5 h-2.5" />
+                    External Co-Lead
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide bg-red-100 text-[#C8102E] border border-red-200 shadow-sm transition-all duration-300 group-hover:bg-[#C8102E] group-hover:text-white group-hover:border-[#C8102E]">
+                    <FlaskConical className="w-2.5 h-2.5" />
+                    Proponent
+                  </span>
+                )}
               </div>
             </div>
           </div>

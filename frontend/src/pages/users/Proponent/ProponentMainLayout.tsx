@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProponentNavbar from "../../../components/proponent-component/Proponent-sidebar";
 import ProponentFloatingNotification from "../../../components/proponent-component/ProponentFloatingNotification";
 import { LookupProvider } from "../../../context/LookupContext";
+import { useAuthContext } from "../../../context/AuthContext";
+import { isExternalAccount } from "../../../context/AuthContext";
 
 // Import Page Components
 import Submission from "./submission";
@@ -13,17 +15,35 @@ import Monitoring from "./monitoring";
 const ProponentMainLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuthContext();
+  const isExternal = isExternalAccount(user);
 
-  const currentTab = searchParams.get("tab") || "profile";
+  // External collaborators land on monitoring by default and cannot access the
+  // submission tab. If they navigate there directly via URL, we rewrite the query
+  // param so they land on monitoring instead.
+  const rawTab = searchParams.get("tab") || (isExternal ? "monitoring" : "profile");
+  const currentTab = isExternal && rawTab === "submission" ? "monitoring" : rawTab;
+
+  useEffect(() => {
+    if (isExternal && searchParams.get("tab") === "submission") {
+      setSearchParams({ tab: "monitoring" });
+    }
+  }, [isExternal, searchParams, setSearchParams]);
 
   const handlePageChange = (page: string) => {
+    // Defensive: don't let the sidebar route external users into submission even if the
+    // button is somehow rendered. Sidebar also hides it — this is belt-and-suspenders.
+    if (isExternal && page === "submission") {
+      setSearchParams({ tab: "monitoring" });
+      return;
+    }
     setSearchParams({ tab: page });
   };
 
   const renderContent = () => {
     switch (currentTab) {
       case "submission":
-        return <Submission />;
+        return isExternal ? <Monitoring /> : <Submission />;
       case "profile":
         return <Profile />;
       case "settings":
@@ -31,7 +51,7 @@ const ProponentMainLayout: React.FC = () => {
       case "monitoring":
         return <Monitoring />;
       default:
-        return <Profile />;
+        return isExternal ? <Monitoring /> : <Profile />;
     }
   };
 
