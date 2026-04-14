@@ -10,6 +10,7 @@ export interface Project {
   evaluators: number;
   proponent: string;
   rawStatus?: string;
+  versionNumber?: number;
 }
 
 export interface Notification {

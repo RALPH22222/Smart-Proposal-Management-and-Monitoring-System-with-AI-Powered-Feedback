@@ -2150,7 +2150,7 @@ export class ProposalService {
     // deleting any history. v1 rows stay in the DB for audit / Completed Reviews.
     const isRndRevision = proposal.status === Status.REVISION_RND;
     const targetStatus = isRndRevision
-      ? Status.REVISED_PROPOSAL          // Back to RND review (fresh quality check)
+      ? Status.REVIEW_RND                // Back to R&D queue; R&D re-reviews then forwards to evaluators
       : Status.ENDORSED_FOR_FUNDING;     // Funding revision — back to Funding page
 
     const updatePayload: Record<string, any> = {

@@ -579,7 +579,7 @@ export class ProjectService {
     // Verify caller is the project lead
     const { data: project, error: projectError } = await this.db
       .from("funded_projects")
-      .select("id, project_lead_id")
+      .select("id, project_lead_id, proposal:proposals(project_title)")
       .eq("id", input.funded_project_id)
       .single();
 
@@ -594,7 +594,7 @@ export class ProjectService {
     // Self-invite prevention
     const { data: inviter } = await this.db
       .from("users")
-      .select("email")
+      .select("email, first_name, last_name")
       .eq("id", input.invited_by)
       .single();
 
@@ -605,7 +605,7 @@ export class ProjectService {
     // Check if user exists
     const { data: existingUser } = await this.db
       .from("users")
-      .select("id, roles")
+      .select("id, roles, first_name")
       .eq("email", input.email)
       .single();
 
@@ -638,6 +638,25 @@ export class ProjectService {
         is_read: false,
         link: "project-monitoring",
       });
+
+      try {
+        if (process.env.SMTP_USER) {
+          const projectTitle =
+            (project as any).proposal?.project_title || "a funded project";
+          const inviterName =
+            [inviter?.first_name, inviter?.last_name].filter(Boolean).join(" ") ||
+            "A project lead";
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            input.email,
+            existingUser.first_name || "Co-lead",
+            "Co-Lead Invitation",
+            `${inviterName} has invited you to join "${projectTitle}" as a co-lead. Open Project Monitoring to accept or decline the invitation.`,
+          );
+        }
+      } catch (emailErr) {
+        console.error("Co-lead invite email failed (non-blocking):", emailErr);
+      }
 
       await logActivity(this.db, {
         user_id: input.invited_by,
