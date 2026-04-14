@@ -794,7 +794,7 @@ export async function requestBudgetRealignment(args: {
   fileUrl: string;
   items: RealignmentLineInput[];
 }): Promise<{ message: string; data: RealignmentRecord }> {
-  const { data } = await api.post(
+  const { data } = await api.post<{ message: string; data: RealignmentRecord }>(
     "/project/realignment/request",
     {
       funded_project_id: args.fundedProjectId,
@@ -813,7 +813,7 @@ export async function reviewBudgetRealignment(args: {
   action: "approve" | "reject" | "request_revision";
   reviewNote?: string | null;
 }): Promise<{ message: string; data: RealignmentRecord }> {
-  const { data } = await api.post(
+  const { data } = await api.post<{ message: string; data: RealignmentRecord }>(
     "/project/realignment/review",
     {
       realignment_id: args.realignmentId,

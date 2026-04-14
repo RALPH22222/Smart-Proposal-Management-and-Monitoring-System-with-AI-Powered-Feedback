@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Component Imports

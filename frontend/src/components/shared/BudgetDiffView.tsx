@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { FaPlusCircle, FaMinusCircle, FaEdit, FaCheck, FaArrowRight } from 'react-icons/fa';
-import type { BudgetItemDto, BudgetVersionDto } from '../../services/ProjectMonitoringApi';
+import type { BudgetVersionDto } from '../../services/ProjectMonitoringApi';
 
 // Phase 3 of LIB feature: GitHub-style before/after diff for budget realignment review.
 //
