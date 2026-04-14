@@ -20,6 +20,7 @@ import {
   FileUp,
   Save,
   MessageSquareWarning,
+  Wand2,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -30,6 +31,7 @@ import {
   type RealignmentLineInput,
   type RealignmentRecord,
 } from '../../services/ProjectMonitoringApi';
+import { parseLibDocument, type ParsedLibItemDto } from '../../services/proposal.api';
 
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPHP = (n: number) =>
@@ -95,6 +97,28 @@ function proposedToEditable(raw: any): EditableRow {
   };
 }
 
+// LIB parser output → editable row. The parser extracts items from a .docx but doesn't know
+// anything about funding sources (LIB documents don't always label them), so we carry the
+// `source` forward from whichever source was on the current active budget. Subcategory goes
+// into customSubcategoryLabel unmapped — the realignment form doesn't have a subcategory
+// dropdown, so proponents can edit the label as free-text if needed.
+function parsedLibToEditable(item: ParsedLibItemDto, inheritedSource: string): EditableRow {
+  return {
+    uid: `lib_${Math.random().toString(36).slice(2)}_${Date.now()}`,
+    source: inheritedSource || 'Unspecified',
+    category: item.category,
+    subcategoryId: null,
+    customSubcategoryLabel: item.subcategoryLabel ?? null,
+    itemName: item.itemName,
+    spec: item.spec ?? '',
+    quantity: Number(item.quantity) || 0,
+    unit: item.unit ?? '',
+    unitPrice: Number(item.unitPrice) || 0,
+    totalAmount: Number(item.totalAmount) || 0,
+    isNew: true,
+  };
+}
+
 interface RealignmentFormModalProps {
   fundedProjectId: number;
   // When set, the modal opens in revise mode: seeded from the existing realignment's
@@ -124,6 +148,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Always fetch the active version for the ceiling check. In revise mode we additionally
@@ -225,6 +250,95 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
     e.target.value = '';
     if (!f) return;
     setFile(f);
+  };
+
+  // Reuses the Phase 2 LIB parser on the currently-uploaded .docx so the proponent doesn't
+  // have to re-type everything they already wrote in their revised LIB. Replaces all current
+  // editable rows with the parsed items (confirmed first, since this nukes any manual edits).
+  // The uploaded file still stays as the supporting document — we just also use it as the
+  // data source for the form. Non-docx files fall through with a friendly error; if the
+  // parser returns zero high-confidence rows we warn before committing.
+  const canAutoFillFromFile = !!file && /\.docx$/i.test(file.name);
+
+  const handleAutoFillFromFile = async () => {
+    if (!file) return;
+    if (!canAutoFillFromFile) {
+      Swal.fire({
+        icon: 'info',
+        title: 'LIB auto-fill needs a .docx file',
+        text: 'The parser only works on Word documents. You can still submit a PDF or image as the supporting file — just enter the line items below manually.',
+      });
+      return;
+    }
+
+    // Confirm before clobbering any work the proponent has already done in the rows.
+    const anyEdits = rows.length > 0;
+    if (anyEdits) {
+      const confirm = await Swal.fire({
+        icon: 'question',
+        title: 'Replace current line items?',
+        html: `<p>This will parse <strong>${file.name}</strong> and replace all line items in this form with what's in the document.</p><p style="margin-top:8px;">Any manual edits you've made will be lost. Continue?</p>`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, replace',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#C8102E',
+        reverseButtons: true,
+      });
+      if (!confirm.isConfirmed) return;
+    }
+
+    setAutoFilling(true);
+    try {
+      const result = await parseLibDocument(file);
+
+      if (!result.items || result.items.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Nothing parsed',
+          html: `<p>The parser couldn't find any line items in <strong>${file.name}</strong>.</p><p style="margin-top:8px;">The document may use a format our parser doesn't recognize. You can still enter the realignment manually using the rows below.</p>${result.warnings.length > 0 ? `<p style="margin-top:8px; font-size: 12px; color: #b45309;">Parser notes: ${result.warnings.join('; ')}</p>` : ''}`,
+        });
+        return;
+      }
+
+      // LIB parser doesn't know about funding sources — carry forward the source from the
+      // first existing row (common case: single-source projects), falling back to "Unspecified".
+      const inheritedSource = rows[0]?.source?.trim() || 'Unspecified';
+
+      const newRows = result.items.map((item) => parsedLibToEditable(item, inheritedSource));
+      // Sort by category so PS / MOOE / CO stay grouped, matching the dtoToEditable ordering.
+      newRows.sort((a, b) => ['ps', 'mooe', 'co'].indexOf(a.category) - ['ps', 'mooe', 'co'].indexOf(b.category));
+      setRows(newRows);
+
+      const highConfidence = result.items.filter((i) => i.confidence === 'high').length;
+      const needsReview = result.items.filter((i) => i.confidence === 'low').length;
+      const parsedTotal = result.items.reduce((s, it) => s + (Number(it.totalAmount) || 0), 0);
+      const overCeilingAfter = Math.round(parsedTotal * 100) > Math.round(baselineTotal * 100);
+
+      Swal.fire({
+        icon: overCeilingAfter ? 'warning' : 'success',
+        title: overCeilingAfter ? 'Imported — but new total exceeds ceiling' : 'LIB imported',
+        html: `
+          <div style="text-align: left;">
+            <p><strong>${result.items.length}</strong> line items imported from ${file.name}.</p>
+            <p style="margin-top: 8px; font-size: 13px;">
+              ${highConfidence} parsed confidently · ${needsReview > 0 ? `<span style="color:#b45309;"><strong>${needsReview}</strong> flagged for review</span>` : 'none flagged for review'}
+            </p>
+            <p style="margin-top: 8px; font-size: 13px;">
+              New total: <strong>${formatPHP(parsedTotal)}</strong> / Ceiling: ${formatPHP(baselineTotal)}
+            </p>
+            ${overCeilingAfter ? `<p style="margin-top: 8px; font-size: 12px; color: #b91c1c;">⚠ The parsed total exceeds your baseline ceiling by ${formatPHP(parsedTotal - baselineTotal)}. You must adjust rows before submitting.</p>` : ''}
+            ${result.warnings.length > 0 ? `<p style="margin-top: 8px; font-size: 12px; color: #b45309;">Parser notes: ${result.warnings.join('; ')}</p>` : ''}
+            <p style="margin-top: 8px; font-size: 12px; color: #6b7280;">Review the rows below and tweak anything the parser got wrong before submitting.</p>
+          </div>
+        `,
+        confirmButtonColor: '#C8102E',
+      });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Failed to parse the LIB document.';
+      Swal.fire({ icon: 'error', title: 'Parse failed', text: msg });
+    } finally {
+      setAutoFilling(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -550,6 +664,30 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                     className="hidden"
                   />
                 </div>
+                {canAutoFillFromFile && (
+                  <div className="mt-2 flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+                    <div className="text-xs text-emerald-800 flex-1">
+                      <strong>Skip the manual typing:</strong> this is a <code>.docx</code>, so we can
+                      parse it and auto-fill the line items below from your uploaded LIB.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAutoFillFromFile}
+                      disabled={autoFilling}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {autoFilling ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" /> Parsing...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-3 h-3" /> Auto-fill from LIB
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {submitError && (
