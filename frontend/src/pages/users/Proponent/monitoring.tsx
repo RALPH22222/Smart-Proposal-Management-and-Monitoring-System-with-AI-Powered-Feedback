@@ -27,11 +27,16 @@ import {
   uploadReportFile,
   validateReportFile,
   REPORT_ALLOWED_EXTENSIONS,
+  fetchRealignments,
+  fetchActiveBudgetVersion,
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
+  type RealignmentRecord,
+  type BudgetItemDto,
   groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
+import { RealignmentFormModal } from '../../../components/proponent-component/RealignmentFormModal';
 import {
   fetchPendingInvitations,
   respondToInvitation,
@@ -50,6 +55,10 @@ type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue
 
 interface FundRequestItem {
   id: string;
+  // Phase 4 of LIB feature: links the fund-request line to a specific budget line. Set
+  // by the dropdown picker. Category + description are derived from the linked item
+  // (and the server re-derives them on save so the client copy is informational only).
+  budget_item_id: number | null;
   description: string;
   amount: number;
   category: 'ps' | 'mooe' | 'co';
@@ -135,6 +144,15 @@ const MonitoringPage: React.FC = () => {
   // Pending co-lead invitations
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [respondingInvitationId, setRespondingInvitationId] = useState<number | null>(null);
+
+  // Phase 3 of LIB feature: budget realignment state
+  const [showRealignmentModal, setShowRealignmentModal] = useState(false);
+  const [activeRealignment, setActiveRealignment] = useState<RealignmentRecord | null>(null);
+  const [realignmentHistory, setRealignmentHistory] = useState<RealignmentRecord[]>([]);
+  const [showBudgetHistory, setShowBudgetHistory] = useState(false);
+
+  // Phase 4 of LIB feature: active budget items for the fund-request dropdown
+  const [budgetItemsForProject, setBudgetItemsForProject] = useState<BudgetItemDto[]>([]);
 
   // --- Load Projects ---
   useEffect(() => {
@@ -357,6 +375,54 @@ const MonitoringPage: React.FC = () => {
     }
   }, [activeBackend?.id]);
 
+  // Phase 3 of LIB feature: load any pending realignment for the active project so the UI
+  // can show a banner + lock the Request Realignment button. Also keeps the full history
+  // list in sync for the Budget History panel (Phase 4).
+  const loadActiveRealignment = useCallback(async () => {
+    if (!activeBackend) {
+      setActiveRealignment(null);
+      setRealignmentHistory([]);
+      return;
+    }
+    try {
+      const all = await fetchRealignments({ fundedProjectId: activeBackend.id });
+      setRealignmentHistory(all);
+      const pending =
+        all.find((r) => r.status === 'pending_review' || r.status === 'revision_requested') ??
+        null;
+      setActiveRealignment(pending);
+    } catch (err) {
+      console.error('Failed to load realignment status', err);
+      setActiveRealignment(null);
+      setRealignmentHistory([]);
+    }
+  }, [activeBackend?.id]);
+
+  useEffect(() => {
+    loadActiveRealignment();
+  }, [loadActiveRealignment]);
+
+  // Phase 4 of LIB feature: load the active budget items so the fund-request form can
+  // drive its dropdown. This is a separate request from the budget summary (which only
+  // has totals) — we want per-item metadata for the picker.
+  const loadBudgetItems = useCallback(async () => {
+    if (!activeBackend) {
+      setBudgetItemsForProject([]);
+      return;
+    }
+    try {
+      const res = await fetchActiveBudgetVersion(activeBackend.id);
+      setBudgetItemsForProject(res.version.items ?? []);
+    } catch (err) {
+      console.error('Failed to load active budget items', err);
+      setBudgetItemsForProject([]);
+    }
+  }, [activeBackend?.id]);
+
+  useEffect(() => {
+    loadBudgetItems();
+  }, [loadBudgetItems]);
+
   // --- Helpers ---
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -426,7 +492,8 @@ const MonitoringPage: React.FC = () => {
 
     try {
       setSubmittingFundRequest(true);
-      const items = breakdownItems.map(item => ({
+      const items = breakdownItems.map((item) => ({
+        budget_item_id: item.budget_item_id,
         item_name: item.description,
         amount: item.amount,
         category: item.category,
@@ -587,13 +654,39 @@ const MonitoringPage: React.FC = () => {
 
   // --- Breakdown item handlers ---
   const addBreakdownItem = () => {
-    setBreakdownItems(prev => [...prev, { id: Date.now().toString(), description: '', amount: 0, category: 'mooe' }]);
+    setBreakdownItems((prev) => [
+      ...prev,
+      { id: Date.now().toString(), budget_item_id: null, description: '', amount: 0, category: 'mooe' },
+    ]);
   };
   const updateBreakdownItem = (itemId: string, field: keyof FundRequestItem, value: any) => {
-    setBreakdownItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+    setBreakdownItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
+    );
+  };
+  // Phase 4 of LIB feature: linking a fund-request row to a budget item pulls its
+  // category + display label from the selected item, so the proponent doesn't have to
+  // type anything except the amount.
+  const linkBreakdownItemToBudgetLine = (rowId: string, budgetItemId: number | null) => {
+    const budgetItem = budgetItemId != null ? budgetItemsForProject.find((it) => it.id === budgetItemId) : null;
+    setBreakdownItems((prev) =>
+      prev.map((row) => {
+        if (row.id !== rowId) return row;
+        if (!budgetItem) {
+          return { ...row, budget_item_id: null };
+        }
+        const label = budgetItem.item_name + (budgetItem.spec ? ` (${budgetItem.spec})` : '');
+        return {
+          ...row,
+          budget_item_id: budgetItem.id ?? null,
+          description: label,
+          category: budgetItem.category,
+        };
+      }),
+    );
   };
   const removeBreakdownItem = (itemId: string) => {
-    setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
+    setBreakdownItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const handleDownloadCertificate = async () => {
@@ -847,14 +940,42 @@ const MonitoringPage: React.FC = () => {
                         <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Ends: {formatDate(activeProject.endDate)}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setIsExtensionModalOpen(true)}
-                      className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
-                      title="Request Extension"
-                    >
-                      <CalendarClock className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowRealignmentModal(true)}
+                        disabled={!!activeRealignment}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={
+                          activeRealignment
+                            ? `A realignment request is already ${activeRealignment.status.replace('_', ' ')}`
+                            : 'Request a budget realignment for this project'
+                        }
+                      >
+                        <Banknote className="w-4 h-4" /> Realign Budget
+                      </button>
+                      <button
+                        onClick={() => setIsExtensionModalOpen(true)}
+                        className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                        title="Request Extension"
+                      >
+                        <CalendarClock className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {activeRealignment && (
+                    <div className="mb-4 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg p-3 text-xs flex items-start gap-2">
+                      <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <div className="font-bold">
+                          Budget realignment {activeRealignment.status === 'pending_review' ? 'under R&D review' : 'awaiting your revisions'}
+                        </div>
+                        <div className="opacity-80 mt-0.5">
+                          Submitted {formatDate(activeRealignment.created_at)}. R&D will review the proposed changes on the Project Funding page.
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Budget Overview */}
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden">
@@ -886,6 +1007,95 @@ const MonitoringPage: React.FC = () => {
                     )}
                     <PieChart className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-200 opacity-50 z-0" />
                   </div>
+
+                  {/* Phase 4 of LIB feature: Budget History panel. Surfaces past realignment
+                      decisions for this project so the proponent has context on how the budget
+                      has evolved. Collapsed by default. */}
+                  {realignmentHistory.length > 0 && (
+                    <div className="mt-3 border border-slate-200 rounded-xl bg-white">
+                      <button
+                        onClick={() => setShowBudgetHistory((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <History className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            Budget History ({realignmentHistory.length})
+                          </span>
+                        </div>
+                        {showBudgetHistory ? (
+                          <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                      </button>
+                      {showBudgetHistory && (
+                        <div className="border-t border-slate-100 divide-y divide-slate-100">
+                          {realignmentHistory.map((r) => {
+                            const statusStyle =
+                              r.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : r.status === 'rejected'
+                                  ? 'bg-red-50 text-red-700'
+                                  : r.status === 'revision_requested'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-amber-50 text-amber-700';
+                            const fromTotal = Number(r.from_version?.grand_total) || 0;
+                            const toTotal =
+                              Number(r.to_version?.grand_total) ||
+                              Number(r.proposed_payload?.grand_total) ||
+                              0;
+                            const delta = toTotal - fromTotal;
+                            const reviewerName = [r.reviewer?.first_name, r.reviewer?.last_name]
+                              .filter(Boolean)
+                              .join(' ');
+                            return (
+                              <div key={r.id} className="px-4 py-3 text-xs">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusStyle}`}
+                                      >
+                                        {r.status.replace('_', ' ')}
+                                      </span>
+                                      <span className="text-slate-500">{formatDate(r.created_at)}</span>
+                                    </div>
+                                    <p className="text-slate-700 italic line-clamp-2">"{r.reason}"</p>
+                                    {r.reviewed_at && reviewerName && (
+                                      <p className="text-[10px] text-slate-400 mt-1">
+                                        Reviewed by {reviewerName} on {formatDate(r.reviewed_at)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right font-mono shrink-0">
+                                    <div className="text-slate-500">{formatCurrency(fromTotal)}</div>
+                                    <div
+                                      className={`font-bold ${
+                                        delta < 0
+                                          ? 'text-emerald-600'
+                                          : delta > 0
+                                            ? 'text-red-600'
+                                            : 'text-slate-700'
+                                      }`}
+                                    >
+                                      → {formatCurrency(toTotal)}
+                                    </div>
+                                    {delta !== 0 && (
+                                      <div className="text-[10px] text-slate-400">
+                                        Δ {delta >= 0 ? '+' : ''}
+                                        {formatCurrency(delta)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1004,25 +1214,45 @@ const MonitoringPage: React.FC = () => {
                               {breakdownItems.length === 0 && (
                                 <p className="text-sm text-gray-400 text-center py-4 italic">No items added yet. Add planned expenditures.</p>
                               )}
+                              {/* Phase 4 of LIB feature: pick from existing budget lines instead
+                                  of free-typing. Category is derived from the picked item. */}
+                              {budgetItemsForProject.length === 0 && (
+                                <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                                  Budget items for this project haven't loaded yet — the dropdown may be empty. Refresh if this persists.
+                                </div>
+                              )}
                               {breakdownItems.map((item) => (
                                 <div key={item.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                                  <input
-                                    type="text"
-                                    value={item.description}
-                                    onChange={(e) => updateBreakdownItem(item.id, 'description', e.target.value)}
-                                    className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                                    placeholder="Description (e.g., Equipment, Travel)"
-                                  />
-                                  <div className="flex w-full sm:w-auto gap-2">
-                                    <select
-                                      value={item.category}
-                                      onChange={(e) => updateBreakdownItem(item.id, 'category', e.target.value)}
-                                      className="p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white"
-                                    >
-                                      <option value="ps">PS</option>
-                                      <option value="mooe">MOOE</option>
-                                      <option value="co">CO</option>
-                                    </select>
+                                  <select
+                                    value={item.budget_item_id ?? ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value ? Number(e.target.value) : null;
+                                      linkBreakdownItemToBudgetLine(item.id, val);
+                                    }}
+                                    className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+                                  >
+                                    <option value="">— Pick a budget line —</option>
+                                    {(['ps', 'mooe', 'co'] as const).map((cat) => {
+                                      const catItems = budgetItemsForProject.filter((bi) => bi.category === cat);
+                                      if (catItems.length === 0) return null;
+                                      return (
+                                        <optgroup key={cat} label={cat.toUpperCase()}>
+                                          {catItems.map((bi) => {
+                                            const label = bi.item_name + (bi.spec ? ` (${bi.spec})` : '');
+                                            return (
+                                              <option key={bi.id} value={bi.id ?? undefined}>
+                                                {label} — {formatCurrency(Number(bi.total_amount) || 0)} allocated
+                                              </option>
+                                            );
+                                          })}
+                                        </optgroup>
+                                      );
+                                    })}
+                                  </select>
+                                  <div className="flex w-full sm:w-auto gap-2 items-center">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 bg-gray-100 rounded">
+                                      {item.category}
+                                    </span>
                                     <input
                                       type="number"
                                       value={item.amount || ''}
@@ -1417,6 +1647,17 @@ const MonitoringPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Phase 3 of LIB feature: budget realignment modal */}
+      {showRealignmentModal && activeBackend && (
+        <RealignmentFormModal
+          fundedProjectId={activeBackend.id}
+          onClose={() => setShowRealignmentModal(false)}
+          onSubmitted={() => {
+            loadActiveRealignment();
+          }}
+        />
       )}
     </div>
   );

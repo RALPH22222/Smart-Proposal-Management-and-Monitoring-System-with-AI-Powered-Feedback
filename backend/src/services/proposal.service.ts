@@ -241,26 +241,70 @@ export class ProposalService {
         throw new Error(`implementation_site insert failed: ${implementation_join.error.message}`);
     }
 
-    // BUDGET JOIN (new payload: [{ source, budget: { ps/mooe/co: [{item,value}] } }])
+    // BUDGET JOIN — Phase 4 of LIB feature.
+    // The new structured tables (proposal_budget_versions + proposal_budget_items) are now
+    // the sole source of truth. The legacy estimated_budget table is no longer written to —
+    // existing rows remain as audit history but new proposals don't append to it.
     if (Array.isArray(budget) && budget.length > 0) {
-      const budget_rows = budget.flatMap((entry) => {
+      const categories = [Budget.PS, Budget.MOOE, Budget.CO] as const;
+
+      let grand_total = 0;
+      for (const entry of budget) {
+        for (const category of categories) {
+          for (const line of entry.budget[category] ?? []) {
+            grand_total += Number(line.totalAmount) || 0;
+          }
+        }
+      }
+
+      const versionInsert = await this.db
+        .from("proposal_budget_versions")
+        .insert({
+          proposal_id,
+          version_number: 1,
+          grand_total,
+          created_by: proposal.proponent_id,
+        })
+        .select("id")
+        .single();
+
+      if (versionInsert.error || !versionInsert.data) {
+        throw new Error(
+          `proposal_budget_versions insert failed: ${versionInsert.error?.message ?? "no data returned"}`,
+        );
+      }
+      const version_id = versionInsert.data.id as number;
+
+      const item_rows: Array<Record<string, unknown>> = [];
+      let display_order = 0;
+      for (const entry of budget) {
         const source = entry.source;
+        for (const category of categories) {
+          for (const line of entry.budget[category] ?? []) {
+            display_order += 1;
+            item_rows.push({
+              version_id,
+              source,
+              category,
+              subcategory_id: line.subcategoryId ?? null,
+              custom_subcategory_label: line.customSubcategoryLabel ?? null,
+              item_name: line.itemName,
+              spec: line.spec ?? null,
+              quantity: line.quantity,
+              unit: line.unit ?? null,
+              unit_price: line.unitPrice,
+              total_amount: line.totalAmount,
+              display_order,
+            });
+          }
+        }
+      }
 
-        const toRows = (category: Budget) =>
-          entry.budget[category].map((x) => ({
-            proposal_id,
-            source,
-            budget: category,
-            item: x.item,
-            amount: x.value,
-          }));
-
-        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
-      });
-
-      if (budget_rows.length > 0) {
-        const budget_join = await this.db.from("estimated_budget").insert(budget_rows);
-        if (budget_join.error) throw new Error(`estimated_budget insert failed: ${budget_join.error.message}`);
+      if (item_rows.length > 0) {
+        const itemInsert = await this.db.from("proposal_budget_items").insert(item_rows);
+        if (itemInsert.error) {
+          throw new Error(`proposal_budget_items insert failed: ${itemInsert.error.message}`);
+        }
       }
     }
 
@@ -2169,31 +2213,76 @@ export class ProposalService {
       return { error: updateError };
     }
 
-    // 6b. Replace budget rows if provided
+    // 6b. Replace budget if provided. Revision happens before funding approval, so there's only
+    // ever a v1 to replace — destructive replace is fine here. Realignment-style versioning
+    // (Phase 3) only kicks in after the project is funded.
+    // Phase 4 of LIB feature: legacy estimated_budget writes removed; new tables only.
     if (Array.isArray(budget) && budget.length > 0) {
-      const { error: deleteError } = await this.db.from("estimated_budget").delete().eq("proposal_id", proposal_id);
-
-      if (deleteError) {
-        return { error: deleteError };
+      // Wipe the existing version. CASCADE on proposal_budget_versions takes the items with it.
+      const { error: deleteVersionsError } = await this.db
+        .from("proposal_budget_versions")
+        .delete()
+        .eq("proposal_id", proposal_id);
+      if (deleteVersionsError) {
+        return { error: deleteVersionsError };
       }
 
-      const budget_rows = budget.flatMap((entry) => {
-        const source = entry.source;
-        const toRows = (category: Budget) =>
-          entry.budget[category].map((x: { item: string; value: number }) => ({
-            proposal_id,
-            source,
-            budget: category,
-            item: x.item,
-            amount: x.value,
-          }));
-        return [...toRows(Budget.PS), ...toRows(Budget.MOOE), ...toRows(Budget.CO)];
-      });
+      const categories = [Budget.PS, Budget.MOOE, Budget.CO] as const;
 
-      if (budget_rows.length > 0) {
-        const { error: budgetError } = await this.db.from("estimated_budget").insert(budget_rows);
-        if (budgetError) {
-          return { error: budgetError };
+      let grand_total = 0;
+      for (const entry of budget) {
+        for (const category of categories) {
+          for (const line of entry.budget[category] ?? []) {
+            grand_total += Number(line.totalAmount) || 0;
+          }
+        }
+      }
+
+      const versionInsert = await this.db
+        .from("proposal_budget_versions")
+        .insert({
+          proposal_id,
+          version_number: 1,
+          grand_total,
+          created_by: proponent_id,
+        })
+        .select("id")
+        .single();
+
+      if (versionInsert.error || !versionInsert.data) {
+        return { error: versionInsert.error ?? new Error("budget version insert returned no data") };
+      }
+      const version_id = versionInsert.data.id as number;
+
+      const item_rows: Array<Record<string, unknown>> = [];
+      let display_order = 0;
+      for (const entry of budget) {
+        const source = entry.source;
+        for (const category of categories) {
+          for (const line of entry.budget[category] ?? []) {
+            display_order += 1;
+            item_rows.push({
+              version_id,
+              source,
+              category,
+              subcategory_id: line.subcategoryId ?? null,
+              custom_subcategory_label: line.customSubcategoryLabel ?? null,
+              item_name: line.itemName,
+              spec: line.spec ?? null,
+              quantity: line.quantity,
+              unit: line.unit ?? null,
+              unit_price: line.unitPrice,
+              total_amount: line.totalAmount,
+              display_order,
+            });
+          }
+        }
+      }
+
+      if (item_rows.length > 0) {
+        const itemInsert = await this.db.from("proposal_budget_items").insert(item_rows);
+        if (itemInsert.error) {
+          return { error: itemInsert.error };
         }
       }
     }
@@ -3130,5 +3219,29 @@ export class ProposalService {
     }
 
     return { processed: details.length, errors, details };
+  }
+
+  // ============================================================
+  // Phase 1 of LIB feature: budget subcategories
+  // ============================================================
+  // Draft autosave lives entirely in the browser's localStorage — server-side drafts were
+  // removed because they added a stale-draft UX problem without meaningfully improving
+  // the crash-resilience story.
+
+  // Returns the admin-managed subcategory list. Frontend uses this to populate the budget
+  // breakdown dropdown. Filter by category (ps/mooe/co) when provided to keep payloads small.
+  async getBudgetSubcategories(category?: string) {
+    let query = this.db
+      .from("budget_subcategories")
+      .select("id, category, code, label, sort_order, active")
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .order("sort_order", { ascending: true });
+
+    if (category) {
+      query = query.eq("category", category);
+    }
+
+    return query;
   }
 }

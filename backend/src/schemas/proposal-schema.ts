@@ -32,10 +32,32 @@ const fileSchema = z.object({
   filename: z.string(),
 });
 
-const budgetLineSchema = z.object({
-  item: z.string().min(1).max(100, "Budget item description is too long"),
-  value: z.coerce.number().min(0),
-});
+// Phase 1 of LIB feature: each line item now carries item_name, spec/volume, quantity,
+// unit, unit_price, and total. The server re-derives total = quantity * unit_price and
+// rejects mismatches. subcategoryId / customSubcategoryLabel are optional to keep legacy
+// paths (auto-fill from Form 1B, draft resume) working without forcing manual classification.
+const budgetLineSchema = z
+  .object({
+    subcategoryId: z.coerce.number().int().positive().nullable().optional(),
+    customSubcategoryLabel: z.string().max(120, "Subcategory label is too long").nullable().optional(),
+    itemName: z.string().min(1, "Item name is required").max(200, "Item name is too long"),
+    spec: z.string().max(200, "Spec is too long").nullable().optional(),
+    quantity: z.coerce.number().positive("Quantity must be greater than 0"),
+    unit: z.string().max(40, "Unit is too long").nullable().optional(),
+    unitPrice: z.coerce.number().nonnegative("Unit price cannot be negative"),
+    totalAmount: z.coerce.number().nonnegative(),
+  })
+  .superRefine((data, ctx) => {
+    const computed = Math.round(data.quantity * data.unitPrice * 100) / 100;
+    const provided = Math.round(data.totalAmount * 100) / 100;
+    if (Math.abs(computed - provided) > 0.01) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Total (${provided}) must equal quantity × unit price (${computed})`,
+        path: ["totalAmount"],
+      });
+    }
+  });
 
 const budgetCategorySchema = z
   .object({

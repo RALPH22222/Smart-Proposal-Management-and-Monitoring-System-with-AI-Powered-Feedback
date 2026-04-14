@@ -26,6 +26,9 @@ import { useLookups } from "../../../../context/LookupContext";
 import { useAuthContext } from "../../../../context/AuthContext";
 import PageLoader from "../../../../components/shared/PageLoader";
 
+// Phase 1 of LIB feature: hybrid draft autosave (localStorage + remote)
+import { useFormAutosave } from "../../../../hooks/useFormAutosave";
+
 const MONTH_MAP: Record<string, number> = {
   january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
   july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
@@ -95,23 +98,69 @@ const Submission: React.FC = () => {
 
   // ... (Effects remain the same)
 
+  // Phase 1 of LIB feature: localStorage-only draft autosave. Debounced ~500ms so a browser
+  // crash or power-off costs at most the last half-second of typing. On mount, if a draft
+  // is found, the hook surfaces it via `pendingDraft` so we can offer to resume.
+  const draftStorageKey = useMemo(
+    () => `pms_draft:${user?.id ?? "anon"}:proposal_submission`,
+    [user?.id],
+  );
+  const autosave = useFormAutosave({
+    storageKey: draftStorageKey,
+    value: localFormData,
+    enabled: !!user?.id && !isSubmitting,
+  });
+
+  // Offer to resume the draft once on mount, after the hook finishes hydrating.
+  const [draftPromptShown, setDraftPromptShown] = useState(false);
+  useEffect(() => {
+    if (autosave.isHydrating || draftPromptShown || !autosave.pendingDraft) return;
+    setDraftPromptShown(true);
+
+    const draft = autosave.pendingDraft;
+    const updated = new Date(draft.updatedAt);
+    Swal.fire({
+      icon: "info",
+      title: "Resume your draft?",
+      html: `<p>You have an unsaved proposal from <strong>${updated.toLocaleString()}</strong> saved on this device.</p><p style="margin-top:8px;">Restore it to continue where you left off?</p>`,
+      showCancelButton: true,
+      confirmButtonText: "Resume draft",
+      cancelButtonText: "Start fresh",
+      confirmButtonColor: "#C8102E",
+      reverseButtons: true,
+    }).then((res) => {
+      if (res.isConfirmed) {
+        setLocalFormData(draft.payload as FormData);
+        autosave.acceptDraft();
+      } else {
+        autosave.dismissDraft();
+      }
+    });
+  }, [autosave, draftPromptShown]);
+
   // --- RESTORED HANDLERS ---
+  // Phase 1 of LIB feature: line items now use itemName/quantity/unitPrice/totalAmount
+  // instead of {item, value}. Validation requires a non-empty name AND positive total.
   const isBudgetValid = useMemo(() => {
     if (localFormData.budgetItems.length === 0) return false;
     return localFormData.budgetItems.every((item: any) => {
-      // Check Source
       if (!item.source?.trim()) return false;
 
       const ps = item.budget.ps || [];
       const mooe = item.budget.mooe || [];
       const co = item.budget.co || [];
 
-      // Check for empty line items
       const allExpenses = [...ps, ...mooe, ...co];
-      const hasEmptyLineItem = allExpenses.some((ex: any) => !ex.item?.trim() || !(ex.value > 0));
-      if (hasEmptyLineItem) return false;
+      const hasInvalidLine = allExpenses.some((ex: any) => {
+        if (!ex.itemName?.trim()) return true;
+        const qty = Number(ex.quantity) || 0;
+        const unitPrice = Number(ex.unitPrice) || 0;
+        if (qty <= 0) return true;
+        if (unitPrice < 0) return true;
+        return false;
+      });
+      if (hasInvalidLine) return false;
 
-      // Check mandatory categories (PS & MOOE required per source)
       if (ps.length === 0) return false;
       if (mooe.length === 0) return false;
 
@@ -426,6 +475,52 @@ const Submission: React.FC = () => {
     }));
   };
 
+  // Phase 2 of LIB feature: import parsed LIB items into the form.
+  // If the proponent hasn't filled in any budget yet (default empty first source),
+  // we replace that placeholder. Otherwise we append the imported budget as a new source
+  // so existing manual entries aren't clobbered.
+  const handleLibImport = (
+    grouped: { ps: any[]; mooe: any[]; co: any[] },
+    sourceName: string,
+  ) => {
+    setLocalFormData((prev: any) => {
+      const first = prev.budgetItems[0];
+      const firstIsEmpty =
+        first &&
+        !first.source?.trim() &&
+        (first.budget?.ps?.length ?? 0) === 0 &&
+        (first.budget?.mooe?.length ?? 0) === 0 &&
+        (first.budget?.co?.length ?? 0) === 0;
+
+      if (firstIsEmpty) {
+        return {
+          ...prev,
+          budgetItems: [
+            { id: first.id, source: sourceName, budget: grouped },
+            ...prev.budgetItems.slice(1),
+          ],
+        };
+      }
+
+      return {
+        ...prev,
+        budgetItems: [
+          ...prev.budgetItems,
+          { id: Date.now(), source: sourceName, budget: grouped },
+        ],
+      };
+    });
+
+    Swal.fire({
+      icon: "success",
+      title: "LIB imported",
+      text: `Imported ${grouped.ps.length + grouped.mooe.length + grouped.co.length} line items into "${sourceName}". Click any category icon to review and edit.`,
+      confirmButtonColor: "#C8102E",
+      timer: 4000,
+      timerProgressBar: true,
+    });
+  };
+
   // --- SUBMISSION LOGIC ---
 
   const handleSubmit = useCallback(async () => {
@@ -484,6 +579,9 @@ const Submission: React.FC = () => {
       const result = await submitProposal(payload, selectedFile);
       console.log("Server Response:", result);
 
+      // Phase 1 of LIB feature: clear the local draft so the form starts fresh next time.
+      autosave.clear();
+
       Swal.fire({
         icon: "success",
         title: "Proposal Submitted!",
@@ -516,7 +614,7 @@ const Submission: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [localFormData, selectedFile, user, navigate]);
+  }, [localFormData, selectedFile, user, navigate, autosave]);
 
   // Auto-fill form fields from extracted DOST template data
   const applyAutoFill = useCallback((fields: FormExtractedFields) => {
@@ -621,14 +719,29 @@ const Submission: React.FC = () => {
       }
 
       // --- (16) Budget ---
+      // Auto-fill from Form 1B only knows category totals — it can't extract individual line
+      // items. We populate a single placeholder line per category so the proponent has a starting
+      // point and can break it down into proper line items afterwards.
       if (fields.budget_sources && fields.budget_sources.length > 0) {
+        const placeholder = (label: string, total: number) => ({
+          uid: `auto_${label}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          subcategoryId: null,
+          customSubcategoryLabel: null,
+          itemName: label,
+          spec: null,
+          quantity: 1,
+          unit: null,
+          unitPrice: total,
+          totalAmount: total,
+        });
+
         updated.budgetItems = fields.budget_sources.map((src, idx) => ({
           id: idx + 1,
           source: src.source,
           budget: {
-            ps: src.ps > 0 ? [{ item: "Personnel Services", value: src.ps }] : [],
-            mooe: src.mooe > 0 ? [{ item: "Maintenance and Other Operating Expenses", value: src.mooe }] : [],
-            co: src.co > 0 ? [{ item: "Capital Outlay", value: src.co }] : [],
+            ps: src.ps > 0 ? [placeholder("Personnel Services (auto-filled — please itemize)", src.ps)] : [],
+            mooe: src.mooe > 0 ? [placeholder("Maintenance and Other Operating Expenses (auto-filled — please itemize)", src.mooe)] : [],
+            co: src.co > 0 ? [placeholder("Capital Outlay (auto-filled — please itemize)", src.co)] : [],
           },
         }));
         filled.add("budget");
@@ -809,6 +922,7 @@ const Submission: React.FC = () => {
                   onBudgetItemUpdate={updateBudgetItem}
                   autoFilledFields={autoFilledFields}
                   onOpenBudgetModal={(itemId: number, category: 'ps' | 'mooe' | 'co') => setActiveBudgetModal({ itemId, category })}
+                  onLibImport={handleLibImport}
                 />
               )}
 

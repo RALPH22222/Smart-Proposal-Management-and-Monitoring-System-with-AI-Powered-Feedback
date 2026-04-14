@@ -431,6 +431,16 @@ export class BackendStack extends Stack {
       .addResource("rnd-transfers")
       .addMethod(HttpMethod.GET, integrate(proposalL.getRndTransfers), protectedRoute);
 
+    // Phase 1 of LIB feature: line-item budget support
+    proposal
+      .addResource("budget-subcategories")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getBudgetSubcategories), protectedRoute);
+
+    // Phase 2 of LIB feature: parse uploaded LIB .docx into structured items
+    proposal
+      .addResource("parse-lib")
+      .addMethod(HttpMethod.POST, integrate(proposalL.parseLib), protectedRoute);
+
     // ========== PROJECT MONITORING ROUTES ==========
     const project = api.root.addResource("project");
 
@@ -494,6 +504,22 @@ export class BackendStack extends Stack {
     project
       .addResource("report-upload-url")
       .addMethod(HttpMethod.GET, integrate(projectL.getReportUploadUrl), protectedRoute);
+
+    // Phase 3 of LIB feature: budget realignment workflow
+    project
+      .addResource("budget-version")
+      .addMethod(HttpMethod.GET, integrate(projectL.getBudgetVersion), protectedRoute);
+    const realignmentResource = project.addResource("realignment");
+    realignmentResource.addMethod(HttpMethod.GET, integrate(projectL.getRealignment), protectedRoute);
+    realignmentResource
+      .addResource("request")
+      .addMethod(HttpMethod.POST, integrate(projectL.requestRealignment), protectedRoute);
+    realignmentResource
+      .addResource("review")
+      .addMethod(HttpMethod.POST, integrate(projectL.reviewRealignment), protectedRoute);
+    project
+      .addResource("realignments")
+      .addMethod(HttpMethod.GET, integrate(projectL.listRealignments), protectedRoute);
 
     // ========== ADMIN ROUTES ==========
     const admin = api.root.addResource("admin");

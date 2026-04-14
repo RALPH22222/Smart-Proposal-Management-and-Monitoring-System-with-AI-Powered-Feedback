@@ -306,12 +306,23 @@ export const submitRevisedProposal = async (
   }
 
   if (payload.budgetSources && payload.budgetSources.length > 0) {
+    // Phase 1 of LIB feature: backend now expects line items with itemName/quantity/unitPrice/totalAmount.
+    // The revision form still uses the legacy {item, amount} shape, so we adapt: qty=1, unitPrice=amount,
+    // totalAmount=amount. The new submission form (BudgetBreakdownModal) writes the structured shape
+    // directly. The revision form will be migrated to the structured shape in a later phase.
+    const adaptLine = (item: { item: string; amount: number }) => ({
+      itemName: item.item,
+      quantity: 1,
+      unitPrice: Number(item.amount) || 0,
+      totalAmount: Number(item.amount) || 0,
+    });
+
     body.budget = payload.budgetSources.map((source) => ({
       source: source.source,
       budget: {
-        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
-        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
-        co: source.breakdown?.co?.filter(i => i.item?.trim()).map((item) => ({ item: item.item, value: item.amount })) || [],
+        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map(adaptLine) || [],
+        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map(adaptLine) || [],
+        co: source.breakdown?.co?.filter(i => i.item?.trim()).map(adaptLine) || [],
       },
     }));
   }
@@ -804,4 +815,76 @@ export const getProponentExtensionRequests = async (
     withCredentials: true,
   });
   return (data as any).data ?? data;
+};
+
+// ============================================================
+// Phase 1 of LIB feature: budget subcategories
+// ============================================================
+
+export type BudgetSubcategoryDto = {
+  id: number;
+  category: "ps" | "mooe" | "co";
+  code: string;
+  label: string;
+  sort_order: number;
+  active: boolean;
+};
+
+// Cached for the lookup TTL — the subcategory list is static admin data, no need to refetch
+// on every modal open.
+export const fetchBudgetSubcategories = async (
+  category?: "ps" | "mooe" | "co",
+): Promise<BudgetSubcategoryDto[]> => {
+  const cacheKey = `budget-subcategories:${category ?? "all"}`;
+  const cached = getCached<BudgetSubcategoryDto[]>(cacheKey);
+  if (cached) return cached;
+  const params = category ? `?category=${category}` : "";
+  const { data } = await api.get<BudgetSubcategoryDto[]>(`/proposal/budget-subcategories${params}`, {
+    withCredentials: true,
+  });
+  setCache(cacheKey, data);
+  return data;
+};
+
+// ============================================================
+// Phase 2 of LIB feature: parse uploaded LIB .docx
+// ============================================================
+
+export type LibParseConfidence = "high" | "medium" | "low";
+export type LibCategory = "ps" | "mooe" | "co";
+
+export interface ParsedLibItemDto {
+  category: LibCategory;
+  subcategoryLabel: string | null;
+  itemName: string;
+  spec: string | null;
+  quantity: number;
+  unit: string | null;
+  unitPrice: number;
+  totalAmount: number;
+  confidence: LibParseConfidence;
+  warning: string | null;
+  rawRow: string;
+}
+
+export interface ParseLibResultDto {
+  items: ParsedLibItemDto[];
+  warnings: string[];
+  detected: {
+    categories: Record<LibCategory, boolean>;
+    grandTotal: number | null;
+    tableCount: number;
+  };
+}
+
+export const parseLibDocument = async (file: File): Promise<ParseLibResultDto> => {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const { data } = await api.post<ParseLibResultDto>("/proposal/parse-lib", fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+    withCredentials: true,
+  });
+
+  return data;
 };

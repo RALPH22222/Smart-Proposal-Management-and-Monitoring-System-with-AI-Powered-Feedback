@@ -39,6 +39,12 @@ export class ProjectLambdas extends NestedStack {
   public readonly generateCertificate: NodejsFunction;
   public readonly getBudgetSummary: NodejsFunction;
   public readonly getReportUploadUrl: NodejsFunction;
+  // Phase 3 of LIB feature: budget realignment workflow
+  public readonly getBudgetVersion: NodejsFunction;
+  public readonly requestRealignment: NodejsFunction;
+  public readonly reviewRealignment: NodejsFunction;
+  public readonly getRealignment: NodejsFunction;
+  public readonly listRealignments: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
@@ -78,6 +84,13 @@ export class ProjectLambdas extends NestedStack {
     this.reviewFundRequest = simple("review-fund-request", "pms-review-fund-request", "review-fund-request.ts");
     this.generateCertificate = simple("generate-certificate", "pms-generate-certificate", "generate-certificate.ts");
     this.getBudgetSummary = simple("get-budget-summary", "pms-get-budget-summary", "get-budget-summary.ts");
+
+    // Phase 3 of LIB feature: budget realignment workflow
+    this.getBudgetVersion = simple("get-budget-version", "pms-get-budget-version", "get-budget-version.ts");
+    this.requestRealignment = simple("request-realignment", "pms-request-realignment", "request-realignment.ts");
+    this.reviewRealignment = simple("review-realignment", "pms-review-realignment", "review-realignment.ts");
+    this.getRealignment = simple("get-realignment", "pms-get-realignment", "get-realignment.ts");
+    this.listRealignments = simple("list-realignments", "pms-list-realignments", "list-realignments.ts");
 
     // Special: needs SUPABASE_SERVICE_ROLE_KEY, own role
     this.inviteMember = new NodejsFunction(this, "invite-member", {
