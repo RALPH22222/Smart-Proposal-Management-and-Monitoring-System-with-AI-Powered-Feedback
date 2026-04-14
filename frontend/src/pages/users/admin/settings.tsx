@@ -256,17 +256,17 @@ const AdminSettings: React.FC = () => {
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-fade-in">
-      <div className="flex flex-col min-w-0">
+    <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
+      <div className="flex flex-col gap-4 lg:gap-6 min-w-0">
 
       {/* ── Page Header ── */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Settings</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your administrator account, system policies, and security.</p>
-      </div>
+      <header>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Admin Settings</h1>
+        <p className="text-sm text-gray-600 mt-1 lg:text-base">Manage your administrator account, system policies, and security.</p>
+      </header>
 
       {/* ── Profile Header Card ── */}
-      <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 mb-6 text-white shadow-lg">
+      <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 text-white shadow-lg">
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
@@ -300,7 +300,7 @@ const AdminSettings: React.FC = () => {
           {/* Role Badge */}
           <div className="flex sm:flex-col items-center gap-4 sm:gap-2 bg-white/10 rounded-xl px-4 py-3 text-center">
             <div>
-              <div className="text-xl font-bold">System Admin</div>
+              <div className="text-xl font-bold">Admin</div>
               <div className="text-red-200 text-xs">Account Role</div>
             </div>
           </div>
@@ -308,7 +308,7 @@ const AdminSettings: React.FC = () => {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
         <nav className="flex gap-1 px-4 pt-2">
           {TABS.map((t) => (
             <button

@@ -1,6 +1,7 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminSidebar from "../../../components/admin-component/sidebar";
+import AdminFloatingNotification from "../../../components/admin-component/AdminFloatingNotification";
 
 import Dashboard from "./dashboard";
 import Accounts from "./accounts";
@@ -116,9 +117,15 @@ const AdminLayout: React.FC = () => {
       <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-y-auto relative transition-all duration-300" onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}>
-        {renderContent()}
-      </main>
+      <div className="flex-1 h-full flex flex-col min-w-0 relative">
+        <main
+          className="flex-1 overflow-y-auto transition-all duration-300"
+          onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+        >
+          {renderContent()}
+        </main>
+        <AdminFloatingNotification onPageChange={handlePageChange} />
+      </div>
     </div>
   );
 };

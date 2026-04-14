@@ -306,11 +306,10 @@ export default function DashboardRdec() {
   ];
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 overflow-y-auto animate-fade-in">
-      <div className="p-4 sm:p-6">
-        {/* Header */}
-        <header className="pb-4 sm:pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="h-full w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-y-auto animate-fade-in">
+      <div className="px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10">
+        <header className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px]">
                 {displayedText.prefix}
@@ -331,16 +330,14 @@ export default function DashboardRdec() {
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
-        </header>
 
-        {/* Stats Section */}
-        <section className="mb-4 sm:mb-6" aria-labelledby="stats-heading">
-          <h2 id="stats-heading" className="sr-only">
-            Proposal Statistics
-          </h2>
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+          <section aria-labelledby="stats-heading">
+            <h2 id="stats-heading" className="sr-only">
+              Proposal Statistics
+            </h2>
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* First three stats cards */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
               {stats.slice(0, 3).map((stat, index) => {
                 const IconComponent = stat.icon;
                 return (
@@ -395,11 +392,12 @@ export default function DashboardRdec() {
               })()}
             </div>
           </div>
-        </section>
+          </section>
+        </header>
 
         {/* Monthly Reviewed Submissions Section */}
         {monthlyReviews.length > 0 && (
-          <section className="flex flex-col xl:flex-row gap-6 mb-4 sm:mb-6">
+          <section className="flex flex-col xl:flex-row gap-4 lg:gap-6 mb-6">
             <div
               className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
               aria-labelledby="submissions-heading"

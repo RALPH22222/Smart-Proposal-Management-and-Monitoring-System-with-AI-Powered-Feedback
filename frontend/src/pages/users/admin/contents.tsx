@@ -27,7 +27,7 @@ const ContentManagement: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 h-full overflow-hidden animate-fade-in">
+    <div className="flex flex-col gap-4 lg:gap-6 min-h-full h-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden animate-fade-in">
       {/* Header */}
       <header className="flex-shrink-0">
         <h1 className='text-xl sm:text-2xl font-bold text-red-700 mb-2'>
@@ -39,7 +39,7 @@ const ContentManagement: React.FC = () => {
       </header>
 
       {/* Tab Navigation */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6 flex-shrink-0'>
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-shrink-0'>
         <div className='border-b border-gray-200'>
           <nav
             className='flex space-x-4 sm:space-x-6 md:space-x-8 px-3 sm:px-4 md:px-6 overflow-x-auto'

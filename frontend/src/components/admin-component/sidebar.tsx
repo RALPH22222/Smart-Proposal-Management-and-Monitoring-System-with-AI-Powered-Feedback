@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLogos } from "../../context/LogoContext";
-import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck, Bell } from "lucide-react";
+import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
-import { useNotifications } from "../../context/NotificationContext";
-import NotificationsDropdown from "../proponent-component/NotificationsDropdown";
 import SecureImage from "../shared/SecureImage";
-import { formatDateTime } from "../../utils/date-formatter";
 
 interface SidebarProps {
   currentPage: string;
@@ -20,28 +17,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
   const { logos } = useLogos();
 
   const { logout, user } = useAuthContext();
-  const { notifications: rawNotifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement | null>(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotificationsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const dropdownNotifications = rawNotifs.map((n) => ({
-    id: String(n.id),
-    title: n.message,
-    time: formatDateTime(n.created_at),
-    read: n.is_read,
-    link: n.link,
-  }));
 
   const getFullName = () => {
     if (!user) return "User";
@@ -65,15 +40,15 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
 
   const mainLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "activity", label: "Activity Logs", icon: ScrollText },
     { id: "accounts", label: "Accounts", icon: CircleUser },
+    { id: "contents", label: "Contents", icon: File },
+    { id: "lookups", label: "Lookups", icon: Database },
     { id: "proposals", label: "Proposals", icon: FileText },
     { id: "evaluators", label: "Evaluators", icon: Users },
     { id: "endorsements", label: "Endorsements", icon: Gavel },
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },
-    { id: "lookups", label: "Lookups", icon: Database },
-    { id: "contents", label: "Contents", icon: File },
-    { id: "activity", label: "Activity Logs", icon: ScrollText },
   ];
 
   const bottomLinks = [
@@ -166,44 +141,6 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Notification Bell */}
-        <div className="flex-shrink-0 px-4 py-2" ref={notifRef}>
-          <div className="relative">
-            <button
-              onClick={() => setNotificationsOpen((v) => !v)}
-              className="cursor-pointer flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-left text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            >
-              <div className="relative">
-                <Bell className="w-5 h-5 text-gray-500" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#C8102E] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </div>
-              <span className="flex-1">Notifications</span>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-600">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            <NotificationsDropdown
-              isOpen={notificationsOpen}
-              notifications={dropdownNotifications}
-              unreadCount={unreadCount}
-              onClose={() => setNotificationsOpen(false)}
-              onMarkAllRead={markAllAsRead}
-              onMarkRead={(id) => markAsRead([Number(id)])}
-              onViewAll={() => setNotificationsOpen(false)}
-              onNavigate={(link) => {
-                onPageChange(link);
-                setIsMobileMenuOpen(false);
-              }}
-            />
           </div>
         </div>
 

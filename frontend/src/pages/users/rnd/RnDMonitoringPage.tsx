@@ -222,8 +222,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
   return (
     <>
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 w-full lg:h-screen flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
+    <div className="w-full min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

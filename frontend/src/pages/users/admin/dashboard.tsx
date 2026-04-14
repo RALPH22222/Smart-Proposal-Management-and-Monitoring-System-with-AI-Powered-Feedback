@@ -138,16 +138,15 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 min-h-screen overflow-y-auto pb-10 bg-slate-50 animate-fade-in">
-      {/* Header */}
-      <header className="flex-shrink-0 pt-10 sm:pt-0 pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="min-h-screen overflow-y-auto pb-10 px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in flex flex-col gap-4 lg:gap-6">
+      <header className="flex-shrink-0">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#C8102E] leading-tight min-h-[32px]">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#C8102E] leading-tight min-h-[32px]">
               {isReturningUser ? 'Welcome back, ' : 'Welcome to RDEC, '}
               <span className="text-black">{user?.first_name || 'Admin'}</span>!
             </h1>
-            <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+            <p className="text-slate-600 mt-2 text-sm lg:text-base leading-relaxed">
               Admin Dashboard & System Overview
             </p>
           </div>
@@ -161,12 +160,10 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
             {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
-      </header>
 
-      {/* Stats Cards */}
-      <section className="flex-shrink-0" aria-labelledby="stats-heading">
-        <h2 id="stats-heading" className="sr-only">System Statistics</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section aria-labelledby="stats-heading">
+          <h2 id="stats-heading" className="sr-only">System Statistics</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {topCards.map((stat, index) => {
             const IconComponent = stat.icon;
             return (
@@ -192,11 +189,12 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
             );
           })}
         </div>
-      </section>
+        </section>
+      </header>
 
       {/* Monthly Submissions */}
       {stats && stats.proposals.monthly_submissions && stats.proposals.monthly_submissions.length > 0 && (
-        <section className="flex flex-col xl:flex-row gap-6 mb-2">
+        <section className="flex flex-col xl:flex-row gap-4 lg:gap-6">
           <div
             className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
             aria-labelledby="submissions-heading"

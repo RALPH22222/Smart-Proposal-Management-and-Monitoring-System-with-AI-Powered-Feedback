@@ -276,7 +276,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
         : "This will assign this proposal to the least-loaded R&D staff in the matching department.",
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: "#C8102E",
+      confirmButtonColor: "#991B1B",
       confirmButtonText: isBatch ? "Distribute All" : "Distribute",
     });
 
@@ -517,8 +517,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
   return (
     <>
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col p-6 gap-4 sm:gap-6 overflow-hidden">
+      <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -534,7 +534,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             {proposals.filter(p => p.status === 'Pending').length > 0 && (
               <button
                 onClick={() => handleAutoDistribute()}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24] transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-[#991B1B] text-white hover:bg-[#7a1616] transition-all duration-200 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
                 Auto Distribute ({proposals.filter(p => p.status === 'Pending').length})
@@ -653,54 +653,55 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
                       {/* --- COL 2: ACTIONS (Admin Power) --- */}
                       <td className="px-6 py-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center gap-3 w-full min-w-0">
+                          <div className="flex flex-1 min-w-0 items-center justify-end gap-3 flex-wrap">
+                            {/* Status Badge */}
+                            {getStatusBadge(proposal)}
 
-                          {/* Status Badge */}
-                          {getStatusBadge(proposal)}
+                            {/* Auto Distribute single proposal */}
+                            {proposal.status === 'Pending' && !proposal.assignedRdStaff && (
+                              <button
+                                onClick={() => handleAutoDistribute([parseInt(proposal.id)])}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-[#991B1B] text-white hover:bg-[#7a1616]"
+                                title="Auto-distribute to least-loaded R&D staff"
+                              >
+                                <Send className="w-3 h-3" />
+                                Distribute
+                              </button>
+                            )}
 
-                          {/* Eye Button */}
+                            {/* Action Button */}
+                            {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
+                              <button
+                                onClick={() => handleViewProposal(proposal)}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24]"
+                              >
+                                <Pen className="w-3 h-3" />
+                                Action
+                              </button>
+                            )}
+
+                            {/* Change R&D */}
+                            {(proposal.status === 'Under R&D Review' || (proposal.assignedRdStaff && (proposal.status === 'Pending' || proposal.status === 'Revised Proposal'))) && (
+                              <button
+                                onClick={() => handleChangeRdStaff(proposal)}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                              >
+                                <UserCog className="w-3 h-3" />
+                                Change R&D
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Eye — always rightmost */}
                           <button
+                            type="button"
                             onClick={() => handleViewDetails(proposal)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                            className="inline-flex shrink-0 items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
                             title="View details"
                           >
                             <Eye className="w-3 h-3" />
                           </button>
-
-                          {/* Auto Distribute single proposal */}
-                          {proposal.status === 'Pending' && !proposal.assignedRdStaff && (
-                            <button
-                              onClick={() => handleAutoDistribute([parseInt(proposal.id)])}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-emerald-600 text-white hover:bg-emerald-700"
-                              title="Auto-distribute to least-loaded R&D staff"
-                            >
-                              <Send className="w-3 h-3" />
-                              Distribute
-                            </button>
-                          )}
-
-                          {/* Action Button */}
-                          {!proposal.assignedRdStaff && (proposal.status === "Pending" || proposal.status === "Revised Proposal") && (
-                            <button
-                              onClick={() => handleViewProposal(proposal)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-[#C8102E] text-white hover:bg-[#A00C24]"
-                            >
-                              <Pen className="w-3 h-3" />
-                              Action
-                            </button>
-                          )}
-
-                          {/* Change R&D */}
-                          {(proposal.status === 'Under R&D Review' || (proposal.assignedRdStaff && (proposal.status === 'Pending' || proposal.status === 'Revised Proposal'))) && (
-                            <button
-                              onClick={() => handleChangeRdStaff(proposal)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                            >
-                              <UserCog className="w-3 h-3" />
-                              Change R&D
-                            </button>
-                          )}
-
                         </div>
                       </td>
                     </tr>
