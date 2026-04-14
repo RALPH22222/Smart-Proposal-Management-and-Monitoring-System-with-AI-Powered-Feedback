@@ -4,6 +4,9 @@ import Swal from "sweetalert2";
 import { User, LibraryBig, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
 import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
+import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
+import RdecFallbackLogo from "../assets/IMAGES/RDEC.jpg";
+import InstantLogo from "../components/shared/InstantLogo";
 
 interface Department {
   id: number;
@@ -455,8 +458,22 @@ export default function Register() {
           <div className="absolute inset-0 bg-[#C8102E]/85"></div>
           <div className="relative max-w-md text-center space-y-4 md:space-y-6">
             <div className="flex justify-center items-center gap-3">
-              <img src={logos.wmsu_logo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
-              <img src={logos.rdec_logo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-white/10">
+                <InstantLogo
+                  remoteSrc={logos.wmsu_logo}
+                  fallbackSrc={WmsuFallbackLogo}
+                  alt="WMSU Logo"
+                  className="w-full h-full object-contain rounded-full"
+                />
+              </div>
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-white/10">
+                <InstantLogo
+                  remoteSrc={logos.rdec_logo}
+                  fallbackSrc={RdecFallbackLogo}
+                  alt="RDEC Logo"
+                  className="w-full h-full object-contain rounded-full"
+                />
+              </div>
             </div>
             <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
               WMSU Project Proposal

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useLogos } from "../context/LogoContext";
 import type { ContactInfo } from "../schemas/contact-schema";
 import { ContactApi } from "../services/ContactApi";
+import InstantLogo from "./shared/InstantLogo";
+import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
+import RdecFallbackLogo from "../assets/IMAGES/RDEC.jpg";
 
 const Footer: React.FC = () => {
   const { logos } = useLogos();
@@ -27,16 +30,22 @@ const Footer: React.FC = () => {
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <img
-                  src={logos.wmsu_logo}
-                  alt="WMSU Logo"
-                  className="w-12 h-12 object-contain"
-                />
-                <img
-                  src={logos.rdec_logo}
-                  alt="RDEC-WMSU Logo"
-                  className="w-12 h-12 object-contain"
-                />
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10">
+                  <InstantLogo
+                    remoteSrc={logos.wmsu_logo}
+                    fallbackSrc={WmsuFallbackLogo}
+                    alt="WMSU Logo"
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                </div>
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10">
+                  <InstantLogo
+                    remoteSrc={logos.rdec_logo}
+                    fallbackSrc={RdecFallbackLogo}
+                    alt="RDEC-WMSU Logo"
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                </div>
               </div>
               <h5 className="text-xl font-bold mt-2">
                 <span className="text-gray-800">WMSU</span>{' '}

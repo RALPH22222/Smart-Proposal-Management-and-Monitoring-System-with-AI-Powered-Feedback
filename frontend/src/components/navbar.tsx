@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLogos } from '../context/LogoContext';
+import InstantLogo from './shared/InstantLogo';
+import WmsuFallbackLogo from '../assets/IMAGES/WMSU.png';
+import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
 
 const COLORS = {
   brand: "#C8102E",
@@ -129,16 +132,22 @@ const Navbar: React.FC = () => {
               aria-label="Home - WMSU Project Proposal"
             >
               <div className="relative flex items-center gap-2">
-                <img
-                  src={logos.wmsu_logo}
-                  alt="WMSU Project Proposal Logo"
-                  className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
-                />
-                <img
-                  src={logos.rdec_logo}
-                  alt="RDEC-WMSU Logo"
-                  className="h-8 w-8 lg:h-10 lg:w-10 object-contain group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50"
-                />
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50">
+                  <InstantLogo
+                    remoteSrc={logos.wmsu_logo}
+                    fallbackSrc={WmsuFallbackLogo}
+                    alt="WMSU Project Proposal Logo"
+                    className="h-full w-full object-contain rounded-full"
+                  />
+                </div>
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg group-hover:shadow-brand/50">
+                  <InstantLogo
+                    remoteSrc={logos.rdec_logo}
+                    fallbackSrc={RdecFallbackLogo}
+                    alt="RDEC-WMSU Logo"
+                    className="h-full w-full object-contain rounded-full"
+                  />
+                </div>
               </div>
               <div className="flex flex-col leading-tight">
                 <span
