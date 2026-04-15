@@ -5,6 +5,7 @@ import MobileImage from '../assets/IMAGES/Mobile-App.jpg';
 import WmsuFallbackLogo from '../assets/IMAGES/WMSU.png';
 import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
 import { HomeApi } from '../services/HomeApi';
+import { downloadFile } from '../utils/download-helper';
 
 const COLORS = {
   brand: "#C8102E",
@@ -18,6 +19,7 @@ const ApkDownloadPage: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [apkUrl, setApkUrl] = useState<string>('');
   const [isLoadingApk, setIsLoadingApk] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const apkFilename = (() => {
     if (!apkUrl) return 'app.apk';
@@ -41,6 +43,13 @@ const ApkDownloadPage: React.FC = () => {
       })
       .finally(() => setIsLoadingApk(false));
   }, []);
+
+  const handleDownload = async () => {
+    if (!apkUrl || isDownloading) return;
+    setIsDownloading(true);
+    await downloadFile(apkUrl, apkFilename);
+    setIsDownloading(false);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
@@ -100,17 +109,17 @@ const ApkDownloadPage: React.FC = () => {
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading...
                 </span>
               ) : apkUrl ? (
-                <a
-                  href={apkUrl}
-                  download={apkFilename}
-                  className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 md:px-5 md:py-2 lg:px-6 lg:py-3"
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 md:px-5 md:py-2 lg:px-6 lg:py-3 disabled:opacity-70 disabled:cursor-wait"
                   style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
+                  onMouseEnter={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.brand; }}
                 >
-                  <Download className="w-4 h-4" />
-                  Download
-                </a>
+                  {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {isDownloading ? 'Downloading...' : 'Download'}
+                </button>
               ) : (
                 <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 opacity-40 cursor-not-allowed" style={{ backgroundColor: COLORS.brand, color: COLORS.white }}>
                   <Download className="w-4 h-4" /> Unavailable
@@ -120,17 +129,17 @@ const ApkDownloadPage: React.FC = () => {
 
             {/* Mobile Download Button */}
             {apkUrl && (
-              <a
-                href={apkUrl}
-                download={apkFilename}
-                className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+              <button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-70 disabled:cursor-wait"
                 style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
+                onMouseEnter={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.brand; }}
               >
-                <Download className="w-4 h-4" />
-                <span className="text-xs">Get App</span>
-              </a>
+                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span className="text-xs">{isDownloading ? 'Downloading...' : 'Get App'}</span>
+              </button>
             )}
           </div>
         </div>
@@ -179,20 +188,22 @@ const ApkDownloadPage: React.FC = () => {
                   <span>Loading...</span>
                 </button>
               ) : apkUrl ? (
-                <a
-                  href={apkUrl}
-                  download={apkFilename}
-                  className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5"
+                <button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-wait disabled:transform-none"
                   style={{ backgroundColor: '#C8102E' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
+                  onMouseOver={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = '#A00D26'; }}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
                 >
-                  <Download className="w-5 h-5 mr-2" />
-                  <span>Download APK</span>
-                  <svg className="ml-2 w-4 h-4 transition-transform group-hover:translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                  </svg>
-                </a>
+                  {isDownloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Download className="w-5 h-5 mr-2" />}
+                  <span>{isDownloading ? 'Downloading...' : 'Download APK'}</span>
+                  {!isDownloading && (
+                    <svg className="ml-2 w-4 h-4 transition-transform group-hover:translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    </svg>
+                  )}
+                </button>
               ) : (
                 <button disabled className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold shadow-lg text-white opacity-50 cursor-not-allowed" style={{ backgroundColor: '#C8102E' }}>
                   <Download className="w-5 h-5 mr-2" />
