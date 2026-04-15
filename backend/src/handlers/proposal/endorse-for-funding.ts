@@ -94,12 +94,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
               .single();
 
             if (proponent?.email) {
+              const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
               const emailService = new EmailService();
               await emailService.sendNotificationEmail(
                 proponent.email,
                 proponent.first_name || "Proponent",
                 emailSubject,
                 emailBody,
+                "View Proposal",
+                `${frontendUrl}/login`,
               );
             }
           }
@@ -178,12 +181,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
             .single();
 
           if (proponent?.email) {
+            const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
             const emailService = new EmailService();
             await emailService.sendNotificationEmail(
               proponent.email,
               proponent.first_name || "Proponent",
               "Proposal Endorsed for Funding",
-              `Great news! Your proposal "${proposal.project_title}" has been endorsed for funding. Please log in to SPMAMS for details.`,
+              `Great news! Your proposal "${proposal.project_title}" has been endorsed for funding. Sign in to SPMAMS for details.`,
+              "View Proposal",
+              `${frontendUrl}/login`,
             );
           }
         }

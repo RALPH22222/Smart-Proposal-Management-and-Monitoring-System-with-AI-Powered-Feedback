@@ -102,12 +102,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           .single();
 
         if (lead?.email) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
             lead.email,
             lead.first_name || "Proponent",
             `Quarterly Report Verified – ${quarterLabel}`,
-            `Your ${quarterLabel} quarterly report for "${projectTitle}" has been verified and approved by R&D. Please log in to SPMAMS for details.`,
+            `Your ${quarterLabel} quarterly report for "${projectTitle}" has been verified and approved by R&D. Sign in to SPMAMS for details.`,
+            "View Project Monitoring",
+            `${frontendUrl}/login`,
           );
         }
       }

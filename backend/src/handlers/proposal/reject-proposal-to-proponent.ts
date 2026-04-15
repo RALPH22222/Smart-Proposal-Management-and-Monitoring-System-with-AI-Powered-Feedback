@@ -69,12 +69,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           .single();
 
         if (proponent?.email) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
             proponent.email,
             proponent.first_name || "Proponent",
             "Proposal Rejected",
-            `Your proposal "${proposal.project_title}" has been rejected. Please log in to SPMAMS to view the rejection summary.`,
+            `Your proposal "${proposal.project_title}" has been rejected. Sign in to SPMAMS to view the rejection summary.`,
+            "View Feedback",
+            `${frontendUrl}/login`,
           );
         }
       }

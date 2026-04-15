@@ -68,12 +68,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           .single();
 
         if (proponent?.email) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
             proponent.email,
             proponent.first_name || "Proponent",
             "Proposal Revision Required",
-            `Your proposal "${proposal.project_title}" has been sent back for revision. Please log in to SPMAMS to review the feedback and resubmit your proposal.`,
+            `Your proposal "${proposal.project_title}" has been sent back for revision. Sign in to SPMAMS to review the feedback and resubmit your proposal.`,
+            "Review Feedback",
+            `${frontendUrl}/login`,
           );
         }
       }

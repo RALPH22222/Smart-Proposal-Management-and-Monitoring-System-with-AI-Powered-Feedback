@@ -650,12 +650,15 @@ export class ProjectService {
           const inviterName =
             [inviter?.first_name, inviter?.last_name].filter(Boolean).join(" ") ||
             "A project lead";
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
             input.email,
             existingUser.first_name || "Co-lead",
             "Co-Lead Invitation",
-            `${inviterName} has invited you to join "${projectTitle}" as a co-lead. Open Project Monitoring to accept or decline the invitation.`,
+            `${inviterName} has invited you to join "${projectTitle}" as a co-lead. Sign in and open Project Monitoring to accept or decline the invitation.`,
+            "View Invitation",
+            `${frontendUrl}/login`,
           );
         }
       } catch (emailErr) {
@@ -1495,12 +1498,15 @@ export class ProjectService {
         .single();
 
       if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
         const emailService = new EmailService();
         await emailService.sendNotificationEmail(
           proponent.email,
           proponent.first_name || "Proponent",
           `Fund Request ${input.status === "approved" ? "Approved" : "Rejected"}`,
-          `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Please log in to SPMAMS for details.`,
+          `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Sign in to SPMAMS for details.`,
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
         );
       }
     } catch (emailErr) {
@@ -1637,12 +1643,15 @@ export class ProjectService {
         .single();
 
       if (lead?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
         const emailService = new EmailService();
         await emailService.sendNotificationEmail(
           lead.email,
           lead.first_name || "Proponent",
           "Completion Certificate Issued",
-          "Congratulations! A completion certificate has been issued for your project. Please log in to SPMAMS to view it.",
+          "Congratulations! A completion certificate has been issued for your project. Sign in to SPMAMS to view and download it.",
+          "View Certificate",
+          `${frontendUrl}/login`,
         );
       }
     } catch (emailErr) {
