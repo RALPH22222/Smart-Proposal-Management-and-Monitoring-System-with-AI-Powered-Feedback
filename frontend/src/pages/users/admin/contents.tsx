@@ -536,6 +536,9 @@ const MobileAppSection: React.FC = () => {
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
         <FileUpload 
           label="Android Application Package (.apk)"
+          accept=".apk"
+          maxSizeMB={500}
+          helperText="Upload the official WMSU Project Portal .apk file (up to 500MB) for Android users to download."
           currentUrl={homeData?.app_config?.apk_url || ""}
           onUploadSuccess={(url) => setHomeData({
             ...homeData,
@@ -551,7 +554,6 @@ const MobileAppSection: React.FC = () => {
               apk_url: "" 
             }
           })}
-          helperText="Upload the official WMSU Project Portal .apk file for Android users to download."
         />
       </div>
     </div>
