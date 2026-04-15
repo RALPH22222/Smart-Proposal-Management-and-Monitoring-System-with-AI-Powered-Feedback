@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Download } from 'lucide-react';
+import { Download } from 'lucide-react';
+import { BsAndroid2 } from 'react-icons/bs';
 import MobileImage from '../assets/IMAGES/Mobile-App.jpg';
 import WmsuFallbackLogo from '../assets/IMAGES/WMSU.png';
 import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
 
 const COLORS = {
   brand: "#C8102E",
-  brandLight: "#E03A52",
+  brandLight: "#A00D26",
   white: "#FFFFFF",
   charcoal: "#333333",
 };
@@ -150,7 +151,8 @@ const ApkDownloadPage: React.FC = () => {
             </h1>
             
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
-              Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.            </p>
+              Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.
+            </p>
 
             {/* Download Button Only */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -172,9 +174,9 @@ const ApkDownloadPage: React.FC = () => {
             </div>
 
             {/* App info badge */}
-            <div className="flex items-center gap-6 text-sm text-gray-500">
+            <div className="flex items-center gap-6 text-md text-gray-500">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4" />
+                <BsAndroid2 className="w-4 h-4 text-green-600" />
                 <span>Android</span>
               </div>
               <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
@@ -193,8 +195,8 @@ const ApkDownloadPage: React.FC = () => {
               
               <img 
                 src={MobileImage} 
-                alt="REO Mobile App" 
-                className="w-full h-auto object-cover rounded-3xl shadow-2xl brightness-110 contrast-105 animate-float"
+                alt="RDEC Mobile App" 
+                className="w-full h-auto object-cover rounded-4xl shadow-2xl brightness-110 contrast-105 animate-float"
               />
             </div>
           </div>
