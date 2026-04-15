@@ -305,6 +305,15 @@ export default function Login() {
             </div>
           </label>
 
+          <div className="text-right -mt-2">
+            <a
+              href="/forgot-password"
+              className="text-sm font-medium text-gray-600 hover:text-[#C8102E] transition-colors duration-200"
+            >
+              Forgot password?
+            </a>
+          </div>
+
           <div className="flex gap-3">
             <button
               type="submit"
