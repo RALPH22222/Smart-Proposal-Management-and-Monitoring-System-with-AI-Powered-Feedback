@@ -13,10 +13,22 @@ const COLORS = {
   charcoal: "#333333",
 };
 
+
 const ApkDownloadPage: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [apkUrl, setApkUrl] = useState<string>('');
   const [isLoadingApk, setIsLoadingApk] = useState(true);
+
+  const apkFilename = (() => {
+    if (!apkUrl) return 'app.apk';
+    try {
+      const pathname = new URL(apkUrl).pathname;
+      const raw = decodeURIComponent(pathname.split('/').pop() || 'app.apk');
+      return raw.replace(/^\d+-/, '');
+    } catch {
+      return 'app.apk';
+    }
+  })();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -90,7 +102,7 @@ const ApkDownloadPage: React.FC = () => {
               ) : apkUrl ? (
                 <a
                   href={apkUrl}
-                  download
+                  download={apkFilename}
                   className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 md:px-5 md:py-2 lg:px-6 lg:py-3"
                   style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
@@ -110,7 +122,7 @@ const ApkDownloadPage: React.FC = () => {
             {apkUrl && (
               <a
                 href={apkUrl}
-                download
+                download={apkFilename}
                 className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
                 style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
@@ -169,7 +181,7 @@ const ApkDownloadPage: React.FC = () => {
               ) : apkUrl ? (
                 <a
                   href={apkUrl}
-                  download
+                  download={apkFilename}
                   className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5"
                   style={{ backgroundColor: '#C8102E' }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
