@@ -12,6 +12,12 @@ const parseJsonIfString = (val: unknown) => {
   return val;
 };
 
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Za-z]/, "Password must contain at least one letter")
+  .regex(/[0-9]/, "Password must contain at least one number");
+
 const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024; // 2MB
 
 const ALLOWED_PROFILE_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -38,7 +44,7 @@ export const RoleEnum = z.enum(["proponent", "rnd", "evaluator", "rdec", "admin"
 
 export const signUpSchema = z.object({
   email: z.string().email("Email is not valid"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
   first_name: z.string().min(1, "First name is required").max(64, "Response is too long"),
   last_name: z.string().min(1, "Last name is required").max(64, "Response is too long"),
   middle_ini: z.preprocess(
@@ -59,7 +65,7 @@ export const profileSetupSchema = z.object({
 export const signUpWithProfileSchema = z.object({
   // Account fields
   email: z.string().email("Email is not valid"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
   first_name: z.string().min(1, "First name is required").max(64, "Response is too long"),
   last_name: z.string().min(1, "Last name is required").max(64, "Response is too long"),
   middle_ini: z.preprocess(
@@ -77,7 +83,7 @@ export const signUpWithProfileSchema = z.object({
 
 export const changePasswordSchema = z.object({
   current_password: z.string().min(1, "Current password is required"),
-  new_password: z.string().min(6, "New password must be at least 6 characters"),
+  new_password: passwordSchema,
 });
 
 export type Role = z.infer<typeof RoleEnum>;

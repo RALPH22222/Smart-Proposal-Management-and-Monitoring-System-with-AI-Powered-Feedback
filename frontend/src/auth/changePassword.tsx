@@ -3,6 +3,7 @@ import { Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { api } from '../utils/axios';
+import { validatePasswordPolicy } from '../utils/passwordPolicy';
 
 export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState('');
@@ -70,11 +71,12 @@ export default function ChangePassword() {
       });
     }
 
-    if (newPassword.length < 6) {
+    const policyError = validatePasswordPolicy(newPassword);
+    if (policyError) {
       return Swal.fire({
         icon: 'warning',
-        title: 'Password Too Short',
-        text: 'Password must be at least 6 characters.',
+        title: 'Weak Password',
+        text: policyError,
         confirmButtonColor: '#C8102E',
       });
     }
@@ -208,8 +210,14 @@ export default function ChangePassword() {
 
           {newPassword && (
             <div className="text-xs text-gray-500 space-y-1">
-              <p className={newPassword.length >= 6 ? 'text-green-600' : 'text-red-500'}>
-                {newPassword.length >= 6 ? '\u2713' : '\u2717'} At least 6 characters
+              <p className={newPassword.length >= 8 ? 'text-green-600' : 'text-red-500'}>
+                {newPassword.length >= 8 ? '\u2713' : '\u2717'} At least 8 characters
+              </p>
+              <p className={/[A-Za-z]/.test(newPassword) ? 'text-green-600' : 'text-red-500'}>
+                {/[A-Za-z]/.test(newPassword) ? '\u2713' : '\u2717'} Contains a letter
+              </p>
+              <p className={/[0-9]/.test(newPassword) ? 'text-green-600' : 'text-red-500'}>
+                {/[0-9]/.test(newPassword) ? '\u2713' : '\u2717'} Contains a number
               </p>
               <p className={newPassword === confirmPassword && confirmPassword ? 'text-green-600' : 'text-red-500'}>
                 {newPassword === confirmPassword && confirmPassword ? '\u2713' : '\u2717'} Passwords match

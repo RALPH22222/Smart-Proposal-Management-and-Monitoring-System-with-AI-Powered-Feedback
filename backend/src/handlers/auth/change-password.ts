@@ -2,6 +2,7 @@ import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { changePasswordSchema } from "../../schemas/auth-schema";
+import { checkPasswordPwned, PWNED_PASSWORD_MESSAGE } from "../../utils/hibp";
 
 export const handler = buildCorsHeaders(async (event) => {
   try {
@@ -23,6 +24,14 @@ export const handler = buildCorsHeaders(async (event) => {
         body: JSON.stringify({
           message: parsed.error.issues[0]?.message || "Invalid input",
         }),
+      };
+    }
+
+    const pwnedCount = await checkPasswordPwned(parsed.data.new_password);
+    if (pwnedCount !== null) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: PWNED_PASSWORD_MESSAGE }),
       };
     }
 

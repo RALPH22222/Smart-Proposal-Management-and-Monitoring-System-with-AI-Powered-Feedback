@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { User, LibraryBig, Camera, ChevronRight, ChevronLeft, Check, HelpCircle } from "lucide-react";
 import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
+import { validatePasswordPolicy } from "../utils/passwordPolicy";
 import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
 import RdecFallbackLogo from "../assets/IMAGES/RDEC.jpg";
 import InstantLogo from "../components/shared/InstantLogo";
@@ -104,11 +105,12 @@ export default function Register() {
         });
         return;
       }
-      if (password.length < 6) {
+      const policyError = validatePasswordPolicy(password);
+      if (policyError) {
         Swal.fire({
           icon: "warning",
-          title: "Password Too Short",
-          text: "Password must be at least 6 characters.",
+          title: "Weak Password",
+          text: policyError,
           confirmButtonColor: "#C8102E",
         });
         return;
@@ -305,10 +307,24 @@ export default function Register() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password (min. 6 characters)"
+                placeholder="Password (min. 8 characters)"
                 className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200"
               />
             </label>
+
+            {password && (
+              <div className="text-xs text-gray-500 space-y-1">
+                <p className={password.length >= 8 ? "text-green-600" : "text-red-500"}>
+                  {password.length >= 8 ? "\u2713" : "\u2717"} At least 8 characters
+                </p>
+                <p className={/[A-Za-z]/.test(password) ? "text-green-600" : "text-red-500"}>
+                  {/[A-Za-z]/.test(password) ? "\u2713" : "\u2717"} Contains a letter
+                </p>
+                <p className={/[0-9]/.test(password) ? "text-green-600" : "text-red-500"}>
+                  {/[0-9]/.test(password) ? "\u2713" : "\u2717"} Contains a number
+                </p>
+              </div>
+            )}
           </div>
         );
 
