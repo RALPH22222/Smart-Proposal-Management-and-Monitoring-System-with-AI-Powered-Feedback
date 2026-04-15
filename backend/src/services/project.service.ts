@@ -606,6 +606,13 @@ export class ProjectService {
       return { data: null, error: { message: "You cannot invite yourself." } };
     }
 
+    // Derived once — used by both the existing-user notification email and the
+    // Supabase-invite email template data payload for new users.
+    const projectTitle = (project as any).proposal?.project_title || "a funded project";
+    const inviterName =
+      [inviter?.first_name, inviter?.last_name].filter(Boolean).join(" ") ||
+      "A project lead";
+
     // Check if user exists
     const { data: existingUser } = await this.db
       .from("users")
@@ -645,11 +652,6 @@ export class ProjectService {
 
       try {
         if (process.env.SMTP_USER) {
-          const projectTitle =
-            (project as any).proposal?.project_title || "a funded project";
-          const inviterName =
-            [inviter?.first_name, inviter?.last_name].filter(Boolean).join(" ") ||
-            "A project lead";
           const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
@@ -683,7 +685,12 @@ export class ProjectService {
 
       const { data: inviteData, error: inviteError } =
         await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-          data: { roles: ["proponent"] },
+          data: {
+            roles: ["proponent"],
+            invite_type: "colead",
+            project_title: projectTitle,
+            inviter_name: inviterName,
+          },
           redirectTo,
         });
 
