@@ -4,7 +4,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 // Component Imports
 import BasicInformation from "./basicInfo";
 import ResearchDetails from "./researchDetails";
-import BudgetSection, { BudgetBreakdownModal } from "./budgetSection";
+import BudgetSection, { BudgetBreakdownModal, LibImportModal } from "./budgetSection";
 import UploadSidebar from "./uploadSidebar";
 import AIModal from "../../../../components/proponent-component/aiModal";
 import TemplateViewModal from "../../../../components/proponent-component/TemplateViewModal";
@@ -53,6 +53,7 @@ const Submission: React.FC = () => {
   // Lifted Modal States
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeBudgetModal, setActiveBudgetModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
+  const [isLibImportModalOpen, setIsLibImportModalOpen] = useState(false);
 
   // ... (Data State remains the same)
   // ... (Data State remains the same)
@@ -923,6 +924,7 @@ const Submission: React.FC = () => {
                   autoFilledFields={autoFilledFields}
                   onOpenBudgetModal={(itemId: number, category: 'ps' | 'mooe' | 'co') => setActiveBudgetModal({ itemId, category })}
                   onLibImport={handleLibImport}
+                  onOpenLibImport={() => setIsLibImportModalOpen(true)}
                 />
               )}
 
@@ -988,6 +990,16 @@ const Submission: React.FC = () => {
           activeModal={activeBudgetModal}
           onClose={() => setActiveBudgetModal(null)}
           onBudgetItemUpdate={updateBudgetItem}
+        />
+      )}
+
+      {isLibImportModalOpen && (
+        <LibImportModal
+          onClose={() => setIsLibImportModalOpen(false)}
+          onImport={(grouped, sourceName) => {
+            handleLibImport(grouped, sourceName);
+            setIsLibImportModalOpen(false);
+          }}
         />
       )}
     </>

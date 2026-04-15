@@ -10,6 +10,7 @@ import LandingPage from "./pages/landingpage";
 import About from "./pages/aboutpage";
 import Contacts from "./pages/contacts";
 import FAQ from "./pages/faqs";
+import ApkDownloadPage from "./pages/ApkDownloadPage";
 
 // Admin
 import AdminMainLayout from "./pages/users/admin/AdminMainLayout";
@@ -50,6 +51,7 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/faqs" element={<FAQ />} />
+              <Route path="/download" element={<ApkDownloadPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
             </Route>

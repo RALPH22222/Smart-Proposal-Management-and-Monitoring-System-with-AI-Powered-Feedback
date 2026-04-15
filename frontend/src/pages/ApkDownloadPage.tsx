@@ -1,0 +1,207 @@
+import React, { useState, useEffect } from 'react';
+import { Smartphone, Download } from 'lucide-react';
+import MobileImage from '../assets/IMAGES/Mobile-App.jpg';
+import WmsuFallbackLogo from '../assets/IMAGES/WMSU.png';
+import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
+
+const COLORS = {
+  brand: "#C8102E",
+  brandLight: "#E03A52",
+  white: "#FFFFFF",
+  charcoal: "#333333",
+};
+
+const ApkDownloadPage: React.FC = () => {
+  const apkDownloadUrl = 'https://drive.google.com/file/d/1eKZ6L0kTautB4zXGGW_OAlcL1pPm6AJf/view?usp=drive_link';
+
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
+      {/* Custom Navbar - Inverted colors (white bg, red text/buttons) */}
+      <nav className="fixed top-0 w-full z-50 shadow-lg bg-white">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            {/* Logo and Title */}
+            <a
+              href="/"
+              className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brand/30 rounded-md"
+            >
+              <div className="relative flex items-center gap-2">
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
+                  <img
+                    src={WmsuFallbackLogo}
+                    alt="WMSU Logo"
+                    className="h-full w-full object-contain rounded-full"
+                  />
+                </div>
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
+                  <img
+                    src={RdecFallbackLogo}
+                    alt="RDEC Logo"
+                    className="h-full w-full object-contain rounded-full"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span
+                  className="text-base lg:text-lg font-bold tracking-tight"
+                  style={{ color: COLORS.brand }}
+                >
+                  <span className="hidden min-[321px]:inline">WMSU  </span>
+                  <span> Mobile App</span>
+                </span>
+                <span
+                  className="text-xs lg:text-sm opacity-80 hidden lg:block"
+                  style={{ color: COLORS.charcoal }}
+                >
+                  Research Development & Evaluation Center
+                </span>
+              </div>
+            </a>
+
+            {/* Nav Links - Desktop */}
+            <div className="hidden md:flex items-center space-x-1 pr-4">
+              <a
+                href="/about"
+                className="relative px-4 py-2 font-medium transition-all duration-300 text-gray-600 hover:text-[#C8102E] group focus:outline-none focus:ring-2 focus:ring-brand/30 rounded-md"
+              >
+                Learn More
+                <span className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 w-0 bg-[#C8102E] group-hover:w-full" />
+              </a>
+              <a
+                href={apkDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 md:px-5 md:py-2 lg:px-6 lg:py-3"
+                style={{
+                  backgroundColor: COLORS.brand,
+                  color: COLORS.white,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.brandLight;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = COLORS.brand;
+                }}
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </a>
+            </div>
+
+            {/* Mobile Download Button */}
+            <a
+              href={apkDownloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30"
+              style={{
+                backgroundColor: COLORS.brand,
+                color: COLORS.white,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = COLORS.brandLight;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = COLORS.brand;
+              }}
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs">Get App</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+      
+      {/* Hero Section */}
+      <section className="pt-24 pb-16 bg-gradient-to-br from-white via-white to-gray-50 relative overflow-hidden">
+        {/* Animated background shapes */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-red-50 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+
+        <div className={`max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          
+          {/* Left Column - Content */}
+          <div className="order-2 lg:order-1">
+            {/* Clearer Back to Home Button */}
+            <a
+              href="/"
+              className="inline-flex items-center gap-3 px-5 py-3 rounded-full text-sm font-semibold text-gray-700 bg-white border-2 border-gray-200 shadow-sm transition-all duration-300 hover:bg-red-50 hover:text-[#C8102E] hover:border-red-300 hover:shadow-lg hover:-translate-y-1 group mb-6"
+            >
+              <div className="w-4 h-4 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center transition-colors duration-300">
+                <svg className="w-4 h-4 text-gray-600 group-hover:text-[#C8102E] transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </div>
+              <span className="font-semibold">Back to Home</span>
+            </a>
+
+            <h1 className="text-4xl md:text-5xl lg:text-5xl font-bold leading-tight mb-6">
+              <span className="text-transparent bg-clip-text">
+                <span className="text-gray-800 block">Project Proposal </span>
+                <span className="text-[#C8102E] block">Mobile App</span>
+              </span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
+              Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.            </p>
+
+            {/* Download Button Only */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <a
+                href={apkDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5"
+                style={{ backgroundColor: '#C8102E' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#A00D26'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
+              >
+                <Download className="w-5 h-5 mr-2" />
+                <span>Download APK</span>
+                <svg className="ml-2 w-4 h-4 transition-transform group-hover:translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+              </a>
+            </div>
+
+            {/* App info badge */}
+            <div className="flex items-center gap-6 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4" />
+                <span>Android</span>
+              </div>
+              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+              <span>Latest Version</span>
+              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+              <span>Free Download</span>
+            </div>
+          </div>
+
+          {/* Right Column - App Image */}
+          <div className={`order-1 lg:order-2 relative transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+            <div className="relative mx-auto max-w-sm">
+              {/* Decorative elements */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-red-100 rounded-full opacity-70 -z-10 animate-float"></div>
+              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-red-50 rounded-full opacity-60 -z-10 animate-float animation-delay-2000"></div>
+              
+              <img 
+                src={MobileImage} 
+                alt="REO Mobile App" 
+                className="w-full h-auto object-cover rounded-3xl shadow-2xl brightness-110 contrast-105 animate-float"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default ApkDownloadPage;

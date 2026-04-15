@@ -6,12 +6,12 @@ import {
   FaCalculator,
   FaCoins,
   FaListUl,
-  FaTimes,
   FaFileWord,
-  FaMagic,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaMagic
 } from 'react-icons/fa';
+import { X, Sparkles } from 'lucide-react';
 import type { ExpenseItem, FormData, BudgetItem, BudgetSubcategory } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
 import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
@@ -35,6 +35,7 @@ interface BudgetSectionProps {
     grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] },
     sourceName: string,
   ) => void;
+  onOpenLibImport: () => void;
   autoFilledFields?: Set<string>;
 }
 
@@ -48,10 +49,9 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemRemove,
   onBudgetItemUpdate,
   onOpenBudgetModal,
-  onLibImport,
+  onOpenLibImport,
   autoFilledFields = new Set(),
 }) => {
-  const [showLibImport, setShowLibImport] = useState(false);
 
   const formatCurrency = (amount: number) => {
     const num = Number(amount) || 0;
@@ -98,10 +98,10 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           Add funding sources. For each category (PS, MOOE, CO), click the list icon to add line items with quantity, unit, and unit price.
           <span className="block mt-1 text-xs text-blue-700">Tip: already have a Line-Item Budget Word document? Click <strong>Generate from LIB</strong> to import it instead of typing.</span>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col gap-2 w-full sm:w-auto">
           <button
             type="button"
-            onClick={() => setShowLibImport(true)}
+            onClick={onOpenLibImport}
             className="w-full sm:w-auto px-5 py-3 text-[#C8102E] bg-white border-2 border-[#C8102E] font-semibold rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
           >
             <FaMagic className="w-4 h-4" />
@@ -118,16 +118,6 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           </button>
         </div>
       </div>
-
-      {showLibImport && (
-        <LibImportModal
-          onClose={() => setShowLibImport(false)}
-          onImport={(grouped, sourceName) => {
-            onLibImport(grouped, sourceName);
-            setShowLibImport(false);
-          }}
-        />
-      )}
 
       <div className="space-y-4">
         {formData.budgetItems.map((item, index) => {
@@ -405,25 +395,39 @@ export const BudgetBreakdownModal: React.FC<{
   const breakdownTotal = sumLineTotals(currentBreakdown);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2">
-            <FaListUl className="text-[#C8102E]" />
-            {activeModal.category.toUpperCase()} Line Items
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <FaTimes className="text-gray-500" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl min-h-[500px] max-h-[95vh] flex flex-col overflow-hidden relative">
+        {/* --- HEADER --- */}
+        <div className="relative bg-white border-b border-gray-100 px-6 sm:px-8 py-5 shrink-0">
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all duration-200"
+          >
+            <X className="w-5 h-5" />
           </button>
+
+          <div className="flex items-center gap-3 pr-8">
+            <div className="bg-red-50 p-2.5 rounded-xl border border-red-100">
+              <FaListUl className="w-5 h-5 text-[#C8102E]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
+                {activeModal.category.toUpperCase()} Line Items
+              </h2>
+              <p className="text-slate-500 text-xs mt-0.5 font-normal">
+                Manage detailed breakdown for this budget source
+              </p>
+            </div>
+          </div>
         </div>
 
         {subError && (
           <div className="px-4 py-2 bg-amber-50 text-amber-800 text-xs border-b border-amber-100">{subError}</div>
         )}
 
-        <div className="p-4 overflow-y-auto flex-1 space-y-3">
+        <div className="flex-1 bg-slate-50 px-3 py-4 overflow-y-auto space-y-2">
           {currentBreakdown.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
+            <div className="text-center py-6 text-gray-400 text-sm">
               No line items added yet. Click "Add Item" to start.
             </div>
           ) : (
@@ -432,7 +436,7 @@ export const BudgetBreakdownModal: React.FC<{
               return (
                 <div
                   key={row.uid ?? idx}
-                  className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group animate-in slide-in-from-bottom-2"
+                  className="bg-white border border-gray-200 rounded-xl p-2.5 shadow-sm group animate-in slide-in-from-bottom-2"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-7 h-7 mt-1 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">{idx + 1}</div>
@@ -560,11 +564,20 @@ export const BudgetBreakdownModal: React.FC<{
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-          <div className="text-sm font-semibold text-gray-700">
+        <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0 gap-3">
+          <div className="mr-auto text-sm font-semibold text-gray-700">
             {activeModal.category.toUpperCase()} Total: <span className="text-[#C8102E] font-mono">{formatCurrency(breakdownTotal)}</span>
           </div>
-          <button onClick={handleAddBreakdownItem} className="px-4 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] flex items-center gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={handleAddBreakdownItem}
+            className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
+          >
             <FaPlus className="w-3 h-3" /> Add Item
           </button>
         </div>
@@ -721,29 +734,43 @@ export const LibImportModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh]">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <FaMagic className="w-5 h-5" />
-            Generate from LIB document
-          </h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
-            <FaTimes className="w-5 h-5" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col overflow-hidden relative m-auto">
+        {/* --- HEADER --- */}
+        <div className="relative bg-white border-b border-gray-100 px-6 sm:px-8 py-5 shrink-0">
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-all duration-200"
+          >
+            <X className="w-5 h-5" />
           </button>
+
+          <div className="flex items-center gap-3 pr-8">
+            <div className="bg-red-50 p-2.5 rounded-xl border border-red-100">
+              <Sparkles className="w-5 h-5 text-[#C8102E]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
+                Generate from LIB document
+              </h2>
+              <p className="text-slate-500 text-xs mt-0.5 font-normal">
+                Import budget items from your Word (.docx) file
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="bg-slate-50 overflow-y-auto px-4 py-6 space-y-2 relative">
           {/* File picker */}
           {!result && !parsing && (
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-10 text-center hover:border-[#C8102E] transition-colors">
-              <FaFileWord className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-3 text-center hover:border-[#C8102E] transition-colors">
+              <FaFileWord className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
               <p className="text-gray-600 font-medium mb-1">Upload your Line-Item Budget document</p>
-              <p className="text-xs text-gray-400 mb-4">Word .docx format. Maximum size 5 MB.</p>
+              <p className="text-xs text-gray-400 mb-2">Word .docx format. Maximum size 5 MB.</p>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-2.5 bg-[#C8102E] text-white rounded-lg font-medium hover:bg-[#a00c24] transition-colors"
+                className="px-5 py-2 bg-[#C8102E] text-white rounded-lg font-medium hover:bg-[#a00c24] transition-colors"
               >
                 Choose file
               </button>
@@ -759,10 +786,9 @@ export const LibImportModal: React.FC<{
 
           {/* Parsing state */}
           {parsing && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#C8102E] mb-3" />
+            <div className="text-center py-6">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-[#C8102E] mb-2" />
               <p className="text-gray-600 font-medium">Parsing your LIB document...</p>
-              <p className="text-xs text-gray-400">Reading tables, classifying line items.</p>
             </div>
           )}
 
@@ -778,42 +804,41 @@ export const LibImportModal: React.FC<{
           {result && stats && (
             <>
               {/* Summary stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Items parsed</p>
-                  <p className="text-2xl font-black text-slate-800 mt-1">{result.items.length}</p>
+                  <p className="text-lg font-black text-slate-800 mt-0.5">{result.items.length}</p>
                 </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-green-600 flex items-center gap-1">
                     <FaCheckCircle className="w-3 h-3" /> Confident
                   </p>
-                  <p className="text-2xl font-black text-green-700 mt-1">{stats.high + stats.medium}</p>
+                  <p className="text-lg font-black text-green-700 mt-0.5">{stats.high + stats.medium}</p>
                 </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 flex items-center gap-1">
                     <FaExclamationTriangle className="w-3 h-3" /> Needs review
                   </p>
-                  <p className="text-2xl font-black text-amber-700 mt-1">{stats.low}</p>
+                  <p className="text-lg font-black text-amber-700 mt-0.5">{stats.low}</p>
                 </div>
-                <div className="bg-[#C8102E]/5 border border-[#C8102E]/20 rounded-lg p-3">
+                <div className="bg-[#C8102E]/5 border border-[#C8102E]/20 rounded-lg p-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#C8102E]">Total amount</p>
-                  <p className="text-lg font-black text-[#C8102E] mt-1 truncate" title={formatPHP(stats.totalAmount)}>
+                  <p className="text-base font-black text-[#C8102E] mt-0.5 truncate" title={formatPHP(stats.totalAmount)}>
                     {formatPHP(stats.totalAmount)}
                   </p>
                 </div>
               </div>
 
               {/* Detected category badges */}
-              <div className="flex flex-wrap gap-2 text-xs">
+              <div className="flex flex-wrap gap-1.5 text-xs">
                 <span className="font-bold text-gray-500">Categories detected:</span>
                 {(['ps', 'mooe', 'co'] as const).map((cat) => (
                   <span
                     key={cat}
-                    className={`px-2 py-0.5 rounded-full border ${
-                      result.detected.categories[cat]
+                    className={`px-2 py-0.5 rounded-full border ${result.detected.categories[cat]
                         ? 'bg-green-50 border-green-200 text-green-700'
                         : 'bg-gray-50 border-gray-200 text-gray-400 line-through'
-                    }`}
+                      }`}
                   >
                     {cat.toUpperCase()}
                   </span>
@@ -827,8 +852,8 @@ export const LibImportModal: React.FC<{
 
               {/* Warnings list */}
               {result.warnings.length > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                  <p className="font-bold mb-1 flex items-center gap-1">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-1.5 text-sm text-amber-800">
+                  <p className="font-bold mb-0.5 flex items-center gap-1 text-xs">
                     <FaExclamationTriangle className="w-3 h-3" /> Parser warnings
                   </p>
                   <ul className="list-disc list-inside space-y-0.5 text-xs">
@@ -850,21 +875,21 @@ export const LibImportModal: React.FC<{
                   onChange={(e) => setSourceName(e.target.value)}
                   placeholder="e.g. GAA, LGUs, Industry"
                   maxLength={100}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">
+                <p className="text-[11px] text-gray-400 mt-0.5">
                   LIB documents don't always specify the funding source — pre-filled from the file name.
                 </p>
               </div>
 
               {/* Include low confidence toggle */}
               {stats.low > 0 && (
-                <label className="flex items-start gap-2 text-sm cursor-pointer select-none">
+                <label className="flex items-start gap-2 text-xs cursor-pointer select-none -mx-1 px-1">
                   <input
                     type="checkbox"
                     checked={includeLowConfidence}
                     onChange={(e) => setIncludeLowConfidence(e.target.checked)}
-                    className="mt-1"
+                    className="mt-0.5"
                   />
                   <span>
                     Also import the <strong>{stats.low}</strong> low-confidence row{stats.low === 1 ? '' : 's'} (you'll need to fix them manually after import).
@@ -875,12 +900,12 @@ export const LibImportModal: React.FC<{
               {/* Item preview table — read only; the existing BudgetBreakdownModal handles editing post-import */}
               {itemsToImport.length > 0 ? (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600 border-b border-gray-200">
+                  <div className="bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-600 border-b border-gray-200">
                     Preview ({itemsToImport.length} item{itemsToImport.length === 1 ? '' : 's'})
                   </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                  <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
                     {itemsToImport.map((it: ParsedLibItemDto, idx) => (
-                      <div key={idx} className="p-2 text-xs hover:bg-gray-50 grid grid-cols-12 gap-2 items-center">
+                      <div key={idx} className="p-1.5 text-xs hover:bg-gray-50 grid grid-cols-12 gap-2 items-center">
                         <span className="col-span-1 font-bold text-gray-500 uppercase">{it.category}</span>
                         <span className="col-span-5 truncate font-medium text-gray-700">
                           {it.itemName}
@@ -901,7 +926,7 @@ export const LibImportModal: React.FC<{
                   </div>
                 </div>
               ) : (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm">
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-2 text-sm">
                   No items selected for import. Try enabling low-confidence rows above.
                 </div>
               )}
@@ -909,11 +934,11 @@ export const LibImportModal: React.FC<{
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center gap-3">
+        {/* --- FOOTER --- */}
+        <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0 gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>
@@ -921,9 +946,16 @@ export const LibImportModal: React.FC<{
             <button
               onClick={handleImport}
               disabled={importing || itemsToImport.length === 0 || !sourceName.trim()}
-              className="px-5 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {importing ? 'Importing...' : `Import ${itemsToImport.length} item${itemsToImport.length === 1 ? '' : 's'}`}
+              {importing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                `Import ${itemsToImport.length} item${itemsToImport.length === 1 ? '' : 's'}`
+              )}
             </button>
           )}
         </div>
