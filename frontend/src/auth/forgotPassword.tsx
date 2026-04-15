@@ -68,20 +68,22 @@ export default function ForgotPassword() {
         <div className="px-8 pt-8 pb-4">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#C8102E] transition-colors mb-4"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-600 bg-gray-50 border border-gray-100 transition-all duration-300 hover:bg-red-50 hover:text-[#C8102E] hover:border-red-200 hover:shadow-md hover:-translate-y-0.5 group mb-4"
           >
-            <ArrowLeft size={16} />
-            Back to sign in
+            <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-red-100 flex items-center justify-center transition-colors duration-300">
+              <ArrowLeft size={14} className="text-gray-500 group-hover:text-[#C8102E] transition-colors duration-300" />
+            </div>
+            <span>Back to sign in</span>
           </Link>
 
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-full bg-red-50 text-[#C8102E]">
-              <Mail size={24} />
+          <div className="flex flex-col items-center text-center gap-3 mb-2">
+            <div className="p-3 rounded-xl bg-red-50 text-[#C8102E]">
+              <Mail size={27} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Forgot Password</h2>
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Forgot Password?</h2>
               <p className="text-gray-500 text-sm mt-0.5">
-                We'll email you a link to reset it.
+                No worries! Just enter your email below and we'll send you a password reset link.
               </p>
             </div>
           </div>
@@ -94,7 +96,7 @@ export default function ForgotPassword() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="Enter your registered email"
               disabled={loading || sent}
               className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white disabled:bg-gray-50"
             />
@@ -103,14 +105,14 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={loading || sent}
-            className="w-full py-3 bg-[#C8102E] text-white rounded-xl font-bold text-sm shadow-md hover:bg-[#A50D26] hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="w-full py-3 bg-[#C8102E] text-white rounded-xl font-semibold text-md shadow-md hover:bg-[#A50D26] hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {loading ? "Sending..." : sent ? "Email sent" : "Send reset link"}
+            {loading ? "Sending..." : sent ? "Email sent" : "Send Reset link"}
           </button>
         </form>
 
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">
+          <p className="text-sm text-gray-400 text-center">
             Remembered your password?{" "}
             <Link to="/login" className="text-[#C8102E] font-semibold hover:underline">
               Sign in

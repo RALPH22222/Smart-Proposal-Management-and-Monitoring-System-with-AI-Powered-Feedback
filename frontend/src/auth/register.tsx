@@ -484,14 +484,14 @@ export default function Register() {
           </div>
 
           {/* Image Attribution */}
-          <div className="absolute bottom-4 left-4 md:left-auto md:right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-left md:text-right max-w-[200px] md:max-w-none">
+          {/* <div className="absolute bottom-4 left-4 md:left-auto md:right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-left md:text-right max-w-[200px] md:max-w-none">
             <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
               via Wikimedia Commons
             </a>, licensed under{" "}
             <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
               CC BY-SA 4.0
             </a>.
-          </div>
+          </div> */}
         </div>
 
         {/* Form Section */}

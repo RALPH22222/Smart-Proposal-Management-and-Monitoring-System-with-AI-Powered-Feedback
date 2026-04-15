@@ -260,7 +260,7 @@ export default function Login() {
             <span>Back to Home</span>
           </a>
 
-          <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
+          <h2 className="text-2xl font-bold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
             Sign in
           </h2>
           <p className="text-sm text-gray-600">Use your institutional account or continue with Google.</p>
@@ -386,14 +386,14 @@ export default function Login() {
         </div>
 
         {/* Image Attribution */}
-        <div className="absolute bottom-4 right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-right max-w-[200px] md:max-w-none">
+        {/* <div className="absolute bottom-4 right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-right max-w-[200px] md:max-w-none">
           <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
             via Wikimedia Commons
           </a>, licensed under{" "}
           <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
             CC BY-SA 4.0
           </a>.
-        </div>
+        </div> */}
       </div>
 
       {/* --- MULTI-ROLE SELECTION MODAL --- */}
