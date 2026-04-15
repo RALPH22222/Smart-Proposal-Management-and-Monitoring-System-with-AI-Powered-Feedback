@@ -7,14 +7,6 @@ import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
 import { HomeApi } from '../services/HomeApi';
 import { downloadFile } from '../utils/download-helper';
 
-const COLORS = {
-  brand: "#C8102E",
-  brandLight: "#A00D26",
-  white: "#FFFFFF",
-  charcoal: "#333333",
-};
-
-
 const ApkDownloadPage: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [apkUrl, setApkUrl] = useState<string>('');
@@ -54,23 +46,23 @@ const ApkDownloadPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
       {/* Custom Navbar - Inverted colors (white bg, red text/buttons) */}
-      <nav className="fixed top-0 w-full z-50 shadow-lg bg-white">
+      <nav className="fixed top-0 w-full z-50 shadow-lg" style={{ backgroundColor: 'rgb(200, 16, 46)' }}>
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo and Title */}
             <a
               href="/"
-              className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-brand/30 rounded-md"
+              className="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-white/30 rounded-md"
             >
               <div className="relative flex items-center gap-2">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
                   <img
                     src={WmsuFallbackLogo}
                     alt="WMSU Logo"
                     className="h-full w-full object-contain rounded-full"
                   />
                 </div>
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-red-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full overflow-hidden bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 group-hover:shadow-lg">
                   <img
                     src={RdecFallbackLogo}
                     alt="RDEC Logo"
@@ -80,15 +72,13 @@ const ApkDownloadPage: React.FC = () => {
               </div>
               <div className="flex flex-col leading-tight">
                 <span
-                  className="text-base lg:text-lg font-bold tracking-tight"
-                  style={{ color: COLORS.brand }}
+                  className="text-base lg:text-lg font-bold tracking-tight text-white"
                 >
                   <span className="hidden min-[321px]:inline">WMSU  </span>
                   <span> Mobile App</span>
                 </span>
                 <span
-                  className="text-xs lg:text-sm opacity-80 hidden lg:block"
-                  style={{ color: COLORS.charcoal }}
+                  className="text-xs lg:text-sm opacity-80 hidden lg:block text-white/90"
                 >
                   Research Development & Evaluation Center
                 </span>
@@ -99,29 +89,26 @@ const ApkDownloadPage: React.FC = () => {
             <div className="hidden md:flex items-center space-x-1 pr-4">
               <a
                 href="/about"
-                className="relative px-4 py-2 font-medium transition-all duration-300 text-gray-600 hover:text-[#C8102E] group focus:outline-none focus:ring-2 focus:ring-brand/30 rounded-md"
+                className="relative px-4 py-2 font-medium transition-all duration-300 text-white/90 hover:text-white group focus:outline-none focus:ring-2 focus:ring-white/30 rounded-md"
               >
                 Learn More
-                <span className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 w-0 bg-[#C8102E] group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 w-0 bg-white group-hover:w-full" />
               </a>
               {isLoadingApk ? (
-                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 opacity-60" style={{ backgroundColor: COLORS.brand, color: COLORS.white }}>
+                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 bg-white/10 text-white animate-pulse">
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading...
                 </span>
               ) : apkUrl ? (
                 <button
                   onClick={handleDownload}
                   disabled={isDownloading}
-                  className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 md:px-5 md:py-2 lg:px-6 lg:py-3 disabled:opacity-70 disabled:cursor-wait"
-                  style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
-                  onMouseEnter={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.brand; }}
+                  className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/30 md:px-5 md:py-2 lg:px-6 lg:py-3 disabled:opacity-70 disabled:cursor-wait bg-white text-[#C8102E] hover:bg-gray-100"
                 >
                   {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   {isDownloading ? 'Downloading...' : 'Download'}
                 </button>
               ) : (
-                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 opacity-40 cursor-not-allowed" style={{ backgroundColor: COLORS.brand, color: COLORS.white }}>
+                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 opacity-50 cursor-not-allowed bg-white/10 text-white">
                   <Download className="w-4 h-4" /> Unavailable
                 </span>
               )}
@@ -132,10 +119,7 @@ const ApkDownloadPage: React.FC = () => {
               <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-70 disabled:cursor-wait"
-                style={{ backgroundColor: COLORS.brand, color: COLORS.white }}
-                onMouseEnter={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = COLORS.brandLight; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = COLORS.brand; }}
+                className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-70 disabled:cursor-wait bg-white text-[#C8102E]"
               >
                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 <span className="text-xs">{isDownloading ? 'Downloading...' : 'Get App'}</span>
@@ -146,7 +130,7 @@ const ApkDownloadPage: React.FC = () => {
       </nav>
       
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-br from-white via-white to-gray-50 relative overflow-hidden">
+      <section className="pt-10 pb-16 bg-gradient-to-br from-white via-white to-gray-50 relative overflow-hidden flex-1 flex items-center">
         {/* Animated background shapes */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
         <div className="absolute top-40 right-10 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
@@ -169,14 +153,12 @@ const ApkDownloadPage: React.FC = () => {
               <span className="font-semibold">Back to Home</span>
             </a>
 
-            <h1 className="text-4xl md:text-5xl lg:text-5xl font-bold leading-tight mb-6">
-              <span className="text-transparent bg-clip-text">
-                <span className="text-gray-800 block">Project Proposal </span>
-                <span className="text-[#C8102E] block">Mobile App</span>
-              </span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+              <span className="text-gray-800 block">Project Proposal </span>
+              <span className="text-[#C8102E] block">Mobile App</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
               Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.
             </p>
 
@@ -191,7 +173,7 @@ const ApkDownloadPage: React.FC = () => {
                 <button
                   onClick={handleDownload}
                   disabled={isDownloading}
-                  className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-wait disabled:transform-none"
+                  className="group inline-flex items-center justify-center px-8 py-4 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl text-white focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-wait disabled:transform-none cursor-pointer"
                   style={{ backgroundColor: '#C8102E' }}
                   onMouseOver={(e) => { if (!isDownloading) e.currentTarget.style.backgroundColor = '#A00D26'; }}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#C8102E'}
@@ -225,17 +207,17 @@ const ApkDownloadPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column - App Image */}
-          <div className={`order-1 lg:order-2 relative transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-            <div className="relative mx-auto max-w-sm">
+          {/* Right Column - App Image Area */}
+          <div className={`order-1 lg:order-2 relative transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+            <div className="relative mx-auto max-w-[280px]">
               {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-red-100 rounded-full opacity-70 -z-10 animate-float"></div>
-              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-red-50 rounded-full opacity-60 -z-10 animate-float animation-delay-2000"></div>
+              <div className="absolute -top-4 -right-4 w-20 h-20 bg-red-100 rounded-full opacity-70 -z-10 animate-float"></div>
+              <div className="absolute -bottom-6 -left-6 w-28 h-28 bg-red-50 rounded-full opacity-60 -z-10 animate-float animation-delay-2000"></div>
               
               <img 
                 src={MobileImage} 
                 alt="RDEC Mobile App" 
-                className="w-full h-auto object-cover rounded-4xl shadow-2xl brightness-110 contrast-105 animate-float"
+                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float border-4 border-gray-900 bg-gray-900"
               />
             </div>
           </div>
