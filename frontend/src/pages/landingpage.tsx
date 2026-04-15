@@ -481,11 +481,11 @@ const LandingPage: React.FC = () => {
               <MobileCardSwap steps={homeData.process_steps} />
 
               {/* Tablet and Desktop: CardSwap */}
-              <div className="hidden sm:flex mt-8 items-center justify-center">
+              <div className="hidden sm:flex mt-14 items-center justify-center">
                 <div className="relative h-[320px] w-full max-w-md overflow-visible">
                   <CardSwap
-                    cardDistance={30}
-                    verticalDistance={40}
+                    cardDistance={35}
+                    verticalDistance={30}
                     delay={5000}
                     pauseOnHover={true}
                     skewAmount={5}

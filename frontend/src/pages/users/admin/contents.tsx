@@ -4,7 +4,7 @@ import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
 import { LogosSection } from "./components/LogosSection";
-import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered } from 'lucide-react';
+import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered, Smartphone } from 'lucide-react';
 import { HomeApi } from "../../../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
@@ -18,6 +18,7 @@ const ContentManagement: React.FC = () => {
   const tabs = [
     { id: 'guidelines', label: 'Guidelines & Resources', icon: ClipboardList },
     { id: 'templates', label: 'Proposal Templates', icon: FileText },
+    { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
     { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
     { id: 'home', label: 'Home Page', icon: Home },
     { id: 'about', label: 'About Page', icon: Info },
@@ -66,6 +67,7 @@ const ContentManagement: React.FC = () => {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-1 overflow-y-auto'>
         {activeTab === 'guidelines' && <GuidelinesSection />}
         { activeTab === 'templates' && <TemplatesSection />}
+        { activeTab === 'mobileapp' && <MobileAppSection />}
         { activeTab === 'howitworks' && <HowItWorksSection />}
         { activeTab === 'home' && <HomeSection />}
         { activeTab === 'about' && <AboutSection />}
@@ -462,6 +464,96 @@ const MediaLibrarySection: React.FC = () => {
   return (
     <div className='p-4 sm:p-6'>
       <LogosSection />
+    </div>
+  );
+};
+
+// Mobile App Download Section
+const MobileAppSection: React.FC = () => {
+  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await HomeApi.getHomeInfo();
+        setHomeData({
+          ...DEFAULT_HOME_INFO,
+          ...(data || {}),
+          app_config: {
+            ...DEFAULT_HOME_INFO.app_config,
+            ...(data?.app_config || {})
+          }
+        });
+      } catch (error) {
+        toast.error("Failed to load app config.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await HomeApi.updateHomeInfo(homeData);
+      toast.success("Mobile App link updated successfully!");
+    } catch (error) {
+      toast.error("Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
+  }
+
+  return (
+    <div className='p-4 sm:p-6'>
+      <Toaster position="top-right" />
+      
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8'>
+        <div>
+          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
+            Mobile App Distribution
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Upload the .apk file here. Users will be able to download it directly from the public interfaces.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className='bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-all font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md disabled:opacity-50'
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+        <FileUpload 
+          label="Android Application Package (.apk)"
+          currentUrl={homeData?.app_config?.apk_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            app_config: { 
+              ...(homeData?.app_config || { apk_url: "" }), 
+              apk_url: url 
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            app_config: { 
+              ...(homeData?.app_config || { apk_url: "" }), 
+              apk_url: "" 
+            }
+          })}
+          helperText="Upload the official WMSU Project Portal .apk file for Android users to download."
+        />
+      </div>
     </div>
   );
 };
