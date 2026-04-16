@@ -263,3 +263,12 @@ export type VerifyTerminalReportInput = z.infer<typeof verifyTerminalReportSchem
 export const getTerminalReportSchema = z.object({
   funded_project_id: z.coerce.number().int().positive(),
 });
+
+// Upload Project Document (DOST Forms 4/5) Schema
+export const uploadProjectDocumentSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  document_type: z.enum(["moa", "agency_certification"]),
+  file_url: z.string().url("Invalid file URL"),
+});
+
+export type UploadProjectDocumentInput = z.infer<typeof uploadProjectDocumentSchema>;

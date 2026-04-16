@@ -20,9 +20,11 @@ import type { AIAnalysisResult } from '../../../../components/proponent-componen
 interface UploadSidebarProps {
   formData: FormData;
   selectedFile: File | null;
+  workPlanFile?: File | null;
   aiCheckResult: AIAnalysisResult | null;
   isCheckingTemplate: boolean;
   onFileSelect: (file: File | null) => void;
+  onWorkPlanFileSelect?: (file: File | null) => void;
   onAITemplateCheck: () => void;
   onSubmit: () => void;
   onViewTemplate: () => void;
@@ -33,9 +35,11 @@ interface UploadSidebarProps {
 const UploadSidebar: React.FC<UploadSidebarProps> = ({
   formData,
   selectedFile,
+  workPlanFile,
   aiCheckResult,
   isCheckingTemplate,
   onFileSelect,
+  onWorkPlanFileSelect,
   onAITemplateCheck,
   onSubmit,
   onViewTemplate,
@@ -43,6 +47,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   isBudgetValid
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workPlanInputRef = useRef<HTMLInputElement>(null);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -270,6 +275,70 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           </div>
         )}
 
+
+        {/* --- Work & Financial Plan (DOST Form 3) --- */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold text-gray-700">Work & Financial Plan</h3>
+            <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Optional</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">DOST Form 3 — Upload your project workplan and financial plan document.</p>
+
+          <input
+            ref={workPlanInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null;
+              if (file) {
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
+                  Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
+                  e.target.value = '';
+                  return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                  Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                  e.target.value = '';
+                  return;
+                }
+                onWorkPlanFileSelect?.(file);
+              }
+            }}
+            disabled={isUploadDisabled}
+          />
+
+          <div
+            className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer ${
+              isUploadDisabled ? 'border-gray-300 bg-gray-100 cursor-not-allowed' :
+              workPlanFile ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-[#C8102E] hover:bg-red-50'
+            }`}
+            onClick={isUploadDisabled ? undefined : () => workPlanInputRef.current?.click()}
+          >
+            {workPlanFile ? (
+              <div className="text-green-700">
+                <Check className="w-5 h-5 mx-auto mb-1" />
+                <p className="font-semibold text-sm">File Ready</p>
+                <p className="text-xs mt-0.5 truncate max-w-[200px] mx-auto">{workPlanFile.name}</p>
+              </div>
+            ) : (
+              <div className="py-2">
+                <FileText className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                <p className="text-gray-600 text-xs font-medium">Click to upload Form 3</p>
+              </div>
+            )}
+          </div>
+
+          {workPlanFile && (
+            <button
+              onClick={() => { onWorkPlanFileSelect?.(null); if (workPlanInputRef.current) workPlanInputRef.current.value = ''; }}
+              className="w-full mt-2 py-1.5 text-xs text-gray-500 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-1 font-medium cursor-pointer"
+            >
+              <X className="w-3 h-3" /> Remove
+            </button>
+          )}
+        </div>
 
         {/* --- Proposal Template Section --- */}
         <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">

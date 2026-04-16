@@ -70,6 +70,7 @@ const Submission: React.FC = () => {
   // ... (Data State remains the same)
   // ... (Data State remains the same)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [workPlanFile, setWorkPlanFile] = useState<File | null>(null);
 
   // Track which fields were auto-filled from the uploaded document
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
@@ -597,11 +598,12 @@ const Submission: React.FC = () => {
         agency: String(localFormData.agency || ""),
       };
 
-      const result = await submitProposal(payload, selectedFile);
+      const result = await submitProposal(payload, selectedFile, workPlanFile);
       console.log("Server Response:", result);
 
       // Phase 1 of LIB feature: clear the local draft so the form starts fresh next time.
       autosave.clear();
+      setWorkPlanFile(null);
 
       Swal.fire({
         icon: "success",
@@ -978,11 +980,13 @@ const Submission: React.FC = () => {
             <UploadSidebar
               formData={localFormData}
               selectedFile={selectedFile}
+              workPlanFile={workPlanFile}
               aiCheckResult={aiCheckResult}
               isCheckingTemplate={isCheckingTemplate}
               isUploadDisabled={isSubmitting}
               isBudgetValid={isBudgetValid}
               onFileSelect={handleFileSelect}
+              onWorkPlanFileSelect={setWorkPlanFile}
               onAITemplateCheck={() => handleAITemplateCheck()}
               onSubmit={handleSubmit}
               onViewTemplate={() => setIsTemplateModalOpen(true)}

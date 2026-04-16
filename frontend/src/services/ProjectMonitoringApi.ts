@@ -1047,3 +1047,22 @@ export async function fetchRealignments(filters?: {
   const { data } = await api.get<RealignmentRecord[]>(url, { withCredentials: true });
   return data ?? [];
 }
+
+// ── DOST Form Document Uploads (Forms 4 + 5) ──────────────────────────────
+
+export async function uploadProjectDocument(
+  fundedProjectId: number,
+  documentType: "moa" | "agency_certification",
+  file: File,
+): Promise<{ funded_project_id: number; document_type: string; file_url: string }> {
+  // Reuse the report upload URL mechanism (same S3 bucket + presigned URL pattern)
+  const fileUrl = await uploadReportFile(file);
+
+  const { data } = await api.post<{ funded_project_id: number; document_type: string; file_url: string }>(
+    "/project/upload-document",
+    { funded_project_id: fundedProjectId, document_type: documentType, file_url: fileUrl },
+    { withCredentials: true },
+  );
+
+  return data;
+}

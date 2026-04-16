@@ -190,7 +190,7 @@ export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<voi
   });
 };
 
-export const submitProposal = async (formData: FormData, file: File): Promise<CreateProposalResponse> => {
+export const submitProposal = async (formData: FormData, file: File, workPlanFile?: File | null): Promise<CreateProposalResponse> => {
   // Use the YYYY-MM-DD string directly — converting via new Date().toISOString()
   // can shift the date back by one day in UTC+8 (Philippines) timezone.
   const startDate = formData.plannedStartDate || "";
@@ -213,7 +213,17 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
   // Step 2: Upload file directly to S3 (bypasses Lambda)
   await uploadFileToS3(uploadUrl, file);
 
-  // Step 3: Submit proposal metadata as JSON with the S3 file URL
+  // Step 2b: Upload Work & Financial Plan (Form 3) if provided
+  let workPlanFileUrl: string | undefined;
+  if (workPlanFile) {
+    const { uploadUrl: wpUploadUrl, fileUrl: wpFileUrl } = await getProposalUploadUrl(
+      workPlanFile.name, workPlanFile.type, workPlanFile.size,
+    );
+    await uploadFileToS3(wpUploadUrl, workPlanFile);
+    workPlanFileUrl = wpFileUrl;
+  }
+
+  // Step 3: Submit proposal metadata as JSON with the S3 file URL(s)
   const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
   const implementationMode = (formData.cooperating_agencies?.length || 0) > 1 ? "multi_agency" : "single_agency";
 
@@ -233,6 +243,7 @@ export const submitProposal = async (formData: FormData, file: File): Promise<Cr
     plan_end_date: endDate,
     budget: formData.budgetItems,
     file_url: fileUrl,
+    ...(workPlanFileUrl ? { work_plan_file_url: workPlanFileUrl } : {}),
     year: formData.year ?? new Date().getFullYear(),
     agency_address: {
       street: formData.agencyAddress.street,

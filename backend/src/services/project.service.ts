@@ -2867,4 +2867,60 @@ export class ProjectService {
       error: null,
     };
   }
+
+  // ── Upload Project Document (DOST Forms 4/5) ─────────────────────────────
+  async uploadProjectDocument(
+    funded_project_id: number,
+    document_type: "moa" | "agency_certification",
+    file_url: string,
+    user_id: string,
+  ) {
+    // Verify project exists and user has access
+    const { data: project, error: fetchError } = await this.db
+      .from("funded_projects")
+      .select("id, project_lead_id")
+      .eq("id", funded_project_id)
+      .single();
+
+    if (fetchError || !project) {
+      return { data: null, error: fetchError || new Error("Project not found") };
+    }
+
+    // Check if user is project lead or a member
+    const isLead = project.project_lead_id === user_id;
+    if (!isLead) {
+      const { data: member } = await this.db
+        .from("project_members")
+        .select("id")
+        .eq("funded_project_id", funded_project_id)
+        .eq("user_id", user_id)
+        .eq("status", "active")
+        .maybeSingle();
+      if (!member) {
+        return { data: null, error: new Error("You don't have access to this project") };
+      }
+    }
+
+    const column = document_type === "moa" ? "moa_file_url" : "agency_certification_file_url";
+    const { error: updateError } = await this.db
+      .from("funded_projects")
+      .update({ [column]: file_url })
+      .eq("id", funded_project_id);
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    const labelMap = { moa: "Memorandum of Agreement", agency_certification: "Agency Certification" };
+    await logActivity(this.db, {
+      user_id,
+      action: "project_document_uploaded",
+      category: "project",
+      target_id: String(funded_project_id),
+      target_type: "funded_project",
+      details: { document_type, label: labelMap[document_type] },
+    });
+
+    return { data: { funded_project_id, document_type, file_url }, error: null };
+  }
 }

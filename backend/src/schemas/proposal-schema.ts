@@ -176,6 +176,7 @@ export const proposalSchema = z.object({
   tags: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),
 
   file_url: z.string().url("Invalid file URL"),
+  work_plan_file_url: z.string().url("Invalid work plan file URL").optional(),
 });
 
 export const decisionEvaluatorToProposalSchema = z.object({

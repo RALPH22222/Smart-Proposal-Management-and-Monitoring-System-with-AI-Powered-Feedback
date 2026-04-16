@@ -33,11 +33,12 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const { file_url, ...data } = validation.data;
+  const { file_url, work_plan_file_url, ...data } = validation.data;
 
-  // Create Proposal
+  // Create Proposal (work_plan_file_url included in payload if provided)
   const proposalService = new ProposalService(supabase);
-  const { data: proposal, error: createError } = await proposalService.create(data);
+  const createPayload = work_plan_file_url ? { ...data, work_plan_file_url } : data;
+  const { data: proposal, error: createError } = await proposalService.create(createPayload);
 
   if (createError || !proposal) {
     console.error("Error creating proposal", createError);

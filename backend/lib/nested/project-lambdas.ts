@@ -54,6 +54,7 @@ export class ProjectLambdas extends NestedStack {
   public readonly reviewRealignment: NodejsFunction;
   public readonly getRealignment: NodejsFunction;
   public readonly listRealignments: NodejsFunction;
+  public readonly uploadProjectDocument: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
@@ -111,6 +112,7 @@ export class ProjectLambdas extends NestedStack {
     this.reviewRealignment = simple("review-realignment", "pms-review-realignment", "review-realignment.ts");
     this.getRealignment = simple("get-realignment", "pms-get-realignment", "get-realignment.ts");
     this.listRealignments = simple("list-realignments", "pms-list-realignments", "list-realignments.ts");
+    this.uploadProjectDocument = simple("upload-project-document", "pms-upload-project-document", "upload-project-document.ts");
 
     // Special: needs SUPABASE_SERVICE_ROLE_KEY, own role
     this.inviteMember = new NodejsFunction(this, "invite-member", {

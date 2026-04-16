@@ -565,6 +565,9 @@ export class BackendStack extends Stack {
     project
       .addResource("realignments")
       .addMethod(HttpMethod.GET, integrate(projectL.listRealignments), protectedRoute);
+    project
+      .addResource("upload-document")
+      .addMethod(HttpMethod.POST, integrate(projectL.uploadProjectDocument), protectedRoute);
 
     // ========== ADMIN ROUTES ==========
     const admin = api.root.addResource("admin");

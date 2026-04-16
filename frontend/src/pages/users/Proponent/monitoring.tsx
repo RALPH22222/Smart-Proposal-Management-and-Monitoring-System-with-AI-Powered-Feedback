@@ -40,6 +40,7 @@ import {
 } from '../../../services/ProjectMonitoringApi';
 import { RealignmentFormModal } from '../../../components/proponent-component/RealignmentFormModal';
 import TerminalReportSection from '../../../components/proponent-component/TerminalReportSection';
+import ProjectDocumentsSection from '../../../components/proponent-component/ProjectDocumentsSection';
 import FinancialReportModal from '../../../components/proponent-component/FinancialReportModal';
 import {
   fetchPendingInvitations,
@@ -1255,6 +1256,15 @@ const MonitoringPage: React.FC = () => {
                     isProjectLead={activeBackend.project_lead_id === user?.id} 
                   />
                 </div>
+              )}
+
+              {/* --- PROJECT DOCUMENTS (DOST Forms 4 + 5) --- */}
+              {activeBackend && (
+                <ProjectDocumentsSection
+                  fundedProjectId={activeBackend.id}
+                  moaFileUrl={(activeBackend as any).moa_file_url || null}
+                  agencyCertFileUrl={(activeBackend as any).agency_certification_file_url || null}
+                />
               )}
 
               {/* --- QUARTER STEPPER --- */}
