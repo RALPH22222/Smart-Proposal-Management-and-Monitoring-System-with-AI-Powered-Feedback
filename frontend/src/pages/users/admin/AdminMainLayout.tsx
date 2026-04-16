@@ -20,7 +20,7 @@ import type { DashboardStats } from "../../../services/admin/ActivityApi";
 
 type ExtendedDashboardStats = DashboardStats & {
   proposals: DashboardStats['proposals'] & {
-    monthly_submissions?: { month: string; count: number }[];
+    daily_submissions?: { date: string; count: number }[];
   }
 };
 
@@ -40,32 +40,40 @@ const AdminLayout: React.FC = () => {
         getProposals()
       ]);
 
-      const monthCounts: Record<string, number> = {};
+      // Calculate daily submissions for the last 14 days
+      const dayCounts: Record<string, number> = {};
+      const today = new Date();
+      
+      // Initialize last 14 days with 0 counts
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateKey = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' });
+        dayCounts[dateKey] = 0;
+      }
+      
       proposalsData.forEach((p: any) => {
         const dateStr = p.created_at || (p.proposal_id && p.proposal_id.created_at);
         if (dateStr) {
           const date = new Date(dateStr);
-          const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
-          monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+          const dateKey = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Manila' });
+          // Only count if within last 14 days
+          if (dayCounts.hasOwnProperty(dateKey)) {
+            dayCounts[dateKey] = (dayCounts[dateKey] || 0) + 1;
+          }
         }
       });
 
-      const monthly_submissions = Object.entries(monthCounts)
-        .map(([month, count]) => ({ month, count }))
-        .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+      const daily_submissions = Object.entries(dayCounts)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      if (monthly_submissions.length === 0) {
-        const today = new Date();
-        const monthYear = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'Asia/Manila' });
-        monthly_submissions.push({ month: monthYear, count: 0 });
-      }
-
-      const statsWithMonthly = {
+      const statsWithDaily = {
         ...statsData,
-        proposals: { ...statsData.proposals, monthly_submissions }
+        proposals: { ...statsData.proposals, daily_submissions }
       };
 
-      setStats(statsWithMonthly as any);
+      setStats(statsWithDaily as any);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard stats');
