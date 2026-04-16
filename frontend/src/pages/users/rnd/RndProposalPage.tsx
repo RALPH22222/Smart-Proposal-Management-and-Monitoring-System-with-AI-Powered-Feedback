@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
-  Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle
+  Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle,
+  AlertCircle, ThumbsUp, ThumbsDown, CalendarX2, Loader
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -19,7 +20,10 @@ import {
   fetchAgencies,
   fetchSectors,
   fetchPriorities,
-  type LookupItem
+  getProponentExtensionRequests,
+  reviewProponentExtension,
+  type LookupItem,
+  type ProponentExtensionRequest
 } from '../../../services/proposal.api';
 import ProposalModal from '../../../components/rnd-component/RnDProposalModal';
 import DetailedProposalModal, { type ModalProposalData } from '../../../components/rnd-component/RndViewModal';
@@ -111,6 +115,186 @@ interface RndProposalPageProps {
 // Extended Status type to include Revised Proposal locally for this view
 type ExtendedProposalStatus = ProposalStatus | 'Revised Proposal' | 'Endorsed' | 'Not Submitted';
 
+// ── Extension Review Modal ────────────────────────────────────────────────────
+interface ExtensionReviewModalProps {
+  isOpen: boolean;
+  proposal: Proposal | null;
+  extensionRequest: ProponentExtensionRequest | null;
+  isLoadingExtension?: boolean;
+  onClose: () => void;
+  onReviewed: () => void;
+}
+
+const ExtensionReviewModal: React.FC<ExtensionReviewModalProps> = ({
+  isOpen, proposal, extensionRequest, isLoadingExtension, onClose, onReviewed
+}) => {
+  const [newDeadlineDays, setNewDeadlineDays] = useState('7');
+  const [reviewNote, setReviewNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) { setNewDeadlineDays('7'); setReviewNote(''); }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleAction = async (action: 'approved' | 'rejected') => {
+    if (action === 'approved' && (!newDeadlineDays || parseInt(newDeadlineDays) < 1)) {
+      Swal.fire({ icon: 'warning', title: 'Invalid', text: 'Please enter a valid number of extension days.', confirmButtonColor: '#C8102E' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await reviewProponentExtension({
+        extension_request_id: extensionRequest.id,
+        proposal_id: extensionRequest.proposal_id,
+        action,
+        review_note: reviewNote || undefined,
+        new_deadline_days: action === 'approved' ? parseInt(newDeadlineDays) : undefined,
+      });
+      await Swal.fire({
+        icon: 'success',
+        title: action === 'approved' ? 'Extension Approved!' : 'Extension Rejected',
+        text: action === 'approved'
+          ? `The proponent now has ${newDeadlineDays} day(s) to submit their revision.`
+          : 'The extension request has been rejected.',
+        confirmButtonColor: '#C8102E',
+      });
+      onReviewed();
+      onClose();
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || 'Failed to process request.', confirmButtonColor: '#C8102E' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-orange-50">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            <h2 className="font-bold text-slate-800">Extension Request Review</h2>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          {isLoadingExtension ? (
+            <div className="animate-pulse space-y-4">
+              {/* Proposal card skeleton */}
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
+                <div className="h-2.5 w-16 bg-slate-200 rounded" />
+                <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                <div className="h-3 w-1/2 bg-slate-200 rounded opacity-60" />
+              </div>
+              {/* Reason skeleton */}
+              <div className="space-y-2">
+                <div className="h-2.5 w-28 bg-slate-200 rounded" />
+                <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 space-y-1.5">
+                  <div className="h-3 w-full bg-orange-200 rounded opacity-50" />
+                  <div className="h-3 w-5/6 bg-orange-200 rounded opacity-40" />
+                </div>
+                <div className="h-2.5 w-36 bg-slate-200 rounded opacity-40" />
+              </div>
+              {/* Extension days skeleton */}
+              <div className="space-y-2">
+                <div className="h-2.5 w-40 bg-slate-200 rounded" />
+                <div className="h-9 w-24 bg-slate-200 rounded-lg" />
+              </div>
+              {/* Note skeleton */}
+              <div className="space-y-2">
+                <div className="h-2.5 w-32 bg-slate-200 rounded" />
+                <div className="h-16 w-full bg-slate-200 rounded-lg opacity-60" />
+              </div>
+            </div>
+          ) : !extensionRequest || !proposal ? (
+            <div className="text-sm text-slate-500 text-center py-8">No pending extension request found for this proposal.</div>
+          ) : (
+          <>
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Proposal</p>
+            <p className="text-sm font-semibold text-slate-800">{proposal.title}</p>
+            <p className="text-xs text-slate-500 mt-1">by {proposal.submittedBy}</p>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Proponent's Reason</p>
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-900">
+              {extensionRequest.reason}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Requested on {formatDate(extensionRequest.created_at)}</p>
+          </div>
+
+          {/* Approve: set new deadline */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+              Extension Days (if approving)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={newDeadlineDays}
+                onChange={e => setNewDeadlineDays(e.target.value)}
+                className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E]"
+              />
+              <span className="text-sm text-slate-500">day(s) from approval date</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+              Review Note (optional)
+            </label>
+            <textarea
+              value={reviewNote}
+              onChange={e => setReviewNote(e.target.value)}
+              placeholder="Add a note for the proponent..."
+              rows={2}
+              maxLength={500}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] resize-none"
+            />
+          </div>
+          </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t bg-slate-50 flex items-center justify-between gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+          {!isLoadingExtension && extensionRequest && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleAction('rejected')}
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <ThumbsDown className="w-3.5 h-3.5" /> Reject
+            </button>
+            <button
+              onClick={() => handleAction('approved')}
+              disabled={isSubmitting || !newDeadlineDays || parseInt(newDeadlineDays) < 1}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors disabled:opacity-50"
+            >
+              <ThumbsUp className="w-3.5 h-3.5" /> Approve
+            </button>
+          </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
   switch (status) {
     case 'pending': return 'Pending';
@@ -142,6 +326,12 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
   const [currentEvaluatorsList, setCurrentEvaluatorsList] = useState<string[]>([]);
   const [currentEvaluatorMessage, setCurrentEvaluatorMessage] = useState<string>('');
+
+  // Extension Review Modal State
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [extensionProposal, setExtensionProposal] = useState<Proposal | null>(null);
+  const [extensionRequest, setExtensionRequest] = useState<ProponentExtensionRequest | null>(null);
+  const [isLoadingExtension, setIsLoadingExtension] = useState(false);
 
   // Filters (switched to activeTab for consistency with Admin page)
   const [activeTab, setActiveTab] = useState<ExtendedProposalStatus | 'All'>(filter as any || 'All');
@@ -227,10 +417,29 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     { id: 'Pending', label: 'Pending Review', icon: Clock },
     { id: 'Revised Proposal', label: 'Revised', icon: Edit },
     { id: 'Revision Required', label: 'To Revise', icon: RefreshCw },
+    { id: 'Not Submitted', label: 'Extension Requests', icon: AlertCircle },
     { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
     { id: 'Endorsed', label: 'Endorsed', icon: Signature },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
+
+  const handleReviewExtension = async (proposal: Proposal) => {
+    // Open modal immediately, fetch data in background
+    setExtensionProposal(proposal);
+    setExtensionRequest(null);
+    setIsExtensionModalOpen(true);
+    setIsLoadingExtension(true);
+    try {
+      const requests = await getProponentExtensionRequests(Number(proposal.id));
+      const pending = requests.find((r: ProponentExtensionRequest) => r.status === 'pending');
+      setExtensionRequest(pending || null);
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Could not load extension request.', confirmButtonColor: '#C8102E' });
+      setIsExtensionModalOpen(false);
+    } finally {
+      setIsLoadingExtension(false);
+    }
+  };
 
   const loadProposals = async (isBackground = false) => {
     try {
@@ -435,6 +644,13 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           </span>
         );
 
+      case 'Not Submitted':
+        return (
+          <span className={`${baseClasses} text-red-900 bg-red-100 border-red-300 cursor-default`}>
+            <CalendarX2 className="w-3 h-3 flex-shrink-0 text-red-800" />
+            Not Submitted
+          </span>
+        );
       case 'Revision Required':
         return (
           <span className={`${baseClasses} text-amber-800 bg-amber-100 border-amber-200 cursor-default`}>
@@ -649,6 +865,17 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                             </button>
                           )}
 
+                          {/* Extension Review Button — shown for Not Submitted proposals */}
+                          {(proposal.status as any) === 'Not Submitted' && (
+                            <button
+                              onClick={() => handleReviewExtension(proposal)}
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-500 text-white hover:bg-orange-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                            >
+                              <AlertCircle className="w-3 h-3" />
+                              Review
+                            </button>
+                          )}
+
                           {/* Eye Button */}
                           <button
                             onClick={() => handleViewDetails(proposal)}
@@ -734,6 +961,16 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         setCurrentEvaluatorsList([]);
         setCurrentEvaluatorMessage('');
       }}
+    />
+
+    {/* Extension Review Modal */}
+    <ExtensionReviewModal
+      isOpen={isExtensionModalOpen}
+      proposal={extensionProposal}
+      extensionRequest={extensionRequest}
+      isLoadingExtension={isLoadingExtension}
+      onClose={() => setIsExtensionModalOpen(false)}
+      onReviewed={() => loadProposals()}
     />
     </>
   );

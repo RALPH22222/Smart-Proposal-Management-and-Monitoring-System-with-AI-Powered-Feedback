@@ -34,6 +34,18 @@ const MONTH_MAP: Record<string, number> = {
   july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
 };
 
+const createEmptyRow = (categoryId: string) => ({
+  uid: `row_${categoryId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  subcategoryId: null,
+  customSubcategoryLabel: null,
+  itemName: '',
+  spec: '',
+  quantity: 1,
+  unit: 'pcs',
+  unitPrice: 0,
+  totalAmount: 0,
+});
+
 const Submission: React.FC = () => {
   const YEAR_REGEX = /^\d+$/;
   // Auth Context
@@ -92,7 +104,11 @@ const Submission: React.FC = () => {
       {
         id: 1,
         source: "",
-        budget: { ps: [], mooe: [], co: [] },
+        budget: { 
+          ps: [createEmptyRow('ps'), createEmptyRow('ps')], 
+          mooe: [createEmptyRow('mooe'), createEmptyRow('mooe')], 
+          co: [createEmptyRow('co'), createEmptyRow('co')] 
+        },
       },
     ],
   });
@@ -439,7 +455,11 @@ const Submission: React.FC = () => {
           id: Date.now(),
           source: "",
           // Initialize new items with the correct structure
-          budget: { ps: [], mooe: [], co: [] },
+          budget: { 
+            ps: [createEmptyRow('ps'), createEmptyRow('ps')], 
+            mooe: [createEmptyRow('mooe'), createEmptyRow('mooe')], 
+            co: [createEmptyRow('co'), createEmptyRow('co')] 
+          },
         },
       ],
     }));

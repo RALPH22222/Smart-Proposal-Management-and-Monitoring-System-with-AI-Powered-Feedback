@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   Camera, User, Lock,
   Eye, EyeOff, CheckCircle, Mail,
-  Calendar, Shield,
+  Calendar, Shield, Clock, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import {
   changeMyPassword,
@@ -12,6 +12,7 @@ import {
   updateMyEmail,
 } from '../../../services/user/userService';
 import { fetchDepartments, type LookupItem } from '../../../services/proposal.api';
+import { SettingsApi, type LateSubmissionPolicy } from '../../../services/admin/SettingsApi';
 import SecureImage from '../../../components/shared/SecureImage';
 import PageLoader from '../../../components/shared/PageLoader';
 
@@ -108,12 +109,13 @@ const SpinnerIcon = () => (
 );
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-type TabId = 'profile' | 'email' | 'security';
+type TabId = 'profile' | 'email' | 'security' | 'policy';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'email', label: 'Email' },
   { id: 'security', label: 'Security' },
+  { id: 'policy', label: 'System Policy' },
 ];
 
 const AdminSettings: React.FC = () => {
@@ -151,6 +153,14 @@ const AdminSettings: React.FC = () => {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Late Submission Policy
+  const [policy, setPolicy] = useState<LateSubmissionPolicy>({ enabled: false });
+  const [policyType, setPolicyType] = useState<'indefinite' | 'until_date'>('indefinite');
+  const [policyDeadline, setPolicyDeadline] = useState('');
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+  const [policyMsg, setPolicyMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isPolicyLoading, setIsPolicyLoading] = useState(false);
+
   const passwordStrength = getPasswordStrength(passwords.new);
 
   useEffect(() => {
@@ -179,6 +189,27 @@ const AdminSettings: React.FC = () => {
     };
     load();
   }, []);
+
+  // Fetch policy when Policy tab is opened
+  useEffect(() => {
+    if (activeTab !== 'policy') return;
+    const fetchPolicy = async () => {
+      setIsPolicyLoading(true);
+      try {
+        const p = await SettingsApi.getLateSubmissionPolicy();
+        setPolicy(p);
+        if (p.enabled) {
+          setPolicyType((p as any).type || 'indefinite');
+          setPolicyDeadline((p as any).deadline || '');
+        }
+      } catch {
+        setPolicyMsg({ type: 'error', text: 'Failed to load current policy.' });
+      } finally {
+        setIsPolicyLoading(false);
+      }
+    };
+    fetchPolicy();
+  }, [activeTab]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -247,6 +278,33 @@ const AdminSettings: React.FC = () => {
       setPasswordMsg({ type: 'error', text: 'Failed to change password. Please check your current password.' });
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const onSavePolicy = async () => {
+    setPolicyMsg(null);
+    setIsSavingPolicy(true);
+    try {
+      let newPolicy: LateSubmissionPolicy;
+      if (!policy.enabled) {
+        newPolicy = { enabled: false };
+      } else if (policyType === 'indefinite') {
+        newPolicy = { enabled: true, type: 'indefinite' };
+      } else {
+        if (!policyDeadline) {
+          setPolicyMsg({ type: 'error', text: 'Please set a deadline date for the until-date policy.' });
+          setIsSavingPolicy(false);
+          return;
+        }
+        newPolicy = { enabled: true, type: 'until_date', deadline: policyDeadline };
+      }
+      const saved = await SettingsApi.updateLateSubmissionPolicy(newPolicy);
+      setPolicy(saved);
+      setPolicyMsg({ type: 'success', text: 'Late submission policy saved successfully!' });
+    } catch {
+      setPolicyMsg({ type: 'error', text: 'Failed to save policy. Please try again.' });
+    } finally {
+      setIsSavingPolicy(false);
     }
   };
 
@@ -521,7 +579,110 @@ const AdminSettings: React.FC = () => {
         </div>
       )}
 
+      {/* System Policy Tab */}
+      {activeTab === 'policy' && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <SectionHeader
+            icon={<Clock size={20} />}
+            title="Late Submission Policy"
+            description="Control whether proponents can request deadline extensions after their revision deadline expires"
+          />
 
+          {isPolicyLoading ? (
+            <div className="flex items-center gap-2 text-gray-400 text-sm py-4">
+              <SpinnerIcon /> Loading current policy...
+            </div>
+          ) : (
+            <>
+              {policyMsg && (
+                <div className={`mb-5 flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium border ${policyMsg.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                  {policyMsg.type === 'success' ? <CheckCircle size={16} className="flex-shrink-0" /> : <Shield size={16} className="flex-shrink-0" />}
+                  {policyMsg.text}
+                </div>
+              )}
+
+              {/* Enable / Disable Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 mb-5">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Allow Extension Requests</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    When enabled, proponents whose revision deadline has expired can request an extension from R&D.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPolicy(prev => ({ ...prev, enabled: !prev.enabled } as LateSubmissionPolicy))}
+                  className="flex-shrink-0 ml-4"
+                >
+                  {policy.enabled
+                    ? <ToggleRight size={36} className="text-[#C8102E]" />
+                    : <ToggleLeft size={36} className="text-gray-400" />
+                  }
+                </button>
+              </div>
+
+              {/* Policy Type (only shown when enabled) */}
+              {policy.enabled && (
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-gray-700">Extension Window</p>
+
+                  {/* Indefinite option */}
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${policyType === 'indefinite' ? 'border-[#C8102E] bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="policyType"
+                      value="indefinite"
+                      checked={policyType === 'indefinite'}
+                      onChange={() => setPolicyType('indefinite')}
+                      className="mt-0.5 accent-[#C8102E]"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Indefinite</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Proponents can always request extensions, regardless of when the original deadline was.</p>
+                    </div>
+                  </label>
+
+                  {/* Until date option */}
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${policyType === 'until_date' ? 'border-[#C8102E] bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                    <input
+                      type="radio"
+                      name="policyType"
+                      value="until_date"
+                      checked={policyType === 'until_date'}
+                      onChange={() => setPolicyType('until_date')}
+                      className="mt-0.5 accent-[#C8102E]"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-800">Until a Specific Date</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Extension requests will only be accepted up to a set cut-off date.</p>
+                      {policyType === 'until_date' && (
+                        <input
+                          type="date"
+                          value={policyDeadline}
+                          onChange={e => setPolicyDeadline(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="mt-3 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 outline-none transition-all"
+                        />
+                      )}
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  type="button"
+                  onClick={onSavePolicy}
+                  disabled={isSavingPolicy}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#A50D26] transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingPolicy ? <><SpinnerIcon /> Saving...</> : <><CheckCircle size={16} /> Save Policy</>}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="h-8" />
       </div>

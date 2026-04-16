@@ -484,7 +484,9 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 <div className="bg-white border border-purple-100 rounded-lg p-4 shadow-sm">
                   <p className="text-sm text-slate-700 mb-3">
                     {isLoadingEvaluators ? (
-                      <span className="text-sm text-slate-500">Loading assigned evaluators...</span>
+                      <div className="animate-pulse flex flex-wrap gap-2 mb-2">
+                        {[1, 2, 3].map(i => <div key={i} className="h-7 w-28 bg-purple-100 rounded-full" />)}
+                      </div>
                     ) : evaluators && evaluators.length > 0 ? (
                       <>You have assigned this proposal to <span className="font-semibold text-purple-700">{evaluators.length}</span> evaluator{evaluators.length > 1 ? 's' : ''}.</>
                     ) : (
@@ -578,9 +580,22 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 <p className="text-xs text-gray-500 mt-0.5 mb-4">Feedback you provided to the proponent. They must submit a revised proposal by the deadline.</p>
 
                 {isLoadingRevision ? (
-                  <div className="p-4 rounded-lg border bg-white/100 border-orange-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
-                    <RefreshCw className="w-5 h-5 animate-spin text-orange-600 mb-2" />
-                    <p className="text-xs text-orange-400">Loading feedback details...</p>
+                  <div className="animate-pulse grid gap-3 mt-4">
+                    <div className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm space-y-3">
+                      <div className="h-3 w-32 bg-orange-200 rounded opacity-60" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-orange-100 rounded" />
+                        <div className="h-3 w-5/6 bg-orange-100 rounded opacity-70" />
+                        <div className="h-3 w-4/6 bg-orange-100 rounded opacity-50" />
+                      </div>
+                    </div>
+                    <div className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm space-y-3">
+                      <div className="h-3 w-40 bg-orange-200 rounded opacity-60" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-orange-100 rounded" />
+                        <div className="h-3 w-3/4 bg-orange-100 rounded opacity-70" />
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid gap-3 mt-4">
@@ -642,9 +657,17 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
               </div>
               <div className="bg-white p-4 rounded border border-red-100">
                 <p className="text-xs font-bold text-red-700 mb-2">Reason for Rejection</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                  {rejectionComment || "Loading rejection details..."}
-                </p>
+                {!rejectionComment ? (
+                  <div className="animate-pulse space-y-2 pt-1 mb-2">
+                    <div className="h-3 w-full bg-red-100 rounded" />
+                    <div className="h-3 w-5/6 bg-red-100 rounded opacity-70" />
+                    <div className="h-3 w-2/3 bg-red-100 rounded opacity-50" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">
+                    {rejectionComment}
+                  </p>
+                )}
                 {rejectionDate && (
                   <p className="text-xs text-slate-500 mt-2 text-right italic">
                     Rejected on: {formatDate(rejectionDate)}

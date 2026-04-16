@@ -187,7 +187,7 @@ const ApkDownloadPage: React.FC = () => {
               <img 
                 src={MobileImage} 
                 alt="RDEC Mobile App" 
-                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float border-3 border-[#C8102E] bg-gray-900 transition-all duration-500 ease-out hover:scale-105 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)] hover:rotate-1 hover:brightness-115 cursor-pointer group-hover:[animation-play-state:paused]"
+                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float bg-gray-900 transition-all duration-500 ease-out hover:scale-105 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)] hover:rotate-1 hover:brightness-115 cursor-pointer group-hover:[animation-play-state:paused]"
               />
             </div>
           </div>

@@ -88,6 +88,57 @@ interface DetailedProposalModalProps {
   departments?: LookupItem[];
 }
 
+const ScrollKeyframes = () => (
+  <style>{`
+    @keyframes banner-marquee-bounce {
+      0%, 15% { transform: translateX(0); }
+      85%, 100% { transform: translateX(var(--scroll-amount)); }
+    }
+    .animate-banner-marquee {
+      animation: banner-marquee-bounce 8s alternate infinite ease-in-out;
+    }
+  `}</style>
+);
+
+const ScrollingBannerText: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const textRef = React.useRef<HTMLDivElement>(null);
+  const [shouldAnimate, setShouldAnimate] = React.useState(false);
+  const [scrollAmount, setScrollAmount] = React.useState(0);
+
+  React.useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        if (textWidth > containerWidth) {
+          setShouldAnimate(true);
+          setScrollAmount(textWidth - containerWidth + 24); // 24px extra buffer padding
+        } else {
+          setShouldAnimate(false);
+          setScrollAmount(0);
+        }
+      }
+    };
+    checkOverflow();
+    setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [children]);
+
+  return (
+    <div ref={containerRef} className={`overflow-hidden flex-1 ${className}`}>
+      <div
+        ref={textRef}
+        className={`whitespace-nowrap inline-block ${shouldAnimate ? 'animate-banner-marquee' : ''}`}
+        style={shouldAnimate ? { ['--scroll-amount' as any]: `-${scrollAmount}px` } : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   isOpen,
   onClose,
@@ -990,33 +1041,21 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              {isInRevisionMode && !revisionChanges && !isLoadingRevision && (
-                canSubmitRevision ? (
-                  <button
-                    onClick={() => setIsEditing(!isEditing)}
-                    className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${isEditing
-                      ? "bg-slate-100 text-slate-700 border border-slate-300"
-                      : "bg-[#C8102E] text-white hover:bg-[#a00c24]"
-                      }`}
-                  >
-                    {isEditing ? (
-                      <Eye className="w-3 h-3" />
-                    ) : (
-                      <Edit className="w-3 h-3" />
-                    )}
-                    {isEditing ? "Preview Mode" : "Edit Proposal"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowExtensionForm(true)}
-                    disabled={lateSubmissionPolicy?.enabled === false}
-                    className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${lateSubmissionPolicy?.enabled === false ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-[#C8102E] text-white hover:bg-[#a00c24]"}`}
-                    title={lateSubmissionPolicy?.enabled === false ? "Late submission extensions are disabled." : "Request an extension"}
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    {lateSubmissionPolicy?.enabled === false ? "Extension Disabled" : "Request Extension"}
-                  </button>
-                )
+              {isInRevisionMode && !revisionChanges && !isLoadingRevision && canSubmitRevision && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${isEditing
+                    ? "bg-slate-100 text-slate-700 border border-slate-300"
+                    : "bg-[#C8102E] text-white hover:bg-[#a00c24]"
+                    }`}
+                >
+                  {isEditing ? (
+                    <Eye className="w-3 h-3" />
+                  ) : (
+                    <Edit className="w-3 h-3" />
+                  )}
+                  {isEditing ? "Preview Mode" : "Edit Proposal"}
+                </button>
               )}
               <button
                 onClick={onClose}
@@ -1029,133 +1068,130 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {isInRevisionMode && (
             <>
+              <ScrollKeyframes />
               {/* Late Submission badge */}
               {(proposal as any).is_late_submission && (
-                <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 px-3 py-1.5 border border-amber-200">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  <span className="font-semibold">Late Submission</span>
-                  <span>— This revision was submitted after the original deadline via an approved extension.</span>
+                <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 px-3 py-1.5 border border-amber-200 w-full overflow-hidden">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <ScrollingBannerText>
+                    <span className="font-semibold">Late Submission</span>
+                    <span> — This revision was submitted after the original deadline via an approved extension.</span>
+                  </ScrollingBannerText>
                 </div>
               )}
 
-              {/* Loading state for revision banners */}
+              {/* Skeleton loading state for revision banners */}
               {isLoadingRevision && (
-                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 border border-slate-200">
-                  <Loader className="w-4 h-4 animate-spin text-[#C8102E]" />
-                  <span>Loading revision details...</span>
+                <div className="flex items-center gap-2 px-3 py-2 border border-slate-100 bg-slate-50 rounded-lg w-full overflow-hidden">
+                  <div className="w-4 h-4 bg-slate-200 rounded-full shrink-0 animate-pulse" />
+                  <ScrollingBannerText>
+                    <div className="flex items-center gap-2 w-[550px] animate-pulse">
+                      <div className="h-3 w-32 bg-slate-200 rounded shrink-0" />
+                      <div className="h-3 w-64 bg-slate-200 rounded opacity-60 shrink-0" />
+                    </div>
+                  </ScrollingBannerText>
                 </div>
               )}
 
               {/* Deadline expired + Extension request pending - Only show when not loading */}
               {!isLoadingRevision && extensionRequest?.status === "pending" && (
-                <div className="flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 px-3 py-2 border border-yellow-200">
-                  <Clock className="w-4 h-4" />
-                  <span>Extension request is <span className="font-bold">pending review</span> by R&D. Submitted on{" "}
-                    {formatDate(extensionRequest.created_at)}.
-                  </span>
+                <div className="flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 px-3 py-2 border border-yellow-200 w-full overflow-hidden">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  <ScrollingBannerText>
+                    <span>Extension request is <span className="font-bold">pending review</span> by R&D. Submitted on {formatDate(extensionRequest.created_at)}.</span>
+                  </ScrollingBannerText>
                 </div>
               )}
 
-              {/* Deadline expired message (no inline button) */}
-              {isInRevisionMode && isDeadlineExpired && (!extensionRequest || extensionRequest.status === "rejected") && !showExtensionForm && (
-                <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                  <div className="flex items-center gap-2">
-                    <CalendarX2 className="w-4 h-4" />
-                    <span>
-                      The revision deadline has <span className="font-bold">expired</span>.
-                      {deadlineDate && (
-                        <> (was {formatDateTime(deadlineDate)})</>
-                      )}
-                    </span>
+              {/* Deadline expired message */}
+              {isInRevisionMode && isDeadlineExpired && (!extensionRequest || extensionRequest.status === "rejected") && (
+                <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800 w-full overflow-hidden">
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1">
+                      <CalendarX2 className="w-4 h-4 shrink-0" />
+                      <ScrollingBannerText>
+                        <span>
+                          The revision deadline has <span className="font-bold">expired</span>.
+                          {deadlineDate && (
+                            <> (was {formatDateTime(deadlineDate)})</>
+                          )}
+                        </span>
+                      </ScrollingBannerText>
+                    </div>
+                    {!extensionPolicyMessage && (
+                      <button
+                        onClick={() => setShowExtensionForm(true)}
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Request Extension
+                      </button>
+                    )}
                   </div>
                   {extensionPolicyMessage && (
-                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1">
-                      {extensionPolicyMessage}
+                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1 w-full overflow-hidden">
+                      <ScrollingBannerText>{extensionPolicyMessage}</ScrollingBannerText>
+                    </div>
+                  )}
+                  {extensionRequest?.status === "rejected" && extensionRequest.review_note && (
+                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1 w-full overflow-hidden">
+                      <ScrollingBannerText>
+                        <span className="font-semibold">Previous request rejected:</span> {extensionRequest.review_note}
+                      </ScrollingBannerText>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Extension request form */}
-              {isInRevisionMode && isDeadlineExpired && showExtensionForm && (
-                <div className="bg-orange-50 border border-orange-200 px-4 py-3 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-orange-800">
-                    <RefreshCw className="w-4 h-4" />
-                    Request Deadline Extension
-                  </div>
-                  {extensionPolicyMessage && (
-                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1">
-                      {extensionPolicyMessage}
-                    </div>
-                  )}
-                  <textarea
-                    value={extensionReason}
-                    onChange={(e) => setExtensionReason(e.target.value)}
-                    placeholder="Explain why you need more time to submit your revised proposal (min 10 characters)..."
-                    className="w-full border border-orange-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] resize-none"
-                    rows={3}
-                    maxLength={2000}
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-orange-600">{extensionReason.length}/2000 characters</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setShowExtensionForm(false); setExtensionReason(""); }}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleRequestExtension}
-                        disabled={isSubmittingExtension || extensionReason.trim().length < 10 || !!extensionPolicyMessage}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                      >
-                        {isSubmittingExtension && <Loader className="w-3 h-3 animate-spin" />}
-                        Submit Request
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Extension approved → Show new deadline */}
               {!isLoadingRevision && hasApprovedExtension && extendedDeadlineDate && !isNotSubmittedMode && (
-                <div className="flex items-center gap-2 text-sm text-green-800 bg-green-50 px-3 py-2 border border-green-200">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Extension Approved — New Deadline:</span>
-                  <span className="font-bold">
-                    {formatDateTime(extendedDeadlineDate)}
-                  </span>
+                <div className="flex items-center gap-2 text-sm text-green-800 bg-green-50 px-3 py-2 border border-green-200 w-full overflow-hidden">
+                  <CheckCircle className="w-4 h-4 shrink-0" />
+                  <ScrollingBannerText>
+                    <span>Extension Approved — New Deadline: <span className="font-bold">{formatDateTime(extendedDeadlineDate)}</span></span>
+                  </ScrollingBannerText>
                 </div>
               )}
 
               {/* Normal deadline banner (only while deadline is still active and no extension context) */}
               {!isLoadingRevision && !isNotSubmittedMode && !hasApprovedExtension && canSubmitRevision && (
-                <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200">
-                  <CalendarSync className="w-4 h-4" />
-                  <span>Deadline for Revision:</span>
-                  <span className="font-bold">
+                <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200 w-full overflow-hidden">
+                  <CalendarSync className="w-4 h-4 shrink-0" />
+                  <ScrollingBannerText>
+                    <span>Deadline for Revision: <span className="font-bold">
                     {isLoadingRevision ? "Loading..." :
                       (revisionData?.created_at && revisionData?.deadline) ?
                         formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000)) :
                         (proposal.deadline ? formatDateTime(proposal.deadline) : "No deadline set")}
-                  </span>
+                    </span></span>
+                  </ScrollingBannerText>
                 </div>
               )}
             </>
           )}
 
           {isRejectedMode && (
-            <>
-              <div className="flex items-center gap-2 text-sm text-red-800 bg-red-100/50 px-3 py-2 border border-red-200">
-                <CalendarX2 className={`w-4 h-4 ${isLoadingRejection ? "animate-spin" : ""}`} />
-                <span>Rejected on:</span>
-                <span className="font-bold">
-                  {isLoadingRejection ? "Loading..." :
-                    rejectionDate ? formatDateTime(rejectionDate as string) : "Date not available"}
-                </span>
-              </div>
-            </>
+            <div className="w-full">
+              {isLoadingRejection ? (
+                <div className="flex items-center gap-2 px-3 py-2 border border-red-200 bg-red-100/50 rounded-lg w-full overflow-hidden">
+                  <div className="w-4 h-4 bg-red-200 rounded-full shrink-0 animate-pulse" />
+                  <ScrollingBannerText>
+                    <div className="flex items-center gap-2 w-[400px] animate-pulse">
+                      <div className="h-3 w-20 bg-red-200 rounded shrink-0" />
+                      <div className="h-3 w-36 bg-red-200 rounded opacity-60 shrink-0" />
+                    </div>
+                  </ScrollingBannerText>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-red-800 bg-red-100/50 px-3 py-2 border border-red-200 w-full overflow-hidden rounded-lg">
+                  <CalendarX2 className="w-4 h-4 shrink-0" />
+                  <ScrollingBannerText>
+                    <span>Rejected on: <span className="font-bold">{rejectionDate ? formatDateTime(rejectionDate as string) : "Date not available"}</span></span>
+                  </ScrollingBannerText>
+                </div>
+              )}
+            </div>
           )}
 
           {/* --- BODY --- */}
@@ -1450,9 +1486,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </h3>
 
                   {isLoadingRevision ? (
-                    <div className="p-4 rounded-lg border bg-white/100 border-orange-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
-                      <RefreshCw className="w-5 h-5 animate-spin text-orange-600 mb-2" />
-                      <p className="text-xs text-orange-400">Loading feedback details...</p>
+                    <div className="animate-pulse grid gap-3 mt-4">
+                      <div className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm space-y-3">
+                        <div className="h-3 w-32 bg-orange-200 rounded opacity-60" />
+                        <div className="space-y-2">
+                          <div className="h-3 w-full bg-orange-100 rounded" />
+                          <div className="h-3 w-5/6 bg-orange-100 rounded opacity-70" />
+                          <div className="h-3 w-4/6 bg-orange-100 rounded opacity-50" />
+                        </div>
+                      </div>
+                      <div className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm space-y-3">
+                        <div className="h-3 w-40 bg-orange-200 rounded opacity-60" />
+                        <div className="space-y-2">
+                          <div className="h-3 w-full bg-orange-100 rounded" />
+                          <div className="h-3 w-3/4 bg-orange-100 rounded opacity-70" />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid gap-3 mt-4">
@@ -1512,9 +1561,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </h3>
 
                   {isLoadingRejection ? (
-                    <div className="p-4 rounded-lg border bg-white/100 border-red-100 shadow-sm flex flex-col items-center justify-center py-6 mt-3">
-                      <RefreshCw className="w-5 h-5 animate-spin text-red-600 mb-2" />
-                      <p className="text-xs text-red-400">Loading rejection details...</p>
+                    <div className="animate-pulse bg-white/100 p-5 rounded-lg border border-red-100 shadow-sm mt-4 space-y-3">
+                      <div className="h-3 w-36 bg-red-200 rounded opacity-60" />
+                      <div className="space-y-2 pt-1">
+                        <div className="h-3 w-full bg-red-100 rounded" />
+                        <div className="h-3 w-5/6 bg-red-100 rounded opacity-70" />
+                        <div className="h-3 w-2/3 bg-red-100 rounded opacity-50" />
+                      </div>
                     </div>
                   ) : (
                     <div className="bg-white/100 p-5 rounded-lg border border-red-100 shadow-sm mt-4">
@@ -2622,6 +2675,73 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               .finally(() => setIsLoadingProjectMembers(false));
           }}
         />
+      )}
+      {/* ── Extension Request Mini Modal ── */}
+      {showExtensionForm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-orange-50">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-orange-500" />
+                <h3 className="text-sm font-bold text-slate-800">Request Deadline Extension</h3>
+              </div>
+              <button
+                onClick={() => { setShowExtensionForm(false); setExtensionReason(""); }}
+                className="p-1 rounded-full hover:bg-slate-200 transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4">
+              {extensionPolicyMessage ? (
+                <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{extensionPolicyMessage}</span>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Explain why you need more time. R&amp;D will review your request and notify you of their decision.
+                </p>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 tracking-wider mb-1.5">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={extensionReason}
+                  onChange={(e) => setExtensionReason(e.target.value)}
+                  placeholder="Explain why you need more time to submit your revised proposal (min 10 characters)..."
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] resize-none transition-all"
+                  rows={4}
+                  maxLength={2000}
+                  autoFocus
+                />
+                <p className="text-xs text-slate-400 mt-1 text-right">{extensionReason.length}/2000</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t bg-slate-50 flex items-center justify-end gap-2">
+              <button
+                onClick={() => { setShowExtensionForm(false); setExtensionReason(""); }}
+                className="px-4 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRequestExtension}
+                disabled={isSubmittingExtension || extensionReason.trim().length < 10 || !!extensionPolicyMessage}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSubmittingExtension && <Loader className="w-3 h-3 animate-spin" />}
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
