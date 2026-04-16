@@ -3,7 +3,7 @@ import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
   Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle,
-  AlertCircle, ThumbsUp, ThumbsDown, CalendarX2, Loader
+  AlertCircle, ThumbsUp, ThumbsDown, CalendarX2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -139,6 +139,8 @@ const ExtensionReviewModal: React.FC<ExtensionReviewModalProps> = ({
   if (!isOpen) return null;
 
   const handleAction = async (action: 'approved' | 'rejected') => {
+    if (!extensionRequest) return;
+
     if (action === 'approved' && (!newDeadlineDays || parseInt(newDeadlineDays) < 1)) {
       Swal.fire({ icon: 'warning', title: 'Invalid', text: 'Please enter a valid number of extension days.', confirmButtonColor: '#C8102E' });
       return;
