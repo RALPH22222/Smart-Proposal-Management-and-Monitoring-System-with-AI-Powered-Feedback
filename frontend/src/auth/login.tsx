@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { broadcastAuthChange } from "@utils/auth-broadcast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-// Icons for the modal removed
+
 import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
 import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
@@ -167,7 +167,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(hydratedUser));
       broadcastAuthChange();
 
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Logged in",
         text: res.data.message || "Successfully signed in.",

@@ -5,11 +5,10 @@ import NotificationsDropdown from "../proponent-component/NotificationsDropdown"
 import { formatDateTime } from "../../utils/date-formatter";
 
 interface MultiRoleFloatingNotificationProps {
-  currentRoleGroup: string;
   onPageChange: (page: string) => void;
 }
 
-const MultiRoleFloatingNotification: React.FC<MultiRoleFloatingNotificationProps> = ({ currentRoleGroup, onPageChange }) => {
+const MultiRoleFloatingNotification: React.FC<MultiRoleFloatingNotificationProps> = ({ onPageChange }) => {
   const { notifications: rawNotifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);

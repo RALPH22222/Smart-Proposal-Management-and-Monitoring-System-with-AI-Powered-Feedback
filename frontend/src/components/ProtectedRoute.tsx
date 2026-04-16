@@ -4,6 +4,7 @@ import Swal from "sweetalert2";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import { api } from "../utils/axios";
+import RdecLogo from "../assets/IMAGES/RDEC.jpg";
 
 type ProtectedRouteProps = {
   roles?: (typeof Role)[keyof typeof Role][];
@@ -122,13 +123,45 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
-          {/* Spinner */}
-          <div className="relative inline-flex">
-            <div className="w-16 h-16 border-4 border-slate-200 border-t-[#C8102E] rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-[#C8102E] rounded-full opacity-20 animate-pulse"></div>
+          {/* 3D RDEC Logo */}
+          <div className="relative flex items-center justify-center mb-6" style={{ perspective: '600px' }}>
+            {/* Outer glow ring */}
+            <div className="absolute w-32 h-32 rounded-full bg-gradient-to-r from-[#C8102E]/20 via-red-300/10 to-[#C8102E]/20 blur-xl animate-pulse"></div>
+            {/* Spinning ring behind logo */}
+            <div className="absolute w-28 h-28 rounded-full border-2 border-[#C8102E]/30 animate-spin" style={{ animationDuration: '3s', borderStyle: 'dashed' }}></div>
+
+            {/* Logo container with 3D float + tilt */}
+            <div
+              className="relative w-24 h-24 rounded-full overflow-hidden shadow-[0_20px_40px_rgba(200,16,46,0.35),0_8px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.4)]"
+              style={{
+                animation: 'rdec3d 3s ease-in-out infinite',
+                transformStyle: 'preserve-3d',
+              }}
+            >
+              {/* The logo */}
+              <img
+                src={RdecLogo}
+                alt="RDEC"
+                className="w-full h-full object-cover"
+              />
+              {/* Red transparent overlay — matches login banner style */}
+              <div className="absolute inset-0 bg-[#C8102E]/75 pointer-events-none rounded-full"></div>
             </div>
+
+            {/* Shadow below */}
+            <div className="absolute bottom-0 w-16 h-3 bg-[#C8102E]/20 rounded-full blur-md" style={{ animation: 'rdec3d-shadow 3s ease-in-out infinite' }}></div>
           </div>
+
+          <style>{`
+            @keyframes rdec3d {
+              0%, 100% { transform: rotateY(-15deg) rotateX(8deg) translateY(0px); }
+              50% { transform: rotateY(15deg) rotateX(-8deg) translateY(-8px); }
+            }
+            @keyframes rdec3d-shadow {
+              0%, 100% { transform: scaleX(1); opacity: 0.4; }
+              50% { transform: scaleX(0.7); opacity: 0.2; }
+            }
+          `}</style>
 
           {/* Loading text */}
           <div className="mt-6 space-y-2">

@@ -106,7 +106,6 @@ const MultiRoleMainLayout: React.FC = () => {
         case "proposals": return <EvaluatorProposals />;
         case "review": return <EvaluatorReview />;
         case "reviewed": return <EvaluatorReviewed />;
-        case "notifications": return <EvaluatorNotifications />;
         default: return <EvaluatorDashboard />;
       }
     } else if (currentRoleGroup === "rnd") {
@@ -125,9 +124,7 @@ const MultiRoleMainLayout: React.FC = () => {
     return <ProponentProfile />;
   };
 
-  const renderFloatingNotification = () => {
-    return <MultiRoleFloatingNotification currentRoleGroup={currentRoleGroup} onPageChange={stringHandlePageChange} />;
-  };
+
 
   return (
     <LookupProvider>
@@ -149,7 +146,7 @@ const MultiRoleMainLayout: React.FC = () => {
           >
             {renderContent()}
           </main>
-          {renderFloatingNotification()}
+          <MultiRoleFloatingNotification onPageChange={stringHandlePageChange} />
         </div>
       </div>
     </LookupProvider>
