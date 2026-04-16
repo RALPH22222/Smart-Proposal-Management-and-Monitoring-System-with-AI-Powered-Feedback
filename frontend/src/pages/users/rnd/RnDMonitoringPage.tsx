@@ -27,6 +27,8 @@ import RnDProjectDetailModal from '../../../components/rnd-component/RnDProjectD
 import { formatDate } from '../../../utils/date-formatter';
 import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
 import PageLoader from '../../../components/shared/PageLoader';
+import ProgressRing from '../../../components/shared/ProgressRing';
+import ProjectHealthBar from '../../../components/shared/ProjectHealthBar';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -269,6 +271,21 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           </div>
         </section>
 
+        {/* Project Health Distribution */}
+        {projects.length > 0 && (
+          <section className="flex-shrink-0">
+            <ProjectHealthBar
+              segments={[
+                { label: 'Active', count: projects.filter(p => p.status === 'Active').length, color: '#10b981' },
+                { label: 'Completed', count: projects.filter(p => p.status === 'Completed').length, color: '#3b82f6' },
+                { label: 'Delayed', count: projects.filter(p => p.status === 'Delayed').length, color: '#f59e0b' },
+                { label: 'On Hold', count: projects.filter(p => p.status === 'On Hold').length, color: '#8b5cf6' },
+                { label: 'Blocked', count: projects.filter(p => p.status === 'At Risk').length, color: '#ef4444' },
+              ]}
+            />
+          </section>
+        )}
+
         {/* Filters and Search */}
         <section className="flex-shrink-0" aria-label="Filter projects">
           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
@@ -374,18 +391,14 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                             </div>
                           </div>
 
-                          {/* Progress Bar */}
+                          {/* Progress */}
                           <div className="flex items-center gap-3 mb-2">
-                            <div className="w-32 bg-slate-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-500 ${project.status === 'Completed' ? 'bg-blue-600' :
-                                  project.status === 'On Hold' ? 'bg-purple-500' :
-                                    project.status === 'Delayed' ? 'bg-yellow-500' :
-                                      'bg-green-600'
-                                  }`}
-                                style={{ width: project.status === 'Completed' ? '100%' : `${project.completionPercentage}%` }}
-                              ></div>
-                            </div>
+                            <ProgressRing
+                              size={36}
+                              strokeWidth={3.5}
+                              percentage={project.status === 'Completed' ? 100 : project.completionPercentage}
+                              color={project.status === 'Completed' ? '#2563eb' : project.status === 'Delayed' ? '#eab308' : project.status === 'On Hold' ? '#8b5cf6' : '#16a34a'}
+                            />
                             <span className="text-xs font-medium text-slate-700">
                               {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
                             </span>

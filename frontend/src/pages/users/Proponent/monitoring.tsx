@@ -51,6 +51,9 @@ import { formatDate } from "../../../utils/date-formatter";
 import { generateCertificatePDF } from "../../../utils/certificate-generator";
 import PageLoader from "../../../components/shared/PageLoader";
 import SkeletonPulse from "../../../components/shared/SkeletonPulse";
+import ProgressRing from "../../../components/shared/ProgressRing";
+import QuarterStepper from "../../../components/shared/QuarterStepper";
+import BudgetUtilizationChart from "../../../components/shared/BudgetUtilizationChart";
 
 
 
@@ -945,13 +948,16 @@ const MonitoringPage: React.FC = () => {
                 }}
                 className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${activeProjectId === project.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200 shadow-sm' : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'}`}
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h4 className={`text-sm font-bold line-clamp-1 ${activeProjectId === project.id ? 'text-blue-800' : 'text-gray-700'}`}>{project.title}</h4>
                   <p className="text-xs text-gray-400 mt-1">{project.department}</p>
                 </div>
-                {project.status === 'Delayed' && <AlertTriangle className="w-4 h-4 text-amber-500 translate-x-0 group-hover:scale-110 transition-transform" />}
-                {project.status === 'Active' && <Play className="w-4 h-4 text-emerald-500 translate-x-0 group-hover:scale-110 transition-transform" />}
-                {project.status === 'Completed' && <CheckCircle2 className="w-4 h-4 text-blue-500 translate-x-0 group-hover:scale-110 transition-transform" />}
+                <ProgressRing
+                  size={38}
+                  strokeWidth={3.5}
+                  percentage={project.completionPercentage}
+                  color={project.status === 'Completed' ? '#3b82f6' : project.status === 'Delayed' ? '#f59e0b' : '#10b981'}
+                />
               </button>
             ))}
           </div>
@@ -1141,6 +1147,15 @@ const MonitoringPage: React.FC = () => {
                     <PieChart className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-200 opacity-50 z-0" />
                   </div>
 
+                  {/* Budget Utilization by Category */}
+                  {budgetSummary && (
+                    <BudgetUtilizationChart
+                      budget_by_category={budgetSummary.budget_by_category}
+                      approved_by_category={budgetSummary.approved_by_category}
+                      pending_by_category={budgetSummary.pending_by_category}
+                    />
+                  )}
+
                   {/* Phase 4 of LIB feature: Budget History panel. Surfaces past realignment
                       decisions for this project so the proponent has context on how the budget
                       has evolved. Collapsed by default. */}
@@ -1240,6 +1255,16 @@ const MonitoringPage: React.FC = () => {
                     isProjectLead={activeBackend.project_lead_id === user?.id} 
                   />
                 </div>
+              )}
+
+              {/* --- QUARTER STEPPER --- */}
+              {quarters.length > 0 && (
+                <QuarterStepper
+                  quarters={quarters.map(q => ({ status: q.status, quarterLabel: q.quarterLabel }))}
+                  certificateIssued={!!certificateInfo.issuedAt}
+                  currentIndex={currentReportIndex}
+                  onStepClick={(idx) => setCurrentReportIndex(idx)}
+                />
               )}
 
               {/* --- CAROUSEL REPORTS VIEW --- */}
@@ -1721,8 +1746,8 @@ const MonitoringPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Pagination Dots */}
-                  <div className="flex justify-center gap-2 mt-4 pb-6 lg:pb-0">
+                  {/* Pagination Dots (mobile only — stepper handles desktop) */}
+                  <div className="flex lg:hidden justify-center gap-2 mt-4 pb-6">
                     {quarters.map((_, idx) => (
                       <button key={idx} onClick={() => setCurrentReportIndex(idx)} className={`w-2 h-2 rounded-full transition-all ${idx === currentReportIndex ? 'bg-blue-600 w-4' : 'bg-gray-300 hover:bg-gray-400'}`}></button>
                     ))}

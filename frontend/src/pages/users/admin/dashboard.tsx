@@ -28,6 +28,7 @@ import {
   Cell,
 } from 'recharts';
 import PageLoader from '../../../components/shared/PageLoader';
+import PipelineFunnel from '../../../components/shared/PipelineFunnel';
 
 type ExtendedDashboardStats = DashboardStats & {
   proposals: DashboardStats['proposals'] & {
@@ -284,6 +285,20 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
               </div>
             </div>
           </div>
+        </section>
+      )}
+
+      {/* ── Proposal Pipeline Funnel ── */}
+      {stats && (
+        <section>
+          <PipelineFunnel
+            stages={[
+              { label: 'R&D Review', count: stats.proposals.review_rnd, color: '#3b82f6' },
+              { label: 'Under Evaluation', count: stats.proposals.under_evaluation, color: '#8b5cf6' },
+              { label: 'Endorsed for Funding', count: stats.proposals.endorsed_for_funding, color: '#1d4ed8' },
+              { label: 'Funded', count: stats.proposals.funded, color: '#22c55e' },
+            ]}
+          />
         </section>
       )}
 

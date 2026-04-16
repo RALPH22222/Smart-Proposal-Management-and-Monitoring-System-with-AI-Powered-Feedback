@@ -283,6 +283,10 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             </div>
           </div>
 
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center relative z-10">
+            Please follow the template format when preparing your proposal document.
+          </p>
+
           <div className="flex flex-col gap-2.5 relative z-10">
             <button
               onClick={onViewTemplate}
