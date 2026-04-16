@@ -39,7 +39,16 @@ export class ProjectLambdas extends NestedStack {
   public readonly generateCertificate: NodejsFunction;
   public readonly getBudgetSummary: NodejsFunction;
   public readonly getReportUploadUrl: NodejsFunction;
+  // Project extension requests
   public readonly requestExtension: NodejsFunction;
+  public readonly reviewExtension: NodejsFunction;
+  public readonly getExtensionRequests: NodejsFunction;
+  // Phase 3 of LIB feature: budget realignment workflow
+  public readonly getBudgetVersion: NodejsFunction;
+  public readonly requestRealignment: NodejsFunction;
+  public readonly reviewRealignment: NodejsFunction;
+  public readonly getRealignment: NodejsFunction;
+  public readonly listRealignments: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
@@ -79,7 +88,11 @@ export class ProjectLambdas extends NestedStack {
     this.reviewFundRequest = simple("review-fund-request", "pms-review-fund-request", "review-fund-request.ts");
     this.generateCertificate = simple("generate-certificate", "pms-generate-certificate", "generate-certificate.ts");
     this.getBudgetSummary = simple("get-budget-summary", "pms-get-budget-summary", "get-budget-summary.ts");
+
+    // Project extension requests
     this.requestExtension = simple("request-extension", "pms-request-extension", "request-extension.ts");
+    this.reviewExtension = simple("review-extension", "pms-review-extension", "review-extension.ts");
+    this.getExtensionRequests = simple("get-extension-requests", "pms-get-extension-requests", "get-extension-requests.ts");
 
     // Phase 3 of LIB feature: budget realignment workflow
     this.getBudgetVersion = simple("get-budget-version", "pms-get-budget-version", "get-budget-version.ts");

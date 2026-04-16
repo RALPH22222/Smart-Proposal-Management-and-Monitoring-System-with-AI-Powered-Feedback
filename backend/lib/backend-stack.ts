@@ -516,9 +516,16 @@ export class BackendStack extends Stack {
     project
       .addResource("report-upload-url")
       .addMethod(HttpMethod.GET, integrate(projectL.getReportUploadUrl), protectedRoute);
+    // Project extension requests
     project
       .addResource("request-extension")
       .addMethod(HttpMethod.POST, integrate(projectL.requestExtension), protectedRoute);
+    project
+      .addResource("review-extension")
+      .addMethod(HttpMethod.POST, integrate(projectL.reviewExtension), protectedRoute);
+    project
+      .addResource("extension-requests")
+      .addMethod(HttpMethod.GET, integrate(projectL.getExtensionRequests), protectedRoute);
 
     // Phase 3 of LIB feature: budget realignment workflow
     project

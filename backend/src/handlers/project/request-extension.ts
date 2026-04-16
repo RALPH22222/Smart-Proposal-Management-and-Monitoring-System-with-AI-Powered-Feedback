@@ -6,7 +6,6 @@ import { requestProjectExtensionSchema } from "../../schemas/project-schema";
 import { getAuthContext } from "../../utils/auth-context";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-  // Extract authenticated user from JWT
   const auth = getAuthContext(event);
   if (!auth.userId) {
     return {
@@ -28,17 +27,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Verify requester is an active member or lead of the funded project
+  // Verify requester is an active member or project lead
   const { data: membership } = await supabase
     .from("project_members")
     .select("id")
     .eq("funded_project_id", result.data.funded_project_id)
     .eq("user_id", auth.userId)
-    .neq("status", "removed")
+    .eq("status", "active")
     .single();
 
   if (!membership) {
-    // Check if user is the project lead
     const { data: project } = await supabase
       .from("funded_projects")
       .select("id")
@@ -63,11 +61,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   });
 
   if (error) {
+    const statusCode = (error as any).code === "DUPLICATE_EXTENSION_REQUEST" ? 409 : 500;
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
     return {
-      statusCode: 500,
+      statusCode,
       body: JSON.stringify({
         message: error.message || "Internal server error.",
+        code: (error as any).code,
       }),
     };
   }

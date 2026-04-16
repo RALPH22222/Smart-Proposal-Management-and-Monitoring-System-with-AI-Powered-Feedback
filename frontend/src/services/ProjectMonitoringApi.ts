@@ -682,6 +682,72 @@ export async function submitQuarterlyReport(
   return data;
 }
 
+// ─── Project Extension Types & API ─────────────────────────────────
+
+export interface ApiProjectExtensionRequest {
+  id: number;
+  funded_project_id: number;
+  extension_type: "time_only" | "with_funding";
+  new_end_date: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  requested_by: string;
+  reviewed_by: string | null;
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  requested_by_user: { id: string; first_name: string; last_name: string } | null;
+  reviewed_by_user: { id: string; first_name: string; last_name: string } | null;
+}
+
+export async function requestProjectExtension(
+  fundedProjectId: number,
+  extensionType: "time_only" | "with_funding",
+  newEndDate: string,
+  reason: string
+): Promise<ApiProjectExtensionRequest> {
+  const { data } = await api.post<{ data: ApiProjectExtensionRequest }>(
+    "/project/request-extension",
+    {
+      funded_project_id: fundedProjectId,
+      extension_type: extensionType,
+      new_end_date: newEndDate,
+      reason,
+    },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
+export async function fetchProjectExtensionRequests(
+  fundedProjectId: number
+): Promise<ApiProjectExtensionRequest[]> {
+  const { data } = await api.get<{ data: ApiProjectExtensionRequest[] }>(
+    "/project/extension-requests",
+    { params: { funded_project_id: fundedProjectId }, withCredentials: true }
+  );
+  return data.data;
+}
+
+export async function reviewProjectExtension(
+  extensionRequestId: number,
+  status: "approved" | "rejected",
+  reviewNote?: string
+): Promise<ApiProjectExtensionRequest> {
+  const { data } = await api.post<{ data: ApiProjectExtensionRequest }>(
+    "/project/review-extension",
+    {
+      extension_request_id: extensionRequestId,
+      status,
+      review_note: reviewNote,
+    },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
 // ============================================================
 // Phase 3 of LIB feature: budget realignment workflow
 // ============================================================

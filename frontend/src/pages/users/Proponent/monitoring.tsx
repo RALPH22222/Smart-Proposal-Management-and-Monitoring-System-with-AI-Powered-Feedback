@@ -30,6 +30,7 @@ import {
   REPORT_ALLOWED_EXTENSIONS,
   fetchRealignments,
   fetchActiveBudgetVersion,
+  requestProjectExtension,
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
@@ -1766,7 +1767,25 @@ const MonitoringPage: React.FC = () => {
                 <textarea value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)} placeholder="Reason for delay..." className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm h-24 resize-none" />
               </div>
               <button
-                onClick={() => { Swal.fire('Submitted', 'Extension request submitted.', 'success'); setIsExtensionModalOpen(false); setExtensionDate(''); setExtensionReason(''); }}
+                onClick={async () => {
+                  if (!activeBackend) return;
+                  try {
+                    await requestProjectExtension(
+                      activeBackend.id,
+                      extensionType,
+                      extensionDate,
+                      extensionReason
+                    );
+                    Swal.fire('Submitted', 'Extension request submitted successfully.', 'success');
+                    setIsExtensionModalOpen(false);
+                    setExtensionDate('');
+                    setExtensionReason('');
+                    setExtensionType('time_only');
+                  } catch (err: any) {
+                    const msg = err?.response?.data?.message || 'Failed to submit extension request.';
+                    Swal.fire('Error', msg, 'error');
+                  }
+                }}
                 disabled={!extensionDate || !extensionReason.trim()}
                 className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
               >

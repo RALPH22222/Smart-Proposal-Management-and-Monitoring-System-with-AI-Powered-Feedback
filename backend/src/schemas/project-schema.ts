@@ -187,10 +187,15 @@ export type GenerateCertificateInput = z.infer<typeof generateCertificateSchema>
   issued_by: string;
 };
 
+// ===================== PROJECT EXTENSIONS =====================
+
+export const extensionTypeSchema = z.enum(["time_only", "with_funding"]);
+
 // Request Project Extension Schema
+// Note: requested_by is injected by handler from JWT, not from request body
 export const requestProjectExtensionSchema = z.object({
   funded_project_id: z.number().int().positive(),
-  extension_type: z.enum(["time_only", "with_funding"]),
+  extension_type: extensionTypeSchema,
   new_end_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format",
   }),
@@ -200,3 +205,20 @@ export const requestProjectExtensionSchema = z.object({
 export type RequestProjectExtensionInput = z.infer<typeof requestProjectExtensionSchema> & {
   requested_by: string;
 };
+
+// Review (Approve/Reject) Project Extension Schema
+// Note: reviewed_by is injected by handler from JWT, not from request body
+export const reviewProjectExtensionSchema = z.object({
+  extension_request_id: z.number().int().positive(),
+  status: z.enum(["approved", "rejected"]),
+  review_note: z.string().max(2000).optional(),
+});
+
+export type ReviewProjectExtensionInput = z.infer<typeof reviewProjectExtensionSchema> & {
+  reviewed_by: string;
+};
+
+// Get Project Extension Requests Schema
+export const getProjectExtensionRequestsSchema = z.object({
+  funded_project_id: z.coerce.number().int().positive(),
+});

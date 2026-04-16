@@ -16,6 +16,7 @@ import {
   ReviewFundRequestInput,
   GenerateCertificateInput,
   RequestProjectExtensionInput,
+  ReviewProjectExtensionInput,
 } from "../schemas/project-schema";
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
@@ -1667,5 +1668,792 @@ export class ProjectService {
     }
 
     return { data: updated, error: null };
+  }
+
+  // ============================================================
+  // Phase 3 of LIB feature: Budget realignment workflow
+  // ============================================================
+
+  // Returns the active budget version for a funded project, including all line items.
+  // Lazily backfills funded_projects.current_budget_version_id from the latest version
+  // if it's NULL — covers funded_projects rows created BEFORE Phase 1 deploy or by code
+  // paths that don't yet set the column. Cleaned up properly in Phase 4.
+  async getActiveBudgetVersion(fundedProjectId: number) {
+    const { data: project, error: projectError } = await this.db
+      .from("funded_projects")
+      .select("id, proposal_id, current_budget_version_id")
+      .eq("id", fundedProjectId)
+      .maybeSingle();
+
+    if (projectError || !project) {
+      return { data: null, error: projectError ?? new Error("Funded project not found") };
+    }
+
+    let versionId: number | null = project.current_budget_version_id ?? null;
+
+    if (!versionId) {
+      const { data: latest } = await this.db
+        .from("proposal_budget_versions")
+        .select("id")
+        .eq("proposal_id", project.proposal_id)
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!latest) {
+        return {
+          data: null,
+          error: new Error(
+            "No structured budget version exists for this proposal yet. The proponent must resubmit the budget after Phase 1 deploy.",
+          ),
+        };
+      }
+
+      versionId = latest.id as number;
+
+      await this.db
+        .from("funded_projects")
+        .update({ current_budget_version_id: versionId })
+        .eq("id", fundedProjectId);
+    }
+
+    const { data: version, error: versionError } = await this.db
+      .from("proposal_budget_versions")
+      .select(
+        `
+        id, proposal_id, version_number, grand_total, created_at,
+        items:proposal_budget_items (
+          id, source, category, subcategory_id, custom_subcategory_label,
+          item_name, spec, quantity, unit, unit_price, total_amount, display_order, notes
+        )
+      `,
+      )
+      .eq("id", versionId)
+      .single();
+
+    if (versionError || !version) {
+      return { data: null, error: versionError ?? new Error("Budget version not found") };
+    }
+
+    return {
+      data: {
+        funded_project_id: project.id,
+        proposal_id: project.proposal_id,
+        version,
+      },
+      error: null,
+    };
+  }
+
+  async requestRealignment(args: { input: RequestRealignmentInput; requested_by: string }) {
+    const { input, requested_by } = args;
+
+    const versionResult = await this.getActiveBudgetVersion(input.funded_project_id);
+    if (versionResult.error || !versionResult.data) {
+      return { data: null, error: versionResult.error };
+    }
+    const { version: fromVersion } = versionResult.data;
+
+    // Hard ceiling: new grand total cannot exceed baseline. Compare in integer cents to
+    // avoid floating-point drift that would otherwise reject a strictly-equal realignment.
+    const newGrandTotalCents = input.items.reduce(
+      (sum, item) => sum + Math.round(item.totalAmount * 100),
+      0,
+    );
+    const baselineCents = Math.round((Number(fromVersion.grand_total) || 0) * 100);
+
+    if (newGrandTotalCents > baselineCents) {
+      return {
+        data: null,
+        error: new Error(
+          `New grand total (₱${(newGrandTotalCents / 100).toFixed(2)}) exceeds the original ceiling (₱${(baselineCents / 100).toFixed(2)}).`,
+        ),
+      };
+    }
+
+    // Phase 4 of LIB feature: per-line floor validation. For each existing budget item
+    // that has approved fund_request_items linked to it, the new total must be ≥ the
+    // already-approved sum. Removing such an item is also blocked.
+    const baselineItems = (fromVersion.items ?? []) as Array<{
+      id: number;
+      category: string;
+      item_name: string;
+      spec: string | null;
+      total_amount: number;
+    }>;
+    const baselineItemIds = baselineItems.map((it) => it.id);
+
+    if (baselineItemIds.length > 0) {
+      const { data: linkedFundItems } = await this.db
+        .from("fund_request_items")
+        .select("budget_item_id, amount, fund_requests!inner(status)")
+        .in("budget_item_id", baselineItemIds);
+
+      const approvedByItemId = new Map<number, number>();
+      for (const row of linkedFundItems ?? []) {
+        const r = row as any;
+        const status = r.fund_requests?.status;
+        if (status !== "approved") continue;
+        const itemId = r.budget_item_id as number | null;
+        if (itemId == null) continue;
+        approvedByItemId.set(itemId, (approvedByItemId.get(itemId) ?? 0) + (Number(r.amount) || 0));
+      }
+
+      if (approvedByItemId.size > 0) {
+        // Build a quick lookup from match key → proposed item total so we can detect
+        // both "removed" and "reduced below floor" in one pass.
+        const proposedByKey = new Map<string, number>();
+        const makeKey = (cat: string, name: string, spec: string | null) =>
+          `${cat}|${(name ?? "").trim().toLowerCase()}|${(spec ?? "").trim().toLowerCase()}`;
+
+        for (const item of input.items) {
+          const key = makeKey(item.category, item.itemName, item.spec ?? null);
+          proposedByKey.set(key, (proposedByKey.get(key) ?? 0) + Number(item.totalAmount));
+        }
+
+        for (const baseline of baselineItems) {
+          const approvedFloor = approvedByItemId.get(baseline.id);
+          if (!approvedFloor || approvedFloor <= 0) continue;
+
+          const key = makeKey(baseline.category, baseline.item_name, baseline.spec);
+          const proposedTotal = proposedByKey.get(key);
+
+          if (proposedTotal == null) {
+            return {
+              data: null,
+              error: new Error(
+                `Cannot remove "${baseline.item_name}" — ₱${approvedFloor.toFixed(2)} has already been approved against this line. Adjust the line's amount instead, or wait until those fund requests are completed.`,
+              ),
+            };
+          }
+
+          if (Math.round(proposedTotal * 100) < Math.round(approvedFloor * 100)) {
+            return {
+              data: null,
+              error: new Error(
+                `Cannot reduce "${baseline.item_name}" below ₱${approvedFloor.toFixed(2)} — that amount has already been approved in fund requests.`,
+              ),
+            };
+          }
+        }
+      }
+    }
+
+    // Friendly check before the unique index slams the door. Two branches:
+    //   - pending_review  → reject outright; R&D still has it in their queue
+    //   - revision_requested → update the existing row in place, flip back to pending_review.
+    //     This is how proponents respond to R&D's "please revise" feedback — same realignment
+    //     row (so the diff history stays simple), new items, new reason, cleared review trail.
+    const { data: existingPending } = await this.db
+      .from("budget_realignments")
+      .select("id, status, requested_by")
+      .eq("funded_project_id", input.funded_project_id)
+      .in("status", ["pending_review", "revision_requested"])
+      .maybeSingle();
+
+    if (existingPending?.status === "pending_review") {
+      return {
+        data: null,
+        error: new Error(
+          "There is already a realignment pending review for this project. Wait for R&D to respond first.",
+        ),
+      };
+    }
+
+    const newGrandTotal = newGrandTotalCents / 100;
+
+    if (existingPending?.status === "revision_requested") {
+      // Lock down re-submission to the original requester so one co-lead can't hijack another's
+      // revision in flight. In practice the UI only surfaces the revise button on projects the
+      // user is a member of, but better to enforce it here too.
+      if (existingPending.requested_by && existingPending.requested_by !== requested_by) {
+        return {
+          data: null,
+          error: new Error(
+            "Only the proponent who submitted the original realignment can resubmit this revision.",
+          ),
+        };
+      }
+
+      const { data: updated, error: updateError } = await this.db
+        .from("budget_realignments")
+        .update({
+          status: "pending_review",
+          from_version_id: fromVersion.id,
+          reason: input.reason,
+          file_url: input.file_url ?? null,
+          proposed_payload: { items: input.items, grand_total: newGrandTotal },
+          reviewed_by: null,
+          reviewed_at: null,
+          review_note: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingPending.id)
+        .select()
+        .single();
+
+      if (updateError || !updated) {
+        return {
+          data: null,
+          error: updateError ?? new Error("Failed to resubmit the revised realignment"),
+        };
+      }
+
+      // Notify R&D again so they know it's back in their queue.
+      try {
+        const { data: rndUsers } = await this.db
+          .from("users")
+          .select("id")
+          .contains("roles", ["rnd"]);
+
+        const { data: projectInfo } = await this.db
+          .from("funded_projects")
+          .select("proposal_id, proposals!inner(project_title)")
+          .eq("id", input.funded_project_id)
+          .single();
+
+        const projectTitle = (projectInfo as any)?.proposals?.project_title ?? "a funded project";
+
+        if (rndUsers && rndUsers.length > 0) {
+          const notifications = rndUsers.map((u) => ({
+            user_id: u.id,
+            message: `A revised budget realignment has been resubmitted for "${projectTitle}".`,
+            is_read: false,
+            link: "funding",
+          }));
+          await this.db.from("notifications").insert(notifications);
+        }
+      } catch (notifErr) {
+        console.error("Realignment resubmit notification failed (non-blocking):", notifErr);
+      }
+
+      await logActivity(this.db, {
+        user_id: requested_by,
+        action: "budget_realignment_resubmitted",
+        category: "project",
+        target_id: String(updated.id),
+        target_type: "budget_realignment",
+        details: {
+          funded_project_id: input.funded_project_id,
+          from_version_id: fromVersion.id,
+          proposed_grand_total: newGrandTotal,
+        },
+      });
+
+      return { data: updated, error: null };
+    }
+
+    const { data: inserted, error: insertError } = await this.db
+      .from("budget_realignments")
+      .insert({
+        funded_project_id: input.funded_project_id,
+        from_version_id: fromVersion.id,
+        to_version_id: null,
+        status: "pending_review",
+        reason: input.reason,
+        file_url: input.file_url ?? null,
+        proposed_payload: { items: input.items, grand_total: newGrandTotal },
+        requested_by,
+      })
+      .select()
+      .single();
+
+    if (insertError || !inserted) {
+      return { data: null, error: insertError ?? new Error("Failed to create realignment request") };
+    }
+
+    // Notify R&D users — fire and forget so SMTP / DB hiccups don't fail the request.
+    try {
+      const { data: rndUsers } = await this.db
+        .from("users")
+        .select("id")
+        .contains("roles", ["rnd"]);
+
+      const { data: projectInfo } = await this.db
+        .from("funded_projects")
+        .select("proposal_id, proposals!inner(project_title)")
+        .eq("id", input.funded_project_id)
+        .single();
+
+      const projectTitle = (projectInfo as any)?.proposals?.project_title ?? "a funded project";
+
+      if (rndUsers && rndUsers.length > 0) {
+        const notifications = rndUsers.map((u) => ({
+          user_id: u.id,
+          message: `A budget realignment request has been submitted for "${projectTitle}".`,
+          is_read: false,
+          link: "funding",
+        }));
+        await this.db.from("notifications").insert(notifications);
+      }
+    } catch (notifErr) {
+      console.error("Realignment request notification failed (non-blocking):", notifErr);
+    }
+
+    await logActivity(this.db, {
+      user_id: requested_by,
+      action: "budget_realignment_requested",
+      category: "project",
+      target_id: String(inserted.id),
+      target_type: "budget_realignment",
+      details: {
+        funded_project_id: input.funded_project_id,
+        from_version_id: fromVersion.id,
+        baseline_grand_total: baselineCents / 100,
+        proposed_grand_total: newGrandTotal,
+      },
+    });
+
+    return { data: inserted, error: null };
+  }
+
+  async reviewRealignment(args: { input: ReviewRealignmentInput; reviewed_by: string }) {
+    const { input, reviewed_by } = args;
+
+    const { data: realignment, error: fetchError } = await this.db
+      .from("budget_realignments")
+      .select("id, funded_project_id, from_version_id, status, requested_by, proposed_payload")
+      .eq("id", input.realignment_id)
+      .maybeSingle();
+
+    if (fetchError || !realignment) {
+      return { data: null, error: fetchError ?? new Error("Realignment not found") };
+    }
+
+    if (!["pending_review", "revision_requested"].includes(realignment.status)) {
+      return {
+        data: null,
+        error: new Error(`This realignment is already ${realignment.status} and cannot be reviewed again.`),
+      };
+    }
+
+    const now = new Date().toISOString();
+    let to_version_id: number | null = null;
+    let new_status: "approved" | "rejected" | "revision_requested";
+
+    if (input.action === "approve") {
+      const { data: project } = await this.db
+        .from("funded_projects")
+        .select("proposal_id")
+        .eq("id", realignment.funded_project_id)
+        .single();
+
+      if (!project) {
+        return { data: null, error: new Error("Funded project not found") };
+      }
+
+      const { data: latestVersion } = await this.db
+        .from("proposal_budget_versions")
+        .select("version_number")
+        .eq("proposal_id", project.proposal_id)
+        .order("version_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const nextVersionNumber = (latestVersion?.version_number ?? 1) + 1;
+      const payload = realignment.proposed_payload as { items: any[]; grand_total: number };
+      const items = payload.items ?? [];
+      const grandTotal =
+        payload.grand_total ?? items.reduce((s, it) => s + (Number(it.totalAmount) || 0), 0);
+
+      const { data: newVersion, error: vErr } = await this.db
+        .from("proposal_budget_versions")
+        .insert({
+          proposal_id: project.proposal_id,
+          version_number: nextVersionNumber,
+          grand_total: grandTotal,
+          created_by: reviewed_by,
+        })
+        .select("id")
+        .single();
+
+      if (vErr || !newVersion) {
+        return { data: null, error: vErr ?? new Error("Failed to create new budget version") };
+      }
+
+      if (items.length > 0) {
+        const itemRows = items.map((it: any, idx: number) => ({
+          version_id: newVersion.id,
+          source: it.source,
+          category: it.category,
+          subcategory_id: it.subcategoryId ?? null,
+          custom_subcategory_label: it.customSubcategoryLabel ?? null,
+          item_name: it.itemName,
+          spec: it.spec ?? null,
+          quantity: it.quantity,
+          unit: it.unit ?? null,
+          unit_price: it.unitPrice,
+          total_amount: it.totalAmount,
+          display_order: it.displayOrder ?? idx + 1,
+          notes: it.notes ?? null,
+        }));
+
+        const { error: itemsErr } = await this.db.from("proposal_budget_items").insert(itemRows);
+
+        if (itemsErr) {
+          // Cleanup the orphaned version row so a retry can succeed.
+          await this.db.from("proposal_budget_versions").delete().eq("id", newVersion.id);
+          return { data: null, error: itemsErr };
+        }
+      }
+
+      // Flip the active version pointer.
+      const { error: pointerErr } = await this.db
+        .from("funded_projects")
+        .update({ current_budget_version_id: newVersion.id })
+        .eq("id", realignment.funded_project_id);
+
+      if (pointerErr) {
+        // The version + items exist, the pointer doesn't. Surface the error so the user
+        // can retry — the unique index won't prevent it because the realignment is still pending.
+        return { data: null, error: pointerErr };
+      }
+
+      to_version_id = newVersion.id as number;
+      new_status = "approved";
+    } else if (input.action === "reject") {
+      new_status = "rejected";
+    } else {
+      new_status = "revision_requested";
+    }
+
+    const { data: updated, error: updateError } = await this.db
+      .from("budget_realignments")
+      .update({
+        status: new_status,
+        reviewed_by,
+        reviewed_at: now,
+        review_note: input.review_note ?? null,
+        to_version_id,
+        updated_at: now,
+      })
+      .eq("id", input.realignment_id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    // Notify the proponent.
+    try {
+      const { data: projectInfo } = await this.db
+        .from("funded_projects")
+        .select("proposal_id, proposals!inner(project_title)")
+        .eq("id", realignment.funded_project_id)
+        .single();
+
+      const projectTitle = (projectInfo as any)?.proposals?.project_title ?? "your project";
+      const verb =
+        input.action === "approve"
+          ? "approved"
+          : input.action === "reject"
+            ? "rejected"
+            : "marked for revision";
+
+      await this.db.from("notifications").insert({
+        user_id: realignment.requested_by,
+        message: `Your budget realignment for "${projectTitle}" has been ${verb}.`,
+        is_read: false,
+        link: "monitoring",
+      });
+    } catch (notifErr) {
+      console.error("Realignment decision notification failed (non-blocking):", notifErr);
+    }
+
+    await logActivity(this.db, {
+      user_id: reviewed_by,
+      action: `budget_realignment_${input.action}`,
+      category: "project",
+      target_id: String(input.realignment_id),
+      target_type: "budget_realignment",
+      details: {
+        funded_project_id: realignment.funded_project_id,
+        from_version_id: realignment.from_version_id,
+        to_version_id,
+      },
+    });
+
+    return { data: updated, error: null };
+  }
+
+  // Returns one realignment with both versions inlined for the diff view.
+  async getRealignment(realignmentId: number) {
+    const { data, error } = await this.db
+      .from("budget_realignments")
+      .select(
+        `
+        id, funded_project_id, from_version_id, to_version_id,
+        status, reason, file_url, proposed_payload,
+        requested_by, reviewed_by, reviewed_at, review_note,
+        created_at, updated_at,
+        requester:users!budget_realignments_requested_by_fkey (id, first_name, last_name, email),
+        reviewer:users!budget_realignments_reviewed_by_fkey (id, first_name, last_name, email),
+        funded_project:funded_projects!inner (
+          id, proposal_id,
+          proposals!inner (id, project_title)
+        ),
+        from_version:proposal_budget_versions!budget_realignments_from_version_id_fkey (
+          id, version_number, grand_total, created_at,
+          items:proposal_budget_items (
+            id, source, category, subcategory_id, custom_subcategory_label,
+            item_name, spec, quantity, unit, unit_price, total_amount, display_order
+          )
+        ),
+        to_version:proposal_budget_versions!budget_realignments_to_version_id_fkey (
+          id, version_number, grand_total, created_at,
+          items:proposal_budget_items (
+            id, source, category, subcategory_id, custom_subcategory_label,
+            item_name, spec, quantity, unit, unit_price, total_amount, display_order
+          )
+        )
+      `,
+      )
+      .eq("id", realignmentId)
+      .maybeSingle();
+
+    return { data, error };
+  }
+
+  // Lists realignments with role-based filtering. R&D / admin see everything; proponents
+  // see only their own. Optional status filter for the RND tab UI.
+  async listRealignments(args: {
+    status?: string;
+    funded_project_id?: number;
+    user_id?: string;
+    user_roles?: string[];
+  }) {
+    let query = this.db
+      .from("budget_realignments")
+      .select(
+        `
+        id, funded_project_id, from_version_id, to_version_id,
+        status, reason, requested_by, reviewed_by, reviewed_at, review_note,
+        created_at, updated_at, file_url, proposed_payload,
+        requester:users!budget_realignments_requested_by_fkey (id, first_name, last_name, email),
+        funded_project:funded_projects!inner (
+          id, proposal_id,
+          proposals!inner (id, project_title)
+        ),
+        from_version:proposal_budget_versions!budget_realignments_from_version_id_fkey (id, version_number, grand_total)
+      `,
+      )
+      .order("created_at", { ascending: false });
+
+    if (args.status) query = query.eq("status", args.status);
+    if (args.funded_project_id) query = query.eq("funded_project_id", args.funded_project_id);
+
+    const isPrivileged =
+      Array.isArray(args.user_roles) && (args.user_roles.includes("rnd") || args.user_roles.includes("admin"));
+
+    // Proponents only see their own requests.
+    if (!isPrivileged && args.user_id) {
+      query = query.eq("requested_by", args.user_id);
+    }
+
+    return query;
+  }
+
+  // ===================== PROJECT EXTENSIONS =====================
+
+  async requestProjectExtension(input: RequestProjectExtensionInput) {
+    // Check for existing pending extension request (prevent duplicates)
+    const { data: existing } = await this.db
+      .from("project_extension_requests")
+      .select("id")
+      .eq("funded_project_id", input.funded_project_id)
+      .eq("status", "pending")
+      .single();
+
+    if (existing) {
+      return {
+        data: null,
+        error: {
+          message: "There is already a pending extension request for this project.",
+          code: "DUPLICATE_EXTENSION_REQUEST",
+        },
+      };
+    }
+
+    const { data, error } = await this.db
+      .from("project_extension_requests")
+      .insert({
+        funded_project_id: input.funded_project_id,
+        extension_type: input.extension_type,
+        new_end_date: input.new_end_date,
+        reason: input.reason,
+        requested_by: input.requested_by,
+        status: "pending",
+      })
+      .select(
+        `
+        *,
+        requested_by_user:users!project_extension_requests_requested_by_fkey (id, first_name, last_name)
+      `
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.requested_by,
+      action: "project_extension_requested",
+      category: "project",
+      target_id: String(input.funded_project_id),
+      target_type: "funded_project",
+      details: {
+        extension_request_id: data.id,
+        extension_type: input.extension_type,
+        new_end_date: input.new_end_date,
+      },
+    });
+
+    // Notify assigned RND user
+    const { data: project } = await this.db
+      .from("funded_projects")
+      .select("proposal_id")
+      .eq("id", input.funded_project_id)
+      .single();
+
+    if (project) {
+      const { data: rndAssignment } = await this.db
+        .from("proposal_rnd")
+        .select("rnd_id")
+        .eq("proposal_id", project.proposal_id)
+        .single();
+
+      if (rndAssignment) {
+        const typeLabel = input.extension_type === "time_only" ? "time-only" : "with funding";
+        await this.db.from("notifications").insert({
+          user_id: rndAssignment.rnd_id,
+          message: `A project extension request (${typeLabel}) has been submitted for review.`,
+          is_read: false,
+          link: "project-monitoring",
+        });
+      }
+    }
+
+    return { data, error: null };
+  }
+
+  async reviewProjectExtension(input: ReviewProjectExtensionInput) {
+    // Lookup the extension request to get the project ID for COI check
+    const { data: extensionRequest } = await this.db
+      .from("project_extension_requests")
+      .select("funded_project_id")
+      .eq("id", input.extension_request_id)
+      .single();
+
+    if (!extensionRequest) {
+      return { data: null, error: { message: "Extension request not found." } };
+    }
+
+    // COI guard
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, extensionRequest.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_review_extension",
+        category: "project",
+        target_id: String(input.extension_request_id),
+        target_type: "funded_project",
+        details: { funded_project_id: extensionRequest.funded_project_id, attempted_status: input.status },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_extension_requests")
+      .update({
+        status: input.status,
+        reviewed_by: input.reviewed_by,
+        review_note: input.review_note || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", input.extension_request_id)
+      .eq("status", "pending") // Can only review pending requests
+      .select(
+        `
+        *,
+        requested_by_user:users!project_extension_requests_requested_by_fkey (id, first_name, last_name)
+      `
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Extension request not found or already reviewed." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.reviewed_by,
+      action: `project_extension_${input.status}`,
+      category: "project",
+      target_id: String(input.extension_request_id),
+      target_type: "funded_project",
+      details: { review_note: input.review_note },
+    });
+
+    // Notify the proponent
+    await this.db.from("notifications").insert({
+      user_id: data.requested_by,
+      message: `Your project extension request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""}`,
+      is_read: false,
+      link: "project-monitoring",
+    });
+
+    // Send email notification (fire-and-forget)
+    try {
+      const { data: proponent } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", data.requested_by)
+        .single();
+
+      if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          proponent.email,
+          proponent.first_name || "Proponent",
+          `Extension Request ${input.status === "approved" ? "Approved" : "Rejected"}`,
+          `Your project extension request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Sign in to SPMAMS for details.`,
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
+
+    return { data, error: null };
+  }
+
+  async getProjectExtensionRequests(input: { funded_project_id: number }) {
+    const { data, error } = await this.db
+      .from("project_extension_requests")
+      .select(
+        `
+        *,
+        requested_by_user:users!project_extension_requests_requested_by_fkey (id, first_name, last_name),
+        reviewed_by_user:users!project_extension_requests_reviewed_by_fkey (id, first_name, last_name)
+      `
+      )
+      .eq("funded_project_id", input.funded_project_id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data, error: null };
   }
 }
