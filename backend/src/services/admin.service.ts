@@ -105,7 +105,7 @@ export class AdminService {
     const { email, roles } = input;
 
     const { data, error } = await this.db.auth.admin.inviteUserByEmail(email, {
-      data: { roles },
+      data: { roles, invite_type: "staff" },
       redirectTo,
     });
 

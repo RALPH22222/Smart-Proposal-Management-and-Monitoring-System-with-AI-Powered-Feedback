@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   CheckCircle,
   DollarSign,
@@ -11,7 +11,9 @@ import {
   XCircle,
   Tag,
   Signature,
-  Eye
+  Eye,
+  Banknote,
+  Clock,
 } from 'lucide-react';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
@@ -19,14 +21,21 @@ import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
 import DocumentViewerModal from '../../../components/shared/DocumentViewerModal';
+import RealignmentReviewModal from '../../../components/shared/RealignmentReviewModal';
+import ProjectBudgetViewerModal from '../../../components/shared/ProjectBudgetViewerModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 import { transformProposalForModal } from '../../../utils/proposal-transform';
+import {
+  fetchRealignments,
+  type RealignmentRecord,
+} from '../../../services/ProjectMonitoringApi';
 
 const FundingPage: React.FC = () => {
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'pending' | 'archived'>('pending');
+  // Phase 3 of LIB feature: third tab for budget realignment requests
+  const [activeTab, setActiveTab] = useState<'pending' | 'archived' | 'realignments'>('pending');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -35,9 +44,38 @@ const FundingPage: React.FC = () => {
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
 
+  // Phase 3 of LIB feature: realignment list state
+  const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
+  const [realignmentsLoading, setRealignmentsLoading] = useState(false);
+  const [activeRealignmentId, setActiveRealignmentId] = useState<number | null>(null);
+
+  // Phase 4 follow-up: budget money tracker modal (for Funded projects)
+  const [budgetViewerProject, setBudgetViewerProject] = useState<{
+    fundedProjectId: number;
+    title: string;
+  } | null>(null);
+
   useEffect(() => {
     loadFundingProposals();
   }, []);
+
+  const loadRealignments = useCallback(async () => {
+    setRealignmentsLoading(true);
+    try {
+      const data = await fetchRealignments();
+      setRealignments(data);
+    } catch (err) {
+      console.error('Failed to load realignments', err);
+    } finally {
+      setRealignmentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'realignments') {
+      loadRealignments();
+    }
+  }, [activeTab, loadRealignments]);
 
   const loadFundingProposals = async () => {
     try {
@@ -163,8 +201,8 @@ const FundingPage: React.FC = () => {
 
   return (
     <>
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col relative animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
+    <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col relative animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -233,7 +271,11 @@ const FundingPage: React.FC = () => {
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#C8102E]" />
-              {activeTab === 'pending' ? 'Funding Proposals' : 'Funding Archive'}
+              {activeTab === 'pending'
+                ? 'Funding Proposals'
+                : activeTab === 'archived'
+                  ? 'Funding Archive'
+                  : 'Realignment Requests'}
             </h3>
             <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-lg">
               <button
@@ -248,11 +290,94 @@ const FundingPage: React.FC = () => {
               >
                 Archive
               </button>
+              <button
+                onClick={() => { setActiveTab('realignments'); setCurrentPage(1); }}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'realignments' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+              >
+                <Banknote className="w-3.5 h-3.5" /> Realignments
+                {realignments.filter((r) => r.status === 'pending_review').length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold">
+                    {realignments.filter((r) => r.status === 'pending_review').length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {displayedProposals.length === 0 ? (
+            {activeTab === 'realignments' ? (
+              realignmentsLoading ? (
+                <div className="text-center py-12 text-slate-500">Loading realignments...</div>
+              ) : realignments.length === 0 ? (
+                <div className="text-center py-12 px-4 mt-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Banknote className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No realignment requests</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">
+                    Realignment requests submitted by proponents will appear here for your review.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {realignments.map((r) => {
+                    const projectTitle = r.funded_project?.proposals?.project_title ?? 'Untitled project';
+                    const requesterName = [r.requester?.first_name, r.requester?.last_name]
+                      .filter(Boolean)
+                      .join(' ') || r.requester?.email || 'Unknown';
+                    const statusStyle =
+                      r.status === 'pending_review'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : r.status === 'revision_requested'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : r.status === 'approved'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-red-50 text-red-700 border-red-200';
+                    return (
+                      <article
+                        key={r.id}
+                        className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => setActiveRealignmentId(r.id)}
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h2 className="text-base font-semibold text-slate-800 truncate">
+                              {projectTitle}
+                            </h2>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                              <span className="flex items-center gap-1">
+                                <User className="w-3 h-3" /> {requesterName}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" /> {formatDate(r.created_at)}
+                              </span>
+                              <span className="text-slate-400 italic truncate max-w-xl">
+                                "{r.reason.length > 100 ? r.reason.slice(0, 97) + '...' : r.reason}"
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${statusStyle}`}>
+                              {r.status === 'pending_review' && <Clock className="w-3 h-3 inline mr-1" />}
+                              {r.status.replace('_', ' ')}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveRealignmentId(r.id);
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00d25] shadow-sm"
+                            >
+                              <Eye className="w-3 h-3" /> Review
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )
+            ) : displayedProposals.length === 0 ? (
               <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   <DollarSign className="w-8 h-8 text-slate-400" />
@@ -316,18 +441,37 @@ const FundingPage: React.FC = () => {
                             <Gavel className="w-3.5 h-3.5" />
                             Action
                           </button>
-                        ) : proposal.status === 'Funded' && (proposal as any).fundingDocumentUrl ? (
-                          <button
-                            onClick={() => {
-                              setActiveProposal(proposal);
-                              setActiveProposalRaw((proposal as any)._raw);
-                              setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View File
-                          </button>
+                        ) : proposal.status === 'Funded' ? (
+                          <div className="flex items-center gap-2">
+                            {(proposal as any).fundedProjectId && (
+                              <button
+                                onClick={() => {
+                                  setBudgetViewerProject({
+                                    fundedProjectId: (proposal as any).fundedProjectId,
+                                    title: proposal.title,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                                title="View line-item budget and utilization"
+                              >
+                                <Banknote className="w-3.5 h-3.5" />
+                                Budget Tracker
+                              </button>
+                            )}
+                            {(proposal as any).fundingDocumentUrl && (
+                              <button
+                                onClick={() => {
+                                  setActiveProposal(proposal);
+                                  setActiveProposalRaw((proposal as any)._raw);
+                                  setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                View File
+                              </button>
+                            )}
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -337,8 +481,8 @@ const FundingPage: React.FC = () => {
             )}
           </div>
 
-          {/* Pagination */}
-          {displayedProposals.length > 0 && (
+          {/* Pagination — only for the proposal tabs, not realignments */}
+          {activeTab !== 'realignments' && displayedProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
@@ -387,6 +531,25 @@ const FundingPage: React.FC = () => {
         title="Funding Approval Document"
         proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
       />
+
+      {activeRealignmentId != null && (
+        <RealignmentReviewModal
+          realignmentId={activeRealignmentId}
+          onClose={() => setActiveRealignmentId(null)}
+          onReviewed={() => {
+            loadRealignments();
+            loadFundingProposals();
+          }}
+        />
+      )}
+
+      {budgetViewerProject && (
+        <ProjectBudgetViewerModal
+          fundedProjectId={budgetViewerProject.fundedProjectId}
+          projectTitle={budgetViewerProject.title}
+          onClose={() => setBudgetViewerProject(null)}
+        />
+      )}
     </>
   );
 };

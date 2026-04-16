@@ -11,15 +11,15 @@ interface PageLoaderProps {
 const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple' }) => {
   if (mode === 'monitoring') {
     return (
-      <div className={`p-6 space-y-6 flex flex-col h-full bg-slate-50 ${className || ''} animate-pulse`}>
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col gap-4 lg:gap-6 h-full ${className || ''} animate-pulse`}>
          <div className="space-y-2"><SkeletonPulse className="h-8 w-48"/><SkeletonPulse className="h-4 w-72"/></div>
-         <div className="bg-white p-6 rounded-2xl border border-slate-200 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 shadow-sm">
+         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4 shadow-sm">
             {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="space-y-3"><SkeletonPulse className="h-3 w-2/3 opacity-40"/><SkeletonPulse className="h-8 w-full rounded-xl"/></div>)}
          </div>
-         <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row gap-4 shadow-sm">
+         <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row gap-4 lg:gap-6 shadow-sm">
             <SkeletonPulse className="h-11 w-full max-w-md rounded-xl" /><SkeletonPulse className="h-11 w-32 rounded-xl ml-auto" />
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-sm">
+         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-sm min-h-0">
             <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between">
               <div className="flex gap-8"><SkeletonPulse className="h-3 w-40" /><SkeletonPulse className="h-3 w-32" /></div>
               <SkeletonPulse className="h-3 w-20" />
@@ -46,12 +46,12 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'endorsement') {
     return (
-      <div className={`p-6 space-y-6 flex flex-col h-full bg-slate-50 ${className || ''} animate-pulse`}>
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col gap-4 lg:gap-6 h-full ${className || ''} animate-pulse`}>
          <div className="space-y-2"><SkeletonPulse className="h-8 w-48"/><SkeletonPulse className="h-4 w-72"/></div>
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {[1, 2, 3, 4].map(i => <div key={i} className="bg-white border border-slate-200 rounded-2xl p-5 h-24 space-y-3 shadow-sm"><SkeletonPulse className="h-3 w-2/3 opacity-50"/><SkeletonPulse className="h-8 w-1/3 rounded-lg"/></div>)}
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-sm">
+         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-sm min-h-0">
             <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
               <div className="space-y-2"><SkeletonPulse className="h-4 w-40" /><SkeletonPulse className="h-3 w-32 opacity-50" /></div>
               <SkeletonPulse className="h-9 w-32 rounded-xl" />
@@ -127,15 +127,15 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'lookup') {
     return (
-      <div className={`p-6 space-y-6 flex flex-col h-full bg-slate-50 ${className || ''} animate-pulse`}>
+      <div className={`min-h-full h-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col gap-4 lg:gap-6 ${className || ''} animate-pulse`}>
          <div className="space-y-2">
            <SkeletonPulse className="h-9 w-64" />
            <SkeletonPulse className="h-4 w-80 opacity-50" />
          </div>
-         <div className="flex flex-wrap gap-2 pb-2">
+         <div className="flex flex-wrap gap-2 pb-0">
            {[1, 2, 3, 4, 5, 6].map(i => <SkeletonPulse key={i} className="h-10 w-28 rounded-xl shadow-sm" />)}
          </div>
-         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-md">
+         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex-1 shadow-md min-h-0">
             <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
               <SkeletonPulse className="h-4 w-40" />
               <SkeletonPulse className="h-10 w-24 rounded-xl shadow-sm" />
@@ -156,15 +156,12 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'activity') {
     return (
-      <div className={`p-6 space-y-6 max-w-[1400px] mx-auto ${className || ''} animate-pulse`}>
-         <div className="flex items-center gap-4">
-           <SkeletonPulse className="w-12 h-12 rounded-xl shadow-sm" />
-           <div className="space-y-2">
-             <SkeletonPulse className="h-8 w-48" />
-             <SkeletonPulse className="h-4 w-64 opacity-50" />
-           </div>
-         </div>
-         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className={`min-h-screen w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col gap-4 lg:gap-6 ${className || ''} animate-pulse`}>
+         <header className="space-y-2">
+           <SkeletonPulse className="h-9 w-56 max-w-full" />
+           <SkeletonPulse className="h-4 w-72 max-w-full opacity-50" />
+         </header>
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
             {[1, 2, 3, 4].map(i => <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 h-24 space-y-3 shadow-sm"><SkeletonPulse className="h-3 w-24 opacity-50"/><SkeletonPulse className="h-8 w-16 rounded-lg"/></div>)}
          </div>
          <div className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
@@ -336,27 +333,27 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'account-settings-tabs') {
     return (
-      <div className={`bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-pulse ${className || ''}`}>
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-pulse ${className || ''}`}>
         <div className="flex flex-col min-w-0">
           <div className="mb-8 space-y-2">
             <SkeletonPulse className="h-8 w-56 max-w-full" />
             <SkeletonPulse className="h-4 w-full max-w-xl opacity-60" />
           </div>
 
-          <div className="rounded-2xl p-6 mb-6 bg-gradient-to-br from-[#C8102E] to-[#8B0C20] shadow-lg">
+          <div className="rounded-2xl p-6 mb-6 bg-gray-200 shadow-lg">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
               <div className="relative flex-shrink-0">
-                <div className="h-24 w-24 rounded-2xl bg-white/25 animate-pulse border-4 border-white/20" />
-                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-white/90 animate-pulse" />
+                <div className="h-24 w-24 rounded-2xl bg-gray-300 animate-pulse border-4 border-gray-100" />
+                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-xl bg-gray-100 animate-pulse" />
               </div>
               <div className="flex-1 w-full sm:w-auto space-y-2 text-center sm:text-left">
-                <div className="h-6 w-44 max-w-full mx-auto sm:mx-0 bg-white/30 rounded animate-pulse" />
-                <div className="h-4 w-56 max-w-full mx-auto sm:mx-0 bg-white/20 rounded animate-pulse" />
-                <div className="h-6 w-32 rounded-full mx-auto sm:mx-0 bg-white/15 animate-pulse mt-2" />
+                <div className="h-6 w-44 max-w-full mx-auto sm:mx-0 bg-gray-300 rounded animate-pulse" />
+                <div className="h-4 w-56 max-w-full mx-auto sm:mx-0 bg-gray-300/70 rounded animate-pulse" />
+                <div className="h-6 w-32 rounded-full mx-auto sm:mx-0 bg-gray-300/50 animate-pulse mt-2" />
               </div>
-              <div className="rounded-xl px-4 py-3 bg-white/10 w-full sm:w-auto min-w-[140px] space-y-2">
-                <div className="h-6 w-24 mx-auto bg-white/25 rounded animate-pulse" />
-                <div className="h-3 w-20 mx-auto bg-white/20 rounded animate-pulse" />
+              <div className="rounded-xl px-4 py-3 bg-gray-300/50 w-full sm:w-auto min-w-[140px] space-y-2">
+                <div className="h-6 w-24 mx-auto bg-gray-300 rounded animate-pulse" />
+                <div className="h-3 w-20 mx-auto bg-gray-300/70 rounded animate-pulse" />
               </div>
             </div>
           </div>
@@ -418,7 +415,7 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'proponent-settings') {
     return (
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 font-sans bg-gray-50 min-h-screen animate-pulse ${className || ''}`}>
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 font-sans bg-gradient-to-br from-slate-50 to-slate-100 animate-pulse ${className || ''}`}>
         <div className="mb-8">
           <div className="mb-6 space-y-2">
             <SkeletonPulse className="h-10 w-56 max-w-full" />
@@ -559,30 +556,29 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'admin-dashboard') {
     return (
-      <div className={`p-4 sm:p-6 bg-slate-50 space-y-6 min-h-screen ${className || ''} animate-pulse`}>
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="space-y-3">
-            <SkeletonPulse className="h-10 w-64 sm:w-96" />
-            <SkeletonPulse className="h-4 w-48 sm:w-72" />
-          </div>
-          <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
-        </div>
-
-        {/* Stats Grid - Admin Style (4 Cards) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
-              <SkeletonPulse className="w-8 h-8 rounded-xl" />
-              <div className="space-y-2 pt-1">
-                <SkeletonPulse className="h-3 w-2/3" />
-                <SkeletonPulse className="h-6 w-1/3" />
-              </div>
+      <div className={`min-h-screen overflow-y-auto pb-10 px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col gap-4 lg:gap-6 ${className || ''} animate-pulse`}>
+        <header>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="space-y-3">
+              <SkeletonPulse className="h-10 w-64 sm:w-96" />
+              <SkeletonPulse className="h-4 w-48 sm:w-72" />
             </div>
-          ))}
-        </div>
+            <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
+          </div>
 
-        {/* Monthly Submissions Chart Area */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
+                <SkeletonPulse className="w-8 h-8 rounded-xl" />
+                <div className="space-y-2 pt-1">
+                  <SkeletonPulse className="h-3 w-2/3" />
+                  <SkeletonPulse className="h-6 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+
         <div className="bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden flex flex-col min-h-[400px]">
           <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
             <div className="space-y-2">
@@ -591,22 +587,21 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
             </div>
             <SkeletonPulse className="h-5 w-20 rounded-full" />
           </div>
-          <div className="p-6 flex-1 flex flex-col gap-6">
+          <div className="p-4 sm:p-6 flex-1 flex flex-col gap-6">
             <div className="flex-1 flex items-end gap-3 px-2 h-48 border-b border-slate-50 pb-4">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(i => (
                 <SkeletonPulse key={i} className="flex-1 opacity-60" style={{ height: `${Math.random() * 80 + 20}%` }} />
               ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-               <div className="space-y-2 text-center"><SkeletonPulse className="h-3 w-20 mx-auto"/><SkeletonPulse className="h-8 w-16 mx-auto"/></div>
-               <div className="space-y-2 text-center md:border-x border-slate-100"><SkeletonPulse className="h-3 w-20 mx-auto"/><SkeletonPulse className="h-8 w-16 mx-auto"/></div>
-               <div className="space-y-2 text-center"><SkeletonPulse className="h-3 w-20 mx-auto"/><SkeletonPulse className="h-8 w-16 mx-auto"/></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 pt-2">
+              <div className="space-y-2 text-center"><SkeletonPulse className="h-3 w-20 mx-auto" /><SkeletonPulse className="h-8 w-16 mx-auto" /></div>
+              <div className="space-y-2 text-center md:border-x border-slate-100"><SkeletonPulse className="h-3 w-20 mx-auto" /><SkeletonPulse className="h-8 w-16 mx-auto" /></div>
+              <div className="space-y-2 text-center"><SkeletonPulse className="h-3 w-20 mx-auto" /><SkeletonPulse className="h-8 w-16 mx-auto" /></div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Section - Pipeline vs Status */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <div className="flex-1 bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
              <div className="p-4 border-b border-slate-200 bg-slate-50 mt-auto"><SkeletonPulse className="h-6 w-48"/></div>
              <div className="p-3 bg-slate-100/50 flex justify-between px-4">
@@ -649,41 +644,41 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
   }
   if (mode === 'evaluator-dashboard') {
     return (
-      <div className={`p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 space-y-6 min-h-screen ${className || ''} animate-pulse`}>
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="space-y-3">
-            <SkeletonPulse className="h-10 w-64 sm:w-96" />
-            <SkeletonPulse className="h-4 w-48 sm:w-72" />
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 ${className || ''} animate-pulse`}>
+        <header className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="space-y-3">
+              <SkeletonPulse className="h-10 w-64 sm:w-96" />
+              <SkeletonPulse className="h-4 w-48 sm:w-72" />
+            </div>
+            <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
           </div>
-          <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
-        </div>
 
-        {/* Stats Grid Skeleton - Evaluator Style (3 + 1) */}
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
+                  <SkeletonPulse className="w-8 h-8 rounded-xl" />
+                  <div className="space-y-2 pt-1">
+                    <SkeletonPulse className="h-3 w-2/3" />
+                    <SkeletonPulse className="h-6 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="w-full lg:w-80">
+              <div className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
                 <SkeletonPulse className="w-8 h-8 rounded-xl" />
                 <div className="space-y-2 pt-1">
                   <SkeletonPulse className="h-3 w-2/3" />
                   <SkeletonPulse className="h-6 w-1/3" />
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="w-full lg:w-80">
-            <div className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
-              <SkeletonPulse className="w-8 h-8 rounded-xl" />
-              <div className="space-y-2 pt-1">
-                <SkeletonPulse className="h-3 w-2/3" />
-                <SkeletonPulse className="h-6 w-1/3" />
-              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Monthly Reviewed Chart Area */}
+        <section className="mb-6">
         <div className="bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden flex flex-col min-h-[300px]">
           <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
             <div className="space-y-2">
@@ -692,30 +687,30 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
             </div>
             <SkeletonPulse className="h-5 w-20 rounded-full" />
           </div>
-          <div className="p-6 flex-1 flex flex-col gap-6">
+          <div className="p-4 sm:p-6 flex-1 flex flex-col gap-6">
             <div className="flex-1 flex items-end gap-3 px-2 h-48 border-b border-slate-50 pb-4">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(i => (
                 <SkeletonPulse key={i} className="flex-1 opacity-60" style={{ height: `${Math.random() * 80 + 20}%` }} />
               ))}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-               <div className="space-y-2 text-center">
-                 <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                 <SkeletonPulse className="h-8 w-16 mx-auto"/>
-               </div>
-               <div className="space-y-2 text-center md:border-x border-slate-100">
-                 <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                 <SkeletonPulse className="h-8 w-16 mx-auto"/>
-               </div>
-               <div className="space-y-2 text-center">
-                 <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                 <SkeletonPulse className="h-8 w-16 mx-auto"/>
-               </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 pt-2">
+              <div className="space-y-2 text-center">
+                <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                <SkeletonPulse className="h-8 w-16 mx-auto" />
+              </div>
+              <div className="space-y-2 text-center md:border-x border-slate-100">
+                <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                <SkeletonPulse className="h-8 w-16 mx-auto" />
+              </div>
+              <div className="space-y-2 text-center">
+                <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                <SkeletonPulse className="h-8 w-16 mx-auto" />
+              </div>
             </div>
           </div>
         </div>
+        </section>
 
-        {/* Bottom Split Section: Table vs Status Box */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           <div className="flex-1 bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-100 bg-slate-50"><SkeletonPulse className="h-6 w-48"/></div>
@@ -772,35 +767,33 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
 
   if (mode === 'dashboard') {
     return (
-      <div className={`p-4 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 space-y-6 min-h-screen ${className || ''} animate-pulse`}>
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="space-y-3">
-            <SkeletonPulse className="h-10 w-64 sm:w-96" />
-            <SkeletonPulse className="h-4 w-48 sm:w-72" />
-          </div>
-          <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
-        </div>
-
-        {/* Stats Grid Skeleton - 5 Card Style */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
-              <div className="flex justify-between items-center">
-                <SkeletonPulse className="w-8 h-8 rounded-xl" />
-                <SkeletonPulse className="w-12 h-4 rounded-full" />
-              </div>
-              <div className="space-y-2 pt-1">
-                <SkeletonPulse className="h-3 w-2/3" />
-                <SkeletonPulse className="h-6 w-1/3" />
-              </div>
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 ${className || ''} animate-pulse`}>
+        <header className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="space-y-3">
+              <SkeletonPulse className="h-10 w-64 sm:w-96" />
+              <SkeletonPulse className="h-4 w-48 sm:w-72" />
             </div>
-          ))}
-        </div>
+            <SkeletonPulse className="h-10 w-28 rounded-xl shrink-0" />
+          </div>
 
-        {/* Main Content Area Split Skeleton */}
-        <div className="flex flex-col xl:flex-row gap-6">
-          {/* Chart/Table Area */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 lg:gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-4 h-32 space-y-4">
+                <div className="flex justify-between items-center">
+                  <SkeletonPulse className="w-8 h-8 rounded-xl" />
+                  <SkeletonPulse className="w-12 h-4 rounded-full" />
+                </div>
+                <div className="space-y-2 pt-1">
+                  <SkeletonPulse className="h-3 w-2/3" />
+                  <SkeletonPulse className="h-6 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+
+        <section className="flex flex-col xl:flex-row gap-4 lg:gap-6">
           <div className="bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden flex-1 flex flex-col min-h-[450px]">
             <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
               <div className="space-y-2">
@@ -809,63 +802,76 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
               </div>
               <SkeletonPulse className="h-5 w-20 rounded-full" />
             </div>
-            <div className="p-6 flex-1 flex flex-col gap-6">
+            <div className="p-4 sm:p-6 flex-1 flex flex-col gap-6">
               <div className="flex-1 flex items-end gap-3 px-2 h-48 border-b border-slate-50 pb-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(i => (
                   <SkeletonPulse key={i} className="flex-1 opacity-60" style={{ height: `${Math.random() * 80 + 20}%` }} />
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                 <div className="space-y-2 text-center">
-                   <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                   <SkeletonPulse className="h-8 w-16 mx-auto"/>
-                 </div>
-                 <div className="space-y-2 text-center md:border-x border-slate-100">
-                   <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                   <SkeletonPulse className="h-8 w-16 mx-auto"/>
-                 </div>
-                 <div className="space-y-2 text-center">
-                   <SkeletonPulse className="h-3 w-20 mx-auto opacity-70"/>
-                   <SkeletonPulse className="h-8 w-16 mx-auto"/>
-                 </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 pt-2">
+                <div className="space-y-2 text-center">
+                  <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                  <SkeletonPulse className="h-8 w-16 mx-auto" />
+                </div>
+                <div className="space-y-2 text-center md:border-x border-slate-100">
+                  <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                  <SkeletonPulse className="h-8 w-16 mx-auto" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <SkeletonPulse className="h-3 w-20 mx-auto opacity-70" />
+                  <SkeletonPulse className="h-8 w-16 mx-auto" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Activity Sidebar */}
-          <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-6 w-full xl:w-80 flex flex-col gap-6">
+          <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-4 sm:p-6 w-full xl:w-80 flex flex-col gap-6">
             <SkeletonPulse className="h-6 w-40" />
             <div className="space-y-6 flex-1">
               {[1, 2, 3, 4].map(i => (
-                 <div key={i} className="flex gap-4">
-                    <SkeletonPulse className="w-10 h-10 rounded-xl shrink-0"/>
-                    <div className="flex-1 space-y-3">
-                      <SkeletonPulse className="h-4 w-full"/>
-                      <SkeletonPulse className="h-3 w-2/3 opacity-70"/>
-                      <div className="flex gap-2">
-                        <SkeletonPulse className="h-3 w-12 rounded-full"/>
-                        <SkeletonPulse className="h-3 w-12 rounded-full"/>
-                      </div>
+                <div key={i} className="flex gap-4">
+                  <SkeletonPulse className="w-10 h-10 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-3">
+                    <SkeletonPulse className="h-4 w-full" />
+                    <SkeletonPulse className="h-3 w-2/3 opacity-70" />
+                    <div className="flex gap-2">
+                      <SkeletonPulse className="h-3 w-12 rounded-full" />
+                      <SkeletonPulse className="h-3 w-12 rounded-full" />
                     </div>
-                 </div>
+                  </div>
+                </div>
               ))}
             </div>
             <div className="pt-6 border-t border-slate-100 space-y-4">
-               <SkeletonPulse className="h-4 w-32"/>
-               <div className="space-y-2">
-                 <div className="flex items-center gap-2"><SkeletonPulse className="w-2 h-2 rounded-full"/><SkeletonPulse className="h-3 w-32"/></div>
-                 <div className="flex items-center gap-2"><SkeletonPulse className="w-2 h-2 rounded-full"/><SkeletonPulse className="h-3 w-40"/></div>
-               </div>
+              <SkeletonPulse className="h-4 w-32" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2"><SkeletonPulse className="w-2 h-2 rounded-full" /><SkeletonPulse className="h-3 w-32" /></div>
+                <div className="flex items-center gap-2"><SkeletonPulse className="w-2 h-2 rounded-full" /><SkeletonPulse className="h-3 w-40" /></div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="mt-6 flex flex-col xl:flex-row gap-4 lg:gap-6">
+          <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-4 sm:p-6 w-full flex-1">
+            <div className="flex items-center gap-2 mb-6">
+              <SkeletonPulse className="h-5 w-5 rounded-md" />
+              <SkeletonPulse className="h-6 w-56" />
+            </div>
+            <div className="h-64 sm:h-80 w-full flex items-end justify-between gap-3 px-2 pt-4">
+              {[1, 2, 3, 4].map((i) => (
+                <SkeletonPulse key={i} className="flex-1 rounded-t-md opacity-70" style={{ height: `${35 + i * 12}%` }} />
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
 
   if (mode === 'table') {
     return (
-      <div className={`flex flex-col gap-6 p-6 h-full min-h-screen bg-slate-50/30 animate-pulse ${className || ''}`}>
+      <div className={`flex flex-col gap-4 lg:gap-6 h-full min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-pulse ${className || ''}`}>
         {/* Header Skeleton */}
         <header className="flex-shrink-0">
           <div className="space-y-3">

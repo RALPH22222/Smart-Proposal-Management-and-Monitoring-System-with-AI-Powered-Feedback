@@ -58,6 +58,9 @@ export const HomeInfoSchema = z.object({
     guidelines_url: z.string(),
     handbook_url: z.string(),
   }),
+  app_config: z.object({
+    apk_url: z.string(),
+  }),
   process_steps: z.array(HomeProcessStepSchema),
 });
 
@@ -119,6 +122,9 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
   resources: {
     guidelines_url: "",
     handbook_url: "",
+  },
+  app_config: {
+    apk_url: "",
   },
   process_steps: [
     { title: "Download & Submit Documentation", description: "Ensure you have your DOST project proposal template ready and all required fields are properly filled out. Proceed to the Submission page to submit your proposal. Double-check all information before submitting, as it cannot be edited unless the R&D requests a revision." },

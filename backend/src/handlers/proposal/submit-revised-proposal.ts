@@ -115,12 +115,15 @@ export const handler = buildCorsHeaders(async (event) => {
           .single();
 
         if (rndUser?.email) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
           const emailService = new EmailService();
           await emailService.sendNotificationEmail(
             rndUser.email,
             rndUser.first_name || "R&D Staff",
             "Revised Proposal Resubmitted",
-            `A revised proposal "${title}" has been resubmitted by the proponent. Please log in to SPMAMS to review it.`,
+            `A revised proposal "${title}" has been resubmitted by the proponent. Sign in to SPMAMS to review it.`,
+            "Review Proposal",
+            `${frontendUrl}/login`,
           );
         }
       }

@@ -140,17 +140,6 @@ export interface Proposal {
   phone?: string;
 }
 
-// Matches 'public.estimated_budget' table
-export interface EstimatedBudget {
-  id?: number;
-  proposal_id?: number;
-  source: string;
-  ps: number;
-  mooe: number;
-  co: number;
-  created_at?: string;
-}
-
 // Matches 'public.cooperating_agencies' table
 export interface CooperatingAgency {
   id?: number;

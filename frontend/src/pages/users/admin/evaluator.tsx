@@ -429,8 +429,8 @@ export const EvaluatorPage: React.FC = () => {
 
   return (
     <>
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
-      <div className="flex-1 flex p-6 flex-col gap-4 sm:gap-6 overflow-hidden">
+      <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

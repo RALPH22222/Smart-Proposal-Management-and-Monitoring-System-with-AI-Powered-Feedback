@@ -62,6 +62,10 @@ export class ProposalLambdas extends NestedStack {
   public readonly checkEvaluatorDeadlines: NodejsFunction;
   public readonly autoDistribute: NodejsFunction;
   public readonly reverseGeocode: NodejsFunction;
+  // Phase 1 of LIB feature: line-item budget support
+  public readonly getBudgetSubcategories: NodejsFunction;
+  // Phase 2 of LIB feature: parse uploaded LIB .docx into structured items
+  public readonly parseLib: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
@@ -120,6 +124,26 @@ export class ProposalLambdas extends NestedStack {
     this.approveRndTransfer = simple("approve-rnd-transfer", "pms-approve-rnd-transfer", "approve-rnd-transfer.ts");
     this.getRndTransfers = simple("get-rnd-transfers", "pms-get-rnd-transfers", "get-rnd-transfers.ts");
     this.autoDistribute = simple("auto-distribute", "pms-auto-distribute", "auto-distribute.ts");
+
+    // Phase 1 of LIB feature: line-item budget support
+    this.getBudgetSubcategories = simple(
+      "get-budget-subcategories",
+      "pms-get-budget-subcategories",
+      "get-budget-subcategories.ts",
+    );
+
+    // Phase 2 of LIB feature: docx → structured items via mammoth.convertToHtml.
+    // Higher memory + longer timeout than the simple defaults because mammoth has
+    // to walk the entire document tree and tables can be large.
+    this.parseLib = new NodejsFunction(this, "parse-lib", {
+      ...defaults,
+      functionName: "pms-parse-lib",
+      memorySize: 256,
+      timeout: Duration.seconds(30),
+      entry: path.resolve("src", "handlers", "proposal", "parse-lib.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
     this.reverseGeocode = new NodejsFunction(this, "reverse-geocode", {
       ...defaults,
       functionName: "pms-reverse-geocode",

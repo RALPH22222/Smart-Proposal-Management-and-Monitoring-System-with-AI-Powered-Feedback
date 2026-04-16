@@ -26,7 +26,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  const frontendUrl = process.env.FRONTEND_URL || "https://wmsu-spmams.vercel.app";
+  const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
   const redirectTo = `${frontendUrl}/accept-invite`;
 
   const projectService = new ProjectService(supabase);

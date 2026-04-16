@@ -20,6 +20,10 @@ import {
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
 import { EmailService } from "./email.service";
+import {
+  RequestRealignmentInput,
+  ReviewRealignmentInput,
+} from "../schemas/realignment-schema";
 
 export class ProjectService {
   constructor(private db: SupabaseClient) { }
@@ -580,7 +584,7 @@ export class ProjectService {
     // Verify caller is the project lead
     const { data: project, error: projectError } = await this.db
       .from("funded_projects")
-      .select("id, project_lead_id")
+      .select("id, project_lead_id, proposal:proposals(project_title)")
       .eq("id", input.funded_project_id)
       .single();
 
@@ -595,7 +599,7 @@ export class ProjectService {
     // Self-invite prevention
     const { data: inviter } = await this.db
       .from("users")
-      .select("email")
+      .select("email, first_name, last_name")
       .eq("id", input.invited_by)
       .single();
 
@@ -603,10 +607,17 @@ export class ProjectService {
       return { data: null, error: { message: "You cannot invite yourself." } };
     }
 
+    // Derived once — used by both the existing-user notification email and the
+    // Supabase-invite email template data payload for new users.
+    const projectTitle = (project as any).proposal?.project_title || "a funded project";
+    const inviterName =
+      [inviter?.first_name, inviter?.last_name].filter(Boolean).join(" ") ||
+      "A project lead";
+
     // Check if user exists
     const { data: existingUser } = await this.db
       .from("users")
-      .select("id, roles")
+      .select("id, roles, first_name")
       .eq("email", input.email)
       .single();
 
@@ -640,6 +651,23 @@ export class ProjectService {
         link: "project-monitoring",
       });
 
+      try {
+        if (process.env.SMTP_USER) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            input.email,
+            existingUser.first_name || "Co-lead",
+            "Co-Lead Invitation",
+            `${inviterName} has invited you to join "${projectTitle}" as a co-lead. Sign in and open Project Monitoring to accept or decline the invitation.`,
+            "View Invitation",
+            `${frontendUrl}/login`,
+          );
+        }
+      } catch (emailErr) {
+        console.error("Co-lead invite email failed (non-blocking):", emailErr);
+      }
+
       await logActivity(this.db, {
         user_id: input.invited_by,
         action: "project_member_invited",
@@ -658,7 +686,12 @@ export class ProjectService {
 
       const { data: inviteData, error: inviteError } =
         await supabaseAdmin.auth.admin.inviteUserByEmail(input.email, {
-          data: { roles: ["proponent"] },
+          data: {
+            roles: ["proponent"],
+            invite_type: "colead",
+            project_title: projectTitle,
+            inviter_name: inviterName,
+          },
           redirectTo,
         });
 
@@ -668,6 +701,24 @@ export class ProjectService {
 
       // Insert as pending member (will be activated on profile completion)
       const newUserId = inviteData.user.id;
+
+      // Tag the freshly-created user as external/internal based on invite email domain.
+      // Default column value is 'internal' so we only write for non-WMSU invitees. The
+      // public.users row was auto-created by Supabase's trigger when inviteUserByEmail ran.
+      const inviteEmail = input.email.trim().toLowerCase();
+      if (!inviteEmail.endsWith("@wmsu.edu.ph")) {
+        const { error: accountTypeError } = await this.db
+          .from("users")
+          .update({ account_type: "external" })
+          .eq("id", newUserId);
+        if (accountTypeError) {
+          console.error(
+            "Failed to set account_type=external on invited user (non-critical):",
+            accountTypeError,
+          );
+        }
+      }
+
       const { data: member, error: insertError } = await this.db
         .from("project_members")
         .insert({
@@ -1013,35 +1064,22 @@ export class ProjectService {
    * Total budget = SUM(amount) from estimated_budget for the proposal.
    */
   async getBudgetSummary(fundedProjectId: number) {
-    // Get proposal_id for this funded project
-    const { data: project, error: projectError } = await this.db
-      .from("funded_projects")
-      .select("proposal_id")
-      .eq("id", fundedProjectId)
-      .single();
-
-    if (projectError || !project) {
-      return { data: null, error: projectError || { message: "Funded project not found." } };
+    // Phase 4 of LIB feature: read from the structured budget tables instead of the legacy
+    // estimated_budget. The active version reflects any approved realignments — the legacy
+    // table is now read-only audit history and would silently return stale totals.
+    const versionResult = await this.getActiveBudgetVersion(fundedProjectId);
+    if (versionResult.error || !versionResult.data) {
+      return { data: null, error: versionResult.error ?? { message: "Funded project not found." } };
     }
 
-    // Get total budget from estimated_budget (sum of all amount values)
-    const { data: budgetRows, error: budgetError } = await this.db
-      .from("estimated_budget")
-      .select("amount, budget")
-      .eq("proposal_id", project.proposal_id);
+    const version = versionResult.data.version;
+    const totalBudget = Number(version.grand_total) || 0;
 
-    if (budgetError) {
-      return { data: null, error: budgetError };
-    }
-
-    const totalBudget = (budgetRows || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
-
-    // Breakdown by category
     const budgetByCategory = { ps: 0, mooe: 0, co: 0 };
-    for (const row of budgetRows || []) {
-      const cat = (row.budget || "").toString().toLowerCase() as keyof typeof budgetByCategory;
+    for (const item of version.items ?? []) {
+      const cat = item.category as keyof typeof budgetByCategory;
       if (cat in budgetByCategory) {
-        budgetByCategory[cat] += Number(row.amount) || 0;
+        budgetByCategory[cat] += Number(item.total_amount) || 0;
       }
     }
 
@@ -1127,6 +1165,30 @@ export class ProjectService {
    * (total budget from estimated_budget minus already-approved fund requests).
    */
   async createFundRequest(input: CreateFundRequestInput) {
+    // Phase 4 of LIB feature: block fund-request creation while a realignment is pending
+    // R&D review. Otherwise the fund_request_items.budget_item_id would point to an item
+    // in the old budget version — once the realignment is approved, that budget line is
+    // no longer the active one, and the per-line floor validation on future realignments
+    // wouldn't see that committed spend. Revision_requested is NOT blocked since the
+    // realignment can't be approved without the proponent resubmitting first.
+    const { data: pendingRealignment } = await this.db
+      .from("budget_realignments")
+      .select("id")
+      .eq("funded_project_id", input.funded_project_id)
+      .eq("status", "pending_review")
+      .maybeSingle();
+
+    if (pendingRealignment) {
+      return {
+        data: null,
+        error: {
+          message:
+            "Cannot submit a fund request while a budget realignment is under R&D review. Wait for the realignment decision first.",
+          code: "REALIGNMENT_IN_PROGRESS",
+        },
+      };
+    }
+
     // Check for duplicate fund request for same project + quarter
     const { data: existing } = await this.db
       .from("fund_requests")
@@ -1204,9 +1266,59 @@ export class ProjectService {
       return { data: null, error: requestError };
     }
 
+    // Phase 4 of LIB feature: when budget_item_id is provided, re-derive item_name and
+    // category from the linked budget item server-side (don't trust client). Also verify
+    // the item belongs to this project's active budget version so a malicious client
+    // can't link to some other project's line.
+    let resolvedItems = input.items;
+    const linkedIds = input.items
+      .map((it) => it.budget_item_id)
+      .filter((id): id is number => typeof id === "number" && id > 0);
+
+    if (linkedIds.length > 0) {
+      const versionResult = await this.getActiveBudgetVersion(input.funded_project_id);
+      if (versionResult.error || !versionResult.data) {
+        return {
+          data: null,
+          error: { message: "Could not load the project's active budget for validation." },
+        };
+      }
+      const validIds = new Map<number, { item_name: string; category: string }>();
+      for (const item of versionResult.data.version.items ?? []) {
+        validIds.set(Number(item.id), {
+          item_name: item.item_name,
+          category: item.category as string,
+        });
+      }
+
+      for (const it of input.items) {
+        if (it.budget_item_id == null) continue;
+        if (!validIds.has(it.budget_item_id)) {
+          return {
+            data: null,
+            error: {
+              message: `Budget item ${it.budget_item_id} does not belong to this project's active budget.`,
+              code: "INVALID_BUDGET_ITEM",
+            },
+          };
+        }
+      }
+
+      resolvedItems = input.items.map((it) => {
+        if (it.budget_item_id == null) return it;
+        const linked = validIds.get(it.budget_item_id)!;
+        return {
+          ...it,
+          item_name: linked.item_name,
+          category: linked.category as typeof it.category,
+        };
+      });
+    }
+
     // Insert all items
-    const items = input.items.map((item) => ({
+    const items = resolvedItems.map((item) => ({
       fund_request_id: fundRequest.id,
+      budget_item_id: item.budget_item_id ?? null,
       item_name: item.item_name,
       amount: item.amount,
       description: item.description || null,
@@ -1394,12 +1506,15 @@ export class ProjectService {
         .single();
 
       if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
         const emailService = new EmailService();
         await emailService.sendNotificationEmail(
           proponent.email,
           proponent.first_name || "Proponent",
           `Fund Request ${input.status === "approved" ? "Approved" : "Rejected"}`,
-          `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Please log in to SPMAMS for details.`,
+          `Your fund request has been ${input.status}.${input.review_note ? ` Note: ${input.review_note}` : ""} Sign in to SPMAMS for details.`,
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
         );
       }
     } catch (emailErr) {
@@ -1536,12 +1651,15 @@ export class ProjectService {
         .single();
 
       if (lead?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
         const emailService = new EmailService();
         await emailService.sendNotificationEmail(
           lead.email,
           lead.first_name || "Proponent",
           "Completion Certificate Issued",
-          "Congratulations! A completion certificate has been issued for your project. Please log in to SPMAMS to view it.",
+          "Congratulations! A completion certificate has been issued for your project. Sign in to SPMAMS to view and download it.",
+          "View Certificate",
+          `${frontendUrl}/login`,
         );
       }
     } catch (emailErr) {
@@ -1549,40 +1667,5 @@ export class ProjectService {
     }
 
     return { data: updated, error: null };
-  }
-
-  /**
-   * Request an extension for a funded project
-   */
-  async requestProjectExtension(input: RequestProjectExtensionInput) {
-    const { data, error } = await this.db
-      .from("project_extension_requests")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        extension_type: input.extension_type,
-        new_end_date: input.new_end_date,
-        reason: input.reason,
-        requested_by: input.requested_by,
-        status: "pending",
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (!error && data) {
-      await logActivity(this.db, {
-        user_id: input.requested_by,
-        action: "project_extension_requested",
-        category: "project",
-        target_id: String(input.funded_project_id),
-        target_type: "funded_project",
-        details: { 
-          extension_type: input.extension_type, 
-          new_end_date: input.new_end_date 
-        },
-      });
-    }
-
-    return { data, error };
   }
 }

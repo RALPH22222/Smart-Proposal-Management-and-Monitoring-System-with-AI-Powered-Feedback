@@ -5,7 +5,16 @@ export interface LogEntry {
   action: string;
   category: "proposal" | "evaluation" | "project" | "account" | "settings" | "admin";
   target_id?: string;
-  target_type?: "proposal" | "funded_project" | "user" | "report" | "fund_request" | "system_settings" | "leave_request" | "proposal_rnd_transfer";
+  target_type?:
+    | "proposal"
+    | "funded_project"
+    | "user"
+    | "report"
+    | "fund_request"
+    | "system_settings"
+    | "leave_request"
+    | "proposal_rnd_transfer"
+    | "budget_realignment";
   details?: Record<string, any>;
 }
 

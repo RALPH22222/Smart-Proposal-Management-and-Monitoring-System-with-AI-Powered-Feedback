@@ -12,6 +12,7 @@ interface FileUploadProps {
   accept?: string;
   className?: string;
   helperText?: string;
+  maxSizeMB?: number;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -22,6 +23,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   accept = ".docx,.pdf,.pptx,.xlsx",
   className = "",
   helperText = "Upload document templates (.docx, .pdf, .pptx, or .xlsx) up to 10MB.",
+  maxSizeMB = 10,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isUrlMode, setIsUrlMode] = useState(false);
@@ -45,9 +47,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size exceeds 10MB limit.");
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`File size exceeds ${maxSizeMB}MB limit.`);
       return;
     }
 

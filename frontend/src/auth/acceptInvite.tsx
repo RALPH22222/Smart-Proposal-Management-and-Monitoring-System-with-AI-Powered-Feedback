@@ -5,6 +5,8 @@ import Swal from 'sweetalert2';
 import { supabase } from '../config/supabaseClient';
 import { api } from '../utils/axios';
 import { broadcastAuthChange } from '../utils/auth-broadcast';
+import { validatePasswordPolicy } from '../utils/passwordPolicy';
+import { checkPasswordPwned, PWNED_PASSWORD_MESSAGE } from '../utils/hibp';
 import { useLogos } from '../context/LogoContext';
 import AuthBackground from '../assets/IMAGES/Auth-Background.jpg';
 
@@ -121,8 +123,9 @@ export default function AcceptInvite() {
         Swal.fire({ icon: 'warning', title: 'Missing Fields', text: 'Please fill in all required fields.', confirmButtonColor: '#C8102E' });
         return;
       }
-      if (password.length < 6) {
-        Swal.fire({ icon: 'warning', title: 'Password Too Short', text: 'Password must be at least 6 characters.', confirmButtonColor: '#C8102E' });
+      const policyError = validatePasswordPolicy(password);
+      if (policyError) {
+        Swal.fire({ icon: 'warning', title: 'Weak Password', text: policyError, confirmButtonColor: '#C8102E' });
         return;
       }
       if (password !== confirmPassword) {
@@ -170,6 +173,19 @@ export default function AcceptInvite() {
 
     try {
       setLoading(true);
+
+      // HIBP check — this flow hits Supabase directly, so the backend
+      // sign-up/change-password HIBP guards don't cover it.
+      const pwnedCount = await checkPasswordPwned(password);
+      if (pwnedCount !== null) {
+        setLoading(false);
+        return Swal.fire({
+          icon: 'error',
+          title: 'Password not allowed',
+          text: PWNED_PASSWORD_MESSAGE,
+          confirmButtonColor: '#C8102E',
+        });
+      }
 
       // 1. Set password via Supabase Auth
       const { error: pwError } = await supabase.auth.updateUser({ password });
@@ -330,7 +346,7 @@ export default function AcceptInvite() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder="Min 8 characters"
                   required
                   className="block w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white text-sm"
                 />
@@ -367,8 +383,14 @@ export default function AcceptInvite() {
 
             {password && (
               <div className="text-xs text-gray-500 space-y-1">
-                <p className={password.length >= 6 ? 'text-green-600' : 'text-red-500'}>
-                  {password.length >= 6 ? '\u2713' : '\u2717'} At least 6 characters
+                <p className={password.length >= 8 ? 'text-green-600' : 'text-red-500'}>
+                  {password.length >= 8 ? '\u2713' : '\u2717'} At least 8 characters
+                </p>
+                <p className={/[A-Za-z]/.test(password) ? 'text-green-600' : 'text-red-500'}>
+                  {/[A-Za-z]/.test(password) ? '\u2713' : '\u2717'} Contains a letter
+                </p>
+                <p className={/[0-9]/.test(password) ? 'text-green-600' : 'text-red-500'}>
+                  {/[0-9]/.test(password) ? '\u2713' : '\u2717'} Contains a number
                 </p>
                 <p className={password === confirmPassword && confirmPassword ? 'text-green-600' : 'text-red-500'}>
                   {password === confirmPassword && confirmPassword ? '\u2713' : '\u2717'} Passwords match

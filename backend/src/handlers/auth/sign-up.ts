@@ -6,6 +6,7 @@ import { buildCorsHeaders } from "../../utils/cors";
 import { signUpSchema, signUpWithProfileSchema } from "../../schemas/auth-schema";
 import multipart from "lambda-multipart-parser";
 import { logActivity } from "../../utils/activity-logger";
+import { checkPasswordPwned, PWNED_PASSWORD_MESSAGE } from "../../utils/hibp";
 
 const s3Client = new S3Client({});
 
@@ -54,6 +55,14 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
 
     const { photo_profile_url, ...profileData } = validation.data;
+
+    const pwnedCount = await checkPasswordPwned(profileData.password);
+    if (pwnedCount !== null) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: PWNED_PASSWORD_MESSAGE }),
+      };
+    }
 
     // 1. Create account + update profile (without photo first)
     const { data, error, profileError } = await authService.signupWithProfile(profileData, null);
@@ -143,6 +152,14 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         type: "validation_error",
         data: result.error.issues,
       }),
+    };
+  }
+
+  const pwnedCount = await checkPasswordPwned(result.data.password);
+  if (pwnedCount !== null) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: PWNED_PASSWORD_MESSAGE }),
     };
   }
 

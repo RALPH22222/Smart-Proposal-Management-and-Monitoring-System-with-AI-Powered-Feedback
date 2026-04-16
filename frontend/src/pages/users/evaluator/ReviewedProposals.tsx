@@ -240,7 +240,7 @@ export default function ReviewedProposals() {
 
   return (
     <>
-    <div className="flex flex-col gap-6 p-6 h-full overflow-hidden animate-fade-in">
+    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -132,13 +132,18 @@ export const fundRequestStatusSchema = z.enum(["pending", "approved", "rejected"
 export const budgetCategorySchema = z.enum(["ps", "mooe", "co"]);
 
 // Create Fund Request Schema
-// Note: requested_by is injected by handler from JWT, not from request body
+// Note: requested_by is injected by handler from JWT, not from request body.
+// Phase 4 of LIB feature: budget_item_id links each fund-request line to the specific
+// budget line it draws from. When provided, the server re-derives item_name + category
+// from the linked budget item — the client copy is informational only. The field is
+// optional so older payloads still validate, but new UIs always send it.
 export const createFundRequestSchema = z.object({
   funded_project_id: z.number().int().positive(),
   quarterly_report: quarterlyReportSchema,
   items: z
     .array(
       z.object({
+        budget_item_id: z.number().int().positive().nullable().optional(),
         item_name: z.string().min(1).max(500),
         amount: z.number().positive(),
         description: z.string().max(1000).optional(),

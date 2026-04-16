@@ -67,5 +67,10 @@ export const handler = async (event: APIGatewayRequestAuthorizerEvent): Promise<
     first_name: data?.user.first_name,
     last_name: data?.user.last_name,
     roles: JSON.stringify(data?.user.roles),
+    // External-collaborator flag. Downstream handlers that need to gate writes on
+    // account_type (e.g. anything the proponent "submit proposal" flow touches) can read
+    // this via getAuthContext. verifyToken has already auto-upgraded the DB row if the
+    // user's email is now @wmsu.edu.ph, so this value is always the fresh classification.
+    account_type: data?.user.account_type ?? "internal",
   });
 };

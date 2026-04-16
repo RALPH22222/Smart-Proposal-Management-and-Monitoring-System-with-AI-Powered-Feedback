@@ -1,6 +1,28 @@
+// Phase 1 of LIB feature: each line item now carries quantity, spec/volume, unit,
+// unit price, and a computed total. subcategoryId references the admin-managed
+// budget_subcategories table; customSubcategoryLabel is only used when subcategory = "Other".
 export interface ExpenseItem {
-  item: string;
-  value: number;
+  // Local React key — not sent to backend
+  uid?: string;
+  // Classification (optional — legacy auto-fill paths leave these null)
+  subcategoryId?: number | null;
+  customSubcategoryLabel?: string | null;
+  // Item details
+  itemName: string;
+  spec?: string | null;
+  quantity: number;
+  unit?: string | null;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+export interface BudgetSubcategory {
+  id: number;
+  category: "ps" | "mooe" | "co";
+  code: string;
+  label: string;
+  sort_order: number;
+  active: boolean;
 }
 
 export interface BudgetItem {

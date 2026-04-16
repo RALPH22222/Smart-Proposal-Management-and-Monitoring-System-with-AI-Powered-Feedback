@@ -81,6 +81,13 @@ export class ProjectLambdas extends NestedStack {
     this.getBudgetSummary = simple("get-budget-summary", "pms-get-budget-summary", "get-budget-summary.ts");
     this.requestExtension = simple("request-extension", "pms-request-extension", "request-extension.ts");
 
+    // Phase 3 of LIB feature: budget realignment workflow
+    this.getBudgetVersion = simple("get-budget-version", "pms-get-budget-version", "get-budget-version.ts");
+    this.requestRealignment = simple("request-realignment", "pms-request-realignment", "request-realignment.ts");
+    this.reviewRealignment = simple("review-realignment", "pms-review-realignment", "review-realignment.ts");
+    this.getRealignment = simple("get-realignment", "pms-get-realignment", "get-realignment.ts");
+    this.listRealignments = simple("list-realignments", "pms-list-realignments", "list-realignments.ts");
+
     // Special: needs SUPABASE_SERVICE_ROLE_KEY, own role
     this.inviteMember = new NodejsFunction(this, "invite-member", {
       ...defaults,

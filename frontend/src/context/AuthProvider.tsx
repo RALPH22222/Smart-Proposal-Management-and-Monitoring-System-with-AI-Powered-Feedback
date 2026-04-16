@@ -11,6 +11,7 @@ type VerifyTokenResponse = {
     id: string;
     email: string;
     roles: string[];
+    account_type?: "internal" | "external";
     first_name?: string;
     last_name?: string;
     profile_photo_url?: string;
@@ -49,6 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.user.id,
         email: data.user.email,
         roles: data.user.roles,
+        account_type: data.user.account_type ?? "internal",
         first_name: data.user.first_name,
         last_name: data.user.last_name,
         profile_photo_url: data.user.profile_photo_url,

@@ -66,6 +66,17 @@ const ROLE_COLORS: Record<string, string> = {
   co_lead: "bg-teal-100 text-teal-700",
 };
 
+/** Badge text: R&D for rnd; otherwise capitalize first letter of each underscore segment (rest lowercase). */
+function formatRoleBadge(role: string): string {
+  const key = role.trim().toLowerCase();
+  if (key === "rnd") return "R&D";
+  return key
+    .split("_")
+    .map((part) => (part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : ""))
+    .filter(Boolean)
+    .join(" ");
+}
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -131,24 +142,16 @@ export default function Activity() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="p-2 bg-red-50 rounded-lg">
-            <ScrollText className="w-6 h-6 text-[#C8102E]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
-            <p className="text-sm text-gray-500">
-              Track all user actions across the system
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in flex flex-col gap-4 lg:gap-6">
+      <header>
+        <h1 className="text-2xl font-bold text-[#C8102E]">Activity Logs</h1>
+        <p className="text-sm text-gray-600 mt-1 lg:text-base">
+          Track all user actions across the system
+        </p>
+      </header>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
         {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
           const count = logs.filter((l) => l.category === key).length;
           const Icon = config.icon;
@@ -167,7 +170,7 @@ export default function Activity() {
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-4 h-4 text-gray-500" />
-                <span className="text-xs font-medium text-gray-500 uppercase">{config.label}</span>
+                <span className="text-xs font-medium text-gray-600">{config.label}</span>
               </div>
               <p className="text-xl font-bold text-gray-900">{count}</p>
             </button>
@@ -176,7 +179,7 @@ export default function Activity() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -260,10 +263,10 @@ export default function Activity() {
                             <span
                               key={role}
                               className={`inline-block px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                ROLE_COLORS[role] || "bg-gray-100 text-gray-600"
+                                ROLE_COLORS[role.toLowerCase()] || "bg-gray-100 text-gray-600"
                               }`}
                             >
-                              {role}
+                              {formatRoleBadge(role)}
                             </span>
                           ))}
                         </div>

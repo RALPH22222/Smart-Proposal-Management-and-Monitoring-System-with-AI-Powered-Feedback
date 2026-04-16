@@ -584,7 +584,13 @@ export async function fetchBudgetSummary(
 export async function createFundRequest(
   fundedProjectId: number,
   quarterlyReport: string,
-  items: { item_name: string; amount: number; description?: string; category: "ps" | "mooe" | "co" }[]
+  items: {
+    budget_item_id?: number | null;
+    item_name: string;
+    amount: number;
+    description?: string;
+    category: "ps" | "mooe" | "co";
+  }[]
 ): Promise<{ fund_request: ApiFundRequest; budget_summary: ApiBudgetSummary }> {
   const { data } = await api.post<{ data: { items: ApiFundRequestItem[]; budget_summary: ApiBudgetSummary } & ApiFundRequest }>(
     "/project/create-fund-request",
@@ -674,4 +680,167 @@ export async function submitQuarterlyReport(
   );
   invalidateProjectCache();
   return data;
+}
+
+// ============================================================
+// Phase 3 of LIB feature: budget realignment workflow
+// ============================================================
+
+export type BudgetCategory = "ps" | "mooe" | "co";
+
+export interface BudgetItemDto {
+  id?: number;
+  source: string;
+  category: BudgetCategory;
+  subcategory_id: number | null;
+  custom_subcategory_label: string | null;
+  item_name: string;
+  spec: string | null;
+  quantity: number;
+  unit: string | null;
+  unit_price: number;
+  total_amount: number;
+  display_order: number;
+  notes?: string | null;
+}
+
+export interface BudgetVersionDto {
+  id: number;
+  proposal_id: number;
+  version_number: number;
+  grand_total: number;
+  created_at: string;
+  items: BudgetItemDto[];
+}
+
+export interface ActiveBudgetVersionResponse {
+  funded_project_id: number;
+  proposal_id: number;
+  version: BudgetVersionDto;
+}
+
+export type RealignmentStatus =
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "revision_requested";
+
+export interface RealignmentRecord {
+  id: number;
+  funded_project_id: number;
+  from_version_id: number;
+  to_version_id: number | null;
+  status: RealignmentStatus;
+  reason: string;
+  file_url: string | null;
+  proposed_payload: { items: any[]; grand_total: number };
+  requested_by: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+  requester?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  reviewer?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  funded_project?: {
+    id: number;
+    proposal_id: number;
+    proposals: { id: number; project_title: string };
+  } | null;
+  from_version?: BudgetVersionDto | null;
+  to_version?: BudgetVersionDto | null;
+}
+
+export interface RealignmentLineInput {
+  subcategoryId: number | null;
+  customSubcategoryLabel: string | null;
+  source: string;
+  category: BudgetCategory;
+  itemName: string;
+  spec: string | null;
+  quantity: number;
+  unit: string | null;
+  unitPrice: number;
+  totalAmount: number;
+  displayOrder?: number;
+  notes?: string | null;
+}
+
+export async function fetchActiveBudgetVersion(
+  fundedProjectId: number,
+): Promise<ActiveBudgetVersionResponse> {
+  const { data } = await api.get<ActiveBudgetVersionResponse>(
+    `/project/budget-version?funded_project_id=${fundedProjectId}`,
+    { withCredentials: true },
+  );
+  return data;
+}
+
+export async function requestBudgetRealignment(args: {
+  fundedProjectId: number;
+  reason: string;
+  // Required: the server rejects submissions without a supporting document. In revise-mode
+  // the caller can pass the previously-uploaded URL to avoid forcing a re-upload.
+  fileUrl: string;
+  items: RealignmentLineInput[];
+}): Promise<{ message: string; data: RealignmentRecord }> {
+  const { data } = await api.post<{ message: string; data: RealignmentRecord }>(
+    "/project/realignment/request",
+    {
+      funded_project_id: args.fundedProjectId,
+      reason: args.reason,
+      file_url: args.fileUrl,
+      items: args.items,
+    },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
+export async function reviewBudgetRealignment(args: {
+  realignmentId: number;
+  action: "approve" | "reject" | "request_revision";
+  reviewNote?: string | null;
+}): Promise<{ message: string; data: RealignmentRecord }> {
+  const { data } = await api.post<{ message: string; data: RealignmentRecord }>(
+    "/project/realignment/review",
+    {
+      realignment_id: args.realignmentId,
+      action: args.action,
+      review_note: args.reviewNote ?? null,
+    },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
+export async function fetchRealignment(realignmentId: number): Promise<RealignmentRecord> {
+  const { data } = await api.get<RealignmentRecord>(`/project/realignment?id=${realignmentId}`, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+export async function fetchRealignments(filters?: {
+  status?: RealignmentStatus;
+  fundedProjectId?: number;
+}): Promise<RealignmentRecord[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.fundedProjectId) params.append("funded_project_id", String(filters.fundedProjectId));
+  const url = `/project/realignments${params.toString() ? `?${params.toString()}` : ""}`;
+  const { data } = await api.get<RealignmentRecord[]>(url, { withCredentials: true });
+  return data ?? [];
 }

@@ -1,11 +1,14 @@
 import type { APIGatewayProxyEvent } from "aws-lambda";
 
+export type AccountType = "internal" | "external";
+
 export interface AuthContext {
   userId: string;
   email?: string;
   first_name: string;
   last_name: string;
   roles: string[];
+  account_type: AccountType;
 }
 
 function parseRoles(value: unknown): string[] {
@@ -19,6 +22,10 @@ function parseRoles(value: unknown): string[] {
   }
 }
 
+function parseAccountType(value: unknown): AccountType {
+  return value === "external" ? "external" : "internal";
+}
+
 export function getAuthContext(event: APIGatewayProxyEvent): AuthContext {
   const authorizer = event.requestContext.authorizer ?? {};
 
@@ -28,5 +35,6 @@ export function getAuthContext(event: APIGatewayProxyEvent): AuthContext {
     first_name: authorizer.first_name,
     last_name: authorizer.last_name,
     roles: parseRoles(authorizer.roles),
+    account_type: parseAccountType(authorizer.account_type),
   };
 }

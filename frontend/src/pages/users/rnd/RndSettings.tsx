@@ -245,8 +245,9 @@ const RndSettings: React.FC = () => {
       await changeMyPassword(passwords.current, passwords.new);
       setPasswordMsg({ type: 'success', text: 'Password changed successfully!' });
       setPasswords({ current: '', new: '', confirm: '' });
-    } catch {
-      setPasswordMsg({ type: 'error', text: 'Failed to change password. Please check your current password.' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to change password. Please check your current password.';
+      setPasswordMsg({ type: 'error', text: msg });
     } finally {
       setIsSavingPassword(false);
     }
@@ -258,7 +259,7 @@ const RndSettings: React.FC = () => {
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen animate-fade-in">
+    <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
       <div className="flex flex-col min-w-0">
 
       {/* ── Page Header ── */}

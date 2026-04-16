@@ -123,6 +123,19 @@ const Profile: React.FC = () => {
           const budgetTotal = p.estimated_budget?.reduce((sum: number, item: any) => sum + (item.amount || 0), 0) || 0;
           const budgetStr = `₱${budgetTotal.toLocaleString()}`;
 
+          // Compute 1-indexed version number from proposal_version array.
+          // Sort by id (auto-increment) so the order matches submission order, then
+          // find current_version_id. Falls back to total count if no current pointer.
+          const versions = Array.isArray(p.proposal_version) ? [...p.proposal_version] : [];
+          versions.sort((a: any, b: any) => Number(a.id) - Number(b.id));
+          let versionNumber: number | undefined;
+          if (versions.length > 0) {
+            const idx = p.current_version_id
+              ? versions.findIndex((v: any) => Number(v.id) === Number(p.current_version_id))
+              : -1;
+            versionNumber = idx >= 0 ? idx + 1 : versions.length;
+          }
+
           return {
             id: String(p.id),
             title: p.project_title,
@@ -135,6 +148,7 @@ const Profile: React.FC = () => {
             duration: formatDurationDisplay(p.duration),
             priority: "medium",
             evaluators: p.proposal_evaluators?.length || 0,
+            versionNumber,
             proponent: (function () {
               const u = p.proponent || (typeof p.proponent_id === 'object' ? p.proponent_id : null);
               if (!u) return "Unknown Proponent";
@@ -561,6 +575,15 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
+                  {project.versionNumber && project.versionNumber > 1 && (
+                    <span
+                      title={`Currently on version ${project.versionNumber} after ${project.versionNumber - 1} revision${project.versionNumber - 1 === 1 ? '' : 's'}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-300"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      v{project.versionNumber}
+                    </span>
+                  )}
                   {yearTag && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-white text-[#C8102E] border-[#C8102E]/40">
                       <CalendarDays className="w-3 h-3" />
@@ -700,6 +723,15 @@ const Profile: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
+                        {project.versionNumber && project.versionNumber > 1 && (
+                          <span
+                            title={`Currently on version ${project.versionNumber} after ${project.versionNumber - 1} revision${project.versionNumber - 1 === 1 ? '' : 's'}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-300"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            v{project.versionNumber}
+                          </span>
+                        )}
                         {yearTag && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border bg-[#C8102E]/10 text-[#C8102E] border-[#C8102E]/30">
                             <CalendarDays className="w-3 h-3" />

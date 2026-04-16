@@ -202,8 +202,8 @@ const Accounts: React.FC = () => {
 
   return (
     <>
-      <div className="flex flex-col gap-6 p-4 sm:p-6 h-full animate-fade-in">
-      <header className="flex-shrink-0 pt-12 lg:pt-0">
+      <div className="flex flex-col gap-4 lg:gap-6 min-h-full h-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
+      <header className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-[#C8102E]">Accounts</h1>
         <p className="text-gray-600 mt-1">Manage user accounts and roles</p>
       </header>

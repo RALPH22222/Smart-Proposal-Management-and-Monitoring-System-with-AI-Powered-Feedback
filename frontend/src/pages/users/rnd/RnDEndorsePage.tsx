@@ -393,7 +393,7 @@ const EndorsePage: React.FC = () => {
       case 'declined':
         return <XCircle className='w-4 h-4 text-rose-500' />;
       case 'in review':
-        return <FileText className='w-4 h-4 text-blue-600' />;
+        return <FileText className='w-4 h-4 text-cyan-600' />;
       case 'extension requested':
         return <Clock className='w-4 h-4 text-orange-600' />;
       case 'pending':
@@ -417,7 +417,7 @@ const EndorsePage: React.FC = () => {
       case 'declined':
         return 'text-rose-500 bg-rose-50 border-rose-200';
       case 'in review':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-cyan-600 bg-cyan-50 border-cyan-200';
       case 'extension requested':
         return 'text-orange-600 bg-orange-50 border-orange-200';
       case 'pending':
@@ -478,8 +478,8 @@ const EndorsePage: React.FC = () => {
         evaluatorDecisions={selectedProposal?.evaluatorDecisions}
         onSubmit={handleDecisionSubmit}
       />
-    <div className="bg-gradient-to-br p-6 from-slate-50 to-slate-100 min-h-screen lg:h-screen flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 sm:gap-6 overflow-hidden">
+    <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -662,7 +662,7 @@ const EndorsePage: React.FC = () => {
                                   </span>
                                 )}
                                 {inReview > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-blue-200 text-blue-600 bg-blue-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-cyan-200 text-cyan-600 bg-cyan-50 whitespace-nowrap">
                                     {inReview} In Review
                                   </span>
                                 )}

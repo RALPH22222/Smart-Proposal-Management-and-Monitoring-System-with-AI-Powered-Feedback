@@ -186,10 +186,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 	}
 
 	return (
-		<div className="min-h-screen p-6 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
+		<div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
 			{/* Header */}
-			<header className="pb-4 sm:pb-6">
-				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+			<header className="mb-8">
+				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
 					<div>
 						<h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight min-h-[40px]">
 							<span className="text-[#C8102E]">{displayedText.prefix}</span>
@@ -212,44 +212,44 @@ const Dashboard: React.FC<DashboardProps> = ({
 						</button>
 					)}
 				</div>
+
+				{/* Stats Section */}
+				<section aria-labelledby="stats-heading">
+					<h2 id="stats-heading" className="sr-only">
+						Proposal Statistics
+					</h2>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 lg:gap-4">
+						{statCards.map((stat, index) => {
+							const IconComponent = stat.icon;
+							return (
+								<div
+									key={index}
+									className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
+									role="button"
+									tabIndex={0}
+									aria-label={`${stat.title}: ${stat.value} proposals`}
+								>
+									<div className="flex items-center justify-between mb-3">
+										<IconComponent
+											className={`${stat.color} w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform duration-300`}
+										/>
+										{stat.rate && (
+											<span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/50 ${stat.color} border ${stat.borderColor}`}>
+												{stat.rate}
+											</span>
+										)}
+									</div>
+									<h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 leading-tight">{stat.title}</h3>
+									<p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums">{stat.value.toLocaleString()}</p>
+								</div>
+							);
+						})}
+					</div>
+				</section>
 			</header>
 
-			{/* Stats Section */}
-			<section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
-				<h2 id="stats-heading" className="sr-only">
-					Proposal Statistics
-				</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-					{statCards.map((stat, index) => {
-						const IconComponent = stat.icon;
-						return (
-							<div
-								key={index}
-								className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
-								role="button"
-								tabIndex={0}
-								aria-label={`${stat.title}: ${stat.value} proposals`}
-							>
-								<div className="flex items-center justify-between mb-3">
-									<IconComponent
-										className={`${stat.color} w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform duration-300`}
-									/>
-									{stat.rate && (
-										<span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/50 ${stat.color} border ${stat.borderColor}`}>
-											{stat.rate}
-										</span>
-									)}
-								</div>
-								<h3 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 leading-tight">{stat.title}</h3>
-								<p className="text-lg sm:text-xl font-bold text-slate-800 tabular-nums">{stat.value.toLocaleString()}</p>
-							</div>
-						);
-					})}
-				</div>
-			</section>
-
 			{/* Content Section */}
-			<section className="flex flex-col xl:flex-row gap-6">
+			<section className="flex flex-col xl:flex-row gap-4 lg:gap-6">
 				<div
 					className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col min-w-0"
 					aria-labelledby="submissions-heading"
@@ -417,7 +417,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 			</section>
 
 			{/* Analytics by Distribution Section */}
-			<section className="mt-6 flex flex-col xl:flex-row gap-6">
+			<section className="mt-6 flex flex-col xl:flex-row gap-4 lg:gap-6">
 				<div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full flex-1">
 					<h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
 						<BarChartIcon className="w-5 h-5 text-[#C8102E]" />

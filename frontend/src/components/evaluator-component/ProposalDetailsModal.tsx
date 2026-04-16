@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   X,
   FileText,
@@ -140,10 +141,29 @@ export default function ProposalDetailsModal({
   );
 
   const getRatingColor = (value: number) => {
-    if (value >= 4) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    if (value === 3) return "bg-blue-100 text-blue-700 border-blue-200";
-    return "bg-amber-100 text-amber-700 border-amber-200";
+    if (value >= 4) return "bg-emerald-600 text-white border-emerald-600";
+    if (value === 3) return "bg-amber-500 text-white border-amber-500";
+    return "bg-red-600 text-white border-red-600";
   };
+
+  const getFeedbackCardColor = (value: number) => {
+    if (value >= 4) return "bg-emerald-50 border-emerald-200 text-emerald-900";
+    if (value === 3) return "bg-amber-50 border-amber-200 text-amber-900";
+    return "bg-red-50 border-red-200 text-red-900";
+  };
+  const ratingKeys = ["title", "budget", "timeline"] as const;
+  const totalScore = (proposal.ratings?.title || 0) + (proposal.ratings?.budget || 0) + (proposal.ratings?.timeline || 0);
+  const maxScore = ratingKeys.length * 5;
+
+  const getRatingLabel = (value: number) => {
+    if (value === 1) return "Poor";
+    if (value === 2) return "Fair";
+    if (value === 3) return "Good";
+    if (value === 4) return "Very Good";
+    if (value === 5) return "Excellent";
+    return "Not Rated";
+  };
+
 
   // Helper to format string for display
   const formatString = (str: string) => {
@@ -210,99 +230,92 @@ export default function ProposalDetailsModal({
               </h3>
 
               <div className="space-y-6">
-                {/* Loop for the 4 main rated sections */}
-                {["title", "budget", "timeline"].map(
-                  (key) => {
-                    const field = key as keyof typeof RATING_CRITERIA;
-                    // Safe access with fallback 0
-                    const ratingValue = proposal.ratings?.[field] || 0;
-
-                    return (
-                      <div
-                        key={key}
-                        className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm"
-                      >
-                        <div className="mb-3">
-                          <label className="block text-sm font-bold text-slate-900">
-                            {RATING_CRITERIA[field].label}
-                          </label>
-                        </div>
-
-                        {/* All Rating Rows - Read-Only, highlight selected */}
-                        <div className="flex flex-col gap-2">
-                          {[5, 4, 3, 2, 1].map((num) => (
-                            <div
-                              key={num}
-                              className={`flex items-start gap-3 p-3 rounded-lg border cursor-default ${
-                                ratingValue === num
-                                  ? getRatingColor(num) + " shadow-sm ring-1 ring-current"
-                                  : "bg-white border-slate-200"
-                              }`}
-                            >
-                              <div className={`w-7 h-7 flex-shrink-0 rounded-full flex items-center justify-center font-bold text-sm border ${
-                                ratingValue === num ? "bg-white border-current shadow-sm text-current" : "bg-slate-50 text-slate-300 border-slate-200"
-                              }`}>
-                                {num}
-                              </div>
-                              <p className={`text-xs leading-relaxed font-medium flex-1 pt-1 ${
-                                ratingValue === num ? "text-slate-900" : "text-slate-400"
-                              }`}>
-                                {(RATING_CRITERIA[field].descriptions as any)[num]}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-
-                {/* Total Assessment Score */}
-                {proposal.ratings && (
-                  <div className="bg-slate-100 rounded-xl p-5 border border-slate-300 mt-2">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <h4 className="text-lg font-bold text-slate-800">Total Assessment Score</h4>
-                          <p className="text-xs text-slate-500">Cumulative rating from all assessment criteria</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-3xl font-black text-[#C8102E]">
-                            {(proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)}
-                            <span className="text-lg text-slate-400 font-bold">/15</span>
-                          </div>
-                          <div className="text-[10px] font-semibold text-slate-400 mt-0.5">
-                            {(((proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)) / 15 * 100).toFixed(1)}% Accuracy Score
-                          </div>
-                        </div>
-                        {/* Visual Gauge */}
-                        <div className="relative w-14 h-14 hidden sm:block">
-                          <svg className="w-full h-full" viewBox="0 0 36 36">
-                            <path
-                              className="text-slate-200"
-                              strokeDasharray="100, 100"
-                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3.5"
-                            />
-                            <path
-                              className="text-[#C8102E]"
-                              strokeDasharray={`${(((proposal.ratings.title || 0) + (proposal.ratings.budget || 0) + (proposal.ratings.timeline || 0)) / 15 * 100).toFixed(0)}, 100`}
-                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Overall Score</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">
+                      {totalScore}
+                      <span className="text-base font-bold text-slate-400">/{maxScore}</span>
+                    </p>
                   </div>
-                )}
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Average Rating</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">
+                      {(totalScore / ratingKeys.length).toFixed(1)}
+                      <span className="text-base font-bold text-slate-400">/5</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-bold text-slate-700 min-w-[220px]">Criterion</th>
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <th key={num} className="text-center px-2 py-3 font-bold text-slate-700 min-w-[90px]">
+                              <div className="leading-tight">
+                                <div className="text-base">{num}</div>
+                                <div className="text-xs font-bold text-slate-600">
+                                  {num === 1 ? "Poor" : num === 2 ? "Fair" : num === 3 ? "Good" : num === 4 ? "Very Good" : "Excellent"}
+                                </div>
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ratingKeys.map((key) => {
+                          const field = key as keyof typeof RATING_CRITERIA;
+                          const ratingValue = proposal.ratings?.[field] || 0;
+                          return (
+                            <Fragment key={key}>
+                              <tr key={key} className="border-b border-slate-100">
+                                <td className="px-4 py-3 bg-slate-50/50">
+                                  <div className="font-semibold text-slate-900">{RATING_CRITERIA[field].label}</div>
+                                  {ratingValue > 0 && (
+                                    <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${getRatingColor(ratingValue)}`}>
+                                      {getRatingLabel(ratingValue)}
+                                    </span>
+                                  )}
+                                </td>
+                                {[1, 2, 3, 4, 5].map((num) => {
+                                  const selected = ratingValue === num;
+                                  return (
+                                    <td key={num} className="px-0 py-0 text-center">
+                                      <div
+                                        className={`w-full h-12 border-r border-slate-200 text-sm font-bold flex items-center justify-center transition-all duration-200 ${
+                                          selected
+                                            ? `${getRatingColor(num)} shadow-inner`
+                                            : "bg-white text-slate-400"
+                                        }`}
+                                      >
+                                        {num}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                              {ratingValue > 0 && (
+                                <tr className="border-b border-slate-100 last:border-b-0">
+                                  <td colSpan={6} className="px-4 py-3 bg-white">
+                                    <div className={`text-sm leading-relaxed p-3 rounded-lg border ${getFeedbackCardColor(ratingValue)}`}>
+                                      <span className="font-bold">{getRatingLabel(ratingValue)} ({ratingValue}/5):</span>{" "}
+                                      {(RATING_CRITERIA[field].descriptions as any)[ratingValue]}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                </div>
 
                 {/* Comments */}
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">

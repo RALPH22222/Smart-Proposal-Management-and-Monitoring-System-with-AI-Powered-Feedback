@@ -7,6 +7,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
 import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
+import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
+import RdecFallbackLogo from "../assets/IMAGES/RDEC.jpg";
+import InstantLogo from "../components/shared/InstantLogo";
 type LoginResponse = {
   message: string;
   user: {
@@ -151,12 +154,15 @@ export default function Login() {
       }
 
       const passwordChangeRequired = res.data.user.password_change_required === true;
+      const accountType =
+        (res.data.user as { account_type?: "internal" | "external" }).account_type ?? "internal";
 
       const hydratedUser = {
         id: res.data.user.id,
         email: res.data.user.email,
         roles: userRoles,
         password_change_required: passwordChangeRequired,
+        account_type: accountType,
       };
 
       setUser(hydratedUser);
@@ -254,7 +260,7 @@ export default function Login() {
             <span>Back to Home</span>
           </a>
 
-          <h2 className="text-2xl font-semibold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
+          <h2 className="text-2xl font-bold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
             Sign in
           </h2>
           <p className="text-sm text-gray-600">Use your institutional account or continue with Google.</p>
@@ -298,6 +304,15 @@ export default function Login() {
               </button>
             </div>
           </label>
+
+          <div className="text-right -mt-2">
+            <a
+              href="/forgot-password"
+              className="text-sm font-medium text-gray-600 hover:text-[#C8102E] transition-colors duration-200"
+            >
+              Forgot password?
+            </a>
+          </div>
 
           <div className="flex gap-3">
             <button
@@ -345,8 +360,22 @@ export default function Login() {
         <div className="absolute inset-0 bg-[#C8102E]/85"></div>
         <div className="relative max-w-md text-center space-y-4 md:space-y-6">
           <div className="flex justify-center items-center gap-3">
-            <img src={logos.wmsu_logo} alt="WMSU Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
-            <img src={logos.rdec_logo} alt="RDEC Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-white/10">
+              <InstantLogo
+                remoteSrc={logos.wmsu_logo}
+                fallbackSrc={WmsuFallbackLogo}
+                alt="WMSU Logo"
+                className="w-full h-full object-contain rounded-full"
+              />
+            </div>
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-white/10">
+              <InstantLogo
+                remoteSrc={logos.rdec_logo}
+                fallbackSrc={RdecFallbackLogo}
+                alt="RDEC Logo"
+                className="w-full h-full object-contain rounded-full"
+              />
+            </div>
           </div>
           <h1 className="text-2xl md:text-4xl font-extrabold hover:text-gray-200 transition-colors duration-300 cursor-pointer">
             WMSU Project Proposal
@@ -357,14 +386,14 @@ export default function Login() {
         </div>
 
         {/* Image Attribution */}
-        <div className="absolute bottom-4 right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-right max-w-[200px] md:max-w-none">
+        {/* <div className="absolute bottom-4 right-4 text-[10px] text-white/50 hover:text-white/80 transition-colors z-10 text-right max-w-[200px] md:max-w-none">
           <a href="https://commons.wikimedia.org/wiki/File:Western_Mindanao_State_University_College_of_Teacher_Education_(Normal_Road,_Baliwasan,_Zamboanga_City;_10-06-2023).jpg" target="_blank" rel="noopener noreferrer" className="hover:underline">
             via Wikimedia Commons
           </a>, licensed under{" "}
           <a href="https://creativecommons.org/licenses/by-sa/4.0" target="_blank" rel="noopener noreferrer" className="hover:underline">
             CC BY-SA 4.0
           </a>.
-        </div>
+        </div> */}
       </div>
 
       {/* --- MULTI-ROLE SELECTION MODAL --- */}

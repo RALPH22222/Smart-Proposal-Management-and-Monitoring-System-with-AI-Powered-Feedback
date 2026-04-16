@@ -14,7 +14,8 @@ import {
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../../utils/signed-url';
 import TeamMembersSection from '../../../components/proponent-component/TeamMembersSection';
-import { useAuthContext } from '../../../context/AuthContext';
+import { useAuthContext, isExternalAccount } from '../../../context/AuthContext';
+import { supabase as supabaseClient } from '../../../config/supabaseClient';
 import {
   fetchFundedProjects,
   fetchProjectDetail,
@@ -27,11 +28,16 @@ import {
   uploadReportFile,
   validateReportFile,
   REPORT_ALLOWED_EXTENSIONS,
+  fetchRealignments,
+  fetchActiveBudgetVersion,
   type ApiFundedProject,
   type ApiFundRequest,
   type ApiBudgetSummary,
+  type RealignmentRecord,
+  type BudgetItemDto,
   groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
+import { RealignmentFormModal } from '../../../components/proponent-component/RealignmentFormModal';
 import {
   fetchPendingInvitations,
   respondToInvitation,
@@ -50,6 +56,10 @@ type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue
 
 interface FundRequestItem {
   id: string;
+  // Phase 4 of LIB feature: links the fund-request line to a specific budget line. Set
+  // by the dropdown picker. Category + description are derived from the linked item
+  // (and the server re-derives them on save so the client copy is informational only).
+  budget_item_id: number | null;
   description: string;
   amount: number;
   category: 'ps' | 'mooe' | 'co';
@@ -135,6 +145,24 @@ const MonitoringPage: React.FC = () => {
   // Pending co-lead invitations
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [respondingInvitationId, setRespondingInvitationId] = useState<number | null>(null);
+
+  // Phase 3 of LIB feature: budget realignment state
+  const [showRealignmentModal, setShowRealignmentModal] = useState(false);
+  const [activeRealignment, setActiveRealignment] = useState<RealignmentRecord | null>(null);
+  const [realignmentHistory, setRealignmentHistory] = useState<RealignmentRecord[]>([]);
+  const [showBudgetHistory, setShowBudgetHistory] = useState(false);
+
+  // Phase 4 of LIB feature: active budget items for the fund-request dropdown
+  const [budgetItemsForProject, setBudgetItemsForProject] = useState<BudgetItemDto[]>([]);
+
+  // External-collaborator email binding: when an external co-lead wants to upgrade to a
+  // full internal account, they enter their new @wmsu.edu.ph email here. Supabase sends a
+  // verification link; after they click it and log back in, the authorizer auto-upgrades
+  // their account_type.
+  const isExternalUser = isExternalAccount(user);
+  const [showLinkEmailModal, setShowLinkEmailModal] = useState(false);
+  const [linkEmailInput, setLinkEmailInput] = useState('');
+  const [linkEmailSubmitting, setLinkEmailSubmitting] = useState(false);
 
   // --- Load Projects ---
   useEffect(() => {
@@ -357,6 +385,133 @@ const MonitoringPage: React.FC = () => {
     }
   }, [activeBackend?.id]);
 
+  // Phase 3 of LIB feature: load any pending realignment for the active project so the UI
+  // can show a banner + lock the Request Realignment button. Also keeps the full history
+  // list in sync for the Budget History panel (Phase 4).
+  const loadActiveRealignment = useCallback(async () => {
+    if (!activeBackend) {
+      setActiveRealignment(null);
+      setRealignmentHistory([]);
+      return;
+    }
+    try {
+      const all = await fetchRealignments({ fundedProjectId: activeBackend.id });
+      setRealignmentHistory(all);
+      const pending =
+        all.find((r) => r.status === 'pending_review' || r.status === 'revision_requested') ??
+        null;
+      setActiveRealignment(pending);
+    } catch (err) {
+      console.error('Failed to load realignment status', err);
+      setActiveRealignment(null);
+      setRealignmentHistory([]);
+    }
+  }, [activeBackend?.id]);
+
+  useEffect(() => {
+    loadActiveRealignment();
+  }, [loadActiveRealignment]);
+
+  // Phase 4 of LIB feature: load the active budget items so the fund-request form can
+  // drive its dropdown. This is a separate request from the budget summary (which only
+  // has totals) — we want per-item metadata for the picker.
+  const loadBudgetItems = useCallback(async () => {
+    if (!activeBackend) {
+      setBudgetItemsForProject([]);
+      return;
+    }
+    try {
+      const res = await fetchActiveBudgetVersion(activeBackend.id);
+      setBudgetItemsForProject(res.version.items ?? []);
+    } catch (err) {
+      console.error('Failed to load active budget items', err);
+      setBudgetItemsForProject([]);
+    }
+  }, [activeBackend?.id]);
+
+  useEffect(() => {
+    loadBudgetItems();
+  }, [loadBudgetItems]);
+
+  // External-collaborator → WMSU email binding. Calls Supabase's built-in email change
+  // endpoint (sends a verification link to the new address). Once confirmed and the user
+  // logs back in, the backend authorizer auto-upgrades account_type from external → internal.
+  const handleLinkWmsuEmail = async () => {
+    const raw = linkEmailInput.trim().toLowerCase();
+    if (!raw) {
+      Swal.fire({ icon: 'warning', title: 'Email required', text: 'Enter your WMSU email address.' });
+      return;
+    }
+    if (!raw.endsWith('@wmsu.edu.ph')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'WMSU email required',
+        text: 'The new email must end with @wmsu.edu.ph. That domain is how the system recognizes WMSU employees and students.',
+      });
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      icon: 'question',
+      title: 'Link this email?',
+      html: `<p>We'll send a verification link to <strong>${raw}</strong>. After you click it, log back in with the new email to unlock the full proponent UI.</p>`,
+      showCancelButton: true,
+      confirmButtonText: 'Send verification link',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#C8102E',
+      reverseButtons: true,
+    });
+    if (!confirm.isConfirmed) return;
+
+    setLinkEmailSubmitting(true);
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ email: raw });
+      if (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Could not link email',
+          text:
+            error.message ||
+            'Supabase rejected the email change. If this email already has an SPMAMS account, contact admin for help.',
+        });
+        return;
+      }
+      setShowLinkEmailModal(false);
+      setLinkEmailInput('');
+      Swal.fire({
+        icon: 'success',
+        title: 'Check your WMSU inbox',
+        html:
+          '<p>We sent a verification link to your new email.</p>' +
+          '<p style="margin-top:8px;">Click the link, then log back in with your WMSU email to unlock full proponent access.</p>',
+        confirmButtonColor: '#C8102E',
+      });
+    } catch (err: any) {
+      Swal.fire({ icon: 'error', title: 'Unexpected error', text: err?.message || 'Try again later.' });
+    } finally {
+      setLinkEmailSubmitting(false);
+    }
+  };
+
+  // Phase 4 of LIB feature: refetch realignment + budget items when the tab regains focus so
+  // a proponent who had the page open while R&D approved/revised their request sees the fresh
+  // state without needing a hard refresh. Keeps the fund-request dropdown in sync with any
+  // version flip that happened in the background.
+  useEffect(() => {
+    if (!activeBackend) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      loadActiveRealignment();
+      loadBudgetItems();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [activeBackend, loadActiveRealignment, loadBudgetItems]);
+
   // --- Helpers ---
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -426,7 +581,8 @@ const MonitoringPage: React.FC = () => {
 
     try {
       setSubmittingFundRequest(true);
-      const items = breakdownItems.map(item => ({
+      const items = breakdownItems.map((item) => ({
+        budget_item_id: item.budget_item_id,
         item_name: item.description,
         amount: item.amount,
         category: item.category,
@@ -587,13 +743,39 @@ const MonitoringPage: React.FC = () => {
 
   // --- Breakdown item handlers ---
   const addBreakdownItem = () => {
-    setBreakdownItems(prev => [...prev, { id: Date.now().toString(), description: '', amount: 0, category: 'mooe' }]);
+    setBreakdownItems((prev) => [
+      ...prev,
+      { id: Date.now().toString(), budget_item_id: null, description: '', amount: 0, category: 'mooe' },
+    ]);
   };
   const updateBreakdownItem = (itemId: string, field: keyof FundRequestItem, value: any) => {
-    setBreakdownItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+    setBreakdownItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
+    );
+  };
+  // Phase 4 of LIB feature: linking a fund-request row to a budget item pulls its
+  // category + display label from the selected item, so the proponent doesn't have to
+  // type anything except the amount.
+  const linkBreakdownItemToBudgetLine = (rowId: string, budgetItemId: number | null) => {
+    const budgetItem = budgetItemId != null ? budgetItemsForProject.find((it) => it.id === budgetItemId) : null;
+    setBreakdownItems((prev) =>
+      prev.map((row) => {
+        if (row.id !== rowId) return row;
+        if (!budgetItem) {
+          return { ...row, budget_item_id: null };
+        }
+        const label = budgetItem.item_name + (budgetItem.spec ? ` (${budgetItem.spec})` : '');
+        return {
+          ...row,
+          budget_item_id: budgetItem.id ?? null,
+          description: label,
+          category: budgetItem.category,
+        };
+      }),
+    );
   };
   const removeBreakdownItem = (itemId: string) => {
-    setBreakdownItems(prev => prev.filter(item => item.id !== itemId));
+    setBreakdownItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const handleDownloadCertificate = async () => {
@@ -847,14 +1029,80 @@ const MonitoringPage: React.FC = () => {
                         <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Ends: {formatDate(activeProject.endDate)}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setIsExtensionModalOpen(true)}
-                      className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
-                      title="Request Extension"
-                    >
-                      <CalendarClock className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isExternalUser && (
+                        <button
+                          onClick={() => setShowLinkEmailModal(true)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-xs font-bold"
+                          title="Link your @wmsu.edu.ph email to unlock full proponent access"
+                        >
+                          <Mail className="w-4 h-4" /> Link WMSU Email
+                        </button>
+                      )}
+                      {/* Phase 3 of LIB feature: the button doubles as "Revise realignment"
+                          when R&D has sent one back — the modal seeds from the existing row
+                          and the backend UPDATEs it in place. pending_review is still locked. */}
+                      <button
+                        onClick={() => setShowRealignmentModal(true)}
+                        disabled={activeRealignment?.status === 'pending_review'}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
+                          activeRealignment?.status === 'revision_requested'
+                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                        }`}
+                        title={
+                          activeRealignment?.status === 'pending_review'
+                            ? 'A realignment request is already pending R&D review'
+                            : activeRealignment?.status === 'revision_requested'
+                              ? "R&D asked for changes — click to revise and resubmit"
+                              : 'Request a budget realignment for this project'
+                        }
+                      >
+                        <Banknote className="w-4 h-4" />
+                        {activeRealignment?.status === 'revision_requested'
+                          ? 'Revise Realignment'
+                          : 'Realign Budget'}
+                      </button>
+                      <button
+                        onClick={() => setIsExtensionModalOpen(true)}
+                        className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                        title="Request Extension"
+                      >
+                        <CalendarClock className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {activeRealignment && (
+                    <div
+                      className={`mb-4 border rounded-lg p-3 text-xs flex items-start gap-2 ${
+                        activeRealignment.status === 'pending_review'
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                          : 'bg-blue-50 border-blue-200 text-blue-800'
+                      }`}
+                    >
+                      <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold">
+                          Budget realignment{' '}
+                          {activeRealignment.status === 'pending_review'
+                            ? 'under R&D review'
+                            : 'needs your revision'}
+                        </div>
+                        <div className="opacity-80 mt-0.5">
+                          Submitted {formatDate(activeRealignment.created_at)}.{' '}
+                          {activeRealignment.status === 'pending_review'
+                            ? 'R&D will review the proposed changes on the Project Funding page.'
+                            : 'Click "Revise Realignment" above to update your submission based on their feedback.'}
+                        </div>
+                        {activeRealignment.status === 'revision_requested' && activeRealignment.review_note && (
+                          <div className="mt-2 pt-2 border-t border-blue-200/60">
+                            <span className="font-bold">R&D note:</span> {activeRealignment.review_note}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Budget Overview */}
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden">
@@ -886,6 +1134,95 @@ const MonitoringPage: React.FC = () => {
                     )}
                     <PieChart className="absolute -right-6 -bottom-6 w-32 h-32 text-slate-200 opacity-50 z-0" />
                   </div>
+
+                  {/* Phase 4 of LIB feature: Budget History panel. Surfaces past realignment
+                      decisions for this project so the proponent has context on how the budget
+                      has evolved. Collapsed by default. */}
+                  {realignmentHistory.length > 0 && (
+                    <div className="mt-3 border border-slate-200 rounded-xl bg-white">
+                      <button
+                        onClick={() => setShowBudgetHistory((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <History className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            Budget History ({realignmentHistory.length})
+                          </span>
+                        </div>
+                        {showBudgetHistory ? (
+                          <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                      </button>
+                      {showBudgetHistory && (
+                        <div className="border-t border-slate-100 divide-y divide-slate-100">
+                          {realignmentHistory.map((r) => {
+                            const statusStyle =
+                              r.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : r.status === 'rejected'
+                                  ? 'bg-red-50 text-red-700'
+                                  : r.status === 'revision_requested'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'bg-amber-50 text-amber-700';
+                            const fromTotal = Number(r.from_version?.grand_total) || 0;
+                            const toTotal =
+                              Number(r.to_version?.grand_total) ||
+                              Number(r.proposed_payload?.grand_total) ||
+                              0;
+                            const delta = toTotal - fromTotal;
+                            const reviewerName = [r.reviewer?.first_name, r.reviewer?.last_name]
+                              .filter(Boolean)
+                              .join(' ');
+                            return (
+                              <div key={r.id} className="px-4 py-3 text-xs">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusStyle}`}
+                                      >
+                                        {r.status.replace('_', ' ')}
+                                      </span>
+                                      <span className="text-slate-500">{formatDate(r.created_at)}</span>
+                                    </div>
+                                    <p className="text-slate-700 italic line-clamp-2">"{r.reason}"</p>
+                                    {r.reviewed_at && reviewerName && (
+                                      <p className="text-[10px] text-slate-400 mt-1">
+                                        Reviewed by {reviewerName} on {formatDate(r.reviewed_at)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right font-mono shrink-0">
+                                    <div className="text-slate-500">{formatCurrency(fromTotal)}</div>
+                                    <div
+                                      className={`font-bold ${
+                                        delta < 0
+                                          ? 'text-emerald-600'
+                                          : delta > 0
+                                            ? 'text-red-600'
+                                            : 'text-slate-700'
+                                      }`}
+                                    >
+                                      → {formatCurrency(toTotal)}
+                                    </div>
+                                    {delta !== 0 && (
+                                      <div className="text-[10px] text-slate-400">
+                                        Δ {delta >= 0 ? '+' : ''}
+                                        {formatCurrency(delta)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1004,30 +1341,51 @@ const MonitoringPage: React.FC = () => {
                               {breakdownItems.length === 0 && (
                                 <p className="text-sm text-gray-400 text-center py-4 italic">No items added yet. Add planned expenditures.</p>
                               )}
+                              {/* Phase 4 of LIB feature: pick from existing budget lines instead
+                                  of free-typing. Category is derived from the picked item. */}
+                              {budgetItemsForProject.length === 0 && (
+                                <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
+                                  Budget items for this project haven't loaded yet — the dropdown may be empty. Refresh if this persists.
+                                </div>
+                              )}
                               {breakdownItems.map((item) => (
                                 <div key={item.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                                  <input
-                                    type="text"
-                                    value={item.description}
-                                    onChange={(e) => updateBreakdownItem(item.id, 'description', e.target.value)}
-                                    className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                                    placeholder="Description (e.g., Equipment, Travel)"
-                                  />
-                                  <div className="flex w-full sm:w-auto gap-2">
-                                    <select
-                                      value={item.category}
-                                      onChange={(e) => updateBreakdownItem(item.id, 'category', e.target.value)}
-                                      className="p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white"
-                                    >
-                                      <option value="ps">PS</option>
-                                      <option value="mooe">MOOE</option>
-                                      <option value="co">CO</option>
-                                    </select>
+                                  <select
+                                    value={item.budget_item_id ?? ''}
+                                    onChange={(e) => {
+                                      const val = e.target.value ? Number(e.target.value) : null;
+                                      linkBreakdownItemToBudgetLine(item.id, val);
+                                    }}
+                                    className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+                                  >
+                                    <option value="">— Pick a budget line —</option>
+                                    {(['ps', 'mooe', 'co'] as const).map((cat) => {
+                                      const catItems = budgetItemsForProject.filter((bi) => bi.category === cat);
+                                      if (catItems.length === 0) return null;
+                                      return (
+                                        <optgroup key={cat} label={cat.toUpperCase()}>
+                                          {catItems.map((bi) => {
+                                            const label = bi.item_name + (bi.spec ? ` (${bi.spec})` : '');
+                                            return (
+                                              <option key={bi.id} value={bi.id ?? undefined}>
+                                                {label} — {formatCurrency(Number(bi.total_amount) || 0)} allocated
+                                              </option>
+                                            );
+                                          })}
+                                        </optgroup>
+                                      );
+                                    })}
+                                  </select>
+                                  <div className="flex w-full sm:w-auto gap-2 items-center">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 bg-gray-100 rounded">
+                                      {item.category}
+                                    </span>
                                     <input
                                       type="number"
+                                      inputMode="decimal"
                                       value={item.amount || ''}
                                       onChange={(e) => updateBreakdownItem(item.id, 'amount', parseFloat(e.target.value) || 0)}
-                                      className="flex-1 sm:w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right"
+                                      className="flex-1 sm:w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       placeholder="Amount"
                                     />
                                     <button onClick={() => removeBreakdownItem(item.id)} className="text-gray-400 hover:text-red-500 p-2">
@@ -1413,6 +1771,92 @@ const MonitoringPage: React.FC = () => {
                 className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 3 of LIB feature: budget realignment modal. Pass existingRealignment when
+          R&D has sent it back for revision so the modal seeds from the previous attempt. */}
+      {showRealignmentModal && activeBackend && (
+        <RealignmentFormModal
+          fundedProjectId={activeBackend.id}
+          existingRealignment={
+            activeRealignment?.status === 'revision_requested' ? activeRealignment : null
+          }
+          onClose={() => setShowRealignmentModal(false)}
+          onSubmitted={() => {
+            loadActiveRealignment();
+            loadBudgetItems();
+          }}
+        />
+      )}
+
+      {/* External → internal upgrade: enter new WMSU email, Supabase sends verification
+          link, authorizer auto-upgrades account_type on next login */}
+      {showLinkEmailModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-t-2xl">
+              <div>
+                <h3 className="font-bold text-lg">Link your WMSU email</h3>
+                <p className="text-xs text-white/80">Unlock full proponent access after verification.</p>
+              </div>
+              <button
+                onClick={() => setShowLinkEmailModal(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3 text-sm text-gray-700">
+              <p>
+                If you're now employed at or studying at WMSU and have an{' '}
+                <strong>@wmsu.edu.ph</strong> email, enter it below. We'll send a
+                verification link to that address. Once you click it and log back in,
+                you'll see the full proponent UI instead of just the monitoring page.
+              </p>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">
+                  WMSU Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={linkEmailInput}
+                  onChange={(e) => setLinkEmailInput(e.target.value)}
+                  placeholder="yourname@wmsu.edu.ph"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  disabled={linkEmailSubmitting}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400">
+                Note: if that email already has an SPMAMS account, the link will fail
+                and you'll need to contact admin for an account merge.
+              </p>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2 rounded-b-2xl">
+              <button
+                onClick={() => setShowLinkEmailModal(false)}
+                disabled={linkEmailSubmitting}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLinkWmsuEmail}
+                disabled={linkEmailSubmitting || !linkEmailInput.trim()}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              >
+                {linkEmailSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" /> Send verification link
+                  </>
+                )}
               </button>
             </div>
           </div>

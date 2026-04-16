@@ -63,9 +63,9 @@ export const updateMyEmail = async (email: string) => {
 };
 
 // Change password
-export const changeMyPassword = async (_currentPassword: string, newPassword: string) => {
-  // We keep _currentPassword parameter so the UI signature won't break.
+export const changeMyPassword = async (currentPassword: string, newPassword: string) => {
   const res = await api.post<{ success?: boolean }>('/auth/change-password', {
+    current_password: currentPassword,
     new_password: newPassword,
   });
   return res.data;
