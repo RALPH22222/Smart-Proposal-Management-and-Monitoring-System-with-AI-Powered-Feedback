@@ -181,3 +181,17 @@ export const generateCertificateSchema = z.object({
 export type GenerateCertificateInput = z.infer<typeof generateCertificateSchema> & {
   issued_by: string;
 };
+
+// Request Project Extension Schema
+export const requestProjectExtensionSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  extension_type: z.enum(["time_only", "with_funding"]),
+  new_end_date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid date format",
+  }),
+  reason: z.string().min(10, "Reason must be at least 10 characters long").max(3000),
+});
+
+export type RequestProjectExtensionInput = z.infer<typeof requestProjectExtensionSchema> & {
+  requested_by: string;
+};

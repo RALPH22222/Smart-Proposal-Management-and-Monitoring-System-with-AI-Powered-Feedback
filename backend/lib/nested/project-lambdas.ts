@@ -39,6 +39,7 @@ export class ProjectLambdas extends NestedStack {
   public readonly generateCertificate: NodejsFunction;
   public readonly getBudgetSummary: NodejsFunction;
   public readonly getReportUploadUrl: NodejsFunction;
+  public readonly requestExtension: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
@@ -78,6 +79,7 @@ export class ProjectLambdas extends NestedStack {
     this.reviewFundRequest = simple("review-fund-request", "pms-review-fund-request", "review-fund-request.ts");
     this.generateCertificate = simple("generate-certificate", "pms-generate-certificate", "generate-certificate.ts");
     this.getBudgetSummary = simple("get-budget-summary", "pms-get-budget-summary", "get-budget-summary.ts");
+    this.requestExtension = simple("request-extension", "pms-request-extension", "request-extension.ts");
 
     // Special: needs SUPABASE_SERVICE_ROLE_KEY, own role
     this.inviteMember = new NodejsFunction(this, "invite-member", {

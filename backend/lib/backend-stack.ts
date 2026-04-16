@@ -494,6 +494,9 @@ export class BackendStack extends Stack {
     project
       .addResource("report-upload-url")
       .addMethod(HttpMethod.GET, integrate(projectL.getReportUploadUrl), protectedRoute);
+    project
+      .addResource("request-extension")
+      .addMethod(HttpMethod.POST, integrate(projectL.requestExtension), protectedRoute);
 
     // ========== ADMIN ROUTES ==========
     const admin = api.root.addResource("admin");

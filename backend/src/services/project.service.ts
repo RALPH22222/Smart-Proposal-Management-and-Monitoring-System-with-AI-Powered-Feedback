@@ -15,6 +15,7 @@ import {
   GetFundRequestsInput,
   ReviewFundRequestInput,
   GenerateCertificateInput,
+  RequestProjectExtensionInput,
 } from "../schemas/project-schema";
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
@@ -1548,5 +1549,40 @@ export class ProjectService {
     }
 
     return { data: updated, error: null };
+  }
+
+  /**
+   * Request an extension for a funded project
+   */
+  async requestProjectExtension(input: RequestProjectExtensionInput) {
+    const { data, error } = await this.db
+      .from("project_extension_requests")
+      .insert({
+        funded_project_id: input.funded_project_id,
+        extension_type: input.extension_type,
+        new_end_date: input.new_end_date,
+        reason: input.reason,
+        requested_by: input.requested_by,
+        status: "pending",
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      await logActivity(this.db, {
+        user_id: input.requested_by,
+        action: "project_extension_requested",
+        category: "project",
+        target_id: String(input.funded_project_id),
+        target_type: "funded_project",
+        details: { 
+          extension_type: input.extension_type, 
+          new_end_date: input.new_end_date 
+        },
+      });
+    }
+
+    return { data, error };
   }
 }
