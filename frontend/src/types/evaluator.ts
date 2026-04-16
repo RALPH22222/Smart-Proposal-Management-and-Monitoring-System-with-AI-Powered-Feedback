@@ -57,6 +57,14 @@ export interface BudgetRow {
 	};
 }
 
+export interface AverageScores {
+	title: number;
+	budget: number;
+	timeline: number;
+	overall: number;
+	evaluatorCount: number;
+}
+
 export interface EndorsementProposal {
 	id: string;
 	title: string;
@@ -64,6 +72,7 @@ export interface EndorsementProposal {
 	proponentEmail?: string;
 	evaluatorDecisions: EvaluatorDecision[];
 	overallRecommendation: 'Approve' | 'Revise' | 'Reject' | 'Pending';
+	averageScores?: AverageScores | null;
 	readyForEndorsement: boolean;
 	budget?: BudgetRow[];
 	department?: string;

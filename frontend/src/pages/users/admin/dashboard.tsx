@@ -496,6 +496,187 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
           )}
         </div>
       </section>
+
+      {/* ── KPI Performance Metrics ── */}
+      {stats.kpi && (
+        <>
+          {/* Performance Cards */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            {[
+              {
+                label: "Proposal Success Rate",
+                value: `${stats.kpi.proposal_success_rate}%`,
+                description: "Funded / Total submitted",
+                color: stats.kpi.proposal_success_rate >= 50 ? "text-emerald-600" : stats.kpi.proposal_success_rate >= 25 ? "text-amber-600" : "text-red-500",
+                bgColor: stats.kpi.proposal_success_rate >= 50 ? "bg-emerald-50 border-emerald-200" : stats.kpi.proposal_success_rate >= 25 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
+                icon: CheckCircle2,
+              },
+              {
+                label: "Evaluation Completion",
+                value: `${stats.kpi.evaluation_completion_rate}%`,
+                description: "Evaluators who completed review",
+                color: stats.kpi.evaluation_completion_rate >= 70 ? "text-emerald-600" : stats.kpi.evaluation_completion_rate >= 40 ? "text-amber-600" : "text-red-500",
+                bgColor: stats.kpi.evaluation_completion_rate >= 70 ? "bg-emerald-50 border-emerald-200" : stats.kpi.evaluation_completion_rate >= 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
+                icon: Users,
+              },
+              {
+                label: "Fund Utilization",
+                value: `${stats.kpi.fund_utilization_rate}%`,
+                description: "Approved / Total requested",
+                color: stats.kpi.fund_utilization_rate >= 60 ? "text-emerald-600" : "text-amber-600",
+                bgColor: stats.kpi.fund_utilization_rate >= 60 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200",
+                icon: BarChart3,
+              },
+              {
+                label: "Avg. Review Time",
+                value: stats.kpi.avg_turnaround_days.rnd_review
+                  ? `${stats.kpi.avg_turnaround_days.rnd_review}d`
+                  : "N/A",
+                description: "R&D review duration",
+                color: "text-blue-600",
+                bgColor: "bg-blue-50 border-blue-200",
+                icon: Clock3,
+              },
+            ].map((metric, index) => {
+              const IconComp = metric.icon;
+              return (
+                <div
+                  key={index}
+                  className={`${metric.bgColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <IconComp className={`${metric.color} w-5 h-5`} />
+                  </div>
+                  <p className="text-2xl font-bold text-slate-800 tabular-nums">{metric.value}</p>
+                  <h3 className="text-xs font-semibold text-slate-700 mt-1">{metric.label}</h3>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{metric.description}</p>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* Turnaround Time Breakdown + Monthly Trends */}
+          <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+            {/* Average Processing Time per Stage */}
+            {Object.keys(stats.kpi.avg_turnaround_days).length > 0 && (
+              <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1">
+                <div className="p-4 sm:p-5 border-b border-slate-100">
+                  <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <Clock3 className="w-5 h-5 text-[#C8102E]" />
+                    Average Processing Time
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Days per workflow stage</p>
+                </div>
+                <div className="p-4 sm:p-5 space-y-3">
+                  {[
+                    { key: "submission_to_rnd", label: "Submission to R&D", color: "bg-blue-500" },
+                    { key: "rnd_review", label: "R&D Review", color: "bg-indigo-500" },
+                    { key: "evaluation", label: "Evaluator Assessment", color: "bg-purple-500" },
+                    { key: "endorsement", label: "Endorsement Decision", color: "bg-amber-500" },
+                    { key: "funding_decision", label: "Funding Decision", color: "bg-emerald-500" },
+                  ].map((stage) => {
+                    const days = stats.kpi?.avg_turnaround_days[stage.key] || 0;
+                    const maxDays = Math.max(
+                      ...Object.values(stats.kpi?.avg_turnaround_days || {}).filter((v) => v > 0),
+                      1,
+                    );
+                    return (
+                      <div key={stage.key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-600">{stage.label}</span>
+                          <span className="text-xs font-bold text-slate-800">
+                            {days > 0 ? `${days} day${days !== 1 ? "s" : ""}` : "No data"}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${stage.color} rounded-full transition-all duration-700`}
+                            style={{ width: days > 0 ? `${(days / maxDays) * 100}%` : "0%" }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Monthly Trends Chart */}
+            {stats.kpi.monthly_trends.length > 0 && (
+              <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1">
+                <div className="p-4 sm:p-5 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-[#C8102E]" />
+                        Monthly Proposal Trends
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">Last 12 months</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                        <span className="text-[10px] text-slate-500">Submitted</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] text-slate-500">Funded</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        <span className="text-[10px] text-slate-500">Rejected</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 sm:p-5">
+                  <div className="w-full h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={stats.kpi.monthly_trends.map((t) => ({
+                          ...t,
+                          label: t.month.split("-")[1],
+                        }))}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                        barGap={2}
+                        barSize={12}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis
+                          dataKey="label"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#64748b", fontSize: 10 }}
+                          dy={8}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#64748b", fontSize: 11 }}
+                          dx={-5}
+                          allowDecimals={false}
+                        />
+                        <RechartsTooltip
+                          cursor={{ fill: "transparent" }}
+                          contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)", fontSize: 12 }}
+                          labelFormatter={(label) => {
+                            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                            const idx = parseInt(label, 10) - 1;
+                            return months[idx] || label;
+                          }}
+                        />
+                        <Bar dataKey="submitted" fill="#3b82f6" radius={[3, 3, 0, 0]} name="Submitted" />
+                        <Bar dataKey="funded" fill="#22c55e" radius={[3, 3, 0, 0]} name="Funded" />
+                        <Bar dataKey="rejected" fill="#f87171" radius={[3, 3, 0, 0]} name="Rejected" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

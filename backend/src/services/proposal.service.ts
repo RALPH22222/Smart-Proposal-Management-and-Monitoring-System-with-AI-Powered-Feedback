@@ -1858,6 +1858,29 @@ export class ProposalService {
         else if (rejectCount > decisions.length / 2) overallRecommendation = "Reject";
       }
 
+      // Compute average scores across all evaluators who have submitted ratings
+      const scoredDecisions = evaluatorDecisions.filter(
+        (d) => d.ratings && (d.ratings.title > 0 || d.ratings.budget > 0 || d.ratings.timeline > 0),
+      );
+      const averageScores =
+        scoredDecisions.length > 0
+          ? {
+              title:
+                scoredDecisions.reduce((sum, d) => sum + d.ratings.title, 0) / scoredDecisions.length,
+              budget:
+                scoredDecisions.reduce((sum, d) => sum + d.ratings.budget, 0) / scoredDecisions.length,
+              timeline:
+                scoredDecisions.reduce((sum, d) => sum + d.ratings.timeline, 0) / scoredDecisions.length,
+              overall:
+                scoredDecisions.reduce(
+                  (sum, d) => sum + d.ratings.title + d.ratings.budget + d.ratings.timeline,
+                  0,
+                ) /
+                (scoredDecisions.length * 3),
+              evaluatorCount: scoredDecisions.length,
+            }
+          : null;
+
       // Get budget for this proposal
       const proposalBudgets = (allBudgets || []).filter((b) => b.proposal_id === proposal.id);
       const budgetBySource: Record<string, { ps: number; mooe: number; co: number; total: number }> = {};
@@ -1891,6 +1914,7 @@ export class ProposalService {
         actionDate: proposal.updated_at || proposal.created_at,
         evaluatorDecisions,
         overallRecommendation,
+        averageScores,
         readyForEndorsement,
         budget,
         estimated_budget: proposalBudgets, // raw items with item, source, budget(category), amount
@@ -3307,5 +3331,84 @@ export class ProposalService {
     }
 
     return query;
+  }
+
+  // ── Feature 3: Proposal Timeline ──────────────────────────────────────────
+  async getProposalTimeline(proposal_id: number) {
+    const { data, error } = await this.db
+      .from("pms_logs")
+      .select("id, user_id, action, details, created_at")
+      .eq("target_id", String(proposal_id))
+      .eq("target_type", "proposal")
+      .order("created_at", { ascending: true });
+
+    if (error) return { data: null, error };
+
+    // Fetch user names for all actors
+    const userIds = [...new Set((data || []).map((l: any) => l.user_id))];
+    const { data: users } =
+      userIds.length > 0
+        ? await this.db.from("users").select("id, first_name, last_name").in("id", userIds)
+        : { data: [] as any[] };
+
+    const userMap = new Map(
+      (users || []).map((u: any) => [u.id, `${u.first_name || ""}${u.last_name ? " " + u.last_name : ""}`.trim()]),
+    );
+
+    return {
+      data: (data || []).map((log: any) => ({
+        id: log.id,
+        action: log.action,
+        actor: userMap.get(log.user_id) || "System",
+        details: log.details,
+        timestamp: log.created_at,
+      })),
+      error: null,
+    };
+  }
+
+  // ── Feature 4: Proposal Revision Context ──────────────────────────────────
+  async getProposalRevisionContext(proposal_id: number) {
+    const [versions, revisions, budgetVersions] = await Promise.all([
+      this.db
+        .from("proposal_version")
+        .select("id, file_url, created_at")
+        .eq("proposal_id", proposal_id)
+        .order("created_at", { ascending: true }),
+      this.db
+        .from("proposal_revision_summary")
+        .select("*")
+        .eq("proposal_id", proposal_id)
+        .order("created_at", { ascending: true }),
+      this.db
+        .from("proposal_budget_versions")
+        .select("id, version_number, grand_total, created_at, proposal_budget_items(id, source, category, item_name, spec, quantity, unit, unit_price, total_amount, display_order)")
+        .eq("proposal_id", proposal_id)
+        .order("version_number", { ascending: true }),
+    ]);
+
+    // Fetch RND names for revision summaries
+    const rndIds = [...new Set((revisions.data || []).filter((r: any) => r.rnd_id).map((r: any) => r.rnd_id))];
+    const { data: rndUsers } =
+      rndIds.length > 0
+        ? await this.db.from("users").select("id, first_name, last_name").in("id", rndIds)
+        : { data: [] as any[] };
+    const rndMap = new Map(
+      (rndUsers || []).map((u: any) => [u.id, `${u.first_name || ""}${u.last_name ? " " + u.last_name : ""}`.trim()]),
+    );
+
+    const enrichedRevisions = (revisions.data || []).map((r: any) => ({
+      ...r,
+      rnd_name: rndMap.get(r.rnd_id) || "Unknown",
+    }));
+
+    return {
+      data: {
+        versions: versions.data || [],
+        revision_summaries: enrichedRevisions,
+        budget_versions: budgetVersions.data || [],
+      },
+      error: versions.error || revisions.error || budgetVersions.error || null,
+    };
   }
 }

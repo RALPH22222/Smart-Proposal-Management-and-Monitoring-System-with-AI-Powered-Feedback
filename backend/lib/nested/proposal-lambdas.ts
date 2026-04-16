@@ -66,6 +66,8 @@ export class ProposalLambdas extends NestedStack {
   public readonly getBudgetSubcategories: NodejsFunction;
   // Phase 2 of LIB feature: parse uploaded LIB .docx into structured items
   public readonly parseLib: NodejsFunction;
+  public readonly getProposalTimeline: NodejsFunction;
+  public readonly getProposalRevisionContext: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
@@ -124,6 +126,8 @@ export class ProposalLambdas extends NestedStack {
     this.approveRndTransfer = simple("approve-rnd-transfer", "pms-approve-rnd-transfer", "approve-rnd-transfer.ts");
     this.getRndTransfers = simple("get-rnd-transfers", "pms-get-rnd-transfers", "get-rnd-transfers.ts");
     this.autoDistribute = simple("auto-distribute", "pms-auto-distribute", "auto-distribute.ts");
+    this.getProposalTimeline = simple("get-proposal-timeline", "pms-get-proposal-timeline", "get-proposal-timeline.ts");
+    this.getProposalRevisionContext = simple("get-proposal-revision-context", "pms-get-proposal-revision-context", "get-proposal-revision-context.ts");
 
     // Phase 1 of LIB feature: line-item budget support
     this.getBudgetSubcategories = simple(

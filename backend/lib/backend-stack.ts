@@ -452,6 +452,12 @@ export class BackendStack extends Stack {
     proposal
       .addResource("parse-lib")
       .addMethod(HttpMethod.POST, integrate(proposalL.parseLib), protectedRoute);
+    proposal
+      .addResource("timeline")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getProposalTimeline), protectedRoute);
+    proposal
+      .addResource("revision-context")
+      .addMethod(HttpMethod.GET, integrate(proposalL.getProposalRevisionContext), protectedRoute);
 
     // ========== PROJECT MONITORING ROUTES ==========
     const project = api.root.addResource("project");

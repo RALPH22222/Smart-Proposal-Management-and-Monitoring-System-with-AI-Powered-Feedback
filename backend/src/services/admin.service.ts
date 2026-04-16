@@ -338,6 +338,9 @@ export class AdminService {
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+      // Date boundaries for KPI queries
+      const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1).toISOString();
+
       const [
         totalUsersRes,
         activeUsersRes,
@@ -362,6 +365,11 @@ export class AdminService {
         logs24hRes,
         logs7dRes,
         recentLogsRes,
+        // KPI queries
+        evaluatorAssignmentsRes,
+        proposalStatusLogsRes,
+        monthlyProposalsRes,
+        fundRequestsRes,
       ] = await Promise.all([
         // User stats
         this.db.from("users").select("*", { count: "exact", head: true }),
@@ -401,6 +409,36 @@ export class AdminService {
           )
           .order("created_at", { ascending: false })
           .limit(5),
+
+        // KPI: Evaluator completion rate
+        this.db.from("proposal_evaluators").select("id, status"),
+
+        // KPI: Status transition timestamps for turnaround time
+        this.db
+          .from("pms_logs")
+          .select("target_id, action, created_at")
+          .eq("target_type", "proposal")
+          .in("action", [
+            "proposal_created",
+            "proposal_forwarded_to_rnd",
+            "proposal_auto_distributed",
+            "evaluator_assigned",
+            "evaluation_scores_submitted",
+            "proposal_endorsed_for_funding",
+            "proposal_funded",
+          ])
+          .order("created_at", { ascending: true }),
+
+        // KPI: Monthly proposal trends (last 12 months)
+        this.db
+          .from("proposals")
+          .select("id, status, created_at")
+          .gte("created_at", twelveMonthsAgo),
+
+        // KPI: Fund utilization — fund requests with their line item amounts
+        this.db
+          .from("fund_requests")
+          .select("id, funded_project_id, status, fund_request_items(amount)"),
       ]);
 
       const recentActivity = (recentLogsRes.data || []).map((log: any) => ({
@@ -412,6 +450,99 @@ export class AdminService {
         details: log.details,
         created_at: log.created_at,
         user_name: log.users ? `${log.users.first_name || ""} ${log.users.last_name || ""}`.trim() : "Unknown",
+      }));
+
+      // ── KPI Computation ───────────────────────────────────────────────────
+
+      // 1. Evaluation completion rate
+      const evalAssignments = evaluatorAssignmentsRes.data || [];
+      const totalAssignments = evalAssignments.length;
+      const completedAssignments = evalAssignments.filter(
+        (a: any) => ["approve", "revise", "reject"].includes(a.status),
+      ).length;
+      const evaluationCompletionRate = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+
+      // 2. Proposal success rate
+      const totalProposals = totalProposalsRes.count || 0;
+      const fundedCount = fundedProposalRes.count || 0;
+      const proposalSuccessRate = totalProposals > 0 ? Math.round((fundedCount / totalProposals) * 100) : 0;
+
+      // 3. Average turnaround time per stage (in days)
+      const statusLogs = proposalStatusLogsRes.data || [];
+      const logsByProposal: Record<string, { action: string; created_at: string }[]> = {};
+      for (const log of statusLogs) {
+        if (!log.target_id) continue;
+        if (!logsByProposal[log.target_id]) logsByProposal[log.target_id] = [];
+        logsByProposal[log.target_id].push({ action: log.action, created_at: log.created_at });
+      }
+
+      // Define stage transitions: from action → to action = stage duration
+      const stageTransitions = [
+        { from: "proposal_created", to: "proposal_forwarded_to_rnd", stage: "submission_to_rnd" },
+        { from: "proposal_created", to: "proposal_auto_distributed", stage: "submission_to_rnd" },
+        { from: "proposal_forwarded_to_rnd", to: "evaluator_assigned", stage: "rnd_review" },
+        { from: "proposal_auto_distributed", to: "evaluator_assigned", stage: "rnd_review" },
+        { from: "evaluator_assigned", to: "evaluation_scores_submitted", stage: "evaluation" },
+        { from: "evaluation_scores_submitted", to: "proposal_endorsed_for_funding", stage: "endorsement" },
+        { from: "proposal_endorsed_for_funding", to: "proposal_funded", stage: "funding_decision" },
+      ];
+
+      const stageDurations: Record<string, number[]> = {};
+      for (const logs of Object.values(logsByProposal)) {
+        for (const transition of stageTransitions) {
+          const fromLog = logs.find((l) => l.action === transition.from);
+          const toLog = logs.find((l) => l.action === transition.to);
+          if (fromLog && toLog) {
+            const diffDays = (new Date(toLog.created_at).getTime() - new Date(fromLog.created_at).getTime()) / (1000 * 60 * 60 * 24);
+            if (diffDays >= 0 && diffDays < 365) { // sanity bound
+              if (!stageDurations[transition.stage]) stageDurations[transition.stage] = [];
+              stageDurations[transition.stage].push(diffDays);
+            }
+          }
+        }
+      }
+
+      const avgTurnaroundDays: Record<string, number> = {};
+      for (const [stage, durations] of Object.entries(stageDurations)) {
+        avgTurnaroundDays[stage] = durations.length > 0
+          ? Math.round((durations.reduce((s, d) => s + d, 0) / durations.length) * 10) / 10
+          : 0;
+      }
+
+      // 4. Fund utilization rate — sum amounts from fund_request_items
+      const fundRequests = fundRequestsRes.data || [];
+      const sumItems = (r: any) => ((r.fund_request_items || []) as any[]).reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+      const approvedRequests = fundRequests.filter((r: any) => r.status === "approved");
+      const totalApproved = approvedRequests.reduce((sum: number, r: any) => sum + sumItems(r), 0);
+      const totalRequested = fundRequests
+        .filter((r: any) => r.status !== "rejected")
+        .reduce((sum: number, r: any) => sum + sumItems(r), 0);
+      const fundUtilizationRate = totalRequested > 0 ? Math.round((totalApproved / totalRequested) * 100) : 0;
+
+      // 5. Monthly trends (last 12 months)
+      const monthlyProposals = monthlyProposalsRes.data || [];
+      const monthMap: Record<string, { submitted: number; funded: number; rejected: number }> = {};
+
+      // Initialize last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        monthMap[key] = { submitted: 0, funded: 0, rejected: 0 };
+      }
+
+      for (const p of monthlyProposals) {
+        const d = new Date(p.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (monthMap[key]) {
+          monthMap[key].submitted++;
+          if (p.status === "funded") monthMap[key].funded++;
+          if (["rejected_rnd", "rejected_funding"].includes(p.status)) monthMap[key].rejected++;
+        }
+      }
+
+      const monthlyTrends = Object.entries(monthMap).map(([month, counts]) => ({
+        month,
+        ...counts,
       }));
 
       return {
@@ -448,6 +579,13 @@ export class AdminService {
             last_24h: logs24hRes.count || 0,
             last_7d: logs7dRes.count || 0,
             recent: recentActivity,
+          },
+          kpi: {
+            avg_turnaround_days: avgTurnaroundDays,
+            evaluation_completion_rate: evaluationCompletionRate,
+            proposal_success_rate: proposalSuccessRate,
+            fund_utilization_rate: fundUtilizationRate,
+            monthly_trends: monthlyTrends,
           },
         },
         error: null,

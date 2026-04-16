@@ -28,6 +28,7 @@ import {
 
 } from "lucide-react";
 import { fetchAgencyAddresses, fetchDepartments, fetchRejectionSummary, type AddressItem, type LookupItem } from "../../services/proposal.api";
+import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import { formatDateShort, formatDate } from "../../utils/date-formatter";
 import { openProposalFile, getFileName } from "../../utils/signed-url";
 
@@ -404,12 +405,18 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               {p.title}
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors self-start sm:self-center"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+            <ProposalInsightButtons
+              proposalId={p.id}
+              proposalTitle={p.title}
+            />
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* --- BODY --- */}

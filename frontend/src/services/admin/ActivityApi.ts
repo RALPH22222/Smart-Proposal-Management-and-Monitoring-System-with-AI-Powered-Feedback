@@ -33,6 +33,19 @@ export interface ActivityLogsFilters {
   limit?: number;
 }
 
+export interface KpiStats {
+  avg_turnaround_days: Record<string, number>;
+  evaluation_completion_rate: number;
+  proposal_success_rate: number;
+  fund_utilization_rate: number;
+  monthly_trends: {
+    month: string;
+    submitted: number;
+    funded: number;
+    rejected: number;
+  }[];
+}
+
 export interface DashboardStats {
   users: {
     total: number;
@@ -76,6 +89,7 @@ export interface DashboardStats {
       user_name: string;
     }[];
   };
+  kpi?: KpiStats;
 }
 
 export const ActivityApi = {

@@ -50,6 +50,7 @@ import InviteMemberModal from "./InviteMemberModal";
 import { useAuthContext } from "../../context/AuthContext";
 import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
 import { fetchProjectMembers, type ProjectMemberData } from "../../services/ProjectMemberApi";
+import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -1041,6 +1042,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
+              {proposal && (
+                <ProposalInsightButtons
+                  proposalId={proposal.id}
+                  proposalTitle={currentData.title}
+                />
+              )}
               {isInRevisionMode && !revisionChanges && !isLoadingRevision && canSubmitRevision && (
                 <button
                   onClick={() => setIsEditing(!isEditing)}

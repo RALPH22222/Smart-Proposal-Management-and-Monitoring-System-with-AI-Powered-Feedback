@@ -13,7 +13,8 @@ import {
   Gavel,
   Building2,
   Signature,
-  Archive
+  Archive,
+  BarChart2
 } from 'lucide-react';
 import {
   type EndorsementProposal,
@@ -158,6 +159,7 @@ const EndorsePage: React.FC = () => {
             } : undefined
           })),
           overallRecommendation: p.overallRecommendation,
+          averageScores: p.averageScores || null,
           readyForEndorsement: p.readyForEndorsement,
           department: deptName || p.proponent_id?.department?.name || "N/A",
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
@@ -690,6 +692,50 @@ const EndorsePage: React.FC = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Feasibility Score */}
+                        {proposal.averageScores && (
+                          <div className="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                                <BarChart2 className="w-4 h-4 text-indigo-600" />
+                                Feasibility Score
+                              </h4>
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                proposal.averageScores.overall >= 4
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : proposal.averageScores.overall >= 3
+                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                  : 'bg-red-50 border-red-200 text-red-700'
+                              }`}>
+                                {proposal.averageScores.overall.toFixed(1)} / 5.0
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { label: 'Title', value: proposal.averageScores.title },
+                                { label: 'Budget', value: proposal.averageScores.budget },
+                                { label: 'Timeline', value: proposal.averageScores.timeline },
+                              ].map((item) => (
+                                <div key={item.label} className="text-center">
+                                  <div className="text-[10px] font-medium text-slate-500 mb-0.5">{item.label}</div>
+                                  <div className="text-sm font-bold text-slate-800">{item.value.toFixed(1)}</div>
+                                  <div className="w-full h-1.5 bg-white rounded-full mt-1 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${
+                                        item.value >= 4 ? 'bg-emerald-500' : item.value >= 3 ? 'bg-amber-400' : 'bg-red-400'
+                                      }`}
+                                      style={{ width: `${(item.value / 5) * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 text-right">
+                              Based on {proposal.averageScores.evaluatorCount} evaluator{proposal.averageScores.evaluatorCount > 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        )}
 
                         {/* Evaluator Decisions */}
                         <div className="space-y-3">

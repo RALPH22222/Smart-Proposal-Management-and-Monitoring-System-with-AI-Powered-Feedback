@@ -888,3 +888,74 @@ export const parseLibDocument = async (file: File): Promise<ParseLibResultDto> =
 
   return data;
 };
+
+// ── Feature 3: Proposal Timeline ──────────────────────────────────────────
+
+export interface TimelineEvent {
+  id: number;
+  action: string;
+  actor: string;
+  details: Record<string, any>;
+  timestamp: string;
+}
+
+export const getProposalTimeline = async (proposalId: number | string): Promise<TimelineEvent[]> => {
+  const { data } = await api.get<TimelineEvent[]>("/proposal/timeline", {
+    params: { proposal_id: proposalId },
+    withCredentials: true,
+  });
+  return data;
+};
+
+// ── Feature 4: Proposal Revision Context ──────────────────────────────────
+
+export interface RevisionContextVersion {
+  id: number;
+  file_url: string | string[];
+  created_at: string;
+}
+
+export interface RevisionContextSummary {
+  id: number;
+  proposal_id: number;
+  rnd_id: string;
+  rnd_name: string;
+  remarks: string;
+  included_evaluator_ids: string[] | null;
+  created_at: string;
+}
+
+export interface RevisionContextBudgetItem {
+  id: number;
+  source: string;
+  category: string;
+  item_name: string;
+  spec: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  total_amount: number;
+  display_order: number;
+}
+
+export interface RevisionContextBudgetVersion {
+  id: number;
+  version_number: number;
+  grand_total: number;
+  created_at: string;
+  proposal_budget_items: RevisionContextBudgetItem[];
+}
+
+export interface RevisionContext {
+  versions: RevisionContextVersion[];
+  revision_summaries: RevisionContextSummary[];
+  budget_versions: RevisionContextBudgetVersion[];
+}
+
+export const getProposalRevisionContext = async (proposalId: number | string): Promise<RevisionContext> => {
+  const { data } = await api.get<RevisionContext>("/proposal/revision-context", {
+    params: { proposal_id: proposalId },
+    withCredentials: true,
+  });
+  return data;
+};
