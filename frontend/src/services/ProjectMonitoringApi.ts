@@ -748,6 +748,143 @@ export async function reviewProjectExtension(
   return data.data;
 }
 
+// ─── Terminal Report Types & API ────────────────────────────────────
+
+export interface ApiTerminalReport {
+  id: number;
+  funded_project_id: number;
+  actual_start_date: string | null;
+  actual_end_date: string | null;
+  accomplishments: string;
+  outputs_publications: string | null;
+  outputs_patents_ip: string | null;
+  outputs_products: string | null;
+  outputs_people: string | null;
+  outputs_partnerships: string | null;
+  outputs_policy: string | null;
+  problems_encountered: string | null;
+  suggested_solutions: string | null;
+  publications_list: string | null;
+  report_file_url: string[] | null;
+  status: "submitted" | "verified";
+  submitted_by: string;
+  verified_by: string | null;
+  verified_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  submitted_by_user: { id: string; first_name: string; last_name: string } | null;
+  verified_by_user: { id: string; first_name: string; last_name: string } | null;
+}
+
+export async function submitTerminalReport(args: {
+  fundedProjectId: number;
+  actualStartDate?: string;
+  actualEndDate?: string;
+  accomplishments: string;
+  outputsPublications?: string;
+  outputsPatentsIp?: string;
+  outputsProducts?: string;
+  outputsPeople?: string;
+  outputsPartnerships?: string;
+  outputsPolicy?: string;
+  problemsEncountered?: string;
+  suggestedSolutions?: string;
+  publicationsList?: string;
+  reportFileUrl?: string[];
+}): Promise<ApiTerminalReport> {
+  const { data } = await api.post<{ data: ApiTerminalReport }>(
+    "/project/submit-terminal-report",
+    {
+      funded_project_id: args.fundedProjectId,
+      actual_start_date: args.actualStartDate,
+      actual_end_date: args.actualEndDate,
+      accomplishments: args.accomplishments,
+      outputs_publications: args.outputsPublications,
+      outputs_patents_ip: args.outputsPatentsIp,
+      outputs_products: args.outputsProducts,
+      outputs_people: args.outputsPeople,
+      outputs_partnerships: args.outputsPartnerships,
+      outputs_policy: args.outputsPolicy,
+      problems_encountered: args.problemsEncountered,
+      suggested_solutions: args.suggestedSolutions,
+      publications_list: args.publicationsList,
+      report_file_url: args.reportFileUrl,
+    },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
+export async function verifyTerminalReport(
+  terminalReportId: number
+): Promise<ApiTerminalReport> {
+  const { data } = await api.post<{ data: ApiTerminalReport }>(
+    "/project/verify-terminal-report",
+    { terminal_report_id: terminalReportId },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
+export async function fetchTerminalReport(
+  fundedProjectId: number
+): Promise<ApiTerminalReport | null> {
+  const { data } = await api.get<{ data: ApiTerminalReport | null }>(
+    "/project/terminal-report",
+    { params: { funded_project_id: fundedProjectId }, withCredentials: true }
+  );
+  return data.data;
+}
+
+// ─── Financial Report Types & API ──────────────────────────────────
+
+export interface FinancialReportLineItem {
+  budget_item_id: number;
+  item_name: string;
+  category: "ps" | "mooe" | "co";
+  approved_budget: number;
+  quarterly_data: {
+    q1: { requested: number; spent: number } | null;
+    q2: { requested: number; spent: number } | null;
+    q3: { requested: number; spent: number } | null;
+    q4: { requested: number; spent: number } | null;
+  };
+  total_requested: number;
+  total_spent: number;
+  balance: number;
+}
+
+export interface FinancialReportSummary {
+  budget: number;
+  requested: number;
+  spent: number;
+  balance: number;
+}
+
+export interface ApiFinancialReport {
+  funded_project_id: number;
+  budget_version: { id: number; version_number: number; grand_total: number };
+  line_items: FinancialReportLineItem[];
+  summary_by_category: {
+    ps: FinancialReportSummary;
+    mooe: FinancialReportSummary;
+    co: FinancialReportSummary;
+  };
+  grand_total: FinancialReportSummary;
+}
+
+export async function fetchFinancialReport(
+  fundedProjectId: number
+): Promise<ApiFinancialReport> {
+  const { data } = await api.get<{ data: ApiFinancialReport }>(
+    "/project/financial-report",
+    { params: { funded_project_id: fundedProjectId }, withCredentials: true }
+  );
+  return data.data;
+}
+
 // ============================================================
 // Phase 3 of LIB feature: budget realignment workflow
 // ============================================================

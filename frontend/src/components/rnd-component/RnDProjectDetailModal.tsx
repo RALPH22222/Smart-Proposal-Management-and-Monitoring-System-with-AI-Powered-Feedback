@@ -18,12 +18,16 @@ import {
   fetchBudgetSummary,
   generateCertificate,
   buildDisplayReports,
+  fetchTerminalReport,
+  verifyTerminalReport,
   type DisplayReport,
   type ProjectDetailData,
   type ApiFundRequest,
   type ApiBudgetSummary,
+  type ApiTerminalReport,
   groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
+import FinancialReportModal from '../proponent-component/FinancialReportModal';
 import { generateCertificatePDF } from '../../utils/certificate-generator';
 
 interface RnDProjectDetailModalProps {
@@ -54,6 +58,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   // Certificate state
   const [issuingCertificate, setIssuingCertificate] = useState(false);
 
+  // Terminal report + financial report state
+  const [terminalReport, setTerminalReport] = useState<ApiTerminalReport | null>(null);
+  const [verifyingTerminal, setVerifyingTerminal] = useState(false);
+  const [showFinancialReport, setShowFinancialReport] = useState(false);
+
   const loadDetails = async () => {
     if (!project?.backendId) return;
     setDetailLoading(true);
@@ -71,6 +80,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       setRawDetail(data);
       setFundRequests(frResponse.fund_requests);
       setBudgetSummary(frResponse.budget_summary || bs);
+
+      // Load terminal report
+      fetchTerminalReport(project.backendId).then(setTerminalReport).catch(() => setTerminalReport(null));
     } catch (err) {
       console.error('Error loading project details:', err);
       setDetails({ reports: [], totalBudget: 0, certificateIssuedAt: null, certificateIssuedByName: null });
@@ -646,12 +658,79 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                        </div>
                     </div>
 
-                    {/* Certificate Generation Button */}
-                    {allQuartersVerified && (
+                    {/* Terminal Report Section */}
+                    {allQuartersVerified && terminalReport && (
+                      <div className={`mt-6 rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-600" /> Terminal Report
+                          </h3>
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${terminalReport.status === 'verified' ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>
+                            {terminalReport.status === 'verified' ? 'Verified' : 'Pending Verification'}
+                          </span>
+                        </div>
+                        <div className="space-y-2 text-sm text-gray-700">
+                          {terminalReport.actual_start_date && (
+                            <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>
+                          )}
+                          <div>
+                            <p className="font-medium mb-1">Accomplishments:</p>
+                            <p className="whitespace-pre-wrap text-xs bg-white/60 rounded-lg p-2 max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
+                          </div>
+                          {terminalReport.submitted_by_user && (
+                            <p className="text-xs text-gray-500">Submitted by {terminalReport.submitted_by_user.first_name} {terminalReport.submitted_by_user.last_name}</p>
+                          )}
+                        </div>
+                        {terminalReport.status === 'submitted' && (
+                          <button
+                            onClick={async () => {
+                              const confirm = await Swal.fire({ title: 'Verify Terminal Report?', text: 'This will mark the terminal report as verified.', icon: 'question', showCancelButton: true, confirmButtonText: 'Verify' });
+                              if (!confirm.isConfirmed) return;
+                              setVerifyingTerminal(true);
+                              try {
+                                const updated = await verifyTerminalReport(terminalReport.id);
+                                setTerminalReport(updated);
+                                Swal.fire('Verified', 'Terminal report verified successfully.', 'success');
+                              } catch (err: any) {
+                                Swal.fire('Error', err?.response?.data?.message || 'Failed to verify.', 'error');
+                              } finally {
+                                setVerifyingTerminal(false);
+                              }
+                            }}
+                            disabled={verifyingTerminal}
+                            className="mt-4 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {verifyingTerminal ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : <><CheckCircle className="w-4 h-4" /> Verify Terminal Report</>}
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {allQuartersVerified && !terminalReport && (
+                      <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
+                        <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">All quarterly reports verified. Waiting for proponent to submit terminal report.</p>
+                      </div>
+                    )}
+
+                    {/* Financial Report Button */}
+                    {project && (
+                      <div className="mt-4">
+                        <button
+                          onClick={() => setShowFinancialReport(true)}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-xs transition-colors"
+                        >
+                          <DollarSign className="w-4 h-4" /> View Financial Report
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Certificate Generation Button — requires terminal report verified */}
+                    {allQuartersVerified && terminalReport?.status === 'verified' && (
                       <div className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center">
                         <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold text-emerald-800 mb-2">All Quarters Verified!</h3>
-                        <p className="text-sm text-emerald-600 mb-4">All 4 quarterly reports have been verified. You can now issue the certificate of completion.</p>
+                        <h3 className="text-lg font-bold text-emerald-800 mb-2">Ready for Certificate!</h3>
+                        <p className="text-sm text-emerald-600 mb-4">All quarterly reports and terminal report have been verified. You can now issue the certificate of completion.</p>
                         <button
                           onClick={handleGenerateCertificate}
                           disabled={issuingCertificate}
@@ -796,6 +875,15 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
            </div>
         </div>
       </div>
+
+      {/* Financial Report Modal */}
+      {showFinancialReport && project && (
+        <FinancialReportModal
+          fundedProjectId={project.backendId!}
+          projectTitle={project.title}
+          onClose={() => setShowFinancialReport(false)}
+        />
+      )}
     </div>
   );
 };

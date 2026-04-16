@@ -39,6 +39,8 @@ import {
   groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
 import { RealignmentFormModal } from '../../../components/proponent-component/RealignmentFormModal';
+import TerminalReportSection from '../../../components/proponent-component/TerminalReportSection';
+import FinancialReportModal from '../../../components/proponent-component/FinancialReportModal';
 import {
   fetchPendingInvitations,
   respondToInvitation,
@@ -142,6 +144,9 @@ const MonitoringPage: React.FC = () => {
   const [extensionReason, setExtensionReason] = useState('');
   const [extensionDate, setExtensionDate] = useState('');
   const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
+
+  // Financial report modal
+  const [showFinancialReport, setShowFinancialReport] = useState(false);
 
   // Pending co-lead invitations
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
@@ -1725,6 +1730,29 @@ const MonitoringPage: React.FC = () => {
                 </div>
               )}
 
+              {/* --- TERMINAL REPORT --- */}
+              {activeBackend && (
+                <div className="mt-6">
+                  <TerminalReportSection
+                    fundedProjectId={activeBackend.id}
+                    allQuartersVerified={quarters.length === 4 && quarters.every(q => q.status === 'approved')}
+                  />
+                </div>
+              )}
+
+              {/* --- FINANCIAL REPORT BUTTON --- */}
+              {activeBackend && activeProject && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowFinancialReport(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-sm transition-colors"
+                  >
+                    <PieChart className="w-4 h-4" />
+                    View Financial Report
+                  </button>
+                </div>
+              )}
+
             </div>
           ) : (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex-1 flex flex-col items-center justify-center text-center animate-pulse min-h-[400px]">
@@ -1880,6 +1908,15 @@ const MonitoringPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- FINANCIAL REPORT MODAL --- */}
+      {showFinancialReport && activeBackend && activeProject && (
+        <FinancialReportModal
+          fundedProjectId={activeBackend.id}
+          projectTitle={activeProject.title}
+          onClose={() => setShowFinancialReport(false)}
+        />
       )}
     </div>
   );

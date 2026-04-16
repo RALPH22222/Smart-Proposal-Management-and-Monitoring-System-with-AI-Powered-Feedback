@@ -43,6 +43,11 @@ export class ProjectLambdas extends NestedStack {
   public readonly requestExtension: NodejsFunction;
   public readonly reviewExtension: NodejsFunction;
   public readonly getExtensionRequests: NodejsFunction;
+  // Terminal report + financial report
+  public readonly submitTerminalReport: NodejsFunction;
+  public readonly verifyTerminalReport: NodejsFunction;
+  public readonly getTerminalReport: NodejsFunction;
+  public readonly getFinancialReport: NodejsFunction;
   // Phase 3 of LIB feature: budget realignment workflow
   public readonly getBudgetVersion: NodejsFunction;
   public readonly requestRealignment: NodejsFunction;
@@ -93,6 +98,12 @@ export class ProjectLambdas extends NestedStack {
     this.requestExtension = simple("request-extension", "pms-request-extension", "request-extension.ts");
     this.reviewExtension = simple("review-extension", "pms-review-extension", "review-extension.ts");
     this.getExtensionRequests = simple("get-extension-requests", "pms-get-extension-requests", "get-extension-requests.ts");
+
+    // Terminal report + financial report
+    this.submitTerminalReport = simple("submit-terminal-report", "pms-submit-terminal-report", "submit-terminal-report.ts");
+    this.verifyTerminalReport = simple("verify-terminal-report", "pms-verify-terminal-report", "verify-terminal-report.ts");
+    this.getTerminalReport = simple("get-terminal-report", "pms-get-terminal-report", "get-terminal-report.ts");
+    this.getFinancialReport = simple("get-financial-report", "pms-get-financial-report", "get-financial-report.ts");
 
     // Phase 3 of LIB feature: budget realignment workflow
     this.getBudgetVersion = simple("get-budget-version", "pms-get-budget-version", "get-budget-version.ts");

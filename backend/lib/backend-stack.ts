@@ -527,6 +527,20 @@ export class BackendStack extends Stack {
       .addResource("extension-requests")
       .addMethod(HttpMethod.GET, integrate(projectL.getExtensionRequests), protectedRoute);
 
+    // Terminal report + financial report
+    project
+      .addResource("submit-terminal-report")
+      .addMethod(HttpMethod.POST, integrate(projectL.submitTerminalReport), protectedRoute);
+    project
+      .addResource("verify-terminal-report")
+      .addMethod(HttpMethod.POST, integrate(projectL.verifyTerminalReport), protectedRoute);
+    project
+      .addResource("terminal-report")
+      .addMethod(HttpMethod.GET, integrate(projectL.getTerminalReport), protectedRoute);
+    project
+      .addResource("financial-report")
+      .addMethod(HttpMethod.GET, integrate(projectL.getFinancialReport), protectedRoute);
+
     // Phase 3 of LIB feature: budget realignment workflow
     project
       .addResource("budget-version")

@@ -222,3 +222,44 @@ export type ReviewProjectExtensionInput = z.infer<typeof reviewProjectExtensionS
 export const getProjectExtensionRequestsSchema = z.object({
   funded_project_id: z.coerce.number().int().positive(),
 });
+
+// ===================== TERMINAL REPORT =====================
+
+// Submit Terminal Report Schema (DOST Form 9A/N)
+// Note: submitted_by is injected by handler from JWT, not from request body
+export const submitTerminalReportSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  actual_start_date: z.string().optional(),
+  actual_end_date: z.string().optional(),
+  accomplishments: z.string().min(10, "Accomplishments must be at least 10 characters").max(10000),
+  // 6Ps outputs (DOST impact metrics)
+  outputs_publications: z.string().max(5000).optional(),
+  outputs_patents_ip: z.string().max(5000).optional(),
+  outputs_products: z.string().max(5000).optional(),
+  outputs_people: z.string().max(5000).optional(),
+  outputs_partnerships: z.string().max(5000).optional(),
+  outputs_policy: z.string().max(5000).optional(),
+  problems_encountered: z.string().max(5000).optional(),
+  suggested_solutions: z.string().max(5000).optional(),
+  publications_list: z.string().max(5000).optional(),
+  report_file_url: z.array(z.string().url()).optional(),
+});
+
+export type SubmitTerminalReportInput = z.infer<typeof submitTerminalReportSchema> & {
+  submitted_by: string;
+};
+
+// Verify Terminal Report Schema
+// Note: verified_by is injected by handler from JWT, not from request body
+export const verifyTerminalReportSchema = z.object({
+  terminal_report_id: z.number().int().positive(),
+});
+
+export type VerifyTerminalReportInput = z.infer<typeof verifyTerminalReportSchema> & {
+  verified_by: string;
+};
+
+// Get Terminal Report Schema
+export const getTerminalReportSchema = z.object({
+  funded_project_id: z.coerce.number().int().positive(),
+});

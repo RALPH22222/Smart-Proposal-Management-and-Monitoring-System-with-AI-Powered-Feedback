@@ -17,6 +17,8 @@ import {
   GenerateCertificateInput,
   RequestProjectExtensionInput,
   ReviewProjectExtensionInput,
+  SubmitTerminalReportInput,
+  VerifyTerminalReportInput,
 } from "../schemas/project-schema";
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
@@ -1572,6 +1574,23 @@ export class ProjectService {
       };
     }
 
+    // Check terminal report is verified
+    const { data: terminalReport } = await this.db
+      .from("project_terminal_reports")
+      .select("id, status")
+      .eq("funded_project_id", input.funded_project_id)
+      .single();
+
+    if (!terminalReport || terminalReport.status !== "verified") {
+      return {
+        data: null,
+        error: {
+          message: "Cannot issue certificate. Terminal report has not been submitted or verified.",
+          code: "TERMINAL_REPORT_NOT_VERIFIED",
+        },
+      };
+    }
+
     // Check if certificate was already issued
     const { data: project } = await this.db
       .from("funded_projects")
@@ -2455,5 +2474,397 @@ export class ProjectService {
     }
 
     return { data, error: null };
+  }
+
+  // ===================== TERMINAL REPORT =====================
+
+  async submitTerminalReport(input: SubmitTerminalReportInput) {
+    // Check all 4 quarterly reports are verified
+    const { data: reports } = await this.db
+      .from("project_reports")
+      .select("quarterly_report, status")
+      .eq("funded_project_id", input.funded_project_id);
+
+    const quarters = ["q1_report", "q2_report", "q3_report", "q4_report"];
+    const verifiedQuarters = (reports || [])
+      .filter((r) => r.status === "verified")
+      .map((r) => r.quarterly_report);
+    const missingQuarters = quarters.filter((q) => !verifiedQuarters.includes(q));
+
+    if (missingQuarters.length > 0) {
+      return {
+        data: null,
+        error: {
+          message: `All quarterly reports must be verified before submitting a terminal report. Missing: ${missingQuarters.join(", ")}.`,
+          code: "INCOMPLETE_REPORTS",
+        },
+      };
+    }
+
+    // Check no existing terminal report
+    const { data: existing } = await this.db
+      .from("project_terminal_reports")
+      .select("id")
+      .eq("funded_project_id", input.funded_project_id)
+      .single();
+
+    if (existing) {
+      return {
+        data: null,
+        error: {
+          message: "A terminal report has already been submitted for this project.",
+          code: "TERMINAL_REPORT_EXISTS",
+        },
+      };
+    }
+
+    const { data, error } = await this.db
+      .from("project_terminal_reports")
+      .insert({
+        funded_project_id: input.funded_project_id,
+        actual_start_date: input.actual_start_date || null,
+        actual_end_date: input.actual_end_date || null,
+        accomplishments: input.accomplishments,
+        outputs_publications: input.outputs_publications || null,
+        outputs_patents_ip: input.outputs_patents_ip || null,
+        outputs_products: input.outputs_products || null,
+        outputs_people: input.outputs_people || null,
+        outputs_partnerships: input.outputs_partnerships || null,
+        outputs_policy: input.outputs_policy || null,
+        problems_encountered: input.problems_encountered || null,
+        suggested_solutions: input.suggested_solutions || null,
+        publications_list: input.publications_list || null,
+        report_file_url: input.report_file_url || null,
+        status: "submitted",
+        submitted_by: input.submitted_by,
+      })
+      .select(
+        `
+        *,
+        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+      `
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.submitted_by,
+      action: "terminal_report_submitted",
+      category: "project",
+      target_id: String(input.funded_project_id),
+      target_type: "funded_project",
+      details: { terminal_report_id: data.id },
+    });
+
+    // Notify assigned RND user
+    const { data: project } = await this.db
+      .from("funded_projects")
+      .select("proposal_id")
+      .eq("id", input.funded_project_id)
+      .single();
+
+    if (project) {
+      const { data: rndAssignment } = await this.db
+        .from("proposal_rnd")
+        .select("rnd_id")
+        .eq("proposal_id", project.proposal_id)
+        .single();
+
+      if (rndAssignment) {
+        await this.db.from("notifications").insert({
+          user_id: rndAssignment.rnd_id,
+          message: "A terminal report has been submitted and is awaiting your verification.",
+          is_read: false,
+          link: "project-monitoring",
+        });
+      }
+    }
+
+    return { data, error: null };
+  }
+
+  async verifyTerminalReport(input: VerifyTerminalReportInput) {
+    // Lookup the terminal report to get the project ID for COI check
+    const { data: terminalReport } = await this.db
+      .from("project_terminal_reports")
+      .select("funded_project_id")
+      .eq("id", input.terminal_report_id)
+      .single();
+
+    if (!terminalReport) {
+      return { data: null, error: { message: "Terminal report not found." } };
+    }
+
+    // COI guard
+    const coi = await this.assertNoCoiOnProject(input.verified_by, terminalReport.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.verified_by,
+        action: "coi_block_verify_terminal_report",
+        category: "project",
+        target_id: String(input.terminal_report_id),
+        target_type: "funded_project",
+        details: { funded_project_id: terminalReport.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_terminal_reports")
+      .update({
+        status: "verified",
+        verified_by: input.verified_by,
+        verified_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.terminal_report_id)
+      .eq("status", "submitted") // Can only verify submitted reports
+      .select(
+        `
+        *,
+        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+      `
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Terminal report not found or already verified." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.verified_by,
+      action: "terminal_report_verified",
+      category: "project",
+      target_id: String(input.terminal_report_id),
+      target_type: "funded_project",
+      details: { funded_project_id: terminalReport.funded_project_id },
+    });
+
+    // Notify the proponent
+    await this.db.from("notifications").insert({
+      user_id: data.submitted_by,
+      message: "Your terminal report has been verified. A completion certificate can now be issued.",
+      is_read: false,
+      link: "project-monitoring",
+    });
+
+    // Send email notification (fire-and-forget)
+    try {
+      const { data: proponent } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", data.submitted_by)
+        .single();
+
+      if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          proponent.email,
+          proponent.first_name || "Proponent",
+          "Terminal Report Verified",
+          "Your terminal report has been verified and approved. A completion certificate can now be issued for your project. Sign in to SPMAMS for details.",
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
+
+    return { data, error: null };
+  }
+
+  async getTerminalReport(input: { funded_project_id: number }) {
+    const { data, error } = await this.db
+      .from("project_terminal_reports")
+      .select(
+        `
+        *,
+        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name),
+        verified_by_user:users!project_terminal_reports_verified_by_fkey (id, first_name, last_name)
+      `
+      )
+      .eq("funded_project_id", input.funded_project_id)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    return { data: data || null, error: null };
+  }
+
+  // ===================== FINANCIAL REPORT (Auto-Generated) =====================
+
+  async getFinancialReport(fundedProjectId: number) {
+    // 1. Get the active budget version with line items
+    const versionResult = await this.getActiveBudgetVersion(fundedProjectId);
+    if (versionResult.error || !versionResult.data) {
+      return { data: null, error: versionResult.error ?? new Error("No budget version found.") };
+    }
+
+    const version = versionResult.data.version;
+    const budgetItems = version.items || [];
+
+    // 2. Get all approved fund requests with items for this project
+    const { data: fundRequests } = await this.db
+      .from("fund_requests")
+      .select(`
+        id, quarterly_report, status,
+        fund_request_items (id, item_name, amount, category, budget_item_id)
+      `)
+      .eq("funded_project_id", fundedProjectId)
+      .eq("status", "approved");
+
+    // 3. Get all expenses linked to fund request items
+    const { data: allReports } = await this.db
+      .from("project_reports")
+      .select(`
+        id, quarterly_report,
+        project_expenses (id, expenses, fund_request_item_id, approved_amount)
+      `)
+      .eq("funded_project_id", fundedProjectId);
+
+    // Build lookup: fund_request_item_id → quarter
+    const friToQuarter: Record<number, string> = {};
+    for (const fr of fundRequests || []) {
+      for (const item of (fr as any).fund_request_items || []) {
+        friToQuarter[item.id] = fr.quarterly_report;
+      }
+    }
+
+    // Build lookup: budget_item_id → { quarter → { requested, spent } }
+    type QuarterData = { requested: number; spent: number };
+    const quarterKeys = ["q1_report", "q2_report", "q3_report", "q4_report"];
+    const itemQuarterMap: Record<number, Record<string, QuarterData>> = {};
+
+    // Map fund request items to budget items by quarter
+    for (const fr of fundRequests || []) {
+      for (const fri of (fr as any).fund_request_items || []) {
+        const budgetItemId = fri.budget_item_id;
+        if (!budgetItemId) continue;
+        if (!itemQuarterMap[budgetItemId]) {
+          itemQuarterMap[budgetItemId] = {};
+        }
+        const q = fr.quarterly_report;
+        if (!itemQuarterMap[budgetItemId][q]) {
+          itemQuarterMap[budgetItemId][q] = { requested: 0, spent: 0 };
+        }
+        itemQuarterMap[budgetItemId][q].requested += Number(fri.amount) || 0;
+      }
+    }
+
+    // Map expenses to budget items by quarter
+    for (const report of allReports || []) {
+      for (const expense of (report as any).project_expenses || []) {
+        const friId = expense.fund_request_item_id;
+        if (!friId) continue;
+
+        // Find which budget item this expense maps to
+        const quarter = friToQuarter[friId];
+        if (!quarter) continue;
+
+        // Find the budget_item_id from the fund_request_item
+        let budgetItemId: number | null = null;
+        for (const fr of fundRequests || []) {
+          for (const fri of (fr as any).fund_request_items || []) {
+            if (fri.id === friId) {
+              budgetItemId = fri.budget_item_id;
+              break;
+            }
+          }
+          if (budgetItemId) break;
+        }
+
+        if (!budgetItemId) continue;
+        if (!itemQuarterMap[budgetItemId]) {
+          itemQuarterMap[budgetItemId] = {};
+        }
+        if (!itemQuarterMap[budgetItemId][quarter]) {
+          itemQuarterMap[budgetItemId][quarter] = { requested: 0, spent: 0 };
+        }
+        itemQuarterMap[budgetItemId][quarter].spent += Number(expense.expenses) || 0;
+      }
+    }
+
+    // Build the line items response
+    const lineItems = budgetItems.map((bi: any) => {
+      const qData = itemQuarterMap[bi.id] || {};
+      const quarterlyData: Record<string, QuarterData | null> = {};
+      let totalRequested = 0;
+      let totalSpent = 0;
+
+      for (const q of quarterKeys) {
+        if (qData[q]) {
+          quarterlyData[q] = qData[q];
+          totalRequested += qData[q].requested;
+          totalSpent += qData[q].spent;
+        } else {
+          quarterlyData[q] = null;
+        }
+      }
+
+      return {
+        budget_item_id: bi.id,
+        item_name: bi.item_name,
+        category: bi.category as "ps" | "mooe" | "co",
+        approved_budget: Number(bi.total_amount) || 0,
+        quarterly_data: {
+          q1: quarterlyData["q1_report"],
+          q2: quarterlyData["q2_report"],
+          q3: quarterlyData["q3_report"],
+          q4: quarterlyData["q4_report"],
+        },
+        total_requested: totalRequested,
+        total_spent: totalSpent,
+        balance: (Number(bi.total_amount) || 0) - totalSpent,
+      };
+    });
+
+    // Build category summaries
+    const categories = ["ps", "mooe", "co"] as const;
+    const summaryByCategory: Record<string, { budget: number; requested: number; spent: number; balance: number }> = {};
+    for (const cat of categories) {
+      const catItems = lineItems.filter((li: any) => li.category === cat);
+      const budget = catItems.reduce((s: number, li: any) => s + li.approved_budget, 0);
+      const requested = catItems.reduce((s: number, li: any) => s + li.total_requested, 0);
+      const spent = catItems.reduce((s: number, li: any) => s + li.total_spent, 0);
+      summaryByCategory[cat] = { budget, requested, spent, balance: budget - spent };
+    }
+
+    const grandBudget = lineItems.reduce((s: number, li: any) => s + li.approved_budget, 0);
+    const grandRequested = lineItems.reduce((s: number, li: any) => s + li.total_requested, 0);
+    const grandSpent = lineItems.reduce((s: number, li: any) => s + li.total_spent, 0);
+
+    return {
+      data: {
+        funded_project_id: fundedProjectId,
+        budget_version: {
+          id: version.id,
+          version_number: version.version_number,
+          grand_total: version.grand_total,
+        },
+        line_items: lineItems,
+        summary_by_category: summaryByCategory,
+        grand_total: {
+          budget: grandBudget,
+          requested: grandRequested,
+          spent: grandSpent,
+          balance: grandBudget - grandSpent,
+        },
+      },
+      error: null,
+    };
   }
 }
