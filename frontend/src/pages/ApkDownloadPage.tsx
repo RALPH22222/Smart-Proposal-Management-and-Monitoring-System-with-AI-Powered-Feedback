@@ -94,37 +94,7 @@ const ApkDownloadPage: React.FC = () => {
                 Learn More
                 <span className="absolute bottom-0 left-0 h-0.5 rounded-full transition-all duration-300 w-0 bg-white group-hover:w-full" />
               </a>
-              {isLoadingApk ? (
-                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 bg-white/10 text-white animate-pulse">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading...
-                </span>
-              ) : apkUrl ? (
-                <button
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                  className="ml-4 px-4 py-1.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/30 md:px-5 md:py-2 lg:px-6 lg:py-3 disabled:opacity-70 disabled:cursor-wait bg-white text-[#C8102E] hover:bg-gray-100"
-                >
-                  {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {isDownloading ? 'Downloading...' : 'Download'}
-                </button>
-              ) : (
-                <span className="ml-4 px-4 py-1.5 rounded-lg font-semibold flex items-center gap-2 opacity-50 cursor-not-allowed bg-white/10 text-white">
-                  <Download className="w-4 h-4" /> Unavailable
-                </span>
-              )}
             </div>
-
-            {/* Mobile Download Button */}
-            {apkUrl && (
-              <button
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="md:hidden px-3 py-2 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center gap-1 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/30 disabled:opacity-70 disabled:cursor-wait bg-white text-[#C8102E]"
-              >
-                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                <span className="text-xs">{isDownloading ? 'Downloading...' : 'Get App'}</span>
-              </button>
-            )}
           </div>
         </div>
       </nav>
@@ -208,8 +178,8 @@ const ApkDownloadPage: React.FC = () => {
           </div>
 
           {/* Right Column - App Image Area */}
-          <div className={`order-1 lg:order-2 relative transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-            <div className="relative mx-auto max-w-[280px]">
+          <div className={`order-1 lg:order-2 relative z-0 mt-16 lg:mt-20 transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+            <div className="relative mx-auto max-w-[280px] z-0 group">
               {/* Decorative elements */}
               <div className="absolute -top-4 -right-4 w-20 h-20 bg-red-100 rounded-full opacity-70 -z-10 animate-float"></div>
               <div className="absolute -bottom-6 -left-6 w-28 h-28 bg-red-50 rounded-full opacity-60 -z-10 animate-float animation-delay-2000"></div>
@@ -217,7 +187,7 @@ const ApkDownloadPage: React.FC = () => {
               <img 
                 src={MobileImage} 
                 alt="RDEC Mobile App" 
-                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float border-4 border-gray-900 bg-gray-900"
+                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float border-3 border-[#C8102E] bg-gray-900 transition-all duration-500 ease-out hover:scale-105 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)] hover:rotate-1 hover:brightness-115 cursor-pointer group-hover:[animation-play-state:paused]"
               />
             </div>
           </div>

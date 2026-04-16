@@ -140,9 +140,9 @@ export default function ResetPassword() {
 
       <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
         <div className="px-8 pt-8 pb-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-full bg-red-50 text-[#C8102E]">
-              <Lock size={24} />
+          <div className="flex flex-col items-center text-center gap-3 mb-2">
+            <div className="p-3 rounded-xl bg-red-50 text-[#C8102E]">
+              <Lock size={27} />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Reset Password</h2>
@@ -158,7 +158,7 @@ export default function ResetPassword() {
             </div>
             <button
               onClick={() => navigate("/forgot-password", { replace: true })}
-              className="w-full py-3 bg-[#C8102E] text-white rounded-xl font-bold text-sm shadow-md hover:bg-[#A50D26] transition-all duration-300"
+              className="w-full py-3 bg-[#C8102E] text-white rounded-xl font-semibold text-sm shadow-md hover:bg-[#A50D26] transition-all duration-300"
             >
               Request a new link
             </button>

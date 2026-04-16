@@ -73,7 +73,7 @@ export const DEFAULT_ABOUT_INFO: AboutInfo = {
   hero: {
     badge: "About Our Service",
     title_prefix: "About",
-    title_highlight: "Smart Project Proposal",
+    title_highlight: "Project Proposal",
     description: "Empowering students and faculty with professionally crafted project proposals that secure funding and drive innovation at Western Mindanao State University."
   },
   story: {
