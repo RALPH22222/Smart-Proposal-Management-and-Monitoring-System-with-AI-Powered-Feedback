@@ -70,6 +70,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
 
         if (!hasRequiredRole) {
           // user is logged in but not allowed on this route
+          if (userRoles.length > 1) {
+            navigate("/users/multi-role/MainLayout");
+            return;
+          }
+
           // just send them to the first dashboard they have
           const role = userRoles[0];
 

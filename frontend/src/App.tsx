@@ -26,6 +26,9 @@ import EvaluatorMainLayout from "./pages/users/evaluator/EvaluatorMainLayout";
 // Proponent
 import ProponentMainLayout from "./pages/users/Proponent/ProponentMainLayout";
 
+// Multi-Role
+import MultiRoleMainLayout from "./pages/users/multi-role/MultiRoleMainLayout";
+
 // Loading animation
 import { LoadingProvider, LocationWatcher, LoadingOverlay } from "./contexts/LoadingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -86,6 +89,11 @@ function App() {
             {/* Proponent */}
             <Route element={<ProtectedRoute roles={[Role.PROPONENT]} />}>
               <Route path="/users/Proponent/proponentMainLayout" element={<ProponentMainLayout />} />
+            </Route>
+
+            {/* Multi-Role Dashboard */}
+            <Route element={<ProtectedRoute roles={[Role.PROPONENT, Role.EVALUATOR, Role.RND]} />}>
+              <Route path="/users/multi-role/MainLayout" element={<MultiRoleMainLayout />} />
             </Route>
           </Routes>
           <LoadingOverlay />

@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { api } from "@utils/axios";
 import { broadcastAuthChange } from "@utils/auth-broadcast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield, User, FileText, CheckSquare, X } from "lucide-react"; // Icons for the modal
+// Icons for the modal removed
 import { useLogos } from "../context/LogoContext";
 import AuthBackground from "../assets/IMAGES/Auth-Background.jpg";
 import WmsuFallbackLogo from "../assets/IMAGES/WMSU.png";
@@ -29,8 +29,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -182,12 +180,12 @@ export default function Login() {
 
       // 3. Logic: Single Role vs Multiple Roles
       if (userRoles.length > 1) {
-        // If password change required, skip the role modal and go straight
+        // If password change required, skip and go straight
         if (passwordChangeRequired) {
           navigate("/change-password");
         } else {
-          setAvailableRoles(userRoles);
-          setShowRoleModal(true);
+          // Immediately direct multi-role users to the combined dashboard
+          hardNavigate("/users/multi-role/MainLayout");
         }
       } else if (userRoles.length === 1) {
         // If single role, navigate immediately
@@ -228,19 +226,6 @@ export default function Login() {
     }
   };
 
-  // Helper to get nice labels/icons for the modal
-  const getRoleDisplay = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin":
-        return { label: "Administrator", icon: <Shield className="w-6 h-6" />, color: "bg-slate-800" };
-      case "rnd":
-        return { label: "R&D Staff", icon: <FileText className="w-6 h-6" />, color: "bg-blue-600" };
-      case "evaluator":
-        return { label: "Evaluator", icon: <CheckSquare className="w-6 h-6" />, color: "bg-green-600" };
-      default:
-        return { label: "Proponent", icon: <User className="w-6 h-6" />, color: "bg-[#C8102E]" };
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row relative">
@@ -396,55 +381,7 @@ export default function Login() {
         </div> */}
       </div>
 
-      {/* --- MULTI-ROLE SELECTION MODAL --- */}
-      {showRoleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="bg-[#C8102E] px-6 py-4 flex justify-between items-center text-white">
-              <h3 className="text-lg font-bold">Select Dashboard</h3>
-              <button
-                onClick={() => setShowRoleModal(false)}
-                className="hover:bg-white/20 rounded-full p-1 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              <p className="text-gray-600 mb-6 text-center">
-                Your account is associated with multiple roles. Please select which dashboard you would like to access.
-              </p>
-
-              <div className="grid gap-3">
-                {availableRoles.map((role) => {
-                  const details = getRoleDisplay(role);
-                  return (
-                    <button
-                      key={role}
-                      onClick={async () => await navigateBasedOnRole(role)}
-                      className="flex items-center gap-4 w-full p-4 rounded-xl border border-gray-200 hover:border-[#C8102E] hover:bg-red-50 transition-all duration-200 group text-left"
-                    >
-                      <div
-                        className={`p-3 rounded-full text-white ${details.color} shadow-sm group-hover:scale-110 transition-transform`}
-                      >
-                        {details.icon}
-                      </div>
-                      <div>
-                        <span className="block font-bold text-gray-800 group-hover:text-[#C8102E] text-lg">
-                          {details.label}
-                        </span>
-                        <span className="text-xs text-gray-500 uppercase tracking-wider">Enter as {role}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MULTI-ROLE MODAL REMOVED - Users are automatically directed to the new Multi Role Dashboard */}
     </div>
   );
 }
