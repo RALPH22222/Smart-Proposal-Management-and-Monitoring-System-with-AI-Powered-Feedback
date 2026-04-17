@@ -33,7 +33,7 @@ const EvaluatorFloatingNotification: React.FC<EvaluatorFloatingNotificationProps
   }));
 
   return (
-    <div className="fixed bottom-6 right-6 z-50" ref={notifRef}>
+    <div className="fixed bottom-6 right-6 z-30" ref={notifRef}>
       {/* Floating Action Button */}
       <button
         onClick={() => setNotificationsOpen(!notificationsOpen)}

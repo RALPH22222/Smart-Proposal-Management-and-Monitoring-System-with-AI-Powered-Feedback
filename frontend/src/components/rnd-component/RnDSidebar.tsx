@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Collapsed sidebar (desktop only)
   if (isCollapsed) {
     return (
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-16 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex-col z-50">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-16 bg-gradient-to-b from-white to-gray-50/50 border-r border-gray-200/60 shadow-lg backdrop-blur-sm p-4 overflow-y-auto flex-col z-40">
         {/* Collapsed Header */}
         <div className="flex justify-center mb-8 group cursor-pointer">
           {/* Main square container with hover lift animation */}

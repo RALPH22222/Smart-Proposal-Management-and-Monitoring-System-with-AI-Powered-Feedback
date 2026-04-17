@@ -32,7 +32,7 @@ const AdminFloatingNotification: React.FC<AdminFloatingNotificationProps> = ({ o
   }));
 
   return (
-    <div className="fixed bottom-6 right-6 z-50" ref={notifRef}>
+    <div className="fixed bottom-6 right-6 z-30" ref={notifRef}>
       <button
         type="button"
         onClick={() => setNotificationsOpen(!notificationsOpen)}
