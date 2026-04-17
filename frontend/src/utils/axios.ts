@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Production: requests go to "/api/*" on the same Vercel origin (wmsu-rdec.com),
+// which Vercel rewrites to the AWS API Gateway. This makes auth cookies first-party
+// and survives Chrome's third-party cookie blocking.
+// Dev: set VITE_API_BASE_URL in .env.local to the AWS URL (or any dev API).
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://b8eu4v15e5.execute-api.us-east-1.amazonaws.com/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true
 });
 
