@@ -49,3 +49,62 @@ jobs:
       - name: CDK Deploy
         working-directory: backend
         run: npx cdk deploy --all -c stage=${{ github.event.inputs.stage || 'dev' }} --require-approval never
+
+      - name: Post-deploy smoke test
+        # Logs in as a test user and calls one protected endpoint. Catches the
+        # class of bugs where the deploy succeeds but auth is broken (e.g. the
+        # 2026-04-19 identitySources outage where every request 401'd silently).
+        # Hits AWS API Gateway directly to isolate backend health from the
+        # Vercel rewrite layer.
+        env:
+          API_BASE_URL: https://b8eu4v15e5.execute-api.us-east-1.amazonaws.com/api
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+        run: |
+          set -e
+
+          if [ -z "$SMOKE_TEST_EMAIL" ] || [ -z "$SMOKE_TEST_PASSWORD" ]; then
+            echo "::warning::SMOKE_TEST_EMAIL / SMOKE_TEST_PASSWORD secrets not set; skipping smoke test"
+            exit 0
+          fi
+
+          echo "→ Login as $SMOKE_TEST_EMAIL"
+          LOGIN_HEADERS=$(mktemp)
+          LOGIN_BODY=$(curl -sS -D "$LOGIN_HEADERS" -o /tmp/login_body.json \
+            -w "%{http_code}" \
+            -X POST "$API_BASE_URL/auth/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$SMOKE_TEST_EMAIL\",\"password\":\"$SMOKE_TEST_PASSWORD\"}")
+
+          if [ "$LOGIN_BODY" != "200" ]; then
+            echo "::error::Login failed with HTTP $LOGIN_BODY"
+            cat /tmp/login_body.json
+            exit 1
+          fi
+
+          # Extract Set-Cookie values into a single Cookie header
+          COOKIES=$(grep -i '^set-cookie:' "$LOGIN_HEADERS" \
+            | sed 's/^[Ss]et-[Cc]ookie: *//' \
+            | cut -d';' -f1 \
+            | paste -sd';' -)
+
+          if [ -z "$COOKIES" ]; then
+            echo "::error::Login returned 200 but no Set-Cookie headers"
+            cat "$LOGIN_HEADERS"
+            exit 1
+          fi
+
+          echo "→ Authenticated GET /proposal/view"
+          SMOKE_STATUS=$(curl -sS -o /tmp/smoke_body.txt -w "%{http_code}" \
+            "$API_BASE_URL/proposal/view" \
+            -H "Cookie: $COOKIES")
+
+          if [ "$SMOKE_STATUS" != "200" ]; then
+            echo "::error::Smoke test failed: GET /proposal/view returned HTTP $SMOKE_STATUS"
+            echo "::error::Auth is broken on the freshly-deployed backend."
+            echo "::error::Check: identitySources in backend-stack.ts, authorizer Lambda logs, Supabase token verification."
+            cat /tmp/smoke_body.txt
+            exit 1
+          fi
+
+          echo "✓ Smoke test passed: authenticated request returned 200"

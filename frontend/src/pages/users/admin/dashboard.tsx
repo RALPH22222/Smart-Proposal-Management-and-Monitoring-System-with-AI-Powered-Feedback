@@ -28,7 +28,6 @@ import {
   Cell,
 } from 'recharts';
 import PageLoader from '../../../components/shared/PageLoader';
-import PipelineFunnel from '../../../components/shared/PipelineFunnel';
 
 type ExtendedDashboardStats = DashboardStats & {
   proposals: DashboardStats['proposals'] & {
@@ -288,25 +287,11 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
         </section>
       )}
 
-      {/* ── Proposal Pipeline Funnel ── */}
-      {stats && (
-        <section>
-          <PipelineFunnel
-            stages={[
-              { label: 'R&D Review', count: stats.proposals.review_rnd, color: '#3b82f6' },
-              { label: 'Under Evaluation', count: stats.proposals.under_evaluation, color: '#8b5cf6' },
-              { label: 'Endorsed for Funding', count: stats.proposals.endorsed_for_funding, color: '#1d4ed8' },
-              { label: 'Funded', count: stats.proposals.funded, color: '#22c55e' },
-            ]}
-          />
-        </section>
-      )}
-
       {/* ── Main Content: Pipeline Chart + System Status ── */}
       <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
 
         {/* ── Proposal Pipeline Breakdown — Horizontal Bar Chart ── */}
-        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-fit">
+        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 min-w-0 flex flex-col h-fit">
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
             <div className="flex items-center gap-2">
