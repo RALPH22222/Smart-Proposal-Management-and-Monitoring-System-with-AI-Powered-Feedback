@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { FileText, Upload, CheckCircle2, ExternalLink, Loader2, X } from 'lucide-react';
+import { FileText, Upload, CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { uploadProjectDocument, validateReportFile } from '../../services/ProjectMonitoringApi';
 import { openSignedUrl } from '../../utils/signed-url';

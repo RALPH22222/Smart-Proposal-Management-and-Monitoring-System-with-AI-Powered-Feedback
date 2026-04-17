@@ -6,9 +6,9 @@ import { LookupProvider } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
 
 // Proponent Pages
-import ProponentSubmission from "../proponent/submission";
-import ProponentProfile from "../proponent/Profile";
-import ProponentMonitoring from "../proponent/monitoring";
+import ProponentSubmission from "../Proponent/submission";
+import ProponentProfile from "../Proponent/Profile";
+import ProponentMonitoring from "../Proponent/monitoring";
 import MultiRoleSettings from "./MultiRoleSettings";
 
 // Evaluator Pages
