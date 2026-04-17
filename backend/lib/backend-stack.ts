@@ -269,18 +269,19 @@ export class BackendStack extends Stack {
 
     const requestAuthorizer = new RequestAuthorizer(this, "pms-request-authorizer", {
       handler: auth.authorizer,
-      // Cache key includes both Cookie and Authorization headers so that:
-      //  - Normal requests (tk cookie) cache per-cookie value
-      //  - /accept-invite requests (Bearer token) cache separately
-      // This resolves the old hijack issue where Cookie-only caching caused
-      // Bearer-vs-cookie priority to be bypassed. With both in the key, a
-      // request carrying a Bearer token produces a different cache entry than
-      // the same browser's cookie-only requests.
-      identitySources: [
-        IdentitySource.header("Cookie"),
-        IdentitySource.header("Authorization"),
-      ],
-      resultsCacheTtl: Duration.seconds(60),
+      // Cookie-only identity source. We CANNOT add Authorization here as a second
+      // identity source: API Gateway requires every listed identity source to be
+      // present on the request, and normal browser traffic only carries the `tk`
+      // cookie (no Authorization header). Adding Authorization caused 401 for
+      // every request *without ever invoking the Lambda* (CloudWatch silent).
+      //
+      // Caching is disabled at the API Gateway layer for the same hijack reason
+      // as before: cache key is only Cookie, so a request with cookie=A + Bearer=B
+      // (e.g. /accept-invite) would otherwise poison the cache for later cookie=A
+      // requests. The authorizer Lambda has its own per-token in-memory cache,
+      // which absorbs most of the cost on warm invocations.
+      identitySources: [IdentitySource.header("Cookie")],
+      resultsCacheTtl: Duration.seconds(0),
       assumeRole: apiRole,
     });
 
