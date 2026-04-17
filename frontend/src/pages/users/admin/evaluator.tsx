@@ -352,6 +352,13 @@ export const EvaluatorPage: React.FC = () => {
       return;
     }
 
+    Swal.fire({
+      title: 'Updating evaluator assignments...',
+      text: 'Applying add/remove changes.',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
     try {
       if (toRemove.length > 0) {
         for (const evaluator of toRemove) {

@@ -282,6 +282,13 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
     if (!confirmResult.isConfirmed) return;
 
+    Swal.fire({
+      title: isBatch ? 'Distributing proposals...' : 'Distributing proposal...',
+      text: 'Matching proposals to least-loaded R&D staff.',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
     try {
       const result = await autoDistributeProposals(proposalIds);
 

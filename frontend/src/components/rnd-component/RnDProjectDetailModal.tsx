@@ -126,6 +126,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     if (!report.backendReportId || !user) return;
 
     setVerifyingReportId(report.id);
+    Swal.fire({
+      title: 'Verifying report...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
     try {
       await verifyReport(report.backendReportId);
       // Update local state
@@ -154,6 +159,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const handleReviewFundRequest = async (frId: number, status: 'approved' | 'rejected') => {
     if (!user) return;
     setReviewingFrId(frId);
+    Swal.fire({
+      title: status === 'approved' ? 'Approving fund request...' : 'Rejecting fund request...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
     try {
       await reviewFundRequest(frId, status, reviewNote || undefined);
       Swal.fire(
@@ -186,6 +196,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     if (!result.isConfirmed) return;
 
     setIssuingCertificate(true);
+    Swal.fire({
+      title: 'Issuing certificate...',
+      text: 'Marking project as completed.',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
     try {
       await generateCertificate(project.backendId);
       Swal.fire('Certificate Issued!', 'The project has been marked as completed.', 'success');

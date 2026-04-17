@@ -1832,6 +1832,11 @@ const MonitoringPage: React.FC = () => {
               <button
                 onClick={async () => {
                   if (!activeBackend) return;
+                  Swal.fire({
+                    title: 'Submitting extension request...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                  });
                   try {
                     await requestProjectExtension(
                       activeBackend.id,

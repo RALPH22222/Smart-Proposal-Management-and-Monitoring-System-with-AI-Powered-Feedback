@@ -119,10 +119,22 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       Swal.fire('Error', 'Unable to identify project.', 'error');
       return;
     }
-    await updateProjectStatus(projectToBlock.backendId, 'blocked', user.id);
-    handleCloseBlockModal();
-    Swal.fire('Blocked', `Project ${projectToBlock.projectId} has been shut down and proponents blocked.`, 'success');
-    loadProjects();
+
+    Swal.fire({
+      title: 'Blocking project...',
+      text: 'Suspending co-leads and updating project status.',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      await updateProjectStatus(projectToBlock.backendId, 'blocked', user.id);
+      handleCloseBlockModal();
+      await Swal.fire('Blocked', `Project ${projectToBlock.projectId} has been shut down and proponents blocked.`, 'success');
+      loadProjects();
+    } catch (error: any) {
+      Swal.fire('Error', error?.response?.data?.message || 'Failed to block project.', 'error');
+    }
   };
 
   // Statistics calculations
