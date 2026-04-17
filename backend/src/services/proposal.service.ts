@@ -1683,11 +1683,18 @@ export class ProposalService {
     return { data, error };
   }
 
-  async getProposalsForEndorsement(search?: string, rnd_id?: string, statuses?: Status[]) {
+  async getProposalsForEndorsement(
+    search?: string,
+    rnd_id?: string,
+    statuses?: Status[],
+    isAdmin?: boolean,
+  ) {
     // 1. Get proposals in the requested status(es) assigned to this RND user.
     // Default = UNDER_EVALUATION (the "active" endorsement queue); callers can pass
     // [REVISION_RND] or [REJECTED_RND] to load the history tabs.
+    // Admin bypasses the proposal_rnd filter and sees every proposal.
     const statusFilter = statuses && statuses.length > 0 ? statuses : [Status.UNDER_EVALUATION];
+    const rndJoin = isAdmin ? "proposal_rnd(rnd_id)" : "proposal_rnd!inner(rnd_id)";
     let query = this.db
       .from("proposals")
       .select(
@@ -1700,7 +1707,7 @@ export class ProposalService {
         created_at,
         updated_at,
         current_version_id,
-        proposal_rnd!inner(rnd_id),
+        ${rndJoin},
         proposal_evaluators(
           evaluator_id,
           status,
@@ -1712,8 +1719,8 @@ export class ProposalService {
       )
       .in("status", statusFilter);
 
-    // Filter by RND user - only show proposals assigned to this RND
-    if (rnd_id) {
+    // Filter by RND user unless admin — admin sees all proposals.
+    if (rnd_id && !isAdmin) {
       query = query.eq("proposal_rnd.rnd_id", rnd_id);
     }
 
@@ -1753,39 +1760,61 @@ export class ProposalService {
     // 3. Get all unique department IDs
     const departmentIds = [...new Set(proposals.map((p) => p.department_id).filter(Boolean))];
 
-    // 4. Fetch users and departments in parallel
-    const [usersResult, departmentsResult, scoresResult, budgetsResult] = await Promise.all([
-      allUserIds.length > 0
-        ? this.db
-          .from("users")
-          .select("id, first_name, last_name, email, department:department_id(name)")
-          .in("id", allUserIds)
-        : { data: [], error: null },
-      departmentIds.length > 0
-        ? this.db.from("departments").select("id, name").in("id", departmentIds)
-        : { data: [], error: null },
-      // Updated to use new column structure: title, budget, timeline, comment.
-      // Version-scope via proposal_version_id so v1 scores don't leak into v2.
-      this.db
-        .from("evaluation_scores")
-        .select("proposal_id, evaluator_id, title, budget, timeline, comment, created_at, proposal_version_id")
-        .in("proposal_id", proposalIds),
-      this.db
-        .from("estimated_budget")
-        .select("id, proposal_id, item, source, budget, amount")
-        .in("proposal_id", proposalIds),
-    ]);
+    // 4. Fetch users, departments, scores, budgets, and version history in parallel
+    const [usersResult, departmentsResult, scoresResult, budgetsResult, versionsResult] =
+      await Promise.all([
+        allUserIds.length > 0
+          ? this.db
+              .from("users")
+              .select("id, first_name, last_name, email, department:department_id(name)")
+              .in("id", allUserIds)
+          : { data: [], error: null },
+        departmentIds.length > 0
+          ? this.db.from("departments").select("id, name").in("id", departmentIds)
+          : { data: [], error: null },
+        // Updated to use new column structure: title, budget, timeline, comment.
+        // Version-scope via proposal_version_id so v1 scores don't leak into v2.
+        this.db
+          .from("evaluation_scores")
+          .select(
+            "proposal_id, evaluator_id, title, budget, timeline, comment, created_at, proposal_version_id",
+          )
+          .in("proposal_id", proposalIds),
+        this.db
+          .from("estimated_budget")
+          .select("id, proposal_id, item, source, budget, amount")
+          .in("proposal_id", proposalIds),
+        // Pull all version rows for these proposals so we can derive a
+        // human-readable version number (v1 / v2 / …) per proposal.
+        // Order by id — the auto-increment guarantees insert order even when
+        // two versions share a created_at timestamp.
+        this.db
+          .from("proposal_version")
+          .select("id, proposal_id")
+          .in("proposal_id", proposalIds)
+          .order("id", { ascending: true }),
+      ]);
 
     if (usersResult.error) return { data: null, error: usersResult.error };
     if (departmentsResult.error) return { data: null, error: departmentsResult.error };
     if (scoresResult.error) return { data: null, error: scoresResult.error };
     if (budgetsResult.error) return { data: null, error: budgetsResult.error };
+    if (versionsResult.error) return { data: null, error: versionsResult.error };
 
     // Create lookup maps for quick access
     const usersMap = new Map((usersResult.data || []).map((u) => [u.id, u]));
     const departmentsMap = new Map((departmentsResult.data || []).map((d) => [d.id, d]));
     const allScores = scoresResult.data || [];
     const allBudgets = budgetsResult.data || [];
+
+    // Build a per-proposal ordered list of version IDs so we can look up the
+    // 1-based index of each proposal's current_version_id (= display version).
+    const versionsByProposal = new Map<number, number[]>();
+    for (const v of versionsResult.data || []) {
+      const list = versionsByProposal.get(v.proposal_id) || [];
+      list.push(v.id);
+      versionsByProposal.set(v.proposal_id, list);
+    }
 
     // 5. Transform data for frontend
     const endorsementProposals = proposals.map((proposal) => {
@@ -1903,6 +1932,13 @@ export class ProposalService {
       const proponent = usersMap.get(proposal.proponent_id);
       const department = departmentsMap.get(proposal.department_id);
 
+      // Compute 1-based version number of the current live version so the
+      // UI can show "v2" etc. Falls back to 1 when no version rows exist.
+      const versionIds = versionsByProposal.get(proposal.id) || [];
+      const totalVersions = versionIds.length || 1;
+      const idx = currentVersionId ? versionIds.indexOf(currentVersionId) : -1;
+      const versionNumber = idx >= 0 ? idx + 1 : totalVersions;
+
       return {
         id: String(proposal.id),
         title: proposal.project_title,
@@ -1912,6 +1948,8 @@ export class ProposalService {
         department: department?.name || "Unknown",
         status: proposal.status,
         actionDate: proposal.updated_at || proposal.created_at,
+        versionNumber,
+        totalVersions,
         evaluatorDecisions,
         overallRecommendation,
         averageScores,

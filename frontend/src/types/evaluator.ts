@@ -78,6 +78,8 @@ export interface EndorsementProposal {
 	department?: string;
 	status?: string;
 	actionDate?: string;
+	versionNumber?: number;
+	totalVersions?: number;
 }
 
 export interface EvaluatorDecision {

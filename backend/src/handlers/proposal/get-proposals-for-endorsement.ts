@@ -3,6 +3,7 @@ import { ProposalService } from "../../services/proposal.service";
 import { supabase } from "../../lib/supabase";
 import { buildCorsHeaders } from "../../utils/cors";
 import { Status } from "../../types/proposal";
+import { getAuthContext } from "../../utils/auth-context";
 
 type FilterParams = {
   search?: string;
@@ -14,13 +15,14 @@ const FILTER_TO_STATUSES: Record<string, Status[]> = {
   active: [Status.UNDER_EVALUATION],
   revised: [Status.REVISION_RND],
   rejected: [Status.REJECTED_RND],
+  archive: [Status.ENDORSED_FOR_FUNDING, Status.FUNDED],
 };
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { search, filter }: FilterParams = event.queryStringParameters || {};
-  const user_sub = event.requestContext.authorizer?.user_sub as string;
+  const auth = getAuthContext(event);
 
-  if (!user_sub) {
+  if (!auth.userId) {
     return {
       statusCode: 401,
       body: JSON.stringify({
@@ -30,9 +32,15 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const statuses = filter ? FILTER_TO_STATUSES[filter.toLowerCase()] : undefined;
+  const isAdmin = auth.roles.includes("admin");
 
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getProposalsForEndorsement(search, user_sub, statuses);
+  const { data, error } = await proposalService.getProposalsForEndorsement(
+    search,
+    auth.userId,
+    statuses,
+    isAdmin,
+  );
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

@@ -554,8 +554,9 @@ export const getEvaluationScoresFromProposal = async (): Promise<any[]> => {
 };
 
 // New API for R&D to getting proposals ready for endorsement (with all scores).
-// `filter` selects which tab to load: "active" (default), "revised", or "rejected".
-export type EndorsementFilter = "active" | "revised" | "rejected";
+// `filter` selects which tab to load: "active" (default), "revised", "rejected",
+// or "archive" (endorsed-for-funding / funded — read-only history view).
+export type EndorsementFilter = "active" | "revised" | "rejected" | "archive";
 
 export const getProposalsForEndorsement = async (filter: EndorsementFilter = "active"): Promise<any[]> => {
   const { data } = await api.get<any[]>(`/proposal/view-for-endorsement?filter=${filter}`, {

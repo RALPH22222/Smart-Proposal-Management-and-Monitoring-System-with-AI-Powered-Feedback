@@ -164,7 +164,9 @@ const EndorsePage: React.FC = () => {
           department: deptName || p.proponent_id?.department?.name || "N/A",
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
           status: p.status,
-          actionDate: p.actionDate
+          actionDate: p.actionDate,
+          versionNumber: p.versionNumber,
+          totalVersions: p.totalVersions,
         };
       });
 
@@ -556,13 +558,15 @@ const EndorsePage: React.FC = () => {
               { key: 'active', label: 'Active', icon: Gavel },
               { key: 'revised', label: 'Revised', icon: RotateCcw },
               { key: 'rejected', label: 'Rejected', icon: XCircle },
+              { key: 'archive', label: 'Archive', icon: Archive },
             ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
               const activeColor =
                 tab.key === 'active' ? 'bg-[#C8102E] text-white' :
                 tab.key === 'revised' ? 'bg-amber-500 text-white' :
-                'bg-red-600 text-white';
+                tab.key === 'rejected' ? 'bg-red-600 text-white' :
+                'bg-emerald-600 text-white';
               return (
                 <button
                   key={tab.key}
@@ -595,7 +599,9 @@ const EndorsePage: React.FC = () => {
                   ? 'Endorsement Proposals'
                   : activeTab === 'revised'
                   ? 'Revised Proposals (History)'
-                  : 'Rejected Proposals (History)'}
+                  : activeTab === 'rejected'
+                  ? 'Rejected Proposals (History)'
+                  : 'Archived Proposals (Endorsed / Funded)'}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
@@ -619,14 +625,18 @@ const EndorsePage: React.FC = () => {
                     ? 'No proposals ready for endorsement'
                     : activeTab === 'revised'
                     ? 'No proposals sent for revision yet'
-                    : 'No rejected proposals yet'}
+                    : activeTab === 'rejected'
+                    ? 'No rejected proposals yet'
+                    : 'No archived proposals yet'}
                 </h3>
                 <p className="text-slate-500 max-w-sm mx-auto">
                   {activeTab === 'active'
                     ? 'Proposals will appear here once evaluators complete their reviews.'
                     : activeTab === 'revised'
                     ? 'Proposals you send back for revision will appear here.'
-                    : 'Proposals you reject will appear here.'}
+                    : activeTab === 'rejected'
+                    ? 'Proposals you reject will appear here.'
+                    : 'Endorsed and funded proposals live here for audit.'}
                 </p>
               </div>
             ) : (
@@ -646,6 +656,14 @@ const EndorsePage: React.FC = () => {
                           >
                             {proposal.title}
                           </h2>
+                          {/* Version badge — any version > 1 signals a revision */}
+                          {proposal.versionNumber && proposal.versionNumber > 1 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 whitespace-nowrap"
+                              title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
+                            >
+                              v{proposal.versionNumber}
+                            </span>
+                          )}
                           {!proposal.readyForEndorsement && (() => {
                             const pending = proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length;
                             const declined = proposal.evaluatorDecisions.filter(d => d.decision === 'Declined').length;
@@ -816,10 +834,16 @@ const EndorsePage: React.FC = () => {
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
                             activeTab === 'revised'
                               ? 'bg-amber-50 border-amber-200 text-amber-700'
-                              : 'bg-red-50 border-red-200 text-red-700'
+                              : activeTab === 'rejected'
+                              ? 'bg-red-50 border-red-200 text-red-700'
+                              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           }`}>
-                            {activeTab === 'revised' ? <RotateCcw className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            {activeTab === 'revised' ? 'Revision Sent' : 'Rejected'}
+                            {activeTab === 'revised' ? <RotateCcw className="w-3 h-3" /> :
+                             activeTab === 'rejected' ? <XCircle className="w-3 h-3" /> :
+                             <CheckCircle className="w-3 h-3" />}
+                            {activeTab === 'revised' ? 'Revision Sent' :
+                             activeTab === 'rejected' ? 'Rejected' :
+                             'Endorsed for Funding'}
                           </span>
                           <span className="text-[11px] text-slate-500">
                             {formatDateTime(proposal.actionDate)}
