@@ -190,9 +190,12 @@ export default function EndorsedProposals() {
         comment: data.comments,
       });
 
-      // Refresh the list to remove the completed item
-      fetchProposals();
+      // Immediately remove from list so UI updates without waiting for refetch
+      setProposals((prev) => prev.filter((p) => p.id !== selectedProposal));
       closeModal();
+
+      // Sync with server in background
+      fetchProposals();
     } catch (error) {
       console.error("Failed to submit review:", error);
       alert("Failed to submit review. Please try again.");
