@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import DetailedProposalModal from "../../../components/proponent-component/DetailedProposalModal";
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
+import ProposalLifecycleStepper from "../../../components/shared/ProposalLifecycleStepper";
 import { FaListAlt, FaTablet } from "react-icons/fa";
 import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
@@ -610,6 +611,11 @@ const Profile: React.FC = () => {
                     <span>Duration:</span>
                     <span className="font-semibold">{project.duration}</span>
                   </div>
+                </div>
+
+                {/* Lifecycle stepper — visual position in the 5-stage pipeline. */}
+                <div className="mb-3 pt-2 border-t border-slate-100">
+                  <ProposalLifecycleStepper rawStatus={(project as any).rawStatus || ""} />
                 </div>
 
                 <div className="mb-3">
