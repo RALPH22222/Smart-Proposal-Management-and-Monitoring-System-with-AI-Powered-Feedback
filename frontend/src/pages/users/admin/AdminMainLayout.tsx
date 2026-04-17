@@ -9,6 +9,7 @@ import Contents from "./contents";
 import Settings from "./settings";
 import Proposals from "./proposals";
 import Evaluators from "./evaluator";
+import EvaluatorPerformance from "./evaluator-performance";
 import Monitoring from "./monitoring";
 import Endorsements from "./endorsement";
 import Funding from "./funding";
@@ -100,6 +101,8 @@ const AdminLayout: React.FC = () => {
         return <Proposals />;
       case "evaluators":
         return <Evaluators />;
+      case "evaluator-performance":
+        return <EvaluatorPerformance />;
       case "endorsements":
         return <Endorsements />;
       case "project-funding":

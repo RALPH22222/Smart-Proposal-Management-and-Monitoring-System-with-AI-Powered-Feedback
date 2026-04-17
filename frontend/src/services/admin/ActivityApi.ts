@@ -94,6 +94,22 @@ export interface DashboardStats {
   kpi?: KpiStats;
 }
 
+export interface EvaluatorPerformanceRow {
+  evaluator_id: string;
+  name: string;
+  email: string;
+  department: string;
+  is_disabled: boolean;
+  total_assignments: number;
+  active_assignments: number;
+  completed_assignments: number;
+  declined_assignments: number;
+  overdue_active: number;
+  acceptance_rate: number | null;
+  avg_turnaround_days: number | null;
+  avg_score_given: number | null;
+}
+
 export const ActivityApi = {
   getDashboardStats: async (): Promise<DashboardStats> => {
     const { data } = await api.get<DashboardStats>("/admin/dashboard-stats", {
@@ -117,5 +133,13 @@ export const ActivityApi = {
       { withCredentials: true }
     );
     return data;
+  },
+
+  getEvaluatorPerformance: async (): Promise<EvaluatorPerformanceRow[]> => {
+    const { data } = await api.get<{ data: EvaluatorPerformanceRow[] }>(
+      "/admin/evaluator-performance",
+      { withCredentials: true }
+    );
+    return data.data;
   },
 };

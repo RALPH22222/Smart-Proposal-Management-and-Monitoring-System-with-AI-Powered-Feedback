@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLogos } from "../../context/LogoContext";
-import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck, Gauge } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
 
@@ -46,6 +46,7 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
     { id: "lookups", label: "Lookups", icon: Database },
     { id: "proposals", label: "Proposals", icon: FileText },
     { id: "evaluators", label: "Evaluators", icon: Users },
+    { id: "evaluator-performance", label: "Evaluator Performance", icon: Gauge },
     { id: "endorsements", label: "Endorsements", icon: Gavel },
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },

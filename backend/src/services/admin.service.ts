@@ -831,4 +831,122 @@ export class AdminService {
     return { data: logs, error: null, count: count || 0 };
   }
 
+  // ===================== EVALUATOR PERFORMANCE =====================
+  // Per-evaluator aggregates for the admin performance dashboard.
+  // Pulls everything needed in three queries (users, assignments, scores)
+  // and reduces client-side to avoid N+1 per evaluator.
+  async getEvaluatorPerformance() {
+    const [evaluatorsRes, assignmentsRes, scoresRes] = await Promise.all([
+      this.db
+        .from("users")
+        .select("id, first_name, last_name, email, is_disabled, department:department_id(name)")
+        .contains("roles", ["evaluator"]),
+      this.db
+        .from("proposal_evaluators")
+        .select("evaluator_id, status, deadline_at, created_at, updated_at"),
+      this.db
+        .from("evaluation_scores")
+        .select("evaluator_id, title, budget, timeline"),
+    ]);
+
+    if (evaluatorsRes.error) return { data: null, error: evaluatorsRes.error };
+    if (assignmentsRes.error) return { data: null, error: assignmentsRes.error };
+    if (scoresRes.error) return { data: null, error: scoresRes.error };
+
+    const evaluators = evaluatorsRes.data || [];
+    const assignments = assignmentsRes.data || [];
+    const scores = scoresRes.data || [];
+
+    // Group assignments + scores by evaluator_id once so each evaluator
+    // row is a simple filter instead of a full scan.
+    const assignmentsByEvaluator = new Map<string, any[]>();
+    for (const a of assignments) {
+      const list = assignmentsByEvaluator.get(a.evaluator_id) || [];
+      list.push(a);
+      assignmentsByEvaluator.set(a.evaluator_id, list);
+    }
+    const scoresByEvaluator = new Map<string, any[]>();
+    for (const s of scores) {
+      const list = scoresByEvaluator.get(s.evaluator_id) || [];
+      list.push(s);
+      scoresByEvaluator.set(s.evaluator_id, list);
+    }
+
+    // Status buckets line up with backend EvaluatorStatus enum values.
+    const COMPLETED = new Set(["approve", "revise", "reject"]);
+    const IN_PROGRESS = new Set(["pending", "accept", "for_review", "extend"]);
+    const DECLINED = new Set(["decline"]);
+
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+    const rows = evaluators.map((e: any) => {
+      const myAssignments = assignmentsByEvaluator.get(e.id) || [];
+      const myScores = scoresByEvaluator.get(e.id) || [];
+
+      const total = myAssignments.length;
+      const completed = myAssignments.filter((a) => COMPLETED.has(a.status)).length;
+      const active = myAssignments.filter((a) => IN_PROGRESS.has(a.status)).length;
+      const declined = myAssignments.filter((a) => DECLINED.has(a.status)).length;
+      // Acceptance = non-declined decisions out of decided count. An
+      // assignment still in-progress doesn't count either way.
+      const decided = completed + declined;
+      const acceptance_rate = decided > 0 ? Math.round((completed / decided) * 100) : null;
+
+      // Avg turnaround = (updated_at - created_at) for assignments that
+      // reached a completed status. Falls back to null when nothing is
+      // completed yet.
+      const turnarounds = myAssignments
+        .filter((a) => COMPLETED.has(a.status) && a.created_at && a.updated_at)
+        .map((a) => (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime()) / MS_PER_DAY)
+        .filter((d) => d >= 0);
+      const avg_turnaround_days =
+        turnarounds.length > 0
+          ? Math.round((turnarounds.reduce((s, d) => s + d, 0) / turnarounds.length) * 10) / 10
+          : null;
+
+      // Average score given (across title/budget/timeline) — a cheap
+      // signal of "how strict" the evaluator is. Ignores rows where all
+      // three columns are 0 (i.e. not yet scored).
+      const scoredRows = myScores.filter(
+        (s) => (s.title || 0) > 0 || (s.budget || 0) > 0 || (s.timeline || 0) > 0,
+      );
+      const avg_score_given =
+        scoredRows.length > 0
+          ? Math.round(
+              (scoredRows.reduce(
+                (sum, s) => sum + ((s.title || 0) + (s.budget || 0) + (s.timeline || 0)) / 3,
+                0,
+              ) /
+                scoredRows.length) *
+                10,
+            ) / 10
+          : null;
+
+      // Overdue today: in-progress assignment whose deadline already passed.
+      const today = new Date();
+      const overdue_active = myAssignments.filter((a) => {
+        if (!IN_PROGRESS.has(a.status)) return false;
+        if (!a.deadline_at) return false;
+        return new Date(a.deadline_at) < today;
+      }).length;
+
+      return {
+        evaluator_id: e.id,
+        name: `${e.first_name || ""} ${e.last_name || ""}`.trim() || "Unknown",
+        email: e.email || "",
+        department: e.department?.name || "",
+        is_disabled: !!e.is_disabled,
+        total_assignments: total,
+        active_assignments: active,
+        completed_assignments: completed,
+        declined_assignments: declined,
+        overdue_active,
+        acceptance_rate,
+        avg_turnaround_days,
+        avg_score_given,
+      };
+    });
+
+    return { data: rows, error: null };
+  }
 }

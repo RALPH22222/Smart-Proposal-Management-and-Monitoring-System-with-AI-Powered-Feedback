@@ -597,6 +597,9 @@ export class BackendStack extends Stack {
       .addResource("activity-logs")
       .addMethod(HttpMethod.GET, integrate(adminL.getActivityLogs), protectedRoute);
     admin
+      .addResource("evaluator-performance")
+      .addMethod(HttpMethod.GET, integrate(adminL.getEvaluatorPerformance), protectedRoute);
+    admin
       .addResource("dashboard-stats")
       .addMethod(HttpMethod.GET, integrate(adminL.getDashboardStats), protectedRoute);
     admin

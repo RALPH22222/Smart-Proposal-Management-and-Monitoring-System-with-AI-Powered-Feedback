@@ -32,6 +32,7 @@ export class AdminLambdas extends NestedStack {
   public readonly toggleAccountStatus: NodejsFunction;
   public readonly getDashboardStats: NodejsFunction;
   public readonly getActivityLogs: NodejsFunction;
+  public readonly getEvaluatorPerformance: NodejsFunction;
   public readonly getLateSubmissionPolicy: NodejsFunction;
   public readonly updateLateSubmissionPolicy: NodejsFunction;
   public readonly getNotifications: NodejsFunction;
@@ -199,6 +200,14 @@ export class AdminLambdas extends NestedStack {
       ...defaults,
       functionName: "pms-admin-get-activity-logs",
       entry: path.resolve("src", "handlers", "admin", "get-activity-logs.ts"),
+      role: sharedRole,
+      environment: sharedEnv,
+    });
+
+    this.getEvaluatorPerformance = new NodejsFunction(this, "get-evaluator-performance", {
+      ...defaults,
+      functionName: "pms-admin-get-evaluator-performance",
+      entry: path.resolve("src", "handlers", "admin", "get-evaluator-performance.ts"),
       role: sharedRole,
       environment: sharedEnv,
     });
