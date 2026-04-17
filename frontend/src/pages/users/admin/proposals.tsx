@@ -109,6 +109,11 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Bulk selection — a Set of proposal.id strings. Cleared when proposals
+  // reload or when the user changes tab/filter (selection would otherwise
+  // reference rows that are no longer visible).
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // Modal States
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [selectedProposalForView, setSelectedProposalForView] = useState<Proposal | null>(null);
@@ -130,6 +135,13 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  // Clear the bulk-selection whenever the visible set changes (tab,
+  // search, or reload) so selectedIds can't reference rows that are
+  // no longer shown.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, searchTerm]);
 
   // Mock Current User
   const currentUser: Reviewer = { name: 'Admin User', role: 'R&D Staff', id: 'admin-1', email: 'admin@wmsu.edu.ph' };
@@ -258,6 +270,51 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       // Show error here only
       Swal.fire("Error", "Failed to clear previous assignment or update new assignment.", "error");
     }
+  };
+
+  // ── Bulk selection helpers ─────────────────────────────────────────
+  // Only Pending proposals without an assigned R&D are eligible targets
+  // for bulk auto-distribute. Selection is allowed on any row, but the
+  // bulk button filters to just the eligible ones before dispatching.
+  const isEligibleForAutoDistribute = (p: Proposal) =>
+    p.status === 'Pending' && !p.assignedRdStaff;
+
+  const toggleRowSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // "Select all on current page". Click toggles based on whether every
+  // visible row is already selected. Kept page-scoped because selecting
+  // across all pages would be surprising and hard to un-do.
+  const toggleSelectAllOnPage = (pageRows: Proposal[]) => {
+    setSelectedIds((prev) => {
+      const allOnPageSelected = pageRows.length > 0 && pageRows.every((p) => prev.has(p.id));
+      const next = new Set(prev);
+      if (allOnPageSelected) {
+        pageRows.forEach((p) => next.delete(p.id));
+      } else {
+        pageRows.forEach((p) => next.add(p.id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDistribute = async () => {
+    const eligible = proposals.filter(
+      (p) => selectedIds.has(p.id) && isEligibleForAutoDistribute(p),
+    );
+    if (eligible.length === 0) {
+      Swal.fire('Nothing to distribute', 'None of the selected proposals are Pending and unassigned.', 'info');
+      return;
+    }
+    const ids = eligible.map((p) => parseInt(p.id));
+    await handleAutoDistribute(ids);
+    setSelectedIds(new Set());
   };
 
   // Auto-distribute: single proposal or all pending
@@ -631,6 +688,44 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
             </div>
           </div>
 
+          {/* Bulk-action bar. Only shown when there's a selection. The
+              "distribute" count reflects how many of the selected rows are
+              actually eligible (Pending + no assigned R&D). */}
+          {selectedIds.size > 0 && (() => {
+            const eligibleCount = proposals.filter(
+              (p) => selectedIds.has(p.id) && isEligibleForAutoDistribute(p),
+            ).length;
+            return (
+              <div className="px-4 py-2.5 bg-[#C8102E]/5 border-b border-[#C8102E]/20 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                <span className="text-sm text-slate-700">
+                  <strong className="text-[#C8102E]">{selectedIds.size}</strong> selected
+                  {eligibleCount !== selectedIds.size && (
+                    <span className="text-xs text-slate-500 ml-2">
+                      ({eligibleCount} eligible for distribution)
+                    </span>
+                  )}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBulkDistribute}
+                    disabled={eligibleCount === 0}
+                    className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold shadow-sm bg-[#991B1B] text-white hover:bg-[#7a1616] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={eligibleCount === 0 ? 'Only Pending + unassigned proposals can be distributed' : undefined}
+                  >
+                    <Send className="w-3 h-3" />
+                    Auto Distribute Selected ({eligibleCount})
+                  </button>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="text-xs text-slate-500 hover:text-slate-800 transition-colors px-2"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="overflow-y-auto custom-scrollbar flex-1">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4">
@@ -641,12 +736,43 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
               </div>
             ) : (
               <table className="min-w-full text-left align-middle">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="pl-6 pr-2 py-2 w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all proposals on this page"
+                        checked={paginatedProposals.length > 0 && paginatedProposals.every((p) => selectedIds.has(p.id))}
+                        ref={(el) => {
+                          if (el) {
+                            const someSelected = paginatedProposals.some((p) => selectedIds.has(p.id));
+                            const allSelected = paginatedProposals.length > 0 && paginatedProposals.every((p) => selectedIds.has(p.id));
+                            el.indeterminate = someSelected && !allSelected;
+                          }
+                        }}
+                        onChange={() => toggleSelectAllOnPage(paginatedProposals)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#C8102E] focus:ring-[#C8102E]/20 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-6 py-2" colSpan={2} />
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {paginatedProposals.map((proposal) => (
                     <tr
                       key={proposal.id}
-                      className="hover:bg-slate-50 transition-colors duration-200 group"
+                      className={`hover:bg-slate-50 transition-colors duration-200 group ${selectedIds.has(proposal.id) ? 'bg-[#C8102E]/5' : ''}`}
                     >
+                      {/* --- COL 0: SELECTION CHECKBOX --- */}
+                      <td className="pl-6 pr-2 py-5 w-10">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select proposal ${proposal.id}`}
+                          checked={selectedIds.has(proposal.id)}
+                          onChange={() => toggleRowSelected(proposal.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#C8102E] focus:ring-[#C8102E]/20 cursor-pointer"
+                        />
+                      </td>
                       {/* --- COL 1: DETAILS --- */}
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-2">
