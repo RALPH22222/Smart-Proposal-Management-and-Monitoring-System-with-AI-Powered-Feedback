@@ -358,14 +358,17 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
             </div>
           </div>
 
-          {/* Funded Projects mini summary */}
+          {/* Funded Projects mini summary — shows only statuses actually
+              written by the system (on_going / blocked) plus two
+              actionable counts. on_hold and completed are defined in the
+              enum but no code path sets them, so they were perma-zero. */}
           <div className="px-4 sm:px-5 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200">
             <p className="text-[10px] font-bold text-slate-400 tracking-widest mb-2">Funded Projects</p>
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: "On-going", value: stats.projects.on_going, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
-                { label: "Completed", value: stats.projects.completed, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100" },
-                { label: "Delayed", value: stats.projects.on_hold, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+                { label: "Pending Fund Req.", value: stats.projects.pending_fund_requests ?? 0, color: "text-indigo-600", bg: "bg-indigo-50 border-indigo-100" },
+                { label: "Overdue Reports", value: stats.projects.overdue_reports ?? 0, color: "text-rose-600", bg: "bg-rose-50 border-rose-100" },
                 { label: "Blocked", value: stats.projects.blocked, color: "text-red-600", bg: "bg-red-50 border-red-100" },
               ].map((p) => (
                 <div key={p.label} className={`text-center py-2 px-1 ${p.bg} rounded-lg border`}>

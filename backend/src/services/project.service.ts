@@ -64,7 +64,8 @@ export class ProjectService {
           status,
           progress,
           created_at
-        )
+        ),
+        fund_requests (status)
       `
       )
       .order("created_at", { ascending: false });
@@ -122,16 +123,32 @@ export class ProjectService {
       return { data: null, error };
     }
 
-    // Calculate completion percentage based on latest report
+    // Calculate completion percentage based on latest report + surface two
+    // actionable summaries so the monitoring dashboard can show them without
+    // extra per-project calls.
     const projectsWithCompletion = data?.map((project) => {
       const latestReport = project.project_reports?.sort(
         (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )[0];
 
+      const reports: any[] = project.project_reports || [];
+      const fundRequests: any[] = project.fund_requests || [];
+
+      const overdue_reports_count = reports.filter((r) => r.status === "overdue").length;
+      const pending_fund_requests_count = fundRequests.filter(
+        (fr) => fr.status === "pending",
+      ).length;
+
+      // Strip fund_requests from the outgoing payload — the monitoring UI
+      // only needs the count, not the raw rows.
+      const { fund_requests: _fr, ...rest } = project;
+
       return {
-        ...project,
+        ...rest,
         completion_percentage: latestReport?.progress || 0,
-        reports_count: project.project_reports?.length || 0,
+        reports_count: reports.length,
+        overdue_reports_count,
+        pending_fund_requests_count,
       };
     });
 

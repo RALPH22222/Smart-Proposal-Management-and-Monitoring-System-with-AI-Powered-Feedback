@@ -4,7 +4,6 @@ import {
   Calendar,
   User,
   Clock,
-  CheckCircle,
   AlertCircle,
   FileText,
   Search,
@@ -17,7 +16,7 @@ import {
   ChevronRight,
   AlertTriangle,
   Ban,
-  PauseCircle
+  Wallet,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatDate } from '../../../utils/date-formatter';
@@ -140,6 +139,18 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
 
+  // Two previously-dead cards (Completed / On Hold) were always 0 because
+  // no code path writes those statuses. Swapped for actionable counts that
+  // actually change day-to-day.
+  const overdueReportsCount = projects.reduce(
+    (sum, p) => sum + (p.overdueReportsCount || 0),
+    0,
+  );
+  const pendingFundRequestsCount = projects.reduce(
+    (sum, p) => sum + (p.pendingFundRequestsCount || 0),
+    0,
+  );
+
   const statCards = [
     {
       title: 'Total Projects',
@@ -147,7 +158,7 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
       icon: FileText,
       color: 'text-blue-500',
       bgColor: 'bg-blue-50',
-      trend: '+12%',
+      trend: '',
     },
     {
       title: 'Active Projects',
@@ -155,15 +166,15 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
       icon: Target,
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-50',
-      trend: '+8%',
+      trend: '',
     },
     {
-      title: 'Completed',
-      value: getStatusCount('Completed'),
-      icon: CheckCircle,
-      color: 'text-green-500',
-      bgColor: 'bg-green-50',
-      trend: '+15%',
+      title: 'Pending Fund Requests',
+      value: pendingFundRequestsCount,
+      icon: Wallet,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      trend: '',
     },
     {
       title: 'Delayed',
@@ -171,14 +182,14 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
       icon: AlertTriangle,
       color: 'text-yellow-500',
       bgColor: 'bg-yellow-50',
-      trend: '+2%',
+      trend: '',
     },
     {
-      title: 'On Hold',
-      value: getStatusCount('On Hold'),
-      icon: PauseCircle,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-50',
+      title: 'Overdue Reports',
+      value: overdueReportsCount,
+      icon: AlertCircle,
+      color: 'text-rose-500',
+      bgColor: 'bg-rose-50',
       trend: '',
     },
     {
@@ -187,8 +198,8 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
       icon: TrendingUp,
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-50',
-      trend: '+3%',
-    }
+      trend: '',
+    },
   ];
 
   const getStatusBadge = (status: ProjectStatus) => {

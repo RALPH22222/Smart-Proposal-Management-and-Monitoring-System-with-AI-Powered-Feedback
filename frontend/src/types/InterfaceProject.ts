@@ -71,4 +71,9 @@ export interface Project {
   budgetSources?: any[];
   budgetTotal?: string;
   onHoldReason?: string;
+
+  // Monitoring-strip aggregates populated by transformToProject from the
+  // funded-projects API. Used by the stats cards at the top of the page.
+  overdueReportsCount?: number;
+  pendingFundRequestsCount?: number;
 }

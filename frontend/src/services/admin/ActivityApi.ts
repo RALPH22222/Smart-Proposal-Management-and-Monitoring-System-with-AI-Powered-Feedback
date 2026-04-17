@@ -74,6 +74,8 @@ export interface DashboardStats {
     completed: number;
     on_hold: number;
     blocked: number;
+    overdue_reports: number;
+    pending_fund_requests: number;
   };
   activity: {
     last_24h: number;

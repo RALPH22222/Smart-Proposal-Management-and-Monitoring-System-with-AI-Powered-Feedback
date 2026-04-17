@@ -376,6 +376,8 @@ export class AdminService {
         completedRes,
         onHoldRes,
         blockedRes,
+        overdueReportsRes,
+        pendingFundRequestsRes,
         logs24hRes,
         logs7dRes,
         recentLogsRes,
@@ -410,6 +412,9 @@ export class AdminService {
         this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "completed"),
         this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "on_hold"),
         this.db.from("funded_projects").select("*", { count: "exact", head: true }).eq("status", "blocked"),
+        // Actionable project aggregates (used by the dashboard mini-summary).
+        this.db.from("project_reports").select("*", { count: "exact", head: true }).eq("status", "overdue"),
+        this.db.from("fund_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
 
         // Activity stats
         this.db.from("pms_logs").select("*", { count: "exact", head: true }).gte("created_at", oneDayAgo),
@@ -588,6 +593,8 @@ export class AdminService {
             completed: completedRes.count || 0,
             on_hold: onHoldRes.count || 0,
             blocked: blockedRes.count || 0,
+            overdue_reports: overdueReportsRes.count || 0,
+            pending_fund_requests: pendingFundRequestsRes.count || 0,
           },
           activity: {
             last_24h: logs24hRes.count || 0,

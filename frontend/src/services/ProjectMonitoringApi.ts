@@ -71,6 +71,8 @@ export interface ApiFundedProject {
   created_at: string;
   completion_percentage: number;
   reports_count: number;
+  overdue_reports_count: number;
+  pending_fund_requests_count: number;
   proposal: {
     id: number;
     project_title: string;
@@ -271,6 +273,8 @@ export function transformToProject(fp: ApiFundedProject): Project {
     status: mapBackendStatus(fp.status),
     completionPercentage: fp.completion_percentage || 0,
     lastModified: fp.created_at || "",
+    overdueReportsCount: fp.overdue_reports_count ?? 0,
+    pendingFundRequestsCount: fp.pending_fund_requests_count ?? 0,
   };
 }
 
