@@ -458,9 +458,9 @@ export const analyzeProposalWithAI = async (file: File): Promise<AIAnalysisRespo
   const fd = new FormData();
   fd.append("file", file);
 
-  const { data } = await api.post<AIAnalysisResponse>("/proposal/analyze", fd, {
+  // Directly connect the frontend to the external VPS hosting the AI models
+  const { data } = await axios.post<AIAnalysisResponse>("https://ai-vps.wmsu-rdec.com/analyze", fd, {
     headers: { "Content-Type": "multipart/form-data" },
-    withCredentials: true,
   });
 
   return data;
