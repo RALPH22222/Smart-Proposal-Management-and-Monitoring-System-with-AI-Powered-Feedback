@@ -119,13 +119,9 @@ const MultiSidebar: React.FC<MultiSidebarProps> = ({
     return orderedRoles.map((role: string, index: number) => {
       const isCurrent = currentRoleGroup === role;
       const roleLabel = roleLabels[role] || role;
-      let colorClass = "text-slate-500 font-medium";
-
-      if (isCurrent) {
-        if (role === 'rnd') colorClass = "text-blue-700 font-bold";
-        else if (role === 'evaluator') colorClass = "text-purple-700 font-bold";
-        else colorClass = "text-[#C8102E] font-bold";
-      }
+      
+      // All roles use the same color when current
+      const colorClass = isCurrent ? "text-[#C8102E] font-bold" : "text-slate-500 font-medium";
 
       return (
         <React.Fragment key={role}>
@@ -200,7 +196,7 @@ const MultiSidebar: React.FC<MultiSidebarProps> = ({
 
             return (
               <div key={group.role} className="space-y-1">
-                <h3 className={`flex items-center gap-2 px-2 text-xs font-bold mb-2 ${isGroupActive ? (group.role === 'rnd' ? 'text-blue-600' : group.role === 'evaluator' ? 'text-purple-600' : 'text-[#C8102E]') : 'text-slate-400'}`}>
+                <h3 className={`flex items-center gap-2 px-2 text-xs font-bold mb-2 ${isGroupActive ? 'text-[#C8102E]' : 'text-slate-400'}`}>
                   <GroupIcon className="w-4 h-4" />
                   {group.title}
                 </h3>

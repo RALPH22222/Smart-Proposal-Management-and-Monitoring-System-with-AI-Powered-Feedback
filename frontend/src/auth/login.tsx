@@ -227,7 +227,7 @@ export default function Login() {
             <span>Back to Home</span>
           </a>
 
-          <h2 className="text-2xl font-bold text-gray-900 hover:text-[#C8102E] transition-colors duration-300 cursor-pointer">
+          <h2 className="text-2xl font-bold text-gray-900">
             Sign in
           </h2>
           <p className="text-sm text-gray-600">Use your institutional account or continue with Google.</p>

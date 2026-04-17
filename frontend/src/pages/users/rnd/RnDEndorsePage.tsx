@@ -483,7 +483,7 @@ const EndorsePage: React.FC = () => {
         onSubmit={handleDecisionSubmit}
       />
     <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -553,7 +553,7 @@ const EndorsePage: React.FC = () => {
 
         {/* Tab bar — switches between active queue and history tabs */}
         <section className="flex-shrink-0">
-          <div className="inline-flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+          <div className="flex flex-wrap bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
             {([
               { key: 'active', label: 'Active', icon: Gavel },
               { key: 'revised', label: 'Revised', icon: RotateCcw },
@@ -571,7 +571,7 @@ const EndorsePage: React.FC = () => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                  className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                     isActive ? activeColor : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -647,7 +647,7 @@ const EndorsePage: React.FC = () => {
                     className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                     aria-labelledby={`proposal-title-${proposal.id}`}
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3 mb-3">
                           <h2
@@ -658,7 +658,7 @@ const EndorsePage: React.FC = () => {
                           </h2>
                           {/* Version badge — any version > 1 signals a revision */}
                           {proposal.versionNumber && proposal.versionNumber > 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 whitespace-nowrap"
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 flex-shrink-0"
                               title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
                             >
                               v{proposal.versionNumber}
@@ -672,22 +672,22 @@ const EndorsePage: React.FC = () => {
                             return (
                               <>
                                 {pending > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 flex-shrink-0">
                                     {pending} Pending
                                   </span>
                                 )}
                                 {declined > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-200 text-rose-500 bg-rose-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-200 text-rose-500 bg-rose-50 flex-shrink-0">
                                     {declined} Declined
                                   </span>
                                 )}
                                 {inReview > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-cyan-200 text-cyan-600 bg-cyan-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-cyan-200 text-cyan-600 bg-cyan-50 flex-shrink-0">
                                     {inReview} In Review
                                   </span>
                                 )}
                                 {extReq > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 text-orange-600 bg-orange-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 text-orange-600 bg-orange-50 flex-shrink-0">
                                     {extReq} Extension Requested
                                   </span>
                                 )}

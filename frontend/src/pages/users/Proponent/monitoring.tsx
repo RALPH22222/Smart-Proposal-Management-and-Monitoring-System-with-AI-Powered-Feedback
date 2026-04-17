@@ -911,10 +911,10 @@ const MonitoringPage: React.FC = () => {
       )}
 
       {/* --- MAIN CONTENT --- */}
-      <section className="flex flex-col lg:flex-row gap-6">
+      <section className="flex flex-col lg:flex-row gap-6 min-w-0">
 
         {/* --- LEFT SIDEBAR (Projects List) --- */}
-        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)]">
+        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)] min-w-0">
           <div className="p-5 border-b border-gray-100">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-[#C8102E]" /> Select Project</h3>
             <div className="relative mb-4">

@@ -202,7 +202,7 @@ const FundingPage: React.FC = () => {
   return (
     <>
     <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col relative animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -277,22 +277,22 @@ const FundingPage: React.FC = () => {
                   ? 'Funding Archive'
                   : 'Realignment Requests'}
             </h3>
-            <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-lg">
+            <div className="flex flex-wrap items-center gap-1 bg-slate-200/50 p-1 rounded-lg">
               <button
                 onClick={() => { setActiveTab('pending'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 Pending
               </button>
               <button
                 onClick={() => { setActiveTab('archived'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'archived' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'archived' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 Archive
               </button>
               <button
                 onClick={() => { setActiveTab('realignments'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'realignments' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'realignments' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
               >
                 <Banknote className="w-3.5 h-3.5" /> Realignments
                 {realignments.filter((r) => r.status === 'pending_review').length > 0 && (
@@ -339,24 +339,24 @@ const FundingPage: React.FC = () => {
                         className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
                         onClick={() => setActiveRealignmentId(r.id)}
                       >
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <h2 className="text-base font-semibold text-slate-800 truncate">
+                            <h2 className="text-base font-semibold text-slate-800 line-clamp-2">
                               {projectTitle}
                             </h2>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mt-1">
                               <span className="flex items-center gap-1">
                                 <User className="w-3 h-3" /> {requesterName}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> {formatDate(r.created_at)}
                               </span>
-                              <span className="text-slate-400 italic truncate max-w-xl">
+                              <span className="text-slate-400 italic line-clamp-1 max-w-xs sm:max-w-sm md:max-w-md">
                                 "{r.reason.length > 100 ? r.reason.slice(0, 97) + '...' : r.reason}"
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${statusStyle}`}>
                               {r.status === 'pending_review' && <Clock className="w-3 h-3 inline mr-1" />}
                               {r.status.replace('_', ' ')}
@@ -366,7 +366,7 @@ const FundingPage: React.FC = () => {
                                 e.stopPropagation();
                                 setActiveRealignmentId(r.id);
                               }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00d25] shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                             >
                               <Eye className="w-3 h-3" /> Review
                             </button>
@@ -399,7 +399,7 @@ const FundingPage: React.FC = () => {
                     className={`p-4 transition-colors duration-200 ${proposal.status === 'Funded' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
                         </div>
@@ -431,12 +431,12 @@ const FundingPage: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         {getStatusBadge(proposal.status)}
                         {activeTab === 'pending' ? (
                           <button
                             onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
+                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3.5 h-3.5" />
                             Action

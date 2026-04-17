@@ -505,7 +505,7 @@ export const RnDEvaluatorPage: React.FC = () => {
   return (
     <>
     <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -602,7 +602,7 @@ export const RnDEvaluatorPage: React.FC = () => {
                   className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h2 className="text-base font-semibold text-slate-800 mb-2">{assignment.proposalTitle}</h2>
                       <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
                         <div className="flex items-center gap-1.5">
@@ -639,10 +639,10 @@ export const RnDEvaluatorPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <button
                         onClick={() => handleEdit(assignment.id)}
-                        className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1"
+                        className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                       >
                         <Edit2 className="w-3 h-3" /> {isEvaluatorEditable(assignment.proposalStatus) ? "Action" : "View"}
                       </button>

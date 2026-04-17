@@ -29,7 +29,7 @@ import { formatDate } from '../../../utils/date-formatter';
 import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import ProgressRing from '../../../components/shared/ProgressRing';
-import ProjectHealthBar from '../../../components/shared/ProjectHealthBar';
+// import ProjectHealthBar from '../../../components/shared/ProjectHealthBar';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
@@ -53,7 +53,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'All'>('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 3;
 
   // Load projects
   useEffect(() => {
@@ -249,8 +249,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
   return (
     <>
-    <div className="w-full min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+    <div className="w-full min-h-screen overflow-x-hidden px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -318,20 +318,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           </div>
         </section>
 
-        {/* Project Health Distribution */}
-        {projects.length > 0 && (
-          <section className="flex-shrink-0">
-            <ProjectHealthBar
-              segments={[
-                { label: 'Active', count: projects.filter(p => p.status === 'Active').length, color: '#10b981' },
-                { label: 'Completed', count: projects.filter(p => p.status === 'Completed').length, color: '#3b82f6' },
-                { label: 'Delayed', count: projects.filter(p => p.status === 'Delayed').length, color: '#f59e0b' },
-                { label: 'On Hold', count: projects.filter(p => p.status === 'On Hold').length, color: '#8b5cf6' },
-                { label: 'Blocked', count: projects.filter(p => p.status === 'At Risk').length, color: '#ef4444' },
-              ]}
-            />
-          </section>
-        )}
+
 
         {/* Filters and Search */}
         <section className="flex-shrink-0" aria-label="Filter projects">
@@ -466,8 +453,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <div className="flex flex-col gap-2 items-end">
+                        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                          <div className="flex flex-col gap-2 items-start sm:items-end">
                             <span className={getStatusBadge(project.status)}>
                               {project.status}
                             </span>

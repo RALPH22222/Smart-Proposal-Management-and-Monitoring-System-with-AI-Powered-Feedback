@@ -607,7 +607,7 @@ const AdminEndorsementPage: React.FC = () => {
                           </h2>
                           {/* Version badge — any version > 1 signals a revision */}
                           {proposal.versionNumber && proposal.versionNumber > 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 whitespace-nowrap"
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 flex-shrink-0"
                               title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
                             >
                               v{proposal.versionNumber}

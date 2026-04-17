@@ -210,7 +210,7 @@ export default function EndorsedProposals() {
 
   return (
     <>
-    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 min-w-0">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -269,7 +269,7 @@ export default function EndorsedProposals() {
               {paginatedProposals.map((proposal) => (
                 <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 group">
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
                           {proposal.title}
@@ -296,12 +296,12 @@ export default function EndorsedProposals() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         <button
                           onClick={() => handleReviewClick(proposal.id)}
-                          className="inline-flex items-center justify-center gap-1 px-4 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 transition-all text-xs font-medium cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                         >
-                          <ScanSearch className="w-4 h-4" />
+                          <ScanSearch className="w-3 h-3" />
                           Review
                         </button>
                       </div>

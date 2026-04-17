@@ -439,7 +439,7 @@ export default function Proposals() {
 
   return (
     <>
-    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 min-w-0">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -582,39 +582,37 @@ export default function Proposals() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       {(() => {
                         const theme = getStatusTheme(proposal.status);
                         return (
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text} flex-shrink-0`}>
                             {theme.icon}
                             {theme.label}
                           </span>
                         );
                       })()}
 
-                      <div className="flex items-center gap-2">
-                        {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
-                          <button
-                            onClick={() => handleEvaluateClick(proposal.id)}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                            aria-label={`${proposal.title}`}
-                            title="Action"
-                          >
-                            <Gavel className="w-3 h-3" />
-                            Action
-                          </button>
-                        )}
-
+                      {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
                         <button
-                          onClick={() => handleViewClick(proposal.id)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
-                          aria-label={`View details for ${proposal.title}`}
-                          title="View details"
+                          onClick={() => handleEvaluateClick(proposal.id)}
+                          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                          aria-label={`${proposal.title}`}
+                          title="Action"
                         >
-                          <Eye className="w-3 h-3" />
+                          <Gavel className="w-3 h-3" />
+                          Action
                         </button>
-                      </div>
+                      )}
+
+                      <button
+                        onClick={() => handleViewClick(proposal.id)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                        aria-label={`View details for ${proposal.title}`}
+                        title="View details"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 </article>

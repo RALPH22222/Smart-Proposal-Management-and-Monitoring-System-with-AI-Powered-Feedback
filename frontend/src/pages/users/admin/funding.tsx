@@ -234,7 +234,7 @@ const AdminFundingPage: React.FC = () => {
                   {paginatedProposals.map((proposal) => (
                     <article key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors duration-200">
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                         <div className="flex-1">
+                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
                                <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
                             </div>

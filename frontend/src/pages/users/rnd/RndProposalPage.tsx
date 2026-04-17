@@ -219,53 +219,53 @@ const ExtensionReviewModal: React.FC<ExtensionReviewModalProps> = ({
           ) : !extensionRequest || !proposal ? (
             <div className="text-sm text-slate-500 text-center py-8">No pending extension request found for this proposal.</div>
           ) : (
-          <>
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Proposal</p>
-            <p className="text-sm font-semibold text-slate-800">{proposal.title}</p>
-            <p className="text-xs text-slate-500 mt-1">by {proposal.submittedBy}</p>
-          </div>
+            <>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Proposal</p>
+                <p className="text-sm font-semibold text-slate-800">{proposal.title}</p>
+                <p className="text-xs text-slate-500 mt-1">by {proposal.submittedBy}</p>
+              </div>
 
-          <div>
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Proponent's Reason</p>
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-900">
-              {extensionRequest.reason}
-            </div>
-            <p className="text-xs text-slate-400 mt-1">Requested on {formatDate(extensionRequest.created_at)}</p>
-          </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Proponent's Reason</p>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-900">
+                  {extensionRequest.reason}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Requested on {formatDate(extensionRequest.created_at)}</p>
+              </div>
 
-          {/* Approve: set new deadline */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Extension Days (if approving)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="1"
-                max="90"
-                value={newDeadlineDays}
-                onChange={e => setNewDeadlineDays(e.target.value)}
-                className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E]"
-              />
-              <span className="text-sm text-slate-500">day(s) from approval date</span>
-            </div>
-          </div>
+              {/* Approve: set new deadline */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                  Extension Days (if approving)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="90"
+                    value={newDeadlineDays}
+                    onChange={e => setNewDeadlineDays(e.target.value)}
+                    className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E]"
+                  />
+                  <span className="text-sm text-slate-500">day(s) from approval date</span>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-              Review Note (optional)
-            </label>
-            <textarea
-              value={reviewNote}
-              onChange={e => setReviewNote(e.target.value)}
-              placeholder="Add a note for the proponent..."
-              rows={2}
-              maxLength={500}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] resize-none"
-            />
-          </div>
-          </>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                  Review Note (optional)
+                </label>
+                <textarea
+                  value={reviewNote}
+                  onChange={e => setReviewNote(e.target.value)}
+                  placeholder="Add a note for the proponent..."
+                  rows={2}
+                  maxLength={500}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] resize-none"
+                />
+              </div>
+            </>
           )}
         </div>
 
@@ -275,22 +275,22 @@ const ExtensionReviewModal: React.FC<ExtensionReviewModalProps> = ({
             Cancel
           </button>
           {!isLoadingExtension && extensionRequest && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleAction('rejected')}
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-            >
-              <ThumbsDown className="w-3.5 h-3.5" /> Reject
-            </button>
-            <button
-              onClick={() => handleAction('approved')}
-              disabled={isSubmitting || !newDeadlineDays || parseInt(newDeadlineDays) < 1}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors disabled:opacity-50"
-            >
-              <ThumbsUp className="w-3.5 h-3.5" /> Approve
-            </button>
-          </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleAction('rejected')}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gray-600 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                <ThumbsDown className="w-3.5 h-3.5" /> Reject
+              </button>
+              <button
+                onClick={() => handleAction('approved')}
+                disabled={isSubmitting || !newDeadlineDays || parseInt(newDeadlineDays) < 1}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors disabled:opacity-50"
+              >
+                <ThumbsUp className="w-3.5 h-3.5" /> Approve
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -610,7 +610,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   // --- Helper: Status Badge Logic (Updated with Clickable Evaluators) ---
   const getStatusBadge = (status: ExtendedProposalStatus, proposal: Proposal) => {
-    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 max-w-[200px] truncate cursor-pointer hover:opacity-80 transition-opacity';
+    const baseClasses = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-current border-opacity-20 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0';
 
     switch (status) {
       case 'Pending':
@@ -801,59 +801,55 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         </section>
 
         {/* Proposals List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 flex flex-col h-fit overflow-hidden flex-1">
+        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
 
           <div className="p-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-[#C8102E]" />
-                {activeTab === 'All' ? 'Research Proposals' : `${activeTab} Proposals`}
-              </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <User className="w-4 h-4" />
-                <span>{filteredProposals.length} total proposals</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#C8102E]" />
+                  {activeTab === 'All' ? 'Research Proposals' : `${activeTab} Proposals`}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <User className="w-4 h-4" />
+                  <span>{filteredProposals.length} total proposals</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="overflow-y-auto custom-scrollbar flex-1">
-            {filteredProposals.length === 0 ? (
-              <div className="text-center py-12 px-4 mt-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {filteredProposals.length === 0 ? (
+                <div className="text-center py-12 px-4 mt-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">
+                    Proposals will appear once the Admin submitted it to R&D.
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">No proposals found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  Proposals will appear once the Admin submitted it to R&D.
-                </p>
-              </div>
-            ) : (
-              <table className="min-w-full text-left align-middle">
-                <tbody className="divide-y divide-slate-100 bg-white">
+              ) : (
+                <div className="divide-y divide-slate-100 bg-white">
                   {paginatedProposals.map((proposal) => (
-                    <tr
+                    <article
                       key={proposal.id}
-                      className="hover:bg-slate-50 transition-colors duration-200 group"
+                      className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                     >
-                      {/* --- COL 1: DETAILS --- */}
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-base font-medium text-slate-800 group-hover:text-[#C8102E] transition-colors">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        {/* --- LEFT: DETAILS --- */}
+                        <div className="flex-1 min-w-0">
+                          <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
                             {proposal.title}
-                          </span>
+                          </h2>
 
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
                               <span>{proposal.submittedBy}</span>
                             </div>
-                            <div className={'flex items-center gap-1.5 font-semibold'}>
-                              <Calendar className={'w-3.5 h-3.5'} />
-                              <span>
-                                Submitted: {formatDate(proposal.submittedDate)}
-                              </span>
+                            <div className="flex items-center gap-1.5 font-semibold">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                             </div>
-
 
                             {/* Render Additional Tags */}
                             {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag, i) => (
@@ -867,133 +863,131 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                             ))}
                           </div>
                         </div>
-                      </td>
 
-                      {/* --- COL 2: STATUS & ACTIONS --- */}
-                      <td className="px-6 py-5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-3">
-
+                        {/* --- RIGHT: STATUS & ACTIONS --- */}
+                        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                           {/* Status Badge (Clickable for Evaluators) */}
                           {getStatusBadge(proposal.status as ExtendedProposalStatus, proposal)}
 
-                          {/* Action Button */}
-                          {(proposal.status === "Pending" || proposal.status === ("Revised Proposal" as ProposalStatus)) && (
-                            <button
-                              onClick={() => handleViewProposal(proposal)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                            >
-                              <Gavel className="w-3 h-3" />
-                              Action
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {/* Action Button */}
+                            {(proposal.status === "Pending" || proposal.status === ("Revised Proposal" as ProposalStatus)) && (
+                              <button
+                                onClick={() => handleViewProposal(proposal)}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              >
+                                <Gavel className="w-3 h-3" />
+                                Action
+                              </button>
+                            )}
 
-                          {/* Extension Review Button — shown for Not Submitted proposals */}
-                          {(proposal.status as any) === 'Not Submitted' && (
-                            <button
-                              onClick={() => handleReviewExtension(proposal)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-500 text-white hover:bg-orange-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                            >
-                              <AlertCircle className="w-3 h-3" />
-                              Review
-                            </button>
-                          )}
+                            {/* Extension Review Button */}
+                            {(proposal.status as any) === 'Not Submitted' && (
+                              <button
+                                onClick={() => handleReviewExtension(proposal)}
+                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-orange-500 text-white hover:bg-orange-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                              >
+                                <AlertCircle className="w-3 h-3" />
+                                Review
+                              </button>
+                            )}
 
-                          {/* Eye Button */}
-                          <button
-                            onClick={() => handleViewDetails(proposal)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
-                            title="View details"
-                          >
-                            <Eye className="w-3 h-3" />
-                          </button>
+                            {/* Eye Button */}
+                            <button
+                              onClick={() => handleViewDetails(proposal)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                              title="View details"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </article>
                   ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
 
-          {/* Pagination */}
-          {filteredProposals.length > 0 && (
-            <div className="p-4 bg-slate-50 border-t border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-                <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3 h-3" />
-                    Previous
-                  </button>
-                  <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                    Page {currentPage} of {totalPages}
+            {/* Pagination */}
+            {filteredProposals.length > 0 && (
+              <div className="p-4 bg-slate-50 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                  <span>
+                    Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
                   </span>
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Next
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      Previous
+                    </button>
+                    <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Next
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </main>
+            )}
+          </main>
 
+        </div>
       </div>
-    </div>
-    
-    {/* Modals outside the animated container to prevent stacking context z-index trapping */}
-    <ProposalModal
-      proposal={selectedProposal}
-      isOpen={isModalOpen}
-      onClose={handleCloseModal}
-      onSubmitDecision={handleSubmitDecision}
-      userRole='R&D Staff'
-      currentUser={currentUser}
-    />
 
-    <DetailedProposalModal
-      proposal={selectedProposalForView}
-      isOpen={isViewModalOpen}
-      onClose={() => {
-        setIsViewModalOpen(false);
-        setSelectedProposalForView(null);
-      }}
-      agencies={agencies}
-      sectors={sectors}
-      priorityAreas={priorityAreas}
-    />
+      {/* Modals outside the animated container to prevent stacking context z-index trapping */}
+      <ProposalModal
+        proposal={selectedProposal}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmitDecision={handleSubmitDecision}
+        userRole='R&D Staff'
+        currentUser={currentUser}
+      />
 
-    {/* Evaluator List Modal */}
-    <EvaluatorListModal
-      evaluators={currentEvaluatorsList}
-      message={currentEvaluatorMessage}
-      isOpen={isEvaluatorModalOpen}
-      onClose={() => {
-        setIsEvaluatorModalOpen(false);
-        setCurrentEvaluatorsList([]);
-        setCurrentEvaluatorMessage('');
-      }}
-    />
+      <DetailedProposalModal
+        proposal={selectedProposalForView}
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedProposalForView(null);
+        }}
+        agencies={agencies}
+        sectors={sectors}
+        priorityAreas={priorityAreas}
+      />
 
-    {/* Extension Review Modal */}
-    <ExtensionReviewModal
-      isOpen={isExtensionModalOpen}
-      proposal={extensionProposal}
-      extensionRequest={extensionRequest}
-      isLoadingExtension={isLoadingExtension}
-      onClose={() => setIsExtensionModalOpen(false)}
-      onReviewed={() => loadProposals()}
-    />
+      {/* Evaluator List Modal */}
+      <EvaluatorListModal
+        evaluators={currentEvaluatorsList}
+        message={currentEvaluatorMessage}
+        isOpen={isEvaluatorModalOpen}
+        onClose={() => {
+          setIsEvaluatorModalOpen(false);
+          setCurrentEvaluatorsList([]);
+          setCurrentEvaluatorMessage('');
+        }}
+      />
+
+      {/* Extension Review Modal */}
+      <ExtensionReviewModal
+        isOpen={isExtensionModalOpen}
+        proposal={extensionProposal}
+        extensionRequest={extensionRequest}
+        isLoadingExtension={isLoadingExtension}
+        onClose={() => setIsExtensionModalOpen(false)}
+        onReviewed={() => loadProposals()}
+      />
     </>
   );
 };
