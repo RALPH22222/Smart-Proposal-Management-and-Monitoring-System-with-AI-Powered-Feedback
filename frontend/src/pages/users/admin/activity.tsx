@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ScrollText,
   Search,
@@ -10,6 +10,9 @@ import {
   Users,
   FolderOpen,
   ClipboardCheck,
+  Settings,
+  Calendar,
+  Download,
 } from "lucide-react";
 import { ActivityApi, type ActivityLog, type ActivityLogsFilters } from "../../../services/admin/ActivityApi";
 import PageLoader from "../../../components/shared/PageLoader";
@@ -18,7 +21,7 @@ import { formatDateTime } from "../../../utils/date-formatter";
 const ACTION_LABELS: Record<string, string> = {
   // Proposal
   proposal_created: "Created a proposal",
-  proposal_forwarded_to_rnd: "Forwarded proposal to RND",
+  proposal_forwarded_to_rnd: "Forwarded proposal to R&D",
   proposal_forwarded_to_evaluators: "Forwarded proposal to evaluators",
   proposal_revision_requested: "Requested revision from proponent",
   proposal_rejected: "Rejected proposal",
@@ -26,29 +29,79 @@ const ACTION_LABELS: Record<string, string> = {
   proposal_revision_after_evaluation: "Requested revision after evaluation",
   proposal_rejected_after_evaluation: "Rejected proposal after evaluation",
   proposal_revision_submitted: "Submitted revised proposal",
+  proposal_revision_funding: "Requested revision (funding)",
+  proposal_rejected_funding: "Rejected at funding stage",
   proposal_status_updated: "Updated proposal status",
+  proposal_funded: "Marked proposal funded",
+  proposal_auto_distributed: "Auto-distributed proposal to R&D",
+  proposal_rnd_reassigned_on_disable: "Reassigned R&D on account disable",
+  rnd_transfer_requested: "Requested R&D transfer",
+  funding_decision_made: "Made funding decision",
   // Evaluation
+  evaluator_assigned: "Assigned evaluator",
   evaluator_accepted: "Accepted evaluation assignment",
   evaluator_declined: "Declined evaluation assignment",
+  evaluator_decision_submitted: "Submitted evaluator decision",
   evaluator_extension_requested: "Requested deadline extension",
   evaluator_extension_approved: "Approved extension request",
   evaluator_extension_denied: "Denied extension request",
   evaluator_removed: "Removed evaluator from proposal",
+  evaluator_auto_declined_overdue: "Auto-declined (overdue)",
   evaluation_scores_submitted: "Submitted evaluation scores",
+  proposal_evaluator_reassigned_on_disable: "Reassigned evaluator on account disable",
+  extension_request_handled: "Handled extension request",
   // Project
   quarterly_report_submitted: "Submitted quarterly report",
   quarterly_report_verified: "Verified quarterly report",
+  project_report_verified: "Verified project report",
+  terminal_report_submitted: "Submitted terminal report",
+  terminal_report_verified: "Verified terminal report",
   project_comment_added: "Added comment on report",
   project_expense_added: "Added project expense",
   project_status_updated: "Updated project status",
   project_member_invited: "Invited project member",
   project_member_removed: "Removed project member",
-  // Account
+  project_invitation_accepted: "Accepted project invitation",
+  project_invitation_declined: "Declined project invitation",
+  project_document_uploaded: "Uploaded project document",
+  fund_request_created: "Created fund request",
+  certificate_issued: "Issued project certificate",
+  budget_realignment_requested: "Requested budget realignment",
+  budget_realignment_resubmitted: "Resubmitted budget realignment",
+  project_extension_requested: "Requested project extension",
+  proponent_extension_requested: "Requested proponent extension",
+  proponent_extension_approved: "Approved proponent extension",
+  proponent_extension_rejected: "Rejected proponent extension",
+  // COI guards (security blocks — rare but visible)
+  coi_block_verify_report: "Blocked: COI guard on report verification",
+  coi_block_update_project_status: "Blocked: COI guard on status update",
+  coi_block_review_fund_request: "Blocked: COI guard on fund request review",
+  coi_block_generate_certificate: "Blocked: COI guard on certificate issuance",
+  coi_block_review_extension: "Blocked: COI guard on extension review",
+  coi_block_verify_terminal_report: "Blocked: COI guard on terminal report",
+  // Account & auth
   account_created: "Created user account",
   account_updated: "Updated user account",
   account_disabled: "Disabled user account",
   account_enabled: "Enabled user account",
+  account_self_registered: "Self-registered account",
   user_invited: "Sent user invitation",
+  invite_profile_completed: "Completed invited profile",
+  user_logged_in: "Logged in",
+  // Settings & content
+  late_submission_policy_updated: "Updated late-submission policy",
+  evaluation_deadline_updated: "Updated evaluation deadline",
+  lookup_created: "Created lookup entry",
+  lookup_updated: "Updated lookup entry",
+  lookup_deleted: "Deleted lookup entry",
+  agency_address_created: "Created agency address",
+  agency_address_updated: "Updated agency address",
+  agency_address_deleted: "Deleted agency address",
+  updated_about: "Updated About page",
+  updated_logos: "Updated site logos",
+  updated_home: "Updated Home page",
+  updated_contacts: "Updated contact info",
+  updated_faq: "Updated FAQ",
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -56,6 +109,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: Reac
   evaluation: { label: "Evaluation", color: "bg-purple-100 text-purple-700", icon: ClipboardCheck },
   project: { label: "Project", color: "bg-green-100 text-green-700", icon: FolderOpen },
   account: { label: "Account", color: "bg-amber-100 text-amber-700", icon: Users },
+  settings: { label: "Settings", color: "bg-slate-100 text-slate-700", icon: Settings },
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -97,13 +151,20 @@ export default function Activity() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const limit = 20;
 
   const fetchLogs = useCallback(async () => {
     try {
       const filters: ActivityLogsFilters = { page, limit };
       if (categoryFilter) filters.category = categoryFilter;
+      // Date filters — `from` is start-of-day, `to` is end-of-day so the
+      // picked day is inclusive on both ends.
+      if (fromDate) filters.from = new Date(`${fromDate}T00:00:00`).toISOString();
+      if (toDate) filters.to = new Date(`${toDate}T23:59:59.999`).toISOString();
 
       const response = await ActivityApi.getLogs(filters);
       setLogs(response.data || []);
@@ -116,26 +177,87 @@ export default function Activity() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, categoryFilter]);
+  }, [page, categoryFilter, fromDate, toDate]);
 
   useEffect(() => {
     setLoading(true);
     fetchLogs();
   }, [fetchLogs]);
 
+  // Reset to page 1 whenever the date range changes so we don't land on
+  // an out-of-bounds page after narrowing the result set.
+  useEffect(() => {
+    setPage(1);
+  }, [fromDate, toDate]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchLogs();
   };
 
-  const filteredLogs = search
-    ? logs.filter(
-        (log) =>
-          log.user_name.toLowerCase().includes(search.toLowerCase()) ||
-          log.action.toLowerCase().includes(search.toLowerCase()) ||
-          (ACTION_LABELS[log.action] || "").toLowerCase().includes(search.toLowerCase())
-      )
-    : logs;
+  // Broadened search: matches user name, raw action, friendly label,
+  // target id/type, and stringified details so admins can find things
+  // like "actions on proposal 42" or entries whose details mention a term.
+  const filteredLogs = useMemo(() => {
+    if (!search.trim()) return logs;
+    const q = search.trim().toLowerCase();
+    return logs.filter((log) => {
+      if (log.user_name.toLowerCase().includes(q)) return true;
+      if (log.action.toLowerCase().includes(q)) return true;
+      if ((ACTION_LABELS[log.action] || "").toLowerCase().includes(q)) return true;
+      if (log.target_id && String(log.target_id).toLowerCase().includes(q)) return true;
+      if (log.target_type && log.target_type.toLowerCase().includes(q)) return true;
+      if (log.user_roles?.some((r) => r.toLowerCase().includes(q))) return true;
+      if (log.details && Object.keys(log.details).length > 0) {
+        try {
+          if (JSON.stringify(log.details).toLowerCase().includes(q)) return true;
+        } catch {
+          // stringify failed — ignore
+        }
+      }
+      return false;
+    });
+  }, [logs, search]);
+
+  // CSV export of currently-filtered rows. Uses the same data the user
+  // can see, so filters carry through (category + date range + search).
+  const escapeCsv = (value: unknown): string => {
+    if (value === null || value === undefined) return "";
+    const s = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+
+  const handleExportCsv = () => {
+    if (filteredLogs.length === 0) return;
+    setExporting(true);
+    try {
+      const header = ["Time", "User", "Roles", "Action", "Category", "Target ID", "Target Type", "Details"];
+      const rows = filteredLogs.map((log) => [
+        log.created_at,
+        log.user_name,
+        (log.user_roles || []).join(" / "),
+        ACTION_LABELS[log.action] || log.action,
+        log.category,
+        log.target_id ?? "",
+        log.target_type ?? "",
+        log.details ?? "",
+      ]);
+      const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      a.href = url;
+      a.download = `activity-logs_${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return <PageLoader mode="activity" />;
@@ -179,16 +301,48 @@ export default function Activity() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by user or action..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E]"
-          />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative w-full sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search user, action, target, role, details..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E]"
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                max={toDate || undefined}
+                className="text-sm text-gray-700 focus:outline-none bg-transparent"
+                aria-label="From date"
+              />
+              <span className="text-xs text-gray-400">→</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                min={fromDate || undefined}
+                className="text-sm text-gray-700 focus:outline-none bg-transparent"
+                aria-label="To date"
+              />
+            </div>
+            {(fromDate || toDate) && (
+              <button
+                onClick={() => { setFromDate(""); setToDate(""); }}
+                className="text-xs text-gray-500 hover:text-[#C8102E] transition-colors"
+              >
+                Clear dates
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {categoryFilter && (
@@ -203,6 +357,15 @@ export default function Activity() {
               Clear filter
             </button>
           )}
+          <button
+            onClick={handleExportCsv}
+            disabled={exporting || filteredLogs.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-[#C8102E] bg-white border border-[#C8102E]/30 rounded-xl hover:bg-[#C8102E]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={filteredLogs.length === 0 ? "No rows to export" : "Export currently-visible rows to CSV"}
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
