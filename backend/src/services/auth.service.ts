@@ -8,13 +8,21 @@ type ProfileSetupDbPayload = Omit<ProfileSetup, "photo_profile_url"> & {
   photo_profile_url: string | null; // Photo is optional
 };
 
-// External-collaborator detection. WMSU employees and students register with @wmsu.edu.ph;
-// anyone else (industry partners, collaborators from other schools, etc.) gets the
-// 'external' flag and is gated to the monitoring-only UI. The authorizer auto-upgrades on
-// the next login if the user has since switched their email to a WMSU one.
+// Email domains that count as "internal" (full proponent UI). WMSU employees/students
+// use @wmsu.edu.ph in production; @gmail.com is whitelisted so the dev/QA team can
+// test the full flow with personal accounts. Anything else is "external" (monitoring-
+// only UI). The authorizer auto-upgrades external → internal on next login if the
+// user later switches to one of these domains.
+const INTERNAL_EMAIL_DOMAINS = ["@wmsu.edu.ph", "@gmail.com"] as const;
+
+export function isInternalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const lowered = email.trim().toLowerCase();
+  return INTERNAL_EMAIL_DOMAINS.some((d) => lowered.endsWith(d));
+}
+
 export function deriveAccountType(email: string | null | undefined): "internal" | "external" {
-  if (!email) return "external";
-  return email.trim().toLowerCase().endsWith("@wmsu.edu.ph") ? "internal" : "external";
+  return isInternalEmail(email) ? "internal" : "external";
 }
 
 export class AuthService {
@@ -62,7 +70,7 @@ export class AuthService {
     // on the spot so the login response reflects their real permissions.
     let account_type = (row?.account_type as "internal" | "external" | null) ?? "internal";
     const currentEmail = (data.user.email ?? "").trim().toLowerCase();
-    if (account_type === "external" && currentEmail.endsWith("@wmsu.edu.ph")) {
+    if (account_type === "external" && isInternalEmail(currentEmail)) {
       const { error: upgradeError } = await this.db!
         .from("users")
         .update({ account_type: "internal", email: currentEmail })
@@ -313,7 +321,7 @@ export class AuthService {
       const currentEmail = (decoded.email ?? row?.email ?? "") as string;
       const normalizedEmail = currentEmail.trim().toLowerCase();
       let accountType = (row?.account_type as "internal" | "external" | null) ?? "internal";
-      if (accountType === "external" && normalizedEmail.endsWith("@wmsu.edu.ph")) {
+      if (accountType === "external" && isInternalEmail(normalizedEmail)) {
         const { error: upgradeError } = await this.db!
           .from("users")
           .update({ account_type: "internal", email: normalizedEmail })

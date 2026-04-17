@@ -23,6 +23,7 @@ import {
 import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
 import { EmailService } from "./email.service";
+import { deriveAccountType } from "./auth.service";
 import {
   RequestRealignmentInput,
   ReviewRealignmentInput,
@@ -706,10 +707,9 @@ export class ProjectService {
       const newUserId = inviteData.user.id;
 
       // Tag the freshly-created user as external/internal based on invite email domain.
-      // Default column value is 'internal' so we only write for non-WMSU invitees. The
+      // Default column value is 'internal' so we only write for external invitees. The
       // public.users row was auto-created by Supabase's trigger when inviteUserByEmail ran.
-      const inviteEmail = input.email.trim().toLowerCase();
-      if (!inviteEmail.endsWith("@wmsu.edu.ph")) {
+      if (deriveAccountType(input.email) === "external") {
         const { error: accountTypeError } = await this.db
           .from("users")
           .update({ account_type: "external" })
