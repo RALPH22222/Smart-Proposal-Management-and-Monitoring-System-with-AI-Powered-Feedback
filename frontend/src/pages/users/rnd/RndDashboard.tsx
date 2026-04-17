@@ -8,7 +8,11 @@ import {
 	User,
 	BarChart as BarChartIcon,
 	Search,
-	RefreshCw
+	RefreshCw,
+	Signature,
+	AlertCircle,
+	Wallet,
+	ArrowRight,
 } from 'lucide-react';
 import { type Statistics, type Activity } from '../../../types/InterfaceProposal';
 import {
@@ -27,18 +31,28 @@ import { useAuthContext } from '../../../context/AuthContext';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 
+interface RnDAttention {
+	readyForEndorsement: number;
+	overdueReports: number;
+	pendingFundRequests: number;
+}
+
 interface DashboardProps {
 	statistics: Statistics;
 	recentActivity: Activity[];
 	onRefresh?: () => Promise<void> | void;
 	isLoading?: boolean;
+	attention?: RnDAttention;
+	onPageChange?: (_page: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
 	statistics,
 	recentActivity,
 	onRefresh,
-	isLoading = false
+	isLoading = false,
+	attention,
+	onPageChange,
 }) => {
 	const { user } = useAuthContext();
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -247,6 +261,107 @@ const Dashboard: React.FC<DashboardProps> = ({
 					</div>
 				</section>
 			</header>
+
+			{/* Needs Your Attention — actionable cards. Each card is a link to
+			    the relevant tab; count reflects R&D-scoped work right now. */}
+			{attention && (
+				<section aria-labelledby="attention-heading" className="mb-6">
+					<div className="flex items-center justify-between mb-3">
+						<h2 id="attention-heading" className="text-base font-bold text-slate-800 flex items-center gap-2">
+							<AlertCircle className="w-4 h-4 text-[#C8102E]" />
+							Needs Your Attention
+						</h2>
+					</div>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+						{[
+							{
+								label: 'Ready for Endorsement',
+								value: attention.readyForEndorsement,
+								icon: Signature,
+								tone: attention.readyForEndorsement > 0 ? 'emerald' : 'slate',
+								description: 'Proposals where every evaluator has submitted their decision.',
+								page: 'endorsements',
+							},
+							{
+								label: 'Pending Fund Requests',
+								value: attention.pendingFundRequests,
+								icon: Wallet,
+								tone: attention.pendingFundRequests > 0 ? 'blue' : 'slate',
+								description: 'Fund requests awaiting your review across your projects.',
+								page: 'monitoring',
+							},
+							{
+								label: 'Overdue Reports',
+								value: attention.overdueReports,
+								icon: AlertCircle,
+								tone: attention.overdueReports > 0 ? 'rose' : 'slate',
+								description: 'Quarterly or terminal reports past their due date.',
+								page: 'monitoring',
+							},
+						].map((card) => {
+							const Icon = card.icon;
+							const toneClasses: Record<string, { bg: string; border: string; iconBg: string; iconColor: string; value: string }> = {
+								emerald: {
+									bg: 'bg-gradient-to-br from-emerald-50 to-white',
+									border: 'border-emerald-200 hover:border-emerald-400',
+									iconBg: 'bg-emerald-100',
+									iconColor: 'text-emerald-600',
+									value: 'text-emerald-700',
+								},
+								blue: {
+									bg: 'bg-gradient-to-br from-blue-50 to-white',
+									border: 'border-blue-200 hover:border-blue-400',
+									iconBg: 'bg-blue-100',
+									iconColor: 'text-blue-600',
+									value: 'text-blue-700',
+								},
+								rose: {
+									bg: 'bg-gradient-to-br from-rose-50 to-white',
+									border: 'border-rose-200 hover:border-rose-400',
+									iconBg: 'bg-rose-100',
+									iconColor: 'text-rose-600',
+									value: 'text-rose-700',
+								},
+								slate: {
+									bg: 'bg-white',
+									border: 'border-slate-200 hover:border-slate-300',
+									iconBg: 'bg-slate-100',
+									iconColor: 'text-slate-400',
+									value: 'text-slate-600',
+								},
+							};
+							const t = toneClasses[card.tone];
+							const clickable = !!onPageChange;
+							return (
+								<button
+									key={card.label}
+									type="button"
+									onClick={() => clickable && onPageChange!(card.page)}
+									disabled={!clickable}
+									className={`${t.bg} ${t.border} border rounded-2xl p-4 text-left transition-all hover:shadow-md disabled:cursor-default flex flex-col gap-2 group`}
+								>
+									<div className="flex items-center justify-between">
+										<div className={`p-2 rounded-lg ${t.iconBg}`}>
+											<Icon className={`w-5 h-5 ${t.iconColor}`} />
+										</div>
+										<span className={`text-3xl font-bold tabular-nums ${t.value}`}>{card.value}</span>
+									</div>
+									<div>
+										<h3 className="text-sm font-semibold text-slate-800">{card.label}</h3>
+										<p className="text-xs text-slate-500 mt-1 leading-relaxed">{card.description}</p>
+									</div>
+									{clickable && (
+										<div className="flex items-center gap-1 text-xs font-medium text-slate-500 group-hover:text-[#C8102E] transition-colors mt-1">
+											<span>Go to {card.page === 'endorsements' ? 'Endorsements' : 'Monitoring'}</span>
+											<ArrowRight className="w-3 h-3" />
+										</div>
+									)}
+								</button>
+							);
+						})}
+					</div>
+				</section>
+			)}
 
 			{/* Content Section */}
 			<section className="flex flex-col xl:flex-row gap-4 lg:gap-6">

@@ -11,9 +11,19 @@ import {
 	type Activity
 } from '../../../types/InterfaceProposal';
 import { proposalApi } from '../../../services/RndProposalApi/ProposalApi';
+import { getProposalsForEndorsement } from '../../../services/proposal.api';
+import { fetchFundedProjects } from '../../../services/ProjectMonitoringApi';
 import EndorsePage from './RnDEndorsePage';
 import EvaluatorPage from './RnDEvaluatorPage';
 import FundingPage from './RnDFundingPage';
+
+// Per-R&D roll-ups that drive the "Needs Your Attention" dashboard panel.
+// All values are derived from existing endpoints — no new backend needed.
+export interface RnDAttention {
+	readyForEndorsement: number;
+	overdueReports: number;
+	pendingFundRequests: number;
+}
 
 const MainLayout: React.FC = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -31,6 +41,11 @@ const MainLayout: React.FC = () => {
 
 	const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
 	const [dashboardLoading, setDashboardLoading] = useState(true);
+	const [attention, setAttention] = useState<RnDAttention>({
+		readyForEndorsement: 0,
+		overdueReports: 0,
+		pendingFundRequests: 0,
+	});
 
 	useEffect(() => {
 		loadData();
@@ -39,9 +54,30 @@ const MainLayout: React.FC = () => {
 	const loadData = async () => {
 		setDashboardLoading(true);
 		try {
-			const { statistics: statsData, recentActivity: activityData } = await proposalApi.fetchDashboardData();
+			// Fire all three queries in parallel. Each uses an existing endpoint:
+			// fetchDashboardData → statistics + activity,
+			// getProposalsForEndorsement('active') → readyForEndorsement count,
+			// fetchFundedProjects('rnd') → sums overdue reports + pending fund requests
+			// across all projects assigned to this R&D.
+			const [{ statistics: statsData, recentActivity: activityData }, endorsementList, projects] =
+				await Promise.all([
+					proposalApi.fetchDashboardData(),
+					getProposalsForEndorsement('active').catch(() => []),
+					fetchFundedProjects('rnd').catch(() => []),
+				]);
 			setStatistics(statsData);
 			setRecentActivity(activityData);
+			setAttention({
+				readyForEndorsement: (endorsementList || []).filter((p: any) => p.readyForEndorsement).length,
+				overdueReports: (projects || []).reduce(
+					(sum: number, p: any) => sum + (p.overdue_reports_count || 0),
+					0,
+				),
+				pendingFundRequests: (projects || []).reduce(
+					(sum: number, p: any) => sum + (p.pending_fund_requests_count || 0),
+					0,
+				),
+			});
 		} catch (error) {
 			console.error('Error loading data:', error);
 		} finally {
@@ -57,7 +93,14 @@ const MainLayout: React.FC = () => {
 		switch (currentPage) {
 			case 'dashboard':
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} isLoading={dashboardLoading} />
+					<Dashboard
+						statistics={statistics}
+						recentActivity={recentActivity}
+						onRefresh={loadData}
+						isLoading={dashboardLoading}
+						attention={attention}
+						onPageChange={handlePageChange}
+					/>
 				);
 			case 'proposals':
 				return <ReviewPage />;
@@ -73,7 +116,14 @@ const MainLayout: React.FC = () => {
 				return <Settings />;
 			default:
 				return (
-					<Dashboard statistics={statistics} recentActivity={recentActivity} onRefresh={loadData} isLoading={dashboardLoading} />
+					<Dashboard
+						statistics={statistics}
+						recentActivity={recentActivity}
+						onRefresh={loadData}
+						isLoading={dashboardLoading}
+						attention={attention}
+						onPageChange={handlePageChange}
+					/>
 				);
 		}
 	};
