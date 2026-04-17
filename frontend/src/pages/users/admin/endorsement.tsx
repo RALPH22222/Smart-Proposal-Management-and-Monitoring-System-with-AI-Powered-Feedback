@@ -15,7 +15,9 @@ import {
   Clock,
   Archive,
   BarChart2,
+  Download,
 } from 'lucide-react';
+import { exportToCsv } from '../../../utils/csv-export';
 import {
   type EndorsementProposal,
   type EvaluatorDecision,
@@ -421,6 +423,28 @@ const AdminEndorsementPage: React.FC = () => {
                 Review evaluator decisions and endorse proposals for final approval
               </p>
             </div>
+            <button
+              onClick={() =>
+                exportToCsv(`endorsement-${activeTab}`, endorsementProposals, [
+                  { header: 'ID', accessor: (p) => p.id },
+                  { header: 'Title', accessor: (p) => p.title },
+                  { header: 'Submitted By', accessor: (p) => p.submittedBy },
+                  { header: 'Department', accessor: (p) => p.department || '' },
+                  { header: 'Status', accessor: (p) => p.status || '' },
+                  { header: 'Version', accessor: (p) => p.versionNumber ?? 1 },
+                  { header: 'Ready for Endorsement', accessor: (p) => (p.readyForEndorsement ? 'yes' : 'no') },
+                  { header: 'Overall Recommendation', accessor: (p) => p.overallRecommendation || '' },
+                  { header: 'Avg Score', accessor: (p) => (p.averageScores ? p.averageScores.overall.toFixed(2) : '') },
+                  { header: 'Action Date', accessor: (p) => p.actionDate || '' },
+                ])
+              }
+              disabled={endorsementProposals.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={endorsementProposals.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
           </div>
         </header>
 

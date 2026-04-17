@@ -3,8 +3,9 @@ import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle,
   Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle,
-  AlertCircle, ThumbsUp, ThumbsDown, CalendarX2
+  AlertCircle, ThumbsUp, ThumbsDown, CalendarX2, Download,
 } from 'lucide-react';
+import { exportToCsv } from '../../../utils/csv-export';
 import Swal from 'sweetalert2';
 import {
   type Proposal,
@@ -734,6 +735,25 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                 Review and evaluate research proposals submitted to WMSU
               </p>
             </div>
+            <button
+              onClick={() =>
+                exportToCsv('rnd-proposals', filteredProposals, [
+                  { header: 'ID', accessor: (p) => p.id },
+                  { header: 'Title', accessor: (p) => p.title },
+                  { header: 'Submitted By', accessor: (p) => p.submittedBy },
+                  { header: 'Submitted Date', accessor: (p) => p.submittedDate },
+                  { header: 'Department', accessor: (p) => (p as any).rdStation || '' },
+                  { header: 'Status', accessor: (p) => p.status },
+                  { header: 'Assigned Evaluators', accessor: (p) => (p.assignedEvaluators || []).join('; ') },
+                ])
+              }
+              disabled={filteredProposals.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={filteredProposals.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
           </div>
         </header>
 

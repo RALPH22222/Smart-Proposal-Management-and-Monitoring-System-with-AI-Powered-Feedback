@@ -1765,7 +1765,12 @@ export class ProjectService {
       `,
       )
       .eq("id", versionId)
-      .single();
+      // maybeSingle (not single) — the next lines already handle the null
+      // case. Using .single() here would throw PGRST116 ("cannot coerce 0
+      // rows") as a Supabase error and surface as a 500 to the client,
+      // which masks the real cause (stale current_budget_version_id
+      // pointer or a version that was deleted).
+      .maybeSingle();
 
     if (versionError || !version) {
       return { data: null, error: versionError ?? new Error("Budget version not found") };

@@ -3,8 +3,9 @@ import {
   FileText, Calendar, User, Eye, Search,
   ChevronLeft, ChevronRight, Tag, Clock, XCircle,
   RefreshCw, GitBranch, Bot, UserCog, Pen, Users, X, MessageSquare, CheckCircle,
-  Send
+  Send, Download
 } from 'lucide-react';
+import { exportToCsv } from '../../../utils/csv-export';
 import Swal from 'sweetalert2';
 import {
   type Proposal,
@@ -537,16 +538,38 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
                 Review and evaluate research proposals submitted to WMSU
               </p>
             </div>
-            {/* Auto Distribute All button */}
-            {proposals.filter(p => p.status === 'Pending').length > 0 && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => handleAutoDistribute()}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-[#991B1B] text-white hover:bg-[#7a1616] transition-all duration-200 cursor-pointer"
+                onClick={() =>
+                  exportToCsv('proposals', filteredProposals, [
+                    { header: 'ID', accessor: (p) => p.id },
+                    { header: 'Title', accessor: (p) => p.title },
+                    { header: 'Submitted By', accessor: (p) => p.submittedBy },
+                    { header: 'Submitted Date', accessor: (p) => p.submittedDate },
+                    { header: 'Department', accessor: (p) => (p as any).rdStation || '' },
+                    { header: 'Status', accessor: (p) => p.status },
+                    { header: 'Assigned R&D', accessor: (p) => p.assignedRdStaff || '' },
+                    { header: 'Assigned Evaluators', accessor: (p) => (p.assignedEvaluators || []).join('; ') },
+                  ])
+                }
+                disabled={filteredProposals.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title={filteredProposals.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
               >
-                <Send className="w-4 h-4" />
-                Auto Distribute ({proposals.filter(p => p.status === 'Pending').length})
+                <Download className="w-4 h-4" />
+                Export CSV
               </button>
-            )}
+              {/* Auto Distribute All button */}
+              {proposals.filter(p => p.status === 'Pending').length > 0 && (
+                <button
+                  onClick={() => handleAutoDistribute()}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-[#991B1B] text-white hover:bg-[#7a1616] transition-all duration-200 cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  Auto Distribute ({proposals.filter(p => p.status === 'Pending').length})
+                </button>
+              )}
+            </div>
           </div>
         </header>
 

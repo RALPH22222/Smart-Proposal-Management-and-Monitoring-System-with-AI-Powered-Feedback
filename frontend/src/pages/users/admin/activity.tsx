@@ -17,6 +17,7 @@ import {
 import { ActivityApi, type ActivityLog, type ActivityLogsFilters } from "../../../services/admin/ActivityApi";
 import PageLoader from "../../../components/shared/PageLoader";
 import { formatDateTime } from "../../../utils/date-formatter";
+import { exportToCsv } from "../../../utils/csv-export";
 
 const ACTION_LABELS: Record<string, string> = {
   // Proposal
@@ -221,39 +222,20 @@ export default function Activity() {
 
   // CSV export of currently-filtered rows. Uses the same data the user
   // can see, so filters carry through (category + date range + search).
-  const escapeCsv = (value: unknown): string => {
-    if (value === null || value === undefined) return "";
-    const s = typeof value === "string" ? value : typeof value === "object" ? JSON.stringify(value) : String(value);
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
-
   const handleExportCsv = () => {
     if (filteredLogs.length === 0) return;
     setExporting(true);
     try {
-      const header = ["Time", "User", "Roles", "Action", "Category", "Target ID", "Target Type", "Details"];
-      const rows = filteredLogs.map((log) => [
-        log.created_at,
-        log.user_name,
-        (log.user_roles || []).join(" / "),
-        ACTION_LABELS[log.action] || log.action,
-        log.category,
-        log.target_id ?? "",
-        log.target_type ?? "",
-        log.details ?? "",
+      exportToCsv("activity-logs", filteredLogs, [
+        { header: "Time", accessor: (l) => l.created_at },
+        { header: "User", accessor: (l) => l.user_name },
+        { header: "Roles", accessor: (l) => (l.user_roles || []).join(" / ") },
+        { header: "Action", accessor: (l) => ACTION_LABELS[l.action] || l.action },
+        { header: "Category", accessor: (l) => l.category },
+        { header: "Target ID", accessor: (l) => l.target_id ?? "" },
+        { header: "Target Type", accessor: (l) => l.target_type ?? "" },
+        { header: "Details", accessor: (l) => l.details ?? "" },
       ]);
-      const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-      a.href = url;
-      a.download = `activity-logs_${stamp}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } finally {
       setExporting(false);
     }

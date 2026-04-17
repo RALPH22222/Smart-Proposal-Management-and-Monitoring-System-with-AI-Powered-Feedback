@@ -17,9 +17,11 @@ import {
   AlertTriangle,
   Ban,
   Wallet,
+  Download,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatDate } from '../../../utils/date-formatter';
+import { exportToCsv } from '../../../utils/csv-export';
 import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
 import { useAuthContext } from '../../../context/AuthContext';
 import { fetchFundedProjects, transformToProject, updateProjectStatus } from '../../../services/ProjectMonitoringApi';
@@ -258,6 +260,28 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
                 Track and monitor all research and development projects
               </p>
             </div>
+            <button
+              onClick={() =>
+                exportToCsv('funded-projects', filteredProjects, [
+                  { header: 'Project ID', accessor: (p) => p.projectId },
+                  { header: 'Title', accessor: (p) => p.title },
+                  { header: 'Principal Investigator', accessor: (p) => p.principalInvestigator },
+                  { header: 'Department', accessor: (p) => p.department },
+                  { header: 'Start Date', accessor: (p) => p.startDate },
+                  { header: 'End Date', accessor: (p) => p.endDate },
+                  { header: 'Status', accessor: (p) => p.status },
+                  { header: 'Completion %', accessor: (p) => p.completionPercentage },
+                  { header: 'Overdue Reports', accessor: (p) => p.overdueReportsCount ?? 0 },
+                  { header: 'Pending Fund Requests', accessor: (p) => p.pendingFundRequestsCount ?? 0 },
+                ])
+              }
+              disabled={filteredProjects.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={filteredProjects.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
           </div>
         </header>
 

@@ -11,7 +11,9 @@ import {
   AlertTriangle,
   XCircle,
   Signature,
+  Download,
 } from 'lucide-react';
+import { exportToCsv } from '../../../utils/csv-export';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
 import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
@@ -143,6 +145,25 @@ const AdminFundingPage: React.FC = () => {
                 Track council approval and funding status of endorsed proposals
               </p>
             </div>
+            <button
+              onClick={() =>
+                exportToCsv('funding-proposals', fundingProposals, [
+                  { header: 'ID', accessor: (p) => p.id },
+                  { header: 'Title', accessor: (p) => p.title },
+                  { header: 'Submitted By', accessor: (p) => p.submittedBy },
+                  { header: 'Department', accessor: (p) => (p as any).rdStation || '' },
+                  { header: 'Status', accessor: (p) => p.status },
+                  { header: 'Submitted Date', accessor: (p) => p.submittedDate },
+                  { header: 'Budget Total', accessor: (p) => p.budgetTotal || '' },
+                ])
+              }
+              disabled={fundingProposals.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={fundingProposals.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
           </div>
         </header>
 
