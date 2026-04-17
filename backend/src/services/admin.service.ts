@@ -12,8 +12,8 @@ import { logActivity } from "../utils/activity-logger";
 export class AdminService {
   constructor(private db: SupabaseClient) {}
 
-  async createAccount(input: CreateAccountInput) {
-    const { email, password, roles, first_name, last_name, middle_ini } = input;
+  async createAccount(input: CreateAccountInput, photoUrl: string | null = null) {
+    const { email, password, roles, first_name, last_name, middle_ini, birth_date, sex, department_id } = input;
 
     // Create auth user - the DB trigger auto-creates the users row
     const { data, error } = await this.db.auth.signUp({
@@ -38,9 +38,23 @@ export class AdminService {
       return { data: null, error: { message: "Email already exists.", status: 409 } };
     }
 
-    // Flag admin-created accounts so they must change password on first login
     if (data.user) {
-      await this.db.from("users").update({ password_change_required: true }).eq("id", data.user.id);
+      const { error: profileError } = await this.db
+        .from("users")
+        .update({
+          birth_date,
+          sex,
+          department_id,
+          photo_profile_url: photoUrl,
+          profile_completed: true,
+          password_change_required: true,
+        })
+        .eq("id", data.user.id);
+
+      if (profileError) {
+        console.error("Failed to write profile fields after admin createAccount:", profileError);
+        return { data, error: profileError };
+      }
     }
 
     return { data, error: null };

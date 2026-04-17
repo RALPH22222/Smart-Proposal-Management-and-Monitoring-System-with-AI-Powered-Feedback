@@ -8,6 +8,10 @@ export type CreateAccountPayload = {
   last_name: string;
   middle_ini?: string;
   roles: string[];
+  birth_date: string;
+  sex: "male" | "female" | "prefer_not_to_say";
+  department_id: string;
+  photo?: File | null;
 };
 
 export type InviteUserPayload = {
@@ -48,8 +52,21 @@ export type ReassignmentPayload = {
 
 export const AccountApi = {
   createAccount: async (payload: CreateAccountPayload) => {
-    const { data } = await api.post("/admin/create-account", payload, {
+    const form = new FormData();
+    form.append("email", payload.email);
+    form.append("password", payload.password);
+    form.append("first_name", payload.first_name);
+    form.append("last_name", payload.last_name);
+    if (payload.middle_ini) form.append("middle_ini", payload.middle_ini);
+    form.append("roles", JSON.stringify(payload.roles));
+    form.append("birth_date", payload.birth_date);
+    form.append("sex", payload.sex);
+    form.append("department_id", payload.department_id);
+    if (payload.photo) form.append("photo", payload.photo);
+
+    const { data } = await api.post("/admin/create-account", form, {
       withCredentials: true,
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
   },

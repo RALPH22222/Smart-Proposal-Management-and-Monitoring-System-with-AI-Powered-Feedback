@@ -165,10 +165,12 @@ export class BackendStack extends Stack {
 
     const adminL = new AdminLambdas(this, "AdminLambdas", {
       sharedRole: adminLambdaRole,
+      profileSetupBucket: profile_setup_bucket,
       supabaseKey: SUPABASE_KEY,
       supabaseSecretJwt: SUPABASE_SECRET_JWT,
       supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
       frontendUrl: FRONTEND_URL,
+      stageName,
     });
 
     const profileL = new ProfileLambdas(this, "ProfileLambdas", {

@@ -41,7 +41,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
         return;
       }
 
-      // Check profile status and password change requirement
+      // Password change is the only post-login gate. Profile fields are now collected
+      // at registration (or by admin at account creation), so the legacy /profile-setup
+      // redirect was removed.
       try {
         const { data } = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>("/auth/profile-status");
 
@@ -49,11 +51,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
 
         if (data.passwordChangeRequired && location.pathname !== "/change-password") {
           navigate("/change-password");
-          return;
-        }
-
-        if (!data.isCompleted && location.pathname !== "/profile-setup" && location.pathname !== "/change-password") {
-          navigate("/profile-setup");
           return;
         }
       } catch (error) {

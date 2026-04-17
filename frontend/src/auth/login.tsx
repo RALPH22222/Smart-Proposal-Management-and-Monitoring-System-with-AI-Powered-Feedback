@@ -84,24 +84,6 @@ export default function Login() {
       return;
     }
 
-    // Check profile status for all roles
-    try {
-      const response = await api.get<{ isCompleted: boolean; passwordChangeRequired: boolean }>('/auth/profile-status');
-      if (response.data.passwordChangeRequired) {
-        hardNavigate("/change-password");
-        return;
-      }
-      if (!response.data.isCompleted) {
-        hardNavigate("/profile-setup");
-        return;
-      }
-    } catch (error) {
-      console.error("Failed to check profile status", error);
-      // Default to profile setup if check fails
-      hardNavigate("/profile-setup");
-      return;
-    }
-
     switch (role.toLowerCase()) {
       case "proponent":
         hardNavigate("/users/Proponent/ProponentMainLayout");

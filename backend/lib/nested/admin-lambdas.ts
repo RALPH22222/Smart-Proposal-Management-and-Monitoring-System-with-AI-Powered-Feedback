@@ -3,14 +3,17 @@ import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { IRole } from "aws-cdk-lib/aws-iam";
+import { IBucket } from "aws-cdk-lib/aws-s3";
 import path from "path";
 
 interface AdminLambdasProps {
   sharedRole: IRole;
+  profileSetupBucket: IBucket;
   supabaseKey: string;
   supabaseSecretJwt: string;
   supabaseServiceRoleKey: string;
   frontendUrl: string;
+  stageName: string;
 }
 
 export class AdminLambdas extends NestedStack {
@@ -44,7 +47,7 @@ export class AdminLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
-    const { sharedRole, supabaseKey, supabaseSecretJwt, supabaseServiceRoleKey, frontendUrl } = props;
+    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, supabaseServiceRoleKey, frontendUrl, stageName } = props;
 
     const defaults = {
       memorySize: 128,
@@ -139,8 +142,13 @@ export class AdminLambdas extends NestedStack {
       functionName: "pms-admin-create-account",
       entry: path.resolve("src", "handlers", "admin", "create-account.ts"),
       role: sharedRole,
-      environment: sharedEnv,
+      environment: {
+        SUPABASE_KEY: supabaseKey,
+        PROFILE_SETUP_BUCKET_NAME: `pms-profile-setup-bucket-${stageName}`,
+        TZ: "Asia/Manila",
+      },
     });
+    profileSetupBucket.grantPut(this.createAccount);
 
     this.getAccounts = new NodejsFunction(this, "get-accounts", {
       ...defaults,
