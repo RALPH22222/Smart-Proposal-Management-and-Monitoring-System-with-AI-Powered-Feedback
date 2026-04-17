@@ -101,7 +101,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   if (!project || detailLoading || !details) {
     return (
-      <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
         <div className="bg-white p-6 rounded-xl shadow-xl flex items-center gap-3">
           <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
           <span className="text-slate-700 font-medium">Loading details...</span>
@@ -534,7 +534,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   // --- MAIN LAYOUT ---
   return (
-    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200 max-h-[90vh]">
 
         <div className="p-6 border-b border-slate-200 flex justify-between items-start bg-white rounded-t-2xl sticky top-0 z-10">
