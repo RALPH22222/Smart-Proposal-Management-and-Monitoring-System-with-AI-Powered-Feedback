@@ -5,7 +5,6 @@ import {
   FaExclamationTriangle,
   FaMagic,
   FaFingerprint,
-  FaBook,
   FaLightbulb,
   FaGlobeAmericas,
   FaCheckCircle
