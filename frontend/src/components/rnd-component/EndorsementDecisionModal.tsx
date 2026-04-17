@@ -439,7 +439,7 @@ export default function EndorsementDecisionModal({
                         <span className="text-xs text-slate-400">— {activeTab}</span>
                       </div>
                       <div className="divide-y divide-slate-100">
-                        {scoredEvaluators.map((ev, idx) => {
+                        {scoredEvaluators.map((ev) => {
                           const score = (ev.ratings as any)[ratingKey] as number;
                           const desc = ratingDescriptions[ratingKey][score];
                           const dotColor =
@@ -454,7 +454,7 @@ export default function EndorsementDecisionModal({
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
                               <div className="min-w-0">
                                 <span className={`text-xs font-bold ${scoreColor}`}>{getRatingLabel(score)}</span>
-                                <span className="text-[10px] text-slate-400 ml-1">· Evaluator {idx + 1}</span>
+                                <span className="text-[10px] text-slate-400 ml-1">· {ev.evaluatorName}</span>
                                 <p className="text-[11px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{desc}</p>
                               </div>
                             </div>
