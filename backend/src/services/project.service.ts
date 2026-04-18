@@ -38,6 +38,11 @@ export class ProjectService {
    * - RND/Admin see all projects
    */
   async getFundedProjects(input: GetFundedProjectsInput) {
+    // Enriched select: everything needed to power BOTH the monitoring card UI and the
+    // funded-projects CSV export in a single query. We intentionally avoid an N+1 fetch
+    // of getBudgetSummary per row — instead we pull fund_request_items + proposal_budget_versions
+    // inline and reduce in memory below. Kept join-compact so the payload stays reasonable
+    // even with 50+ projects.
     let query = this.db
       .from("funded_projects")
       .select(
@@ -50,7 +55,8 @@ export class ProjectService {
           plan_start_date,
           plan_end_date,
           department:departments (id, name),
-          sector:sectors (id, name)
+          sector:sectors (id, name),
+          estimated_budget (amount)
         ),
         project_lead:users!project_lead_id (
           id,
@@ -65,7 +71,20 @@ export class ProjectService {
           progress,
           created_at
         ),
-        fund_requests (status)
+        fund_requests (
+          id,
+          status,
+          created_at,
+          fund_request_items (amount)
+        ),
+        project_terminal_reports (status),
+        project_extension_requests (status),
+        project_members (
+          role,
+          status,
+          user:users!user_id (first_name, last_name)
+        ),
+        active_budget_version:proposal_budget_versions!current_budget_version_id (grand_total)
       `
       )
       .order("created_at", { ascending: false });
@@ -159,32 +178,107 @@ export class ProjectService {
       return { data: null, error };
     }
 
-    // Calculate completion percentage based on latest report + surface two
-    // actionable summaries so the monitoring dashboard can show them without
-    // extra per-project calls.
+    // Compute every field the monitoring card UI + CSV export need, from data already
+    // pulled in the join above. No extra queries — this is the hot path on the dashboard.
     const projectsWithCompletion = data?.map((project) => {
-      const latestReport = project.project_reports?.sort(
-        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
-
       const reports: any[] = project.project_reports || [];
       const fundRequests: any[] = project.fund_requests || [];
+      const terminal: any[] = project.project_terminal_reports || [];
+      const extensions: any[] = project.project_extension_requests || [];
+      const members: any[] = project.project_members || [];
+      const activeVersion: any = project.active_budget_version || null;
+
+      const latestReport = reports
+        .slice()
+        .sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0];
 
       const overdue_reports_count = reports.filter((r) => r.status === "overdue").length;
+      const verified_reports_count = reports.filter((r) => r.status === "verified").length;
+      const reports_submitted_count = reports.filter((r) => r.status !== "overdue").length;
       const pending_fund_requests_count = fundRequests.filter(
         (fr) => fr.status === "pending",
       ).length;
+      const pending_extensions_count = extensions.filter((e) => e.status === "pending").length;
 
-      // Strip fund_requests from the outgoing payload — the monitoring UI
-      // only needs the count, not the raw rows.
-      const { fund_requests: _fr, ...rest } = project;
+      const terminal_report_verified =
+        terminal.length > 0 && terminal.some((t: any) => t.status === "verified");
+
+      // Co-leads: role='co_lead', status='active'. Inactive/pending/declined invitations excluded.
+      const co_leads = members
+        .filter((m: any) => m.role === "co_lead" && m.status === "active")
+        .map((m: any) => ({
+          first_name: m.user?.first_name ?? null,
+          last_name: m.user?.last_name ?? null,
+        }));
+
+      // Budget: authoritative total from active budget version; fallback to legacy
+      // estimated_budget for projects that predate the Phase 1 LIB migration (e.g. project 8).
+      // If neither exists, total is null — the UI/CSV renders blank rather than a bogus zero.
+      let total_budget: number | null = null;
+      if (activeVersion?.grand_total != null) {
+        total_budget = Number(activeVersion.grand_total) || 0;
+      } else {
+        const legacy = (project.proposal?.estimated_budget || []) as { amount: number }[];
+        if (legacy.length > 0) {
+          total_budget = legacy.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+        }
+      }
+
+      // Approved / utilized from fund request items. Approved = items on approved FRs.
+      // Utilized = same (we don't track partial liquidation at this level yet — that's
+      // project_expenses, which is per-report and too granular for a list view).
+      let approved_amount = 0;
+      for (const fr of fundRequests) {
+        if (fr.status !== "approved") continue;
+        const items = (fr.fund_request_items || []) as { amount: number }[];
+        for (const it of items) approved_amount += Number(it.amount) || 0;
+      }
+      const utilized_amount = approved_amount;
+      const remaining_amount =
+        total_budget != null ? total_budget - approved_amount : null;
+
+      // Last activity: max created_at across reports + fund requests. NULL-safe.
+      const activityDates: number[] = [];
+      for (const r of reports) {
+        const t = new Date(r.created_at).getTime();
+        if (!isNaN(t)) activityDates.push(t);
+      }
+      for (const fr of fundRequests) {
+        const t = new Date(fr.created_at).getTime();
+        if (!isNaN(t)) activityDates.push(t);
+      }
+      const last_activity_at =
+        activityDates.length > 0 ? new Date(Math.max(...activityDates)).toISOString() : null;
+
+      // Strip heavy inline joins — the monitoring list + CSV only need the computed
+      // aggregates, not the raw rows.
+      const {
+        fund_requests: _fr,
+        project_terminal_reports: _tr,
+        project_extension_requests: _er,
+        project_members: _pm,
+        active_budget_version: _abv,
+        ...rest
+      } = project;
 
       return {
         ...rest,
         completion_percentage: latestReport?.progress || 0,
         reports_count: reports.length,
+        reports_submitted_count,
+        verified_reports_count,
         overdue_reports_count,
         pending_fund_requests_count,
+        pending_extensions_count,
+        terminal_report_verified,
+        co_leads,
+        total_budget,
+        approved_amount,
+        utilized_amount,
+        remaining_amount,
+        last_activity_at,
       };
     });
 

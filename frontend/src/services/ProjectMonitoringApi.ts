@@ -69,10 +69,22 @@ export interface ApiFundedProject {
   status: "on_going" | "completed" | "on_hold" | "blocked";
   funded_date: string;
   created_at: string;
+  // Aggregates computed server-side by getFundedProjects. Populated for the list/CSV view;
+  // the detail modal has its own, more authoritative calls for budget summary.
   completion_percentage: number;
   reports_count: number;
+  reports_submitted_count: number;
+  verified_reports_count: number;
   overdue_reports_count: number;
   pending_fund_requests_count: number;
+  pending_extensions_count: number;
+  terminal_report_verified: boolean;
+  co_leads: { first_name: string | null; last_name: string | null }[];
+  total_budget: number | null;
+  approved_amount: number;
+  utilized_amount: number;
+  remaining_amount: number | null;
+  last_activity_at: string | null;
   proposal: {
     id: number;
     project_title: string;
@@ -272,12 +284,30 @@ export function transformToProject(fp: ApiFundedProject): Project {
     researchArea: fp.proposal?.sector?.name || "",
     startDate: fp.proposal?.plan_start_date || fp.funded_date || "",
     endDate: fp.proposal?.plan_end_date || "",
-    budget: 0, // Budget only available in detail view
+    // Budget now populated from the enriched list query. Falls back to 0 for legacy
+    // projects with neither an active budget version nor a legacy estimated_budget row.
+    budget: fp.total_budget ?? 0,
     status: mapBackendStatus(fp.status),
     completionPercentage: fp.completion_percentage || 0,
     lastModified: fp.created_at || "",
     overdueReportsCount: fp.overdue_reports_count ?? 0,
     pendingFundRequestsCount: fp.pending_fund_requests_count ?? 0,
+
+    // Extended fields for CSV export.
+    coLeads: (fp.co_leads ?? []).map((c) => ({
+      firstName: c.first_name,
+      lastName: c.last_name,
+    })),
+    fundedDate: fp.funded_date ?? null,
+    reportsSubmittedCount: fp.reports_submitted_count ?? 0,
+    verifiedReportsCount: fp.verified_reports_count ?? 0,
+    pendingExtensionsCount: fp.pending_extensions_count ?? 0,
+    terminalReportVerified: fp.terminal_report_verified ?? false,
+    totalBudget: fp.total_budget ?? null,
+    approvedAmount: fp.approved_amount ?? 0,
+    utilizedAmount: fp.utilized_amount ?? 0,
+    remainingAmount: fp.remaining_amount ?? null,
+    lastActivityAt: fp.last_activity_at ?? null,
   };
 }
 
