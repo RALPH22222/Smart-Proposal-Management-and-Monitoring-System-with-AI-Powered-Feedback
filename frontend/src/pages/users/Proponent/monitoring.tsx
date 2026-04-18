@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   FaChartLine
 } from 'react-icons/fa';
@@ -155,6 +156,7 @@ const MonitoringPage: React.FC = () => {
   const [extensionReason, setExtensionReason] = useState('');
   const [extensionDate, setExtensionDate] = useState('');
   const [extensionType, setExtensionType] = useState<'time_only' | 'with_funding'>('time_only');
+  const [extensionSubmitting, setExtensionSubmitting] = useState(false);
 
   // Financial report modal
   const [showFinancialReport, setShowFinancialReport] = useState(false);
@@ -965,7 +967,23 @@ const MonitoringPage: React.FC = () => {
             </div>
             <div className="flex gap-2 flex-wrap">
               {['all', 'active', 'delayed', 'completed'].map((status) => (
-                <button key={status} onClick={() => setFilterStatus(status)} className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-colors ${filterStatus === status ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{status}</button>
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold capitalize transition-colors ${
+                    filterStatus === status
+                      ? status === 'all'
+                        ? 'bg-[#C8102E] text-white'
+                        : status === 'active'
+                          ? 'bg-emerald-600 text-white'
+                          : status === 'delayed'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {status}
+                </button>
               ))}
             </div>
           </div>
@@ -1084,7 +1102,7 @@ const MonitoringPage: React.FC = () => {
                         <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Ends: {formatDate(activeProject.endDate)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap sm:justify-end">
                       {isExternalUser && (
                         <button
                           onClick={() => setShowLinkEmailModal(true)}
@@ -1103,10 +1121,10 @@ const MonitoringPage: React.FC = () => {
                           <button
                             onClick={() => setShowRealignmentModal(true)}
                             disabled={activeRealignment?.status === 'pending_review'}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`inline-flex items-center justify-center gap-2 min-w-[150px] px-4 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                               activeRealignment?.status === 'revision_requested'
-                                ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 focus-visible:ring-blue-400'
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus-visible:ring-indigo-400'
                             }`}
                             title={
                               activeRealignment?.status === 'pending_review'
@@ -1123,10 +1141,11 @@ const MonitoringPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => setIsExtensionModalOpen(true)}
-                            className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                            className="inline-flex items-center justify-center gap-2 min-w-[150px] px-4 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
                             title="Request Extension"
                           >
-                            <CalendarClock className="w-5 h-5" />
+                            <CalendarClock className="w-4 h-4" />
+                            Request Extension
                           </button>
                         </>
                       )}
@@ -1962,9 +1981,9 @@ const MonitoringPage: React.FC = () => {
                 <div className="mt-4">
                   <button
                     onClick={() => setShowFinancialReport(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-sm transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl border border-emerald-200 text-sm transition-colors"
                   >
-                    <PieChart className="w-4 h-4" />
+                    <PieChart className="w-4 h-4" strokeWidth={2.6} />
                     View Financial Report
                   </button>
                 </div>
@@ -1984,41 +2003,88 @@ const MonitoringPage: React.FC = () => {
       </section>
 
       {/* --- EXTENSION MODAL --- */}
-      {isExtensionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto">
-            <button onClick={() => setIsExtensionModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3"><CalendarClock className="w-6 h-6" /></div>
-              <h3 className="text-xl font-bold text-gray-800">Request Extension</h3>
-            </div>
-            <div className="space-y-4">
-              <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
-                <button onClick={() => setExtensionType('time_only')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'time_only' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}>Time Only</button>
-                <button onClick={() => setExtensionType('with_funding')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'with_funding' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}>With Funding</button>
+      {isExtensionModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center">
+                  <CalendarClock className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">Request Extension</h3>
+                  <p className="text-xs text-gray-500">Adjust project timeline and optional funding note.</p>
+                </div>
               </div>
-              {extensionType === 'with_funding' && (
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <p>Note: Additional funding requires a new proposal justification.</p>
+              <button
+                onClick={() => setIsExtensionModalOpen(false)}
+                disabled={extensionSubmitting}
+                className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
+              {extensionSubmitting ? (
+                <div className="space-y-4">
+                  <div className="p-1 bg-white rounded-lg border border-gray-100">
+                    <div className="grid grid-cols-2 gap-3">
+                      <SkeletonPulse className="h-9 rounded-md" />
+                      <SkeletonPulse className="h-9 rounded-md" />
+                    </div>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-lg p-3 space-y-2">
+                    <SkeletonPulse className="h-3 w-1/3 rounded" />
+                    <SkeletonPulse className="h-3 w-5/6 rounded" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonPulse className="h-3 w-1/4 rounded" />
+                    <SkeletonPulse className="h-11 w-full rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonPulse className="h-3 w-1/4 rounded" />
+                    <SkeletonPulse className="h-24 w-full rounded-xl" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
+                    <button onClick={() => setExtensionType('time_only')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'time_only' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}>Time Only</button>
+                    <button onClick={() => setExtensionType('with_funding')} className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${extensionType === 'with_funding' ? 'bg-white shadow text-amber-600' : 'text-gray-500'}`}>With Funding</button>
+                  </div>
+                  {extensionType === 'with_funding' && (
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <p>Note: Additional funding requires a new proposal justification.</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">New End Date</label>
+                    <input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Reason</label>
+                    <textarea value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)} placeholder="Reason for delay..." className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm h-24 resize-none" />
+                  </div>
                 </div>
               )}
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">New End Date</label>
-                <input type="date" value={extensionDate} onChange={(e) => setExtensionDate(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Reason</label>
-                <textarea value={extensionReason} onChange={(e) => setExtensionReason(e.target.value)} placeholder="Reason for delay..." className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm h-24 resize-none" />
-              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
+              <button
+                onClick={() => setIsExtensionModalOpen(false)}
+                disabled={extensionSubmitting}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Cancel
+              </button>
               <button
                 onClick={async () => {
                   if (!activeBackend) return;
-                  Swal.fire({
-                    title: 'Submitting extension request...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading(),
-                  });
+                  setExtensionSubmitting(true);
                   try {
                     await requestProjectExtension(
                       activeBackend.id,
@@ -2034,17 +2100,21 @@ const MonitoringPage: React.FC = () => {
                   } catch (err: any) {
                     const msg = err?.response?.data?.message || 'Failed to submit extension request.';
                     Swal.fire('Error', msg, 'error');
+                  } finally {
+                    setExtensionSubmitting(false);
                   }
                 }}
-                disabled={!extensionDate || !extensionReason.trim()}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                disabled={extensionSubmitting || !extensionDate || !extensionReason.trim()}
+                className="px-4 py-2 text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-2"
               >
+                {extensionSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Request
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
       {/* Phase 3 of LIB feature: budget realignment modal. Pass existingRealignment when
           R&D has sent it back for revision so the modal seeds from the previous attempt. */}
@@ -2065,7 +2135,7 @@ const MonitoringPage: React.FC = () => {
       {/* External → internal upgrade: enter new WMSU email, Supabase sends verification
           link, authorizer auto-upgrades account_type on next login */}
       {showLinkEmailModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-t-2xl">
               <div>

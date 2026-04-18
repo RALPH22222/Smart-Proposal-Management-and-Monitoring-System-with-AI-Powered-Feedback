@@ -18,7 +18,7 @@ interface TeamMembersSectionProps {
 const roleBadge = (role: string) => {
   if (role === "lead") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#FDECEF] text-[#C8102E] border border-[#F7C6D0]">
         <Crown size={12} /> Lead
       </span>
     );
@@ -148,9 +148,9 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
           <>
             {/* --- Project Lead Row (always first, distinct design) --- */}
             {projectLead && (
-              <div className="flex items-center justify-between px-5 py-3 bg-amber-50 border-l-4 border-amber-400">
+              <div className="flex items-center justify-between px-5 py-3 bg-[#FFF5F7] border-l-4 border-[#C8102E]">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-amber-500/20">
+                  <div className="w-9 h-9 rounded-full bg-[#C8102E] flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-[#A50D26]/20">
                     {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
                   </div>
                   <div className="min-w-0">
@@ -160,13 +160,13 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
                           ? `${projectLead.first_name || ""} ${projectLead.last_name || ""}`.trim()
                           : "Unnamed Lead"}
                       </p>
-                      <Crown size={12} className="text-amber-500 shrink-0" />
+                      <Crown size={12} className="text-[#C8102E] shrink-0" />
                     </div>
                     <p className="text-xs text-gray-500 truncate">{projectLead.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#FDECEF] text-[#C8102E] border border-[#F7C6D0]">
                     <Crown size={11} /> Project Lead
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>

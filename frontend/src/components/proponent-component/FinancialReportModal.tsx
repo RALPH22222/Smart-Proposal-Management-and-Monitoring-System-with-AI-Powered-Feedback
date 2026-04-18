@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, DollarSign } from 'lucide-react';
 import {
   fetchFinancialReport,
   type ApiFinancialReport,
   type FinancialReportLineItem,
   type FinancialReportSummary,
 } from '../../services/ProjectMonitoringApi';
+import SkeletonPulse from '../shared/SkeletonPulse';
 
 interface Props {
   fundedProjectId: number;
@@ -75,28 +77,74 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
+  const modalContent = (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-              <DollarSign className="w-5 h-5" />
+              <DollarSign className="w-5 h-5" strokeWidth={2.6} />
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-800">Financial Report</h3>
               <p className="text-xs text-gray-500">{projectTitle}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-auto p-5">
+        <div className="flex-1 overflow-auto p-5 bg-slate-50">
           {loading && (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            <div className="space-y-4 animate-pulse">
+              <div className="flex items-center gap-4 mb-4">
+                <SkeletonPulse className="h-4 w-28" />
+                <SkeletonPulse className="h-4 w-40" />
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-800 px-3 py-3 flex items-center gap-3">
+                  <SkeletonPulse className="h-4 w-6 bg-slate-500/70" />
+                  <SkeletonPulse className="h-4 w-36 bg-slate-500/70" />
+                  <SkeletonPulse className="h-4 w-28 ml-auto bg-slate-500/70" />
+                  <SkeletonPulse className="h-4 w-24 bg-slate-500/70" />
+                  <SkeletonPulse className="h-4 w-24 bg-slate-500/70" />
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {[1, 2, 3].map((section) => (
+                    <div key={section}>
+                      <div className="bg-slate-100 px-3 py-2">
+                        <SkeletonPulse className="h-4 w-56" />
+                      </div>
+                      {[1, 2, 3].map((row) => (
+                        <div key={`${section}-${row}`} className="px-3 py-2 grid grid-cols-10 gap-2 items-center bg-white">
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-3" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                          <SkeletonPulse className="h-3 col-span-1" />
+                        </div>
+                      ))}
+                      <div className="px-3 py-2 bg-slate-50 grid grid-cols-10 gap-2">
+                        <SkeletonPulse className="h-3 col-span-3" />
+                        <SkeletonPulse className="h-3 col-span-2 ml-auto" />
+                        <SkeletonPulse className="h-3 col-span-2 ml-auto" />
+                        <SkeletonPulse className="h-3 col-span-2 ml-auto" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -166,7 +214,20 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
             </div>
           )}
         </div>
+
+        {/* Footer (static: no loading state) */}
+        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 shadow-sm transition-all"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }

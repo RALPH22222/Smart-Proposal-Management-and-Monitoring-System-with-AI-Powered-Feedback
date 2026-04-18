@@ -32,7 +32,7 @@ const ProponentFloatingNotification: React.FC<ProponentFloatingNotificationProps
   }));
 
   return (
-    <div className="fixed bottom-6 right-6 z-30" ref={notifRef}>
+    <div className="fixed bottom-6 right-6 z-20" ref={notifRef}>
       <button
         onClick={() => setNotificationsOpen(!notificationsOpen)}
         className={`relative p-4 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 flex items-center justify-center group ${

@@ -9,8 +9,10 @@
 // "Realignment under review" and the same form is locked until the decision lands.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
+  Banknote,
   Plus,
   Trash2,
   Loader2,
@@ -32,6 +34,7 @@ import {
   type RealignmentRecord,
 } from '../../services/ProjectMonitoringApi';
 import { parseLibDocument, type ParsedLibItemDto } from '../../services/proposal.api';
+import SkeletonPulse from '../shared/SkeletonPulse';
 
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const formatPHP = (n: number) =>
@@ -448,26 +451,34 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl flex flex-col max-h-[94vh]">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#C8102E] to-[#E03A52] text-white">
-          <div>
+  const modalContent = (
+    <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+              <Banknote className="w-5 h-5" strokeWidth={2.6} />
+            </div>
+            <div>
             <h3 className="font-bold text-lg">
               {isReviseMode ? 'Revise Budget Realignment' : 'Request Budget Realignment'}
             </h3>
-            <p className="text-xs text-white/80">
+            <p className="text-xs text-gray-500">
               {isReviseMode
                 ? 'Update your previous submission based on the R&D feedback below.'
                 : 'Move money between line items without exceeding the original ceiling.'}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50">
           {isReviseMode && existingRealignment?.review_note && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm flex items-start gap-2">
               <MessageSquareWarning className="w-4 h-4 mt-0.5 shrink-0 text-blue-600" />
@@ -478,8 +489,47 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
             </div>
           )}
           {loading && (
-            <div className="flex items-center justify-center py-10 text-gray-500">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading current budget...
+            <div className="space-y-5 animate-pulse">
+              <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+                <SkeletonPulse className="h-3 w-full sm:w-2/3" />
+                <SkeletonPulse className="h-4 w-32" />
+              </div>
+
+              {[1, 2, 3].map((cat) => (
+                <div key={cat} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  <div className="bg-slate-100 px-3 py-2 flex items-center justify-between">
+                    <SkeletonPulse className="h-3 w-40" />
+                    <SkeletonPulse className="h-3 w-20" />
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {[1, 2].map((row) => (
+                      <div key={row} className="p-2">
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <SkeletonPulse className="col-span-2 h-8 rounded" />
+                          <SkeletonPulse className="col-span-3 h-8 rounded" />
+                          <SkeletonPulse className="col-span-2 h-8 rounded" />
+                          <SkeletonPulse className="col-span-1 h-8 rounded" />
+                          <SkeletonPulse className="col-span-1 h-8 rounded" />
+                          <SkeletonPulse className="col-span-1 h-8 rounded" />
+                          <SkeletonPulse className="col-span-1 h-8 rounded" />
+                          <SkeletonPulse className="col-span-1 h-8 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+                <SkeletonPulse className="h-3 w-40" />
+                <SkeletonPulse className="h-24 w-full rounded-lg" />
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-3">
+                <SkeletonPulse className="h-3 w-36" />
+                <SkeletonPulse className="h-10 w-full rounded-lg" />
+                <SkeletonPulse className="h-10 w-48 rounded-lg" />
+              </div>
             </div>
           )}
 
@@ -511,7 +561,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                       </div>
                       <button
                         onClick={() => addRow(cat)}
-                        className="text-xs text-[#C8102E] font-bold flex items-center gap-1 hover:underline"
+                        className="text-xs text-blue-700 font-bold flex items-center gap-1 hover:underline"
                       >
                         <Plus className="w-3 h-3" /> Add line item
                       </button>
@@ -528,21 +578,21 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                                 placeholder="Source"
                                 value={row.source}
                                 onChange={(e) => updateRow(row.uid, { source: e.target.value })}
-                                className="col-span-2 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className="col-span-2 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                               />
                               <input
                                 type="text"
                                 placeholder="Item name *"
                                 value={row.itemName}
                                 onChange={(e) => updateRow(row.uid, { itemName: e.target.value })}
-                                className="col-span-3 px-2 py-1.5 border border-gray-200 rounded text-xs font-medium focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className="col-span-3 px-2 py-1.5 border border-gray-200 rounded text-xs font-medium focus:ring-1 focus:ring-blue-500 outline-none"
                               />
                               <input
                                 type="text"
                                 placeholder="Spec"
                                 value={row.spec}
                                 onChange={(e) => updateRow(row.uid, { spec: e.target.value })}
-                                className="col-span-2 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className="col-span-2 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                               />
                               <input
                                 type="number"
@@ -551,14 +601,14 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                                 placeholder="Qty"
                                 value={row.quantity || ''}
                                 onChange={(e) => updateRow(row.uid, { quantity: parseFloat(e.target.value) || 0 })}
-                                className="col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className="col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-blue-500 outline-none"
                               />
                               <input
                                 type="text"
                                 placeholder="Unit"
                                 value={row.unit}
                                 onChange={(e) => updateRow(row.uid, { unit: e.target.value })}
-                                className="col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#C8102E] outline-none"
+                                className="col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                               />
                               <input
                                 type="number"
@@ -568,7 +618,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                                 placeholder="Unit ₱"
                                 value={row.unitPrice || ''}
                                 onChange={(e) => updateRow(row.uid, { unitPrice: parseFloat(e.target.value) || 0 })}
-                                className={`col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-[#C8102E] outline-none ${NO_SPINNER_CLASS}`}
+                                className={`col-span-1 px-2 py-1.5 border border-gray-200 rounded text-xs font-mono text-right focus:ring-1 focus:ring-blue-500 outline-none ${NO_SPINNER_CLASS}`}
                               />
                               <div className="col-span-1 px-2 py-1.5 border border-gray-200 bg-gray-50 rounded text-xs font-mono text-right truncate" title={formatPHP(row.totalAmount)}>
                                 {formatPHP(row.totalAmount)}
@@ -605,7 +655,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                   rows={3}
                   maxLength={2000}
                   placeholder="e.g. Equipment prices increased; reallocating from communication expenses to cover the difference."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
                 <p className="text-[11px] text-gray-400 mt-1">{reason.length}/2000 characters</p>
               </div>
@@ -674,7 +724,7 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                       type="button"
                       onClick={handleAutoFillFromFile}
                       disabled={autoFilling}
-                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {autoFilling ? (
                         <>
@@ -701,23 +751,23 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         </div>
 
         {/* Sticky footer */}
-        {!loading && !loadError && (
-          <div className="border-t border-gray-100 bg-gray-50 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="text-sm text-gray-700 space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">{formatPHP(baselineTotal)}</span>
-                  <ArrowRight className="w-3 h-3 text-gray-400" />
-                  <span className="font-mono font-bold">{formatPHP(newTotal)}</span>
-                  <span
-                    className={`font-mono font-bold ml-2 ${
-                      delta === 0 ? 'text-slate-500' : delta < 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`}
-                  >
-                    Δ {delta >= 0 ? '+' : ''}{formatPHP(delta)}
-                  </span>
-                </div>
-                {overCeiling ? (
+        <div className="border-t border-gray-100 bg-gray-50 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="text-sm text-gray-700 space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-mono">{formatPHP(baselineTotal)}</span>
+                <ArrowRight className="w-3 h-3 text-gray-400" />
+                <span className="font-mono font-bold">{formatPHP(newTotal)}</span>
+                <span
+                  className={`font-mono font-bold ml-2 ${
+                    delta === 0 ? 'text-slate-500' : delta < 0 ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
+                  Δ {delta >= 0 ? '+' : ''}{formatPHP(delta)}
+                </span>
+              </div>
+              {!loading && !loadError && (
+                overCeiling ? (
                   <div className="text-[11px] text-red-600 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> Exceeds ceiling by {formatPHP(Math.abs(remainingHeadroom))}
                   </div>
@@ -725,45 +775,50 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                   <div className="text-[11px] text-emerald-600 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Under ceiling by {formatPHP(Math.abs(remainingHeadroom))}
                   </div>
+                )
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={
+                  loading ||
+                  !!loadError ||
+                  submitting ||
+                  uploading ||
+                  overCeiling ||
+                  rows.length === 0 ||
+                  (!file && !existingRealignment?.file_url)
+                }
+                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting || uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {uploading ? 'Uploading...' : 'Submitting...'}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Submit for review
+                  </>
                 )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={
-                    submitting ||
-                    uploading ||
-                    overCeiling ||
-                    rows.length === 0 ||
-                    (!file && !existingRealignment?.file_url)
-                  }
-                  className="px-5 py-2 bg-[#C8102E] text-white rounded-lg text-sm font-medium hover:bg-[#a00c24] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {submitting || uploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {uploading ? 'Uploading...' : 'Submitting...'}
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Submit for review
-                    </>
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 };
 
 export default RealignmentFormModal;
