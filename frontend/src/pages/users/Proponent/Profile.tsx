@@ -3,7 +3,7 @@ import DetailedProposalModal from "../../../components/proponent-component/Detai
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import ProposalLifecycleStepper from "../../../components/shared/ProposalLifecycleStepper";
 import { FaListAlt, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays, Table2 } from "lucide-react";
+import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays, FileUser } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import {
@@ -834,7 +834,7 @@ const Profile: React.FC = () => {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg flex-shrink-0">
-                    <Table2 className="text-white text-xl lg:text-2xl" />
+                    <FileUser className="text-white text-xl lg:text-2xl" />
                   </div>
                   <div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
