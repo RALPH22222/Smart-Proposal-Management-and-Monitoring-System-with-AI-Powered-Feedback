@@ -116,6 +116,7 @@ const MonitoringPage: React.FC = () => {
   const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -853,10 +854,16 @@ const MonitoringPage: React.FC = () => {
   };
 
   // --- Filtered projects ---
-  const filteredProjects = projects.filter(p =>
-    (filterStatus === 'all' || p.status.toLowerCase() === filterStatus) &&
-    p.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjects = projects
+    .filter(p =>
+      (filterStatus === 'all' || p.status.toLowerCase() === filterStatus) &&
+      p.title.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.fundedDate || 0).getTime();
+      const dateB = new Date(b.fundedDate || 0).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
 
   // --- Loading ---
 
@@ -961,9 +968,25 @@ const MonitoringPage: React.FC = () => {
         <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)] min-w-0">
           <div className="p-5 border-b border-gray-100">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-[#C8102E]" /> Select Project</h3>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input type="text" placeholder="Find project..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20" />
+            <div className="flex gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Find project..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 transition-all" 
+                />
+              </div>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                className="px-2 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 bg-gray-50/50 cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
             </div>
             <div className="flex gap-2 flex-wrap">
               {['all', 'active', 'delayed', 'completed'].map((status) => (
@@ -990,7 +1013,17 @@ const MonitoringPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
             {/* If not loading and no projects found */}
             {!loading && filteredProjects.length === 0 && (
-              <p className="text-center text-sm text-gray-400 py-8">No projects found.</p>
+              <div className="text-center py-12 px-4">
+                <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                  <Target className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="text-sm font-semibold text-gray-600">No projects found</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-[200px] mx-auto">
+                  {searchTerm || filterStatus !== 'all' 
+                    ? "Try adjusting your search or filters to find what you're looking for."
+                    : "You don't have any active projects in the monitoring phase yet."}
+                </p>
+              </div>
             )}
 
             {loading ? (
@@ -1034,7 +1067,7 @@ const MonitoringPage: React.FC = () => {
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-full flex-1">
                 <PageLoader mode="proponent-monitoring" className="bg-transparent" />
               </div>
-            ) : activeProject && quarters.length > 0 ? (
+            ) : (activeProject && filteredProjects.some(p => p.id === activeProjectId) && quarters.length > 0) ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
 
               {/* --- COMPLETED PROJECT --- */}
@@ -1990,13 +2023,21 @@ const MonitoringPage: React.FC = () => {
               )}
 
             </div>
-          ) : (
+          ) : filteredProjects.length > 0 ? (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex-1 flex flex-col items-center justify-center text-center animate-pulse min-h-[400px]">
               <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
                 <Target className="w-12 h-12 text-gray-200" />
               </div>
               <h3 className="text-xl font-bold text-gray-300 mb-2">Select a Project</h3>
               <p className="text-gray-200 text-sm max-w-xs">Complete project monitoring by selecting a funded project from the list on the left.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex-1 flex flex-col items-center justify-center text-center min-h-[400px]">
+              <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                <Search className="w-12 h-12 text-gray-200" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-400 mb-2">No projects found</h3>
+              <p className="text-gray-300 text-sm max-w-xs">Try adjusting your search or filters to find what you're looking for.</p>
             </div>
           )}
         </div>

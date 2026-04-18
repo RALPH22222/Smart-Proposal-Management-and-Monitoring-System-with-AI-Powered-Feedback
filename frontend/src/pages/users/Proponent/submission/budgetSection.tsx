@@ -11,7 +11,7 @@ import {
   FaExclamationTriangle,
   FaMagic
 } from 'react-icons/fa';
-import { X, Sparkles } from 'lucide-react';
+import { X, Sparkles, HandCoins } from 'lucide-react';
 import type { ExpenseItem, FormData, BudgetItem, BudgetSubcategory } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
 import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
@@ -81,7 +81,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
-            <FaMoneyBillWave className="text-white w-6 h-6" />
+            <HandCoins className="text-white w-6 h-6" />
           </div>
           Budget Requirements
           <AutoFillBadge fieldName="budget" autoFilledFields={autoFilledFields} />

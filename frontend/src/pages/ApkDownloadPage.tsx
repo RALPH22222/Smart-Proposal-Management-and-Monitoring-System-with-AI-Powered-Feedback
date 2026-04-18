@@ -44,7 +44,7 @@ const ApkDownloadPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900">
       {/* Custom Navbar - Inverted colors (white bg, red text/buttons) */}
       <nav className="fixed top-0 w-full z-50 shadow-lg" style={{ backgroundColor: 'rgb(200, 16, 46)' }}>
         <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -98,18 +98,28 @@ const ApkDownloadPage: React.FC = () => {
           </div>
         </div>
       </nav>
-      
+
       {/* Hero Section */}
-      <section className="pt-10 pb-16 bg-gradient-to-br from-white via-white to-gray-50 relative overflow-hidden flex-1 flex items-center">
+      <section className="bg-white relative overflow-hidden flex-1 flex items-center py-12 sm:py-16 lg:py-24">
         {/* Animated background shapes */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-red-100 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
         <div className="absolute top-40 right-10 w-72 h-72 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-red-50 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
 
-        <div className={`max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10 transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          
+        {/* Floating 3D Android Icons */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <BsAndroid2 className="absolute top-[10%] left-[15%] text-green-500/20 w-12 h-12 -rotate-12 animate-float filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.1)]" />
+          <BsAndroid2 className="absolute top-[65%] left-[5%] text-green-600/10 w-24 h-24 rotate-12 animate-float animation-delay-2000 filter drop-shadow-[0_15px_15px_rgba(0,0,0,0.15)]" />
+          <BsAndroid2 className="absolute top-[15%] right-[20%] text-green-500/15 w-16 h-16 rotate-45 animate-float animation-delay-1000 filter drop-shadow-[0_12px_12px_rgba(0,0,0,0.1)]" />
+          <BsAndroid2 className="absolute top-[75%] right-[10%] text-green-400/10 w-32 h-32 -rotate-45 animate-float animation-delay-3000 filter drop-shadow-[0_20px_20px_rgba(0,0,0,0.2)]" />
+          <BsAndroid2 className="absolute top-[40%] left-[40%] text-green-300/5 w-48 h-48 rotate-180 animate-float animation-delay-5000 filter blur-[1px]" />
+          <BsAndroid2 className="absolute top-[20%] left-[80%] text-green-400/20 w-8 h-8 rotate-12 animate-float animation-delay-700" />
+        </div>
+
+        <div className={`max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center relative transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+
           {/* Left Column - Content */}
-          <div className="order-2 lg:order-1">
+          <div className="order-2 lg:order-1 relative z-10">
             {/* Clearer Back to Home Button */}
             <a
               href="/"
@@ -127,7 +137,7 @@ const ApkDownloadPage: React.FC = () => {
               <span className="text-gray-800 block">Project Proposal </span>
               <span className="text-[#C8102E] block">Mobile App</span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-xl">
               Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.
             </p>
@@ -178,17 +188,16 @@ const ApkDownloadPage: React.FC = () => {
           </div>
 
           {/* Right Column - App Image Area */}
-          <div className={`order-1 lg:order-2 relative z-0 mt-16 lg:mt-20 transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-            <div className="relative mx-auto max-w-[280px] z-0 group">
-              {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 w-20 h-20 bg-red-100 rounded-full opacity-70 -z-10 animate-float"></div>
-              <div className="absolute -bottom-6 -left-6 w-28 h-28 bg-red-50 rounded-full opacity-60 -z-10 animate-float animation-delay-2000"></div>
-              
-              <img 
-                src={MobileImage} 
-                alt="RDEC Mobile App" 
-                className="w-full h-auto object-cover rounded-[3rem] shadow-2xl brightness-110 contrast-105 animate-float bg-gray-900 transition-all duration-500 ease-out hover:scale-105 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.4)] hover:rotate-1 hover:brightness-115 cursor-pointer group-hover:[animation-play-state:paused]"
-              />
+          <div className={`order-1 lg:order-2 relative z-[60] mt-8 lg:mt-0 transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+            <div className="relative mx-auto lg:ml-0 w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[380px] xl:max-w-[420px] z-[60] group">
+              {/* App Image Container */}
+              <div className="relative animate-float transition-all duration-500 ease-out hover:rotate-3 group-hover:[animation-play-state:paused]">
+                <img
+                  src={MobileImage}
+                  alt="RDEC Mobile App"
+                  className="w-full h-auto max-h-[70vh] object-contain rounded-[2rem] brightness-110 contrast-105 cursor-pointer mix-blend-multiply"
+                />
+              </div>
             </div>
           </div>
         </div>

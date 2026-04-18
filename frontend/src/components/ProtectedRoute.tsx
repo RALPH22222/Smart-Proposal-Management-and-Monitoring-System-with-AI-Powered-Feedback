@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import { api } from "../utils/axios";
-import RdecLogo from "../assets/IMAGES/RDEC.jpg";
+import LoaderImage from "../assets/IMAGES/Loader-Image.jpg";
 
 type ProtectedRouteProps = {
   roles?: (typeof Role)[keyof typeof Role][];
@@ -118,60 +118,55 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   // Show loading screen while verifying (only on first load)
   if (isVerifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          {/* 3D RDEC Logo */}
-          <div className="relative flex items-center justify-center mb-6" style={{ perspective: '600px' }}>
-            {/* Outer glow ring */}
-            <div className="absolute w-32 h-32 rounded-full bg-gradient-to-r from-[#C8102E]/20 via-red-300/10 to-[#C8102E]/20 blur-xl animate-pulse"></div>
-            {/* Spinning ring behind logo */}
-            <div className="absolute w-28 h-28 rounded-full border-2 border-[#C8102E]/30 animate-spin" style={{ animationDuration: '3s', borderStyle: 'dashed' }}></div>
+          {/* Loader Image with subtle animation */}
+          <div className="relative flex items-center justify-center mb-6">
+            {/* Spinning ring behind loader */}
+            <div className="absolute w-32 h-32 rounded-full border-2 border-[#C8102E]/20 animate-spin" style={{ animationDuration: '4s', borderStyle: 'dashed' }}></div>
 
-            {/* Logo container with 3D float + tilt */}
             <div
-              className="relative w-24 h-24 rounded-full overflow-hidden shadow-[0_20px_40px_rgba(200,16,46,0.35),0_8px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.4)]"
+              className="relative w-28 h-28 rounded-full overflow-hidden shadow-xl"
               style={{
-                animation: 'rdec3d 3s ease-in-out infinite',
-                transformStyle: 'preserve-3d',
+                animation: 'loader-float 3s ease-in-out infinite',
               }}
             >
-              {/* The logo */}
               <img
-                src={RdecLogo}
-                alt="RDEC"
+                src={LoaderImage}
+                alt="Verifying..."
                 className="w-full h-full object-cover"
               />
-              {/* Red transparent overlay — matches login banner style */}
-              <div className="absolute inset-0 bg-[#C8102E]/75 pointer-events-none rounded-full"></div>
             </div>
-
-            {/* Shadow below */}
-            <div className="absolute bottom-0 w-16 h-3 bg-[#C8102E]/20 rounded-full blur-md" style={{ animation: 'rdec3d-shadow 3s ease-in-out infinite' }}></div>
           </div>
 
           <style>{`
-            @keyframes rdec3d {
-              0%, 100% { transform: rotateY(-15deg) rotateX(8deg) translateY(0px); }
-              50% { transform: rotateY(15deg) rotateX(-8deg) translateY(-8px); }
-            }
-            @keyframes rdec3d-shadow {
-              0%, 100% { transform: scaleX(1); opacity: 0.4; }
-              50% { transform: scaleX(0.7); opacity: 0.2; }
+            @keyframes loader-float {
+              0%, 100% { transform: translateY(0px) scale(1); }
+              50% { transform: translateY(-10px) scale(1.02); }
             }
           `}</style>
 
           {/* Loading text */}
-          <div className="mt-6 space-y-2">
-            <h2 className="text-xl font-semibold text-slate-700">Verifying Access</h2>
-            <p className="text-sm text-slate-500">Please wait...</p>
+          <div className="mt-8 space-y-2">
+            <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">Verifying Access</h2>
+            <p className="text-gray-500 font-small">Please wait a moment...</p>
           </div>
 
-          {/* Animated dots */}
-          <div className="flex justify-center gap-1 mt-4">
-            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-[#C8102E] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          {/* Animated progress bar instead of dots for a cleaner look */}
+          <div className="mt-6 w-48 h-1.5 bg-gray-100 rounded-full mx-auto overflow-hidden">
+            <div className="h-full bg-[#C8102E] rounded-full animate-progress-indeterminate"></div>
           </div>
+
+          <style>{`
+            @keyframes progress-indeterminate {
+              0% { transform: translateX(-100%); width: 30%; }
+              50% { transform: translateX(50%); width: 40%; }
+              100% { transform: translateX(200%); width: 30%; }
+            }
+            .animate-progress-indeterminate {
+              animation: progress-indeterminate 1.5s ease-in-out infinite;
+            }
+          `}</style>
         </div>
       </div>
     );

@@ -5,7 +5,7 @@ import {
   Building2,
   Target,
   Calendar,
-  DollarSign,
+  HandCoins,
   Phone,
   RefreshCw,
   Mail,
@@ -2444,8 +2444,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               <div className="lg:col-span-3 bg-slate-50 rounded-xl border border-slate-200 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#C8102E]" /> Estimated
-                    Budget by Source
+                    <HandCoins className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
                   </h3>
                   {canEditBudget && (
                     <button
@@ -2466,7 +2465,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="bg-blue-100 p-1.5 rounded text-blue-700">
-                              <DollarSign className="w-4 h-4" />
+                              <HandCoins className="w-4 h-4" />
                             </div>
                             <div>
                               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>

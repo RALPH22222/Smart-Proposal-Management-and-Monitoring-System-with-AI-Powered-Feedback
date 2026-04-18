@@ -3,7 +3,7 @@ import DetailedProposalModal from "../../../components/proponent-component/Detai
 import HowItWorksModal from "../../../components/proponent-component/HowItWorksModal";
 import ProposalLifecycleStepper from "../../../components/shared/ProposalLifecycleStepper";
 import { FaListAlt, FaTablet } from "react-icons/fa";
-import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays } from "lucide-react";
+import { Microscope, FileText, RefreshCw, Search, Filter, Tag, Edit, Clock, CheckCircle, XCircle, FileCheck, ChevronLeft, ChevronRight, Signature, ChevronDown, Info, CalendarDays, Table2 } from "lucide-react";
 import type { Project, Proposal } from "../../../types/proponentTypes";
 import { getStatusFromIndex } from "../../../types/mockData";
 import {
@@ -15,6 +15,7 @@ import {
 import { getProposals } from "../../../services/proposal.api";
 import { useLookups } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
+import SkeletonPulse from "../../../components/shared/SkeletonPulse";
 
 
 
@@ -519,43 +520,45 @@ const Profile: React.FC = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={`grid-skeleton-${idx}`} className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 animate-pulse flex flex-col">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-5 bg-gray-200 rounded w-3/4" />
+            <div key={`grid-skeleton-${idx}`} className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 flex flex-col h-full">
+              <div className="flex items-start justify-between mb-4">
+                <SkeletonPulse className="h-5 w-3/4 rounded-md" />
               </div>
-              <div className="flex gap-2 mb-3">
-                <div className="h-5 w-16 bg-gray-100 rounded-full border border-gray-200" />
-                <div className="h-5 w-20 bg-gray-100 rounded-full border border-gray-200" />
+              <div className="flex gap-2 mb-4">
+                <SkeletonPulse className="h-5 w-16 rounded-full" />
+                <SkeletonPulse className="h-5 w-20 rounded-full" />
               </div>
-              <div className="space-y-2 mb-4 mt-auto">
+              <div className="space-y-3 mb-5 mt-auto">
                 <div className="flex items-center justify-between">
-                  <div className="h-3 w-12 bg-gray-100 rounded" />
-                  <div className="h-3 w-20 bg-gray-200 rounded" />
+                  <SkeletonPulse className="h-3 w-12" />
+                  <SkeletonPulse className="h-3 w-20" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="h-3 w-14 bg-gray-100 rounded" />
-                  <div className="h-3 w-16 bg-gray-200 rounded" />
+                  <SkeletonPulse className="h-3 w-14" />
+                  <SkeletonPulse className="h-3 w-16" />
                 </div>
               </div>
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="h-3 w-12 bg-gray-100 rounded" />
-                  <div className="h-3 w-8 bg-gray-100 rounded hidden sm:block" />
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="h-2 w-1/3 bg-gray-300 rounded-full" />
-                </div>
+              {/* Stepper Placeholder */}
+              <div className="mb-4 pt-3 border-t border-slate-100 flex justify-between items-center px-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <SkeletonPulse key={i} className="w-3 h-3 rounded-full" />
+                ))}
               </div>
-              <div className="h-6 w-28 bg-gray-100 rounded-full border border-gray-200" />
+              <SkeletonPulse className="h-6 w-32 rounded-full" />
             </div>
           ))}
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <FileText className="w-8 h-8 text-slate-400" />
+        <div className="text-center py-20 px-4">
+          <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+            <FileText className="w-8 h-8 text-slate-300" />
           </div>
-          <p>No projects found matching your criteria.</p>
+          <p className="text-sm font-semibold text-gray-600">No projects found</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-[200px] mx-auto">
+            {searchTerm || typeFilter !== "All" || yearFilter !== "All"
+              ? "Try adjusting your search or filters to find what you're looking for."
+              : "You haven't submitted any research proposals yet."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
@@ -658,25 +661,32 @@ const Profile: React.FC = () => {
         <tbody className="divide-y divide-gray-200">
           {loading && (
             [1, 2, 3, 4, 5].map((idx) => (
-              <tr key={idx} className="animate-pulse">
+              <tr key={idx}>
                 <td className="px-4 lg:px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gray-100 w-9 h-9"></div>
+                    <SkeletonPulse className="w-9 h-9 rounded-lg shrink-0" />
                     <div className="space-y-2 w-full max-w-[420px]">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-100 rounded w-1/3"></div>
+                      <SkeletonPulse className="h-4 w-3/4 rounded" />
+                      <div className="flex gap-2">
+                        <SkeletonPulse className="h-3 w-16 rounded-full" />
+                        <SkeletonPulse className="h-3 w-12 rounded-full" />
+                      </div>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 lg:px-6 py-4"><div className="h-6 bg-gray-100 rounded-full w-28 border border-gray-200"></div></td>
-                <td className="px-4 lg:px-6 py-4 hidden lg:table-cell"><div className="h-4 bg-gray-100 rounded w-20"></div></td>
-                <td className="px-4 lg:px-6 py-4 hidden md:table-cell"><div className="h-4 bg-gray-100 rounded w-16"></div></td>
+                <td className="px-4 lg:px-6 py-4">
+                  <SkeletonPulse className="h-6 w-28 rounded-full" />
+                </td>
+                <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
+                  <SkeletonPulse className="h-4 w-20" />
+                </td>
+                <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
+                  <SkeletonPulse className="h-4 w-16" />
+                </td>
                 <td className="px-4 lg:px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-16 lg:w-20 bg-gray-200 rounded-full h-2">
-                      <div className="h-2 w-1/3 bg-gray-300 rounded-full"></div>
-                    </div>
-                    <div className="h-3 w-8 bg-gray-100 rounded"></div>
+                    <SkeletonPulse className="w-20 h-2 rounded-full" />
+                    <SkeletonPulse className="h-3 w-8" />
                   </div>
                 </td>
               </tr>
@@ -686,11 +696,16 @@ const Profile: React.FC = () => {
           {/* If NOT loading and no data found */}
           {!loading && filteredProjects.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <FileText className="w-8 h-8 text-slate-400" />
+              <td colSpan={6} className="px-4 py-20 text-center">
+                <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
+                  <FileText className="w-8 h-8 text-slate-300" />
                 </div>
-                No projects found.
+                <p className="text-sm font-semibold text-gray-600">No projects found</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-[200px] mx-auto">
+                  {searchTerm || typeFilter !== "All" || yearFilter !== "All"
+                    ? "Try adjusting your search or filters to find what you're looking for."
+                    : "You haven't submitted any research proposals yet."}
+                </p>
               </td>
             </tr>
           )}
@@ -817,15 +832,20 @@ const Profile: React.FC = () => {
           ) : (
             <>
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
-                    {displayedText.prefix}
-                    <span className="text-[#C8102E]">{displayedText.name}</span>
-                    {displayedText.suffix}
-                  </h1>
-                  <p className="text-gray-600 text-sm lg:text-base">
-                    Monitor your research proposals through the entire lifecycle
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg flex-shrink-0">
+                    <Table2 className="text-white text-xl lg:text-2xl" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
+                      {displayedText.prefix}
+                      <span className="text-[#C8102E]">{displayedText.name}</span>
+                      {displayedText.suffix}
+                    </h1>
+                    <p className="text-gray-600 text-sm lg:text-base">
+                      Monitor your research proposals through the entire lifecycle
+                    </p>
+                  </div>
                 </div>
 
                 <div />
