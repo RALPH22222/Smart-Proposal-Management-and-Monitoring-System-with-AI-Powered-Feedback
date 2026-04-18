@@ -43,6 +43,31 @@ const statusBadge = (status: string) => {
   }
 };
 
+const getInitials = (firstName?: string, lastName?: string, email?: string) => {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (firstName) return firstName[0].toUpperCase();
+  if (email) return email[0].toUpperCase();
+  return "?";
+};
+
+const getAvatarColor = (email?: string) => {
+  if (!email) return "bg-gray-100 text-gray-400";
+  const colors = [
+    "bg-blue-100 text-blue-600 border-blue-200",
+    "bg-emerald-100 text-emerald-600 border-emerald-200",
+    "bg-violet-100 text-violet-600 border-violet-200",
+    "bg-rose-100 text-rose-600 border-rose-200",
+    "bg-indigo-100 text-indigo-600 border-indigo-200",
+    "bg-cyan-100 text-cyan-600 border-cyan-200",
+    "bg-orange-100 text-orange-600 border-orange-200",
+  ];
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
 const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
   fundedProjectId,
   isProjectLead,
@@ -125,13 +150,15 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
             {projectLead && (
               <div className="flex items-center justify-between px-5 py-3 bg-amber-50 border-l-4 border-amber-400">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm">
-                    {projectLead.first_name?.[0]}{projectLead.last_name?.[0]}
+                  <div className="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-amber-500/20">
+                    {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {projectLead.first_name} {projectLead.last_name}
+                        {projectLead.first_name || projectLead.last_name 
+                          ? `${projectLead.first_name || ""} ${projectLead.last_name || ""}`.trim()
+                          : "Unnamed Lead"}
                       </p>
                       <Crown size={12} className="text-amber-500 shrink-0" />
                     </div>
@@ -153,12 +180,14 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
             {members.map((member) => (
               <div key={member.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600 shrink-0">
-                    {member.user.first_name?.[0]}{member.user.last_name?.[0]}
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(member.user.email)}`}>
+                    {getInitials(member.user.first_name, member.user.last_name, member.user.email)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {member.user.first_name} {member.user.last_name}
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {member.user.first_name || member.user.last_name
+                        ? `${member.user.first_name || ""} ${member.user.last_name || ""}`.trim()
+                        : "Unnamed Member"}
                     </p>
                     <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
                   </div>
