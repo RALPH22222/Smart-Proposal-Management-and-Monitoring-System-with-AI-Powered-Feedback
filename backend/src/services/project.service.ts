@@ -84,7 +84,7 @@ export class ProjectService {
     // correct, and empty ID sets short-circuit to [] instead of falling through to an
     // unfiltered query.
     if (input.role === "proponent" && input.user_id) {
-      const [{ data: leadRows }, { data: memberships }] = await Promise.all([
+      const [{ data: leadRows }, { data: memberships }, { data: rndAssignments }] = await Promise.all([
         this.db
           .from("funded_projects")
           .select("id")
@@ -94,6 +94,14 @@ export class ProjectService {
           .select("funded_project_id")
           .eq("user_id", input.user_id)
           .eq("status", ProjectMemberStatus.ACTIVE),
+        // COI guard: exclude proposals this user is assigned to review as R&D. A dual-role
+        // user (proponent + rnd) must not see a project on their proponent monitoring if
+        // they're also the reviewer — reviewing your own work is a conflict of interest.
+        // The same projects remain visible on the R&D monitoring view.
+        this.db
+          .from("proposal_rnd")
+          .select("proposal_id")
+          .eq("rnd_id", input.user_id),
       ]);
 
       const allowedIds = new Set<number>();
@@ -103,6 +111,23 @@ export class ProjectService {
       if (allowedIds.size === 0) {
         return { data: [], error: null };
       }
+
+      const rndProposalIds = new Set<number>(
+        (rndAssignments ?? []).map((a: any) => a.proposal_id),
+      );
+      if (rndProposalIds.size > 0) {
+        // Translate proposal ids → funded_project ids so we can subtract from allowedIds.
+        const { data: rndProjects } = await this.db
+          .from("funded_projects")
+          .select("id")
+          .in("proposal_id", Array.from(rndProposalIds));
+        rndProjects?.forEach((r: any) => allowedIds.delete(r.id));
+
+        if (allowedIds.size === 0) {
+          return { data: [], error: null };
+        }
+      }
+
       query = query.in("id", Array.from(allowedIds));
     }
 
