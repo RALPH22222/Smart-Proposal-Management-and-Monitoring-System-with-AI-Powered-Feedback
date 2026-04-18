@@ -49,30 +49,34 @@ export function ProposalInsightButtons({ proposalId, proposalTitle, showRevision
         )}
       </div>
 
-      {/* Panel */}
+      {/* Modal */}
       {isOpen && createPortal(
-        <div className="fixed inset-0 z-[250] flex justify-end" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 sm:p-6" onClick={() => setIsOpen(false)}>
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-black/30" />
 
-          {/* Panel */}
+          {/* Modal Container */}
           <div
-            className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col animate-slide-in-right"
+            className="relative w-full max-w-lg max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-modal-pop"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50">
-              <div>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50 gap-4">
+              <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-slate-800">
                   {activeView === 'timeline' ? 'Proposal Timeline' : 'Revision History'}
                 </h2>
                 {proposalTitle && (
-                  <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[300px]">{proposalTitle}</p>
+                  <div className="overflow-hidden w-full max-w-[350px] mt-0.5" style={{ containerType: 'inline-size' }}>
+                    <p className="text-xs text-slate-500 whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
+                      {proposalTitle}
+                    </p>
+                  </div>
                 )}
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors flex-shrink-0"
               >
                 <X className="w-4 h-4 text-slate-500" />
               </button>
@@ -119,14 +123,19 @@ export function ProposalInsightButtons({ proposalId, proposalTitle, showRevision
         document.body,
       )}
 
-      {/* Slide-in animation */}
+      {/* Modal animation */}
       <style>{`
-        @keyframes slide-in-right {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+        @keyframes modal-pop {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
-        .animate-slide-in-right {
-          animation: slide-in-right 0.2s ease-out;
+        .animate-modal-pop {
+          animation: modal-pop 0.2s ease-out forwards;
+        }
+        @keyframes scrollTitle {
+          0%, 15% { transform: translateX(0); }
+          75%, 85% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+          95%, 100% { transform: translateX(0); }
         }
       `}</style>
     </>

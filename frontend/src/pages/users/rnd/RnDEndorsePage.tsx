@@ -3,6 +3,7 @@ import {
   CheckCircle,
   XCircle,
   RotateCcw,
+  Search,
   FileText,
   Users,
   User,
@@ -39,10 +40,11 @@ import { formatDate, formatDateTime } from '../../../utils/date-formatter';
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
 
-  const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
+  const [proposalsCache, setProposalsCache] = useState<Record<string, EndorsementProposal[]>>({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
@@ -115,7 +117,7 @@ const EndorsePage: React.FC = () => {
 
   const loadEndorsementProposals = async () => {
     try {
-      setLoading(true);
+      if (!proposalsCache[activeTab]) setLoading(true);
       const [data, depts] = await Promise.all([
         getProposalsForEndorsement(activeTab),
         fetchDepartments()
@@ -171,7 +173,7 @@ const EndorsePage: React.FC = () => {
       });
 
       const sorted = mapped.sort((a, b) => Number(b.id) - Number(a.id));
-      setEndorsementProposals(sorted);
+      setProposalsCache(prev => ({ ...prev, [activeTab]: sorted }));
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
       Swal.fire('Error', 'Failed to load endorsement proposals', 'error');
@@ -431,10 +433,20 @@ const EndorsePage: React.FC = () => {
     }
   };
 
+  // Derived proposals & Filtering
+  const endorsementProposals = proposalsCache[activeTab] || [];
+  
+  const filteredProposals = endorsementProposals.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    return p.title.toLowerCase().includes(term) ||
+           p.submittedBy.toLowerCase().includes(term) ||
+           String(p.id).toLowerCase().includes(term);
+  });
+
   // Pagination
-  const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = filteredProposals.slice(startIndex, startIndex + itemsPerPage);
 
   // Helper for Random Department Colors
   const getDepartmentColor = (departmentName: string) => {
@@ -551,9 +563,9 @@ const EndorsePage: React.FC = () => {
         </section>
         )}
 
-        {/* Tab bar — switches between active queue and history tabs */}
-        <section className="flex-shrink-0">
-          <div className="flex flex-wrap bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+        {/* Stepper / Tabs */}
+        <section className="flex-shrink-0 overflow-x-auto pb-2">
+          <div className="flex gap-2">
             {([
               { key: 'active', label: 'Active', icon: Gavel },
               { key: 'revised', label: 'Revised', icon: RotateCcw },
@@ -562,29 +574,41 @@ const EndorsePage: React.FC = () => {
             ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
-              const activeColor =
-                tab.key === 'active' ? 'bg-[#C8102E] text-white' :
-                tab.key === 'revised' ? 'bg-amber-500 text-white' :
-                tab.key === 'rejected' ? 'bg-red-600 text-white' :
-                'bg-emerald-600 text-white';
+              const count = proposalsCache[tab.key] ? proposalsCache[tab.key]!.length : (isActive ? endorsementProposals.length : 0);
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                    isActive ? activeColor : 'text-slate-600 hover:bg-slate-100'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                    isActive
+                      ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                  {isActive && (
-                    <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-white/20 rounded-full">
-                      {endorsementProposals.length}
-                    </span>
-                  )}
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        {/* Search Bar */}
+        <section className="flex-shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search proposals..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+            />
           </div>
         </section>
 
@@ -598,21 +622,21 @@ const EndorsePage: React.FC = () => {
                 {activeTab === 'active'
                   ? 'Endorsement Proposals'
                   : activeTab === 'revised'
-                  ? 'Revised Proposals (History)'
+                  ? 'Revised Proposals'
                   : activeTab === 'rejected'
-                  ? 'Rejected Proposals (History)'
-                  : 'Archived Proposals (Endorsed / Funded)'}
+                  ? 'Rejected Proposals'
+                  : 'Archived Proposals'}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
-                <span>{endorsementProposals.length} total proposals</span>
+                <span>{filteredProposals.length} total proposals</span>
               </div>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {endorsementProposals.length === 0 ? (
-              <div className="text-center py-12 px-4">
+            {filteredProposals.length === 0 ? (
+              <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   {activeTab === 'active' ? (
                     <Gavel className="w-8 h-8 text-slate-400" />
@@ -879,11 +903,11 @@ const EndorsePage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {endorsementProposals.length > 0 && (
+          {filteredProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, endorsementProposals.length)} of {endorsementProposals.length} proposals
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button

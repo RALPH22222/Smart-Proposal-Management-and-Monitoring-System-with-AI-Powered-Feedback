@@ -29,13 +29,11 @@ import { formatDate } from '../../../utils/date-formatter';
 import BlockProjectModal from '../../../components/rnd-component/BlockProjectModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import ProgressRing from '../../../components/shared/ProgressRing';
-// import ProjectHealthBar from '../../../components/shared/ProjectHealthBar';
 
 interface MonitoringPageProps {
   onStatsUpdate?: () => void;
 }
 
-// Fixed: Removed unused 'onStatsUpdate' from destructuring
 const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   const { user } = useAuthContext();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -132,7 +130,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     try {
       await updateProjectStatus(projectToBlock.backendId, 'blocked', user.id);
       handleCloseBlockModal();
-      await Swal.fire('Blocked', `Project ${projectToBlock.projectId} has been shut down and proponents blocked.`, 'success');
+      await Swal.fire('Blocked', `Project has been shut down and proponents blocked.`, 'success');
       loadProjects();
     } catch (error: any) {
       Swal.fire('Error', error?.response?.data?.message || 'Failed to block project.', 'error');
@@ -155,9 +153,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
 
-  // Two previously-dead cards (Completed / On Hold) were always 0 because
-  // no code path writes those statuses. Swapped for actionable counts that
-  // actually change day-to-day.
   const overdueReportsCount = projects.reduce(
     (sum, p) => sum + (p.overdueReportsCount || 0),
     0,
@@ -243,298 +238,290 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     return diffDays;
   };
 
-
-
   if (loading) return <PageLoader mode="table" />;
 
   return (
     <>
-    <div className="w-full min-h-screen overflow-x-hidden px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6">
-        {/* Header */}
-        <header className="flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
-                Project Monitoring
-              </h1>
-              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Track and monitor all research and development projects
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                exportToCsv('funded-projects', filteredProjects, [
-                  { header: 'Project ID', accessor: (p) => p.projectId },
-                  { header: 'Title', accessor: (p) => p.title },
-                  { header: 'Principal Investigator', accessor: (p) => p.principalInvestigator },
-                  { header: 'Department', accessor: (p) => p.department },
-                  { header: 'Start Date', accessor: (p) => p.startDate },
-                  { header: 'End Date', accessor: (p) => p.endDate },
-                  { header: 'Status', accessor: (p) => p.status },
-                  { header: 'Completion %', accessor: (p) => p.completionPercentage },
-                  { header: 'Overdue Reports', accessor: (p) => p.overdueReportsCount ?? 0 },
-                  { header: 'Pending Fund Requests', accessor: (p) => p.pendingFundRequestsCount ?? 0 },
-                ])
-              }
-              disabled={filteredProjects.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title={filteredProjects.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
-          </div>
-        </header>
-
-        {/* Stats Grid */}
-        <section className="flex-shrink-0" aria-label="Project statistics">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {statCards.map((stat, index) => {
-                const IconComponent = stat.icon;
-                return (
-                  <div
-                    key={index}
-                    className={`${stat.bgColor} border border-slate-200 rounded-xl p-3 transition-all duration-300 hover:shadow-lg`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <IconComponent className={`${stat.color} w-4 h-4`} />
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs font-medium text-slate-600">{stat.trend}</span>
-                      </div>
-                    </div>
-                    <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight line-clamp-1">
-                      {stat.title}
-                    </h3>
-                    <p className="text-base font-bold text-slate-800 truncate">
-                      {stat.value}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-
-
-        {/* Filters and Search */}
-        <section className="flex-shrink-0" aria-label="Filter projects">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                />
-              </div>
-
-              {/* Status Filter */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
-                  className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Active">Active ({getStatusCount('Active')})</option>
-                  <option value="Completed">Completed ({getStatusCount('Completed')})</option>
-                  <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
-                  <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4 text-xs text-slate-600">
-              Showing {filteredProjects.length} of {projects.length} projects
-            </div>
-          </div>
-        </section>
-
-        {/* Projects List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+      <div className="w-full min-h-screen overflow-x-hidden px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+        <div className="flex-1 flex flex-col gap-4 lg:gap-6">
+          {/* Header */}
+          <header className="flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#C8102E]" />
-                Research Projects
-              </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Target className="w-4 h-4" />
-                <span>{projects.length} total projects</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {filteredProjects.length === 0 ? (
-              <div className="text-center py-12 px-4 mt-4">
-                <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <BarChart3 className="w-8 h-8 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 mb-2">No projects found</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  Projects will appear here once they are marked as active and ready for monitoring.
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#C8102E] leading-tight">
+                  Project Monitoring
+                </h1>
+                <p className="text-slate-600 mt-2 text-sm leading-relaxed">
+                  Track and monitor all research and development projects
                 </p>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {paginatedProjects.map((project) => {
-                  const daysRemaining = getDaysRemaining(project.endDate);
-                  const isOverdue = daysRemaining < 0 && project.status !== 'Completed';
+              <button
+                onClick={() =>
+                  exportToCsv('funded-projects', filteredProjects, [
+                    { header: 'Title', accessor: (p) => p.title },
+                    { header: 'Principal Investigator', accessor: (p) => p.principalInvestigator },
+                    { header: 'Department', accessor: (p) => p.department },
+                    { header: 'Start Date', accessor: (p) => p.startDate },
+                    { header: 'End Date', accessor: (p) => p.endDate },
+                    { header: 'Status', accessor: (p) => p.status },
+                    { header: 'Completion %', accessor: (p) => p.completionPercentage },
+                    { header: 'Overdue Reports', accessor: (p) => p.overdueReportsCount ?? 0 },
+                    { header: 'Pending Fund Requests', accessor: (p) => p.pendingFundRequestsCount ?? 0 },
+                  ])
+                }
+                disabled={filteredProjects.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title={filteredProjects.length === 0 ? 'No rows to export' : 'Export visible rows to CSV'}
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
+          </header>
 
+          {/* Stats Grid */}
+          <section className="flex-shrink-0" aria-label="Project statistics">
+            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {statCards.map((stat, index) => {
+                  const IconComponent = stat.icon;
                   return (
-                    <article
-                      key={project.id}
-                      className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
+                    <div
+                      key={index}
+                      className={`${stat.bgColor} border border-slate-200 rounded-xl p-3 transition-all duration-300 hover:shadow-lg`}
                     >
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
-                            {project.title}
-                          </h2>
-
-                          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-2">
-                            <div className="flex items-center gap-1.5">
-                              <User className="w-3 h-3" />
-                              <span>{project.principalInvestigator}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="w-3 h-3" />
-                              <span>{project.department}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3" />
-                              <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-medium text-slate-500">ID: {project.projectId}</span>
-                            </div>
-                          </div>
-
-                          {/* Progress */}
-                          <div className="flex items-center gap-3 mb-2">
-                            <ProgressRing
-                              size={36}
-                              strokeWidth={3.5}
-                              percentage={project.status === 'Completed' ? 100 : project.completionPercentage}
-                              color={project.status === 'Completed' ? '#2563eb' : project.status === 'Delayed' ? '#eab308' : project.status === 'On Hold' ? '#8b5cf6' : '#16a34a'}
-                            />
-                            <span className="text-xs font-medium text-slate-700">
-                              {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
-                            </span>
-                          </div>
-
-                          <div className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
-                            {isOverdue ? (
-                              <div className="flex items-center gap-1.5">
-                                <AlertCircle className="w-3 h-3" />
-                                {Math.abs(daysRemaining)} days overdue
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3 h-3" />
-                                {daysRemaining} days remaining
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                          <div className="flex flex-col gap-2 items-start sm:items-end">
-                            <span className={getStatusBadge(project.status)}>
-                              {project.status}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleViewProjectDetails(project)}
-                              className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View Details
-                            </button>
-                            {/* Block Button */}
-                            <button
-                              onClick={() => handleOpenBlockModal(project)}
-                              className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium border border-gray-200 hover:border-red-200"
-                              title="Block Proponent & Shutdown Project"
-                            >
-                              <Ban className="w-3 h-3 mr-1" />
-                              Block
-                            </button>
-                          </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <IconComponent className={`${stat.color} w-4 h-4`} />
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600">{stat.trend}</span>
                         </div>
                       </div>
-                    </article>
+                      <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight line-clamp-1">
+                        {stat.title}
+                      </h3>
+                      <p className="text-base font-bold text-slate-800 truncate">
+                        {stat.value}
+                      </p>
+                    </div>
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          </section>
 
-          {/* Pagination */}
-          {filteredProjects.length > 0 && (
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-                <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProjects.length)} of {filteredProjects.length} projects
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          {/* Filters and Search */}
+          <section className="flex-shrink-0" aria-label="Filter projects">
+            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
+                  />
+                </div>
+
+                {/* Status Filter */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
+                  </div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
+                    className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
                   >
-                    <ChevronLeft className="w-3 h-3" />
-                    Previous
-                  </button>
-                  <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Next
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                    <option value="All">All Statuses</option>
+                    <option value="Active">Active ({getStatusCount('Active')})</option>
+                    <option value="Completed">Completed ({getStatusCount('Completed')})</option>
+                    <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
+                    <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 text-xs text-slate-600">
+                Showing {filteredProjects.length} of {projects.length} projects
+              </div>
+            </div>
+          </section>
+
+          {/* Projects List */}
+          <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+            <div className="p-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-[#C8102E]" />
+                  Research Projects
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Target className="w-4 h-4" />
+                  <span>{projects.length} total projects</span>
                 </div>
               </div>
             </div>
-          )}
-        </main>
-      </div>
-    </div>
-        {/* Project Detail Modal */}
-        <RnDProjectDetailModal
-          project={selectedProject}
-          isOpen={isDetailModalOpen}
-          onClose={handleCloseDetailModal}
-        />
 
-        {/* Block Project Modal */}
-        <BlockProjectModal
-          isOpen={isBlockModalOpen}
-          project={projectToBlock}
-          onClose={handleCloseBlockModal}
-          onConfirm={handleConfirmBlock}
-        />
+            <div className="flex-1 overflow-y-auto">
+              {filteredProjects.length === 0 ? (
+                <div className="text-center py-12 px-4 mt-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <BarChart3 className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No projects found</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">
+                    Projects will appear here once they are marked as active and ready for monitoring.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {paginatedProjects.map((project) => {
+                    const daysRemaining = getDaysRemaining(project.endDate);
+                    const isOverdue = daysRemaining < 0 && project.status !== 'Completed';
+
+                    return (
+                      <article
+                        key={project.id}
+                        className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200">
+                              {project.title}
+                            </h2>
+
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-3 h-3" />
+                                <span>{project.principalInvestigator}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <MapPin className="w-3 h-3" />
+                                <span>{project.department}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3" />
+                                <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
+                              </div>
+                            </div>
+
+                            {/* Progress */}
+                            <div className="flex items-center gap-3 mb-2">
+                              <ProgressRing
+                                size={36}
+                                strokeWidth={3.5}
+                                percentage={project.status === 'Completed' ? 100 : project.completionPercentage}
+                                color={project.status === 'Completed' ? '#2563eb' : project.status === 'Delayed' ? '#eab308' : project.status === 'On Hold' ? '#8b5cf6' : '#16a34a'}
+                              />
+                              <span className="text-xs font-medium text-slate-700">
+                                {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
+                              </span>
+                            </div>
+
+                            <div className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
+                              {isOverdue ? (
+                                <div className="flex items-center gap-1.5">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {Math.abs(daysRemaining)} days overdue
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3" />
+                                  {daysRemaining} days remaining
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                            <div className="flex flex-col gap-2 items-start sm:items-end">
+                              <span className={getStatusBadge(project.status)}>
+                                {project.status}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleViewProjectDetails(project)}
+                                className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium"
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View Details
+                              </button>
+                              {/* Block Button */}
+                              <button
+                                onClick={() => handleOpenBlockModal(project)}
+                                className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium border border-gray-200 hover:border-red-200"
+                                title="Block Proponent & Shutdown Project"
+                              >
+                                <Ban className="w-3 h-3 mr-1" />
+                                Block
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {filteredProjects.length > 0 && (
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+                  <span>
+                    Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProjects.length)} of {filteredProjects.length} projects
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      Previous
+                    </button>
+                    <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Next
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+
+      {/* Project Detail Modal */}
+      <RnDProjectDetailModal
+        project={selectedProject}
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+      />
+
+      {/* Block Project Modal */}
+      <BlockProjectModal
+        isOpen={isBlockModalOpen}
+        project={projectToBlock}
+        onClose={handleCloseBlockModal}
+        onConfirm={handleConfirmBlock}
+      />
     </>
   );
 };

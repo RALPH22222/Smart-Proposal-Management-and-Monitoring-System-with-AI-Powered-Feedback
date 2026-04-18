@@ -41,6 +41,7 @@ const Profile: React.FC = () => {
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
+  const [yearFilter, setYearFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "a-z" | "z-a">("newest");
 
   // Pagination State
@@ -49,7 +50,7 @@ const Profile: React.FC = () => {
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, typeFilter, sortOrder]);
+  }, [searchTerm, typeFilter, sortOrder, yearFilter]);
 
   const [proposals, setProposals] = useState<Project[]>([]);
   const [rawProposals, setRawProposals] = useState<any[]>([]);
@@ -487,8 +488,10 @@ const Profile: React.FC = () => {
       const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase());
       const status = getLocalStatusLabel(project);
       const matchesStatus = typeFilter === "All" || status === typeFilter;
+      const year = getProjectYear(project.id);
+      const matchesYear = yearFilter === "All" || year === yearFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesYear;
     })
     .sort((a, b) => {
       if (sortOrder === "a-z") return a.title.localeCompare(b.title);
@@ -616,19 +619,6 @@ const Profile: React.FC = () => {
                 {/* Lifecycle stepper — visual position in the 5-stage pipeline. */}
                 <div className="mb-3 pt-2 border-t border-slate-100">
                   <ProposalLifecycleStepper rawStatus={(project as any).rawStatus || ""} />
-                </div>
-
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                    <span>Progress</span>
-                    <span className="text-xs text-gray-600 font-medium hidden sm:inline">{progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`${getProgressBarClass(project)} h-2 rounded-full transition-all duration-300`}
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -938,11 +928,32 @@ const Profile: React.FC = () => {
             {loading ? (
               <>
                 <div className="h-10 w-40 bg-gray-100 rounded-xl border border-gray-200" />
+                <div className="h-10 w-32 bg-gray-100 rounded-xl border border-gray-200" />
                 <div className="h-10 w-44 bg-gray-100 rounded-xl border border-gray-200" />
                 <div className="h-10 w-24 bg-gray-100 rounded-xl border border-gray-200" />
               </>
             ) : (
               <>
+                {/* Year Filter */}
+                <div className="relative">
+                  <select
+                    value={yearFilter}
+                    onChange={(e) => setYearFilter(e.target.value)}
+                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[120px] hover:border-slate-300 transition-colors"
+                  >
+                    <option value="All">All Years</option>
+                    {Array.from(new Set(rawProposals.map(p => p.year).filter(Boolean))).sort((a: any, b: any) => Number(b) - Number(a)).map(year => (
+                      <option key={String(year)} value={String(year)}>{year as React.ReactNode}</option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                  </div>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  </div>
+                </div>
+
                 {/* Status Filter */}
                 <div className="relative">
                   <select

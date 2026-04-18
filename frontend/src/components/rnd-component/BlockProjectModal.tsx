@@ -48,7 +48,7 @@ const BlockProjectModal: React.FC<BlockProjectModalProps> = ({
     // REMOVED: backdrop-blur-sm
     <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[60] p-4 overflow-y-auto">
       {/* CHANGED: max-w-lg to max-w-2xl for wider modal */}
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
         
         {/* Header */}
         <div className="bg-red-50 p-6 border-b border-red-100 flex justify-between items-start">
@@ -71,16 +71,13 @@ const BlockProjectModal: React.FC<BlockProjectModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 bg-slate-50 space-y-6">
+        <div className="p-6 bg-slate-50 space-y-6 overflow-y-auto custom-scrollbar">
             
             {/* Target Project Card */}
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
                 <div>
                     <h5 className="text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Target Project</h5>
                     <h3 className="text-lg font-bold text-slate-800 leading-tight">{project.title}</h3>
-                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-600 border border-slate-200 mt-2 inline-block">
-                        {project.projectId}
-                    </span>
                 </div>
                 <div className="text-right">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Budget</p>

@@ -125,33 +125,35 @@ export default function ProposalLifecycleStepper({ rawStatus, hideLabels = false
   const states = classifyStages(rawStatus);
 
   return (
-    <div className="w-full">
-      <div className="flex items-center">
+    <div className="w-full max-w-[280px] mx-auto">
+      <div className="flex">
         {STAGES.map((stage, idx) => {
           const state = states[stage.key];
           const colors = STATE_COLORS[state];
           const isLast = idx === STAGES.length - 1;
           // Connector after this step inherits the "done" color only when
           // this step is done (otherwise it's still pending).
-          const connectorColor = state === "done" ? "bg-emerald-500" : "bg-slate-200";
+          const connectorBorder = state === "done" ? "border-emerald-400" : "border-slate-200";
 
           return (
-            <div key={stage.key} className="flex items-center flex-1 last:flex-none">
-              <div className="flex flex-col items-center relative">
+            <div key={stage.key} className="flex flex-col flex-1 last:flex-none">
+              <div className="flex items-center">
                 <div
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${colors.node} ${colors.border}`}
+                  className={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${colors.node} ${colors.border}`}
                   title={`${stage.label}: ${state}`}
                   aria-label={`${stage.label}: ${state}`}
                 >
                   <StepIcon state={state} index={idx} />
                 </div>
-                {!hideLabels && (
-                  <span className={`text-[9px] font-medium mt-1 whitespace-nowrap ${colors.label}`}>
+                {!isLast && <div className={`border-t flex-1 mx-2 ${connectorBorder}`} />}
+              </div>
+              {!hideLabels && (
+                <div className="w-6 flex justify-center mt-1">
+                  <span className={`text-[9px] font-medium whitespace-nowrap ${colors.label}`}>
                     {stage.label}
                   </span>
-                )}
-              </div>
-              {!isLast && <div className={`h-0.5 flex-1 mx-1 ${connectorColor} rounded-full`} />}
+                </div>
+              )}
             </div>
           );
         })}

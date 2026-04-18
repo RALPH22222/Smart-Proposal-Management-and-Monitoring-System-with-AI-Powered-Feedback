@@ -10,13 +10,13 @@ import {
   Gavel,
   DollarSign,
   Star,
-  Loader2,
   ChevronDown,
   ChevronRight,
   AlertCircle,
 } from 'lucide-react';
 import { getProposalTimeline, type TimelineEvent } from '../../services/proposal.api';
 import { formatDateTime } from '../../utils/date-formatter';
+import SkeletonPulse from './SkeletonPulse';
 
 // Map action names to human-readable labels and icons
 const ACTION_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
@@ -82,9 +82,27 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-        <span className="ml-2 text-sm text-slate-500">Loading timeline...</span>
+      <div className="relative animate-pulse py-2">
+        {/* Vertical line */}
+        <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-100" />
+        
+        <div className="space-y-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="relative flex items-start gap-3">
+              <SkeletonPulse className="relative z-10 w-10 h-10 rounded-full flex-shrink-0 border-2 border-white shadow-sm" />
+              <div className="flex-1 pt-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <SkeletonPulse className="h-4 w-40" />
+                  <SkeletonPulse className="h-3 w-16 opacity-60" />
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <SkeletonPulse className="h-3 w-24 opacity-60" />
+                  <SkeletonPulse className="h-2 w-20 opacity-40" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

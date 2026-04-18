@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Tag,
   Users,
+  CalendarDays,
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -42,6 +43,7 @@ interface Assignment {
   projectType: string;
   tags: string[];
   proposalStatus: string; // backend proposal status (e.g. under_evaluation, endorsed_for_funding)
+  submittedDate: string;
 }
 
 // Grouping structure to handle multiple evaluators per proposal
@@ -51,6 +53,7 @@ interface GroupedAssignment {
   proposalStatus: string;
   projectType: string;
   deadline: string;
+  submittedDate: string;
   tags: string[]; // Add tags field
   evaluators: {
     id: string; // evaluator ID
@@ -112,6 +115,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             proposalStatus: item.proposal_id.status || "unknown",
             projectType: item.proposal_id.sector?.name || "N/A",
             deadline: item.deadline ? new Date(item.deadline).toISOString() : new Date().toISOString(),
+            submittedDate: item.proposal_id?.created_at ? new Date(item.proposal_id.created_at).toISOString() : (item.date_forwarded ? new Date(item.date_forwarded).toISOString() : new Date().toISOString()),
             tags: item.proposal_id.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => t && t !== "N/A") || [],
             evaluators: [],
           });
@@ -194,6 +198,7 @@ export const RnDEvaluatorPage: React.FC = () => {
           projectType: group.projectType,
           tags: group.tags,
           proposalStatus: group.proposalStatus,
+          submittedDate: group.submittedDate,
         };
       });
 
@@ -609,14 +614,25 @@ export const RnDEvaluatorPage: React.FC = () => {
                           <User className="w-3 h-3" />
                           <span>
                             {assignment.evaluatorNames.length > 0 
-                              ? assignment.evaluatorNames.join(", ") 
+                              ? assignment.evaluatorNames.slice(0, 3).join(", ") 
                               : "No Assigned Evaluators"}
                           </span>
+                          {assignment.evaluatorNames.length > 3 && (
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                              +{assignment.evaluatorNames.length - 3}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Clock className="w-3 h-3" />
                           <span>Deadline: {formatDate(assignment.deadline)}</span>
                         </div>
+
+                        {/* Year Badge */}
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                          <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                          {new Date(assignment.submittedDate).getFullYear()}
+                        </span>
 
                         {/* Proposal Status Badge */}
                         <span

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
-  ChevronLeft, ChevronRight, Tag, XCircle,
+  ChevronLeft, ChevronRight, Tag, XCircle, CalendarDays,
   Users, X, MessageSquare, Clock, RefreshCw, Edit, Signature, CheckCircle,
   AlertCircle, ThumbsUp, ThumbsDown, CalendarX2, Download,
 } from 'lucide-react';
@@ -340,6 +340,11 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [activeTab, setActiveTab] = useState<ExtendedProposalStatus | 'All'>(filter as any || 'All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Additional Filters
+  const [yearFilter, setYearFilter] = useState<string>('All');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('All');
+  const [sortOrder, setSortOrder] = useState<string>('recent-old');
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -373,7 +378,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   // Filter proposals based on status and search term (Enhanced Logic)
   useEffect(() => {
-    const filtered = proposals.filter((proposal) => {
+    let filtered = proposals.filter((proposal) => {
       const matchesSearch =
         proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -382,28 +387,51 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       if (!matchesSearch) return false;
 
       // Status Filter Logic
-      if (activeTab === 'All') return true;
-
-      const s = proposal.status;
-
-      if (activeTab === 'Pending') {
-        return s === 'Pending' || s === 'Under R&D Review' || (s as any) === 'review_rnd';
+      if (activeTab !== 'All') {
+        const s = proposal.status;
+        if (activeTab === 'Pending') {
+          if (!(s === 'Pending' || s === 'Under R&D Review' || (s as any) === 'review_rnd')) return false;
+        } else if (activeTab === 'Revised Proposal') {
+          if (!(s === 'Revised Proposal' || (s as any) === 'revised_proposal')) return false;
+        } else {
+          if (s !== activeTab) return false;
+        }
       }
-      if (activeTab === 'Revised Proposal') {
-        return s === 'Revised Proposal' || (s as any) === 'revised_proposal';
+
+      // Year filter
+      if (yearFilter !== 'All') {
+        const year = new Date(proposal.submittedDate).getFullYear().toString();
+        if (year !== yearFilter) return false;
       }
 
-      return s === activeTab;
+      // Department filter
+      if (departmentFilter !== 'All') {
+        const dept = (proposal as any).rdStation || 'Unknown';
+        if (dept !== departmentFilter) return false;
+      }
+
+      return true;
+    });
+
+    // Sorting
+    filtered.sort((a, b) => {
+      if (sortOrder === 'recent-old') {
+        return new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime();
+      } else if (sortOrder === 'old-recent') {
+        return new Date(a.submittedDate).getTime() - new Date(b.submittedDate).getTime();
+      } else if (sortOrder === 'a-z') {
+        return a.title.localeCompare(b.title);
+      } else if (sortOrder === 'z-a') {
+        return b.title.localeCompare(a.title);
+      }
+      return 0;
     });
 
     setFilteredProposals(filtered);
-    // Only reset page if the filtered count changes significantly or current page is empty
-    // But for "realtime" feel, we generally don't want to jump pages unexpectedly.
-    // However, if the item we are looking at disappears, we might need to adjust.
     if (currentPage > Math.ceil(filtered.length / itemsPerPage) && filtered.length > 0) {
       setCurrentPage(1);
     }
-  }, [proposals, activeTab, searchTerm]);
+  }, [proposals, activeTab, searchTerm, yearFilter, departmentFilter, sortOrder]);
 
   const getStatusCount = (status: ExtendedProposalStatus | 'All') => {
     if (status === 'All') return proposals.length;
@@ -786,9 +814,9 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           </div>
         </section>
 
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
+        {/* Search and Filters */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -797,6 +825,38 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
             />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white"
+            >
+              <option value="All">All Years</option>
+              {Array.from(new Set(proposals.map(p => new Date(p.submittedDate).getFullYear()))).sort((a, b) => b - a).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white max-w-[150px] truncate"
+            >
+              <option value="All">All Departments</option>
+              {Array.from(new Set(proposals.map(p => (p as any).rdStation || 'Unknown'))).filter(d => d !== 'Unknown').sort().map(dept => (
+                <option key={dept as string} value={dept as string}>{dept as string}</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 
@@ -850,6 +910,11 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                               <Calendar className="w-3.5 h-3.5" />
                               <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                             </div>
+                            {/* Year Badge */}
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                              <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                              {new Date(proposal.submittedDate).getFullYear()}
+                            </span>
 
                             {/* Render Additional Tags */}
                             {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag, i) => (
