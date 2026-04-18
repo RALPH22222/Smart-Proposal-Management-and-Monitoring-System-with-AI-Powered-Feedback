@@ -79,6 +79,9 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
     return [{ site: "", city: "" }];
   });
 
+  // Track which site rows have an invalid (non-PSGC) city typed
+  const [cityErrors, setCityErrors] = useState<boolean[]>([]);
+
   const researchStationRef = useRef<HTMLDivElement>(null);
   const sectorRef = useRef<HTMLDivElement>(null);
   const disciplineRef = useRef<HTMLDivElement>(null);
@@ -305,6 +308,10 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
       if (priorityEntry) {
         const newIds = [...currentIds, priorityEntry.id];
         onUpdate("priorities_id", newIds);
+      } else {
+        // Store name string as fallback so validation passes
+        const currentAll = formData.priorities_id || [];
+        onUpdate("priorities_id", [...currentAll, value]);
       }
     }
   };
@@ -323,13 +330,14 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
       const currentIds = (formData.priorities_id || []).filter((id): id is number => typeof id === "number");
 
       if (priorityEntry) {
-        // Add the ID to formData
+        // Add the numeric ID to formData
         const newIds = [...currentIds, priorityEntry.id];
         onUpdate("priorities_id", newIds);
       } else {
-        // Custom priority not in list - backend should handle name resolution
-        // For now, skip adding to IDs (or backend schema needs to accept strings)
-        console.warn(`Priority "${newItem}" not found in list - skipping ID storage`);
+        // Custom priority not in list — store the name string so validation passes.
+        // The API layer will filter strings out before sending to the backend.
+        const currentAll = formData.priorities_id || [];
+        onUpdate("priorities_id", [...currentAll, newItem]);
       }
     }
 
@@ -504,7 +512,8 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
 
       <div className="space-y-4">
         {implementationSites.map((item, index) => (
-          <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <React.Fragment key={index}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Site Name Input */}
             <div className="relative">
               <input
@@ -529,14 +538,31 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
                   onBlur={() => {
                     setTimeout(() => {
                       const currentVal = (item.city || "").trim().toLowerCase();
+                      if (!currentVal) {
+                        // Empty is fine — user may still be filling
+                        setActiveCityDropdownIndex(null);
+                        return;
+                      }
                       const isMatch = psgcCities.some(city => city.name.trim().toLowerCase() === currentVal);
-                      if (currentVal && !isMatch) {
+                      if (!isMatch) {
+                        // Show error but don't clear yet — let user fix it
+                        setCityErrors(prev => {
+                          const next = [...prev];
+                          next[index] = true;
+                          return next;
+                        });
                         handleSiteChange(index, "city", "");
+                      } else {
+                        setCityErrors(prev => {
+                          const next = [...prev];
+                          next[index] = false;
+                          return next;
+                        });
                       }
                       setActiveCityDropdownIndex(null);
                     }, 200);
                   }}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 bg-white"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 transition-all duration-200 bg-white ${cityErrors[index] ? 'border-red-400 focus:ring-red-200' : 'border-gray-300 focus:ring-[#C8102E]'}`}
                   placeholder={`Type City/Municipality ${index + 1}`}
                 />
                 <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
@@ -563,6 +589,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
                   </div>
                 )}
               </div>
+
               {/* Remove Button (Only if > 1 site) */}
               {implementationSites.length > 1 && (
                 <button
@@ -576,6 +603,13 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
               )}
             </div>
           </div>
+          {cityErrors[index] && (
+            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              City not recognized — please select a city/municipality from the dropdown.
+            </p>
+          )}
+          </React.Fragment>
         ))}
 
         {/* Always visible Add Button */}
