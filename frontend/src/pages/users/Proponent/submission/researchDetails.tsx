@@ -795,7 +795,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
       <div className="space-y-4" ref={priorityRef}>
         <label className={`flex items-center gap-2 text-sm font-semibold select-none ${selectedPriorities.length > 0 ? 'text-green-600' : 'text-gray-700'}`}>
           <Star className={`${selectedPriorities.length > 0 ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
-          Priority Areas <span className="text-red-500">*</span>
+          Priority Areas/STAND Classification <span className="text-red-500">*</span>
           <Tooltip content="The Sustainable Development Goals (SDGs) or strategic priority areas that the project contributes to or addresses" />
           <AutoFillBadge fieldName="priorities" autoFilledFields={autoFilledFields} />
         </label>

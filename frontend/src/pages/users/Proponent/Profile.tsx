@@ -451,7 +451,7 @@ const Profile: React.FC = () => {
         : (Array.isArray(raw.priority_areas) ? raw.priority_areas.join(", ") : ""),
       sector: raw.sector ? val(raw.sector.name) : "",
       discipline: raw.discipline ? val(raw.discipline.name) : "",
-      duration: val(raw.duration) ? `${raw.duration} months` : "", // Appending 'months' as likely usually stored as num
+      duration: val(raw.duration) ? String(raw.duration) : "",
       startDate: val(raw.plan_start_date),
       endDate: val(raw.plan_end_date),
       budgetSources: budgetSources,
@@ -472,6 +472,7 @@ const Profile: React.FC = () => {
       fundedProjectLeadId: (Array.isArray(raw.funded_projects) && raw.funded_projects.length > 0)
         ? raw.funded_projects[0].project_lead_id
         : raw.funded_projects?.project_lead_id,
+      versionNumber: project.versionNumber,
     };
 
     setSelectedProject(proposal);

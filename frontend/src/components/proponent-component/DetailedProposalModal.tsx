@@ -39,6 +39,7 @@ import {
   Signature,
   MessageSquare,
 } from "lucide-react";
+import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Swal from "sweetalert2";
 import { openProposalFile } from "../../utils/signed-url";
 import { api } from "../../utils/axios";
@@ -446,19 +447,79 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   }
 
   // --- Helper Functions ---
-  const calculateDuration = (start: string, end: string): string => {
-    if (!start || !end) return "";
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
-    months -= startDate.getMonth();
-    months += endDate.getMonth();
-    if (endDate.getDate() < startDate.getDate()) months--;
-    const finalMonths = Math.max(
-      0,
-      months + (endDate.getDate() >= startDate.getDate() ? 1 : 0)
-    );
-    return `${finalMonths} months`;
+  // --- DURATION LOGIC ---
+  const calculateImplementationDates = (startStr: string, durationStr: string = "6") => {
+    if (!startStr || !editedProposal) return;
+    const start = parseISO(startStr);
+    if (!isValid(start)) return;
+
+    const effectiveDuration = parseInt(durationStr || "6", 10);
+    if (!isNaN(effectiveDuration) && effectiveDuration > 0) {
+      const newEnd = addMonths(start, effectiveDuration);
+      setEditedProposal({
+        ...editedProposal,
+        startDate: startStr,
+        endDate: format(newEnd, "yyyy-MM-dd"),
+        duration: String(effectiveDuration)
+      });
+    }
+  };
+
+  const handleDurationChange = (totalMonths: number) => {
+    if (totalMonths <= 0 || !editedProposal) return;
+    const updated = { ...editedProposal, duration: String(totalMonths) };
+    if (updated.startDate) {
+      const start = parseISO(updated.startDate);
+      if (isValid(start)) {
+        const newEnd = addMonths(start, totalMonths);
+        updated.endDate = format(newEnd, "yyyy-MM-dd");
+      }
+    }
+    setEditedProposal(updated);
+  };
+
+  const handleDurationYearsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const years = parseInt(e.target.value, 10);
+    const currentMonths = parseInt(editedProposal?.duration || "6", 10);
+    const remainingMonths = currentMonths % 12;
+    handleDurationChange(years * 12 + remainingMonths);
+  };
+
+  const handleDurationMonthsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const months = parseInt(e.target.value, 10);
+    const currentMonths = parseInt(editedProposal?.duration || "6", 10);
+    const years = Math.floor(currentMonths / 12);
+    const total = years * 12 + months;
+    handleDurationChange(total > 0 ? total : 1);
+  };
+
+  const handleDateChangeWithCalc = (field: "startDate" | "endDate", value: string) => {
+    if (!editedProposal) return;
+
+    if (field === "startDate") {
+      calculateImplementationDates(value, editedProposal.duration);
+    } else if (field === "endDate") {
+      if (editedProposal.startDate && value) {
+        try {
+          const start = parseISO(editedProposal.startDate);
+          const end = parseISO(value);
+          if (isValid(start) && isValid(end) && end >= start) {
+            const months = differenceInMonths(end, start);
+            if (months >= 0) {
+              setEditedProposal({
+                ...editedProposal,
+                endDate: value,
+                duration: String(months)
+              });
+            }
+          } else {
+            setEditedProposal({ ...editedProposal, [field]: value });
+          }
+        } catch (e) { console.error(e); }
+      } else {
+        setEditedProposal({ ...editedProposal, [field]: value });
+      }
+    }
   };
 
   // Format classification type - remove "_class" suffix first
@@ -499,17 +560,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, [field]: value });
   };
 
-  const handleDateChange = (field: "startDate" | "endDate", value: string) => {
-    if (!editedProposal) return;
-    const updatedProposal = { ...editedProposal, [field]: value };
-    if (updatedProposal.startDate && updatedProposal.endDate) {
-      updatedProposal.duration = calculateDuration(
-        updatedProposal.startDate,
-        updatedProposal.endDate
-      );
-    }
-    setEditedProposal(updatedProposal);
-  };
 
   const handleSiteChange = (
     index: number,
@@ -1167,10 +1217,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <CalendarSync className="w-4 h-4 shrink-0" />
                   <ScrollingBannerText>
                     <span>Deadline for Revision: <span className="font-bold">
-                    {isLoadingRevision ? "Loading..." :
-                      (revisionData?.created_at && revisionData?.deadline) ?
-                        formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000)) :
-                        (proposal.deadline ? formatDateTime(proposal.deadline) : "No deadline set")}
+                      {isLoadingRevision ? "Loading..." :
+                        (revisionData?.created_at && revisionData?.deadline) ?
+                          formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000)) :
+                          (proposal.deadline ? formatDateTime(proposal.deadline) : "No deadline set")}
                     </span></span>
                   </ScrollingBannerText>
                 </div>
@@ -1284,7 +1334,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-center pt-2">
                         <button
                           onClick={handleStartImplementation}
@@ -1594,16 +1644,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
             {/* 3. File Management */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 mb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[#C8102E]" /> Project
                   Documents
+                  {submittedFiles.length > 1 && (
+                    <span className="text-xs bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 rounded-full font-semibold">
+                      v{submittedFiles.length}
+                    </span>
+                  )}
                 </h3>
-                {submittedFiles.length > 1 && (
-                  <span className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
-                    v{submittedFiles.length}
-                  </span>
-                )}
               </div>
               <div className="flex flex-col gap-3">
 
@@ -2231,7 +2281,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <div className="flex items-center gap-1.5 mb-2">
                     <Target className="w-4 h-4 text-[#C8102E]" />
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Priority Areas
+                      Priority Areas/STAND Classification
                     </h4>
                   </div>
                   {canEditOtherFields ? (
@@ -2282,7 +2332,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <div className="flex items-center gap-1.5 mb-2">
                     <Target className="w-4 h-4 text-[#C8102E]" />
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      Sector
+                      Sector/Commodity
                     </h4>
                   </div>
                   {canEditOtherFields ? (
@@ -2316,17 +2366,31 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-slate-500 mb-1">Duration</p>
-                    {canEditOtherFields ? (
-                      <input
-                        type="text"
-                        value={currentData.duration}
-                        readOnly
-                        className="w-full px-2 py-1 text-sm border rounded bg-slate-100 text-slate-600"
-                      />
+                    {canEditSchedule ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={Math.floor(parseInt(currentData.duration || "6", 10) / 12)}
+                          onChange={handleDurationYearsChange}
+                          className="w-full px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                        >
+                          {Array.from({ length: 11 }, (_, i) => (
+                            <option key={i} value={i}>{i} {i === 1 ? 'yr' : 'yrs'}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={parseInt(currentData.duration || "6", 10) % 12}
+                          onChange={handleDurationMonthsChange}
+                          className="w-full px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                        >
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <option key={i} value={i}>{i} {i === 1 ? 'mo' : 'mos'}</option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
                       renderFundedField(
                         <p className="text-sm font-semibold text-slate-900">
-                          {currentData.duration}
+                          {currentData.duration} months
                         </p>
                       )
                     )}
@@ -2338,7 +2402,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         type="date"
                         value={currentData.startDate}
                         onChange={(e) =>
-                          handleDateChange("startDate", e.target.value)
+                          handleDateChangeWithCalc("startDate", e.target.value)
                         }
                         className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(
                           true
@@ -2359,7 +2423,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         type="date"
                         value={currentData.endDate}
                         onChange={(e) =>
-                          handleDateChange("endDate", e.target.value)
+                          handleDateChangeWithCalc("endDate", e.target.value)
                         }
                         className={`w-full px-2 py-1 text-sm border rounded ${getInputClass(
                           true

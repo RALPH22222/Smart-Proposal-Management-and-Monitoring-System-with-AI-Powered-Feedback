@@ -1765,9 +1765,9 @@ export class ProposalService {
       await Promise.all([
         allUserIds.length > 0
           ? this.db
-              .from("users")
-              .select("id, first_name, last_name, email, department:department_id(name)")
-              .in("id", allUserIds)
+            .from("users")
+            .select("id, first_name, last_name, email, department:department_id(name)")
+            .in("id", allUserIds)
           : { data: [], error: null },
         departmentIds.length > 0
           ? this.db.from("departments").select("id, name").in("id", departmentIds)
@@ -1894,20 +1894,20 @@ export class ProposalService {
       const averageScores =
         scoredDecisions.length > 0
           ? {
-              title:
-                scoredDecisions.reduce((sum, d) => sum + d.ratings.title, 0) / scoredDecisions.length,
-              budget:
-                scoredDecisions.reduce((sum, d) => sum + d.ratings.budget, 0) / scoredDecisions.length,
-              timeline:
-                scoredDecisions.reduce((sum, d) => sum + d.ratings.timeline, 0) / scoredDecisions.length,
-              overall:
-                scoredDecisions.reduce(
-                  (sum, d) => sum + d.ratings.title + d.ratings.budget + d.ratings.timeline,
-                  0,
-                ) /
-                (scoredDecisions.length * 3),
-              evaluatorCount: scoredDecisions.length,
-            }
+            title:
+              scoredDecisions.reduce((sum, d) => sum + d.ratings.title, 0) / scoredDecisions.length,
+            budget:
+              scoredDecisions.reduce((sum, d) => sum + d.ratings.budget, 0) / scoredDecisions.length,
+            timeline:
+              scoredDecisions.reduce((sum, d) => sum + d.ratings.timeline, 0) / scoredDecisions.length,
+            overall:
+              scoredDecisions.reduce(
+                (sum, d) => sum + d.ratings.title + d.ratings.budget + d.ratings.timeline,
+                0,
+              ) /
+              (scoredDecisions.length * 3),
+            evaluatorCount: scoredDecisions.length,
+          }
           : null;
 
       // Get budget for this proposal

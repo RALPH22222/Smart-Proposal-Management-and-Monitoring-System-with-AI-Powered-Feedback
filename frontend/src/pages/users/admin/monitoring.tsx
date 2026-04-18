@@ -11,6 +11,7 @@ import {
   Eye,
   BarChart3,
   Target,
+  Play,
   MapPin,
   ChevronLeft,
   ChevronRight,
@@ -177,7 +178,7 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
     {
       title: 'Active Projects',
       value: getStatusCount('Active'),
-      icon: Target,
+      icon: Play,
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-50',
       trend: '',

@@ -10,6 +10,7 @@ import {
   Eye,
   BarChart3,
   Target,
+  Play,
   MapPin,
   ChevronLeft,
   ChevronRight,
@@ -188,49 +189,49 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       title: 'Total Projects',
       value: projects.length,
       icon: FileText,
-      color: 'text-blue-500',
+      color: 'text-blue-800',
+      borderColor: 'border-blue-400',
       bgColor: 'bg-blue-50',
-      trend: '',
     },
     {
       title: 'Active Projects',
       value: getStatusCount('Active'),
-      icon: Target,
-      color: 'text-emerald-500',
+      icon: Play,
+      color: 'text-emerald-600',
+      borderColor: 'border-emerald-300',
       bgColor: 'bg-emerald-50',
-      trend: '',
     },
     {
       title: 'Pending Fund Requests',
       value: pendingFundRequestsCount,
       icon: Wallet,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      trend: '',
+      color: 'text-yellow-800',
+      borderColor: 'border-yellow-400',
+      bgColor: 'bg-yellow-50',
     },
     {
-      title: 'Delayed',
+      title: 'Delayed Projects',
       value: getStatusCount('Delayed'),
       icon: AlertTriangle,
-      color: 'text-yellow-500',
-      bgColor: 'bg-yellow-50',
-      trend: '',
+      color: 'text-amber-600',
+      borderColor: 'border-amber-300',
+      bgColor: 'bg-amber-50',
     },
     {
       title: 'Overdue Reports',
       value: overdueReportsCount,
       icon: AlertCircle,
-      color: 'text-rose-500',
-      bgColor: 'bg-rose-50',
-      trend: '',
+      color: 'text-red-600',
+      borderColor: 'border-red-300',
+      bgColor: 'bg-red-50',
     },
     {
       title: 'Avg. Completion',
       value: `${getAverageCompletion()}%`,
       icon: TrendingUp,
-      color: 'text-cyan-500',
+      color: 'text-cyan-600',
+      borderColor: 'border-cyan-300',
       bgColor: 'bg-cyan-50',
-      trend: '',
     },
   ];
 
@@ -291,34 +292,26 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           </header>
 
           {/* Stats Grid */}
-          <section className="flex-shrink-0" aria-label="Project statistics">
-            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {statCards.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <div
-                      key={index}
-                      className={`${stat.bgColor} border border-slate-200 rounded-xl p-3 transition-all duration-300 hover:shadow-lg`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <IconComponent className={`${stat.color} w-4 h-4`} />
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-slate-400" />
-                          <span className="text-xs font-medium text-slate-600">{stat.trend}</span>
-                        </div>
-                      </div>
-                      <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight line-clamp-1">
-                        {stat.title}
-                      </h3>
-                      <p className="text-base font-bold text-slate-800 truncate">
+          <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" aria-label="Project statistics">
+            {statCards.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <div
+                  key={index}
+                  className={`${stat.bgColor} shadow-xl rounded-2xl border ${stat.borderColor} p-4 transition-all duration-300 hover:scale-[1.02]`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700 mb-2">{stat.title}</p>
+                      <p className={`text-xl font-bold ${stat.color} tabular-nums`}>
                         {stat.value}
                       </p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <IconComponent className={`${stat.color} w-6 h-6 opacity-80`} />
+                  </div>
+                </div>
+              );
+            })}
           </section>
 
           {/* Search and Filters Section */}

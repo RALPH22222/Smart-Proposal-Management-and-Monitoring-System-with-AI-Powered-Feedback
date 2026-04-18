@@ -84,4 +84,5 @@ export interface Proposal {
   fundingDocumentUrl?: string;
   fundedProjectId?: number;
   fundedProjectLeadId?: string;
+  versionNumber?: number;
 }

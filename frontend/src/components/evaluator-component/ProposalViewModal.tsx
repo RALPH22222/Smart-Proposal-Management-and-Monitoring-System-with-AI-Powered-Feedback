@@ -662,7 +662,7 @@ export default function ProposalModal({
             {/* Priority Areas */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
+                <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas/STAND Classification
               </h4>
               <p className="text-sm font-semibold text-slate-900">
                 {p.priorityAreas || "N/A"}
@@ -672,7 +672,7 @@ export default function ProposalModal({
             {/* Sector */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
+                <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector/Commodity
               </h4>
               <p className="text-sm font-semibold text-slate-900">
                 {p.sector || "N/A"}
