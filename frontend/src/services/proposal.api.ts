@@ -843,18 +843,20 @@ export type BudgetSubcategoryDto = {
 };
 
 // Cached for the lookup TTL — the subcategory list is static admin data, no need to refetch
-// on every modal open.
+// on every modal open. Never cache empty responses: if the DB is un-seeded (or a transient
+// failure returned []), the next modal open should retry instead of being stuck on "— Select —"
+// for 5 minutes.
 export const fetchBudgetSubcategories = async (
   category?: "ps" | "mooe" | "co",
 ): Promise<BudgetSubcategoryDto[]> => {
   const cacheKey = `budget-subcategories:${category ?? "all"}`;
   const cached = getCached<BudgetSubcategoryDto[]>(cacheKey);
-  if (cached) return cached;
+  if (cached && cached.length > 0) return cached;
   const params = category ? `?category=${category}` : "";
   const { data } = await api.get<BudgetSubcategoryDto[]>(`/proposal/budget-subcategories${params}`, {
     withCredentials: true,
   });
-  setCache(cacheKey, data);
+  if (data && data.length > 0) setCache(cacheKey, data);
   return data;
 };
 

@@ -527,6 +527,10 @@ const MonitoringPage: React.FC = () => {
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
   const currentReport = quarters[currentReportIndex] || null;
+  // Lead-only gate for budget/timeline actions (fund request, realignment, extension).
+  // Co-leads collaborate on reports but cannot move money or timelines — mirrors the
+  // backend guards in create-fund-request, request-realignment, request-extension.
+  const isProjectLead = !!activeBackend && activeBackend.project_lead_id === user?.id;
   const isLocked = currentReport?.status === 'locked';
   const isFundRequestNeeded = currentReport?.status === 'fund_request';
   const isFundRequestPending = currentReport?.fundRequest?.status === 'pending';
@@ -1054,35 +1058,40 @@ const MonitoringPage: React.FC = () => {
                       )}
                       {/* Phase 3 of LIB feature: the button doubles as "Revise realignment"
                           when R&D has sent one back — the modal seeds from the existing row
-                          and the backend UPDATEs it in place. pending_review is still locked. */}
-                      <button
-                        onClick={() => setShowRealignmentModal(true)}
-                        disabled={activeRealignment?.status === 'pending_review'}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
-                          activeRealignment?.status === 'revision_requested'
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                        }`}
-                        title={
-                          activeRealignment?.status === 'pending_review'
-                            ? 'A realignment request is already pending R&D review'
-                            : activeRealignment?.status === 'revision_requested'
-                              ? "R&D asked for changes — click to revise and resubmit"
-                              : 'Request a budget realignment for this project'
-                        }
-                      >
-                        <Banknote className="w-4 h-4" />
-                        {activeRealignment?.status === 'revision_requested'
-                          ? 'Revise Realignment'
-                          : 'Realign Budget'}
-                      </button>
-                      <button
-                        onClick={() => setIsExtensionModalOpen(true)}
-                        className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
-                        title="Request Extension"
-                      >
-                        <CalendarClock className="w-5 h-5" />
-                      </button>
+                          and the backend UPDATEs it in place. pending_review is still locked.
+                          Lead-only per teacher consultation — co-leads can't move budget or timeline. */}
+                      {isProjectLead && (
+                        <>
+                          <button
+                            onClick={() => setShowRealignmentModal(true)}
+                            disabled={activeRealignment?.status === 'pending_review'}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
+                              activeRealignment?.status === 'revision_requested'
+                                ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                            }`}
+                            title={
+                              activeRealignment?.status === 'pending_review'
+                                ? 'A realignment request is already pending R&D review'
+                                : activeRealignment?.status === 'revision_requested'
+                                  ? "R&D asked for changes — click to revise and resubmit"
+                                  : 'Request a budget realignment for this project'
+                            }
+                          >
+                            <Banknote className="w-4 h-4" />
+                            {activeRealignment?.status === 'revision_requested'
+                              ? 'Revise Realignment'
+                              : 'Realign Budget'}
+                          </button>
+                          <button
+                            onClick={() => setIsExtensionModalOpen(true)}
+                            className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                            title="Request Extension"
+                          >
+                            <CalendarClock className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1358,8 +1367,19 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* FUND REQUEST FORM STATE */}
-                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && (
+                    {/* Co-lead view of a needed fund request: show an explanation, no form. */}
+                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && !isProjectLead && (
+                      <div className="border border-slate-200 rounded-xl p-5 bg-slate-50 mt-4 text-center">
+                        <Lock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <h4 className="font-bold text-slate-700 mb-1">Fund request needed</h4>
+                        <p className="text-sm text-slate-500">
+                          Only the project lead can submit a fund request for this quarter.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* FUND REQUEST FORM STATE — lead only */}
+                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && isProjectLead && (
                       <div className="border border-blue-200 rounded-xl p-5 bg-blue-50 mt-4">
                         <div className="flex items-center gap-2 mb-3">
                           <DollarSign className="w-5 h-5 text-blue-600" />
@@ -1666,19 +1686,21 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* SUBMITTED - Read-only waiting for verification */}
+                    {/* SUBMITTED - Read-only waiting for verification. The report itself is
+                        NOT yet approved — explicit amber "Pending" banner so the emerald fund
+                        box below can't be misread as report approval. */}
                     {currentReport.status === 'submitted' && (
                       <div className="border-t border-gray-100 pt-4 space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                          <FileText className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                          <h4 className="font-bold text-blue-800">Report Submitted</h4>
-                          <p className="text-sm text-blue-600">Waiting for R&D verification.</p>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                          <Clock className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                          <h4 className="font-bold text-amber-800">Pending R&D Verification</h4>
+                          <p className="text-sm text-amber-700">Your report was submitted and is now waiting for R&D to review and verify it. The report is <strong>not yet approved</strong>.</p>
                         </div>
                         {currentReport.fundRequest && (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                             <div className="flex justify-between items-center">
-                              <span className="font-bold text-emerald-800 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Approved Funds</span>
-                              <span className="font-bold text-emerald-700">{formatCurrency(currentReport.fundRequest.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0)}</span>
+                              <span className="font-bold text-slate-700 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Fund Request (previously approved)</span>
+                              <span className="font-mono font-bold text-slate-700">{formatCurrency(currentReport.fundRequest.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0)}</span>
                             </div>
                           </div>
                         )}

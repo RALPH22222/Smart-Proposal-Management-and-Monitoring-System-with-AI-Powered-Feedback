@@ -107,6 +107,9 @@ export interface ApiProjectDetail {
   certificate_issued_at: string | null;
   certificate_issued_by: string | null;
   certificate_issuer: { id: string; first_name: string; last_name: string } | null;
+  // DOST Form 4/5 uploads — populated post-funding by the proponent; null until uploaded.
+  moa_file_url: string | null;
+  agency_certification_file_url: string | null;
   proposal: {
     id: number;
     project_title: string;

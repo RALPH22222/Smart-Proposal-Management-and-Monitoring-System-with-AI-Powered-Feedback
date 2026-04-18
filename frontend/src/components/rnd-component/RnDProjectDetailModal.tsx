@@ -3,9 +3,11 @@ import {
   Calendar, User, DollarSign, X, CheckCircle, TrendingUp,
   AlertTriangle, Clock, ChevronDown, ChevronUp,
   FileText, Paperclip, Download,
-  Users, CheckSquare, Lock, Loader2, Award
+  Users, CheckSquare, Lock, Loader2, Award,
+  CalendarClock, Banknote, ArrowRight, FileCheck,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { Link } from 'react-router-dom';
 import { openSignedUrl } from '../../utils/signed-url';
 import { formatDate } from '../../utils/date-formatter';
 import { type Project } from '../../types/InterfaceProject';
@@ -20,11 +22,16 @@ import {
   buildDisplayReports,
   fetchTerminalReport,
   verifyTerminalReport,
+  fetchProjectExtensionRequests,
+  reviewProjectExtension,
+  fetchRealignments,
   type DisplayReport,
   type ProjectDetailData,
   type ApiFundRequest,
   type ApiBudgetSummary,
   type ApiTerminalReport,
+  type ApiProjectExtensionRequest,
+  type RealignmentRecord,
   groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
 import FinancialReportModal from '../proponent-component/FinancialReportModal';
@@ -63,23 +70,48 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const [verifyingTerminal, setVerifyingTerminal] = useState(false);
   const [showFinancialReport, setShowFinancialReport] = useState(false);
 
+  // Extension requests (funded-project level). Backend is wired (request/review/list) but
+  // this modal was the missing UI surface — without it R&D could not act on pending extensions.
+  const [extensionRequests, setExtensionRequests] = useState<ApiProjectExtensionRequest[]>([]);
+  const [reviewingExtId, setReviewingExtId] = useState<number | null>(null);
+  const [extReviewNote, setExtReviewNote] = useState('');
+  const [showExtRejectFor, setShowExtRejectFor] = useState<number | null>(null);
+
+  // Realignments — awareness only. Review still happens on the Funding page; here we just
+  // surface the pending/revision-requested state so R&D isn't blind to it from monitoring.
+  const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
+
+  // Collapse state for reviewed fund requests (approved/rejected). Pending FRs are always
+  // expanded in the main area; historical ones are hidden behind a disclosure to avoid noise.
+  const [showFundRequestHistory, setShowFundRequestHistory] = useState(false);
+
   const loadDetails = async () => {
     if (!project?.backendId) return;
     setDetailLoading(true);
     try {
-      const [data, frResponse, bs] = await Promise.all([
+      const [data, frResponse, bs, extReqs, realigns] = await Promise.all([
         fetchProjectDetail(project.backendId),
         fetchFundRequests(project.backendId).catch((err) => {
           console.error('Error loading fund requests:', err);
           return { fund_requests: [], budget_summary: null } as { fund_requests: ApiFundRequest[]; budget_summary: ApiBudgetSummary | null };
         }),
         fetchBudgetSummary(project.backendId).catch(() => null),
+        fetchProjectExtensionRequests(project.backendId).catch((err) => {
+          console.error('Error loading extension requests:', err);
+          return [] as ApiProjectExtensionRequest[];
+        }),
+        fetchRealignments({ fundedProjectId: project.backendId }).catch((err) => {
+          console.error('Error loading realignments:', err);
+          return [] as RealignmentRecord[];
+        }),
       ]);
       const detailData = buildDisplayReports(data, user?.id || '');
       setDetails(detailData);
       setRawDetail(data);
       setFundRequests(frResponse.fund_requests);
       setBudgetSummary(frResponse.budget_summary || bs);
+      setExtensionRequests(extReqs);
+      setRealignments(realigns);
 
       // Load terminal report
       fetchTerminalReport(project.backendId).then(setTerminalReport).catch(() => setTerminalReport(null));
@@ -239,8 +271,57 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     ? details.reports.filter(r => r.status === 'Verified').length === 4
     : false;
 
-  // Pending fund requests
+  // Pending fund requests (need decision) vs reviewed (historical, collapsed by default).
   const pendingFundRequests = fundRequests.filter(fr => fr.status === 'pending');
+  const reviewedFundRequests = fundRequests.filter(fr => fr.status !== 'pending');
+
+  // Extension requests needing a decision from R&D.
+  const pendingExtensionRequests = extensionRequests.filter(ex => ex.status === 'pending');
+  const reviewedExtensionRequests = extensionRequests.filter(ex => ex.status !== 'pending');
+
+  // A realignment in pending_review or revision_requested state means the proponent has either
+  // submitted proposed changes (pending) or acted on R&D feedback (revision). Either way, R&D
+  // needs to know before greenlighting fund requests that might conflict with a new budget.
+  const activeRealignment = realignments.find(
+    r => r.status === 'pending_review' || r.status === 'revision_requested'
+  );
+
+  // MOA + Agency Certification (DOST Forms 5 + 4). Returned by getProject via SELECT *; null
+  // until the proponent uploads. We read off rawDetail to avoid plumbing them through the
+  // typed layer twice.
+  const moaFileUrl: string | null = rawDetail?.moa_file_url ?? null;
+  const agencyCertFileUrl: string | null = rawDetail?.agency_certification_file_url ?? null;
+
+  const handleReviewExtension = async (extId: number, status: 'approved' | 'rejected') => {
+    if (!user) return;
+    if (status === 'rejected' && !extReviewNote.trim()) {
+      Swal.fire('Reason required', 'Please enter a reason when rejecting an extension.', 'warning');
+      return;
+    }
+    setReviewingExtId(extId);
+    Swal.fire({
+      title: status === 'approved' ? 'Approving extension...' : 'Rejecting extension...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      await reviewProjectExtension(extId, status, extReviewNote || undefined);
+      Swal.fire(
+        status === 'approved' ? 'Approved' : 'Rejected',
+        `Extension request has been ${status}.`,
+        status === 'approved' ? 'success' : 'info'
+      );
+      setExtReviewNote('');
+      setShowExtRejectFor(null);
+      await loadDetails();
+    } catch (err: any) {
+      console.error('Error reviewing extension:', err);
+      const msg = err?.response?.data?.message || 'Failed to review extension.';
+      Swal.fire('Error', msg, 'error');
+    } finally {
+      setReviewingExtId(null);
+    }
+  };
 
   // --- RENDERERS ---
 
@@ -579,6 +660,152 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
               {project.status === 'Completed' ? renderCompletedView() : (
                  <>
+                    {/* Realignment awareness — review lives on the Funding page, but R&D
+                        shouldn't be blind to it from here. Chip + link, nothing actionable. */}
+                    {activeRealignment && (
+                      <div className={`mb-6 rounded-xl border p-4 flex items-start gap-3 ${
+                        activeRealignment.status === 'pending_review'
+                          ? 'bg-indigo-50 border-indigo-200'
+                          : 'bg-blue-50 border-blue-200'
+                      }`}>
+                        <Banknote className={`w-5 h-5 mt-0.5 shrink-0 ${
+                          activeRealignment.status === 'pending_review' ? 'text-indigo-600' : 'text-blue-600'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              activeRealignment.status === 'pending_review'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {activeRealignment.status === 'pending_review' ? 'Realignment Pending Review' : 'Awaiting Proponent Revision'}
+                            </span>
+                            <span className="text-xs text-slate-500">Submitted {formatDate(activeRealignment.created_at)}</span>
+                          </div>
+                          <p className="text-sm text-slate-700 mt-1 italic line-clamp-2">"{activeRealignment.reason}"</p>
+                        </div>
+                        <Link
+                          to="/users/rnd/rndMainLayout?tab=funding"
+                          className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 rounded-lg px-3 py-1.5"
+                        >
+                          Review on Funding page <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Pending Extension Requests — action needed from R&D. */}
+                    {pendingExtensionRequests.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
+                          <CalendarClock className="w-5 h-5 text-amber-600" /> Pending Extension Requests
+                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingExtensionRequests.length}</span>
+                        </h3>
+                        <div className="space-y-4">
+                          {pendingExtensionRequests.map(ext => (
+                            <div key={ext.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
+                              <div className="bg-amber-50 px-5 py-3 flex justify-between items-start border-b border-amber-200 gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-amber-800">Extension Request</span>
+                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                      {ext.extension_type === 'with_funding' ? 'Time + Funding' : 'Time Only'}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-amber-600 mt-0.5">Submitted {formatDate(ext.created_at)}</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-[10px] font-bold text-amber-600 uppercase">New end date</p>
+                                  <p className="text-sm font-bold text-amber-800">{formatDate(ext.new_end_date)}</p>
+                                </div>
+                              </div>
+                              <div className="p-4 space-y-2">
+                                <p className="text-[10px] font-bold uppercase text-slate-500">Reason</p>
+                                <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-100 rounded-lg p-3">
+                                  {ext.reason || <span className="italic text-slate-400">No reason provided.</span>}
+                                </p>
+                              </div>
+                              {showExtRejectFor === ext.id && (
+                                <div className="px-4 pb-2">
+                                  <textarea
+                                    value={extReviewNote}
+                                    onChange={(e) => setExtReviewNote(e.target.value)}
+                                    placeholder="Reason for rejection (required)..."
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-16"
+                                  />
+                                </div>
+                              )}
+                              <div className="px-4 pb-4 flex gap-3">
+                                {showExtRejectFor !== ext.id ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleReviewExtension(ext.id, 'approved')}
+                                      disabled={reviewingExtId === ext.id}
+                                      className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                      {reviewingExtId === ext.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                      Approve Extension
+                                    </button>
+                                    <button
+                                      onClick={() => { setShowExtRejectFor(ext.id); setExtReviewNote(''); }}
+                                      className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <AlertTriangle className="w-4 h-4" />
+                                      Reject
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleReviewExtension(ext.id, 'rejected')}
+                                      disabled={reviewingExtId === ext.id || !extReviewNote.trim()}
+                                      className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                      {reviewingExtId === ext.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
+                                    </button>
+                                    <button
+                                      onClick={() => { setShowExtRejectFor(null); setExtReviewNote(''); }}
+                                      className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reviewed Extensions — brief history so R&D can recall past decisions. */}
+                    {reviewedExtensionRequests.length > 0 && (
+                      <div className="mb-6 border border-slate-200 rounded-xl bg-white">
+                        <div className="px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+                          <CalendarClock className="w-4 h-4" /> Extension History ({reviewedExtensionRequests.length})
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                          {reviewedExtensionRequests.map(ext => (
+                            <div key={ext.id} className="p-3 text-xs flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
+                                    ext.status === 'approved'
+                                      ? 'bg-emerald-50 text-emerald-700'
+                                      : 'bg-red-50 text-red-700'
+                                  }`}>{ext.status}</span>
+                                  <span className="text-slate-500">New end: {formatDate(ext.new_end_date)}</span>
+                                </div>
+                                <p className="text-slate-700 italic line-clamp-2">"{ext.reason}"</p>
+                              </div>
+                              <div className="text-right shrink-0 text-slate-400">
+                                {ext.reviewed_at && <p>{formatDate(ext.reviewed_at)}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Pending Fund Requests */}
                     {pendingFundRequests.length > 0 && (
                       <div className="mb-6">
@@ -663,6 +890,100 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                    {/* Reviewed Fund Requests — hidden by default so the main column stays
+                        focused on the pending queue. Expanding reveals the audit trail: who
+                        requested, who decided, and any rejection note. */}
+                    {reviewedFundRequests.length > 0 && (
+                      <div className="mb-6 border border-slate-200 rounded-xl bg-white">
+                        <button
+                          type="button"
+                          onClick={() => setShowFundRequestHistory(v => !v)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-slate-500" />
+                            <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
+                              Fund Request History ({reviewedFundRequests.length})
+                            </span>
+                          </div>
+                          {showFundRequestHistory ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        </button>
+                        {showFundRequestHistory && (
+                          <div className="border-t border-slate-100 divide-y divide-slate-100">
+                            {reviewedFundRequests.map(fr => {
+                              const totalAmount = fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0;
+                              const quarterLabel = fr.quarterly_report.replace('_report', '').toUpperCase();
+                              const reviewerName = fr.reviewed_by_user
+                                ? `${fr.reviewed_by_user.first_name} ${fr.reviewed_by_user.last_name}`
+                                : null;
+                              return (
+                                <div key={fr.id} className="px-4 py-3 text-xs">
+                                  <div className="flex items-center justify-between gap-3 mb-1">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
+                                        fr.status === 'approved'
+                                          ? 'bg-emerald-50 text-emerald-700'
+                                          : 'bg-red-50 text-red-700'
+                                      }`}>{fr.status}</span>
+                                      <span className="text-slate-600 font-medium">{quarterLabel}</span>
+                                      <span className="text-slate-400">{formatDate(fr.created_at)}</span>
+                                    </div>
+                                    <span className="font-mono font-bold text-slate-700 shrink-0">₱{totalAmount.toLocaleString()}</span>
+                                  </div>
+                                  {fr.review_note && (
+                                    <p className="text-slate-600 italic mt-1">Note: "{fr.review_note}"</p>
+                                  )}
+                                  {reviewerName && (
+                                    <p className="text-slate-400 mt-1">Reviewed by {reviewerName}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* DOST Forms 4 + 5 — uploaded post-funding by the proponent. R&D needs
+                        view/download access for audit and approval cross-checks. */}
+                    <div className="mb-6">
+                      <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-lg">
+                        <FileCheck className="w-5 h-5 text-blue-600" /> DOST Compliance Documents
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {[
+                          { key: 'moa', label: 'Memorandum of Agreement', form: 'DOST Form 5', url: moaFileUrl },
+                          { key: 'cert', label: 'Agency Certification', form: 'DOST Form 4', url: agencyCertFileUrl },
+                        ].map(doc => (
+                          <div
+                            key={doc.key}
+                            className={`border rounded-xl p-3 flex items-center gap-3 ${
+                              doc.url ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 border-dashed'
+                            }`}
+                          >
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                              doc.url ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{doc.form}</p>
+                              <p className="text-sm font-bold text-slate-800 truncate">{doc.label}</p>
+                              {!doc.url && <p className="text-xs text-slate-400 italic">Not yet uploaded by proponent</p>}
+                            </div>
+                            {doc.url && (
+                              <button
+                                onClick={() => openSignedUrl(doc.url!)}
+                                className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5"
+                              >
+                                <Download className="w-3 h-3" /> View
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     {/* Quarterly Reports */}
                     <div>

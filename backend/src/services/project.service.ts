@@ -159,6 +159,13 @@ export class ProjectService {
    * Get a single funded project by ID with full details
    */
   async getProject(input: GetProjectInput) {
+    // NOTE: `estimated_budget` here is the LEGACY budget table — baseline only, frozen at
+    // submission time. The authoritative current budget lives in `proposal_budget_versions` /
+    // `proposal_budget_items` and is surfaced via `getBudgetSummary` / `getActiveBudgetVersion`.
+    // Keep this join as an audit fallback (and as the source for `totalBudget` when the active
+    // version hasn't been computed yet in `buildDisplayReports`). Any R&D code that wants a
+    // *current* line-item view must NOT read `detail.proposal.estimated_budget` — it will be
+    // stale after realignment.
     const { data, error } = await this.db
       .from("funded_projects")
       .select(
