@@ -484,6 +484,9 @@ export class BackendStack extends Stack {
       .addResource("verify-report")
       .addMethod(HttpMethod.POST, integrate(projectL.verifyProjectReport), protectedRoute);
     project
+      .addResource("reject-report")
+      .addMethod(HttpMethod.POST, integrate(projectL.rejectProjectReport), protectedRoute);
+    project
       .addResource("add-expense")
       .addMethod(HttpMethod.POST, integrate(projectL.addProjectExpense), protectedRoute);
     project
@@ -546,6 +549,9 @@ export class BackendStack extends Stack {
     project
       .addResource("verify-terminal-report")
       .addMethod(HttpMethod.POST, integrate(projectL.verifyTerminalReport), protectedRoute);
+    project
+      .addResource("reject-terminal-report")
+      .addMethod(HttpMethod.POST, integrate(projectL.rejectTerminalReport), protectedRoute);
     project
       .addResource("terminal-report")
       .addMethod(HttpMethod.GET, integrate(projectL.getTerminalReport), protectedRoute);

@@ -14,7 +14,11 @@ import {
   Eye,
   Banknote,
   Clock,
+  Archive,
+  Search,
+  CalendarDays,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
 import { api } from '../../../utils/axios';
@@ -32,23 +36,27 @@ import {
 } from '../../../services/ProjectMonitoringApi';
 
 const FundingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   // Phase 3 of LIB feature: third tab for budget realignment requests
   const [activeTab, setActiveTab] = useState<'pending' | 'archived' | 'realignments'>('pending');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [yearFilter, setYearFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('recent-old');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-
+ 
   const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
   const [activeProposalRaw, setActiveProposalRaw] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
-
+ 
   // Phase 3 of LIB feature: realignment list state
   const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
   const [realignmentsLoading, setRealignmentsLoading] = useState(false);
   const [activeRealignmentId, setActiveRealignmentId] = useState<number | null>(null);
-
+ 
   // Phase 4 follow-up: budget money tracker modal (for Funded projects)
   const [budgetViewerProject, setBudgetViewerProject] = useState<{
     fundedProjectId: number;
@@ -185,15 +193,48 @@ const FundingPage: React.FC = () => {
   const pendingStatuses = ['Endorsed', 'Funding Revision'];
   const archivedStatuses = ['Funded', 'Funding Rejected'];
 
-  const displayedProposals = fundingProposals.filter(p =>
-    activeTab === 'pending'
+  const displayedProposals = fundingProposals.filter(p => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = p.title.toLowerCase().includes(term) ||
+           p.submittedBy.toLowerCase().includes(term) ||
+           String(p.id).toLowerCase().includes(term);
+
+    if (!matchesSearch) return false;
+
+    const proposalYear = p.submittedDate ? new Date(p.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    if (!matchesYear) return false;
+
+    return activeTab === 'pending'
       ? pendingStatuses.includes(p.status)
       : archivedStatuses.includes(p.status)
-  );
+  });
 
-  const totalPages = Math.ceil(displayedProposals.length / itemsPerPage);
+  const sortedFilteredProposals = [...displayedProposals].sort((a, b) => {
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
+  });
+
+  const displayedRealignments = realignments.filter(r => {
+    const term = searchTerm.toLowerCase();
+    const projectTitle = r.funded_project?.proposals?.project_title ?? 'Untitled project';
+    const requesterName = [r.requester?.first_name, r.requester?.last_name]
+      .filter(Boolean)
+      .join(' ') || r.requester?.email || 'Unknown';
+    return projectTitle.toLowerCase().includes(term) || requesterName.toLowerCase().includes(term);
+  });
+
+  const totalPages = Math.ceil(sortedFilteredProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = displayedProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = sortedFilteredProposals.slice(startIndex, startIndex + itemsPerPage);
 
 
 
@@ -202,7 +243,7 @@ const FundingPage: React.FC = () => {
   return (
     <>
     <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col relative animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -265,6 +306,75 @@ const FundingPage: React.FC = () => {
           </div>
         </section>
 
+        {/* Stepper / Tabs */}
+        <section className="flex-shrink-0 overflow-x-auto pb-2">
+          <div className="flex gap-2">
+            {[
+              { id: 'pending', label: 'Pending', icon: Clock, count: fundingProposals.filter(p => pendingStatuses.includes(p.status)).length },
+              { id: 'realignments', label: 'Realignments', icon: Banknote, count: realignments.length },
+              { id: 'archived', label: 'Archive', icon: Archive, count: fundingProposals.filter(p => archivedStatuses.includes(p.status)).length },
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id as any); setCurrentPage(1); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${isActive
+                    ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${isActive
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-100 text-slate-500'
+                    }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder={activeTab === 'realignments' ? "Search realignments..." : "Search proposals..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={yearFilter}
+              onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Years</option>
+              {Array.from(new Set(fundingProposals.map(p => p.submittedDate ? new Date(p.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
+          </div>
+        </section>
+
         {/* Proposals List */}
         <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
 
@@ -277,30 +387,9 @@ const FundingPage: React.FC = () => {
                   ? 'Funding Archive'
                   : 'Realignment Requests'}
             </h3>
-            <div className="flex items-center gap-1 bg-slate-200/50 p-1 rounded-lg">
-              <button
-                onClick={() => { setActiveTab('pending'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-              >
-                Pending
-              </button>
-              <button
-                onClick={() => { setActiveTab('archived'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'archived' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-              >
-                Archive
-              </button>
-              <button
-                onClick={() => { setActiveTab('realignments'); setCurrentPage(1); }}
-                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex items-center gap-1.5 ${activeTab === 'realignments' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-              >
-                <Banknote className="w-3.5 h-3.5" /> Realignments
-                {realignments.filter((r) => r.status === 'pending_review').length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 text-[10px] font-bold">
-                    {realignments.filter((r) => r.status === 'pending_review').length}
-                  </span>
-                )}
-              </button>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <User className="w-4 h-4" />
+              <span>{activeTab === 'realignments' ? displayedRealignments.length : displayedProposals.length} total items</span>
             </div>
           </div>
 
@@ -308,7 +397,7 @@ const FundingPage: React.FC = () => {
             {activeTab === 'realignments' ? (
               realignmentsLoading ? (
                 <div className="text-center py-12 text-slate-500">Loading realignments...</div>
-              ) : realignments.length === 0 ? (
+              ) : displayedRealignments.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                     <Banknote className="w-8 h-8 text-slate-400" />
@@ -320,7 +409,7 @@ const FundingPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {realignments.map((r) => {
+                  {displayedRealignments.map((r) => {
                     const projectTitle = r.funded_project?.proposals?.project_title ?? 'Untitled project';
                     const requesterName = [r.requester?.first_name, r.requester?.last_name]
                       .filter(Boolean)
@@ -339,24 +428,24 @@ const FundingPage: React.FC = () => {
                         className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
                         onClick={() => setActiveRealignmentId(r.id)}
                       >
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <h2 className="text-base font-semibold text-slate-800 truncate">
+                            <h2 className="text-base font-semibold text-slate-800 line-clamp-2">
                               {projectTitle}
                             </h2>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mt-1">
                               <span className="flex items-center gap-1">
                                 <User className="w-3 h-3" /> {requesterName}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> {formatDate(r.created_at)}
                               </span>
-                              <span className="text-slate-400 italic truncate max-w-xl">
+                              <span className="text-slate-400 italic line-clamp-1 max-w-xs sm:max-w-sm md:max-w-md">
                                 "{r.reason.length > 100 ? r.reason.slice(0, 97) + '...' : r.reason}"
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                             <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${statusStyle}`}>
                               {r.status === 'pending_review' && <Clock className="w-3 h-3 inline mr-1" />}
                               {r.status.replace('_', ' ')}
@@ -366,7 +455,7 @@ const FundingPage: React.FC = () => {
                                 e.stopPropagation();
                                 setActiveRealignmentId(r.id);
                               }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00d25] shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                             >
                               <Eye className="w-3 h-3" /> Review
                             </button>
@@ -399,7 +488,7 @@ const FundingPage: React.FC = () => {
                     className={`p-4 transition-colors duration-200 ${proposal.status === 'Funded' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h2 className="text-base font-semibold text-slate-800">{proposal.title}</h2>
                         </div>
@@ -417,6 +506,12 @@ const FundingPage: React.FC = () => {
                             <span>Submitted: {formatDate(proposal.submittedDate)}</span>
                           </div>
 
+                          {/* Year Badge */}
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                            <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                            {new Date(proposal.submittedDate).getFullYear()}
+                          </span>
+
                           {/* Tags */}
                           {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag, i) => (
                             <span
@@ -431,12 +526,12 @@ const FundingPage: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         {getStatusBadge(proposal.status)}
                         {activeTab === 'pending' ? (
                           <button
                             onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
+                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
                           >
                             <Gavel className="w-3.5 h-3.5" />
                             Action
@@ -482,11 +577,11 @@ const FundingPage: React.FC = () => {
           </div>
 
           {/* Pagination — only for the proposal tabs, not realignments */}
-          {activeTab !== 'realignments' && displayedProposals.length > 0 && (
+          {activeTab !== 'realignments' && sortedFilteredProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, displayedProposals.length)} of {displayedProposals.length} proposals
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedFilteredProposals.length)} of {sortedFilteredProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -530,6 +625,11 @@ const FundingPage: React.FC = () => {
         documentUrl={viewingDocumentUrl || ''}
         title="Funding Approval Document"
         proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
+        onOpenDetails={(p) => {
+          navigate('/users/rnd/rndMainLayout?tab=proposals', { 
+            state: { openProposalId: p.id } 
+          });
+        }}
       />
 
       {activeRealignmentId != null && (

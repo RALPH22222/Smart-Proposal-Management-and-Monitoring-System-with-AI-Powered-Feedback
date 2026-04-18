@@ -500,7 +500,7 @@ export default function DashboardRdec() {
         <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Recent Proposals Table */}
           <div
-            className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col"
+            className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col h-fit"
             aria-labelledby="proposals-heading"
           >
             <div className="p-4 border-b border-slate-200 bg-slate-50">
@@ -519,7 +519,7 @@ export default function DashboardRdec() {
               </div>
             </div>
 
-            <div className="overflow-x-auto flex-1">
+            <div className="overflow-x-auto">
               <table
                 className="w-full"
                 role="table"
@@ -624,44 +624,43 @@ export default function DashboardRdec() {
           </div>
 
           {/* Endorsed Proposals Status Box */}
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full lg:w-80 flex flex-col">
+          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4 sm:p-6 w-full lg:w-80 flex flex-col h-fit">
             <h3 className="text-lg font-bold text-slate-800 mb-8 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-[#C8102E]" />
               Review Status
             </h3>
-
-            <div className="space-y-6 flex-1 flex flex-col justify-center">
+            <div className="space-y-4 flex flex-col justify-center">
               {/* Pending */}
-              <div className="flex items-center justify-between p-5 bg-amber-50 rounded-xl border border-amber-200 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center gap-4">
-                  <Clock className="w-6 h-6 text-amber-500" />
-                  <span className="font-semibold text-amber-700 text-base">
+              <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-amber-700 text-sm">
                     Pending
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-amber-700">{statsData.pending}</span>
+                <span className="text-xl font-bold text-amber-700">{statsData.pending}</span>
               </div>
-
+ 
               {/* Under Review */}
-              <div className="flex items-center justify-between p-5 bg-blue-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center gap-4">
-                  <AlertCircle className="w-6 h-6 text-blue-500" />
-                  <span className="font-semibold text-blue-700 text-base">
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-500" />
+                  <span className="font-semibold text-blue-700 text-sm">
                     Under Review
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-blue-700">{statsData.for_review}</span>
+                <span className="text-xl font-bold text-blue-700">{statsData.for_review}</span>
               </div>
-
+ 
               {/* Reviewed */}
-              <div className="flex items-center justify-between p-5 bg-emerald-50 rounded-xl border border-emerald-200 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-center gap-4">
-                  <CheckCircle className="w-6 h-6 text-emerald-500" />
-                  <span className="font-semibold text-emerald-700 text-base">
+              <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-200 hover:shadow-md transition-shadow duration-200">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
+                  <span className="font-semibold text-emerald-700 text-sm">
                     Reviewed
                   </span>
                 </div>
-                <span className="text-2xl font-bold text-emerald-700">{statsData.approve + statsData.revise + statsData.reject + statsData.decline}</span>
+                <span className="text-xl font-bold text-emerald-700">{statsData.approve + statsData.revise + statsData.reject + statsData.decline}</span>
               </div>
             </div>
 

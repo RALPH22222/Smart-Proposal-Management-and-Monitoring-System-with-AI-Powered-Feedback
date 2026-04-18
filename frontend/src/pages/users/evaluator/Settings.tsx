@@ -310,13 +310,13 @@ const EvaluatorSettings: React.FC = () => {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-x-auto">
-        <nav className="flex gap-1 px-4 pt-2">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6">
+        <nav className="flex flex-wrap gap-1 px-4 pt-2">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`py-3 px-4 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap rounded-t-lg ${
+              className={`py-2 px-3 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors rounded-t-lg ${
                 activeTab === t.id
                   ? 'border-[#C8102E] text-[#C8102E]'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-200'

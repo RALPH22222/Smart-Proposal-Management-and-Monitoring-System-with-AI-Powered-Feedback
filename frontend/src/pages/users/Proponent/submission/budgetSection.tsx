@@ -424,6 +424,11 @@ export const BudgetBreakdownModal: React.FC<{
         {subError && (
           <div className="px-4 py-2 bg-amber-50 text-amber-800 text-xs border-b border-amber-100">{subError}</div>
         )}
+        {!subError && !loadingSubs && subcategories.length === 0 && (
+          <div className="px-4 py-2 bg-amber-50 text-amber-800 text-xs border-b border-amber-100">
+            Subcategory list is empty. Ask an admin to seed <code>budget_subcategories</code>. You can still type line items — classification is optional.
+          </div>
+        )}
 
         <div className="flex-1 bg-slate-50 px-3 py-4 overflow-y-auto space-y-2">
           {currentBreakdown.length === 0 ? (
@@ -500,15 +505,23 @@ export const BudgetBreakdownModal: React.FC<{
                         />
                       </div>
 
-                      {/* Quantity */}
+                      {/* Quantity — integer only; block decimal/scientific input so "pcs" can't become 1.03 */}
                       <div className="md:col-span-1">
                         <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Qty *</label>
                         <input
                           type="number"
                           min="0"
-                          step="0.01"
+                          step="1"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={row.quantity || ''}
-                          onChange={(e) => handleRowChange(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                          onKeyDown={(e) => {
+                            if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                          }}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                            handleRowChange(idx, { quantity: raw === '' ? 0 : parseInt(raw, 10) });
+                          }}
                           className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right focus:ring-2 focus:ring-[#C8102E] outline-none"
                         />
                       </div>

@@ -631,8 +631,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
         </header>
 
         {/* Stepper / Tabs */}
-        <section className="flex-shrink-0 overflow-x-auto pb-2">
-          <div className="flex gap-2">
+        <section className="flex-shrink-0">
+          <div className="flex flex-wrap gap-2">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id;
               const count = getStatusCount(tab.id);
@@ -640,7 +640,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${isActive
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${isActive
                     ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                     }`}

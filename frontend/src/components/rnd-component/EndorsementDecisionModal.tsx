@@ -369,7 +369,15 @@ export default function EndorsementDecisionModal({
                                 <span className="text-sm font-semibold text-slate-800 truncate">
                                   {ev.evaluatorName}
                                 </span>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full flex-shrink-0">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                  /^approve$/i.test(ev.decision)
+                                    ? "text-emerald-700 bg-emerald-100"
+                                    : /^revise$/i.test(ev.decision)
+                                    ? "text-amber-700 bg-amber-100"
+                                    : /^reject$/i.test(ev.decision)
+                                    ? "text-red-700 bg-red-100"
+                                    : "text-slate-700 bg-slate-100"
+                                }`}>
                                   {ev.decision}
                                 </span>
                               </div>

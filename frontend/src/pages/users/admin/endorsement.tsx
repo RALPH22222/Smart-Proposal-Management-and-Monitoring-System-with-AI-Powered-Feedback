@@ -165,7 +165,8 @@ const AdminEndorsementPage: React.FC = () => {
           department: deptName || p.proponent_id?.department?.name || 'N/A',
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
           status: p.status,
-          actionDate: p.actionDate,
+          actionDate: p.actionDate || p.created_at,
+          submittedDate: p.created_at || p.actionDate,
           versionNumber: p.versionNumber,
           totalVersions: p.totalVersions,
         };
@@ -607,7 +608,7 @@ const AdminEndorsementPage: React.FC = () => {
                           </h2>
                           {/* Version badge — any version > 1 signals a revision */}
                           {proposal.versionNumber && proposal.versionNumber > 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 whitespace-nowrap"
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 flex-shrink-0"
                               title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
                             >
                               v{proposal.versionNumber}

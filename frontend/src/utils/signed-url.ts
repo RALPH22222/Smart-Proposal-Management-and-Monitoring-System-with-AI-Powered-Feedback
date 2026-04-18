@@ -55,46 +55,59 @@ export function getFileName(url: string | null | undefined): string {
   }
 }
 
-/**
- * Open a signed URL in a new tab. Use for file download links.
- */
-export async function openSignedUrl(s3Url: string): Promise<void> {
-  const url = await getSignedFileUrl(s3Url);
-  window.open(url, "_blank", "noopener,noreferrer");
+// Extract the file extension from an S3 URL (or plain path). Lowercase, empty if unknown.
+function extractExtension(urlOrPath: string): string {
+  const source = (() => {
+    try {
+      return decodeURIComponent(new URL(urlOrPath).pathname);
+    } catch {
+      return urlOrPath;
+    }
+  })();
+  const match = source.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+  return match ? match[1].toLowerCase() : "";
 }
 
 /**
- * Open a proposal document for in-browser viewing in a new tab.
- * - PDF: opens the presigned URL directly (browsers render inline).
- * - DOC/DOCX: routes through Microsoft Office Online viewer so the user
- *   can preview without downloading. The presigned URL is sent to
- *   view.officeapps.live.com, which fetches and renders it.
- * Falls back to a direct open for unknown extensions.
+ * Open a file in a new tab, routing Office documents through the Microsoft Office
+ * Online viewer so they preview in-browser instead of downloading.
+ *
+ * - `.pdf` and images → opens the presigned URL directly; browsers render inline.
+ * - `.doc` / `.docx` / `.xls` / `.xlsx` / `.ppt` / `.pptx` → wrapped with
+ *   `view.officeapps.live.com/op/view.aspx?src=...` so the user sees a preview.
+ *   Requires the presigned URL to be publicly fetchable by Microsoft's servers;
+ *   our S3 presigned URLs are time-limited but open during their TTL, which is
+ *   exactly what the viewer needs.
+ * - Anything else → direct open (browser decides download vs render).
+ *
+ * Callers don't need to branch by type — every "view this file" button just calls
+ * this function. Used for proposal uploads, report proofs, MOA, agency certification,
+ * liquidation receipts, and anywhere else S3-backed files are exposed in the UI.
  */
-export async function openProposalFile(s3Url: string | null | undefined): Promise<void> {
-  if (!s3Url) {
-    alert("No file uploaded for this proposal.");
-    return;
-  }
-
-  const ext = (() => {
-    try {
-      const path = decodeURIComponent(new URL(s3Url).pathname);
-      const match = path.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
-      return match ? match[1].toLowerCase() : "";
-    } catch {
-      const match = s3Url.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
-      return match ? match[1].toLowerCase() : "";
-    }
-  })();
+export async function openSignedUrl(s3Url: string | null | undefined): Promise<void> {
+  if (!s3Url) return;
 
   const presigned = await getSignedFileUrl(s3Url);
+  const ext = extractExtension(s3Url);
 
-  if (ext === "doc" || ext === "docx") {
+  const officeExts = new Set(["doc", "docx", "xls", "xlsx", "ppt", "pptx"]);
+  if (officeExts.has(ext)) {
     const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(presigned)}`;
     window.open(viewerUrl, "_blank", "noopener,noreferrer");
     return;
   }
 
   window.open(presigned, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * @deprecated Use `openSignedUrl` instead — it now handles Office documents too.
+ * Kept as a thin alias so existing imports don't break; safe to rip out in a follow-up.
+ */
+export async function openProposalFile(s3Url: string | null | undefined): Promise<void> {
+  if (!s3Url) {
+    alert("No file uploaded for this proposal.");
+    return;
+  }
+  return openSignedUrl(s3Url);
 }

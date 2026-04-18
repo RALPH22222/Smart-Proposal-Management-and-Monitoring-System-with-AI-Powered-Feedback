@@ -61,8 +61,33 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
   }
 
+  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be uploaded
+  // before any quarterly report can be submitted. This enforces the real-world DOST rule
+  // that the agreement + funding certification are prerequisites for progress reporting.
+  // Backend guard is authoritative — the frontend banner / disabled button is UX; this
+  // catches anyone hitting the endpoint directly or with a stale client.
+  const { data: complianceDocs } = await supabase
+    .from("funded_projects")
+    .select("moa_file_url, agency_certification_file_url")
+    .eq("id", result.data.funded_project_id)
+    .single();
+
+  const missing: string[] = [];
+  if (!complianceDocs?.moa_file_url) missing.push("Memorandum of Agreement (DOST Form 5)");
+  if (!complianceDocs?.agency_certification_file_url) missing.push("Agency Certification (DOST Form 4)");
+  if (missing.length > 0) {
+    return {
+      statusCode: 412, // Precondition Failed — prerequisite docs missing
+      body: JSON.stringify({
+        message: `Cannot submit quarterly report. The following document(s) must be uploaded first: ${missing.join(", ")}.`,
+        code: "MISSING_COMPLIANCE_DOCS",
+        missing,
+      }),
+    };
+  }
+
   const projectService = new ProjectService(supabase);
-  const { data, error } = await projectService.submitQuarterlyReport({
+  const { data, error, isResubmission } = await projectService.submitQuarterlyReport({
     ...result.data,
     submitted_by_proponent_id: submitterId,
   });
@@ -121,10 +146,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         .single();
 
       if (rndAssignment) {
+        // Differentiate wording so a busy R&D can tell at a glance whether this is a
+        // first submission or a revision of a report they previously returned.
+        const verb = isResubmission ? "resubmitted after revision" : "submitted";
+        const hint = isResubmission
+          ? "Please re-review the revisions."
+          : "Please review and verify.";
         // In-app notification
         await supabase.from("notifications").insert({
           user_id: rndAssignment.rnd_id,
-          message: `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Please review and verify.`,
+          message: `A ${quarterLabel} quarterly report has been ${verb} for "${projectTitle}". ${hint}`,
           is_read: false,
           link: "monitoring",
         });
@@ -143,9 +174,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
             await emailService.sendNotificationEmail(
               rndUser.email,
               rndUser.first_name || "R&D Staff",
-              `Quarterly Report Submitted – ${quarterLabel}`,
-              `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
-              "Review Report",
+              isResubmission
+                ? `Quarterly Report Resubmitted – ${quarterLabel}`
+                : `Quarterly Report Submitted – ${quarterLabel}`,
+              isResubmission
+                ? `A ${quarterLabel} quarterly report you previously returned for "${projectTitle}" has been resubmitted with revisions. Sign in to SPMAMS to re-review.`
+                : `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
+              isResubmission ? "Re-review Report" : "Review Report",
               `${frontendUrl}/login`,
             );
           }

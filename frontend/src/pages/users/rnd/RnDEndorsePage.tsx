@@ -3,6 +3,7 @@ import {
   CheckCircle,
   XCircle,
   RotateCcw,
+  Search,
   FileText,
   Users,
   User,
@@ -39,10 +40,12 @@ import { formatDate, formatDateTime } from '../../../utils/date-formatter';
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
 
-  const [endorsementProposals, setEndorsementProposals] = useState<EndorsementProposal[]>([]);
+  const [proposalsCache, setProposalsCache] = useState<Record<string, EndorsementProposal[]>>({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('recent-old');
 
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
@@ -115,7 +118,7 @@ const EndorsePage: React.FC = () => {
 
   const loadEndorsementProposals = async () => {
     try {
-      setLoading(true);
+      if (!proposalsCache[activeTab]) setLoading(true);
       const [data, depts] = await Promise.all([
         getProposalsForEndorsement(activeTab),
         fetchDepartments()
@@ -164,14 +167,15 @@ const EndorsePage: React.FC = () => {
           department: deptName || p.proponent_id?.department?.name || "N/A",
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
           status: p.status,
-          actionDate: p.actionDate,
+          actionDate: p.actionDate || p.created_at,
+          submittedDate: p.created_at || p.actionDate,
           versionNumber: p.versionNumber,
           totalVersions: p.totalVersions,
         };
       });
 
       const sorted = mapped.sort((a, b) => Number(b.id) - Number(a.id));
-      setEndorsementProposals(sorted);
+      setProposalsCache(prev => ({ ...prev, [activeTab]: sorted }));
     } catch (error) {
       console.error('Error loading endorsement proposals:', error);
       Swal.fire('Error', 'Failed to load endorsement proposals', 'error');
@@ -431,10 +435,35 @@ const EndorsePage: React.FC = () => {
     }
   };
 
+  // Derived proposals & Filtering
+  const endorsementProposals = proposalsCache[activeTab] || [];
+  
+  const filteredProposals = endorsementProposals.filter((p) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = p.title.toLowerCase().includes(term) ||
+           p.submittedBy.toLowerCase().includes(term) ||
+           String(p.id).toLowerCase().includes(term);
+    
+    return matchesSearch;
+  });
+
+  const sortedFiltered = [...filteredProposals].sort((a, b) => {
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
+  });
+
   // Pagination
-  const totalPages = Math.ceil(endorsementProposals.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = endorsementProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
   // Helper for Random Department Colors
   const getDepartmentColor = (departmentName: string) => {
@@ -483,7 +512,7 @@ const EndorsePage: React.FC = () => {
         onSubmit={handleDecisionSubmit}
       />
     <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -551,9 +580,9 @@ const EndorsePage: React.FC = () => {
         </section>
         )}
 
-        {/* Tab bar — switches between active queue and history tabs */}
-        <section className="flex-shrink-0">
-          <div className="inline-flex bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+        {/* Stepper / Tabs */}
+        <section className="flex-shrink-0 overflow-x-auto pb-2">
+          <div className="flex gap-2">
             {([
               { key: 'active', label: 'Active', icon: Gavel },
               { key: 'revised', label: 'Revised', icon: RotateCcw },
@@ -562,29 +591,53 @@ const EndorsePage: React.FC = () => {
             ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
-              const activeColor =
-                tab.key === 'active' ? 'bg-[#C8102E] text-white' :
-                tab.key === 'revised' ? 'bg-amber-500 text-white' :
-                tab.key === 'rejected' ? 'bg-red-600 text-white' :
-                'bg-emerald-600 text-white';
+              const count = proposalsCache[tab.key] ? proposalsCache[tab.key]!.length : (isActive ? endorsementProposals.length : 0);
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                    isActive ? activeColor : 'text-slate-600 hover:bg-slate-100'
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                    isActive
+                      ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
-                  {isActive && (
-                    <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-white/20 rounded-full">
-                      {endorsementProposals.length}
-                    </span>
-                  )}
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search proposals..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 
@@ -598,21 +651,21 @@ const EndorsePage: React.FC = () => {
                 {activeTab === 'active'
                   ? 'Endorsement Proposals'
                   : activeTab === 'revised'
-                  ? 'Revised Proposals (History)'
+                  ? 'Revised Proposals'
                   : activeTab === 'rejected'
-                  ? 'Rejected Proposals (History)'
-                  : 'Archived Proposals (Endorsed / Funded)'}
+                  ? 'Rejected Proposals'
+                  : 'Archived Proposals'}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
-                <span>{endorsementProposals.length} total proposals</span>
+                <span>{filteredProposals.length} total proposals</span>
               </div>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {endorsementProposals.length === 0 ? (
-              <div className="text-center py-12 px-4">
+            {filteredProposals.length === 0 ? (
+              <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   {activeTab === 'active' ? (
                     <Gavel className="w-8 h-8 text-slate-400" />
@@ -647,22 +700,34 @@ const EndorsePage: React.FC = () => {
                     className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                     aria-labelledby={`proposal-title-${proposal.id}`}
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-3 mb-3">
-                          <h2
-                            id={`proposal-title-${proposal.id}`}
-                            className="text-base font-semibold text-slate-800 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
-                          >
-                            {proposal.title}
-                          </h2>
-                          {/* Version badge — any version > 1 signals a revision */}
-                          {proposal.versionNumber && proposal.versionNumber > 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 whitespace-nowrap"
-                              title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <h2
+                              id={`proposal-title-${proposal.id}`}
+                              className="text-base font-semibold text-slate-800 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200"
                             >
-                              v{proposal.versionNumber}
-                            </span>
+                              {proposal.title}
+                            </h2>
+                            {/* Version badge — any version > 1 signals a revision */}
+                            {proposal.versionNumber && proposal.versionNumber > 1 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 flex-shrink-0"
+                                title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
+                              >
+                                v{proposal.versionNumber}
+                              </span>
+                            )}
+                          </div>
+                          {/* Action Button — right beside title */}
+                          {activeTab === 'active' && proposal.readyForEndorsement && (
+                            <button
+                              onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail, proposal.evaluatorDecisions)}
+                              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm flex-shrink-0"
+                            >
+                              <Gavel className="w-3 h-3" />
+                              Action
+                            </button>
                           )}
                           {!proposal.readyForEndorsement && (() => {
                             const pending = proposal.evaluatorDecisions.filter(d => d.decision === 'Pending').length;
@@ -672,22 +737,22 @@ const EndorsePage: React.FC = () => {
                             return (
                               <>
                                 {pending > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-amber-200 text-amber-600 bg-amber-50 flex-shrink-0">
                                     {pending} Pending
                                   </span>
                                 )}
                                 {declined > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-200 text-rose-500 bg-rose-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-rose-200 text-rose-500 bg-rose-50 flex-shrink-0">
                                     {declined} Declined
                                   </span>
                                 )}
                                 {inReview > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-cyan-200 text-cyan-600 bg-cyan-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-cyan-200 text-cyan-600 bg-cyan-50 flex-shrink-0">
                                     {inReview} In Review
                                   </span>
                                 )}
                                 {extReq > 0 && (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 text-orange-600 bg-orange-50 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-orange-200 text-orange-600 bg-orange-50 flex-shrink-0">
                                     {extReq} Extension Requested
                                   </span>
                                 )}
@@ -710,50 +775,6 @@ const EndorsePage: React.FC = () => {
                             </span>
                           )}
                         </div>
-
-                        {/* Feasibility Score */}
-                        {proposal.averageScores && (
-                          <div className="mb-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                                <BarChart2 className="w-4 h-4 text-indigo-600" />
-                                Feasibility Score
-                              </h4>
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                                proposal.averageScores.overall >= 4
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                  : proposal.averageScores.overall >= 3
-                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                  : 'bg-red-50 border-red-200 text-red-700'
-                              }`}>
-                                {proposal.averageScores.overall.toFixed(1)} / 5.0
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                              {[
-                                { label: 'Title', value: proposal.averageScores.title },
-                                { label: 'Budget', value: proposal.averageScores.budget },
-                                { label: 'Timeline', value: proposal.averageScores.timeline },
-                              ].map((item) => (
-                                <div key={item.label} className="text-center">
-                                  <div className="text-[10px] font-medium text-slate-500 mb-0.5">{item.label}</div>
-                                  <div className="text-sm font-bold text-slate-800">{item.value.toFixed(1)}</div>
-                                  <div className="w-full h-1.5 bg-white rounded-full mt-1 overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${
-                                        item.value >= 4 ? 'bg-emerald-500' : item.value >= 3 ? 'bg-amber-400' : 'bg-red-400'
-                                      }`}
-                                      style={{ width: `${(item.value / 5) * 100}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-2 text-right">
-                              Based on {proposal.averageScores.evaluatorCount} evaluator{proposal.averageScores.evaluatorCount > 1 ? 's' : ''}
-                            </p>
-                          </div>
-                        )}
 
                         {/* Evaluator Decisions */}
                         <div className="space-y-3">
@@ -813,20 +834,73 @@ const EndorsePage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Single Action Button — only on active tab */}
-                      {activeTab === 'active' && proposal.readyForEndorsement && (
-                        <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail, proposal.evaluatorDecisions)}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                          >
-                            <Gavel className="w-3 h-3" />
-                            Action
-                          </button>
-                        </div>
-                      )}
+                        {/* Feasibility Score */}
+                        {proposal.averageScores && (
+                          <div className="mt-4 p-3 bg-gradient-to-r from-slate-50 to-slate-50 border border-slate-300 rounded-xl">
+                            <div className="flex items-center gap-2 mb-2">
+                              <BarChart2 className="w-4 h-4 text-[#C8102E]" />
+                              <h4 className="text-sm font-semibold text-slate-800">
+                                Feasibility Score
+                              </h4>
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                proposal.averageScores.overall >= 4
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : proposal.averageScores.overall >= 3
+                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                  : 'bg-red-50 border-red-200 text-red-700'
+                              }`}>
+                                {proposal.averageScores.overall.toFixed(1)} / 5.0
+                              </span>
+                            </div>
+                            {/* Sliding Scale Score Bars */}
+                            <div className="space-y-4 mt-3">
+                              {[
+                                { label: 'Title', value: proposal.averageScores.title },
+                                { label: 'Budget', value: proposal.averageScores.budget },
+                                { label: 'Timeline', value: proposal.averageScores.timeline },
+                              ].map((item) => {
+                                const percentage = (item.value / 5) * 100;
+                                const colorClass = item.value >= 4 ? 'bg-emerald-500' : item.value >= 3 ? 'bg-amber-400' : 'bg-red-500';
+                                const textClass = item.value >= 4 ? 'text-emerald-600' : item.value >= 3 ? 'text-amber-600' : 'text-red-500';
+                                return (
+                                  <div key={item.label} className="relative">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
+                                      <span className={`text-sm font-bold ${textClass}`}>{item.value.toFixed(1)}</span>
+                                    </div>
+                                    <div className="relative h-2 bg-slate-200 rounded-full">
+                                      <div
+                                        className={`absolute top-0 left-0 h-full rounded-full ${colorClass} transition-all duration-500`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                      {/* Tick marks */}
+                                      <div className="absolute top-0 left-0 w-full h-full flex justify-between px-0.5">
+                                        {[0, 1, 2, 3, 4].map((tick) => (
+                                          <div key={tick} className="w-0.5 h-full bg-white/60" />
+                                        ))}
+                                      </div>
+                                      {/* Score marker */}
+                                      <div
+                                        className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-md ${colorClass}`}
+                                        style={{ left: `calc(${percentage}% - 6px)` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-between mt-0.5">
+                                      {[1, 2, 3, 4, 5].map((num) => (
+                                        <span key={num} className="text-[9px] text-slate-400 w-4 text-center">{num}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 text-right">
+                              Based on {proposal.averageScores.evaluatorCount} evaluator{proposal.averageScores.evaluatorCount > 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
                       {/* History tab — show when this R&D took the action */}
                       {activeTab !== 'active' && proposal.actionDate && (
@@ -858,11 +932,11 @@ const EndorsePage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {endorsementProposals.length > 0 && (
+          {filteredProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, endorsementProposals.length)} of {endorsementProposals.length} proposals
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProposals.length)} of {filteredProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button

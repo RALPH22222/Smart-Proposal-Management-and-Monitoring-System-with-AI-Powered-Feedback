@@ -5,7 +5,6 @@ import {
   FaExclamationTriangle,
   FaMagic,
   FaFingerprint,
-  FaBook,
   FaLightbulb,
   FaGlobeAmericas,
   FaCheckCircle
@@ -146,7 +145,7 @@ const AIModal: React.FC<AIModalProps> = ({
                       <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
                         <FaFingerprint /> Research Novelty
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${!isMatchDetected ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
                         {similarityStatus} ({similarityScore}%)
                       </span>
                     </div>
@@ -161,7 +160,12 @@ const AIModal: React.FC<AIModalProps> = ({
                       ></div>
                     </div>
                     <div className="font-bold mt-2 text-xs text-blue-800 flex items-start gap-2">
-                      {!isMatchDetected ? (
+                      {finalResult.title?.includes("Cannot Detect Proposal") ? (
+                        <>
+                          <FaExclamationTriangle className="text-[#C8102E] text-sm mt-0.5 flex-shrink-0" aria-hidden />
+                          <span className="text-[#C8102E]">Error - the attached file cannot be read by the AI</span>
+                        </>
+                      ) : !isMatchDetected ? (
                         <>
                           <FaCheckCircle className="text-emerald-600 text-sm mt-0.5 flex-shrink-0" aria-hidden />
                           <span>Unique — No significantly similar projects found.</span>
@@ -189,7 +193,11 @@ const AIModal: React.FC<AIModalProps> = ({
                     <p className="text-xs text-gray-500 mb-2">DETECTED CONCEPTS / PROFILE</p>
                     <div className="flex flex-wrap gap-2">
                       {(finalResult.keywords || []).map((kw, i) => (
-                        <span key={i} className="px-3 py-1 bg-white border border-blue-100 rounded-full text-xs font-medium text-blue-700 shadow-sm">
+                        <span key={i} className={`px-3 py-1 bg-white border rounded-full text-xs font-medium shadow-sm ${
+                          kw.toLowerCase() === 'undetectable' || !finalResult.isValid
+                            ? 'border-red-200 text-[#C8102E]' 
+                            : 'border-blue-100 text-blue-700'
+                        }`}>
                           #{kw}
                         </span>
                       ))}
@@ -197,14 +205,18 @@ const AIModal: React.FC<AIModalProps> = ({
                   </div>
 
                   {/* Similar Papers Check */}
-                  <div className={`rounded-xl p-4 border ${!isMatchDetected ? 'bg-blue-50 border-blue-100' : 'bg-white border-red-100 shadow-sm'}`}>
+                  <div className={`rounded-xl p-4 border ${
+                    !finalResult.isValid ? 'bg-red-50 border-red-200' : 
+                    !isMatchDetected ? 'bg-blue-50 border-blue-100' : 
+                    'bg-white border-red-100 shadow-sm'
+                  }`}>
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${!isMatchDetected ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-[#C8102E]'}`}>
-                        {!isMatchDetected ? <FaLightbulb /> : <FaBook />}
+                      <div className={`p-2 rounded-lg ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-[#C8102E]' : 'bg-blue-100 text-blue-600'}`}>
+                        {(!finalResult.isValid || isMatchDetected) ? <FaExclamationTriangle /> : <FaLightbulb />}
                       </div>
                       <div>
-                        <h4 className={`font-bold text-sm ${!isMatchDetected ? 'text-blue-900' : 'text-gray-900'}`}>
-                          {!isMatchDetected ? 'Potential for Groundbreaking Research' : 'Titles similar to your uploaded file'}
+                        <h4 className={`font-bold text-sm ${!finalResult.isValid ? 'text-[#C8102E]' : !isMatchDetected ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {!finalResult.isValid ? 'Analysis Error' : !isMatchDetected ? 'Potential for Groundbreaking Research' : 'Titles similar to your uploaded file'}
                         </h4>
                         
                         {/* Safe Check for array length */}
@@ -219,7 +231,9 @@ const AIModal: React.FC<AIModalProps> = ({
                             ))}
                           </ul>
                         ) : (
-                          <p className={`mt-2 text-xs italic ${!isMatchDetected ? 'text-blue-700' : 'text-gray-500'}`}>
+                          <p className={`mt-2 text-xs italic ${
+                            !finalResult.isValid ? 'text-[#C8102E]' : !isMatchDetected ? 'text-blue-700' : 'text-gray-500'
+                          }`}>
                             {!finalResult.isValid
                               ? "Similarity analysis cannot be completed on an invalid document."
                               : !isMatchDetected 

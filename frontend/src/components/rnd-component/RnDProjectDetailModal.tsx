@@ -3,9 +3,11 @@ import {
   Calendar, User, DollarSign, X, CheckCircle, TrendingUp,
   AlertTriangle, Clock, ChevronDown, ChevronUp,
   FileText, Paperclip, Download,
-  Users, CheckSquare, Lock, Loader2, Award
+  Users, CheckSquare, Lock, Loader2, Award,
+  CalendarClock, Banknote, ArrowRight, FileCheck,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { Link } from 'react-router-dom';
 import { openSignedUrl } from '../../utils/signed-url';
 import { formatDate } from '../../utils/date-formatter';
 import { type Project } from '../../types/InterfaceProject';
@@ -13,6 +15,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import {
   fetchProjectDetail,
   verifyReport,
+  rejectReport,
   fetchFundRequests,
   reviewFundRequest,
   fetchBudgetSummary,
@@ -20,15 +23,22 @@ import {
   buildDisplayReports,
   fetchTerminalReport,
   verifyTerminalReport,
+  rejectTerminalReport,
+  fetchProjectExtensionRequests,
+  reviewProjectExtension,
+  fetchRealignments,
   type DisplayReport,
   type ProjectDetailData,
   type ApiFundRequest,
   type ApiBudgetSummary,
   type ApiTerminalReport,
+  type ApiProjectExtensionRequest,
+  type RealignmentRecord,
   groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
 import FinancialReportModal from '../proponent-component/FinancialReportModal';
 import { generateCertificatePDF } from '../../utils/certificate-generator';
+import PageLoader from '../shared/PageLoader';
 
 interface RnDProjectDetailModalProps {
   project: Project | null;
@@ -63,23 +73,58 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const [verifyingTerminal, setVerifyingTerminal] = useState(false);
   const [showFinancialReport, setShowFinancialReport] = useState(false);
 
+  // Extension requests (funded-project level)
+  const [extensionRequests, setExtensionRequests] = useState<ApiProjectExtensionRequest[]>([]);
+  const [reviewingExtId, setReviewingExtId] = useState<number | null>(null);
+  const [extReviewNote, setExtReviewNote] = useState('');
+  const [showExtRejectFor, setShowExtRejectFor] = useState<number | null>(null);
+
+  // Realignments awareness
+  const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
+
+  // Collapse state for history
+  const [showFundRequestHistory, setShowFundRequestHistory] = useState(false);
+
+  // Reject-report flow state. Inline textarea on the expanded report card — the reject
+  // button reveals a required-reason input next to the verify button, mirroring how fund
+  // request rejection works a few panels up. Separate per-report id so two cards don't
+  // share one note.
+  const [rejectingReportId, setRejectingReportId] = useState<string | null>(null);
+  const [reportRejectNote, setReportRejectNote] = useState('');
+  const [submittingReportReject, setSubmittingReportReject] = useState<string | null>(null);
+
+  // Terminal-report reject flow (only ever one per project so a single flag is enough).
+  const [rejectingTerminal, setRejectingTerminal] = useState(false);
+  const [terminalRejectNote, setTerminalRejectNote] = useState('');
+  const [submittingTerminalReject, setSubmittingTerminalReject] = useState(false);
+
   const loadDetails = async () => {
     if (!project?.backendId) return;
     setDetailLoading(true);
     try {
-      const [data, frResponse, bs] = await Promise.all([
+      const [data, frResponse, bs, extReqs, realigns] = await Promise.all([
         fetchProjectDetail(project.backendId),
         fetchFundRequests(project.backendId).catch((err) => {
           console.error('Error loading fund requests:', err);
           return { fund_requests: [], budget_summary: null } as { fund_requests: ApiFundRequest[]; budget_summary: ApiBudgetSummary | null };
         }),
         fetchBudgetSummary(project.backendId).catch(() => null),
+        fetchProjectExtensionRequests(project.backendId).catch((err) => {
+          console.error('Error loading extension requests:', err);
+          return [] as ApiProjectExtensionRequest[];
+        }),
+        fetchRealignments({ fundedProjectId: project.backendId }).catch((err) => {
+          console.error('Error loading realignments:', err);
+          return [] as RealignmentRecord[];
+        }),
       ]);
       const detailData = buildDisplayReports(data, user?.id || '');
       setDetails(detailData);
       setRawDetail(data);
       setFundRequests(frResponse.fund_requests);
       setBudgetSummary(frResponse.budget_summary || bs);
+      setExtensionRequests(extReqs);
+      setRealignments(realigns);
 
       // Load terminal report
       fetchTerminalReport(project.backendId).then(setTerminalReport).catch(() => setTerminalReport(null));
@@ -99,24 +144,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   if (!isOpen) return null;
 
-  if (!project || detailLoading || !details) {
-    return (
-      <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-        <div className="bg-white p-6 rounded-xl shadow-xl flex items-center gap-3">
-          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-          <span className="text-slate-700 font-medium">Loading details...</span>
-        </div>
-      </div>
-    );
-  }
-
   // --- CALCULATE FINANCIALS ---
-  const totalBudget = budgetSummary?.total_budget ?? details.totalBudget;
-  const isCompleted = project.status === 'Completed';
-  // Client requirement: completed projects must have 100% budget utilization
+  const totalBudget = budgetSummary?.total_budget ?? details?.totalBudget ?? project?.budget ?? 0;
+  const isCompleted = project?.status === 'Completed';
   const totalUsed = isCompleted
     ? totalBudget
-    : budgetSummary?.total_approved ?? details.reports.reduce((acc, r) => acc + r.totalExpense, 0);
+    : budgetSummary?.total_approved ?? (details?.reports?.reduce((acc, r) => acc + r.totalExpense, 0) ?? 0);
   const remainingBudget = budgetSummary?.remaining ?? (totalBudget - totalUsed);
   const totalPending = budgetSummary?.total_pending ?? 0;
 
@@ -133,7 +166,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     });
     try {
       await verifyReport(report.backendReportId);
-      // Update local state
       setDetails(prev => {
         if (!prev) return null;
         return {
@@ -155,7 +187,46 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     }
   };
 
-  // --- Fund Request Review ---
+  const handleRejectReport = async (report: DisplayReport) => {
+    if (!report.backendReportId || !user) return;
+    if (!reportRejectNote.trim()) {
+      Swal.fire('Reason required', 'Please enter the reason for returning this report.', 'warning');
+      return;
+    }
+    setSubmittingReportReject(report.id);
+    try {
+      await rejectReport(report.backendReportId, reportRejectNote.trim());
+      Swal.fire('Returned to Proponent', 'The report has been returned with your note. The proponent will be notified.', 'success');
+      setReportRejectNote('');
+      setRejectingReportId(null);
+      await loadDetails();
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Failed to return the report.', 'error');
+    } finally {
+      setSubmittingReportReject(null);
+    }
+  };
+
+  const handleRejectTerminal = async () => {
+    if (!terminalReport || !user) return;
+    if (!terminalRejectNote.trim()) {
+      Swal.fire('Reason required', 'Please enter the reason for returning this terminal report.', 'warning');
+      return;
+    }
+    setSubmittingTerminalReject(true);
+    try {
+      const updated = await rejectTerminalReport(terminalReport.id, terminalRejectNote.trim());
+      setTerminalReport(updated);
+      Swal.fire('Returned to Proponent', 'The terminal report has been returned with your note.', 'success');
+      setTerminalRejectNote('');
+      setRejectingTerminal(false);
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Failed to return the terminal report.', 'error');
+    } finally {
+      setSubmittingTerminalReject(false);
+    }
+  };
+
   const handleReviewFundRequest = async (frId: number, status: 'approved' | 'rejected') => {
     if (!user) return;
     setReviewingFrId(frId);
@@ -182,7 +253,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     }
   };
 
-  // --- Certificate ---
   const handleGenerateCertificate = async () => {
     if (!project?.backendId || !user) return;
     const result = await Swal.fire({
@@ -234,32 +304,70 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     }
   };
 
-  // Check if all 4 quarters are verified
+  const handleReviewExtension = async (extId: number, status: 'approved' | 'rejected') => {
+    if (!user) return;
+    if (status === 'rejected' && !extReviewNote.trim()) {
+      Swal.fire('Reason required', 'Please enter a reason when rejecting an extension.', 'warning');
+      return;
+    }
+    setReviewingExtId(extId);
+    Swal.fire({
+      title: status === 'approved' ? 'Approving extension...' : 'Rejecting extension...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+    try {
+      await reviewProjectExtension(extId, status, extReviewNote || undefined);
+      Swal.fire(
+        status === 'approved' ? 'Approved' : 'Rejected',
+        `Extension request has been ${status}.`,
+        status === 'approved' ? 'success' : 'info'
+      );
+      setExtReviewNote('');
+      setShowExtRejectFor(null);
+      await loadDetails();
+    } catch (err: any) {
+      console.error('Error reviewing extension:', err);
+      const msg = err?.response?.data?.message || 'Failed to review extension.';
+      Swal.fire('Error', msg, 'error');
+    } finally {
+      setReviewingExtId(null);
+    }
+  };
+
   const allQuartersVerified = details?.reports
     ? details.reports.filter(r => r.status === 'Verified').length === 4
     : false;
 
-  // Pending fund requests
   const pendingFundRequests = fundRequests.filter(fr => fr.status === 'pending');
+  const reviewedFundRequests = fundRequests.filter(fr => fr.status !== 'pending');
+  const pendingExtensionRequests = extensionRequests.filter(ex => ex.status === 'pending');
+  const reviewedExtensionRequests = extensionRequests.filter(ex => ex.status !== 'pending');
+  const activeRealignment = realignments.find(
+    r => r.status === 'pending_review' || r.status === 'revision_requested'
+  );
+
+  const moaFileUrl: string | null = rawDetail?.moa_file_url ?? null;
+  const agencyCertFileUrl: string | null = rawDetail?.agency_certification_file_url ?? null;
 
   // --- RENDERERS ---
 
-  // 1. COMPLETED VIEW
-  const renderCompletedView = () => (
-    <div className="space-y-6">
-
-       {/* Success Banner */}
-       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
+  const renderCompletedView = () => {
+    if (!project || !details) return null;
+    return (
+      <div className="space-y-6">
+        {/* Success Banner */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
           <div className="relative z-10 flex items-center gap-4">
-             <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                <CheckCircle className="w-8 h-8 text-white" />
-             </div>
-             <div>
-                <h3 className="text-2xl font-bold">Project Successfully Completed</h3>
-                <p className="text-blue-100 opacity-90 text-sm">All quarterly reports have been verified and certificate has been issued.</p>
-             </div>
+            <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
+              <CheckCircle className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold">Project Successfully Completed</h3>
+              <p className="text-blue-100 opacity-90 text-sm">All quarterly reports have been verified and certificate has been issued.</p>
+            </div>
           </div>
-          {details.certificateIssuedAt && (
+          {details?.certificateIssuedAt && (
             <div className="relative z-10 mt-4 flex flex-wrap items-center gap-4 text-sm text-blue-100">
               <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
                 <Calendar className="w-4 h-4" />
@@ -281,326 +389,383 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             </div>
           )}
           <Award className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10" />
-       </div>
+        </div>
 
-       {/* Leadership Summary */}
-       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        {/* Leadership Summary */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h4 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-             <Users className="w-4 h-4" /> Project Leadership Team
+            <Users className="w-4 h-4" /> Project Leadership Team
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {/* Leader */}
-             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                   <User className="w-5 h-5" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">{project.principalInvestigator}</p>
+                <p className="text-xs text-slate-500">Project Leader</p>
+              </div>
+            </div>
+            {project.coProponent ? (
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Users className="w-5 h-5" />
                 </div>
                 <div>
-                   <p className="text-sm font-bold text-slate-800">{project.principalInvestigator}</p>
-                   <p className="text-xs text-slate-500">Project Leader</p>
+                  <p className="text-sm font-bold text-slate-800">{project.coProponent}</p>
+                  <p className="text-xs text-slate-500">Co-Proponent</p>
                 </div>
-             </div>
-
-             {/* Co-Proponent */}
-             {project.coProponent ? (
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                   <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                      <Users className="w-5 h-5" />
-                   </div>
-                   <div>
-                      <p className="text-sm font-bold text-slate-800">{project.coProponent}</p>
-                      <p className="text-xs text-slate-500">Co-Proponent</p>
-                   </div>
-                </div>
-             ) : (
-                <div className="flex items-center justify-center p-3 bg-slate-50 rounded-lg border border-slate-100 border-dashed text-slate-400 text-sm italic">
-                   No Co-Proponent Assigned
-                </div>
-             )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center p-3 bg-slate-50 rounded-lg border border-slate-100 border-dashed text-slate-400 text-sm italic">
+                No Co-Proponent Assigned
+              </div>
+            )}
           </div>
-       </div>
+        </div>
 
-       {/* Final Stats */}
-       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        {/* Final Stats */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h4 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-             <TrendingUp className="w-4 h-4" /> Final Performance Metrics
+            <TrendingUp className="w-4 h-4" /> Final Performance Metrics
           </h4>
           <div className="grid grid-cols-2 gap-6">
-             <div>
-                <p className="text-xs text-slate-500 mb-1">Total Budget Utilized</p>
-                <p className="text-2xl font-bold text-emerald-600">{totalBudget > 0 ? `₱${totalUsed.toLocaleString()}` : 'N/A'}</p>
-                {totalBudget > 0 && (
-                  <>
-                    <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                       <div className="h-full bg-emerald-500 w-full"></div>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1 text-right">100% Utilized</p>
-                  </>
-                )}
-             </div>
-             <div>
-                <p className="text-xs text-slate-500 mb-1">Duration</p>
-                <p className="text-2xl font-bold text-slate-800">
-                  {project.startDate && project.endDate
-                    ? `${Math.round((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))} Months`
-                    : 'N/A'}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                   {formatDate(project.startDate)} — {formatDate(project.endDate)}
-                </p>
-             </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Total Budget Utilized</p>
+              <p className="text-2xl font-bold text-emerald-600">{totalBudget > 0 ? `₱${totalUsed.toLocaleString()}` : 'N/A'}</p>
+              {totalBudget > 0 && (
+                <>
+                  <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                    <div className="h-full bg-emerald-500 w-full"></div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 text-right">100% Utilized</p>
+                </>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Duration</p>
+              <p className="text-2xl font-bold text-slate-800">
+                {project.startDate && project.endDate
+                  ? `${Math.round((new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))} Months`
+                  : 'N/A'}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {formatDate(project.startDate)} — {formatDate(project.endDate)}
+              </p>
+            </div>
           </div>
-       </div>
+        </div>
 
-       {/* List of Reports in Completed View for Reference */}
-       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        {/* Report Archive */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h4 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-             <FileText className="w-4 h-4" /> Report Archive
+            <FileText className="w-4 h-4" /> Report Archive
           </h4>
           <div className="space-y-2">
-             {details.reports.filter(r => r.backendReportId !== null).map((report) => (
-                <div key={report.id} className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="font-medium text-slate-700">{report.quarter}</span>
-                    <span className="font-mono text-slate-600">₱{report.totalExpense.toLocaleString()}</span>
-                </div>
-             ))}
-             <div className="flex justify-between items-center text-sm p-3 bg-slate-100 rounded-lg border border-slate-200 font-bold">
-                <span className="text-slate-800">TOTAL</span>
-                <span className="text-emerald-700">₱{totalUsed.toLocaleString()}</span>
-             </div>
+            {details?.reports.filter(r => r.backendReportId !== null).map((report) => (
+              <div key={report.id} className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="font-medium text-slate-700">{report.quarter}</span>
+                <span className="font-mono text-slate-600">₱{report.totalExpense.toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center text-sm p-3 bg-slate-100 rounded-lg border border-slate-200 font-bold">
+              <span className="text-slate-800">TOTAL</span>
+              <span className="text-emerald-700">₱{totalUsed.toLocaleString()}</span>
+            </div>
           </div>
-       </div>
-    </div>
+        </div>
+      </div>
     );
+  };
 
-  // 2. REPORT LIST ITEM
   const renderReportItem = (report: DisplayReport) => {
     const isExpanded = expandedReportId === report.id;
-
     let statusColor = "bg-slate-100 text-slate-500 border-slate-200";
-    let statusIcon = <Clock className="w-5 h-5"/>;
+    let statusIcon = <Clock className="w-5 h-5" />;
 
     if (report.status === 'Verified') {
-        statusColor = "bg-emerald-100 text-emerald-700 border-emerald-200";
-        statusIcon = <CheckSquare className="w-5 h-5"/>;
+      statusColor = "bg-emerald-100 text-emerald-700 border-emerald-200";
+      statusIcon = <CheckSquare className="w-5 h-5" />;
     } else if (report.status === 'Submitted') {
-        statusColor = "bg-blue-100 text-blue-700 border-blue-200";
-        statusIcon = <FileText className="w-5 h-5"/>;
+      statusColor = "bg-blue-100 text-blue-700 border-blue-200";
+      statusIcon = <FileText className="w-5 h-5" />;
     } else if (report.status === 'Overdue') {
-        statusColor = "bg-red-100 text-red-700 border-red-200";
-        statusIcon = <AlertTriangle className="w-5 h-5"/>;
+      statusColor = "bg-red-100 text-red-700 border-red-200";
+      statusIcon = <AlertTriangle className="w-5 h-5" />;
     } else if (report.status === 'Locked') {
-        statusColor = "bg-gray-50 text-gray-400 border-gray-200";
-        statusIcon = <Lock className="w-5 h-5"/>;
+      statusColor = "bg-gray-50 text-gray-400 border-gray-200";
+      statusIcon = <Lock className="w-5 h-5" />;
     }
 
     return (
       <div key={report.id} className={`border rounded-xl transition-all duration-200 overflow-hidden ${isExpanded ? 'ring-1 ring-blue-300 shadow-md bg-white' : 'bg-white hover:border-blue-300'}`}>
-
-         <div className={`p-4 flex items-center justify-between cursor-pointer ${report.status === 'Locked' ? 'opacity-70 bg-gray-50' : ''}`} onClick={() => toggleReport(report.id)}>
-            <div className="flex items-center gap-4">
-               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${statusColor}`}>
-                  {statusIcon}
-               </div>
-               <div>
-                  <h4 className={`font-bold ${report.status === 'Locked' ? 'text-gray-500' : 'text-slate-800'}`}>{report.quarter}</h4>
-                  <p className="text-xs text-slate-500">Due: {report.dueDate}</p>
-               </div>
+        <div className={`p-4 flex items-center justify-between cursor-pointer ${report.status === 'Locked' ? 'opacity-70 bg-gray-50' : ''}`} onClick={() => toggleReport(report.id)}>
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${statusColor}`}>
+              {statusIcon}
             </div>
-            <div className="text-right">
-               <span className={`text-xs font-bold px-2 py-1 rounded border ${statusColor}`}>{report.status}</span>
-               {isExpanded ? <ChevronUp className="w-4 h-4 mx-auto mt-1 text-slate-400"/> : <ChevronDown className="w-4 h-4 mx-auto mt-1 text-slate-400"/>}
+            <div>
+              <h4 className={`font-bold ${report.status === 'Locked' ? 'text-gray-500' : 'text-slate-800'}`}>{report.quarter}</h4>
+              <p className="text-xs text-slate-500">Due: {report.dueDate}</p>
             </div>
-         </div>
+          </div>
+          <div className="text-right">
+            <span className={`text-xs font-bold px-2 py-1 rounded border ${statusColor}`}>{report.status}</span>
+            {isExpanded ? <ChevronUp className="w-4 h-4 mx-auto mt-1 text-slate-400" /> : <ChevronDown className="w-4 h-4 mx-auto mt-1 text-slate-400" />}
+          </div>
+        </div>
 
-         {isExpanded && report.status !== 'Locked' && report.status !== 'Due' && (
-            <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-5 animate-in slide-in-from-top-2">
+        {isExpanded && report.status !== 'Locked' && report.status !== 'Due' && (
+          <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-5 animate-in slide-in-from-top-2">
+            {report.submittedBy && (
+              <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <User className="w-4 h-4 text-blue-500" />
+                <span>Submitted by <span className="font-bold text-slate-700">{report.submittedBy}</span> on {report.dateSubmitted}</span>
+              </div>
+            )}
+            {/* Previously-returned context: shown on resubmitted reports (status Submitted
+                + non-null reviewNote). The note is the reason R&D gave last time so they
+                can check whether the proponent actually addressed it before verifying. */}
+            {report.status === 'Submitted' && report.reviewNote && (
+              <div className="flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-xl border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-amber-800">Previously returned — resubmitted with revisions</p>
+                  <p className="text-amber-700 italic mt-0.5">"{report.reviewNote}"</p>
+                </div>
+              </div>
+            )}
+            <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${report.progress}%` }}></div>
+                  </div>
+                  <span className="text-sm font-bold text-slate-700">{report.progress}%</span>
+                </div>
+              </div>
+              {report.expenses.some(e => e.approvedAmount !== null) && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
+                  <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
+                </div>
+              )}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-400 uppercase font-bold">Actual Spent</p>
+                <p className="text-xl font-bold text-blue-700 mt-1">₱{report.totalExpense.toLocaleString()}</p>
+              </div>
+              {report.expenses.some(e => e.approvedAmount !== null) && (
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
+                  <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                    ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
 
-               {report.submittedBy && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                      <User className="w-4 h-4 text-blue-500"/>
-                      <span>Submitted by <span className="font-bold text-slate-700">{report.submittedBy}</span> on {report.dateSubmitted}</span>
-                  </div>
-               )}
-
-               <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
-                      <div className="flex items-center gap-2 mt-2">
-                         <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{width: `${report.progress}%`}}></div>
-                         </div>
-                         <span className="text-sm font-bold text-slate-700">{report.progress}%</span>
-                      </div>
-                  </div>
-                  {(() => {
-                    const hasLiquidation = report.expenses.some(e => e.approvedAmount !== null);
-                    return hasLiquidation ? (
-                      <>
-                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                          <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
-                          <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
-                        </div>
-                      </>
-                    ) : null;
-                  })()}
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-xs text-slate-400 uppercase font-bold">Actual Spent</p>
-                      <p className="text-xl font-bold text-blue-700 mt-1">₱{report.totalExpense.toLocaleString()}</p>
-                  </div>
-                  {report.expenses.some(e => e.approvedAmount !== null) && (
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
-                      <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                        ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
-                      </p>
+            {report.expenses.length > 0 ? (
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200">Expense Breakdown</div>
+                {report.expenses.some(e => e.approvedAmount !== null) ? (
+                  <>
+                    <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
+                      <span className="col-span-1">Item</span>
+                      <span className="text-right">Approved</span>
+                      <span className="text-right">Actual</span>
+                      <span className="text-right">Unspent</span>
                     </div>
-                  )}
-               </div>
+                    {report.expenses.map((exp, idx) => (
+                      <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
+                        <span className="text-slate-700 col-span-1 truncate">{idx + 1}. {exp.description}</span>
+                        <span className="font-mono text-right text-slate-500">₱{(exp.approvedAmount ?? exp.amount).toLocaleString()}</span>
+                        <span className="font-mono text-right font-medium text-blue-700">₱{exp.amount.toLocaleString()}</span>
+                        <span className={`font-mono text-right font-medium ${(exp.approvedAmount ?? exp.amount) - exp.amount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                          ₱{((exp.approvedAmount ?? exp.amount) - exp.amount).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  report.expenses.map((exp, idx) => (
+                    <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
+                      <span className="text-slate-700">{idx + 1}. {exp.description}</span>
+                      <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">No expenses recorded for this period.</div>
+            )}
 
-               {report.expenses.length > 0 ? (
-                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                      <div className="bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200">Expense Breakdown</div>
-                      {report.expenses.some(e => e.approvedAmount !== null) ? (
-                        <>
-                          <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
-                            <span className="col-span-1">Item</span>
-                            <span className="text-right">Approved</span>
-                            <span className="text-right">Actual</span>
-                            <span className="text-right">Unspent</span>
-                          </div>
-                          {report.expenses.map((exp, idx) => (
-                            <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                              <span className="text-slate-700 col-span-1 truncate">{idx+1}. {exp.description}</span>
-                              <span className="font-mono text-right text-slate-500">₱{(exp.approvedAmount ?? exp.amount).toLocaleString()}</span>
-                              <span className="font-mono text-right font-medium text-blue-700">₱{exp.amount.toLocaleString()}</span>
-                              <span className={`font-mono text-right font-medium ${(exp.approvedAmount ?? exp.amount) - exp.amount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                ₱{((exp.approvedAmount ?? exp.amount) - exp.amount).toLocaleString()}
-                              </span>
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        <>
-                          {report.expenses.map((exp, idx) => (
-                            <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                              <span className="text-slate-700">{idx+1}. {exp.description}</span>
-                              <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </>
-                      )}
-                  </div>
-               ) : (
-                  <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">
-                      No expenses recorded for this period.
-                  </div>
-               )}
-
-               {report.proofs.length > 0 ? (
-                  <div className="space-y-3">
-                      <p className="text-xs font-bold text-slate-500 uppercase">Proof of Accomplishment</p>
-                      {groupProofFiles(report.proofs).map((group) => (
-                        <div key={group.category}>
-                          <p className="text-[11px] font-bold text-slate-500 mb-1.5">{group.category}</p>
-                          <div className="space-y-1.5">
-                            {group.files.map((file, i) => (
-                              <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm" title={file.filename}>
-                                <Paperclip className="w-4 h-4 flex-shrink-0"/>
-                                <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
-                                <Download className="w-4 h-4 ml-auto opacity-70 flex-shrink-0"/>
-                              </a>
-                            ))}
-                          </div>
-                        </div>
+            {report.proofs.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-slate-500 uppercase">Proof of Accomplishment</p>
+                {groupProofFiles(report.proofs).map((group) => (
+                  <div key={group.category}>
+                    <p className="text-[11px] font-bold text-slate-500 mb-1.5">{group.category}</p>
+                    <div className="space-y-1.5">
+                      {group.files.map((file, i) => (
+                        <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
+                          <Paperclip className="w-4 h-4 flex-shrink-0" />
+                          <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
+                          <Download className="w-4 h-4 ml-auto opacity-70 flex-shrink-0" />
+                        </a>
                       ))}
+                    </div>
                   </div>
-               ) : (
-                  <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">
-                      No proof files attached.
-                  </div>
-               )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">No proof files attached.</div>
+            )}
 
-               {report.status === 'Submitted' && (
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+            {report.status === 'Submitted' && (
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                {/* Inline reject textarea — only visible after clicking Reject */}
+                {rejectingReportId === report.id && (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                      Reason for returning (required)
+                    </label>
+                    <textarea
+                      value={reportRejectNote}
+                      onChange={(e) => setReportRejectNote(e.target.value)}
+                      placeholder="Explain what needs revision (this message is sent to the proponent)"
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-20"
+                    />
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  {rejectingReportId !== report.id ? (
+                    <>
                       <button
                         onClick={() => handleVerifyReport(report)}
                         disabled={verifyingReportId === report.id}
-                        className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
-                         {verifyingReportId === report.id ? (
-                           <><Loader2 className="w-5 h-5 animate-spin"/> Verifying...</>
-                         ) : (
-                           <><CheckCircle className="w-5 h-5"/> Verify & Approve Report</>
-                         )}
+                        {verifyingReportId === report.id ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</> : <><CheckCircle className="w-5 h-5" /> Verify & Approve</>}
                       </button>
-                  </div>
-               )}
-            </div>
-         )}
-         {isExpanded && (report.status === 'Locked' || report.status === 'Due') && (
-             <div className="p-5 text-center text-slate-500 text-sm italic bg-slate-50">
-                  {report.status === 'Locked'
-                    ? 'This report is currently locked and not yet due.'
-                    : 'This report is due. Waiting for proponent submission.'}
-             </div>
-         )}
+                      <button
+                        onClick={() => { setRejectingReportId(report.id); setReportRejectNote(''); }}
+                        className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                      >
+                        <AlertTriangle className="w-5 h-5" /> Return for Revision
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleRejectReport(report)}
+                        disabled={submittingReportReject === report.id || !reportRejectNote.trim()}
+                        className="flex-1 bg-red-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {submittingReportReject === report.id ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Return'}
+                      </button>
+                      <button
+                        onClick={() => { setRejectingReportId(null); setReportRejectNote(''); }}
+                        className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {isExpanded && (report.status === 'Locked' || report.status === 'Due') && (
+          <div className="p-5 text-center text-slate-500 text-sm italic bg-slate-50">
+            {report.status === 'Locked' ? 'This report is currently locked and not yet due.' : 'This report is due. Waiting for proponent submission.'}
+          </div>
+        )}
       </div>
     );
   };
 
   // --- MAIN LAYOUT ---
   return (
-    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200 max-h-[90vh]">
-
-        <div className="p-6 border-b border-slate-200 flex justify-between items-start bg-white rounded-t-2xl sticky top-0 z-10">
-           <div>
+    <>
+      <style>{`
+        @keyframes scrollTitle {
+           0%, 15% { transform: translateX(0); }
+          75%, 85% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+          95%, 100% { transform: translateX(0); }
+        }
+      `}</style>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-300">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-300">
+          {/* --- HEADER --- */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 bg-white gap-4 sticky top-0 z-10">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border
-                    ${project.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      project.status === 'Delayed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      project.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                    {project.status}
-                 </span>
-                 <span className="text-xs text-slate-400 font-mono">ID: {project.projectId}</span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border
+                    ${project?.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    project?.status === 'Delayed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      project?.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                  {project?.status}
+                </span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">{project.title}</h2>
-           </div>
-           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
-              <X className="w-6 h-6"/>
-           </button>
-        </div>
+              <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
+                  {project?.title}
+                </h2>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600 self-start sm:self-center">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50">
+          {/* --- BODY --- */}
+          <div className="flex-1 overflow-hidden flex flex-col lg:flex-row bg-slate-50">
+            {detailLoading || !details ? (
+              <PageLoader mode="project-detail" />
+            ) : (
+              <>
+                {/* LEFT COLUMN */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                  {project?.status === 'Completed' ? renderCompletedView() : (
+                    <>
+                      {/* Realignment Awareness */}
+                      {activeRealignment && (
+                        <div className={`rounded-xl border p-4 flex items-start gap-3 ${activeRealignment.status === 'pending_review' ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
+                          <Banknote className={`w-5 h-5 mt-0.5 shrink-0 ${activeRealignment.status === 'pending_review' ? 'text-indigo-600' : 'text-blue-600'}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${activeRealignment.status === 'pending_review' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {activeRealignment.status === 'pending_review' ? 'Realignment Pending Review' : 'Awaiting Proponent Revision'}
+                              </span>
+                              <span className="text-xs text-slate-500">Submitted {formatDate(activeRealignment.created_at)}</span>
+                            </div>
+                            <p className="text-sm text-slate-700 mt-1 italic line-clamp-2">"{activeRealignment.reason}"</p>
+                          </div>
+                          <Link to="/users/rnd/rndMainLayout?tab=funding" className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 rounded-lg px-3 py-1.5">
+                            Review <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      )}
 
-           {/* LEFT COLUMN */}
-           <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-
-              {project.status === 'Completed' ? renderCompletedView() : (
-                 <>
-                    {/* Pending Fund Requests */}
-                    {pendingFundRequests.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
-                          <DollarSign className="w-5 h-5 text-amber-600" /> Pending Fund Requests
-                          <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingFundRequests.length}</span>
-                        </h3>
-                        <div className="space-y-4">
-                          {pendingFundRequests.map(fr => {
-                            const totalAmount = fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0;
-                            const quarterLabel = fr.quarterly_report.replace('_report', '').toUpperCase();
-                            const requestedBy = fr.requested_by_user
-                              ? `${fr.requested_by_user.first_name} ${fr.requested_by_user.last_name}`
-                              : 'Unknown';
-                            return (
+                      {/* Pending Fund Requests */}
+                      {pendingFundRequests.length > 0 && (
+                        <div>
+                          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
+                            <DollarSign className="w-5 h-5 text-amber-600" /> Pending Fund Requests
+                            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingFundRequests.length}</span>
+                          </h3>
+                          <div className="space-y-4">
+                            {pendingFundRequests.map(fr => (
                               <div key={fr.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
                                 <div className="bg-amber-50 px-5 py-3 flex justify-between items-center border-b border-amber-200">
                                   <div>
-                                    <span className="font-bold text-amber-800">{quarterLabel} Fund Request</span>
-                                    <p className="text-xs text-amber-600 mt-0.5">By {requestedBy} &middot; {formatDate(fr.created_at)}</p>
+                                    <span className="font-bold text-amber-800">{fr.quarterly_report.replace('_report', '').toUpperCase()} Fund Request</span>
+                                    <p className="text-xs text-amber-600 mt-0.5">Submitted {formatDate(fr.created_at)}</p>
                                   </div>
-                                  <span className="text-lg font-bold text-amber-800">₱{totalAmount.toLocaleString()}</span>
+                                  <span className="text-lg font-bold text-amber-800">₱{(fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="p-4 space-y-2">
                                   {fr.fund_request_items?.map(item => (
@@ -612,295 +777,308 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                 </div>
                                 {showReviewNoteFor === fr.id && (
                                   <div className="px-4 pb-2">
-                                    <textarea
-                                      value={reviewNote}
-                                      onChange={(e) => setReviewNote(e.target.value)}
-                                      placeholder="Add a note (optional)..."
-                                      className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none h-16"
-                                    />
+                                    <textarea value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} placeholder="Add a note (optional)..." className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none h-16" />
                                   </div>
                                 )}
                                 <div className="px-4 pb-4 flex gap-3">
                                   {showReviewNoteFor !== fr.id ? (
                                     <>
-                                      <button
-                                        onClick={() => handleReviewFundRequest(fr.id, 'approved')}
-                                        disabled={reviewingFrId === fr.id}
-                                        className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                      >
-                                        {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                        Approve
+                                      <button onClick={() => handleReviewFundRequest(fr.id, 'approved')} disabled={reviewingFrId === fr.id} className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                        {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
                                       </button>
-                                      <button
-                                        onClick={() => setShowReviewNoteFor(fr.id)}
-                                        className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
-                                      >
-                                        <AlertTriangle className="w-4 h-4" />
-                                        Reject
+                                      <button onClick={() => setShowReviewNoteFor(fr.id)} className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" /> Reject
                                       </button>
                                     </>
                                   ) : (
                                     <>
-                                      <button
-                                        onClick={() => handleReviewFundRequest(fr.id, 'rejected')}
-                                        disabled={reviewingFrId === fr.id}
-                                        className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                      >
+                                      <button onClick={() => handleReviewFundRequest(fr.id, 'rejected')} disabled={reviewingFrId === fr.id} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                                         {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
                                       </button>
-                                      <button
-                                        onClick={() => { setShowReviewNoteFor(null); setReviewNote(''); }}
-                                        className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
-                                      >
-                                        Cancel
-                                      </button>
+                                      <button onClick={() => { setShowReviewNoteFor(null); setReviewNote(''); }} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all">Cancel</button>
                                     </>
                                   )}
                                 </div>
                               </div>
-                            );
-                          })}
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pending Extension Requests */}
+                      {pendingExtensionRequests.length > 0 && (
+                        <div>
+                          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
+                            <CalendarClock className="w-5 h-5 text-amber-600" /> Pending Extension Requests
+                            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingExtensionRequests.length}</span>
+                          </h3>
+                          <div className="space-y-4">
+                            {pendingExtensionRequests.map(ext => (
+                              <div key={ext.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
+                                <div className="bg-amber-50 px-5 py-3 flex justify-between items-start border-b border-amber-200 gap-3">
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-amber-800">Extension Request ({ext.extension_type === 'with_funding' ? 'Time + Funding' : 'Time Only'})</span>
+                                    <p className="text-xs text-amber-600 mt-0.5">Submitted {formatDate(ext.created_at)}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-[10px] font-bold text-amber-600 uppercase">New end date</p>
+                                    <p className="text-sm font-bold text-amber-800">{formatDate(ext.new_end_date)}</p>
+                                  </div>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                  <p className="text-[10px] font-bold uppercase text-slate-500">Reason</p>
+                                  <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-100 rounded-lg p-3">{ext.reason || 'No reason provided.'}</p>
+                                </div>
+                                {showExtRejectFor === ext.id && (
+                                  <div className="px-4 pb-2">
+                                    <textarea value={extReviewNote} onChange={(e) => setExtReviewNote(e.target.value)} placeholder="Reason for rejection (required)..." className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-16" />
+                                  </div>
+                                )}
+                                <div className="px-4 pb-4 flex gap-3">
+                                  {showExtRejectFor !== ext.id ? (
+                                    <>
+                                      <button onClick={() => handleReviewExtension(ext.id, 'approved')} disabled={reviewingExtId === ext.id} className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                        {reviewingExtId === ext.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
+                                      </button>
+                                      <button onClick={() => { setShowExtRejectFor(ext.id); setExtReviewNote(''); }} className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2">Reject</button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button onClick={() => handleReviewExtension(ext.id, 'rejected')} disabled={reviewingExtId === ext.id || !extReviewNote.trim()} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50">Confirm Reject</button>
+                                      <button onClick={() => { setShowExtRejectFor(null); setExtReviewNote(''); }} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* History Disclosure */}
+                      <div className="space-y-4">
+                        {(reviewedFundRequests.length > 0 || reviewedExtensionRequests.length > 0) && (
+                          <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                            <button onClick={() => setShowFundRequestHistory(!showFundRequestHistory)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors">
+                              <span className="text-xs font-bold uppercase text-slate-700">Review History</span>
+                              {showFundRequestHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                            {showFundRequestHistory && (
+                              <div className="border-t divide-y">
+                                {reviewedExtensionRequests.map(ext => (
+                                  <div key={ext.id} className="p-3 text-xs flex justify-between">
+                                    <div><span className={`font-bold uppercase ${ext.status === 'approved' ? 'text-emerald-600' : 'text-red-600'}`}>{ext.status} Extension</span> &middot; {formatDate(ext.reviewed_at || ext.created_at)}</div>
+                                    <p className="text-slate-500">New end: {formatDate(ext.new_end_date)}</p>
+                                  </div>
+                                ))}
+                                {reviewedFundRequests.map(fr => (
+                                  <div key={fr.id} className="p-3 text-xs flex justify-between">
+                                    <div><span className={`font-bold uppercase ${fr.status === 'approved' ? 'text-emerald-600' : 'text-red-600'}`}>{fr.status} Fund</span> &middot; {fr.quarterly_report.replace('_report', '').toUpperCase()}</div>
+                                    <span className="font-mono">₱{(fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0).toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Compliance Documents */}
+                      <div>
+                        <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-lg">
+                          <FileCheck className="w-5 h-5 text-blue-600" /> Compliance Documents
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {[
+                            { label: 'Memorandum of Agreement', form: 'DOST Form 5', url: moaFileUrl },
+                            { label: 'Agency Certification', form: 'DOST Form 4', url: agencyCertFileUrl },
+                          ].map(doc => (
+                            <div key={doc.label} className={`border rounded-xl p-3 flex items-center gap-3 ${doc.url ? 'bg-white' : 'bg-slate-50 border-dashed'}`}>
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.url ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}><FileText className="w-5 h-5" /></div>
+                              <div className="min-w-0 flex-1"><p className="text-[10px] font-bold text-slate-400 uppercase">{doc.form}</p><p className="text-sm font-bold truncate">{doc.label}</p></div>
+                              {doc.url && <button onClick={() => openSignedUrl(doc.url!)} className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"><Download className="w-3 h-3" /></button>}
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    )}
 
-                    {/* Quarterly Reports */}
-                    <div>
-                       <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
-                          <FileText className="w-5 h-5 text-blue-600"/> Quarterly Reports
-                       </h3>
-                       <div className="space-y-4">
-                          {details.reports.map(renderReportItem)}
-                       </div>
-                    </div>
+                      {/* Quarterly Reports */}
+                      <div>
+                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
+                          <FileText className="w-5 h-5 text-blue-600" /> Quarterly Reports
+                        </h3>
+                        <div className="space-y-4">{details.reports.map(renderReportItem)}</div>
+                      </div>
 
-                    {/* Terminal Report Section */}
-                    {allQuartersVerified && terminalReport && (
-                      <div className={`mt-6 rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600" /> Terminal Report
-                          </h3>
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${terminalReport.status === 'verified' ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>
-                            {terminalReport.status === 'verified' ? 'Verified' : 'Pending Verification'}
-                          </span>
-                        </div>
-                        <div className="space-y-2 text-sm text-gray-700">
-                          {terminalReport.actual_start_date && (
-                            <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>
-                          )}
-                          <div>
-                            <p className="font-medium mb-1">Accomplishments:</p>
-                            <p className="whitespace-pre-wrap text-xs bg-white/60 rounded-lg p-2 max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
+                      {/* Terminal Report */}
+                      {allQuartersVerified && terminalReport && (
+                        <div className={`rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                          <div className="flex justify-between items-center mb-3">
+                            <h3 className="font-bold text-slate-700 flex items-center gap-2"><FileText className="w-5 h-5" /> Terminal Report</h3>
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${terminalReport.status === 'verified' ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>{terminalReport.status === 'verified' ? 'Verified' : 'Pending Verification'}</span>
                           </div>
-                          {terminalReport.submitted_by_user && (
-                            <p className="text-xs text-gray-500">Submitted by {terminalReport.submitted_by_user.first_name} {terminalReport.submitted_by_user.last_name}</p>
+                          <div className="space-y-2 text-sm">
+                            {terminalReport.actual_start_date && <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>}
+                            <p className="whitespace-pre-wrap text-xs bg-white/60 p-2 rounded-lg max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
+                          </div>
+                          {/* Previously-returned context on a resubmitted terminal report. */}
+                          {terminalReport.status === 'submitted' && terminalReport.review_note && (
+                            <div className="mt-3 flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-lg border border-amber-200">
+                              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-amber-800">Previously returned — resubmitted with revisions</p>
+                                <p className="text-amber-700 italic mt-0.5">"{terminalReport.review_note}"</p>
+                              </div>
+                            </div>
+                          )}
+                          {terminalReport.status === 'submitted' && (
+                            <div className="mt-4 space-y-3">
+                              {rejectingTerminal && (
+                                <div>
+                                  <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                                    Reason for returning (required)
+                                  </label>
+                                  <textarea
+                                    value={terminalRejectNote}
+                                    onChange={(e) => setTerminalRejectNote(e.target.value)}
+                                    placeholder="Explain what needs revision (this message is sent to the proponent)"
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-20"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex gap-2">
+                                {!rejectingTerminal ? (
+                                  <>
+                                    <button
+                                      onClick={async () => { setVerifyingTerminal(true); try { const updated = await verifyTerminalReport(terminalReport.id); setTerminalReport(updated); Swal.fire('Verified', 'Success', 'success'); } catch { Swal.fire('Error', 'Failed', 'error'); } finally { setVerifyingTerminal(false); } }}
+                                      disabled={verifyingTerminal}
+                                      className="flex-1 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
+                                    >
+                                      {verifyingTerminal ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Verify Terminal Report</>}
+                                    </button>
+                                    <button
+                                      onClick={() => { setRejectingTerminal(true); setTerminalRejectNote(''); }}
+                                      className="flex-1 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all"
+                                    >
+                                      <AlertTriangle className="w-4 h-4" /> Return for Revision
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={handleRejectTerminal}
+                                      disabled={submittingTerminalReject || !terminalRejectNote.trim()}
+                                      className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-red-700 transition-all disabled:opacity-50"
+                                    >
+                                      {submittingTerminalReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Return'}
+                                    </button>
+                                    <button
+                                      onClick={() => { setRejectingTerminal(false); setTerminalRejectNote(''); }}
+                                      className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {terminalReport.status === 'rejected' && (
+                            <div className="mt-3 border border-red-200 bg-red-50 rounded-lg p-3 text-xs">
+                              <p className="font-bold text-red-800 mb-1 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Returned to proponent
+                              </p>
+                              {terminalReport.review_note && (
+                                <p className="text-red-700 italic">"{terminalReport.review_note}"</p>
+                              )}
+                            </div>
                           )}
                         </div>
-                        {terminalReport.status === 'submitted' && (
-                          <button
-                            onClick={async () => {
-                              const confirm = await Swal.fire({ title: 'Verify Terminal Report?', text: 'This will mark the terminal report as verified.', icon: 'question', showCancelButton: true, confirmButtonText: 'Verify' });
-                              if (!confirm.isConfirmed) return;
-                              setVerifyingTerminal(true);
-                              try {
-                                const updated = await verifyTerminalReport(terminalReport.id);
-                                setTerminalReport(updated);
-                                Swal.fire('Verified', 'Terminal report verified successfully.', 'success');
-                              } catch (err: any) {
-                                Swal.fire('Error', err?.response?.data?.message || 'Failed to verify.', 'error');
-                              } finally {
-                                setVerifyingTerminal(false);
-                              }
-                            }}
-                            disabled={verifyingTerminal}
-                            className="mt-4 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                          >
-                            {verifyingTerminal ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : <><CheckCircle className="w-4 h-4" /> Verify Terminal Report</>}
-                          </button>
+                      )}
+
+                      {allQuartersVerified && !terminalReport && (
+                        <div className="rounded-xl border bg-gray-50 p-5 text-center text-sm text-gray-500 italic">Waiting for terminal report submission.</div>
+                      )}
+
+                      {/* Financial Report Button */}
+                      <button onClick={() => setShowFinancialReport(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-xs hover:bg-emerald-100 transition-colors"><DollarSign className="w-4 h-4" /> View Detailed Financial Statement</button>
+
+                      {/* Certificate Generation */}
+                      {allQuartersVerified && terminalReport?.status === 'verified' && (
+                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center shadow-sm">
+                          <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                          <h3 className="text-lg font-bold text-emerald-800">Ready for Certificate</h3>
+                          <p className="text-sm text-emerald-600 mb-4">You can now issue the certificate of completion.</p>
+                          <button onClick={handleGenerateCertificate} disabled={issuingCertificate} className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 mx-auto">{issuingCertificate ? 'Issuing...' : 'Issue Certificate of Completion'}</button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="lg:w-80 bg-white border-l border-slate-200 p-6 overflow-y-auto space-y-6 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><DollarSign className="w-4 h-4" /> Financial Overview</h4>
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <p className="text-xs text-slate-500 mb-1">Total Budget</p>
+                      <p className="text-2xl font-bold text-slate-900">₱{totalBudget.toLocaleString()}</p>
+                    </div>
+                    {totalBudget > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <div>
+                          <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Utilized</span><span className="font-bold text-blue-600">₱{totalUsed.toLocaleString()}</span></div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: `${(totalUsed / totalBudget) * 100}%` }}></div></div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Remaining</span><span className={`font-bold ${remainingBudget === 0 ? 'text-gray-400' : 'text-emerald-600'}`}>₱{remainingBudget.toLocaleString()}</span></div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${(remainingBudget / totalBudget) * 100}%` }}></div></div>
+                        </div>
+                        {totalPending > 0 && (
+                          <div>
+                            <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Pending</span><span className="font-bold text-amber-600">₱{totalPending.toLocaleString()}</span></div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-amber-400" style={{ width: `${(totalPending / totalBudget) * 100}%` }}></div></div>
+                          </div>
                         )}
                       </div>
                     )}
-
-                    {allQuartersVerified && !terminalReport && (
-                      <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
-                        <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">All quarterly reports verified. Waiting for proponent to submit terminal report.</p>
-                      </div>
-                    )}
-
-                    {/* Financial Report Button */}
-                    {project && (
-                      <div className="mt-4">
-                        <button
-                          onClick={() => setShowFinancialReport(true)}
-                          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-xs transition-colors"
-                        >
-                          <DollarSign className="w-4 h-4" /> View Financial Report
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Certificate Generation Button — requires terminal report verified */}
-                    {allQuartersVerified && terminalReport?.status === 'verified' && (
-                      <div className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center">
-                        <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                        <h3 className="text-lg font-bold text-emerald-800 mb-2">Ready for Certificate!</h3>
-                        <p className="text-sm text-emerald-600 mb-4">All quarterly reports and terminal report have been verified. You can now issue the certificate of completion.</p>
-                        <button
-                          onClick={handleGenerateCertificate}
-                          disabled={issuingCertificate}
-                          className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
-                        >
-                          {issuingCertificate ? <><Loader2 className="w-5 h-5 animate-spin" /> Issuing...</> : <><Award className="w-5 h-5" /> Issue Certificate of Completion</>}
-                        </button>
-                      </div>
-                    )}
-                 </>
-              )}
-           </div>
-
-           {/* RIGHT COLUMN */}
-           <div className="lg:w-80 bg-white border-l border-slate-200 p-6 overflow-y-auto space-y-6 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
-
-              <div className="space-y-4">
-                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <DollarSign className="w-4 h-4"/> Financial Overview
-                 </h4>
-                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-xs text-slate-500 mb-1">Total Budget</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {totalBudget > 0 ? `₱${totalBudget.toLocaleString()}` : 'N/A'}
-                    </p>
-                 </div>
-
-                 {totalBudget > 0 && (
-                   <div className="space-y-3 pt-2">
-                      <div>
-                          <div className="flex justify-between text-xs mb-1">
-                          <span className="text-slate-500 font-medium">Utilized</span>
-                          <span className="font-bold text-blue-600">₱{totalUsed.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0}%` }}></div>
-                          </div>
-                      </div>
-
-                      <div>
-                          <div className="flex justify-between text-xs mb-1">
-                          <span className="text-slate-500 font-medium">Remaining</span>
-                          <span className={`font-bold ${remainingBudget === 0 ? 'text-gray-400' : 'text-emerald-600'}`}>₱{remainingBudget.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${totalBudget > 0 ? (remainingBudget / totalBudget) * 100 : 0}%` }}></div>
-                          </div>
-                      </div>
-
-                      {totalPending > 0 && (
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-slate-500 font-medium">Pending</span>
-                            <span className="font-bold text-amber-600">₱{totalPending.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${totalBudget > 0 ? (totalPending / totalBudget) * 100 : 0}%` }}></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {(budgetSummary?.total_actual_spent ?? 0) > 0 && (
-                        <div className="pt-2 border-t border-slate-100 space-y-3">
-                          <div>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-slate-500 font-medium">Actual Spent</span>
-                              <span className="font-bold text-blue-700">₱{(budgetSummary?.total_actual_spent ?? 0).toLocaleString()}</span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-600 rounded-full" style={{ width: `${totalBudget > 0 ? ((budgetSummary?.total_actual_spent ?? 0) / totalBudget) * 100 : 0}%` }}></div>
-                            </div>
-                          </div>
-                          {(budgetSummary?.total_for_return ?? 0) > 0 && (
-                            <div>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span className="text-slate-500 font-medium">For Return</span>
-                                <span className="font-bold text-red-500">₱{(budgetSummary?.total_for_return ?? 0).toLocaleString()}</span>
-                              </div>
-                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-red-400 rounded-full" style={{ width: `${totalBudget > 0 ? ((budgetSummary?.total_for_return ?? 0) / totalBudget) * 100 : 0}%` }}></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                   </div>
-                 )}
-              </div>
-
-              <div className="h-px bg-slate-100"></div>
-
-              <div className="space-y-4">
-                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <Users className="w-4 h-4"/> Leadership
-                 </h4>
-                 <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
-                       <User className="w-5 h-5"/>
-                    </div>
-                    <div>
-                       <p className="text-sm font-bold text-slate-800">{project.principalInvestigator}</p>
-                       <p className="text-xs text-slate-500 font-medium">Project Leader</p>
-                    </div>
-                 </div>
-                 {project.coProponent && (
+                  </div>
+                  <div className="h-px bg-slate-100"></div>
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Users className="w-4 h-4" /> Leadership</h4>
                     <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                       <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
-                          <Users className="w-5 h-5"/>
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-slate-800">{project.coProponent}</p>
-                          <p className="text-xs text-slate-500 font-medium">Co-Proponent</p>
-                       </div>
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><User className="w-5 h-5" /></div>
+                      <div><p className="text-sm font-bold text-slate-800">{project?.principalInvestigator}</p><p className="text-xs text-slate-500">Project Leader</p></div>
                     </div>
-                 )}
-              </div>
-
-              <div className="h-px bg-slate-100"></div>
-
-              <div className="space-y-4">
-                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <Calendar className="w-4 h-4"/> Timeline
-                 </h4>
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                    <div className="flex items-start gap-3">
-                       <div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500"></div>
-                       <div>
-                       <p className="text-xs text-slate-500 font-medium">Start Date</p>
-                       <p className="text-sm font-bold text-slate-800">{formatDate(project.startDate)}</p>
-                       </div>
+                  </div>
+                  <div className="h-px bg-slate-100"></div>
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Calendar className="w-4 h-4" /> Timeline</h4>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                      <div className="flex items-start gap-3"><div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500"></div><div><p className="text-xs text-slate-500">Start Date</p><p className="text-sm font-bold">{formatDate(project?.startDate)}</p></div></div>
+                      <div className="flex items-start gap-3"><div className={`w-2 h-2 mt-1.5 rounded-full ${project?.status === 'Completed' ? 'bg-blue-500' : 'bg-red-500'}`}></div><div><p className="text-xs text-slate-500">Target End</p><p className="text-sm font-bold">{formatDate(project?.endDate)}</p></div></div>
                     </div>
-                    <div className="flex items-start gap-3">
-                       <div className={`w-2 h-2 mt-1.5 rounded-full ${project.status === 'Completed' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
-                       <div>
-                       <p className="text-xs text-slate-500 font-medium">Target End</p>
-                       <p className="text-sm font-bold text-slate-800">{formatDate(project.endDate)}</p>
-                       </div>
-                    </div>
-                 </div>
-              </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
-           </div>
+          {/* --- FOOTER --- */}
+          <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <button onClick={onClose} className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 shadow-sm transition-all">Close</button>
+          </div>
+
+          {showFinancialReport && project && (
+            <FinancialReportModal
+              fundedProjectId={project.backendId!}
+              projectTitle={project.title}
+              onClose={() => setShowFinancialReport(false)}
+            />
+          )}
         </div>
       </div>
-
-      {/* Financial Report Modal */}
-      {showFinancialReport && project && (
-        <FinancialReportModal
-          fundedProjectId={project.backendId!}
-          projectTitle={project.title}
-          onClose={() => setShowFinancialReport(false)}
-        />
-      )}
-    </div>
+    </>
   );
 };
 

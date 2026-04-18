@@ -38,6 +38,11 @@ export class ProjectService {
    * - RND/Admin see all projects
    */
   async getFundedProjects(input: GetFundedProjectsInput) {
+    // Enriched select: everything needed to power BOTH the monitoring card UI and the
+    // funded-projects CSV export in a single query. We intentionally avoid an N+1 fetch
+    // of getBudgetSummary per row — instead we pull fund_request_items + proposal_budget_versions
+    // inline and reduce in memory below. Kept join-compact so the payload stays reasonable
+    // even with 50+ projects.
     let query = this.db
       .from("funded_projects")
       .select(
@@ -50,7 +55,8 @@ export class ProjectService {
           plan_start_date,
           plan_end_date,
           department:departments (id, name),
-          sector:sectors (id, name)
+          sector:sectors (id, name),
+          estimated_budget (amount)
         ),
         project_lead:users!project_lead_id (
           id,
@@ -65,7 +71,20 @@ export class ProjectService {
           progress,
           created_at
         ),
-        fund_requests (status)
+        fund_requests (
+          id,
+          status,
+          created_at,
+          fund_request_items (amount)
+        ),
+        project_terminal_reports (status),
+        project_extension_requests (status),
+        project_members (
+          role,
+          status,
+          user:users!user_id (first_name, last_name)
+        ),
+        active_budget_version:proposal_budget_versions!current_budget_version_id (grand_total)
       `
       )
       .order("created_at", { ascending: false });
@@ -75,24 +94,60 @@ export class ProjectService {
       query = query.eq("status", input.status);
     }
 
-    // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member
+    // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member.
+    // We resolve both sets into a single list of allowed project IDs and apply a plain
+    // .in() filter instead of .or(project_lead_id.eq.UUID,id.in.(...)). The nested .in()
+    // inside .or() is a known PostgREST foot-gun — the inner commas can get swallowed by
+    // the outer or-list parser and produce an over-broad filter that leaks projects the
+    // user was never invited to. The two-step resolve is slightly chattier but always
+    // correct, and empty ID sets short-circuit to [] instead of falling through to an
+    // unfiltered query.
     if (input.role === "proponent" && input.user_id) {
-      // 1. Get projects where user is the lead
-      // 2. Get projects where user is an active member
-      const { data: memberships } = await this.db
-        .from("project_members")
-        .select("funded_project_id")
-        .eq("user_id", input.user_id)
-        .eq("status", ProjectMemberStatus.ACTIVE);
+      const [{ data: leadRows }, { data: memberships }, { data: rndAssignments }] = await Promise.all([
+        this.db
+          .from("funded_projects")
+          .select("id")
+          .eq("project_lead_id", input.user_id),
+        this.db
+          .from("project_members")
+          .select("funded_project_id")
+          .eq("user_id", input.user_id)
+          .eq("status", ProjectMemberStatus.ACTIVE),
+        // COI guard: exclude proposals this user is assigned to review as R&D. A dual-role
+        // user (proponent + rnd) must not see a project on their proponent monitoring if
+        // they're also the reviewer — reviewing your own work is a conflict of interest.
+        // The same projects remain visible on the R&D monitoring view.
+        this.db
+          .from("proposal_rnd")
+          .select("proposal_id")
+          .eq("rnd_id", input.user_id),
+      ]);
 
-      const projectMemberIds = memberships?.map((m) => m.funded_project_id) || [];
+      const allowedIds = new Set<number>();
+      leadRows?.forEach((p: any) => allowedIds.add(p.id));
+      memberships?.forEach((m: any) => allowedIds.add(m.funded_project_id));
 
-      // Combine: where (project_lead_id == user_id) OR (id IN projectMemberIds)
-      if (projectMemberIds.length > 0) {
-        query = query.or(`project_lead_id.eq.${input.user_id},id.in.(${projectMemberIds.join(",")})`);
-      } else {
-        query = query.eq("project_lead_id", input.user_id);
+      if (allowedIds.size === 0) {
+        return { data: [], error: null };
       }
+
+      const rndProposalIds = new Set<number>(
+        (rndAssignments ?? []).map((a: any) => a.proposal_id),
+      );
+      if (rndProposalIds.size > 0) {
+        // Translate proposal ids → funded_project ids so we can subtract from allowedIds.
+        const { data: rndProjects } = await this.db
+          .from("funded_projects")
+          .select("id")
+          .in("proposal_id", Array.from(rndProposalIds));
+        rndProjects?.forEach((r: any) => allowedIds.delete(r.id));
+
+        if (allowedIds.size === 0) {
+          return { data: [], error: null };
+        }
+      }
+
+      query = query.in("id", Array.from(allowedIds));
     }
 
     // Filter for RND: only show projects assigned to this RND user via proposal_rnd
@@ -123,32 +178,107 @@ export class ProjectService {
       return { data: null, error };
     }
 
-    // Calculate completion percentage based on latest report + surface two
-    // actionable summaries so the monitoring dashboard can show them without
-    // extra per-project calls.
+    // Compute every field the monitoring card UI + CSV export need, from data already
+    // pulled in the join above. No extra queries — this is the hot path on the dashboard.
     const projectsWithCompletion = data?.map((project) => {
-      const latestReport = project.project_reports?.sort(
-        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )[0];
-
       const reports: any[] = project.project_reports || [];
       const fundRequests: any[] = project.fund_requests || [];
+      const terminal: any[] = project.project_terminal_reports || [];
+      const extensions: any[] = project.project_extension_requests || [];
+      const members: any[] = project.project_members || [];
+      const activeVersion: any = project.active_budget_version || null;
+
+      const latestReport = reports
+        .slice()
+        .sort(
+          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0];
 
       const overdue_reports_count = reports.filter((r) => r.status === "overdue").length;
+      const verified_reports_count = reports.filter((r) => r.status === "verified").length;
+      const reports_submitted_count = reports.filter((r) => r.status !== "overdue").length;
       const pending_fund_requests_count = fundRequests.filter(
         (fr) => fr.status === "pending",
       ).length;
+      const pending_extensions_count = extensions.filter((e) => e.status === "pending").length;
 
-      // Strip fund_requests from the outgoing payload — the monitoring UI
-      // only needs the count, not the raw rows.
-      const { fund_requests: _fr, ...rest } = project;
+      const terminal_report_verified =
+        terminal.length > 0 && terminal.some((t: any) => t.status === "verified");
+
+      // Co-leads: role='co_lead', status='active'. Inactive/pending/declined invitations excluded.
+      const co_leads = members
+        .filter((m: any) => m.role === "co_lead" && m.status === "active")
+        .map((m: any) => ({
+          first_name: m.user?.first_name ?? null,
+          last_name: m.user?.last_name ?? null,
+        }));
+
+      // Budget: authoritative total from active budget version; fallback to legacy
+      // estimated_budget for projects that predate the Phase 1 LIB migration (e.g. project 8).
+      // If neither exists, total is null — the UI/CSV renders blank rather than a bogus zero.
+      let total_budget: number | null = null;
+      if (activeVersion?.grand_total != null) {
+        total_budget = Number(activeVersion.grand_total) || 0;
+      } else {
+        const legacy = (project.proposal?.estimated_budget || []) as { amount: number }[];
+        if (legacy.length > 0) {
+          total_budget = legacy.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+        }
+      }
+
+      // Approved / utilized from fund request items. Approved = items on approved FRs.
+      // Utilized = same (we don't track partial liquidation at this level yet — that's
+      // project_expenses, which is per-report and too granular for a list view).
+      let approved_amount = 0;
+      for (const fr of fundRequests) {
+        if (fr.status !== "approved") continue;
+        const items = (fr.fund_request_items || []) as { amount: number }[];
+        for (const it of items) approved_amount += Number(it.amount) || 0;
+      }
+      const utilized_amount = approved_amount;
+      const remaining_amount =
+        total_budget != null ? total_budget - approved_amount : null;
+
+      // Last activity: max created_at across reports + fund requests. NULL-safe.
+      const activityDates: number[] = [];
+      for (const r of reports) {
+        const t = new Date(r.created_at).getTime();
+        if (!isNaN(t)) activityDates.push(t);
+      }
+      for (const fr of fundRequests) {
+        const t = new Date(fr.created_at).getTime();
+        if (!isNaN(t)) activityDates.push(t);
+      }
+      const last_activity_at =
+        activityDates.length > 0 ? new Date(Math.max(...activityDates)).toISOString() : null;
+
+      // Strip heavy inline joins — the monitoring list + CSV only need the computed
+      // aggregates, not the raw rows.
+      const {
+        fund_requests: _fr,
+        project_terminal_reports: _tr,
+        project_extension_requests: _er,
+        project_members: _pm,
+        active_budget_version: _abv,
+        ...rest
+      } = project;
 
       return {
         ...rest,
         completion_percentage: latestReport?.progress || 0,
         reports_count: reports.length,
+        reports_submitted_count,
+        verified_reports_count,
         overdue_reports_count,
         pending_fund_requests_count,
+        pending_extensions_count,
+        terminal_report_verified,
+        co_leads,
+        total_budget,
+        approved_amount,
+        utilized_amount,
+        remaining_amount,
+        last_activity_at,
       };
     });
 
@@ -159,6 +289,13 @@ export class ProjectService {
    * Get a single funded project by ID with full details
    */
   async getProject(input: GetProjectInput) {
+    // NOTE: `estimated_budget` here is the LEGACY budget table — baseline only, frozen at
+    // submission time. The authoritative current budget lives in `proposal_budget_versions` /
+    // `proposal_budget_items` and is surfaced via `getBudgetSummary` / `getActiveBudgetVersion`.
+    // Keep this join as an audit fallback (and as the source for `totalBudget` when the active
+    // version hasn't been computed yet in `buildDisplayReports`). Any R&D code that wants a
+    // *current* line-item view must NOT read `detail.proposal.estimated_budget` — it will be
+    // stale after realignment.
     const { data, error } = await this.db
       .from("funded_projects")
       .select(
@@ -224,15 +361,21 @@ export class ProjectService {
    * Submit a quarterly report for a funded project
    */
   async submitQuarterlyReport(input: SubmitReportInput) {
-    // Check if a report for this quarter already exists
+    // Look up any existing report for this quarter. Three cases to handle:
+    //   - no row → first submission, normal INSERT path below
+    //   - row with status='rejected' → resubmission after R&D returned it; UPDATE in place
+    //     (flip status back to 'submitted', clear review_note, replace expenses)
+    //   - row with any other status → genuine duplicate, reject
     const { data: existingReport } = await this.db
       .from("project_reports")
-      .select("id")
+      .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
       .eq("quarterly_report", input.quarterly_report)
-      .single();
+      .maybeSingle();
 
-    if (existingReport) {
+    const isResubmission = existingReport?.status === ReportStatus.REJECTED;
+
+    if (existingReport && !isResubmission) {
       return {
         data: null,
         error: {
@@ -283,20 +426,54 @@ export class ProjectService {
       }
     }
 
-    const { data, error } = await this.db
-      .from("project_reports")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        quarterly_report: input.quarterly_report,
-        progress: input.progress,
-        comment: input.comment || null,
-        report_file_url: input.report_file_url || null,
-        submitted_by_proponent_id: input.submitted_by_proponent_id,
-        status: ReportStatus.SUBMITTED,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // INSERT for a fresh submission; UPDATE for a resubmission after rejection. We flip
+    // status back to 'submitted' but KEEP review_note / reviewed_by / reviewed_at so the
+    // R&D modal can render a "previously returned on [date]: '[reason]'" pill as context
+    // when they re-review. The proponent-side red banner is gated on status==='rejected',
+    // so clearing status alone is enough to make it disappear on their side.
+    let data: any = null;
+    let error: any = null;
+    if (isResubmission && existingReport) {
+      const update = await this.db
+        .from("project_reports")
+        .update({
+          progress: input.progress,
+          comment: input.comment || null,
+          report_file_url: input.report_file_url || null,
+          submitted_by_proponent_id: input.submitted_by_proponent_id,
+          status: ReportStatus.SUBMITTED,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingReport.id)
+        .select()
+        .single();
+      data = update.data;
+      error = update.error;
+
+      // Wipe old expense rows — the proponent may have changed their liquidation mix when
+      // revising. Simpler than diffing, and project_expenses has no FKs downstream that would
+      // care about row ids.
+      if (!error && data) {
+        await this.db.from("project_expenses").delete().eq("project_reports_id", existingReport.id);
+      }
+    } else {
+      const insert = await this.db
+        .from("project_reports")
+        .insert({
+          funded_project_id: input.funded_project_id,
+          quarterly_report: input.quarterly_report,
+          progress: input.progress,
+          comment: input.comment || null,
+          report_file_url: input.report_file_url || null,
+          submitted_by_proponent_id: input.submitted_by_proponent_id,
+          status: ReportStatus.SUBMITTED,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      data = insert.data;
+      error = insert.error;
+    }
 
     if (!error && data) {
       // Fetch approved fund request items for this quarter
@@ -366,7 +543,7 @@ export class ProjectService {
 
       await logActivity(this.db, {
         user_id: input.submitted_by_proponent_id,
-        action: "quarterly_report_submitted",
+        action: isResubmission ? "quarterly_report_resubmitted" : "quarterly_report_submitted",
         category: "project",
         target_id: String(input.funded_project_id),
         target_type: "funded_project",
@@ -374,7 +551,7 @@ export class ProjectService {
       });
     }
 
-    return { data, error };
+    return { data, error, isResubmission };
   }
 
   /**
@@ -456,6 +633,112 @@ export class ProjectService {
     }
 
     return { data, error };
+  }
+
+  /**
+   * Reject a quarterly report with a required note. Mirrors verifyReport but flips the
+   * status to REJECTED instead of VERIFIED. The proponent's monitoring UI reads
+   * status='rejected' + review_note and shows a red banner + an edit-and-resubmit path.
+   *
+   * Same COI guard as verify — the R&D user reviewing the report must not be in the
+   * project's proponent/co-lead set.
+   */
+  async rejectReport(input: { report_id: number; reviewed_by: string; review_note: string }) {
+    const { data: report } = await this.db
+      .from("project_reports")
+      .select("funded_project_id")
+      .eq("id", input.report_id)
+      .single();
+
+    if (!report) {
+      return { data: null, error: { message: "Project report not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, report.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_reject_report",
+        category: "project",
+        target_id: String(input.report_id),
+        target_type: "report",
+        details: { funded_project_id: report.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_reports")
+      .update({
+        status: ReportStatus.REJECTED,
+        review_note: input.review_note,
+        reviewed_by: input.reviewed_by,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.report_id)
+      .eq("status", ReportStatus.SUBMITTED) // can only reject a still-submitted report
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Report not found or no longer in a submittable state." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.reviewed_by,
+      action: "quarterly_report_rejected",
+      category: "project",
+      target_id: String(input.report_id),
+      target_type: "report",
+      details: { funded_project_id: data.funded_project_id, review_note: input.review_note },
+    });
+
+    // Notify the proponent who submitted it (in-app + email). Fire-and-forget.
+    try {
+      if (data.submitted_by_proponent_id) {
+        const quarterLabel = String(data.quarterly_report || "Quarterly")
+          .replace("_report", "")
+          .toUpperCase();
+
+        await this.db.from("notifications").insert({
+          user_id: data.submitted_by_proponent_id,
+          message: `Your ${quarterLabel} report was returned for revision. Reason: ${input.review_note}`,
+          is_read: false,
+          link: "project-monitoring",
+        });
+
+        const { data: proponent } = await this.db
+          .from("users")
+          .select("email, first_name")
+          .eq("id", data.submitted_by_proponent_id)
+          .single();
+
+        if (proponent?.email && process.env.SMTP_USER) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            proponent.email,
+            proponent.first_name || "Proponent",
+            `${quarterLabel} Report Returned for Revision`,
+            `R&D returned your ${quarterLabel} report. Reason: ${input.review_note}. Sign in to SPMAMS to edit and resubmit.`,
+            "View Project Monitoring",
+            `${frontendUrl}/login`,
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error("Reject notification failed (non-blocking):", notifErr);
+    }
+
+    return { data, error: null };
   }
 
   /**
@@ -1736,16 +2019,51 @@ export class ProjectService {
         .limit(1)
         .maybeSingle();
 
-      if (!latest) {
-        return {
-          data: null,
-          error: new Error(
-            "No structured budget version exists for this proposal yet. The proponent must resubmit the budget after Phase 1 deploy.",
-          ),
-        };
-      }
+      if (latest) {
+        // A version exists but the funded_project wasn't pointing at it yet.
+        versionId = latest.id as number;
+      } else {
+        // Self-heal: no budget version exists for this proposal at all. This happens for
+        // projects that predate the Phase 1 LIB migration and had no legacy estimated_budget
+        // rows to seed from (the migration backfill only runs for proposals with legacy data).
+        // Before this branch existed, the UI crashed with a 404 + cascading 500 on every
+        // budget-summary lookup for such projects (e.g. funded_project 8).
+        //
+        // Creates an empty v1 (grand_total=0, no items). The proponent can then populate it
+        // normally via the realignment flow if the project is still active, or it just stays
+        // empty — either way the monitoring UI renders cleanly instead of breaking.
+        //
+        // Idempotent: UNIQUE(proposal_id, version_number) rejects racing inserts, so on a
+        // double-call the loser re-reads the winner's row.
+        const { data: newVersion, error: createError } = await this.db
+          .from("proposal_budget_versions")
+          .insert({
+            proposal_id: project.proposal_id,
+            version_number: 1,
+            grand_total: 0,
+          })
+          .select("id")
+          .maybeSingle();
 
-      versionId = latest.id as number;
+        if (createError || !newVersion) {
+          const { data: retryLatest } = await this.db
+            .from("proposal_budget_versions")
+            .select("id")
+            .eq("proposal_id", project.proposal_id)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!retryLatest) {
+            return {
+              data: null,
+              error: createError ?? new Error("Failed to self-heal budget version"),
+            };
+          }
+          versionId = retryLatest.id as number;
+        } else {
+          versionId = newVersion.id as number;
+        }
+      }
 
       await this.db
         .from("funded_projects")
@@ -2523,14 +2841,17 @@ export class ProjectService {
       };
     }
 
-    // Check no existing terminal report
+    // Same three-way check as quarterly report submit: no row → INSERT; rejected row →
+    // UPDATE in place as a resubmission; any other status → genuine duplicate, reject.
     const { data: existing } = await this.db
       .from("project_terminal_reports")
-      .select("id")
+      .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
-      .single();
+      .maybeSingle();
 
-    if (existing) {
+    const isResubmission = existing?.status === "rejected";
+
+    if (existing && !isResubmission) {
       return {
         data: null,
         error: {
@@ -2540,33 +2861,60 @@ export class ProjectService {
       };
     }
 
-    const { data, error } = await this.db
-      .from("project_terminal_reports")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        actual_start_date: input.actual_start_date || null,
-        actual_end_date: input.actual_end_date || null,
-        accomplishments: input.accomplishments,
-        outputs_publications: input.outputs_publications || null,
-        outputs_patents_ip: input.outputs_patents_ip || null,
-        outputs_products: input.outputs_products || null,
-        outputs_people: input.outputs_people || null,
-        outputs_partnerships: input.outputs_partnerships || null,
-        outputs_policy: input.outputs_policy || null,
-        problems_encountered: input.problems_encountered || null,
-        suggested_solutions: input.suggested_solutions || null,
-        publications_list: input.publications_list || null,
-        report_file_url: input.report_file_url || null,
-        status: "submitted",
-        submitted_by: input.submitted_by,
-      })
-      .select(
-        `
-        *,
-        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
-      `
-      )
-      .single();
+    const payload = {
+      funded_project_id: input.funded_project_id,
+      actual_start_date: input.actual_start_date || null,
+      actual_end_date: input.actual_end_date || null,
+      accomplishments: input.accomplishments,
+      outputs_publications: input.outputs_publications || null,
+      outputs_patents_ip: input.outputs_patents_ip || null,
+      outputs_products: input.outputs_products || null,
+      outputs_people: input.outputs_people || null,
+      outputs_partnerships: input.outputs_partnerships || null,
+      outputs_policy: input.outputs_policy || null,
+      problems_encountered: input.problems_encountered || null,
+      suggested_solutions: input.suggested_solutions || null,
+      publications_list: input.publications_list || null,
+      report_file_url: input.report_file_url || null,
+      status: "submitted" as const,
+      submitted_by: input.submitted_by,
+    };
+
+    let data: any = null;
+    let error: any = null;
+    if (isResubmission && existing) {
+      // Keep review_note / reviewed_by / reviewed_at on resubmit — R&D's modal surfaces them
+      // as "previously returned" context. Status alone gates the proponent's red banner.
+      const update = await this.db
+        .from("project_terminal_reports")
+        .update({
+          ...payload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select(
+          `
+          *,
+          submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+        `,
+        )
+        .single();
+      data = update.data;
+      error = update.error;
+    } else {
+      const insert = await this.db
+        .from("project_terminal_reports")
+        .insert(payload)
+        .select(
+          `
+          *,
+          submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+        `,
+        )
+        .single();
+      data = insert.data;
+      error = insert.error;
+    }
 
     if (error) {
       return { data: null, error };
@@ -2574,7 +2922,7 @@ export class ProjectService {
 
     await logActivity(this.db, {
       user_id: input.submitted_by,
-      action: "terminal_report_submitted",
+      action: isResubmission ? "terminal_report_resubmitted" : "terminal_report_submitted",
       category: "project",
       target_id: String(input.funded_project_id),
       target_type: "funded_project",
@@ -2598,14 +2946,16 @@ export class ProjectService {
       if (rndAssignment) {
         await this.db.from("notifications").insert({
           user_id: rndAssignment.rnd_id,
-          message: "A terminal report has been submitted and is awaiting your verification.",
+          message: isResubmission
+            ? "A terminal report you previously returned has been resubmitted with revisions. Please re-review."
+            : "A terminal report has been submitted and is awaiting your verification.",
           is_read: false,
           link: "project-monitoring",
         });
       }
     }
 
-    return { data, error: null };
+    return { data, error: null, isResubmission };
   }
 
   async verifyTerminalReport(input: VerifyTerminalReportInput) {
@@ -2696,6 +3046,108 @@ export class ProjectService {
           proponent.first_name || "Proponent",
           "Terminal Report Verified",
           "Your terminal report has been verified and approved. A completion certificate can now be issued for your project. Sign in to SPMAMS for details.",
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
+
+    return { data, error: null };
+  }
+
+  /**
+   * Reject a terminal report with a required note. Same pattern as rejectReport for
+   * quarterly reports. Flips status 'submitted' → 'rejected' + persists review_note /
+   * reviewed_by / reviewed_at so the proponent monitoring UI can render the reason.
+   */
+  async rejectTerminalReport(input: { terminal_report_id: number; reviewed_by: string; review_note: string }) {
+    const { data: terminalReport } = await this.db
+      .from("project_terminal_reports")
+      .select("funded_project_id")
+      .eq("id", input.terminal_report_id)
+      .single();
+
+    if (!terminalReport) {
+      return { data: null, error: { message: "Terminal report not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, terminalReport.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_reject_terminal_report",
+        category: "project",
+        target_id: String(input.terminal_report_id),
+        target_type: "funded_project",
+        details: { funded_project_id: terminalReport.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_terminal_reports")
+      .update({
+        status: "rejected",
+        review_note: input.review_note,
+        reviewed_by: input.reviewed_by,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.terminal_report_id)
+      .eq("status", "submitted")
+      .select(
+        `
+        *,
+        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+      `,
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Terminal report not found or no longer in a submittable state." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.reviewed_by,
+      action: "terminal_report_rejected",
+      category: "project",
+      target_id: String(input.terminal_report_id),
+      target_type: "funded_project",
+      details: { funded_project_id: terminalReport.funded_project_id, review_note: input.review_note },
+    });
+
+    // Notify the proponent (in-app + email, same pattern as verify)
+    await this.db.from("notifications").insert({
+      user_id: data.submitted_by,
+      message: `Your terminal report was returned for revision. Reason: ${input.review_note}`,
+      is_read: false,
+      link: "project-monitoring",
+    });
+
+    try {
+      const { data: proponent } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", data.submitted_by)
+        .single();
+
+      if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          proponent.email,
+          proponent.first_name || "Proponent",
+          "Terminal Report Returned for Revision",
+          `R&D returned your terminal report. Reason: ${input.review_note}. Sign in to SPMAMS to edit and resubmit.`,
           "View Project Monitoring",
           `${frontendUrl}/login`,
         );

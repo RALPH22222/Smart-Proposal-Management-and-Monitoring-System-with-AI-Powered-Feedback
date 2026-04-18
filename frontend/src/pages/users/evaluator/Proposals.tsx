@@ -17,6 +17,7 @@ import {
   RefreshCw,
   RotateCcw,
   AlertCircle,
+  CalendarDays,
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
@@ -30,6 +31,8 @@ export default function Proposals() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
+  const [yearFilter, setYearFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState("recent-old");
 
   const [decisionModalOpen, setDecisionModalOpen] = useState(false);
   const [proposalToEvaluate, setProposalToEvaluate] = useState<number | null>(null);
@@ -215,39 +218,23 @@ export default function Proposals() {
     const matchesStatus =
       statusFilter === "All" ||
       (STATUS_GROUPS[statusFilter] ?? [statusFilter]).includes(s);
-    return matchesSearch && matchesStatus;
+    const proposalYear = p.assignedDate ? new Date(p.assignedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    return matchesSearch && matchesStatus && matchesYear;
   });
 
-  // Newest proposals first; if same date, action-required statuses bubble up
-  const statusPriority: Record<string, number> = {
-    pending: 0,
-    extension_requested: 1,
-    extend: 1,
-    extension_approved: 2,
-    extension_rejected: 2,
-    for_review: 3,
-    under_evaluation: 3,
-    accepted: 4,
-    approve: 4,
-    approved: 4,
-    revise: 5,
-    revision: 5,
-    rejected: 6,
-    reject: 6,
-    decline: 6,
-    disapproved: 6,
-    declined: 7,
-  };
-
+  // Sort logic
   const sortedFiltered = [...filtered].sort((a, b) => {
-    // Primary: newest first
-    const dateA = new Date(a.raw?.created_at || a.raw?.updated_at || 0).getTime();
-    const dateB = new Date(b.raw?.created_at || b.raw?.updated_at || 0).getTime();
-    if (dateB !== dateA) return dateB - dateA;
-    // Tiebreaker: pending/actionable first
-    const priorityA = statusPriority[a.status.toLowerCase()] ?? 6;
-    const priorityB = statusPriority[b.status.toLowerCase()] ?? 6;
-    return priorityA - priorityB;
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.assignedDate || 0).getTime();
+    const dateB = new Date(b.assignedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
   });
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
@@ -439,7 +426,7 @@ export default function Proposals() {
 
   return (
     <>
-    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 min-w-0">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -452,70 +439,83 @@ export default function Proposals() {
         </div>
       </header>
 
-      {/* Filter Section */}
-      <section className="flex-shrink-0" aria-label="Filter proposals">
-        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
+      {/* Tabs Section */}
+      <section className="flex-shrink-0 overflow-x-auto pb-2">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "All", label: "All", icon: Filter },
+            { id: "pending", label: "Pending Review", icon: Clock },
+            { id: "accepted", label: "Proposal Approved", icon: CheckCircle },
+            { id: "for_review", label: "Under Review", icon: RefreshCw },
+            { id: "decline", label: "Proposal Reject", icon: XCircle },
+            { id: "declined", label: "Declined", icon: XCircle },
+            { id: "revise", label: "Proposal Revise", icon: RotateCcw },
+            { id: "extension_approved", label: "Extension Approved", icon: CheckCircle },
+            { id: "extension_requested", label: "Extension Requested", icon: CalendarClock },
+            { id: "extension_rejected", label: "Extension Declined", icon: XCircle },
+          ].map((tab) => {
+            const isActive = statusFilter === tab.id;
+            const count = tab.id === "All"
+              ? proposals.length
+              : proposals.filter(p => (STATUS_GROUPS[tab.id] ?? [tab.id]).includes((p.status || "").toLowerCase())).length;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setStatusFilter(tab.id); setCurrentPage(1); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  isActive
+                    ? "bg-[#C8102E] text-white border-[#C8102E] shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <tab.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <span>{tab.label}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-          {/* Search Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search proposals or proponents..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Search proposals"
-              />
-            </div>
+      {/* Search and Filters Section */}
+      <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
           </div>
-
-          {/* Status Tabs — wrapping layout, no scroll */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "All", label: "All", icon: Filter },
-              { id: "pending", label: "Pending Review", icon: Clock },
-              { id: "accepted", label: "Proposal Approved", icon: CheckCircle },
-              { id: "for_review", label: "Under Review", icon: RefreshCw },
-              { id: "decline", label: "Proposal Reject", icon: XCircle },
-              { id: "declined", label: "Declined", icon: XCircle },
-              { id: "revise", label: "Proposal Revise", icon: RotateCcw },
-              { id: "extension_approved", label: "Extension Approved", icon: CheckCircle },
-              { id: "extension_requested", label: "Extension Requested", icon: CalendarClock },
-              { id: "extension_rejected", label: "Extension Declined", icon: XCircle },
-            ].map((tab) => {
-              const isActive = statusFilter === tab.id;
-              const count = tab.id === "All"
-                ? proposals.length
-                : proposals.filter(p => (STATUS_GROUPS[tab.id] ?? [tab.id]).includes((p.status || "").toLowerCase())).length;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { setStatusFilter(tab.id); setCurrentPage(1); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
-                    isActive
-                      ? "bg-[#C8102E] text-white border-[#C8102E] shadow-sm"
-                      : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <tab.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
-                  <span>{tab.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    isActive ? "bg-white/25 text-white" : "bg-slate-100 text-slate-500"
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 text-xs text-slate-500">
-            Showing {sortedFiltered.length} of {proposals.length} proposals
-          </div>
+          <input
+            type="text"
+            placeholder="Search proposals..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={yearFilter}
+            onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="All">All Years</option>
+            {Array.from(new Set(proposals.map(p => p.assignedDate ? new Date(p.assignedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+              <option key={year} value={String(year)}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="recent-old">Recent to Old</option>
+            <option value="old-recent">Old to Recent</option>
+            <option value="a-z">Title (A-Z)</option>
+            <option value="z-a">Title (Z-A)</option>
+          </select>
         </div>
       </section>
 
@@ -563,13 +563,17 @@ export default function Proposals() {
                         {proposal.status === "pending" && (
                           <div className="flex items-center gap-1.5 text-red-600">
                             <Calendar className="w-3 h-3" aria-hidden="true" />
-                            <span>Deadline: <span className="font-semibold">{proposal.deadline}</span></span>
+                            <span className="font-semibold">Deadline: {proposal.deadline}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-1.5 text-slate-500">
                           <CalendarClock className="w-3 h-3" aria-hidden="true" />
-                          <span>Forwarded: <span className="font-semibold text-slate-700">{proposal.assignedDate ? formatDate(proposal.assignedDate) : "N/A"}</span></span>
+                          <span className="font-semibold">Forwarded: {proposal.assignedDate ? formatDate(proposal.assignedDate) : "N/A"}</span>
                         </div>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                          <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                          {new Date(proposal.assignedDate || Date.now()).getFullYear()}
+                        </span>
                         {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
                           <span
                             key={i}
@@ -582,39 +586,37 @@ export default function Proposals() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       {(() => {
                         const theme = getStatusTheme(proposal.status);
                         return (
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${theme.bg} ${theme.border} ${theme.text} flex-shrink-0`}>
                             {theme.icon}
                             {theme.label}
                           </span>
                         );
                       })()}
 
-                      <div className="flex items-center gap-2">
-                        {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
-                          <button
-                            onClick={() => handleEvaluateClick(proposal.id)}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                            aria-label={`${proposal.title}`}
-                            title="Action"
-                          >
-                            <Gavel className="w-3 h-3" />
-                            Action
-                          </button>
-                        )}
-
+                      {(proposal.status === "pending" || proposal.status === "extension_approved" || proposal.status === "extension_rejected") && (
                         <button
-                          onClick={() => handleViewClick(proposal.id)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200 cursor-pointer"
-                          aria-label={`View details for ${proposal.title}`}
-                          title="View details"
+                          onClick={() => handleEvaluateClick(proposal.id)}
+                          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                          aria-label={`${proposal.title}`}
+                          title="Action"
                         >
-                          <Eye className="w-3 h-3" />
+                          <Gavel className="w-3 h-3" />
+                          Action
                         </button>
-                      </div>
+                      )}
+
+                      <button
+                        onClick={() => handleViewClick(proposal.id)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer"
+                        aria-label={`View details for ${proposal.title}`}
+                        title="View details"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 </article>

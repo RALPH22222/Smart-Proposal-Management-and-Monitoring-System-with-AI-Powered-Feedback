@@ -69,10 +69,22 @@ export interface ApiFundedProject {
   status: "on_going" | "completed" | "on_hold" | "blocked";
   funded_date: string;
   created_at: string;
+  // Aggregates computed server-side by getFundedProjects. Populated for the list/CSV view;
+  // the detail modal has its own, more authoritative calls for budget summary.
   completion_percentage: number;
   reports_count: number;
+  reports_submitted_count: number;
+  verified_reports_count: number;
   overdue_reports_count: number;
   pending_fund_requests_count: number;
+  pending_extensions_count: number;
+  terminal_report_verified: boolean;
+  co_leads: { first_name: string | null; last_name: string | null }[];
+  total_budget: number | null;
+  approved_amount: number;
+  utilized_amount: number;
+  remaining_amount: number | null;
+  last_activity_at: string | null;
   proposal: {
     id: number;
     project_title: string;
@@ -107,6 +119,9 @@ export interface ApiProjectDetail {
   certificate_issued_at: string | null;
   certificate_issued_by: string | null;
   certificate_issuer: { id: string; first_name: string; last_name: string } | null;
+  // DOST Form 4/5 uploads — populated post-funding by the proponent; null until uploaded.
+  moa_file_url: string | null;
+  agency_certification_file_url: string | null;
   proposal: {
     id: number;
     project_title: string;
@@ -135,13 +150,17 @@ export interface ApiProjectReport {
   id: number;
   funded_project_id: number;
   quarterly_report: string;
-  status: "submitted" | "verified" | "overdue";
+  status: "submitted" | "verified" | "overdue" | "rejected";
   progress: number;
   comment: string | null;
   report_file_url: string[] | null;
   submitted_by_proponent_id: string;
   created_at: string;
   project_expenses: ApiProjectExpense[];
+  // Populated when R&D rejects with a reason; null until then.
+  review_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface ApiProjectExpense {
@@ -269,12 +288,30 @@ export function transformToProject(fp: ApiFundedProject): Project {
     researchArea: fp.proposal?.sector?.name || "",
     startDate: fp.proposal?.plan_start_date || fp.funded_date || "",
     endDate: fp.proposal?.plan_end_date || "",
-    budget: 0, // Budget only available in detail view
+    // Budget now populated from the enriched list query. Falls back to 0 for legacy
+    // projects with neither an active budget version nor a legacy estimated_budget row.
+    budget: fp.total_budget ?? 0,
     status: mapBackendStatus(fp.status),
     completionPercentage: fp.completion_percentage || 0,
     lastModified: fp.created_at || "",
     overdueReportsCount: fp.overdue_reports_count ?? 0,
     pendingFundRequestsCount: fp.pending_fund_requests_count ?? 0,
+
+    // Extended fields for CSV export.
+    coLeads: (fp.co_leads ?? []).map((c) => ({
+      firstName: c.first_name,
+      lastName: c.last_name,
+    })),
+    fundedDate: fp.funded_date ?? null,
+    reportsSubmittedCount: fp.reports_submitted_count ?? 0,
+    verifiedReportsCount: fp.verified_reports_count ?? 0,
+    pendingExtensionsCount: fp.pending_extensions_count ?? 0,
+    terminalReportVerified: fp.terminal_report_verified ?? false,
+    totalBudget: fp.total_budget ?? null,
+    approvedAmount: fp.approved_amount ?? 0,
+    utilizedAmount: fp.utilized_amount ?? 0,
+    remainingAmount: fp.remaining_amount ?? null,
+    lastActivityAt: fp.last_activity_at ?? null,
   };
 }
 
@@ -285,7 +322,7 @@ export interface DisplayReport {
   backendReportId: number | null; // null for placeholder reports
   quarter: string;
   dueDate: string;
-  status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue";
+  status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue" | "Rejected";
   progress: number;
   expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
   totalExpense: number;
@@ -293,6 +330,8 @@ export interface DisplayReport {
   proofs: string[];
   submittedBy?: string;
   dateSubmitted?: string;
+  // R&D's reason when status === 'Rejected'. Surfaced in the red banner on the proponent page.
+  reviewNote?: string | null;
 }
 
 export interface ProjectDetailData {
@@ -344,6 +383,7 @@ export function buildDisplayReports(
         submitted: "Submitted",
         verified: "Verified",
         overdue: "Overdue",
+        rejected: "Rejected",
       };
 
       const expenses = (apiReport.project_expenses || []).map((e) => ({
@@ -371,6 +411,7 @@ export function buildDisplayReports(
         dateSubmitted: apiReport.created_at
           ? formatDate(apiReport.created_at)
           : undefined,
+        reviewNote: apiReport.review_note ?? null,
       };
     }
 
@@ -458,10 +499,11 @@ export function invalidateProjectCache(): void {
 export async function fetchFundedProjects(
   role?: string
 ): Promise<ApiFundedProject[]> {
-  const cacheKey = `funded:${role || "all"}`;
-  const cached = getCached<ApiFundedProject[]>(cacheKey);
-  if (cached) return cached;
-
+  // Intentionally NOT cached. The module-level `projectCache` is keyed by role only
+  // ("funded:proponent") with no user scope, so if User A views as proponent then logs
+  // out and User B logs in within the 30s TTL, User B would briefly see User A's list.
+  // The backend is the real authority on what each user can see — skip the cache here
+  // and always refetch.
   const params: Record<string, string> = {};
   if (role) params.role = role;
 
@@ -469,7 +511,6 @@ export async function fetchFundedProjects(
     "/project/funded",
     { params, withCredentials: true }
   );
-  setCache(cacheKey, data.data);
   return data.data;
 }
 
@@ -501,6 +542,21 @@ export async function verifyReport(
   await api.post(
     "/project/verify-report",
     { report_id: reportId },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+}
+
+// R&D returns a quarterly report to the proponent with a required note. Triggers a
+// notification + email; the proponent then sees a red banner with the reason on their
+// monitoring page and can edit-and-resubmit via the normal report form.
+export async function rejectReport(
+  reportId: number,
+  reviewNote: string
+): Promise<void> {
+  await api.post(
+    "/project/reject-report",
+    { report_id: reportId, review_note: reviewNote },
     { withCredentials: true }
   );
   invalidateProjectCache();
@@ -770,11 +826,15 @@ export interface ApiTerminalReport {
   suggested_solutions: string | null;
   publications_list: string | null;
   report_file_url: string[] | null;
-  status: "submitted" | "verified";
+  status: "submitted" | "verified" | "rejected";
   submitted_by: string;
   verified_by: string | null;
   verified_at: string | null;
   created_at: string;
+  // Populated when R&D rejects with a reason; null until then.
+  review_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   updated_at: string | null;
   submitted_by_user: { id: string; first_name: string; last_name: string } | null;
   verified_by_user: { id: string; first_name: string; last_name: string } | null;
@@ -826,6 +886,21 @@ export async function verifyTerminalReport(
   const { data } = await api.post<{ data: ApiTerminalReport }>(
     "/project/verify-terminal-report",
     { terminal_report_id: terminalReportId },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
+// R&D returns a terminal report to the proponent with a required note. Same pattern as
+// rejectReport — proponent sees banner + reason, can edit and resubmit.
+export async function rejectTerminalReport(
+  terminalReportId: number,
+  reviewNote: string
+): Promise<ApiTerminalReport> {
+  const { data } = await api.post<{ data: ApiTerminalReport }>(
+    "/project/reject-terminal-report",
+    { terminal_report_id: terminalReportId, review_note: reviewNote },
     { withCredentials: true }
   );
   invalidateProjectCache();

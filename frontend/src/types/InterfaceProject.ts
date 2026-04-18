@@ -73,7 +73,21 @@ export interface Project {
   onHoldReason?: string;
 
   // Monitoring-strip aggregates populated by transformToProject from the
-  // funded-projects API. Used by the stats cards at the top of the page.
+  // funded-projects API. Used by the stats cards at the top of the page + CSV export.
   overdueReportsCount?: number;
   pendingFundRequestsCount?: number;
+
+  // Extended monitoring fields for CSV export / richer card UI. Populated by the
+  // enriched getFundedProjects query so the list view doesn't need per-row lookups.
+  coLeads?: { firstName: string | null; lastName: string | null }[];
+  fundedDate?: string | null;
+  reportsSubmittedCount?: number;
+  verifiedReportsCount?: number;
+  pendingExtensionsCount?: number;
+  terminalReportVerified?: boolean;
+  totalBudget?: number | null;
+  approvedAmount?: number;
+  utilizedAmount?: number;
+  remainingAmount?: number | null;
+  lastActivityAt?: string | null;
 }

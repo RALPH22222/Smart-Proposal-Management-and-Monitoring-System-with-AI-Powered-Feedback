@@ -12,7 +12,7 @@ import {
   Download
 } from 'lucide-react';
 import templateDOCX from '../../../../assets/template/DOST_Form_No.1b.docx';
-import {useRef } from 'react';
+import { useRef } from 'react';
 import Swal from 'sweetalert2';
 import type { FormData } from '../../../../types/proponent-form';
 import type { AIAnalysisResult } from '../../../../components/proponent-component/aiModal';
@@ -118,163 +118,193 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100 flex flex-col h-fit">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Upload Section</h2>
-          <p className="text-gray-600 mt-2">Upload your proposal document</p>
+      <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 lg:sticky lg:top-24 border border-gray-100 flex flex-col h-fit">
+        <div className="text-center mb-5 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Upload Section</h2>
+          <p className="text-gray-600 mt-2">Upload required documents</p>
         </div>
 
-        {/* --- File Upload Area --- */}
-        <input
-          ref={fileInputRef}
-          id="file-upload"
-          type="file"
-          accept=".pdf,.doc,.docx"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-            if (file) {
-              const extension = file.name.split('.').pop()?.toLowerCase();
-              if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
-                Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
-                e.target.value = '';
-                return;
-              }
-              if (file.size > 10 * 1024 * 1024) {
-                Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
-                e.target.value = '';
-                return;
-              }
-              onFileSelect(file);
-            }
-          }}
-          disabled={isUploadDisabled}
-        />
-
-        <div
-          className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 mb-6 cursor-pointer ${isUploadDisabled
-            ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
-            : selectedFile
-              ? 'border-green-400 bg-green-50'
-              : 'border-gray-300 bg-gray-50 hover:border-[#C8102E] hover:bg-red-50'
-            }`}
-          onClick={isUploadDisabled ? undefined : handleUploadClick}
-          onDrop={(e) => {
-            e.preventDefault();
-            if (!isUploadDisabled) {
-              const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
-              if (file) {
-                const extension = file.name.split('.').pop()?.toLowerCase();
-                if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
-                  Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
-                  return;
-                }
-                if (file.size > 10 * 1024 * 1024) {
-                  Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
-                  return;
-                }
-                onFileSelect(file);
-              }
-            }
-          }}
-          onDragOver={(e) => e.preventDefault()}
-        >
-          {selectedFile ? (
-            <div className="text-green-700">
-              <Check className="text-3xl mb-3 mx-auto" />
-              <p className="font-semibold text-lg">File Ready</p>
-              <p className="text-sm mt-1 truncate max-w-[200px] mx-auto">{selectedFile.name}</p>
+        {/* --- Proposal Template Section & File Upload Area --- */}
+        <div className="p-4 md:p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-5 md:mb-6 flex flex-col gap-1 md:gap-2 shadow-sm relative overflow-hidden group">
+          <div className="flex flex-col items-center gap-2 relative z-10">
+            <h4 className="font-bold text-gray-800 text-base md:text-lg leading-[1.15] tracking-tight text-center">
+              DOST Form No.1B Template
+            </h4>
+            <div className="bg-slate-200 rounded-md px-2.5 py-1.5 flex flex-col items-center justify-center shrink-0">
+              <span className="text-[11px] font-semibold text-slate-600 tracking-widest leading-none">Required Format</span>
             </div>
-          ) : (
-            <div className="py-4">
-              <FileText className="text-4xl text-gray-400 mb-3 mx-auto" />
-              <p className="text-gray-700 font-bold mb-1">Drop file here</p>
-              <p className="text-gray-500 text-sm">or click to browse</p>
-            </div>
-          )}
-        </div>
+          </div>
 
-        {/* Action Buttons for File */}
-        {selectedFile && (
-          <div className="space-y-3 mb-6">
-            <button
-              onClick={onAITemplateCheck}
-              disabled={isCheckingTemplate}
-              className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+          <div className="pt-2">
+            <input
+              ref={fileInputRef}
+              id="file-upload"
+              type="file"
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                if (file) {
+                  const extension = file.name.split('.').pop()?.toLowerCase();
+                  if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+                    Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
+                    e.target.value = '';
+                    return;
+                  }
+                  if (file.size > 10 * 1024 * 1024) {
+                    Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                    e.target.value = '';
+                    return;
+                  }
+                  onFileSelect(file);
+                }
+              }}
+              disabled={isUploadDisabled}
+            />
+
+            <div
+              className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all duration-200 mb-2 cursor-pointer ${isUploadDisabled
+                ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
+                : selectedFile
+                  ? 'border-green-400 bg-green-50'
+                  : 'border-gray-300 bg-white hover:border-[#C8102E] hover:bg-red-50'
                 }`}
+              onClick={isUploadDisabled ? undefined : handleUploadClick}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!isUploadDisabled) {
+                  const file = e.dataTransfer.files && e.dataTransfer.files[0] ? e.dataTransfer.files[0] : null;
+                  if (file) {
+                    const extension = file.name.split('.').pop()?.toLowerCase();
+                    if (!['pdf', 'doc', 'docx'].includes(extension || '')) {
+                      Swal.fire({ icon: 'error', title: 'Invalid File Type', text: 'Please upload a PDF, DOC, or DOCX document only.' });
+                      return;
+                    }
+                    if (file.size > 10 * 1024 * 1024) {
+                      Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum file size is 10 MB.' });
+                      return;
+                    }
+                    onFileSelect(file);
+                  }
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
             >
-              {isCheckingTemplate ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing...
-                </>
+              {selectedFile ? (
+                <div className="text-green-700">
+                  <Check className="text-3xl mb-3 mx-auto" />
+                  <p className="font-semibold text-lg">File Ready</p>
+                  <p className="text-sm mt-1 truncate max-w-[200px] mx-auto">{selectedFile.name}</p>
+                </div>
               ) : (
-                <>
-                  <Bot className="w-4 h-4" />
-                  {aiCheckResult ? 'Re-analyze Proposal' : 'AI Analysis & Feedback'}
-                </>
+                <div className="py-2">
+                  <FileText className="text-3xl text-gray-400 mb-2 mx-auto" />
+                  <p className="text-gray-700 font-bold mb-1 text-md">DOST Form No.1B</p>
+                  <p className="text-gray-500 text-xs">Browse or drag file here</p>
+                </div>
               )}
-            </button>
+            </div>
 
-            {/* AI Insights Mini Dashboard */}
-            {aiCheckResult && !isCheckingTemplate && (
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top duration-500">
-                <div className="flex items-center gap-2 mb-3">
-                  <Bot className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">AI Insights Dashboard</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Compliance Score */}
-                  <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Compliance</span>
-                    <span className={`text-xl font-black ${aiCheckResult.score && aiCheckResult.score >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
-                      {aiCheckResult.score}%
-                    </span>
+            {/* Action Buttons for File */}
+            {selectedFile && (
+              <div className="space-y-3">
+                <button
+                  onClick={onAITemplateCheck}
+                  disabled={isCheckingTemplate}
+                  className={`w-full py-3 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer ${isCheckingTemplate
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02]'
+                    }`}
+                >
+                  {isCheckingTemplate ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="w-4 h-4" />
+                      {aiCheckResult ? 'Re-analyze Proposal' : 'AI Analysis & Feedback'}
+                    </>
+                  )}
+                </button>
+
+                {/* AI Insights Mini Dashboard */}
+                {aiCheckResult && !isCheckingTemplate && (
+                  <div className="p-3 md:p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-2 mb-2 md:mb-3">
+                      <Bot className="w-4 h-4 text-blue-600" />
+                      <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">AI Insights Dashboard</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Compliance Score */}
+                      <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Compliance</span>
+                        <span className={`text-xl font-black ${aiCheckResult.score && aiCheckResult.score >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
+                          {aiCheckResult.score}%
+                        </span>
+                      </div>
+
+                      {/* Novelty Score */}
+                      <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center min-w-[100px]">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Novelty</span>
+                        <span className={`text-xl font-black ${(aiCheckResult.noveltyScore || 0) >= 75 ? 'text-blue-600' : 'text-purple-600'}`}>
+                          {aiCheckResult.noveltyScore}%
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-400 mt-1">
+                          {(() => {
+                            const sim = 100 - (aiCheckResult.noveltyScore || 0);
+                            if (sim <= 20) return "Not Related";
+                            if (sim <= 40) return "Slightly Related";
+                            if (sim <= 60) return "Moderately Similar";
+                            if (sim <= 80) return "Highly Similar";
+                            return "Very Similar";
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-[11px] text-blue-800 leading-tight bg-blue-100/50 p-2 rounded-lg border border-blue-200/50 italic">
+                      {(aiCheckResult.noveltyScore || 0) < 40
+                        ? "Warning: High similarity detected. Consider clarifying your unique approach."
+                        : (aiCheckResult.noveltyScore || 0) < 70
+                          ? "Note: Some similar research found. Ensure your methodology is distinct."
+                          : "Tip: High novelty detected. This proposal shows a unique research direction."}
+                    </div>
                   </div>
+                )}
 
-                  {/* Novelty Score */}
-                  <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center min-w-[100px]">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Novelty</span>
-                    <span className={`text-xl font-black ${(aiCheckResult.noveltyScore || 0) >= 75 ? 'text-blue-600' : 'text-purple-600'}`}>
-                      {aiCheckResult.noveltyScore}%
-                    </span>
-                    <span className="text-[9px] font-bold text-gray-400 mt-1">
-                      {(() => {
-                        const sim = 100 - (aiCheckResult.noveltyScore || 0);
-                        if (sim <= 20) return "Not Related";
-                        if (sim <= 40) return "Slightly Related";
-                        if (sim <= 60) return "Moderately Similar";
-                        if (sim <= 80) return "Highly Similar";
-                        return "Very Similar";
-                      })()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-3 text-[11px] text-blue-800 leading-tight bg-blue-100/50 p-2 rounded-lg border border-blue-200/50 italic">
-                  {(aiCheckResult.noveltyScore || 0) < 40 
-                    ? "Warning: High similarity detected. Consider clarifying your unique approach." 
-                    : (aiCheckResult.noveltyScore || 0) < 70
-                      ? "Note: Some similar research found. Ensure your methodology is distinct."
-                      : "Tip: High novelty detected. This proposal shows a unique research direction."}
-                </div>
+                <button
+                  onClick={handleUploadClick}
+                  disabled={isUploadDisabled}
+                  className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                  Choose different file
+                </button>
               </div>
             )}
-
-            <button
-              onClick={handleUploadClick}
-              disabled={isUploadDisabled}
-              className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
-            >
-              <X className="w-3 h-3" />
-              Choose different file
-            </button>
           </div>
-        )}
 
+          <div className="flex flex-col gap-2.5 relative z-10 border-t border-slate-200 pt-4 mt-2">
+            <button
+              onClick={onViewTemplate}
+              className="w-full py-3 px-4 bg-white border border-slate-300 text-slate-900 rounded-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 active:scale-95"
+            >
+              <Eye className="w-[15px] h-[15px] shrink-0 text-gray-800" />
+              <span className="text-[15px] font-semibold leading-tight">View Template</span>
+            </button>
+            <a
+              href={templateDOCX}
+              download="DOST-Project-Proposal-Template.docx"
+              className="w-full py-3 px-4 bg-[#C8102E] text-white rounded-[14px] hover:bg-[#a00c24] transition-all flex items-center justify-center gap-2.5 active:scale-95"
+            >
+              <Download className="w-[15px] h-[15px] shrink-0" />
+              <span className="text-[15px] font-semibold leading-tight">Download</span>
+            </a>
+          </div>
+        </div>
 
         {/* --- Work & Financial Plan (DOST Form 3) --- */}
         <div className="mb-6">
@@ -282,7 +312,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             <h3 className="text-sm font-bold text-gray-700">Work & Financial Plan</h3>
             <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Optional</span>
           </div>
-          <p className="text-xs text-gray-500 mb-3">DOST Form 3 — Upload your project workplan and financial plan document.</p>
+          <p className="text-xs text-gray-500 mb-3">Upload your project workplan and financial plan document.</p>
 
           <input
             ref={workPlanInputRef}
@@ -310,10 +340,9 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           />
 
           <div
-            className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer ${
-              isUploadDisabled ? 'border-gray-300 bg-gray-100 cursor-not-allowed' :
+            className={`border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer ${isUploadDisabled ? 'border-gray-300 bg-gray-100 cursor-not-allowed' :
               workPlanFile ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-[#C8102E] hover:bg-red-50'
-            }`}
+              }`}
             onClick={isUploadDisabled ? undefined : () => workPlanInputRef.current?.click()}
           >
             {workPlanFile ? (
@@ -325,7 +354,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
             ) : (
               <div className="py-2">
                 <FileText className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                <p className="text-gray-600 text-xs font-medium">Click to upload Form 3</p>
+                <p className="text-gray-700 text-sm font-bold">DOST Form 3</p>
+                <p className="text-gray-500 text-xs font-small">Browse or drag file here</p>
               </div>
             )}
           </div>
@@ -340,43 +370,8 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
           )}
         </div>
 
-        {/* --- Proposal Template Section --- */}
-        <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-200 mb-6 flex flex-col gap-5 shadow-sm relative overflow-hidden group">
-
-          <div className="flex flex-col items-center gap-2 relative z-10">
-            <h4 className="font-bold text-gray-800 text-lg leading-[1.15] tracking-tight text-center">
-              DOST Form No. 1B Template
-            </h4>
-            <div className="bg-slate-200 rounded-md px-2.5 py-1.5 flex flex-col items-center justify-center shrink-0">
-              <span className="text-[11px] font-semibold text-slate-600 tracking-widest leading-none">Required Format</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center relative z-10">
-            Please follow the template format when preparing your proposal document.
-          </p>
-
-          <div className="flex flex-col gap-2.5 relative z-10">
-            <button
-              onClick={onViewTemplate}
-              className="w-full py-3 px-4 bg-white border border-slate-300 text-slate-900 rounded-[14px] hover:border-slate-400 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5 active:scale-95"
-            >
-              <Eye className="w-[15px] h-[15px] shrink-0 text-gray-800" />
-              <span className="text-[15px] font-semibold leading-tight">View Template</span>
-            </button>
-            <a
-              href={templateDOCX}
-              download="DOST-Project-Proposal-Template.docx"
-              className="w-full py-3 px-4 bg-[#C8102E] text-white rounded-[14px] hover:bg-[#a00c24] transition-all flex items-center justify-center gap-2.5 active:scale-95"
-            >
-              <Download className="w-[15px] h-[15px] shrink-0" />
-              <span className="text-[15px] font-semibold leading-tight">Download</span>
-            </a>
-          </div>
-        </div>
-
         {/* Checklist */}
-        <div className="p-5 bg-blue-50 rounded-xl border border-blue-100 mb-6">
+        <div className="p-4 md:p-5 bg-blue-50 rounded-xl border border-blue-100 mb-5 md:mb-6">
           <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2">
             <Check className="w-3 h-3" />
             Submission Status

@@ -30,6 +30,8 @@ import {
   REPORT_ALLOWED_EXTENSIONS,
   fetchRealignments,
   fetchActiveBudgetVersion,
+  fetchProjectExtensionRequests,
+  type ApiProjectExtensionRequest,
   requestProjectExtension,
   type ApiFundedProject,
   type ApiFundRequest,
@@ -59,7 +61,10 @@ import BudgetUtilizationChart from "../../../components/shared/BudgetUtilization
 
 
 // --- Types ---
-type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked';
+// 'rejected' was added 2026-04-19 when R&D gained the ability to return quarterly reports
+// with a required note. Proponent UI shows the reason in a red banner and opens the edit
+// form again so they can resubmit (flips back to 'submitted' on resubmit).
+type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked' | 'rejected';
 
 interface FundRequestItem {
   id: string;
@@ -86,6 +91,8 @@ interface QuarterData {
   submittedBy?: string;
   dateSubmitted?: string;
   expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
+  // R&D's reason when the report was returned (status === 'rejected'). Null otherwise.
+  reviewNote?: string | null;
 }
 
 
@@ -161,6 +168,12 @@ const MonitoringPage: React.FC = () => {
   const [activeRealignment, setActiveRealignment] = useState<RealignmentRecord | null>(null);
   const [realignmentHistory, setRealignmentHistory] = useState<RealignmentRecord[]>([]);
   const [showBudgetHistory, setShowBudgetHistory] = useState(false);
+
+  // Extension requests submitted by this proponent, for the history panel. Before this
+  // the only trace of a rejected extension was the notification — if they dismissed it
+  // there was no way to re-read the reason R&D gave.
+  const [extensionHistory, setExtensionHistory] = useState<ApiProjectExtensionRequest[]>([]);
+  const [showExtensionHistory, setShowExtensionHistory] = useState(false);
 
   // Phase 4 of LIB feature: active budget items for the fund-request dropdown
   const [budgetItemsForProject, setBudgetItemsForProject] = useState<BudgetItemDto[]>([]);
@@ -303,15 +316,20 @@ const MonitoringPage: React.FC = () => {
     if (!activeBackend) return;
     try {
       setDetailLoading(true);
-      const [detail, frResponse, bs] = await Promise.all([
+      const [detail, frResponse, bs, extReqs] = await Promise.all([
         fetchProjectDetail(activeBackend.id),
         fetchFundRequests(activeBackend.id).catch((err) => {
           console.error('Error loading fund requests:', err);
           return { fund_requests: [] as ApiFundRequest[], budget_summary: null };
         }),
         fetchBudgetSummary(activeBackend.id).catch(() => null),
+        fetchProjectExtensionRequests(activeBackend.id).catch((err) => {
+          console.error('Error loading extension history:', err);
+          return [] as ApiProjectExtensionRequest[];
+        }),
       ]);
       setBudgetSummary(frResponse.budget_summary || bs);
+      setExtensionHistory(extReqs);
 
       // Build quarters from detail + fund requests
       const displayData = buildDisplayReports(detail, user?.id || '');
@@ -336,6 +354,8 @@ const MonitoringPage: React.FC = () => {
           status = 'approved';
         } else if (dr.status === 'Submitted') {
           status = 'submitted';
+        } else if (dr.status === 'Rejected') {
+          status = 'rejected';
         } else if (dr.status === 'Overdue') {
           // Even if overdue, check if fund request exists
           if (!fr) status = 'fund_request';
@@ -372,6 +392,7 @@ const MonitoringPage: React.FC = () => {
           submittedBy: dr.submittedBy,
           dateSubmitted: dr.dateSubmitted,
           expenses: dr.expenses,
+          reviewNote: dr.reviewNote ?? null,
         };
       });
 
@@ -527,12 +548,33 @@ const MonitoringPage: React.FC = () => {
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
   const currentReport = quarters[currentReportIndex] || null;
+  // Lead-only gate for budget/timeline actions (fund request, realignment, extension).
+  // Co-leads collaborate on reports but cannot move money or timelines — mirrors the
+  // backend guards in create-fund-request, request-realignment, request-extension.
+  const isProjectLead = !!activeBackend && activeBackend.project_lead_id === user?.id;
+  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be on file
+  // before any quarterly or terminal report can be submitted. The backend enforces the
+  // same rule — this UX just surfaces it early instead of letting the user upload files
+  // and fill the form only to get a 412 from the server.
+  const hasMoa = !!(activeBackend as any)?.moa_file_url;
+  const hasAgencyCert = !!(activeBackend as any)?.agency_certification_file_url;
+  const missingComplianceDocs: string[] = [];
+  if (!hasMoa) missingComplianceDocs.push('Memorandum of Agreement (Form 5)');
+  if (!hasAgencyCert) missingComplianceDocs.push('Agency Certification (Form 4)');
+  const reportSubmissionBlocked = missingComplianceDocs.length > 0;
   const isLocked = currentReport?.status === 'locked';
   const isFundRequestNeeded = currentReport?.status === 'fund_request';
   const isFundRequestPending = currentReport?.fundRequest?.status === 'pending';
   const isFundRequestRejected = currentReport?.fundRequest?.status === 'rejected';
-  const isEditable = currentReport?.status === 'due' || currentReport?.status === 'overdue';
+  // 'rejected' counts as editable — the form reopens pre-populated so the proponent can
+  // fix what R&D flagged and resubmit. On resubmit the backend flips status back to
+  // 'submitted' and the red banner disappears.
+  const isEditable =
+    currentReport?.status === 'due' ||
+    currentReport?.status === 'overdue' ||
+    currentReport?.status === 'rejected';
   const isOverdue = currentReport?.status === 'overdue';
+  const isRejected = currentReport?.status === 'rejected';
   const prevReportProgress = currentReportIndex > 0 ? (quarters[currentReportIndex - 1]?.progressPercentage || 0) : 0;
   const [localProgress, setLocalProgress] = useState(0);
 
@@ -911,10 +953,10 @@ const MonitoringPage: React.FC = () => {
       )}
 
       {/* --- MAIN CONTENT --- */}
-      <section className="flex flex-col lg:flex-row gap-6">
+      <section className="flex flex-col lg:flex-row gap-6 min-w-0">
 
         {/* --- LEFT SIDEBAR (Projects List) --- */}
-        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)]">
+        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-auto lg:h-[calc(100vh-140px)] min-w-0">
           <div className="p-5 border-b border-gray-100">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-[#C8102E]" /> Select Project</h3>
             <div className="relative mb-4">
@@ -1054,35 +1096,40 @@ const MonitoringPage: React.FC = () => {
                       )}
                       {/* Phase 3 of LIB feature: the button doubles as "Revise realignment"
                           when R&D has sent one back — the modal seeds from the existing row
-                          and the backend UPDATEs it in place. pending_review is still locked. */}
-                      <button
-                        onClick={() => setShowRealignmentModal(true)}
-                        disabled={activeRealignment?.status === 'pending_review'}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
-                          activeRealignment?.status === 'revision_requested'
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                        }`}
-                        title={
-                          activeRealignment?.status === 'pending_review'
-                            ? 'A realignment request is already pending R&D review'
-                            : activeRealignment?.status === 'revision_requested'
-                              ? "R&D asked for changes — click to revise and resubmit"
-                              : 'Request a budget realignment for this project'
-                        }
-                      >
-                        <Banknote className="w-4 h-4" />
-                        {activeRealignment?.status === 'revision_requested'
-                          ? 'Revise Realignment'
-                          : 'Realign Budget'}
-                      </button>
-                      <button
-                        onClick={() => setIsExtensionModalOpen(true)}
-                        className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
-                        title="Request Extension"
-                      >
-                        <CalendarClock className="w-5 h-5" />
-                      </button>
+                          and the backend UPDATEs it in place. pending_review is still locked.
+                          Lead-only per teacher consultation — co-leads can't move budget or timeline. */}
+                      {isProjectLead && (
+                        <>
+                          <button
+                            onClick={() => setShowRealignmentModal(true)}
+                            disabled={activeRealignment?.status === 'pending_review'}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed ${
+                              activeRealignment?.status === 'revision_requested'
+                                ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                            }`}
+                            title={
+                              activeRealignment?.status === 'pending_review'
+                                ? 'A realignment request is already pending R&D review'
+                                : activeRealignment?.status === 'revision_requested'
+                                  ? "R&D asked for changes — click to revise and resubmit"
+                                  : 'Request a budget realignment for this project'
+                            }
+                          >
+                            <Banknote className="w-4 h-4" />
+                            {activeRealignment?.status === 'revision_requested'
+                              ? 'Revise Realignment'
+                              : 'Realign Budget'}
+                          </button>
+                          <button
+                            onClick={() => setIsExtensionModalOpen(true)}
+                            className="flex p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors"
+                            title="Request Extension"
+                          >
+                            <CalendarClock className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1155,6 +1202,66 @@ const MonitoringPage: React.FC = () => {
                       approved_by_category={budgetSummary.approved_by_category}
                       pending_by_category={budgetSummary.pending_by_category}
                     />
+                  )}
+
+                  {/* Extension History panel. Before this the only trace of a rejected/
+                      approved extension was the notification — if the proponent dismissed it
+                      there was nowhere to re-read R&D's reason. Collapsed by default. */}
+                  {extensionHistory.length > 0 && (
+                    <div className="mt-3 border border-slate-200 rounded-xl bg-white">
+                      <button
+                        onClick={() => setShowExtensionHistory((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarClock className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            Extension Requests ({extensionHistory.length})
+                          </span>
+                        </div>
+                        {showExtensionHistory ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {showExtensionHistory && (
+                        <div className="border-t border-slate-100 divide-y divide-slate-100">
+                          {extensionHistory.map((ext) => {
+                            const statusStyle =
+                              ext.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : ext.status === 'rejected'
+                                  ? 'bg-red-50 text-red-700'
+                                  : 'bg-amber-50 text-amber-700';
+                            return (
+                              <div key={ext.id} className="px-4 py-3 text-xs">
+                                <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${statusStyle}`}>{ext.status}</span>
+                                    <span className="text-slate-600 font-medium">
+                                      {ext.extension_type === 'with_funding' ? 'Time + Funding' : 'Time Only'}
+                                    </span>
+                                    <span className="text-slate-400">Submitted {formatDate(ext.created_at)}</span>
+                                  </div>
+                                  <span className="text-slate-600">
+                                    New end: <strong>{formatDate(ext.new_end_date)}</strong>
+                                  </span>
+                                </div>
+                                <p className="text-slate-700 italic">"{ext.reason || 'No reason provided.'}"</p>
+                                {ext.status !== 'pending' && ext.review_note && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100">
+                                    <span className="font-bold text-slate-600">R&D note:</span>{' '}
+                                    <span className="text-slate-700">{ext.review_note}</span>
+                                  </div>
+                                )}
+                                {ext.reviewed_at && (
+                                  <p className="text-[10px] text-slate-400 mt-1">
+                                    Reviewed {formatDate(ext.reviewed_at)}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Phase 4 of LIB feature: Budget History panel. Surfaces past realignment
@@ -1268,6 +1375,29 @@ const MonitoringPage: React.FC = () => {
                 />
               )}
 
+              {/* DOST compliance gate banner — hidden once both documents are present. */}
+              {activeBackend && reportSubmissionBlocked && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-red-800 text-sm">
+                      Submit Report is blocked — required documents missing
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      DOST requires the following to be uploaded before any quarterly or terminal report can be filed:
+                    </p>
+                    <ul className="list-disc list-inside mt-1 text-xs text-red-700 font-medium">
+                      {missingComplianceDocs.map((doc) => (
+                        <li key={doc}>{doc}</li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-red-600 mt-2">
+                      Upload the missing file{missingComplianceDocs.length === 1 ? '' : 's'} in the <strong>Project Documents</strong> section above.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* --- QUARTER STEPPER --- */}
               {quarters.length > 0 && (
                 <QuarterStepper
@@ -1304,6 +1434,7 @@ const MonitoringPage: React.FC = () => {
                       {isOverdue && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Overdue</span>}
                       {currentReport.status === 'submitted' && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> Submitted</span>}
                       {currentReport.status === 'approved' && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Verified</span>}
+                      {isRejected && <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Returned</span>}
                     </div>
 
                     <div className="mb-6 pr-20">
@@ -1359,8 +1490,19 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* FUND REQUEST FORM STATE */}
-                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && (
+                    {/* Co-lead view of a needed fund request: show an explanation, no form. */}
+                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && !isProjectLead && (
+                      <div className="border border-slate-200 rounded-xl p-5 bg-slate-50 mt-4 text-center">
+                        <Lock className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <h4 className="font-bold text-slate-700 mb-1">Fund request needed</h4>
+                        <p className="text-sm text-slate-500">
+                          Only the project lead can submit a fund request for this quarter.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* FUND REQUEST FORM STATE — lead only */}
+                    {(isFundRequestNeeded || isFundRequestRejected) && !isFundRequestPending && isProjectLead && (
                       <div className="border border-blue-200 rounded-xl p-5 bg-blue-50 mt-4">
                         <div className="flex items-center gap-2 mb-3">
                           <DollarSign className="w-5 h-5 text-blue-600" />
@@ -1464,7 +1606,30 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* EDITABLE CONTENT (due / overdue + fund request approved) */}
+                    {/* Rejection banner — only when R&D explicitly returned this quarter's
+                        report. Sits directly above the edit form so the reason is visible while
+                        the proponent revises. Form reopens pre-populated; resubmit flips status
+                        back to 'submitted' server-side. */}
+                    {isRejected && (
+                      <div className="mt-4 mb-4 border border-red-200 bg-red-50 rounded-xl p-4 flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-red-800 text-sm">R&D returned this report for revision</p>
+                          {currentReport.reviewNote ? (
+                            <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap">
+                              <span className="font-bold">Reason:</span> "{currentReport.reviewNote}"
+                            </p>
+                          ) : (
+                            <p className="text-xs text-red-600 italic mt-1">No reason recorded.</p>
+                          )}
+                          <p className="text-xs text-red-600 mt-2">
+                            Edit the fields below and resubmit. The report status will flip back to <strong>Submitted</strong> and R&D will re-review.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EDITABLE CONTENT (due / overdue / rejected + fund request approved) */}
                     {isEditable && currentReport.fundRequest?.status === 'approved' && (
                       <div className="space-y-6">
                         {/* Budget Item Liquidation */}
@@ -1656,30 +1821,45 @@ const MonitoringPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Submit Report Button */}
+                        {/* Submit Report Button — disabled when MOA / Agency Cert missing.
+                            Hover title explains why when the button is blocked by docs,
+                            so the user doesn't have to scroll up to read the banner. */}
                         <button
                           onClick={handleSubmitReport}
-                          disabled={submittingReport}
+                          disabled={submittingReport || reportSubmissionBlocked}
+                          title={
+                            reportSubmissionBlocked
+                              ? `Upload required first: ${missingComplianceDocs.join(', ')}`
+                              : undefined
+                          }
                           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          {submittingReport ? <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Submitting...'}</> : 'Submit Report for Verification'}
+                          {submittingReport ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Submitting...'}</>
+                          ) : reportSubmissionBlocked ? (
+                            <><Lock className="w-4 h-4" /> Submit Report (DOST docs required)</>
+                          ) : (
+                            'Submit Report for Verification'
+                          )}
                         </button>
                       </div>
                     )}
 
-                    {/* SUBMITTED - Read-only waiting for verification */}
+                    {/* SUBMITTED - Read-only waiting for verification. The report itself is
+                        NOT yet approved — explicit amber "Pending" banner so the emerald fund
+                        box below can't be misread as report approval. */}
                     {currentReport.status === 'submitted' && (
                       <div className="border-t border-gray-100 pt-4 space-y-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                          <FileText className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                          <h4 className="font-bold text-blue-800">Report Submitted</h4>
-                          <p className="text-sm text-blue-600">Waiting for R&D verification.</p>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                          <Clock className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                          <h4 className="font-bold text-amber-800">Pending R&D Verification</h4>
+                          <p className="text-sm text-amber-700">Your report was submitted and is now waiting for R&D to review and verify it. The report is <strong>not yet approved</strong>.</p>
                         </div>
                         {currentReport.fundRequest && (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                             <div className="flex justify-between items-center">
-                              <span className="font-bold text-emerald-800 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Approved Funds</span>
-                              <span className="font-bold text-emerald-700">{formatCurrency(currentReport.fundRequest.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0)}</span>
+                              <span className="font-bold text-slate-700 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Fund Request (previously approved)</span>
+                              <span className="font-mono font-bold text-slate-700">{formatCurrency(currentReport.fundRequest.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0)}</span>
                             </div>
                           </div>
                         )}
@@ -1772,6 +1952,7 @@ const MonitoringPage: React.FC = () => {
                   <TerminalReportSection
                     fundedProjectId={activeBackend.id}
                     allQuartersVerified={quarters.length === 4 && quarters.every(q => q.status === 'approved')}
+                    missingComplianceDocs={missingComplianceDocs}
                   />
                 </div>
               )}

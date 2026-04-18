@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle2, Clock, Upload, X } from 'lucide-react';
+import { FileText, CheckCircle2, Clock, Upload, X, AlertTriangle } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
   fetchTerminalReport,
@@ -13,9 +13,14 @@ import {
 interface Props {
   fundedProjectId: number;
   allQuartersVerified: boolean;
+  // When truthy, submit is blocked because the project is missing DOST Form 4 / Form 5.
+  // The parent passes the human-readable list; we use it for the tooltip. The parent
+  // also renders the full banner above the quarters, so we only need a short inline hint.
+  missingComplianceDocs?: string[];
 }
 
-export default function TerminalReportSection({ fundedProjectId, allQuartersVerified }: Props) {
+export default function TerminalReportSection({ fundedProjectId, allQuartersVerified, missingComplianceDocs = [] }: Props) {
+  const complianceBlocked = missingComplianceDocs.length > 0;
   const [terminalReport, setTerminalReport] = useState<ApiTerminalReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -105,21 +110,72 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
     }
   };
 
-  // Already submitted — show status
-  if (terminalReport) {
+  // Already submitted — show status. Three sub-states: verified / submitted (pending) / rejected.
+  // When rejected we open the full edit form pre-populated with the proponent's last values
+  // so they can fix what R&D flagged and resubmit. On resubmit the backend flips status back
+  // to 'submitted' via the UPDATE-in-place path in submitTerminalReport.
+  if (terminalReport && !showForm) {
     const isVerified = terminalReport.status === 'verified';
+    const isRejected = terminalReport.status === 'rejected';
+
+    const openEditForm = () => {
+      setActualStartDate(terminalReport.actual_start_date ?? '');
+      setActualEndDate(terminalReport.actual_end_date ?? '');
+      setAccomplishments(terminalReport.accomplishments ?? '');
+      setOutputsPublications(terminalReport.outputs_publications ?? '');
+      setOutputsPatentsIp(terminalReport.outputs_patents_ip ?? '');
+      setOutputsProducts(terminalReport.outputs_products ?? '');
+      setOutputsPeople(terminalReport.outputs_people ?? '');
+      setOutputsPartnerships(terminalReport.outputs_partnerships ?? '');
+      setOutputsPolicy(terminalReport.outputs_policy ?? '');
+      setProblemsEncountered(terminalReport.problems_encountered ?? '');
+      setSuggestedSolutions(terminalReport.suggested_solutions ?? '');
+      setPublicationsList(terminalReport.publications_list ?? '');
+      setShowForm(true);
+    };
+
+    const containerClass = isVerified
+      ? 'border-green-200 bg-green-50'
+      : isRejected
+        ? 'border-red-200 bg-red-50'
+        : 'border-amber-200 bg-amber-50';
+
     return (
-      <div className={`rounded-2xl border-2 p-6 ${isVerified ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+      <div className={`rounded-2xl border-2 p-6 ${containerClass}`}>
         <div className="flex items-center gap-3 mb-4">
           {isVerified ? (
             <CheckCircle2 className="w-6 h-6 text-green-600" />
+          ) : isRejected ? (
+            <AlertTriangle className="w-6 h-6 text-red-600" />
           ) : (
             <Clock className="w-6 h-6 text-amber-600" />
           )}
           <h3 className="text-lg font-bold text-gray-800">
-            Terminal Report {isVerified ? '— Verified' : '— Pending Verification'}
+            Terminal Report {isVerified
+              ? '— Verified'
+              : isRejected
+                ? '— Returned for Revision'
+                : '— Pending Verification'}
           </h3>
         </div>
+
+        {isRejected && (
+          <div className="mb-4 border border-red-200 bg-white rounded-lg p-3">
+            <p className="text-sm font-bold text-red-800 mb-1">R&D returned this report</p>
+            {terminalReport.review_note ? (
+              <p className="text-sm text-red-700 italic">"{terminalReport.review_note}"</p>
+            ) : (
+              <p className="text-xs text-red-600 italic">No reason recorded.</p>
+            )}
+            <button
+              onClick={openEditForm}
+              disabled={complianceBlocked}
+              className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold rounded-lg text-xs flex items-center gap-2"
+            >
+              <FileText className="w-3.5 h-3.5" /> Edit and Resubmit
+            </button>
+          </div>
+        )}
 
         <div className="space-y-3 text-sm text-gray-700">
           {terminalReport.actual_start_date && (
@@ -178,9 +234,11 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         </p>
         <button
           onClick={() => setShowForm(true)}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm"
+          disabled={complianceBlocked}
+          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm"
         >
-          Submit Terminal Report
+          {complianceBlocked ? 'Submit Terminal Report (DOST docs required)' : 'Submit Terminal Report'}
         </button>
       </div>
     );
@@ -284,13 +342,18 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
           </div>
         </div>
 
-        {/* Submit */}
+        {/* Submit — also blocked when MOA / Agency Cert missing. */}
         <button
           onClick={handleSubmit}
-          disabled={submitting || !accomplishments.trim()}
+          disabled={submitting || !accomplishments.trim() || complianceBlocked}
+          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
         >
-          {submitting ? 'Submitting...' : 'Submit Terminal Report'}
+          {submitting
+            ? 'Submitting...'
+            : complianceBlocked
+              ? 'Submit Terminal Report (DOST docs required)'
+              : 'Submit Terminal Report'}
         </button>
       </div>
     </div>

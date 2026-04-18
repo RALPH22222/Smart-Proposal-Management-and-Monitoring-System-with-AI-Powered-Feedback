@@ -11,6 +11,7 @@ import {
   User,
   FileCheck,
   Tag,
+  CalendarDays,
 } from "lucide-react";
 import ProposalDetailsModal from "../../../components/evaluator-component/ProposalDetailsModal";
 import PageLoader from "../../../components/shared/PageLoader";
@@ -20,6 +21,8 @@ export default function ReviewedProposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
+  const [yearFilter, setYearFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState("recent-old");
 
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -140,6 +143,7 @@ export default function ReviewedProposals() {
           year: p.year || "N/A",
           startDate: p.plan_start_date || "N/A",
           endDate: p.plan_end_date || "N/A",
+          submittedDate: p.created_at || null,
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: p.proposal_version?.[0]?.file_url || null,
@@ -188,13 +192,22 @@ export default function ReviewedProposals() {
 
   const filtered = reviewedProposals.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+    const proposalYear = p.submittedDate ? new Date(p.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    return matchesSearch && matchesYear;
   });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const dateA = new Date(a.reviewedDate).getTime();
-    const dateB = new Date(b.reviewedDate).getTime();
-    return dateB - dateA;
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
   });
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
@@ -240,7 +253,7 @@ export default function ReviewedProposals() {
 
   return (
     <>
-    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex flex-col gap-4 lg:gap-6 h-full min-h-screen overflow-hidden animate-fade-in px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 min-w-0">
       {/* Header */}
       <header className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -256,29 +269,41 @@ export default function ReviewedProposals() {
         </div>
       </header>
 
-      {/* Filter Section */}
-      <section className="flex-shrink-0" aria-label="Filter reviewed proposals">
-        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search proposals..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Search reviewed proposals"
-              />
-            </div>
+      {/* Search and Filters Section */}
+      <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
           </div>
-
-          <div className="mt-4 text-xs text-slate-600">
-            Showing {sortedFiltered.length} of {reviewedProposals.length}{" "}
-            reviewed proposals
-          </div>
+          <input
+            type="text"
+            placeholder="Search proposals..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={yearFilter}
+            onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="All">All Years</option>
+            {Array.from(new Set(proposals.map(p => p.submittedDate ? new Date(p.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+              <option key={year} value={String(year)}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="recent-old">Recent to Old</option>
+            <option value="old-recent">Old to Recent</option>
+            <option value="a-z">Title (A-Z)</option>
+            <option value="z-a">Title (Z-A)</option>
+          </select>
         </div>
       </section>
 
@@ -310,7 +335,7 @@ export default function ReviewedProposals() {
                   className="p-4 hover:bg-slate-50 transition-colors duration-200 group"
                 >
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <h2 className="text-base font-semibold text-slate-800 mb-2 line-clamp-2 group-hover:text-[#C8102E] transition-colors duration-200 flex items-center gap-2 flex-wrap">
                           <span>{proposal.title}</span>
@@ -328,6 +353,10 @@ export default function ReviewedProposals() {
                             <CheckCircle className="w-3 h-3" />
                             <span>Reviewed: {proposal.reviewedDate}</span>
                           </div>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                            <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                            {proposal.year !== "N/A" ? proposal.year : (proposal.submittedDate ? new Date(proposal.submittedDate).getFullYear() : new Date().getFullYear())}
+                          </span>
                           {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
                             <span
                               key={i}
@@ -340,10 +369,10 @@ export default function ReviewedProposals() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         <button
                           onClick={() => handleViewClick(proposal.id)}
-                          className="inline-flex items-center justify-center gap-1 px-4 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 transition-all text-xs font-medium cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer text-xs font-medium"
                         >
                           <Eye className="w-3 h-3" />
                           View
@@ -407,14 +436,14 @@ export default function ReviewedProposals() {
       </main>
     </div>
 
-      {/* Render the updated modal */}
-      {proposal && (
-        <ProposalDetailsModal
-          proposal={proposal as any}
-          isOpen={!!selectedProposal}
-          onClose={closeModal}
-        />
-      )}
-    </>
+    {/* Render the updated modal */}
+    {proposal && (
+      <ProposalDetailsModal
+        proposal={proposal as any}
+        isOpen={!!selectedProposal}
+        onClose={closeModal}
+      />
+    )}
+  </>
   );
 }

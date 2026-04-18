@@ -27,31 +27,22 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Verify requester is an active member or project lead
-  const { data: membership } = await supabase
-    .from("project_members")
-    .select("id")
-    .eq("funded_project_id", result.data.funded_project_id)
-    .eq("user_id", auth.userId)
-    .eq("status", "active")
-    .single();
+  // Lead-only: extension changes the project timeline / funding and is treated as a
+  // budget-adjacent action. Co-leads collaborate on reports but cannot move timelines or funds.
+  const { data: project } = await supabase
+    .from("funded_projects")
+    .select("id, project_lead_id")
+    .eq("id", result.data.funded_project_id)
+    .maybeSingle();
 
-  if (!membership) {
-    const { data: project } = await supabase
-      .from("funded_projects")
-      .select("id")
-      .eq("id", result.data.funded_project_id)
-      .eq("project_lead_id", auth.userId)
-      .single();
-
-    if (!project) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({
-          message: "You are not authorized to request extensions for this project.",
-        }),
-      };
-    }
+  if (!project || project.project_lead_id !== auth.userId) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message:
+          "Only the project lead can request an extension. Co-leads can collaborate on the project but cannot modify the timeline or funding.",
+      }),
+    };
   }
 
   const projectService = new ProjectService(supabase);

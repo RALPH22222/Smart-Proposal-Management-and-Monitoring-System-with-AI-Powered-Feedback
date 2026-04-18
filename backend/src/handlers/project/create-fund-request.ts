@@ -28,32 +28,23 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     };
   }
 
-  // Verify requester is an active member of the funded project
-  const { data: membership } = await supabase
-    .from("project_members")
-    .select("id")
-    .eq("funded_project_id", result.data.funded_project_id)
-    .eq("user_id", auth.userId)
-    .eq("status", "active")
-    .single();
+  // Lead-only: per teacher consultation, budget operations (fund requests, realignment,
+  // extension) belong to the project lead. Co-leads collaborate on reports and team work
+  // but cannot move money.
+  const { data: project } = await supabase
+    .from("funded_projects")
+    .select("id, project_lead_id")
+    .eq("id", result.data.funded_project_id)
+    .maybeSingle();
 
-  if (!membership) {
-    // Also check if user is the project lead (they may not be in project_members)
-    const { data: project } = await supabase
-      .from("funded_projects")
-      .select("id")
-      .eq("id", result.data.funded_project_id)
-      .eq("project_lead_id", auth.userId)
-      .single();
-
-    if (!project) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({
-          message: "You are not authorized to create fund requests for this project.",
-        }),
-      };
-    }
+  if (!project || project.project_lead_id !== auth.userId) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({
+        message:
+          "Only the project lead can submit fund requests. Co-leads can collaborate on the project but cannot request funds.",
+      }),
+    };
   }
 
   const projectService = new ProjectService(supabase);

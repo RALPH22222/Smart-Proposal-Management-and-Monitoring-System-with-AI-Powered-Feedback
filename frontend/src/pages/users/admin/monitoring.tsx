@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatDate } from '../../../utils/date-formatter';
-import { exportToCsv } from '../../../utils/csv-export';
+import { exportToCsv, FUNDED_PROJECT_CSV_COLUMNS } from '../../../utils/csv-export';
 import { type Project, type ProjectStatus } from '../../../types/InterfaceProject';
 import { useAuthContext } from '../../../context/AuthContext';
 import { fetchFundedProjects, transformToProject, updateProjectStatus } from '../../../services/ProjectMonitoringApi';
@@ -262,18 +262,7 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
             </div>
             <button
               onClick={() =>
-                exportToCsv('funded-projects', filteredProjects, [
-                  { header: 'Project ID', accessor: (p) => p.projectId },
-                  { header: 'Title', accessor: (p) => p.title },
-                  { header: 'Principal Investigator', accessor: (p) => p.principalInvestigator },
-                  { header: 'Department', accessor: (p) => p.department },
-                  { header: 'Start Date', accessor: (p) => p.startDate },
-                  { header: 'End Date', accessor: (p) => p.endDate },
-                  { header: 'Status', accessor: (p) => p.status },
-                  { header: 'Completion %', accessor: (p) => p.completionPercentage },
-                  { header: 'Overdue Reports', accessor: (p) => p.overdueReportsCount ?? 0 },
-                  { header: 'Pending Fund Requests', accessor: (p) => p.pendingFundRequestsCount ?? 0 },
-                ])
+                exportToCsv('funded-projects', filteredProjects, FUNDED_PROJECT_CSV_COLUMNS)
               }
               disabled={filteredProjects.length === 0}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -446,7 +435,7 @@ const AdminMonitoringPage: React.FC<AdminMonitoringPageProps> = () => {
                               color={project.status === 'Completed' ? '#2563eb' : project.status === 'Delayed' ? '#eab308' : project.status === 'On Hold' ? '#8b5cf6' : '#16a34a'}
                             />
                             <span className="text-xs font-medium text-slate-700">
-                              {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
+                              {project.status === 'Completed' ? 100 : project.completionPercentage}% Reported
                             </span>
                           </div>
 
