@@ -724,10 +724,11 @@ export const LibImportModal: React.FC<{
       };
 
       for (const it of itemsToImport) {
+        const matchedSubId = findSubId(it.category, it.subcategoryLabel);
         grouped[it.category].push({
           uid: `lib_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          subcategoryId: findSubId(it.category, it.subcategoryLabel),
-          customSubcategoryLabel: null,
+          subcategoryId: matchedSubId,
+          customSubcategoryLabel: matchedSubId == null ? it.subcategoryLabel : null,
           itemName: it.itemName,
           spec: it.spec,
           quantity: it.quantity || 1,
