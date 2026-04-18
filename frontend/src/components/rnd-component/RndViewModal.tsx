@@ -111,6 +111,58 @@ const getOrdinal = (n: number) => {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
+// --- SCROLLING TEXT HELPERS ---
+const ScrollKeyframes = () => (
+  <style>{`
+    @keyframes banner-marquee-bounce {
+      0%, 15% { transform: translateX(0); }
+      85%, 100% { transform: translateX(var(--scroll-amount)); }
+    }
+    .animate-banner-marquee {
+      animation: banner-marquee-bounce 8s alternate infinite ease-in-out;
+    }
+  `}</style>
+);
+
+const ScrollingBannerText: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const textRef = React.useRef<HTMLDivElement>(null);
+  const [shouldAnimate, setShouldAnimate] = React.useState(false);
+  const [scrollAmount, setScrollAmount] = React.useState(0);
+
+  React.useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        if (textWidth > containerWidth) {
+          setShouldAnimate(true);
+          setScrollAmount(textWidth - containerWidth + 24); // 24px extra buffer padding
+        } else {
+          setShouldAnimate(false);
+          setScrollAmount(0);
+        }
+      }
+    };
+    checkOverflow();
+    setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [children]);
+
+  return (
+    <div ref={containerRef} className={`overflow-hidden flex-1 ${className}`}>
+      <div
+        ref={textRef}
+        className={`whitespace-nowrap inline-block ${shouldAnimate ? 'animate-banner-marquee' : ''}`}
+        style={shouldAnimate ? { ['--scroll-amount' as any]: `-${scrollAmount}px` } : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 // Format string (e.g. "research_class" -> "Research Class")
 const formatString = (str: string) => {
   if (!str) return "N/A";
@@ -388,6 +440,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
+      <ScrollKeyframes />
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* --- HEADER --- */}
@@ -402,9 +455,11 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 DOST Form No. 1B
               </span>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 leading-tight truncate pr-4">
-              {p.title}
-            </h2>
+            <ScrollingBannerText className="pr-4">
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                {p.title}
+              </h2>
+            </ScrollingBannerText>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
             <ProposalInsightButtons

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
-import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Clock, Tag, FileClock, ScanSearch} from "lucide-react";
+import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Tag, FileClock, ScanSearch, CalendarDays} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 import PageLoader from "../../../components/shared/PageLoader";
 
@@ -10,6 +10,8 @@ export default function EndorsedProposals() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
+  const [yearFilter, setYearFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState("recent-old");
 
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -95,9 +97,10 @@ export default function EndorsedProposals() {
           sector: p.sector?.name || "N/A",
           discipline: p.discipline?.name || "N/A",
           duration: p.duration ? `${p.duration} months` : "N/A",
-          year: p.year || "N/A",
+          year: p.year || (p.created_at ? new Date(p.created_at).getFullYear() : "N/A"),
           startDate: p.plan_start_date || "N/A",
           endDate: p.plan_end_date || "N/A",
+          submittedDate: p.created_at || null,
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
           projectFile: p.proposal_version?.[0]?.file_url || null,
@@ -133,13 +136,22 @@ export default function EndorsedProposals() {
 
   const filtered = endorsedProposals.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+    const proposalYear = p.submittedDate ? new Date(p.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    return matchesSearch && matchesYear;
   });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const dateA = new Date(a.reviewDeadline).getTime();
-    const dateB = new Date(b.reviewDeadline).getTime();
-    return dateA - dateB;
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
   });
 
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
@@ -223,28 +235,41 @@ export default function EndorsedProposals() {
         </div>
       </header>
 
-      {/* Filter Section */}
-      <section className="flex-shrink-0" aria-label="Filter endorsed proposals">
-        <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <div className="relative flex-1 max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search proposals..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                aria-label="Search endorsed proposals"
-              />
-            </div>
+      {/* Search and Filters Section */}
+      <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
           </div>
-
-          <div className="mt-4 text-xs text-slate-600">
-            Showing {sortedFiltered.length} of {endorsedProposals.length} proposals for review
-          </div>
+          <input
+            type="text"
+            placeholder="Search proposals..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={yearFilter}
+            onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="All">All Years</option>
+            {Array.from(new Set(proposals.map(p => p.submittedDate ? new Date(p.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+              <option key={year} value={String(year)}>{year}</option>
+            ))}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+          >
+            <option value="recent-old">Recent to Old</option>
+            <option value="old-recent">Old to Recent</option>
+            <option value="a-z">Title (A-Z)</option>
+            <option value="z-a">Title (Z-A)</option>
+          </select>
         </div>
       </section>
 
@@ -281,9 +306,12 @@ export default function EndorsedProposals() {
                             <span>{proposal.proponent}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-red-600 font-semibold">
-                            <Clock className="w-3 h-3" />
                             <span>Review by: {proposal.reviewDeadline}</span>
                           </div>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                            <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                            {proposal.year !== "N/A" ? proposal.year : (proposal.submittedDate ? new Date(proposal.submittedDate).getFullYear() : new Date().getFullYear())}
+                          </span>
                           {proposal.tags && proposal.tags.length > 0 && proposal.tags.map((tag: string, i: number) => (
                             <span
                               key={i}

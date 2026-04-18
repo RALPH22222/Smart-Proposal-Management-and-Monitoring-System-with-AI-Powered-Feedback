@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   FileText, Calendar, User, Eye, Gavel, Search,
   ChevronLeft, ChevronRight, Tag, XCircle, CalendarDays,
@@ -314,6 +315,7 @@ const backendToFrontendStatus = (status: string): ExtendedProposalStatus => {
 };
 
 const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate }) => {
+  const location = useLocation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [filteredProposals, setFilteredProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,6 +356,20 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const [agencies, setAgencies] = useState<LookupItem[]>([]);
   const [sectors, setSectors] = useState<LookupItem[]>([]);
   const [priorityAreas, setPriorityAreas] = useState<LookupItem[]>([]);
+
+  // Handle automatic opening of a proposal if passed via navigation state
+  useEffect(() => {
+    if (location.state?.openProposalId && proposals.length > 0 && !loading) {
+      const targetProposal = proposals.find(p => String(p.id) === String(location.state.openProposalId));
+      if (targetProposal) {
+        // Find by ID and open details
+        handleViewDetails(targetProposal);
+        
+        // Clear state to avoid reopening on refresh/re-render
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, proposals, loading]);
 
   // Load proposals on component mount
   useEffect(() => {

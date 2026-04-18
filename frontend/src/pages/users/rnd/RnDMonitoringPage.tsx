@@ -7,7 +7,6 @@ import {
   AlertCircle,
   FileText,
   Search,
-  Filter,
   Eye,
   BarChart3,
   Target,
@@ -49,6 +48,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'All'>('All');
+  const [yearFilter, setYearFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('recent-old');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3;
@@ -65,6 +66,13 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       filtered = filtered.filter(project => project.status === statusFilter);
     }
 
+    if (yearFilter !== 'All') {
+      filtered = filtered.filter(project => {
+        const year = project.startDate ? new Date(project.startDate).getFullYear().toString() : 'N/A';
+        return year === yearFilter;
+      });
+    }
+
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,9 +82,22 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       );
     }
 
-    setFilteredProjects(filtered);
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+      if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+      const dateA = new Date(a.startDate || 0).getTime();
+      const dateB = new Date(b.startDate || 0).getTime();
+
+      if (sortOrder === "recent-old") return dateB - dateA;
+      if (sortOrder === "old-recent") return dateA - dateB;
+
+      return 0;
+    });
+
+    setFilteredProjects(sorted);
     setCurrentPage(1);
-  }, [projects, statusFilter, searchTerm]);
+  }, [projects, statusFilter, searchTerm, yearFilter, sortOrder]);
 
   const loadProjects = async () => {
     try {
@@ -300,46 +321,50 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
             </div>
           </section>
 
-          {/* Filters and Search */}
-          <section className="flex-shrink-0" aria-label="Filter projects">
-            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  />
-                </div>
-
-                {/* Status Filter */}
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
-                    className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="Active">Active ({getStatusCount('Active')})</option>
-                    <option value="Completed">Completed ({getStatusCount('Completed')})</option>
-                    <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
-                    <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4 text-xs text-slate-600">
-                Showing {filteredProjects.length} of {projects.length} projects
-              </div>
+          {/* Search and Filters Section */}
+          <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value as ProjectStatus | 'All'); setCurrentPage(1); }}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active ({getStatusCount('Active')})</option>
+                <option value="Completed">Completed ({getStatusCount('Completed')})</option>
+                <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
+                <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
+              </select>
+              <select
+                value={yearFilter}
+                onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+              >
+                <option value="All">All Years</option>
+                {Array.from(new Set(projects.map(p => p.startDate ? new Date(p.startDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+                  <option key={year} value={String(year)}>{year}</option>
+                ))}
+              </select>
+              <select
+                value={sortOrder}
+                onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+              >
+                <option value="recent-old">Recent to Old</option>
+                <option value="old-recent">Old to Recent</option>
+                <option value="a-z">Title (A-Z)</option>
+                <option value="z-a">Title (Z-A)</option>
+              </select>
             </div>
           </section>
 

@@ -18,6 +18,7 @@ import {
   Search,
   CalendarDays,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
 import { api } from '../../../utils/axios';
@@ -35,24 +36,27 @@ import {
 } from '../../../services/ProjectMonitoringApi';
 
 const FundingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   // Phase 3 of LIB feature: third tab for budget realignment requests
   const [activeTab, setActiveTab] = useState<'pending' | 'archived' | 'realignments'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
+  const [yearFilter, setYearFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('recent-old');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-
+ 
   const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
   const [activeProposalRaw, setActiveProposalRaw] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
-
+ 
   // Phase 3 of LIB feature: realignment list state
   const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
   const [realignmentsLoading, setRealignmentsLoading] = useState(false);
   const [activeRealignmentId, setActiveRealignmentId] = useState<number | null>(null);
-
+ 
   // Phase 4 follow-up: budget money tracker modal (for Funded projects)
   const [budgetViewerProject, setBudgetViewerProject] = useState<{
     fundedProjectId: number;
@@ -197,9 +201,26 @@ const FundingPage: React.FC = () => {
 
     if (!matchesSearch) return false;
 
+    const proposalYear = p.submittedDate ? new Date(p.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    if (!matchesYear) return false;
+
     return activeTab === 'pending'
       ? pendingStatuses.includes(p.status)
       : archivedStatuses.includes(p.status)
+  });
+
+  const sortedFilteredProposals = [...displayedProposals].sort((a, b) => {
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
   });
 
   const displayedRealignments = realignments.filter(r => {
@@ -211,9 +232,9 @@ const FundingPage: React.FC = () => {
     return projectTitle.toLowerCase().includes(term) || requesterName.toLowerCase().includes(term);
   });
 
-  const totalPages = Math.ceil(displayedProposals.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedFilteredProposals.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = displayedProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = sortedFilteredProposals.slice(startIndex, startIndex + itemsPerPage);
 
 
 
@@ -290,8 +311,8 @@ const FundingPage: React.FC = () => {
           <div className="flex gap-2">
             {[
               { id: 'pending', label: 'Pending', icon: Clock, count: fundingProposals.filter(p => pendingStatuses.includes(p.status)).length },
-              { id: 'archived', label: 'Archive', icon: Archive, count: fundingProposals.filter(p => archivedStatuses.includes(p.status)).length },
               { id: 'realignments', label: 'Realignments', icon: Banknote, count: realignments.length },
+              { id: 'archived', label: 'Archive', icon: Archive, count: fundingProposals.filter(p => archivedStatuses.includes(p.status)).length },
             ].map(tab => {
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -318,17 +339,39 @@ const FundingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder={activeTab === 'realignments' ? "Search realignments..." : "Search proposals..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
             />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={yearFilter}
+              onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Years</option>
+              {Array.from(new Set(fundingProposals.map(p => p.submittedDate ? new Date(p.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 
@@ -534,11 +577,11 @@ const FundingPage: React.FC = () => {
           </div>
 
           {/* Pagination — only for the proposal tabs, not realignments */}
-          {activeTab !== 'realignments' && displayedProposals.length > 0 && (
+          {activeTab !== 'realignments' && sortedFilteredProposals.length > 0 && (
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
                 <span>
-                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, displayedProposals.length)} of {displayedProposals.length} proposals
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedFilteredProposals.length)} of {sortedFilteredProposals.length} proposals
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -582,6 +625,11 @@ const FundingPage: React.FC = () => {
         documentUrl={viewingDocumentUrl || ''}
         title="Funding Approval Document"
         proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
+        onOpenDetails={(p) => {
+          navigate('/users/rnd/rndMainLayout?tab=proposals', { 
+            state: { openProposalId: p.id } 
+          });
+        }}
       />
 
       {activeRealignmentId != null && (

@@ -45,6 +45,7 @@ const EndorsePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('recent-old');
 
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
@@ -166,7 +167,8 @@ const EndorsePage: React.FC = () => {
           department: deptName || p.proponent_id?.department?.name || "N/A",
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
           status: p.status,
-          actionDate: p.actionDate,
+          actionDate: p.actionDate || p.created_at,
+          submittedDate: p.created_at || p.actionDate,
           versionNumber: p.versionNumber,
           totalVersions: p.totalVersions,
         };
@@ -438,15 +440,30 @@ const EndorsePage: React.FC = () => {
   
   const filteredProposals = endorsementProposals.filter((p) => {
     const term = searchTerm.toLowerCase();
-    return p.title.toLowerCase().includes(term) ||
+    const matchesSearch = p.title.toLowerCase().includes(term) ||
            p.submittedBy.toLowerCase().includes(term) ||
            String(p.id).toLowerCase().includes(term);
+    
+    return matchesSearch;
+  });
+
+  const sortedFiltered = [...filteredProposals].sort((a, b) => {
+    if (sortOrder === "a-z") return a.title.localeCompare(b.title);
+    if (sortOrder === "z-a") return b.title.localeCompare(a.title);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = filteredProposals.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
   // Helper for Random Department Colors
   const getDepartmentColor = (departmentName: string) => {
@@ -598,17 +615,29 @@ const EndorsePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search proposals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
             />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 

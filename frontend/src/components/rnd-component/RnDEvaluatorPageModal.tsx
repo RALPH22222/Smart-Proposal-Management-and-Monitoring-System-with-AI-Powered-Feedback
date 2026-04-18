@@ -386,7 +386,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
               <p className="text-sm text-slate-500 mt-1 leading-snug line-clamp-2">{proposalTitle}</p>
               {proposalStatus && (
                 <span
-                  className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getProposalStatusBadgeClass(proposalStatus)}`}
+                  className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[12px] font-semibold border ${getProposalStatusBadgeClass(proposalStatus)}`}
                 >
                   {getProposalStatusLabel(proposalStatus)}
                 </span>

@@ -705,8 +705,8 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border
                     ${project?.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                     project?.status === 'Delayed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                    project?.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                      project?.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        'bg-slate-50 text-slate-700 border-slate-200'}`}>
                   {project?.status}
                 </span>
               </div>

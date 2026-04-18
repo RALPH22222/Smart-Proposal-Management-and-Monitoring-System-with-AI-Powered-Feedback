@@ -5,7 +5,6 @@ import {
   User,
   FileText,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Tag,
@@ -69,6 +68,8 @@ interface GroupedAssignment {
 export const RnDEvaluatorPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [yearFilter, setYearFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState("recent-old");
 
   // Edit Assignment Modal States
   const [showModal, setShowModal] = useState(false);
@@ -436,12 +437,27 @@ export const RnDEvaluatorPage: React.FC = () => {
       a.evaluatorNames.join(", ").toLowerCase().includes(search.toLowerCase()) ||
       a.proposalTitle.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "All" || a.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const proposalYear = a.submittedDate ? new Date(a.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    return matchesSearch && matchesStatus && matchesYear;
   });
 
-  const totalPages = Math.ceil(filteredAssignments.length / itemsPerPage);
+  const sortedFiltered = [...filteredAssignments].sort((a, b) => {
+    if (sortOrder === "a-z") return a.proposalTitle.localeCompare(b.proposalTitle);
+    if (sortOrder === "z-a") return b.proposalTitle.localeCompare(a.proposalTitle);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedAssignments = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
 
 
@@ -550,43 +566,54 @@ export const RnDEvaluatorPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <section className="flex-shrink-0">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search evaluators or proposal titles..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                />
-              </div>
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="appearance-none bg-white pl-3 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Accepts">Accepts</option>
-                  <option value="Extension Requested">Extension Requested</option>
-                  <option value="Extension Approved">Extension Approved</option>
-                  <option value="Extension Rejected">Extension Rejected</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Overdue">Overdue</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                  <Filter className="h-4 w-4 text-slate-400" />
-                </div>
-              </div>
-            </div>
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search evaluators or proposal titles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Accepts">Accepts</option>
+              <option value="Extension Requested">Extension Requested</option>
+              <option value="Extension Approved">Extension Approved</option>
+              <option value="Extension Rejected">Extension Rejected</option>
+              <option value="Completed">Completed</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+            <select
+              value={yearFilter}
+              onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Years</option>
+              {Array.from(new Set(assignments.map(a => a.submittedDate ? new Date(a.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 
@@ -682,12 +709,11 @@ export const RnDEvaluatorPage: React.FC = () => {
             </>
           </div>
 
-          {/* Pagination Footer */}
           <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
               <span>
-                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAssignments.length)} of{" "}
-                {filteredAssignments.length} assignments
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
+                {sortedFiltered.length} assignments
               </span>
               <div className="flex items-center gap-2">
                 <button

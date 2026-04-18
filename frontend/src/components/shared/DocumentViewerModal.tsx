@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X, CheckCircle, FileText, User, Users,
-  Building2, Mail, Phone, Calendar, DollarSign, Tags, Microscope, Target,
-  MapPin, Briefcase, Globe, Loader2, AlertTriangle
+  X, CheckCircle, FileText, Calendar, Loader2, AlertTriangle, Eye, ChevronRight
 } from 'lucide-react';
 import { formatDateShort } from '../../utils/date-formatter';
 import { api } from '../../utils/axios';
@@ -13,6 +11,7 @@ interface DocumentViewerModalProps {
   documentUrl: string;
   title?: string;
   proposal?: any;
+  onOpenDetails?: (proposal: any) => void;
 }
 
 /**
@@ -46,7 +45,8 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   onClose,
   documentUrl,
   title = 'Document Viewer',
-  proposal
+  proposal,
+  onOpenDetails
 }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
@@ -91,13 +91,6 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
   const p = proposal;
 
-  const formatString = (str: string) => {
-    if (!str) return 'N/A';
-    return str
-      .split(/[_\s]+/)
-      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-2 sm:p-4 animate-in fade-in duration-200">
@@ -175,11 +168,11 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 <div>
                   <p className="text-xs font-bold text-emerald-100 tracking-wider">Total Funded Amount</p>
                   <p className="text-sm text-emerald-50">Grand Total Budget Requirements</p>
-                  {p.lastUpdated && (
-                    <p className="flex items-center gap-1.5 text-xs text-emerald-200 mt-1">
-                      <Calendar className="w-3 h-3" />
-                      Funded on <span className="font-semibold">{formatDateShort(p.lastUpdated)}</span>
-                    </p>
+                  {p.lastModified && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 border border-white/10 text-white text-[12px] font-bold mt-2 shadow-sm">
+                      <Calendar className="w-3 h-3 text-emerald-200" />
+                      Funded on: {formatDateShort(p.lastModified)}
+                    </div>
                   )}
                 </div>
               </div>
@@ -190,242 +183,24 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             </div>
           )}
 
-          {/* Proposal Details */}
+          {/* Open Full Details Link */}
           {p && (
-            <>
-              {/* Leader & Agency */}
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#C8102E]" /> Leader & Agency Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
-                    <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent || p.submittedBy || 'N/A'}</p>
-                    <div className="space-y-1 mt-1">
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email || 'N/A'}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {p.telephone || 'N/A'}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400" /> {p.department || p.proponentDepartment || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Agency</label>
-                    <p className="text-sm font-semibold text-slate-900 mb-2">{p.agency || 'N/A'}</p>
-                    <div className="flex items-start gap-2 text-sm text-slate-700">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5" />
-                      {p.address || 'N/A'}
-                    </div>
-                  </div>
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 flex items-center justify-between group hover:border-[#C8102E] transition-all cursor-pointer shadow-sm"
+              onClick={() => onOpenDetails?.(p)}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-[#C8102E] group-hover:bg-[#C8102E] group-hover:text-white transition-all">
+                  <Eye className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">View Full Proposal Details</h3>
+                  <p className="text-sm text-slate-500">Access complete implementation sites, budget breakdowns, and project schedules</p>
                 </div>
               </div>
-
-              {/* Implementation Sites */}
-              {p.implementationSites && p.implementationSites.length > 0 && (
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-                  <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-3 mb-4 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-[#C8102E]" /> Implementation Sites
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {p.implementationSites.map((site: any, i: number) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900 leading-tight">{site.site}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{site.city}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Project Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Users className="w-4 h-4 text-[#C8102E]" /> Cooperating Agencies
-                  </h4>
-                  <p className="text-sm text-slate-900">{p.cooperatingAgencies || 'None'}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <FileText className="w-4 h-4 text-[#C8102E]" /> Mode of Implementation
-                  </h4>
-                  <p className="text-sm font-semibold text-slate-900">{formatString(p.modeOfImplementation)}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
-                  </h4>
-                  <p className="text-sm font-semibold text-slate-900">{formatString(p.classification)}</p>
-                  {p.classificationDetails && p.classificationDetails !== 'N/A' && (
-                    <p className="text-xs text-slate-600 mt-1">{formatString(p.classificationDetails)}</p>
-                  )}
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Microscope className="w-4 h-4 text-[#C8102E]" /> R&D Station
-                  </h4>
-                  <p className="text-sm text-slate-900">{p.rdStation || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Target className="w-4 h-4 text-[#C8102E]" /> Priority Areas
-                  </h4>
-                  <p className="text-sm font-semibold text-slate-900">{p.priorityAreas || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Briefcase className="w-4 h-4 text-[#C8102E]" /> Sector
-                  </h4>
-                  <p className="text-sm font-semibold text-slate-900">{p.sector || 'N/A'}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
-                    <Briefcase className="w-4 h-4 text-[#C8102E]" /> Discipline
-                  </h4>
-                  <p className="text-sm font-semibold text-slate-900">{p.discipline || 'N/A'}</p>
-                </div>
+              <div className="p-2 rounded-full bg-slate-100 text-slate-400 group-hover:bg-[#C8102E]/10 group-hover:text-[#C8102E] transition-all">
+                <ChevronRight className="w-6 h-6" />
               </div>
-
-              {/* Schedule Section */}
-              <div className="rounded-xl border p-4 bg-slate-50 border-slate-200">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
-                  <Calendar className="w-4 h-4 text-[#C8102E]" /> Implementing Schedule
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Duration</p>
-                    <p className="text-sm font-semibold text-slate-900">{p.duration || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Start Date</p>
-                    <p className="text-sm font-medium text-slate-900">{p.startDate ? formatDateShort(p.startDate) : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">End Date</p>
-                    <p className="text-sm font-medium text-slate-900">{p.endDate ? formatDateShort(p.endDate) : 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Budget Requirements */}
-              {p.budgetSources && p.budgetSources.length > 0 ? (
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
-                  </h3>
-
-                  <div className="space-y-6">
-                    {p.budgetSources.map((budget: any, index: number) => (
-                      <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="bg-blue-100 p-1.5 rounded text-blue-700">
-                              <DollarSign className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                              <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                            <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
-                          </div>
-                        </div>
-
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
-                          {/* PS */}
-                          <div className="space-y-2 pt-2 md:pt-0">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
-                              <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                            </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                                budget.breakdown.ps.map((item: any, i: number) => (
-                                  <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                    <span>{item.item}</span>
-                                    <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))
-                              ) : <p className="italic text-slate-400">No items</p>}
-                            </div>
-                          </div>
-
-                          {/* MOOE */}
-                          <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
-                              <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
-                            </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                                budget.breakdown.mooe.map((item: any, i: number) => (
-                                  <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                    <span>{item.item}</span>
-                                    <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))
-                              ) : <p className="italic text-slate-400">No items</p>}
-                            </div>
-                          </div>
-
-                          {/* CO */}
-                          <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                              <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
-                            </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                                budget.breakdown.co.map((item: any, i: number) => (
-                                  <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                    <span>{item.item}</span>
-                                    <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                                  </div>
-                                ))
-                              ) : <p className="italic text-slate-400">No items</p>}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Grand Total Footer */}
-                  <div className="mt-6 bg-slate-100 rounded-xl p-4 flex justify-between items-center border border-slate-200">
-                    <div>
-                      <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
-                      <p className="text-xs text-slate-500">Grand total of all sources</p>
-                    </div>
-                    <div className="text-xl font-black text-[#C8102E] font-mono">
-                      {p.budgetTotal}
-                    </div>
-                  </div>
-                </div>
-              ) : p.budgetTotal ? (
-                /* Fallback: only show grand total */
-                <div className="rounded-xl bg-slate-100 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow border border-slate-200">
-                  <div>
-                    <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
-                    <p className="text-xs text-slate-500">Grand total of all sources</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-black text-[#C8102E] font-mono">{p.budgetTotal}</p>
-                  </div>
-                </div>
-              ) : null}
-            </>
+            </div>
           )}
         </div>
 

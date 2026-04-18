@@ -165,7 +165,8 @@ const AdminEndorsementPage: React.FC = () => {
           department: deptName || p.proponent_id?.department?.name || 'N/A',
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
           status: p.status,
-          actionDate: p.actionDate,
+          actionDate: p.actionDate || p.created_at,
+          submittedDate: p.created_at || p.actionDate,
           versionNumber: p.versionNumber,
           totalVersions: p.totalVersions,
         };

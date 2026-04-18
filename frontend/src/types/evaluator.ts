@@ -78,6 +78,7 @@ export interface EndorsementProposal {
 	department?: string;
 	status?: string;
 	actionDate?: string;
+	submittedDate?: string;
 	versionNumber?: number;
 	totalVersions?: number;
 }
