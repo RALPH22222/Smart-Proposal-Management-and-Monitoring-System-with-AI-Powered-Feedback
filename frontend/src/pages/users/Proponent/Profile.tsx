@@ -559,7 +559,6 @@ const Profile: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
           {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
-            const progress = loading ? 0 : getLocalProgress(project);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
             const yearTag = getProjectYear(project.id);
@@ -696,7 +695,7 @@ const Profile: React.FC = () => {
           )}
 
           {!loading && filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
-            const progress = loading ? 0 : getProgressPercentageByIndex(project.currentIndex);
+            const progress = loading ? 0 : getLocalProgress(project);
             const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
             const yearTag = getProjectYear(project.id);
