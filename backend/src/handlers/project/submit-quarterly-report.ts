@@ -61,6 +61,31 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
   }
 
+  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be uploaded
+  // before any quarterly report can be submitted. This enforces the real-world DOST rule
+  // that the agreement + funding certification are prerequisites for progress reporting.
+  // Backend guard is authoritative — the frontend banner / disabled button is UX; this
+  // catches anyone hitting the endpoint directly or with a stale client.
+  const { data: complianceDocs } = await supabase
+    .from("funded_projects")
+    .select("moa_file_url, agency_certification_file_url")
+    .eq("id", result.data.funded_project_id)
+    .single();
+
+  const missing: string[] = [];
+  if (!complianceDocs?.moa_file_url) missing.push("Memorandum of Agreement (DOST Form 5)");
+  if (!complianceDocs?.agency_certification_file_url) missing.push("Agency Certification (DOST Form 4)");
+  if (missing.length > 0) {
+    return {
+      statusCode: 412, // Precondition Failed — prerequisite docs missing
+      body: JSON.stringify({
+        message: `Cannot submit quarterly report. The following document(s) must be uploaded first: ${missing.join(", ")}.`,
+        code: "MISSING_COMPLIANCE_DOCS",
+        missing,
+      }),
+    };
+  }
+
   const projectService = new ProjectService(supabase);
   const { data, error } = await projectService.submitQuarterlyReport({
     ...result.data,

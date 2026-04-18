@@ -13,9 +13,14 @@ import {
 interface Props {
   fundedProjectId: number;
   allQuartersVerified: boolean;
+  // When truthy, submit is blocked because the project is missing DOST Form 4 / Form 5.
+  // The parent passes the human-readable list; we use it for the tooltip. The parent
+  // also renders the full banner above the quarters, so we only need a short inline hint.
+  missingComplianceDocs?: string[];
 }
 
-export default function TerminalReportSection({ fundedProjectId, allQuartersVerified }: Props) {
+export default function TerminalReportSection({ fundedProjectId, allQuartersVerified, missingComplianceDocs = [] }: Props) {
+  const complianceBlocked = missingComplianceDocs.length > 0;
   const [terminalReport, setTerminalReport] = useState<ApiTerminalReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -178,9 +183,11 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         </p>
         <button
           onClick={() => setShowForm(true)}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm"
+          disabled={complianceBlocked}
+          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm"
         >
-          Submit Terminal Report
+          {complianceBlocked ? 'Submit Terminal Report (DOST docs required)' : 'Submit Terminal Report'}
         </button>
       </div>
     );
@@ -284,13 +291,18 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
           </div>
         </div>
 
-        {/* Submit */}
+        {/* Submit — also blocked when MOA / Agency Cert missing. */}
         <button
           onClick={handleSubmit}
-          disabled={submitting || !accomplishments.trim()}
+          disabled={submitting || !accomplishments.trim() || complianceBlocked}
+          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
         >
-          {submitting ? 'Submitting...' : 'Submit Terminal Report'}
+          {submitting
+            ? 'Submitting...'
+            : complianceBlocked
+              ? 'Submit Terminal Report (DOST docs required)'
+              : 'Submit Terminal Report'}
         </button>
       </div>
     </div>

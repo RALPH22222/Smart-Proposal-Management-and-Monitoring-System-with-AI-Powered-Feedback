@@ -531,6 +531,16 @@ const MonitoringPage: React.FC = () => {
   // Co-leads collaborate on reports but cannot move money or timelines — mirrors the
   // backend guards in create-fund-request, request-realignment, request-extension.
   const isProjectLead = !!activeBackend && activeBackend.project_lead_id === user?.id;
+  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be on file
+  // before any quarterly or terminal report can be submitted. The backend enforces the
+  // same rule — this UX just surfaces it early instead of letting the user upload files
+  // and fill the form only to get a 412 from the server.
+  const hasMoa = !!(activeBackend as any)?.moa_file_url;
+  const hasAgencyCert = !!(activeBackend as any)?.agency_certification_file_url;
+  const missingComplianceDocs: string[] = [];
+  if (!hasMoa) missingComplianceDocs.push('Memorandum of Agreement (Form 5)');
+  if (!hasAgencyCert) missingComplianceDocs.push('Agency Certification (Form 4)');
+  const reportSubmissionBlocked = missingComplianceDocs.length > 0;
   const isLocked = currentReport?.status === 'locked';
   const isFundRequestNeeded = currentReport?.status === 'fund_request';
   const isFundRequestPending = currentReport?.fundRequest?.status === 'pending';
@@ -1276,6 +1286,29 @@ const MonitoringPage: React.FC = () => {
                 />
               )}
 
+              {/* DOST compliance gate banner — hidden once both documents are present. */}
+              {activeBackend && reportSubmissionBlocked && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-red-800 text-sm">
+                      Submit Report is blocked — required documents missing
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      DOST requires the following to be uploaded before any quarterly or terminal report can be filed:
+                    </p>
+                    <ul className="list-disc list-inside mt-1 text-xs text-red-700 font-medium">
+                      {missingComplianceDocs.map((doc) => (
+                        <li key={doc}>{doc}</li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-red-600 mt-2">
+                      Upload the missing file{missingComplianceDocs.length === 1 ? '' : 's'} in the <strong>Project Documents</strong> section above.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* --- QUARTER STEPPER --- */}
               {quarters.length > 0 && (
                 <QuarterStepper
@@ -1675,13 +1708,26 @@ const MonitoringPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Submit Report Button */}
+                        {/* Submit Report Button — disabled when MOA / Agency Cert missing.
+                            Hover title explains why when the button is blocked by docs,
+                            so the user doesn't have to scroll up to read the banner. */}
                         <button
                           onClick={handleSubmitReport}
-                          disabled={submittingReport}
+                          disabled={submittingReport || reportSubmissionBlocked}
+                          title={
+                            reportSubmissionBlocked
+                              ? `Upload required first: ${missingComplianceDocs.join(', ')}`
+                              : undefined
+                          }
                           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          {submittingReport ? <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Submitting...'}</> : 'Submit Report for Verification'}
+                          {submittingReport ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Submitting...'}</>
+                          ) : reportSubmissionBlocked ? (
+                            <><Lock className="w-4 h-4" /> Submit Report (DOST docs required)</>
+                          ) : (
+                            'Submit Report for Verification'
+                          )}
                         </button>
                       </div>
                     )}
@@ -1793,6 +1839,7 @@ const MonitoringPage: React.FC = () => {
                   <TerminalReportSection
                     fundedProjectId={activeBackend.id}
                     allQuartersVerified={quarters.length === 4 && quarters.every(q => q.status === 'approved')}
+                    missingComplianceDocs={missingComplianceDocs}
                   />
                 </div>
               )}
