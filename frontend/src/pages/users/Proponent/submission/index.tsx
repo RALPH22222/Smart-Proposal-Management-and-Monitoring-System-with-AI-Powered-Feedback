@@ -326,15 +326,25 @@ const Submission: React.FC = () => {
       const mooe = item.budget.mooe || [];
       const co = item.budget.co || [];
 
-      // Check for empty line items (Description or Amount)
+      // Check for empty / invalid line items. Field names match the Phase 1 LIB shape
+      // (itemName / quantity / unitPrice / totalAmount) — the older {item, value} shape
+      // is dead. An item is valid when it has a name, positive quantity, and
+      // non-negative unit price (totalAmount is derived = quantity * unitPrice).
       const allExpenses = [...ps, ...mooe, ...co];
-      const hasEmptyLineItem = allExpenses.some((ex: any) => !ex.item?.trim() || !(ex.value > 0));
+      const invalidLine = allExpenses.find((ex: any) => {
+        if (!ex.itemName?.trim()) return true;
+        const qty = Number(ex.quantity) || 0;
+        const unitPrice = Number(ex.unitPrice) || 0;
+        if (qty <= 0) return true;
+        if (unitPrice < 0) return true;
+        return false;
+      });
 
-      if (hasEmptyLineItem) {
+      if (invalidLine) {
         Swal.fire({
           icon: "warning",
           title: "Incomplete Line Items",
-          text: `Funding source "${item.source}" has items without a description or amount.`,
+          text: `Funding source "${item.source}" has items with a missing name, a zero quantity, or an invalid unit price.`,
           confirmButtonColor: "#C8102E",
         });
         return false;

@@ -17,6 +17,7 @@ import {
   type RevisionContextBudgetVersion,
 } from '../../services/proposal.api';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
+import { openSignedUrl } from '../../utils/signed-url';
 import SkeletonPulse from './SkeletonPulse';
 
 interface ProposalRevisionContextProps {
@@ -298,16 +299,18 @@ export default function ProposalRevisionContext({ proposalId }: ProposalRevision
                   </div>
                   <div className="flex gap-1">
                     {fileUrls.map((url, fi) => (
-                      <a
+                      // Must go through openSignedUrl — raw S3 links return AccessDenied
+                      // because the bucket is private. openSignedUrl swaps the URL for a
+                      // presigned one and also routes .doc/.docx through the Office viewer.
+                      <button
                         key={fi}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        type="button"
+                        onClick={() => url && openSignedUrl(url)}
                         className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
                       >
                         <ExternalLink className="w-3 h-3" />
                         {fileUrls.length > 1 ? `File ${fi + 1}` : 'View'}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
