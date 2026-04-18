@@ -24,6 +24,7 @@ export class ProjectLambdas extends NestedStack {
   public readonly submitQuarterlyReport: NodejsFunction;
   public readonly getProjectReports: NodejsFunction;
   public readonly verifyProjectReport: NodejsFunction;
+  public readonly rejectProjectReport: NodejsFunction;
   public readonly addProjectExpense: NodejsFunction;
   public readonly getProjectExpenses: NodejsFunction;
   public readonly updateProjectStatus: NodejsFunction;
@@ -46,6 +47,7 @@ export class ProjectLambdas extends NestedStack {
   // Terminal report + financial report
   public readonly submitTerminalReport: NodejsFunction;
   public readonly verifyTerminalReport: NodejsFunction;
+  public readonly rejectTerminalReport: NodejsFunction;
   public readonly getTerminalReport: NodejsFunction;
   public readonly getFinancialReport: NodejsFunction;
   // Phase 3 of LIB feature: budget realignment workflow
@@ -81,6 +83,7 @@ export class ProjectLambdas extends NestedStack {
     this.submitQuarterlyReport = simple("submit-quarterly-report", "pms-submit-quarterly-report", "submit-quarterly-report.ts");
     this.getProjectReports = simple("get-project-reports", "pms-get-project-reports", "get-project-reports.ts");
     this.verifyProjectReport = simple("verify-project-report", "pms-verify-project-report", "verify-project-report.ts");
+    this.rejectProjectReport = simple("reject-project-report", "pms-reject-project-report", "reject-project-report.ts");
     this.addProjectExpense = simple("add-project-expense", "pms-add-project-expense", "add-project-expense.ts");
     this.getProjectExpenses = simple("get-project-expenses", "pms-get-project-expenses", "get-project-expenses.ts");
     this.updateProjectStatus = simple("update-project-status", "pms-update-project-status", "update-project-status.ts");
@@ -103,6 +106,7 @@ export class ProjectLambdas extends NestedStack {
     // Terminal report + financial report
     this.submitTerminalReport = simple("submit-terminal-report", "pms-submit-terminal-report", "submit-terminal-report.ts");
     this.verifyTerminalReport = simple("verify-terminal-report", "pms-verify-terminal-report", "verify-terminal-report.ts");
+    this.rejectTerminalReport = simple("reject-terminal-report", "pms-reject-terminal-report", "reject-terminal-report.ts");
     this.getTerminalReport = simple("get-terminal-report", "pms-get-terminal-report", "get-terminal-report.ts");
     this.getFinancialReport = simple("get-financial-report", "pms-get-financial-report", "get-financial-report.ts");
 

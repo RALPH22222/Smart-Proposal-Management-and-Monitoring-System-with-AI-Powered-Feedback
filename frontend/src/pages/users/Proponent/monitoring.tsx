@@ -30,6 +30,8 @@ import {
   REPORT_ALLOWED_EXTENSIONS,
   fetchRealignments,
   fetchActiveBudgetVersion,
+  fetchProjectExtensionRequests,
+  type ApiProjectExtensionRequest,
   requestProjectExtension,
   type ApiFundedProject,
   type ApiFundRequest,
@@ -59,7 +61,10 @@ import BudgetUtilizationChart from "../../../components/shared/BudgetUtilization
 
 
 // --- Types ---
-type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked';
+// 'rejected' was added 2026-04-19 when R&D gained the ability to return quarterly reports
+// with a required note. Proponent UI shows the reason in a red banner and opens the edit
+// form again so they can resubmit (flips back to 'submitted' on resubmit).
+type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked' | 'rejected';
 
 interface FundRequestItem {
   id: string;
@@ -86,6 +91,8 @@ interface QuarterData {
   submittedBy?: string;
   dateSubmitted?: string;
   expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
+  // R&D's reason when the report was returned (status === 'rejected'). Null otherwise.
+  reviewNote?: string | null;
 }
 
 
@@ -161,6 +168,12 @@ const MonitoringPage: React.FC = () => {
   const [activeRealignment, setActiveRealignment] = useState<RealignmentRecord | null>(null);
   const [realignmentHistory, setRealignmentHistory] = useState<RealignmentRecord[]>([]);
   const [showBudgetHistory, setShowBudgetHistory] = useState(false);
+
+  // Extension requests submitted by this proponent, for the history panel. Before this
+  // the only trace of a rejected extension was the notification — if they dismissed it
+  // there was no way to re-read the reason R&D gave.
+  const [extensionHistory, setExtensionHistory] = useState<ApiProjectExtensionRequest[]>([]);
+  const [showExtensionHistory, setShowExtensionHistory] = useState(false);
 
   // Phase 4 of LIB feature: active budget items for the fund-request dropdown
   const [budgetItemsForProject, setBudgetItemsForProject] = useState<BudgetItemDto[]>([]);
@@ -303,15 +316,20 @@ const MonitoringPage: React.FC = () => {
     if (!activeBackend) return;
     try {
       setDetailLoading(true);
-      const [detail, frResponse, bs] = await Promise.all([
+      const [detail, frResponse, bs, extReqs] = await Promise.all([
         fetchProjectDetail(activeBackend.id),
         fetchFundRequests(activeBackend.id).catch((err) => {
           console.error('Error loading fund requests:', err);
           return { fund_requests: [] as ApiFundRequest[], budget_summary: null };
         }),
         fetchBudgetSummary(activeBackend.id).catch(() => null),
+        fetchProjectExtensionRequests(activeBackend.id).catch((err) => {
+          console.error('Error loading extension history:', err);
+          return [] as ApiProjectExtensionRequest[];
+        }),
       ]);
       setBudgetSummary(frResponse.budget_summary || bs);
+      setExtensionHistory(extReqs);
 
       // Build quarters from detail + fund requests
       const displayData = buildDisplayReports(detail, user?.id || '');
@@ -336,6 +354,8 @@ const MonitoringPage: React.FC = () => {
           status = 'approved';
         } else if (dr.status === 'Submitted') {
           status = 'submitted';
+        } else if (dr.status === 'Rejected') {
+          status = 'rejected';
         } else if (dr.status === 'Overdue') {
           // Even if overdue, check if fund request exists
           if (!fr) status = 'fund_request';
@@ -372,6 +392,7 @@ const MonitoringPage: React.FC = () => {
           submittedBy: dr.submittedBy,
           dateSubmitted: dr.dateSubmitted,
           expenses: dr.expenses,
+          reviewNote: dr.reviewNote ?? null,
         };
       });
 
@@ -545,8 +566,15 @@ const MonitoringPage: React.FC = () => {
   const isFundRequestNeeded = currentReport?.status === 'fund_request';
   const isFundRequestPending = currentReport?.fundRequest?.status === 'pending';
   const isFundRequestRejected = currentReport?.fundRequest?.status === 'rejected';
-  const isEditable = currentReport?.status === 'due' || currentReport?.status === 'overdue';
+  // 'rejected' counts as editable — the form reopens pre-populated so the proponent can
+  // fix what R&D flagged and resubmit. On resubmit the backend flips status back to
+  // 'submitted' and the red banner disappears.
+  const isEditable =
+    currentReport?.status === 'due' ||
+    currentReport?.status === 'overdue' ||
+    currentReport?.status === 'rejected';
   const isOverdue = currentReport?.status === 'overdue';
+  const isRejected = currentReport?.status === 'rejected';
   const prevReportProgress = currentReportIndex > 0 ? (quarters[currentReportIndex - 1]?.progressPercentage || 0) : 0;
   const [localProgress, setLocalProgress] = useState(0);
 
@@ -1176,6 +1204,66 @@ const MonitoringPage: React.FC = () => {
                     />
                   )}
 
+                  {/* Extension History panel. Before this the only trace of a rejected/
+                      approved extension was the notification — if the proponent dismissed it
+                      there was nowhere to re-read R&D's reason. Collapsed by default. */}
+                  {extensionHistory.length > 0 && (
+                    <div className="mt-3 border border-slate-200 rounded-xl bg-white">
+                      <button
+                        onClick={() => setShowExtensionHistory((v) => !v)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarClock className="w-4 h-4 text-slate-500" />
+                          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                            Extension Requests ({extensionHistory.length})
+                          </span>
+                        </div>
+                        {showExtensionHistory ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      </button>
+                      {showExtensionHistory && (
+                        <div className="border-t border-slate-100 divide-y divide-slate-100">
+                          {extensionHistory.map((ext) => {
+                            const statusStyle =
+                              ext.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : ext.status === 'rejected'
+                                  ? 'bg-red-50 text-red-700'
+                                  : 'bg-amber-50 text-amber-700';
+                            return (
+                              <div key={ext.id} className="px-4 py-3 text-xs">
+                                <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${statusStyle}`}>{ext.status}</span>
+                                    <span className="text-slate-600 font-medium">
+                                      {ext.extension_type === 'with_funding' ? 'Time + Funding' : 'Time Only'}
+                                    </span>
+                                    <span className="text-slate-400">Submitted {formatDate(ext.created_at)}</span>
+                                  </div>
+                                  <span className="text-slate-600">
+                                    New end: <strong>{formatDate(ext.new_end_date)}</strong>
+                                  </span>
+                                </div>
+                                <p className="text-slate-700 italic">"{ext.reason || 'No reason provided.'}"</p>
+                                {ext.status !== 'pending' && ext.review_note && (
+                                  <div className="mt-2 pt-2 border-t border-slate-100">
+                                    <span className="font-bold text-slate-600">R&D note:</span>{' '}
+                                    <span className="text-slate-700">{ext.review_note}</span>
+                                  </div>
+                                )}
+                                {ext.reviewed_at && (
+                                  <p className="text-[10px] text-slate-400 mt-1">
+                                    Reviewed {formatDate(ext.reviewed_at)}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Phase 4 of LIB feature: Budget History panel. Surfaces past realignment
                       decisions for this project so the proponent has context on how the budget
                       has evolved. Collapsed by default. */}
@@ -1345,6 +1433,7 @@ const MonitoringPage: React.FC = () => {
                       {isOverdue && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase">Overdue</span>}
                       {currentReport.status === 'submitted' && <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> Submitted</span>}
                       {currentReport.status === 'approved' && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Verified</span>}
+                      {isRejected && <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Returned</span>}
                     </div>
 
                     <div className="mb-6 pr-20">
@@ -1516,7 +1605,30 @@ const MonitoringPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* EDITABLE CONTENT (due / overdue + fund request approved) */}
+                    {/* Rejection banner — only when R&D explicitly returned this quarter's
+                        report. Sits directly above the edit form so the reason is visible while
+                        the proponent revises. Form reopens pre-populated; resubmit flips status
+                        back to 'submitted' server-side. */}
+                    {isRejected && (
+                      <div className="mt-4 mb-4 border border-red-200 bg-red-50 rounded-xl p-4 flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-red-800 text-sm">R&D returned this report for revision</p>
+                          {currentReport.reviewNote ? (
+                            <p className="text-sm text-red-700 mt-1 whitespace-pre-wrap">
+                              <span className="font-bold">Reason:</span> "{currentReport.reviewNote}"
+                            </p>
+                          ) : (
+                            <p className="text-xs text-red-600 italic mt-1">No reason recorded.</p>
+                          )}
+                          <p className="text-xs text-red-600 mt-2">
+                            Edit the fields below and resubmit. The report status will flip back to <strong>Submitted</strong> and R&D will re-review.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* EDITABLE CONTENT (due / overdue / rejected + fund request approved) */}
                     {isEditable && currentReport.fundRequest?.status === 'approved' && (
                       <div className="space-y-6">
                         {/* Budget Item Liquidation */}

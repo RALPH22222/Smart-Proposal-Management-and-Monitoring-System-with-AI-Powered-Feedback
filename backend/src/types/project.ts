@@ -22,6 +22,7 @@ export enum ReportStatus {
   SUBMITTED = "submitted",
   VERIFIED = "verified",
   OVERDUE = "overdue",
+  REJECTED = "rejected",
 }
 
 // Matches 'public.funded_projects' table

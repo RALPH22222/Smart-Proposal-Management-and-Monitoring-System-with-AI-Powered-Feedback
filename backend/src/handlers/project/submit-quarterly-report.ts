@@ -87,7 +87,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const projectService = new ProjectService(supabase);
-  const { data, error } = await projectService.submitQuarterlyReport({
+  const { data, error, isResubmission } = await projectService.submitQuarterlyReport({
     ...result.data,
     submitted_by_proponent_id: submitterId,
   });
@@ -146,10 +146,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
         .single();
 
       if (rndAssignment) {
+        // Differentiate wording so a busy R&D can tell at a glance whether this is a
+        // first submission or a revision of a report they previously returned.
+        const verb = isResubmission ? "resubmitted after revision" : "submitted";
+        const hint = isResubmission
+          ? "Please re-review the revisions."
+          : "Please review and verify.";
         // In-app notification
         await supabase.from("notifications").insert({
           user_id: rndAssignment.rnd_id,
-          message: `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Please review and verify.`,
+          message: `A ${quarterLabel} quarterly report has been ${verb} for "${projectTitle}". ${hint}`,
           is_read: false,
           link: "monitoring",
         });
@@ -168,9 +174,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
             await emailService.sendNotificationEmail(
               rndUser.email,
               rndUser.first_name || "R&D Staff",
-              `Quarterly Report Submitted – ${quarterLabel}`,
-              `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
-              "Review Report",
+              isResubmission
+                ? `Quarterly Report Resubmitted – ${quarterLabel}`
+                : `Quarterly Report Submitted – ${quarterLabel}`,
+              isResubmission
+                ? `A ${quarterLabel} quarterly report you previously returned for "${projectTitle}" has been resubmitted with revisions. Sign in to SPMAMS to re-review.`
+                : `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
+              isResubmission ? "Re-review Report" : "Review Report",
               `${frontendUrl}/login`,
             );
           }

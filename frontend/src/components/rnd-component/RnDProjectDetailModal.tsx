@@ -15,6 +15,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import {
   fetchProjectDetail,
   verifyReport,
+  rejectReport,
   fetchFundRequests,
   reviewFundRequest,
   fetchBudgetSummary,
@@ -22,6 +23,7 @@ import {
   buildDisplayReports,
   fetchTerminalReport,
   verifyTerminalReport,
+  rejectTerminalReport,
   fetchProjectExtensionRequests,
   reviewProjectExtension,
   fetchRealignments,
@@ -82,6 +84,19 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   // Collapse state for history
   const [showFundRequestHistory, setShowFundRequestHistory] = useState(false);
+
+  // Reject-report flow state. Inline textarea on the expanded report card — the reject
+  // button reveals a required-reason input next to the verify button, mirroring how fund
+  // request rejection works a few panels up. Separate per-report id so two cards don't
+  // share one note.
+  const [rejectingReportId, setRejectingReportId] = useState<string | null>(null);
+  const [reportRejectNote, setReportRejectNote] = useState('');
+  const [submittingReportReject, setSubmittingReportReject] = useState<string | null>(null);
+
+  // Terminal-report reject flow (only ever one per project so a single flag is enough).
+  const [rejectingTerminal, setRejectingTerminal] = useState(false);
+  const [terminalRejectNote, setTerminalRejectNote] = useState('');
+  const [submittingTerminalReject, setSubmittingTerminalReject] = useState(false);
 
   const loadDetails = async () => {
     if (!project?.backendId) return;
@@ -169,6 +184,46 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       Swal.fire('Error', 'Failed to verify report.', 'error');
     } finally {
       setVerifyingReportId(null);
+    }
+  };
+
+  const handleRejectReport = async (report: DisplayReport) => {
+    if (!report.backendReportId || !user) return;
+    if (!reportRejectNote.trim()) {
+      Swal.fire('Reason required', 'Please enter the reason for returning this report.', 'warning');
+      return;
+    }
+    setSubmittingReportReject(report.id);
+    try {
+      await rejectReport(report.backendReportId, reportRejectNote.trim());
+      Swal.fire('Returned to Proponent', 'The report has been returned with your note. The proponent will be notified.', 'success');
+      setReportRejectNote('');
+      setRejectingReportId(null);
+      await loadDetails();
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Failed to return the report.', 'error');
+    } finally {
+      setSubmittingReportReject(null);
+    }
+  };
+
+  const handleRejectTerminal = async () => {
+    if (!terminalReport || !user) return;
+    if (!terminalRejectNote.trim()) {
+      Swal.fire('Reason required', 'Please enter the reason for returning this terminal report.', 'warning');
+      return;
+    }
+    setSubmittingTerminalReject(true);
+    try {
+      const updated = await rejectTerminalReport(terminalReport.id, terminalRejectNote.trim());
+      setTerminalReport(updated);
+      Swal.fire('Returned to Proponent', 'The terminal report has been returned with your note.', 'success');
+      setTerminalRejectNote('');
+      setRejectingTerminal(false);
+    } catch (err: any) {
+      Swal.fire('Error', err?.response?.data?.message || 'Failed to return the terminal report.', 'error');
+    } finally {
+      setSubmittingTerminalReject(false);
     }
   };
 
@@ -468,6 +523,18 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 <span>Submitted by <span className="font-bold text-slate-700">{report.submittedBy}</span> on {report.dateSubmitted}</span>
               </div>
             )}
+            {/* Previously-returned context: shown on resubmitted reports (status Submitted
+                + non-null reviewNote). The note is the reason R&D gave last time so they
+                can check whether the proponent actually addressed it before verifying. */}
+            {report.status === 'Submitted' && report.reviewNote && (
+              <div className="flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-xl border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-amber-800">Previously returned — resubmitted with revisions</p>
+                  <p className="text-amber-700 italic mt-0.5">"{report.reviewNote}"</p>
+                </div>
+              </div>
+            )}
             <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
@@ -556,14 +623,56 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             )}
 
             {report.status === 'Submitted' && (
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => handleVerifyReport(report)}
-                  disabled={verifyingReportId === report.id}
-                  className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {verifyingReportId === report.id ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</> : <><CheckCircle className="w-5 h-5" /> Verify & Approve Report</>}
-                </button>
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                {/* Inline reject textarea — only visible after clicking Reject */}
+                {rejectingReportId === report.id && (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                      Reason for returning (required)
+                    </label>
+                    <textarea
+                      value={reportRejectNote}
+                      onChange={(e) => setReportRejectNote(e.target.value)}
+                      placeholder="Explain what needs revision (this message is sent to the proponent)"
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-20"
+                    />
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  {rejectingReportId !== report.id ? (
+                    <>
+                      <button
+                        onClick={() => handleVerifyReport(report)}
+                        disabled={verifyingReportId === report.id}
+                        className="flex-1 bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {verifyingReportId === report.id ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</> : <><CheckCircle className="w-5 h-5" /> Verify & Approve</>}
+                      </button>
+                      <button
+                        onClick={() => { setRejectingReportId(report.id); setReportRejectNote(''); }}
+                        className="flex-1 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                      >
+                        <AlertTriangle className="w-5 h-5" /> Return for Revision
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleRejectReport(report)}
+                        disabled={submittingReportReject === report.id || !reportRejectNote.trim()}
+                        className="flex-1 bg-red-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {submittingReportReject === report.id ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Return'}
+                      </button>
+                      <button
+                        onClick={() => { setRejectingReportId(null); setReportRejectNote(''); }}
+                        className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -812,8 +921,77 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                             {terminalReport.actual_start_date && <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>}
                             <p className="whitespace-pre-wrap text-xs bg-white/60 p-2 rounded-lg max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
                           </div>
+                          {/* Previously-returned context on a resubmitted terminal report. */}
+                          {terminalReport.status === 'submitted' && terminalReport.review_note && (
+                            <div className="mt-3 flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-lg border border-amber-200">
+                              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-amber-800">Previously returned — resubmitted with revisions</p>
+                                <p className="text-amber-700 italic mt-0.5">"{terminalReport.review_note}"</p>
+                              </div>
+                            </div>
+                          )}
                           {terminalReport.status === 'submitted' && (
-                            <button onClick={async () => { setVerifyingTerminal(true); try { const updated = await verifyTerminalReport(terminalReport.id); setTerminalReport(updated); Swal.fire('Verified', 'Success', 'success'); } catch { Swal.fire('Error', 'Failed', 'error'); } finally { setVerifyingTerminal(false); } }} disabled={verifyingTerminal} className="mt-4 w-full py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-all">{verifyingTerminal ? 'Verifying...' : 'Verify Terminal Report'}</button>
+                            <div className="mt-4 space-y-3">
+                              {rejectingTerminal && (
+                                <div>
+                                  <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
+                                    Reason for returning (required)
+                                  </label>
+                                  <textarea
+                                    value={terminalRejectNote}
+                                    onChange={(e) => setTerminalRejectNote(e.target.value)}
+                                    placeholder="Explain what needs revision (this message is sent to the proponent)"
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-red-500 outline-none resize-none h-20"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex gap-2">
+                                {!rejectingTerminal ? (
+                                  <>
+                                    <button
+                                      onClick={async () => { setVerifyingTerminal(true); try { const updated = await verifyTerminalReport(terminalReport.id); setTerminalReport(updated); Swal.fire('Verified', 'Success', 'success'); } catch { Swal.fire('Error', 'Failed', 'error'); } finally { setVerifyingTerminal(false); } }}
+                                      disabled={verifyingTerminal}
+                                      className="flex-1 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
+                                    >
+                                      {verifyingTerminal ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Verify Terminal Report</>}
+                                    </button>
+                                    <button
+                                      onClick={() => { setRejectingTerminal(true); setTerminalRejectNote(''); }}
+                                      className="flex-1 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all"
+                                    >
+                                      <AlertTriangle className="w-4 h-4" /> Return for Revision
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={handleRejectTerminal}
+                                      disabled={submittingTerminalReject || !terminalRejectNote.trim()}
+                                      className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-red-700 transition-all disabled:opacity-50"
+                                    >
+                                      {submittingTerminalReject ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Return'}
+                                    </button>
+                                    <button
+                                      onClick={() => { setRejectingTerminal(false); setTerminalRejectNote(''); }}
+                                      className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {terminalReport.status === 'rejected' && (
+                            <div className="mt-3 border border-red-200 bg-red-50 rounded-lg p-3 text-xs">
+                              <p className="font-bold text-red-800 mb-1 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Returned to proponent
+                              </p>
+                              {terminalReport.review_note && (
+                                <p className="text-red-700 italic">"{terminalReport.review_note}"</p>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}

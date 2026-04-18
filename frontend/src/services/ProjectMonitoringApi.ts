@@ -150,13 +150,17 @@ export interface ApiProjectReport {
   id: number;
   funded_project_id: number;
   quarterly_report: string;
-  status: "submitted" | "verified" | "overdue";
+  status: "submitted" | "verified" | "overdue" | "rejected";
   progress: number;
   comment: string | null;
   report_file_url: string[] | null;
   submitted_by_proponent_id: string;
   created_at: string;
   project_expenses: ApiProjectExpense[];
+  // Populated when R&D rejects with a reason; null until then.
+  review_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface ApiProjectExpense {
@@ -318,7 +322,7 @@ export interface DisplayReport {
   backendReportId: number | null; // null for placeholder reports
   quarter: string;
   dueDate: string;
-  status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue";
+  status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue" | "Rejected";
   progress: number;
   expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
   totalExpense: number;
@@ -326,6 +330,8 @@ export interface DisplayReport {
   proofs: string[];
   submittedBy?: string;
   dateSubmitted?: string;
+  // R&D's reason when status === 'Rejected'. Surfaced in the red banner on the proponent page.
+  reviewNote?: string | null;
 }
 
 export interface ProjectDetailData {
@@ -377,6 +383,7 @@ export function buildDisplayReports(
         submitted: "Submitted",
         verified: "Verified",
         overdue: "Overdue",
+        rejected: "Rejected",
       };
 
       const expenses = (apiReport.project_expenses || []).map((e) => ({
@@ -404,6 +411,7 @@ export function buildDisplayReports(
         dateSubmitted: apiReport.created_at
           ? formatDate(apiReport.created_at)
           : undefined,
+        reviewNote: apiReport.review_note ?? null,
       };
     }
 
@@ -534,6 +542,21 @@ export async function verifyReport(
   await api.post(
     "/project/verify-report",
     { report_id: reportId },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+}
+
+// R&D returns a quarterly report to the proponent with a required note. Triggers a
+// notification + email; the proponent then sees a red banner with the reason on their
+// monitoring page and can edit-and-resubmit via the normal report form.
+export async function rejectReport(
+  reportId: number,
+  reviewNote: string
+): Promise<void> {
+  await api.post(
+    "/project/reject-report",
+    { report_id: reportId, review_note: reviewNote },
     { withCredentials: true }
   );
   invalidateProjectCache();
@@ -803,11 +826,15 @@ export interface ApiTerminalReport {
   suggested_solutions: string | null;
   publications_list: string | null;
   report_file_url: string[] | null;
-  status: "submitted" | "verified";
+  status: "submitted" | "verified" | "rejected";
   submitted_by: string;
   verified_by: string | null;
   verified_at: string | null;
   created_at: string;
+  // Populated when R&D rejects with a reason; null until then.
+  review_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   updated_at: string | null;
   submitted_by_user: { id: string; first_name: string; last_name: string } | null;
   verified_by_user: { id: string; first_name: string; last_name: string } | null;
@@ -859,6 +886,21 @@ export async function verifyTerminalReport(
   const { data } = await api.post<{ data: ApiTerminalReport }>(
     "/project/verify-terminal-report",
     { terminal_report_id: terminalReportId },
+    { withCredentials: true }
+  );
+  invalidateProjectCache();
+  return data.data;
+}
+
+// R&D returns a terminal report to the proponent with a required note. Same pattern as
+// rejectReport — proponent sees banner + reason, can edit and resubmit.
+export async function rejectTerminalReport(
+  terminalReportId: number,
+  reviewNote: string
+): Promise<ApiTerminalReport> {
+  const { data } = await api.post<{ data: ApiTerminalReport }>(
+    "/project/reject-terminal-report",
+    { terminal_report_id: terminalReportId, review_note: reviewNote },
     { withCredentials: true }
   );
   invalidateProjectCache();

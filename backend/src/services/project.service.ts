@@ -361,15 +361,21 @@ export class ProjectService {
    * Submit a quarterly report for a funded project
    */
   async submitQuarterlyReport(input: SubmitReportInput) {
-    // Check if a report for this quarter already exists
+    // Look up any existing report for this quarter. Three cases to handle:
+    //   - no row → first submission, normal INSERT path below
+    //   - row with status='rejected' → resubmission after R&D returned it; UPDATE in place
+    //     (flip status back to 'submitted', clear review_note, replace expenses)
+    //   - row with any other status → genuine duplicate, reject
     const { data: existingReport } = await this.db
       .from("project_reports")
-      .select("id")
+      .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
       .eq("quarterly_report", input.quarterly_report)
-      .single();
+      .maybeSingle();
 
-    if (existingReport) {
+    const isResubmission = existingReport?.status === ReportStatus.REJECTED;
+
+    if (existingReport && !isResubmission) {
       return {
         data: null,
         error: {
@@ -420,20 +426,54 @@ export class ProjectService {
       }
     }
 
-    const { data, error } = await this.db
-      .from("project_reports")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        quarterly_report: input.quarterly_report,
-        progress: input.progress,
-        comment: input.comment || null,
-        report_file_url: input.report_file_url || null,
-        submitted_by_proponent_id: input.submitted_by_proponent_id,
-        status: ReportStatus.SUBMITTED,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // INSERT for a fresh submission; UPDATE for a resubmission after rejection. We flip
+    // status back to 'submitted' but KEEP review_note / reviewed_by / reviewed_at so the
+    // R&D modal can render a "previously returned on [date]: '[reason]'" pill as context
+    // when they re-review. The proponent-side red banner is gated on status==='rejected',
+    // so clearing status alone is enough to make it disappear on their side.
+    let data: any = null;
+    let error: any = null;
+    if (isResubmission && existingReport) {
+      const update = await this.db
+        .from("project_reports")
+        .update({
+          progress: input.progress,
+          comment: input.comment || null,
+          report_file_url: input.report_file_url || null,
+          submitted_by_proponent_id: input.submitted_by_proponent_id,
+          status: ReportStatus.SUBMITTED,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingReport.id)
+        .select()
+        .single();
+      data = update.data;
+      error = update.error;
+
+      // Wipe old expense rows — the proponent may have changed their liquidation mix when
+      // revising. Simpler than diffing, and project_expenses has no FKs downstream that would
+      // care about row ids.
+      if (!error && data) {
+        await this.db.from("project_expenses").delete().eq("project_reports_id", existingReport.id);
+      }
+    } else {
+      const insert = await this.db
+        .from("project_reports")
+        .insert({
+          funded_project_id: input.funded_project_id,
+          quarterly_report: input.quarterly_report,
+          progress: input.progress,
+          comment: input.comment || null,
+          report_file_url: input.report_file_url || null,
+          submitted_by_proponent_id: input.submitted_by_proponent_id,
+          status: ReportStatus.SUBMITTED,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      data = insert.data;
+      error = insert.error;
+    }
 
     if (!error && data) {
       // Fetch approved fund request items for this quarter
@@ -503,7 +543,7 @@ export class ProjectService {
 
       await logActivity(this.db, {
         user_id: input.submitted_by_proponent_id,
-        action: "quarterly_report_submitted",
+        action: isResubmission ? "quarterly_report_resubmitted" : "quarterly_report_submitted",
         category: "project",
         target_id: String(input.funded_project_id),
         target_type: "funded_project",
@@ -511,7 +551,7 @@ export class ProjectService {
       });
     }
 
-    return { data, error };
+    return { data, error, isResubmission };
   }
 
   /**
@@ -593,6 +633,112 @@ export class ProjectService {
     }
 
     return { data, error };
+  }
+
+  /**
+   * Reject a quarterly report with a required note. Mirrors verifyReport but flips the
+   * status to REJECTED instead of VERIFIED. The proponent's monitoring UI reads
+   * status='rejected' + review_note and shows a red banner + an edit-and-resubmit path.
+   *
+   * Same COI guard as verify — the R&D user reviewing the report must not be in the
+   * project's proponent/co-lead set.
+   */
+  async rejectReport(input: { report_id: number; reviewed_by: string; review_note: string }) {
+    const { data: report } = await this.db
+      .from("project_reports")
+      .select("funded_project_id")
+      .eq("id", input.report_id)
+      .single();
+
+    if (!report) {
+      return { data: null, error: { message: "Project report not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, report.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_reject_report",
+        category: "project",
+        target_id: String(input.report_id),
+        target_type: "report",
+        details: { funded_project_id: report.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_reports")
+      .update({
+        status: ReportStatus.REJECTED,
+        review_note: input.review_note,
+        reviewed_by: input.reviewed_by,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.report_id)
+      .eq("status", ReportStatus.SUBMITTED) // can only reject a still-submitted report
+      .select()
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Report not found or no longer in a submittable state." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.reviewed_by,
+      action: "quarterly_report_rejected",
+      category: "project",
+      target_id: String(input.report_id),
+      target_type: "report",
+      details: { funded_project_id: data.funded_project_id, review_note: input.review_note },
+    });
+
+    // Notify the proponent who submitted it (in-app + email). Fire-and-forget.
+    try {
+      if (data.submitted_by_proponent_id) {
+        const quarterLabel = String(data.quarterly_report || "Quarterly")
+          .replace("_report", "")
+          .toUpperCase();
+
+        await this.db.from("notifications").insert({
+          user_id: data.submitted_by_proponent_id,
+          message: `Your ${quarterLabel} report was returned for revision. Reason: ${input.review_note}`,
+          is_read: false,
+          link: "project-monitoring",
+        });
+
+        const { data: proponent } = await this.db
+          .from("users")
+          .select("email, first_name")
+          .eq("id", data.submitted_by_proponent_id)
+          .single();
+
+        if (proponent?.email && process.env.SMTP_USER) {
+          const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+          const emailService = new EmailService();
+          await emailService.sendNotificationEmail(
+            proponent.email,
+            proponent.first_name || "Proponent",
+            `${quarterLabel} Report Returned for Revision`,
+            `R&D returned your ${quarterLabel} report. Reason: ${input.review_note}. Sign in to SPMAMS to edit and resubmit.`,
+            "View Project Monitoring",
+            `${frontendUrl}/login`,
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error("Reject notification failed (non-blocking):", notifErr);
+    }
+
+    return { data, error: null };
   }
 
   /**
@@ -1873,16 +2019,51 @@ export class ProjectService {
         .limit(1)
         .maybeSingle();
 
-      if (!latest) {
-        return {
-          data: null,
-          error: new Error(
-            "No structured budget version exists for this proposal yet. The proponent must resubmit the budget after Phase 1 deploy.",
-          ),
-        };
-      }
+      if (latest) {
+        // A version exists but the funded_project wasn't pointing at it yet.
+        versionId = latest.id as number;
+      } else {
+        // Self-heal: no budget version exists for this proposal at all. This happens for
+        // projects that predate the Phase 1 LIB migration and had no legacy estimated_budget
+        // rows to seed from (the migration backfill only runs for proposals with legacy data).
+        // Before this branch existed, the UI crashed with a 404 + cascading 500 on every
+        // budget-summary lookup for such projects (e.g. funded_project 8).
+        //
+        // Creates an empty v1 (grand_total=0, no items). The proponent can then populate it
+        // normally via the realignment flow if the project is still active, or it just stays
+        // empty — either way the monitoring UI renders cleanly instead of breaking.
+        //
+        // Idempotent: UNIQUE(proposal_id, version_number) rejects racing inserts, so on a
+        // double-call the loser re-reads the winner's row.
+        const { data: newVersion, error: createError } = await this.db
+          .from("proposal_budget_versions")
+          .insert({
+            proposal_id: project.proposal_id,
+            version_number: 1,
+            grand_total: 0,
+          })
+          .select("id")
+          .maybeSingle();
 
-      versionId = latest.id as number;
+        if (createError || !newVersion) {
+          const { data: retryLatest } = await this.db
+            .from("proposal_budget_versions")
+            .select("id")
+            .eq("proposal_id", project.proposal_id)
+            .order("version_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!retryLatest) {
+            return {
+              data: null,
+              error: createError ?? new Error("Failed to self-heal budget version"),
+            };
+          }
+          versionId = retryLatest.id as number;
+        } else {
+          versionId = newVersion.id as number;
+        }
+      }
 
       await this.db
         .from("funded_projects")
@@ -2660,14 +2841,17 @@ export class ProjectService {
       };
     }
 
-    // Check no existing terminal report
+    // Same three-way check as quarterly report submit: no row → INSERT; rejected row →
+    // UPDATE in place as a resubmission; any other status → genuine duplicate, reject.
     const { data: existing } = await this.db
       .from("project_terminal_reports")
-      .select("id")
+      .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
-      .single();
+      .maybeSingle();
 
-    if (existing) {
+    const isResubmission = existing?.status === "rejected";
+
+    if (existing && !isResubmission) {
       return {
         data: null,
         error: {
@@ -2677,33 +2861,60 @@ export class ProjectService {
       };
     }
 
-    const { data, error } = await this.db
-      .from("project_terminal_reports")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        actual_start_date: input.actual_start_date || null,
-        actual_end_date: input.actual_end_date || null,
-        accomplishments: input.accomplishments,
-        outputs_publications: input.outputs_publications || null,
-        outputs_patents_ip: input.outputs_patents_ip || null,
-        outputs_products: input.outputs_products || null,
-        outputs_people: input.outputs_people || null,
-        outputs_partnerships: input.outputs_partnerships || null,
-        outputs_policy: input.outputs_policy || null,
-        problems_encountered: input.problems_encountered || null,
-        suggested_solutions: input.suggested_solutions || null,
-        publications_list: input.publications_list || null,
-        report_file_url: input.report_file_url || null,
-        status: "submitted",
-        submitted_by: input.submitted_by,
-      })
-      .select(
-        `
-        *,
-        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
-      `
-      )
-      .single();
+    const payload = {
+      funded_project_id: input.funded_project_id,
+      actual_start_date: input.actual_start_date || null,
+      actual_end_date: input.actual_end_date || null,
+      accomplishments: input.accomplishments,
+      outputs_publications: input.outputs_publications || null,
+      outputs_patents_ip: input.outputs_patents_ip || null,
+      outputs_products: input.outputs_products || null,
+      outputs_people: input.outputs_people || null,
+      outputs_partnerships: input.outputs_partnerships || null,
+      outputs_policy: input.outputs_policy || null,
+      problems_encountered: input.problems_encountered || null,
+      suggested_solutions: input.suggested_solutions || null,
+      publications_list: input.publications_list || null,
+      report_file_url: input.report_file_url || null,
+      status: "submitted" as const,
+      submitted_by: input.submitted_by,
+    };
+
+    let data: any = null;
+    let error: any = null;
+    if (isResubmission && existing) {
+      // Keep review_note / reviewed_by / reviewed_at on resubmit — R&D's modal surfaces them
+      // as "previously returned" context. Status alone gates the proponent's red banner.
+      const update = await this.db
+        .from("project_terminal_reports")
+        .update({
+          ...payload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select(
+          `
+          *,
+          submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+        `,
+        )
+        .single();
+      data = update.data;
+      error = update.error;
+    } else {
+      const insert = await this.db
+        .from("project_terminal_reports")
+        .insert(payload)
+        .select(
+          `
+          *,
+          submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+        `,
+        )
+        .single();
+      data = insert.data;
+      error = insert.error;
+    }
 
     if (error) {
       return { data: null, error };
@@ -2711,7 +2922,7 @@ export class ProjectService {
 
     await logActivity(this.db, {
       user_id: input.submitted_by,
-      action: "terminal_report_submitted",
+      action: isResubmission ? "terminal_report_resubmitted" : "terminal_report_submitted",
       category: "project",
       target_id: String(input.funded_project_id),
       target_type: "funded_project",
@@ -2735,14 +2946,16 @@ export class ProjectService {
       if (rndAssignment) {
         await this.db.from("notifications").insert({
           user_id: rndAssignment.rnd_id,
-          message: "A terminal report has been submitted and is awaiting your verification.",
+          message: isResubmission
+            ? "A terminal report you previously returned has been resubmitted with revisions. Please re-review."
+            : "A terminal report has been submitted and is awaiting your verification.",
           is_read: false,
           link: "project-monitoring",
         });
       }
     }
 
-    return { data, error: null };
+    return { data, error: null, isResubmission };
   }
 
   async verifyTerminalReport(input: VerifyTerminalReportInput) {
@@ -2833,6 +3046,108 @@ export class ProjectService {
           proponent.first_name || "Proponent",
           "Terminal Report Verified",
           "Your terminal report has been verified and approved. A completion certificate can now be issued for your project. Sign in to SPMAMS for details.",
+          "View Project Monitoring",
+          `${frontendUrl}/login`,
+        );
+      }
+    } catch (emailErr) {
+      console.error("Email notification failed (non-blocking):", emailErr);
+    }
+
+    return { data, error: null };
+  }
+
+  /**
+   * Reject a terminal report with a required note. Same pattern as rejectReport for
+   * quarterly reports. Flips status 'submitted' → 'rejected' + persists review_note /
+   * reviewed_by / reviewed_at so the proponent monitoring UI can render the reason.
+   */
+  async rejectTerminalReport(input: { terminal_report_id: number; reviewed_by: string; review_note: string }) {
+    const { data: terminalReport } = await this.db
+      .from("project_terminal_reports")
+      .select("funded_project_id")
+      .eq("id", input.terminal_report_id)
+      .single();
+
+    if (!terminalReport) {
+      return { data: null, error: { message: "Terminal report not found." } };
+    }
+
+    const coi = await this.assertNoCoiOnProject(input.reviewed_by, terminalReport.funded_project_id);
+    if (coi) {
+      await logActivity(this.db, {
+        user_id: input.reviewed_by,
+        action: "coi_block_reject_terminal_report",
+        category: "project",
+        target_id: String(input.terminal_report_id),
+        target_type: "funded_project",
+        details: { funded_project_id: terminalReport.funded_project_id },
+      });
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data, error } = await this.db
+      .from("project_terminal_reports")
+      .update({
+        status: "rejected",
+        review_note: input.review_note,
+        reviewed_by: input.reviewed_by,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.terminal_report_id)
+      .eq("status", "submitted")
+      .select(
+        `
+        *,
+        submitted_by_user:users!project_terminal_reports_submitted_by_fkey (id, first_name, last_name)
+      `,
+      )
+      .single();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!data) {
+      return {
+        data: null,
+        error: { message: "Terminal report not found or no longer in a submittable state." },
+      };
+    }
+
+    await logActivity(this.db, {
+      user_id: input.reviewed_by,
+      action: "terminal_report_rejected",
+      category: "project",
+      target_id: String(input.terminal_report_id),
+      target_type: "funded_project",
+      details: { funded_project_id: terminalReport.funded_project_id, review_note: input.review_note },
+    });
+
+    // Notify the proponent (in-app + email, same pattern as verify)
+    await this.db.from("notifications").insert({
+      user_id: data.submitted_by,
+      message: `Your terminal report was returned for revision. Reason: ${input.review_note}`,
+      is_read: false,
+      link: "project-monitoring",
+    });
+
+    try {
+      const { data: proponent } = await this.db
+        .from("users")
+        .select("email, first_name")
+        .eq("id", data.submitted_by)
+        .single();
+
+      if (proponent?.email && process.env.SMTP_USER) {
+        const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
+        const emailService = new EmailService();
+        await emailService.sendNotificationEmail(
+          proponent.email,
+          proponent.first_name || "Proponent",
+          "Terminal Report Returned for Revision",
+          `R&D returned your terminal report. Reason: ${input.review_note}. Sign in to SPMAMS to edit and resubmit.`,
           "View Project Monitoring",
           `${frontendUrl}/login`,
         );
