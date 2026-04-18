@@ -461,10 +461,11 @@ export function invalidateProjectCache(): void {
 export async function fetchFundedProjects(
   role?: string
 ): Promise<ApiFundedProject[]> {
-  const cacheKey = `funded:${role || "all"}`;
-  const cached = getCached<ApiFundedProject[]>(cacheKey);
-  if (cached) return cached;
-
+  // Intentionally NOT cached. The module-level `projectCache` is keyed by role only
+  // ("funded:proponent") with no user scope, so if User A views as proponent then logs
+  // out and User B logs in within the 30s TTL, User B would briefly see User A's list.
+  // The backend is the real authority on what each user can see — skip the cache here
+  // and always refetch.
   const params: Record<string, string> = {};
   if (role) params.role = role;
 
@@ -472,7 +473,6 @@ export async function fetchFundedProjects(
     "/project/funded",
     { params, withCredentials: true }
   );
-  setCache(cacheKey, data.data);
   return data.data;
 }
 

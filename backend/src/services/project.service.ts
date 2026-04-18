@@ -75,24 +75,35 @@ export class ProjectService {
       query = query.eq("status", input.status);
     }
 
-    // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member
+    // Filter by proponent (user_id) - Check if they are Project Lead OR Co-Lead Member.
+    // We resolve both sets into a single list of allowed project IDs and apply a plain
+    // .in() filter instead of .or(project_lead_id.eq.UUID,id.in.(...)). The nested .in()
+    // inside .or() is a known PostgREST foot-gun — the inner commas can get swallowed by
+    // the outer or-list parser and produce an over-broad filter that leaks projects the
+    // user was never invited to. The two-step resolve is slightly chattier but always
+    // correct, and empty ID sets short-circuit to [] instead of falling through to an
+    // unfiltered query.
     if (input.role === "proponent" && input.user_id) {
-      // 1. Get projects where user is the lead
-      // 2. Get projects where user is an active member
-      const { data: memberships } = await this.db
-        .from("project_members")
-        .select("funded_project_id")
-        .eq("user_id", input.user_id)
-        .eq("status", ProjectMemberStatus.ACTIVE);
+      const [{ data: leadRows }, { data: memberships }] = await Promise.all([
+        this.db
+          .from("funded_projects")
+          .select("id")
+          .eq("project_lead_id", input.user_id),
+        this.db
+          .from("project_members")
+          .select("funded_project_id")
+          .eq("user_id", input.user_id)
+          .eq("status", ProjectMemberStatus.ACTIVE),
+      ]);
 
-      const projectMemberIds = memberships?.map((m) => m.funded_project_id) || [];
+      const allowedIds = new Set<number>();
+      leadRows?.forEach((p: any) => allowedIds.add(p.id));
+      memberships?.forEach((m: any) => allowedIds.add(m.funded_project_id));
 
-      // Combine: where (project_lead_id == user_id) OR (id IN projectMemberIds)
-      if (projectMemberIds.length > 0) {
-        query = query.or(`project_lead_id.eq.${input.user_id},id.in.(${projectMemberIds.join(",")})`);
-      } else {
-        query = query.eq("project_lead_id", input.user_id);
+      if (allowedIds.size === 0) {
+        return { data: [], error: null };
       }
+      query = query.in("id", Array.from(allowedIds));
     }
 
     // Filter for RND: only show projects assigned to this RND user via proposal_rnd
