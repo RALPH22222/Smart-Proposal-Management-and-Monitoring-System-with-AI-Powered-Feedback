@@ -169,12 +169,12 @@ export class ProposalLambdas extends NestedStack {
     });
     proposalBucket.grantPut(this.getUploadUrl);
 
-    // Special: AI analysis with local SentenceTransformer (WASM via onnxruntime-web).
-    // We strip onnxruntime-node (211MB native binaries) and sharp (21MB), then replace
-    // onnxruntime-node with a tiny shim that re-exports onnxruntime-web (WASM).
-    // transformers.node.mjs has a static `import ... from "onnxruntime-node"` that MUST
-    // resolve — just deleting the package causes ERR_MODULE_NOT_FOUND at load time.
-    // Final package: ~165MB (under 250MB Lambda limit).
+    // Thin proxy Lambda: forwards uploaded proposals to the external AI VPS
+    // (see ai-analyzer.service.ts — all ML now lives outside Lambda). The old
+    // in-Lambda SentenceTransformer setup was removed in commit 4383f22 "remove
+    // the ai in the aws"; this definition shed its heavy bundling config at the
+    // same time. Keep memory + timeout generous because the VPS call can take a
+    // while for large PDFs.
     this.analyzeProposal = new NodejsFunction(this, "analyze-proposal", {
       ...defaults,
       functionName: "pms-analyze-proposal",
@@ -183,41 +183,6 @@ export class ProposalLambdas extends NestedStack {
       entry: path.resolve("src", "handlers", "proposal", "analyze-proposal.ts"),
       role: sharedRole,
       environment: sharedEnv,
-      bundling: {
-        nodeModules: ["@huggingface/transformers"],
-        commandHooks: {
-          beforeBundling(_inputDir: string, _outputDir: string): string[] {
-            return [];
-          },
-          beforeInstall(_inputDir: string, _outputDir: string): string[] {
-            return [];
-          },
-            afterBundling(inputDir: string, outputDir: string): string[] {
-            if (process.platform === "win32") {
-              return [
-                `xcopy "${inputDir}\\src\\ai-models" "${outputDir}\\ai-models" /E /I /Y`,
-                // Replace onnxruntime-node with shim → onnxruntime-web (WASM)
-                `if exist "${outputDir}\\node_modules\\onnxruntime-node" rmdir /S /Q "${outputDir}\\node_modules\\onnxruntime-node"`,
-                `xcopy "${inputDir}\\src\\onnxruntime-shim" "${outputDir}\\node_modules\\onnxruntime-node" /E /I /Y`,
-                // Replace sharp with no-op shim (not used — text/NLP only)
-                `if exist "${outputDir}\\node_modules\\sharp" rmdir /S /Q "${outputDir}\\node_modules\\sharp"`,
-                `xcopy "${inputDir}\\src\\sharp-shim" "${outputDir}\\node_modules\\sharp" /E /I /Y`,
-                `if exist "${outputDir}\\node_modules\\@img" rmdir /S /Q "${outputDir}\\node_modules\\@img"`,
-              ];
-            }
-            return [
-              `cp -r ${inputDir}/src/ai-models ${outputDir}/ai-models`,
-              // Replace onnxruntime-node with shim → onnxruntime-web (WASM)
-              `rm -rf ${outputDir}/node_modules/onnxruntime-node || true`,
-              `cp -r ${inputDir}/src/onnxruntime-shim ${outputDir}/node_modules/onnxruntime-node`,
-              // Replace sharp with no-op shim (not used — text/NLP only)
-              `rm -rf ${outputDir}/node_modules/sharp || true`,
-              `cp -r ${inputDir}/src/sharp-shim ${outputDir}/node_modules/sharp`,
-              `rm -rf ${outputDir}/node_modules/@img || true`,
-            ];
-          },
-        },
-      },
     });
 
     // Special: needs Gemini API key
