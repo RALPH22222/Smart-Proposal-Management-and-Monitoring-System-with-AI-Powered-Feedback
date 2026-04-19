@@ -73,25 +73,17 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
         icon: FileText,
         label: "Total Proposals",
         value: stats.proposals.total,
-        color: "text-purple-500",
-        bgColor: "bg-purple-50",
-        borderColor: "border-purple-200",
+        color: "text-slate-500",
+        bgColor: "bg-slate-50",
+        borderColor: "border-slate-300",
       },
       {
         icon: BarChart3,
         label: "Total Monitoring Projects",
         value: stats.projects.total,
-        color: "text-blue-500",
-        bgColor: "bg-blue-50",
-        borderColor: "border-blue-200",
-      },
-      {
-        icon: XCircle,
-        label: "Rejected Proposals",
-        value: stats.proposals.rejected_rnd + stats.proposals.rejected_funding,
-        color: "text-red-500",
-        bgColor: "bg-red-50",
-        borderColor: "border-red-200",
+        color: "text-rose-500",
+        bgColor: "bg-rose-50",
+        borderColor: "border-rose-200",
       },
     ]
     : [];
@@ -109,16 +101,6 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
 
   const totalPipeline = pipelineData.reduce((s, r) => s + r.count, 0);
 
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return "just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
 
   if (loading) {
     return <PageLoader mode="admin-dashboard" />;
@@ -137,7 +119,7 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
     { role: "Proponents", count: stats.users.by_role.proponent, color: "#ef4444" },
     { role: "Evaluators", count: stats.users.by_role.evaluator, color: "#8b5cf6" },
     { role: "R&D Staff", count: stats.users.by_role.rnd, color: "#3a82efff" },
-    { role: "Admins", count: stats.users.by_role.admin, color: "#921616ff" },
+    { role: "Admins", count: stats.users.by_role.admin, color: "#151414ff" },
   ];
   const totalRoles = roles.reduce((s, r) => s + r.count, 0) || 1;
 
@@ -169,7 +151,7 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
         {/* ── Top KPI Cards ── */}
         <section aria-labelledby="stats-heading">
           <h2 id="stats-heading" className="sr-only">System Statistics</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
             {topCards.map((stat, index) => {
               const IconComponent = stat.icon;
               return (
@@ -197,6 +179,63 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
           </div>
         </section>
       </header>
+
+      {/* ── KPI Performance Metrics ── */}
+      {stats.kpi && (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+          {[
+            {
+              label: "Proposal Success Rate",
+              value: `${stats.kpi.proposal_success_rate}%`,
+              description: "Funded / Total submitted",
+              color: stats.kpi.proposal_success_rate >= 50 ? "text-emerald-600" : stats.kpi.proposal_success_rate >= 25 ? "text-amber-600" : "text-red-500",
+              bgColor: stats.kpi.proposal_success_rate >= 50 ? "bg-emerald-50 border-emerald-200" : stats.kpi.proposal_success_rate >= 25 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
+              icon: CheckCircle2,
+            },
+            {
+              label: "Evaluation Completion",
+              value: `${stats.kpi.evaluation_completion_rate}%`,
+              description: "Evaluators who completed review",
+              color: stats.kpi.evaluation_completion_rate >= 70 ? "text-purple-600" : stats.kpi.evaluation_completion_rate >= 40 ? "text-amber-600" : "text-red-500",
+              bgColor: stats.kpi.evaluation_completion_rate >= 70 ? "bg-purple-50 border-purple-200" : stats.kpi.evaluation_completion_rate >= 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
+              icon: Users,
+            },
+            {
+              label: "Fund Utilization",
+              value: `${stats.kpi.fund_utilization_rate}%`,
+              description: "Approved / Total requested",
+              color: stats.kpi.fund_utilization_rate >= 60 ? "text-emerald-600" : "text-amber-600",
+              bgColor: stats.kpi.fund_utilization_rate >= 60 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200",
+              icon: BarChart3,
+            },
+            {
+              label: "Avg. Review Time",
+              value: stats.kpi.avg_turnaround_days.rnd_review
+                ? `${stats.kpi.avg_turnaround_days.rnd_review}d`
+                : "N/A",
+              description: "R&D review duration",
+              color: "text-blue-600",
+              bgColor: "bg-blue-50 border-blue-200",
+              icon: Clock3,
+            },
+          ].map((metric, index) => {
+            const IconComp = metric.icon;
+            return (
+              <div
+                key={index}
+                className={`${metric.bgColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <IconComp className={`${metric.color} w-5 h-5 group-hover:scale-110 transition-transform duration-300`} />
+                </div>
+                <p className="text-2xl font-bold text-slate-800 tabular-nums">{metric.value}</p>
+                <h3 className="text-xs font-semibold text-slate-700 mt-1">{metric.label}</h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">{metric.description}</p>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
       {/* ── Daily Submissions Chart ── */}
       {stats && stats.proposals.daily_submissions && stats.proposals.daily_submissions.length > 0 && (
@@ -289,7 +328,6 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
 
       {/* ── Main Content: Pipeline Chart + System Status ── */}
       <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-
         {/* ── Proposal Pipeline Breakdown — Horizontal Bar Chart ── */}
         <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 min-w-0 flex flex-col h-fit">
           {/* Header */}
@@ -358,10 +396,7 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
             </div>
           </div>
 
-          {/* Funded Projects mini summary — shows only statuses actually
-              written by the system (on_going / blocked) plus two
-              actionable counts. on_hold and completed are defined in the
-              enum but no code path sets them, so they were perma-zero. */}
+          {/* Funded Projects mini summary */}
           <div className="px-4 sm:px-5 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-t border-slate-200">
             <p className="text-[10px] font-bold text-slate-400 tracking-widest mb-2">Funded Projects</p>
             <div className="grid grid-cols-4 gap-2">
@@ -382,7 +417,6 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
 
         {/* ── System Status (Improved) ── */}
         <div className="w-full lg:w-80 xl:w-[360px] flex flex-col gap-4">
-
           {/* User Health Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center gap-3">
@@ -471,93 +505,12 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
               ))}
             </div>
           </div>
-
-          {/* Recent Activity */}
-          {stats.activity.recent.length > 0 && (
-            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1">
-              <div className="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-2">
-                <Clock3 className="w-4 h-4 text-[#C8102E]" />
-                <h3 className="text-sm font-bold text-slate-800">Recent Activity</h3>
-              </div>
-              <div className="p-4 space-y-2 max-h-[240px] overflow-y-auto custom-scrollbar">
-                {stats.activity.recent.map((log) => (
-                  <div key={log.id} className="flex items-start gap-3 p-2.5 bg-slate-50 hover:bg-slate-100 transition-colors rounded-xl">
-                    <div className="w-7 h-7 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Activity className="w-3 h-3 text-slate-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-700 leading-tight">
-                        <span className="font-semibold text-slate-800">{log.user_name}</span>{" "}
-                        {log.action}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{formatTimeAgo(log.created_at)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
       {/* ── KPI Performance Metrics ── */}
       {stats.kpi && (
         <>
-          {/* Performance Cards */}
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-            {[
-              {
-                label: "Proposal Success Rate",
-                value: `${stats.kpi.proposal_success_rate}%`,
-                description: "Funded / Total submitted",
-                color: stats.kpi.proposal_success_rate >= 50 ? "text-emerald-600" : stats.kpi.proposal_success_rate >= 25 ? "text-amber-600" : "text-red-500",
-                bgColor: stats.kpi.proposal_success_rate >= 50 ? "bg-emerald-50 border-emerald-200" : stats.kpi.proposal_success_rate >= 25 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
-                icon: CheckCircle2,
-              },
-              {
-                label: "Evaluation Completion",
-                value: `${stats.kpi.evaluation_completion_rate}%`,
-                description: "Evaluators who completed review",
-                color: stats.kpi.evaluation_completion_rate >= 70 ? "text-emerald-600" : stats.kpi.evaluation_completion_rate >= 40 ? "text-amber-600" : "text-red-500",
-                bgColor: stats.kpi.evaluation_completion_rate >= 70 ? "bg-emerald-50 border-emerald-200" : stats.kpi.evaluation_completion_rate >= 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
-                icon: Users,
-              },
-              {
-                label: "Fund Utilization",
-                value: `${stats.kpi.fund_utilization_rate}%`,
-                description: "Approved / Total requested",
-                color: stats.kpi.fund_utilization_rate >= 60 ? "text-emerald-600" : "text-amber-600",
-                bgColor: stats.kpi.fund_utilization_rate >= 60 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200",
-                icon: BarChart3,
-              },
-              {
-                label: "Avg. Review Time",
-                value: stats.kpi.avg_turnaround_days.rnd_review
-                  ? `${stats.kpi.avg_turnaround_days.rnd_review}d`
-                  : "N/A",
-                description: "R&D review duration",
-                color: "text-blue-600",
-                bgColor: "bg-blue-50 border-blue-200",
-                icon: Clock3,
-              },
-            ].map((metric, index) => {
-              const IconComp = metric.icon;
-              return (
-                <div
-                  key={index}
-                  className={`${metric.bgColor} border-2 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <IconComp className={`${metric.color} w-5 h-5`} />
-                  </div>
-                  <p className="text-2xl font-bold text-slate-800 tabular-nums">{metric.value}</p>
-                  <h3 className="text-xs font-semibold text-slate-700 mt-1">{metric.label}</h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{metric.description}</p>
-                </div>
-              );
-            })}
-          </section>
-
           {/* Turnaround Time Breakdown + Monthly Trends */}
           <section className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Average Processing Time per Stage */}

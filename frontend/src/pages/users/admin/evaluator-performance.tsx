@@ -89,11 +89,11 @@ export default function EvaluatorPerformancePage() {
     const q = search.trim().toLowerCase();
     const base = q
       ? rows.filter(
-          (r) =>
-            r.name.toLowerCase().includes(q) ||
-            r.email.toLowerCase().includes(q) ||
-            r.department.toLowerCase().includes(q),
-        )
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          r.department.toLowerCase().includes(q),
+      )
       : rows;
     const sorted = [...base].sort((a, b) => compareValues(a[sortKey], b[sortKey], sortDir));
     return sorted;
@@ -122,7 +122,6 @@ export default function EvaluatorPerformancePage() {
     <div className="min-h-screen w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in flex flex-col gap-4 lg:gap-6">
       <header>
         <h1 className="text-2xl font-bold text-[#C8102E] flex items-center gap-2">
-          <Gauge className="w-6 h-6" />
           Evaluator Performance
         </h1>
         <p className="text-sm text-gray-600 mt-1 lg:text-base">
@@ -134,28 +133,28 @@ export default function EvaluatorPerformancePage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-4">
         <div className="p-4 rounded-xl border border-slate-200 bg-white">
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-blue-500" />
+            <Users className="w-4 h-4 text-gray-600" />
             <span className="text-xs font-medium text-gray-600">Evaluators</span>
           </div>
           <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.evaluators}</p>
         </div>
         <div className="p-4 rounded-xl border border-slate-200 bg-white">
           <div className="flex items-center gap-2 mb-1">
-            <Activity className="w-4 h-4 text-emerald-500" />
+            <Activity className="w-4 h-4 text-gray-600" />
             <span className="text-xs font-medium text-gray-600">Active Assignments</span>
           </div>
           <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.active}</p>
         </div>
         <div className="p-4 rounded-xl border border-slate-200 bg-white">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
+            <AlertTriangle className="w-4 h-4 text-gray-600" />
             <span className="text-xs font-medium text-gray-600">Overdue (Active)</span>
           </div>
-          <p className="text-xl font-bold text-rose-600 tabular-nums">{totals.overdue}</p>
+          <p className="text-xl font-bold text-gray-900 tabular-nums">{totals.overdue}</p>
         </div>
         <div className="p-4 rounded-xl border border-slate-200 bg-white">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            <TrendingUp className="w-4 h-4 text-gray-600" />
             <span className="text-xs font-medium text-gray-600">Avg Acceptance %</span>
           </div>
           <p className="text-xl font-bold text-gray-900 tabular-nums">
@@ -279,8 +278,8 @@ export default function EvaluatorPerformancePage() {
                           row.acceptance_rate >= 80
                             ? 'text-emerald-700 font-semibold'
                             : row.acceptance_rate >= 50
-                            ? 'text-amber-600 font-semibold'
-                            : 'text-rose-600 font-semibold'
+                              ? 'text-amber-600 font-semibold'
+                              : 'text-rose-600 font-semibold'
                         }>
                           {row.acceptance_rate}%
                         </span>
@@ -315,16 +314,14 @@ interface SortHeaderProps {
 function SortHeader({ label, active, indicator, onClick, align = 'left' }: SortHeaderProps) {
   return (
     <th
-      className={`text-xs font-semibold uppercase tracking-wider px-5 py-3 select-none ${
-        align === 'right' ? 'text-right' : 'text-left'
-      } ${active ? 'text-[#C8102E]' : 'text-gray-500'}`}
+      className={`text-xs font-semibold uppercase tracking-wider px-5 py-3 select-none ${align === 'right' ? 'text-right' : 'text-left'
+        } ${active ? 'text-[#C8102E]' : 'text-gray-500'}`}
     >
       <button
         type="button"
         onClick={onClick}
-        className={`inline-flex items-center gap-1.5 hover:text-[#C8102E] transition-colors ${
-          align === 'right' ? 'justify-end ml-auto' : ''
-        }`}
+        className={`inline-flex items-center gap-1.5 hover:text-[#C8102E] transition-colors ${align === 'right' ? 'justify-end ml-auto' : ''
+          }`}
       >
         {label}
         {indicator}

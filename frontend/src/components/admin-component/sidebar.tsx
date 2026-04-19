@@ -41,12 +41,12 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
   const mainLinks = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "activity", label: "Activity Logs", icon: ScrollText },
+    { id: "evaluator-performance", label: "Evaluator Performance", icon: Gauge },
     { id: "accounts", label: "Accounts", icon: CircleUser },
     { id: "contents", label: "Contents", icon: File },
     { id: "lookups", label: "Lookups", icon: Database },
     { id: "proposals", label: "Proposals", icon: FileText },
     { id: "evaluators", label: "Evaluators", icon: Users },
-    { id: "evaluator-performance", label: "Evaluator Performance", icon: Gauge },
     { id: "endorsements", label: "Endorsements", icon: Gavel },
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },

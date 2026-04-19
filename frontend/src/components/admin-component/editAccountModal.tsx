@@ -1,36 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, Edit2, CalendarFold } from "lucide-react";
+import { X, UserRoundPen, CalendarFold, ShieldCheck, Microscope, Users, FlaskConical } from "lucide-react";
+import Swal from "sweetalert2";
 import type { User } from "../../types/admin";
 import { formatDate, formatTime } from "../../utils/date-formatter";
+import type { LookupItem } from "../../services/proposal.api";
 
 const ROLE_OPTIONS = [
-  { label: "Admin", value: "admin" },
-  { label: "Evaluator", value: "evaluator" },
-  { label: "R&D Staff", value: "rnd" },
-  { label: "Proponent", value: "proponent" },
+  { label: "Admin", value: "admin", icon: ShieldCheck },
+  { label: "Evaluator", value: "evaluator", icon: Users },
+  { label: "R&D Staff", value: "rnd", icon: Microscope },
+  { label: "Proponent", value: "proponent", icon: FlaskConical },
 ];
 
 interface EditAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User | null;
+  departments: LookupItem[];
   onSubmit: (_data: {
     user_id: string;
     first_name: string;
     middle_ini: string;
     last_name: string;
     roles: string[];
+    department_id: string;
   }) => void;
   isSubmitting?: boolean;
 }
 
-const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, user, onSubmit, isSubmitting }) => {
+const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, user, departments, onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
     first_name: "",
     middle_ini: "",
     last_name: "",
-    role: "proponent",
+    roles: [] as string[],
+    department_id: "",
   });
 
   useEffect(() => {
@@ -39,7 +44,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
         first_name: user.first_name || "",
         middle_ini: user.middle_ini || "",
         last_name: user.last_name || "",
-        role: user.roles?.[0] || "proponent",
+        roles: user.roles || ["proponent"],
+        department_id: String(user.department_id || ""),
       });
     }
   }, [user]);
@@ -51,15 +57,43 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      user_id: user.id,
-      first_name: formData.first_name,
-      middle_ini: formData.middle_ini,
-      last_name: formData.last_name,
-      roles: [formData.role],
+  const handleRoleToggle = (roleValue: string) => {
+    setFormData(prev => {
+      const newRoles = prev.roles.includes(roleValue)
+        ? prev.roles.filter(r => r !== roleValue)
+        : [...prev.roles, roleValue];
+      return { ...prev, roles: newRoles };
     });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (formData.roles.length === 0) {
+      Swal.fire("Warning", "Please select at least one role.", "warning");
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: "Confirm Changes",
+      text: "Are you sure you want to update this user account?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#C8102E",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, update it!"
+    });
+
+    if (result.isConfirmed) {
+      onSubmit({
+        user_id: user.id,
+        first_name: formData.first_name,
+        middle_ini: formData.middle_ini,
+        last_name: formData.last_name,
+        roles: formData.roles,
+        department_id: formData.department_id,
+      });
+    }
   };
 
   return createPortal(
@@ -69,12 +103,12 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex-shrink-0 flex justify-between items-start bg-slate-50/50">
           <div>
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Edit2 className="w-6 h-6 text-[#C8102E]" />
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1">
+              <UserRoundPen className="w-5 h-5 text-[#C8102E]" />
               Edit User Account
             </h3>
             {user.created_at && (
-              <p className="text-sm text-slate-500 mt-1 font-medium flex items-center gap-1">
+              <p className="text-sm text-slate-500 mt-2 font-medium flex items-center gap-1">
                 <CalendarFold className="w-3.5 h-3.5" />
                 Account Created:{" "}
                 <span className="text-red-700">{formatDate(user.created_at)}</span>
@@ -102,7 +136,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
                 value={formData.first_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
               />
             </div>
             <div>
@@ -112,7 +146,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
                 name="middle_ini"
                 value={formData.middle_ini}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
               />
             </div>
             <div className="md:col-span-2">
@@ -123,7 +157,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
                 value={formData.last_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
               />
             </div>
             <div className="md:col-span-2">
@@ -132,20 +166,55 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
                 type="email"
                 value={user.email}
                 disabled
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed shadow-sm"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-1">Role <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Department <span className="text-red-500">*</span></label>
               <select
-                name="role"
-                value={formData.role}
+                name="department_id"
+                value={formData.department_id}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent shadow-sm bg-white"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white"
               >
-                {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                <option value="">Select Department</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
               </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-700 mb-2">Roles <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {ROLE_OPTIONS.map(role => {
+                  const isActive = formData.roles.includes(role.value);
+                  const Icon = role.icon;
+                  return (
+                    <button
+                      key={role.value}
+                      type="button"
+                      onClick={() => handleRoleToggle(role.value)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-2 group ${
+                        isActive 
+                          ? 'border-[#C8102E] bg-red-50 text-[#C8102E]' 
+                          : 'border-slate-100 bg-white text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-[#C8102E]' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      <span className="text-xs font-bold">{role.label}</span>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        isActive ? 'bg-[#C8102E] border-[#C8102E]' : 'border-slate-300'
+                      }`}>
+                        {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-slate-500 italic">
+                * Select one or more roles. This will add or update the user's access across the platform.
+              </p>
             </div>
           </div>
         </form>
@@ -163,9 +232,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
             type="submit"
             form="edit-account-form"
             disabled={isSubmitting}
-            className="px-6 py-2.5 text-sm font-bold text-white bg-[#C8102E] hover:bg-[#A00D26] rounded-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
+            className="px-6 py-2.5 text-sm font-bold text-white bg-[#C8102E] hover:bg-[#A00D26] rounded-lg transition-all flex items-center gap-2"
           >
-            <Edit2 className="w-4 h-4" />
+            <UserRoundPen className="w-4 h-4" />
             {isSubmitting ? "Updating..." : "Update Account"}
           </button>
         </div>

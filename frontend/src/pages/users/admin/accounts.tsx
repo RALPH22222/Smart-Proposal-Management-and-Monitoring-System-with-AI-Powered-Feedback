@@ -1,8 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Swal from "sweetalert2";
-// import { useLoading } from "../../../contexts/LoadingContext";
-import { Mail, Edit2, Power, Search, ChevronUp, ChevronDown, ShieldCheck, GraduationCap, LayoutGrid, Microscope, Users } from "lucide-react";
-
+import { Mail, UserRoundPen, Power, Search, ChevronUp, ChevronDown, ShieldCheck, FlaskConical, LayoutGrid, Microscope, Users } from "lucide-react";
 import type { User } from "../../../types/admin";
 import { AccountApi, type ReassignmentPayload } from "../../../services/admin/AccountApi";
 import AddAccountModal from "../../../components/admin-component/addAccountModal";
@@ -10,12 +8,67 @@ import EditAccountModal from "../../../components/admin-component/editAccountMod
 import DisableAccountModal from "../../../components/admin-component/disableAccountModal";
 import PageLoader from "../../../components/shared/PageLoader";
 import SecureImage from "../../../components/shared/SecureImage";
+import { fetchDepartments, type LookupItem } from "../../../services/proposal.api";
 
 const ROLE_DISPLAY: Record<string, string> = {
   admin: "Admin",
   evaluator: "Evaluator",
   rnd: "R&D Staff",
   proponent: "Proponent",
+};
+
+const ScrollKeyframes = () => (
+  <style>{`
+    @keyframes text-marquee-bounce {
+      0%, 15% { transform: translateX(0); }
+      85%, 100% { transform: translateX(var(--scroll-amount)); }
+    }
+    .animate-text-marquee {
+      animation: text-marquee-bounce 8s alternate infinite ease-in-out;
+    }
+  `}</style>
+);
+
+const ScrollingBannerText: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [scrollAmount, setScrollAmount] = useState(0);
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        if (textWidth > containerWidth) {
+          setShouldAnimate(true);
+          setScrollAmount(textWidth - containerWidth + 10);
+        } else {
+          setShouldAnimate(false);
+          setScrollAmount(0);
+        }
+      }
+    };
+    checkOverflow();
+    const timer = setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => {
+      window.removeEventListener('resize', checkOverflow);
+      clearTimeout(timer);
+    };
+  }, [children]);
+
+  return (
+    <div ref={containerRef} className={`overflow-hidden flex-1 ${className}`}>
+      <div
+        ref={textRef}
+        className={`whitespace-nowrap inline-block ${shouldAnimate ? 'animate-text-marquee' : ''}`}
+        style={shouldAnimate ? { ['--scroll-amount' as any]: `-${scrollAmount}px` } : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
 };
 
 const Accounts: React.FC = () => {
@@ -33,6 +86,9 @@ const Accounts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [roleFilter, setRoleFilter] = useState<string>("All");
+  const [deptFilter, setDeptFilter] = useState<string>("All");
+  const [ageFilter, setAgeFilter] = useState<string>("All");
+  const [departments, setDepartments] = useState<LookupItem[]>([]);
   const [sortField, setSortField] = useState<"created_at" | "name">("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,6 +114,15 @@ const Accounts: React.FC = () => {
 
   useEffect(() => {
     fetchAccounts();
+    const loadDepartments = async () => {
+      try {
+        const data = await fetchDepartments();
+        setDepartments(data);
+      } catch (err) {
+        console.error("Failed to fetch departments:", err);
+      }
+    };
+    loadDepartments();
   }, [fetchAccounts]);
 
   const filteredUsers = useMemo(() => {
@@ -75,7 +140,9 @@ const Accounts: React.FC = () => {
 
       const matchesRole = roleFilter === "All" || (user.roles || []).includes(roleFilter);
 
-      return matchesSearch && matchesStatus && matchesRole;
+      const matchesDept = deptFilter === "All" || String(user.department_id) === deptFilter;
+
+      return matchesSearch && matchesStatus && matchesRole && matchesDept;
     });
 
     result.sort((a, b) => {
@@ -91,7 +158,7 @@ const Accounts: React.FC = () => {
     });
 
     return result;
-  }, [searchTerm, statusFilter, roleFilter, sortField, sortDirection, users, getFullName]);
+  }, [searchTerm, statusFilter, roleFilter, deptFilter, ageFilter, sortField, sortDirection, users, getFullName]);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const currentUsers = useMemo(() => {
@@ -181,11 +248,47 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const getRoleDisplay = (roles: string[]) => (roles || []).map(r => ROLE_DISPLAY[r] || r).join(", ");
+  const getRoleDisplay = (roles: string[]) => (
+    <div className="flex flex-wrap gap-1">
+      {(roles || []).map(role => {
+        let config = { 
+          label: ROLE_DISPLAY[role] || role, 
+          color: "bg-slate-100 text-slate-600 border-slate-200",
+          icon: ShieldCheck
+        };
+        
+        if (role === 'admin') {
+          config.color = "bg-slate-800 text-white border-slate-800";
+          config.icon = ShieldCheck;
+        } else if (role === 'rnd') {
+          config.color = "bg-blue-50 text-blue-600 border-blue-200";
+          config.icon = Microscope;
+        } else if (role === 'evaluator') {
+          config.color = "bg-purple-50 text-purple-600 border-purple-200";
+          config.icon = Users;
+        } else if (role === 'proponent') {
+          config.color = "bg-red-50 text-[#C8102E] border-red-200";
+          config.icon = FlaskConical;
+        }
+
+        const Icon = config.icon;
+        return (
+          <span key={role} className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-bold border ${config.color}`}>
+            <Icon className="w-3 h-3" />
+            {config.label}
+          </span>
+        );
+      })}
+    </div>
+  );
 
   const getRoleCount = (role: string) => {
     if (role === 'All') return users.length;
     return users.filter(u => (u.roles || []).includes(role)).length;
+  };
+
+  const getDeptCount = (deptId: number) => {
+    return users.filter(u => u.department_id === deptId).length;
   };
 
   const tabs = [
@@ -193,7 +296,7 @@ const Accounts: React.FC = () => {
     { id: 'admin', label: 'Admin', icon: ShieldCheck },
     { id: 'rnd', label: 'R&D Staff', icon: Microscope },
     { id: 'evaluator', label: 'Evaluator', icon: Users },
-    { id: 'proponent', label: 'Proponent', icon: GraduationCap },
+    { id: 'proponent', label: 'Proponent', icon: FlaskConical },
   ];
 
   if (isLoading) {
@@ -202,6 +305,7 @@ const Accounts: React.FC = () => {
 
   return (
     <>
+      <ScrollKeyframes />
       <div className="flex flex-col gap-4 lg:gap-6 min-h-full h-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
       <header className="flex-shrink-0">
         <h1 className="text-2xl font-bold text-[#C8102E]">Accounts</h1>
@@ -248,7 +352,7 @@ const Accounts: React.FC = () => {
               placeholder="Search users, email, department..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full min-w-0"
+              className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full min-w-0"
             />
           </div>
 
@@ -256,11 +360,39 @@ const Accounts: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[120px]"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Disabled">Disabled</option>
+            </select>
+
+            <select
+              value={deptFilter}
+              onChange={(e) => { setDeptFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[150px]"
+            >
+              <option value="All">All Departments</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name} ({getDeptCount(dept.id)})
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={ageFilter}
+              onChange={(e) => { 
+                const val = e.target.value;
+                setAgeFilter(val); 
+                setSortField("created_at");
+                setSortDirection(val === "New" ? "desc" : "asc");
+                setCurrentPage(1); 
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] w-full sm:w-auto bg-white min-w-[140px]"
+            >
+              <option value="New">Newest First</option>
+              <option value="Old">Oldest First</option>
             </select>
 
             <button onClick={() => setShowAddModal(true)} className="flex items-center justify-center gap-2 px-4 py-2 bg-[#C8102E] hover:bg-[#A00D26] text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap w-full sm:w-auto">
@@ -304,15 +436,27 @@ const Accounts: React.FC = () => {
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center min-w-0">
                           <SecureImage src={user.photo_profile_url} fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(getFullName(user))}&background=C8102E&color=fff&size=128`} alt={getFullName(user)} className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-3 object-cover flex-shrink-0 ${isDisabled ? 'grayscale' : ''}`} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-gray-900 truncate">{getFullName(user)}</div>
-                            <div className="text-xs text-gray-500 sm:hidden truncate">{user.email}</div>
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <ScrollingBannerText className="text-sm font-medium text-gray-900">
+                              {getFullName(user)}
+                            </ScrollingBannerText>
+                            <div className="text-xs text-gray-500 sm:hidden">
+                              <ScrollingBannerText>{user.email}</ScrollingBannerText>
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell"><div className="truncate max-w-[160px]">{user.email}</div></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell max-w-[160px] overflow-hidden">
+                        <ScrollingBannerText>
+                          {user.email}
+                        </ScrollingBannerText>
+                      </td>
                       <td className="px-3 py-4 whitespace-nowrap"><div className="text-sm text-gray-600">{getRoleDisplay(user.roles)}</div></td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell"><div className="truncate max-w-[120px]">{user.department_name || "N/A"}</div></td>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-600 hidden md:table-cell max-w-[120px] overflow-hidden">
+                        <ScrollingBannerText>
+                          {user.department_name || "N/A"}
+                        </ScrollingBannerText>
+                      </td>
                       <td className="px-3 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${!isDisabled ? "bg-green-100 text-green-800" : "bg-gray-200 text-gray-600"
                           }`}>
@@ -322,7 +466,7 @@ const Accounts: React.FC = () => {
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
                         <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                           <button onClick={() => handleEditClick(user)} disabled={isDisabled} className="flex items-center gap-1 text-[#C8102E] hover:text-[#A00D26] font-medium text-xs sm:text-sm p-1 rounded hover:bg-gray-200 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                            <Edit2 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <UserRoundPen className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>Edit</span>
                           </button>
                           <button onClick={() => handleDisableClick(user)} className="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-medium text-xs sm:text-sm p-1 rounded hover:bg-gray-100 transition-colors whitespace-nowrap">
@@ -335,7 +479,19 @@ const Accounts: React.FC = () => {
                   );
                 })
               ) : (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">No users found</td></tr>
+                <tr>
+                  <td colSpan={6} className="px-6 py-12">
+                    <div className="text-center">
+                      <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                        <Users className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-2">No users found</h3>
+                      <p className="text-slate-500 max-w-sm mx-auto">
+                        No accounts match your current filters or search criteria.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -366,6 +522,7 @@ const Accounts: React.FC = () => {
         isOpen={showEditModal}
         onClose={handleCloseModal}
         user={selectedUser}
+        departments={departments}
         onSubmit={handleEditSubmit}
         isSubmitting={isSubmitting}
       />

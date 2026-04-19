@@ -888,7 +888,11 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* --- STATS CARDS --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer flex justify-between items-center">
+            <div><p className="text-xs font-semibold text-slate-700 mb-2">Total Projects</p><p className="text-3xl font-bold text-slate-700 tabular-nums">{projects.length}</p></div>
+            <Target className="w-8 h-8 text-slate-500 group-hover:scale-110 transition-transform duration-300" />
+          </div>
           <div className="bg-emerald-50 shadow-xl rounded-2xl border border-emerald-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer flex justify-between items-center">
             <div><p className="text-xs font-semibold text-slate-700 mb-2">Active Projects</p><p className="text-3xl font-bold text-emerald-600 tabular-nums">{projects.filter(p => p.status === 'Active').length}</p></div>
             <Play className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform duration-300" />
