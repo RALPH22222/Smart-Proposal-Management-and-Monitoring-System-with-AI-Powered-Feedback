@@ -88,8 +88,17 @@ export async function openSignedUrl(s3Url: string | null | undefined): Promise<v
   if (!s3Url) return;
 
   const presigned = await getSignedFileUrl(s3Url);
-  const ext = extractExtension(s3Url);
 
+  // If signing failed for an S3 URL, getSignedFileUrl returns the input unchanged.
+  // Opening that raw URL shows S3's "AccessDenied" XML — warn the user instead.
+  const isS3 = s3Url.includes(".s3.amazonaws.com") || s3Url.includes(".s3.");
+  const signedOk = presigned !== s3Url && presigned.includes("X-Amz-Signature=");
+  if (isS3 && !signedOk) {
+    alert("This file is no longer available. It may have been moved or deleted — please re-upload or contact the administrator.");
+    return;
+  }
+
+  const ext = extractExtension(s3Url);
   const officeExts = new Set(["doc", "docx", "xls", "xlsx", "ppt", "pptx"]);
   if (officeExts.has(ext)) {
     const viewerUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(presigned)}`;
