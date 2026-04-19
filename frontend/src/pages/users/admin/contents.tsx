@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ContactsSection } from './components/ContactsSection';
 import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
@@ -8,6 +8,7 @@ import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Palette, Save, 
 import { HomeApi } from "../../../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
+import { CmsApi } from "../../../services/CmsApi";
 import { toast, Toaster } from "react-hot-toast";
 import PageLoader from "../../../components/shared/PageLoader";
 
@@ -468,6 +469,109 @@ const MediaLibrarySection: React.FC = () => {
   );
 };
 
+// Phone Mockup Image Upload with live preview
+const PhoneMockupUpload: React.FC<{
+  currentUrl: string;
+  onUploadSuccess: (url: string) => void;
+  onDelete: () => void;
+}> = ({ currentUrl, onUploadSuccess, onDelete }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be under 10MB.');
+      return;
+    }
+    try {
+      setIsUploading(true);
+      const { uploadUrl, fileUrl } = await CmsApi.getUploadUrl(file.name, file.type);
+      await CmsApi.uploadFile(uploadUrl, file);
+      onUploadSuccess(fileUrl);
+      toast.success('Phone image updated!');
+    } catch {
+      toast.error('Upload failed.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-800">Phone Mockup Image</label>
+
+      {/* Phone frame preview */}
+      <div className="flex justify-center">
+        <div className="relative" style={{ width: 160, height: 300 }}>
+          {/* Outer bezel */}
+          <div className="absolute inset-0 rounded-[2rem] border-[6px] border-gray-800 bg-gray-800 shadow-2xl overflow-hidden">
+            {/* Screen */}
+            <div className="absolute inset-0 rounded-[1.5rem] overflow-hidden bg-gray-100 flex items-center justify-center">
+              {currentUrl ? (
+                <img src={currentUrl} alt="Phone preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-gray-300 select-none">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-[10px] font-medium text-center px-2">No image</span>
+                </div>
+              )}
+            </div>
+            {/* Notch */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-3 bg-gray-800 rounded-full z-10" />
+            {/* Home indicator */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-600 rounded-full z-10" />
+          </div>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="space-y-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          onChange={handleFile}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-100 hover:border-gray-300 transition-all disabled:opacity-50"
+        >
+          {isUploading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          )}
+          {isUploading ? 'Uploading...' : currentUrl ? 'Replace Image' : 'Upload Image'}
+        </button>
+
+        {currentUrl && !isUploading && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-red-200 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-300 transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Remove Image
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-gray-400 italic">Recommended: portrait screenshot (JPG/PNG, ≤10MB)</p>
+    </div>
+  );
+};
+
 // Mobile App Download Section
 const MobileAppSection: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
@@ -534,6 +638,7 @@ const MobileAppSection: React.FC = () => {
       </div>
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+        {/* APK File */}
         <FileUpload 
           label="Android Application Package (.apk)"
           accept=".apk"
@@ -544,15 +649,34 @@ const MobileAppSection: React.FC = () => {
           onUploadSuccess={(url) => setHomeData({
             ...homeData,
             app_config: { 
-              ...(homeData?.app_config || { apk_url: "" }), 
+              ...(homeData?.app_config || { apk_url: "", phone_image_url: "" }), 
               apk_url: url 
             }
           })}
           onDelete={() => setHomeData({
             ...homeData,
             app_config: { 
-              ...(homeData?.app_config || { apk_url: "" }), 
+              ...(homeData?.app_config || { apk_url: "", phone_image_url: "" }), 
               apk_url: "" 
+            }
+          })}
+        />
+
+        {/* Phone Mockup Image — custom preview */}
+        <PhoneMockupUpload
+          currentUrl={homeData?.app_config?.phone_image_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            app_config: {
+              ...(homeData?.app_config || { apk_url: "", phone_image_url: "" }),
+              phone_image_url: url
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            app_config: {
+              ...(homeData?.app_config || { apk_url: "", phone_image_url: "" }),
+              phone_image_url: ""
             }
           })}
         />
