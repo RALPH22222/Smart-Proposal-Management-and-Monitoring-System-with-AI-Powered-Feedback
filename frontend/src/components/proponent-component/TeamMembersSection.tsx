@@ -139,77 +139,82 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
       </div>
 
       {/* Member List */}
-      <div className="divide-y divide-gray-100">
-        {loading ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400">Loading members...</div>
-        ) : members.length === 0 && !projectLead ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400">No team members yet.</div>
-        ) : (
-          <>
-            {/* --- Project Lead Row (always first, distinct design) --- */}
-            {projectLead && (
-              <div className="flex items-center justify-between px-5 py-3 bg-[#FFF5F7] border-l-4 border-[#C8102E]">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-full bg-[#C8102E] flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-[#A50D26]/20">
-                    {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {projectLead.first_name || projectLead.last_name 
-                          ? `${projectLead.first_name || ""} ${projectLead.last_name || ""}`.trim()
-                          : "Unnamed Lead"}
-                      </p>
-                      <Crown size={12} className="text-[#C8102E] shrink-0" />
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{projectLead.email}</p>
-                  </div>
+      {loading ? (
+        <div className="px-5 py-8 text-center text-sm text-gray-400">Loading members...</div>
+      ) : members.length === 0 && !projectLead ? (
+        <div className="px-5 py-8 text-center text-sm text-gray-400">No team members yet.</div>
+      ) : (
+        <>
+          {/* --- Project Lead Row (always visible, pinned above the scroll area) --- */}
+          {projectLead && (
+            <div className="flex items-center justify-between px-5 py-3 bg-[#FFF5F7] border-l-4 border-[#C8102E]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-[#C8102E] flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-[#A50D26]/20">
+                  {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#FDECEF] text-[#C8102E] border border-[#F7C6D0]">
-                    <Crown size={11} /> Project Lead
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
-                  {/* Spacer to align with co-lead delete button */}
-                  <div className="w-[25px] shrink-0" />
-                </div>
-              </div>
-            )}
-
-            {/* --- Co-Lead Rows --- */}
-            {members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(member.user.email)}`}>
-                    {getInitials(member.user.first_name, member.user.last_name, member.user.email)}
-                  </div>
-                  <div className="min-w-0">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">
-                      {member.user.first_name || member.user.last_name
-                        ? `${member.user.first_name || ""} ${member.user.last_name || ""}`.trim()
-                        : "Unnamed Member"}
+                      {projectLead.first_name || projectLead.last_name 
+                        ? `${projectLead.first_name || ""} ${projectLead.last_name || ""}`.trim()
+                        : "Unnamed Lead"}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
+                    <Crown size={12} className="text-[#C8102E] shrink-0" />
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {roleBadge(member.role)}
-                  {statusBadge(member.status)}
-                  {isProjectLead && member.role === "co_lead" && (
-                    <button
-                      onClick={() => handleRemove(member)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Remove member"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                  <p className="text-xs text-gray-500 truncate">{projectLead.email}</p>
                 </div>
               </div>
-            ))}
-          </>
-        )}
-      </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#FDECEF] text-[#C8102E] border border-[#F7C6D0]">
+                  <Crown size={11} /> Project Lead
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                <div className="w-[40px] shrink-0" />
+              </div>
+            </div>
+          )}
+
+          {/* --- Co-Lead Rows (scrollable, shows 4 at a time) --- */}
+          {members.length > 0 && (
+            <div
+              className="divide-y divide-gray-100 overflow-y-auto"
+              style={{ maxHeight: '240px' }}
+            >
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(member.user.email)}`}>
+                      {getInitials(member.user.first_name, member.user.last_name, member.user.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {member.user.first_name || member.user.last_name
+                          ? `${member.user.first_name || ""} ${member.user.last_name || ""}`.trim()
+                          : "Unnamed Member"}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {roleBadge(member.role)}
+                    {statusBadge(member.status)}
+                    {isProjectLead && member.role === "co_lead" && (
+                      <button
+                        onClick={() => handleRemove(member)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove member"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
 
       {/* Invite Modal */}
       <InviteMemberModal
