@@ -39,16 +39,13 @@ const ApkDownloadPage: React.FC = () => {
         const url = data?.app_config?.apk_url || '';
         setApkUrl(url);
         setPhoneImageUrl(data?.app_config?.phone_image_url || '');
+
         // Auto-download on mobile devices (QR scans open the page on a phone)
         const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
         if (isMobile && url) {
-          const filename = (() => {
-            try {
-              const raw = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'app.apk');
-              return raw.replace(/^\d+-/, '');
-            } catch { return 'app.apk'; }
-          })();
-          downloadFile(url, filename);
+          // Use direct redirect for mobile auto-download — this is instant!
+          // The clean name is now handled by the S3 subfolder structure (.../timestamp/app.apk).
+          window.location.assign(url);
         }
       })
       .catch(() => {})
@@ -186,8 +183,8 @@ const ApkDownloadPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right — flip card */}
-          <div className={`order-1 lg:order-2 relative z-[60] mt-8 lg:mt-0 transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+          {/* Right Column - Flip Card (HIDDEN ON MOBILE/TABLET) */}
+          <div className={`order-1 lg:order-2 hidden lg:block relative z-[60] mt-8 lg:mt-0 transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
             <div className="relative mx-auto lg:ml-0 w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[380px] xl:max-w-[420px] flip-card">
               <div className={`flip-inner w-full`} style={{ height: 'min(70vh, 520px)', transform: isFlipped ? 'rotateY(180deg)' : 'none' }}>
 
@@ -235,9 +232,7 @@ const ApkDownloadPage: React.FC = () => {
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-400 mt-4 text-center max-w-[180px] leading-relaxed">
-                    Point your phone camera at the QR — the APK will download immediately
-                  </p>
+
 
                   <button
                     className="mt-5 flex items-center gap-1.5 text-xs font-semibold text-[#C8102E] hover:underline"

@@ -8,7 +8,7 @@ export const CmsApi = {
   getUploadUrl: async (filename: string, contentType: string): Promise<{ uploadUrl: string; fileUrl: string }> => {
     // We use a timestamp to ensure unique keys in the CMS bucket
     const timestamp = Date.now();
-    const key = `cms/${timestamp}-${filename}`;
+    const key = `cms/${timestamp}/${filename}`;
     
     const { data } = await api.get<{ url: string }>("/files/signed-url", {
       params: { 
