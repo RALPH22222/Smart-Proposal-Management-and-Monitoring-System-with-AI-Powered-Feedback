@@ -4,7 +4,7 @@ import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
 import { LogosSection } from "./components/LogosSection";
-import { ClipboardList, FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered, Smartphone } from 'lucide-react';
+import { FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered, Smartphone } from 'lucide-react';
 import { HomeApi } from "../../../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
@@ -14,18 +14,17 @@ import PageLoader from "../../../components/shared/PageLoader";
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('guidelines');
+  const [activeTab, setActiveTab] = useState('branding');
 
   const tabs = [
-    { id: 'guidelines', label: 'Guidelines & Resources', icon: ClipboardList },
-    { id: 'templates', label: 'Proposal Templates', icon: FileText },
-    { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
-    { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
+    { id: 'branding', label: 'System Logos', icon: Palette },
     { id: 'home', label: 'Home Page', icon: Home },
     { id: 'about', label: 'About Page', icon: Info },
     { id: 'contacts', label: 'Contact Info', icon: Phone },
     { id: 'faq', label: 'FAQ Page', icon: HelpCircle },
-    { id: 'branding', label: 'System Branding', icon: Palette }
+    { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
+    { id: 'templates', label: 'Proposal Templates', icon: FileText },
+    { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
   ];
 
   return (
@@ -66,7 +65,6 @@ const ContentManagement: React.FC = () => {
       </div>
 
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex-1 overflow-y-auto'>
-        {activeTab === 'guidelines' && <GuidelinesSection />}
         { activeTab === 'templates' && <TemplatesSection />}
         { activeTab === 'mobileapp' && <MobileAppSection />}
         { activeTab === 'howitworks' && <HowItWorksSection />}
@@ -234,118 +232,6 @@ const HowItWorksSection: React.FC = () => {
   );
 };
 
-// Guidelines & Resources Section
-const GuidelinesSection: React.FC = () => {
-  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const data = await HomeApi.getHomeInfo();
-        setHomeData({
-          ...DEFAULT_HOME_INFO,
-          ...(data || {}),
-          resources: {
-            ...DEFAULT_HOME_INFO.resources,
-            ...(data?.resources || {})
-          }
-        });
-      } catch (error) {
-        toast.error("Failed to load guidelines.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      await HomeApi.updateHomeInfo(homeData);
-      toast.success("Guidelines and resources updated successfully!");
-    } catch (error) {
-      toast.error("Failed to save changes.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (isLoading) {
-    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
-  }
-
-  return (
-    <div className='p-4 sm:p-6'>
-      <Toaster position="top-right" />
-      
-      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8'>
-        <div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
-            Guidelines & Resources
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">Manage official submission guidelines and supplementary research resources.</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className='bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-all font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md disabled:opacity-50'
-        >
-          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isSaving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
-
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-        {/* Main Guidelines */}
-        <FileUpload 
-          label="Official Submission Guidelines (.docx/PDF)"
-          currentUrl={homeData?.resources?.guidelines_url || ""}
-          onUploadSuccess={(url) => setHomeData({
-            ...homeData,
-            resources: { 
-              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
-              guidelines_url: url 
-            }
-          })}
-          onDelete={() => setHomeData({
-            ...homeData,
-            resources: { 
-              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
-              guidelines_url: "" 
-            }
-          })}
-          helperText="The primary document outlining the research proposal submission process."
-        />
-
-        {/* Technical Handbook / Resources */}
-        <FileUpload 
-          label="Technical Handbook / Resources (.docx/PDF)"
-          currentUrl={homeData?.resources?.handbook_url || ""}
-          onUploadSuccess={(url) => setHomeData({
-            ...homeData,
-            resources: { 
-              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
-              handbook_url: url 
-            }
-          })}
-          onDelete={() => setHomeData({
-            ...homeData,
-            resources: { 
-              ...(homeData?.resources || { guidelines_url: "", handbook_url: "" }), 
-              handbook_url: "" 
-            }
-          })}
-          helperText="Supplementary materials, formatting standards, or technical FAQs for proponents."
-        />
-      </div>
-
-    </div>
-  );
-};
 
 // Proposal Templates Section
 const TemplatesSection: React.FC = () => {

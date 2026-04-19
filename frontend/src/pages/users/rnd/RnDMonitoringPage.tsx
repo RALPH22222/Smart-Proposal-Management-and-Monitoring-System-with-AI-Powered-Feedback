@@ -189,9 +189,9 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
       title: 'Total Projects',
       value: projects.length,
       icon: FileText,
-      color: 'text-blue-800',
-      borderColor: 'border-blue-400',
-      bgColor: 'bg-blue-50',
+      color: 'text-slate-800',
+      borderColor: 'border-slate-300',
+      bgColor: 'bg-slate-50',
     },
     {
       title: 'Active Projects',

@@ -27,6 +27,14 @@ import RndMonitoring from "../rnd/RnDMonitoringPage";
 // R&D Dashboard Data Helper
 import { type Statistics, type Activity } from "../../../types/InterfaceProposal";
 import { proposalApi } from "../../../services/RndProposalApi/ProposalApi";
+import { getProposalsForEndorsement } from '../../../services/proposal.api';
+import { fetchFundedProjects } from '../../../services/ProjectMonitoringApi';
+
+export interface RnDAttention {
+  readyForEndorsement: number;
+  overdueReports: number;
+  pendingFundRequests: number;
+}
 
 const MultiRoleMainLayout: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +52,11 @@ const MultiRoleMainLayout: React.FC = () => {
   });
   const [rndRecentActivity, setRndRecentActivity] = useState<Activity[]>([]);
   const [isLoadingRndDashboard, setIsLoadingRndDashboard] = useState(true);
+  const [rndAttention, setRndAttention] = useState<RnDAttention>({
+    readyForEndorsement: 0,
+    overdueReports: 0,
+    pendingFundRequests: 0,
+  });
 
   // Default to Proponent Profile, or Dashboard if RND/Evaluator based on roles
   const userRoles = (user as any)?.roles || [];
@@ -66,9 +79,25 @@ const MultiRoleMainLayout: React.FC = () => {
   const loadRndData = async () => {
     setIsLoadingRndDashboard(true);
     try {
-      const { statistics: statsData, recentActivity: activityData } = await proposalApi.fetchDashboardData();
+      const [{ statistics: statsData, recentActivity: activityData }, endorsementList, projects] =
+        await Promise.all([
+          proposalApi.fetchDashboardData(),
+          getProposalsForEndorsement('active').catch(() => []),
+          fetchFundedProjects('rnd').catch(() => []),
+        ]);
       setRndStatistics(statsData);
       setRndRecentActivity(activityData);
+      setRndAttention({
+        readyForEndorsement: (endorsementList || []).filter((p: any) => p.readyForEndorsement).length,
+        overdueReports: (projects || []).reduce(
+          (sum: number, p: any) => sum + (p.overdue_reports_count || 0),
+          0,
+        ),
+        pendingFundRequests: (projects || []).reduce(
+          (sum: number, p: any) => sum + (p.pending_fund_requests_count || 0),
+          0,
+        ),
+      });
     } catch (error) {
       console.error('Error loading RND data:', error);
     } finally {
@@ -110,13 +139,31 @@ const MultiRoleMainLayout: React.FC = () => {
       }
     } else if (currentRoleGroup === "rnd") {
       switch (currentTab) {
-        case "dashboard": return <RndDashboard statistics={rndStatistics} recentActivity={rndRecentActivity} onRefresh={loadRndData} isLoading={isLoadingRndDashboard} />;
+        case "dashboard": return (
+          <RndDashboard 
+            statistics={rndStatistics} 
+            recentActivity={rndRecentActivity} 
+            onRefresh={loadRndData} 
+            isLoading={isLoadingRndDashboard}
+            attention={rndAttention}
+            onPageChange={(page) => handlePageChange('rnd', page)}
+          />
+        );
         case "proposals": return <RndProposals />;
         case "evaluators": return <RndEvaluators />;
         case "endorsements": return <RndEndorsements />;
         case "funding": return <RndFunding />;
         case "monitoring": return <RndMonitoring onStatsUpdate={loadRndData} />;
-        default: return <RndDashboard statistics={rndStatistics} recentActivity={rndRecentActivity} onRefresh={loadRndData} isLoading={isLoadingRndDashboard} />;
+        default: return (
+          <RndDashboard 
+            statistics={rndStatistics} 
+            recentActivity={rndRecentActivity} 
+            onRefresh={loadRndData} 
+            isLoading={isLoadingRndDashboard}
+            attention={rndAttention}
+            onPageChange={(page) => handlePageChange('rnd', page)}
+          />
+        );
       }
     }
 

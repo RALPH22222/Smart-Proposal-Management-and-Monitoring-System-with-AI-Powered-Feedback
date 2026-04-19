@@ -236,7 +236,7 @@ const MultiSidebar: React.FC<MultiSidebarProps> = ({
         <div className="flex-shrink-0 px-4 pt-2 pb-4 border-t border-gray-200/60 space-y-1">
           {bottomLinks.map((item) => {
             const Icon = item.icon;
-            const isActive = currentRoleGroup === 'system' && currentPage === item.id;
+            const isActive = currentPage === item.id;
             return (
               <button
                 key={item.id}

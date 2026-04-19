@@ -80,9 +80,11 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
 
     const isCurrentlyActive = !user.is_disabled;
 
-    // If enabling, skip assignment check
+    // If enabling, skip assignment check but show loading for consistency
     if (!isCurrentlyActive) {
-      setStep("simple");
+      setTimeout(() => {
+        setStep("simple");
+      }, 300);
       return;
     }
 
@@ -207,7 +209,7 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
     (assignments?.rnd_assignments.length || 0) + (assignments?.evaluator_assignments.length || 0);
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
       <div
         className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 ${
           step === "reassign" ? "max-w-2xl max-h-[85vh]" : "max-w-md"
@@ -236,7 +238,6 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Loading state Skeleton */}
           {step === "loading" ? (
             <div className="space-y-6 animate-pulse">
               {/* User info skeleton */}
@@ -547,8 +548,8 @@ const DisableAccountModal: React.FC<DisableAccountModalProps> = ({
             disabled={isSubmitting || !canSubmit}
             className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-lg transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none ${
               isCurrentlyActive
-                ? "bg-[#C8102E] hover:bg-[#A00D26] shadow-red-200"
-                : "bg-green-700 hover:bg-green-800 shadow-green-200"
+                ? "bg-[#C8102E] hover:bg-[#A00D26]"
+                : "bg-emerald-700 hover:bg-emerald-800"
             }`}
           >
             <Power className="w-4 h-4" />

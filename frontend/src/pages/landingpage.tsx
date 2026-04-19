@@ -433,7 +433,7 @@ const LandingPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const url = homeData.templates.research_url || templateDOCX;
-                      const fileName = url.includes('supabase.co') || url.includes('amazonaws.com') 
+                      const fileName = url.includes('supabase.co') || url.includes('amazonaws.com')
                         ? (url.split('/').pop()?.replace(/^\d+-/, '') || "DOST-Project-Proposal-Template.docx")
                         : "DOST-Project-Proposal-Template.docx";
                       downloadFile(url, fileName);
