@@ -26,12 +26,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   const { error } = await proposalService.forwardToEvaluators(result.data, user_sub);
 
   if (error) {
-    console.error("Supabase error: ", JSON.stringify(error, null, 2));
+    const isNativeError = error instanceof Error;
+    console.error("Supabase error: ", isNativeError ? error.message : JSON.stringify(error, null, 2));
     return {
-      statusCode: 500,
+      statusCode: isNativeError ? 400 : 500,
       body: JSON.stringify({
-        message: "Internal server error.",
-        debug_error: error,
+        message: isNativeError ? error.message : "Internal server error.",
+        debug_error: isNativeError ? { message: error.message, stack: error.stack } : error,
       }),
     };
   }
