@@ -300,14 +300,14 @@ export default function ProposalModal({
     }
     return (
       <div className="overflow-x-auto rounded-lg border border-slate-100">
-        <table className="min-w-[800px] w-full text-xs table-fixed">
+        <table className="w-full text-xs table-fixed">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+              <th className="w-[35%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
               <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
               <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
-              <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
-              <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+              <th className="w-[18%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+              <th className="w-[12%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">

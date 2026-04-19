@@ -65,7 +65,8 @@ export const adminProposalApi = {
               typeof e === 'string' ? { id: e, visibility: 'both' } : e
             ),
             deadline_at: daysUntilDeadline,
-            commentsForEvaluators: decision.structuredComments?.title?.content // Using 'title' content field as general comment container from Modal
+            commentsForEvaluators: decision.structuredComments?.title?.content, // Using 'title' content field as general comment container from Modal
+            anonymized_file_url: (decision as any).anonymizedFileUrl
           });
         }
       } else if (decision.decision === 'Rejected Proposal') {

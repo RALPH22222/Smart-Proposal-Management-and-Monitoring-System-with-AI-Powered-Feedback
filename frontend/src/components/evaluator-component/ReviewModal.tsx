@@ -185,13 +185,20 @@ export default function ReviewModal({
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isFormValid) {
-      onSubmit({
-        decision: decision!,
-        ratings,
-        comments: overallComment,
-      });
+      try {
+        await onSubmit({
+          decision: decision!,
+          ratings,
+          comments: overallComment,
+        });
+        // Success Swal logic removed because it might be handled by parent,
+        // but if not, I should add it.
+        // Actually, ProposalViewModal page for evaluator usually has its own success handling.
+      } catch (error) {
+        console.error("Submission failed:", error);
+      }
     }
   };
 
@@ -234,14 +241,14 @@ export default function ReviewModal({
     }
     return (
       <div className="overflow-x-auto rounded-lg border border-slate-100">
-        <table className="min-w-[800px] w-full text-xs table-fixed">
+        <table className="w-full text-xs table-fixed">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+              <th className="w-[35%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
               <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
               <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
-              <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
-              <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+              <th className="w-[18%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+              <th className="w-[12%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -271,7 +278,7 @@ export default function ReviewModal({
   return (
     <>
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>

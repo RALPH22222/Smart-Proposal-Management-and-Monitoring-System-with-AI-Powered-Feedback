@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter, Search } from 'lucide-react';
+import { X, UserCog, User, ArrowRight, AlertCircle, Check, Filter, Search, Loader2 } from 'lucide-react';
 import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
 import Swal from 'sweetalert2';
@@ -27,6 +27,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch R&D Staff & Departments on Open
   useEffect(() => {
@@ -97,15 +98,23 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, reassign',
         cancelButtonText: 'Cancel'
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
-          onConfirm(proposal.id, selectedStaff.name, selectedStaff.id);
-          onClose();
-          Swal.fire(
-            'Reassigned!',
-            `Proposal has been reassigned to ${selectedStaff.name}.`,
-            'success'
-          );
+          setIsSubmitting(true);
+          try {
+            await onConfirm(proposal.id, selectedStaff.name, selectedStaff.id);
+            onClose();
+            Swal.fire(
+              'Reassigned!',
+              `Proposal has been reassigned to ${selectedStaff.name}.`,
+              'success'
+            );
+          } catch (err: any) {
+            console.error("Reassignment failed:", err);
+            // Error is usually handled by parent (confirmRdChange), but we catch here too
+          } finally {
+            setIsSubmitting(false);
+          }
         }
       });
     }
@@ -311,10 +320,11 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
           <button
             type="submit"
             form="change-rnd-form"
-            className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] flex items-center gap-2"
+            disabled={isSubmitting || !selectedStaffId}
+            className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Check className="w-4 h-4" />
-            Confirm Change
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            {isSubmitting ? 'Changing...' : 'Confirm Change'}
           </button>
         </div>
 

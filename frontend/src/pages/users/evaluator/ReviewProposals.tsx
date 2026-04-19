@@ -4,6 +4,7 @@ import { formatDate } from "../../../utils/date-formatter";
 import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Tag, FileClock, ScanSearch, CalendarDays} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 import PageLoader from "../../../components/shared/PageLoader";
+import Swal from "sweetalert2";
 
 export default function EndorsedProposals() {
   const [search, setSearch] = useState("");
@@ -211,11 +212,23 @@ export default function EndorsedProposals() {
       setProposals((prev) => prev.filter((p) => p.id !== selectedProposal));
       closeModal();
 
+      await Swal.fire({
+        icon: 'success',
+        title: 'Evaluation Submitted',
+        text: 'Your review has been successfully submitted and forwarded for further review.',
+        confirmButtonColor: '#C8102E'
+      });
+
       // Sync with server in background
       fetchProposals();
     } catch (error) {
       console.error("Failed to submit review:", error);
-      alert("Failed to submit review. Please try again.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Submission Failed',
+        text: 'Failed to submit review. Please try again.',
+        confirmButtonColor: '#C8102E'
+      });
     } finally {
       setIsSubmitting(false);
     }

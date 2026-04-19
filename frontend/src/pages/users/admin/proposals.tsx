@@ -265,6 +265,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
       ));
 
       setIsChangeRdModalOpen(false);
+      await loadProposals();
       // Success alert is handled by the modal component for better UX flow
     } catch (error) {
       console.error("Failed to reassign R&D staff:", error);
@@ -425,6 +426,9 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
     } catch (error) {
       console.error('Error submitting decision:', error);
+      // Re-throw so the modal's catch block can show a proper error alert
+      // instead of falsely showing a "Forwarded!" / "Submitted!" success dialog.
+      throw error;
     } finally {
       setIsModalSubmitting(false);
     }

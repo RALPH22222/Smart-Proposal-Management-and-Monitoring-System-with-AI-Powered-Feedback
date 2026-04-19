@@ -420,10 +420,26 @@ export class ProposalService {
 
     const currentVersionId = proposal.current_version_id as number;
 
+    const { data: existingAssignments } = await this.db
+      .from("proposal_evaluators")
+      .select("evaluator_id")
+      .eq("proposal_id", proposal_id)
+      .eq("proposal_version_id", currentVersionId);
+
+    const existingIds = new Set((existingAssignments || []).map((a) => a.evaluator_id));
+    const newEvaluators = evaluators.filter((ev) => !existingIds.has(ev.id));
+
+    if (newEvaluators.length === 0) {
+      return { 
+        error: new Error("All selected evaluators are already assigned to this proposal version."), 
+        assignments: null 
+      };
+    }
+
     const deadline_number_weeks = new Date();
     deadline_number_weeks.setDate(deadline_number_weeks.getDate() + deadline_at);
 
-    const assignmentsPayload = evaluators.map((ev) => ({
+    const assignmentsPayload = newEvaluators.map((ev) => ({
       proposal_id: proposal_id,
       proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
@@ -456,7 +472,7 @@ export class ProposalService {
       return { error: updateError, assignments: null };
     }
 
-    const assignmentsTrackerPayload = evaluators.map((ev) => ({
+    const assignmentsTrackerPayload = newEvaluators.map((ev) => ({
       proposal_id: proposal_id,
       proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
@@ -473,7 +489,7 @@ export class ProposalService {
     }
 
     // Fetch evaluator names for history logging
-    const evalIds = evaluators.map((ev) => ev.id);
+    const evalIds = newEvaluators.map((ev) => ev.id);
     const { data: evalUsers } = await this.db
       .from("users")
       .select("id, first_name, last_name")
@@ -481,7 +497,7 @@ export class ProposalService {
     const evalNameMap = new Map((evalUsers || []).map((u) => [u.id, `${u.first_name || ""} ${u.last_name || ""}`.trim()]));
 
     // Log one entry per evaluator for granular history
-    for (const ev of evaluators) {
+    for (const ev of newEvaluators) {
       await logActivity(this.db, {
         user_id: rnd_id,
         action: "evaluator_assigned",
@@ -491,7 +507,7 @@ export class ProposalService {
         details: {
           evaluator_id: ev.id,
           evaluator_name: evalNameMap.get(ev.id) || "Unknown",
-          evaluator_count: evaluators.length,
+          evaluator_count: newEvaluators.length,
         },
       });
     }

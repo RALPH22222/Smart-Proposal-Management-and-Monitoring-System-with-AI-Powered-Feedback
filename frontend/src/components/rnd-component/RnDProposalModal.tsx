@@ -414,7 +414,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proposal) return;
 
@@ -453,8 +453,17 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       evaluationDeadline: effectiveDeadline
     };
 
-    onSubmitDecision(decisionData);
-    onClose();
+    try {
+      await onSubmitDecision(decisionData);
+      onClose();
+      if (decision === 'Rejected Proposal') {
+        Swal.fire('Rejected!', 'Proposal has been rejected.', 'success');
+      } else if (decision === 'Revision Required') {
+        Swal.fire('Revision Requested!', 'Proposal has been sent back for revision.', 'success');
+      }
+    } catch (error) {
+      console.error("Submission failed:", error);
+    }
   };
 
   const handleForwardToEvaluators = () => {
@@ -534,7 +543,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     }
   };
 
-  const submitWithAnonymity = () => {
+  const submitWithAnonymity = async () => {
     if (!proposal) return;
 
     const decisionData: Decision & {
@@ -554,9 +563,14 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       anonymizedFileUrl: redactedFileUrl || undefined,
     };
 
-    onSubmitDecision(decisionData);
-    setShowAnonymitySelection(false);
-    onClose();
+    try {
+      await onSubmitDecision(decisionData);
+      setShowAnonymitySelection(false);
+      onClose();
+      Swal.fire('Forwarded!', 'Proposal has been sent to evaluators.', 'success');
+    } catch (error) {
+      console.error("Submission failed:", error);
+    }
   };
 
 
