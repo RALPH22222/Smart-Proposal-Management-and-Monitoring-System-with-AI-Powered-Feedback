@@ -84,11 +84,16 @@ export default function Proposals() {
         };
 
         // Map budget — group by source and category, include breakdown items
-        const budgetSourcesMap: Record<string, { ps: { items: { item: string; amount: number }[], total: number }; mooe: { items: { item: string; amount: number }[], total: number }; co: { items: { item: string; amount: number }[], total: number } }> = {};
+        const budgetSourcesMap: Record<string, { ps: { items: any[], total: number }; mooe: { items: any[], total: number }; co: { items: any[], total: number } }> = {};
         (proposalObj.estimated_budget || []).forEach((b: any) => {
           const src = b.source || "Unknown Source";
           const amt = typeof b.amount === 'string' ? parseFloat(b.amount.replace(/,/g, '')) || 0 : Number(b.amount) || 0;
           const itm = b.item || b.item_description || b.item_name || "Unspecified Item";
+          const subcategory = b.subcategory || b.sub_category;
+          const specifications = b.specifications || b.spec_volume;
+          const quantity = b.quantity || b.qty;
+          const unit = b.unit;
+          const unitPrice = b.unit_price || b.unitPrice;
           const type = (b.budget || b.item_type || "").toLowerCase();
 
           if (!budgetSourcesMap[src]) {
@@ -105,7 +110,7 @@ export default function Proposals() {
           else if (type.includes("mooe")) cat = "mooe";
 
           budgetSourcesMap[src][cat].total += amt;
-          budgetSourcesMap[src][cat].items.push({ item: itm, amount: amt });
+          budgetSourcesMap[src][cat].items.push({ item: itm, amount: amt, subcategory, specifications, quantity, unit, unitPrice });
         });
 
         const budgetSources = Object.entries(budgetSourcesMap).map(([source, data]) => ({

@@ -1301,6 +1301,7 @@ export class ProposalService {
       agency:agencies(name),
       agency_address(id,city,street,barangay),
       estimated_budget(id,budget,item,amount,source),
+      proposal_budget_versions(id, version_number, proposal_budget_items(id, category, subcategory_id, custom_subcategory_label, item_name, spec, quantity, unit, unit_price, total_amount, source, budget_subcategories(label))),
       proposal_version!proposal_version_proposal_id_fkey(id,file_url),
       funded_projects(id,funding_document_url,project_lead_id),
       proposal_rnd(users(first_name,last_name,email,department:departments(name)))
@@ -1521,6 +1522,7 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
+          proposal_budget_versions(id, version_number, proposal_budget_items(id, category, subcategory_id, custom_subcategory_label, item_name, spec, quantity, unit, unit_price, total_amount, source, budget_subcategories(label))),
           proposal_version!proposal_version_proposal_id_fkey(id,file_url,created_at)
         )
       `,
@@ -1617,6 +1619,7 @@ export class ProposalService {
           agency:agencies(name),
           agency_address(id,city,street,barangay),
           estimated_budget(id,budget,item,amount,source),
+          proposal_budget_versions(id, version_number, proposal_budget_items(id, category, subcategory_id, custom_subcategory_label, item_name, spec, quantity, unit, unit_price, total_amount, source, budget_subcategories(label))),
           proposal_version!proposal_version_proposal_id_fkey(id,file_url,created_at),
           funded_projects(id,funding_document_url,project_lead_id)
         )
@@ -1760,8 +1763,8 @@ export class ProposalService {
     // 3. Get all unique department IDs
     const departmentIds = [...new Set(proposals.map((p) => p.department_id).filter(Boolean))];
 
-    // 4. Fetch users, departments, scores, budgets, and version history in parallel
-    const [usersResult, departmentsResult, scoresResult, budgetsResult, versionsResult] =
+    // 4. Fetch users, departments, scores, budgets, budget_versions, and version history in parallel
+    const [usersResult, departmentsResult, scoresResult, budgetsResult, propBudgetVersionsResult, versionsResult] =
       await Promise.all([
         allUserIds.length > 0
           ? this.db
@@ -1784,6 +1787,10 @@ export class ProposalService {
           .from("estimated_budget")
           .select("id, proposal_id, item, source, budget, amount")
           .in("proposal_id", proposalIds),
+        this.db
+          .from("proposal_budget_versions")
+          .select("id, version_number, proposal_id, proposal_budget_items(id, category, subcategory_id, custom_subcategory_label, item_name, spec, quantity, unit, unit_price, total_amount, source, budget_subcategories(label))")
+          .in("proposal_id", proposalIds),
         // Pull all version rows for these proposals so we can derive a
         // human-readable version number (v1 / v2 / …) per proposal.
         // Order by id — the auto-increment guarantees insert order even when
@@ -1799,6 +1806,7 @@ export class ProposalService {
     if (departmentsResult.error) return { data: null, error: departmentsResult.error };
     if (scoresResult.error) return { data: null, error: scoresResult.error };
     if (budgetsResult.error) return { data: null, error: budgetsResult.error };
+    if (propBudgetVersionsResult.error) return { data: null, error: propBudgetVersionsResult.error };
     if (versionsResult.error) return { data: null, error: versionsResult.error };
 
     // Create lookup maps for quick access
@@ -1806,6 +1814,7 @@ export class ProposalService {
     const departmentsMap = new Map((departmentsResult.data || []).map((d) => [d.id, d]));
     const allScores = scoresResult.data || [];
     const allBudgets = budgetsResult.data || [];
+    const allBudgetVersions = propBudgetVersionsResult.data || [];
 
     // Build a per-proposal ordered list of version IDs so we can look up the
     // 1-based index of each proposal's current_version_id (= display version).
@@ -1956,6 +1965,7 @@ export class ProposalService {
         readyForEndorsement,
         budget,
         estimated_budget: proposalBudgets, // raw items with item, source, budget(category), amount
+        proposal_budget_versions: allBudgetVersions.filter((v: any) => v.proposal_id === proposal.id),
       };
     });
 

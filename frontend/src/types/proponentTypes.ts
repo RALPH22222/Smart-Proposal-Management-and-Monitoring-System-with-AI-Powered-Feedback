@@ -24,6 +24,11 @@ export interface BudgetLineItem {
   id?: string | number;
   item: string;
   amount: number;
+  subcategory?: string;
+  specifications?: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice?: number;
 }
 
 export interface BudgetSource {

@@ -364,8 +364,13 @@ const Profile: React.FC = () => {
 
     const budgetMap = new Map<string, DetailedBudgetSource>();
 
-    if (Array.isArray(raw.estimated_budget)) {
-      raw.estimated_budget.forEach((item: any) => {
+    const rawBudgets =
+      (raw.proposal_budget_versions?.length > 0 && raw.proposal_budget_versions[raw.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+      raw.estimated_budget ||
+      [];
+
+    if (Array.isArray(rawBudgets)) {
+      rawBudgets.forEach((item: any) => {
         const source = val(item.source) || "Unknown Source";
         if (!budgetMap.has(source)) {
           budgetMap.set(source, {
@@ -378,14 +383,19 @@ const Profile: React.FC = () => {
           });
         }
         const entry = budgetMap.get(source)!;
-        const amount = Number(item.amount) || 0;
-        const budgetType = (item.budget || "").toLowerCase() as "ps" | "mooe" | "co";
+        const amount = Number(item.total_amount ?? item.amount) || 0;
+        const budgetType = (item.category || item.budget || "").toLowerCase() as "ps" | "mooe" | "co";
 
         if (entry.breakdown[budgetType]) {
           entry.breakdown[budgetType].push({
             id: item.id,
-            item: val(item.item),
+            item: val(item.item_name || item.item || item.item_description),
             amount: amount,
+            subcategory: val(item.budget_subcategories?.label || item.custom_subcategory_label || item.subcategory || item.sub_category),
+            specifications: val(item.spec || item.specifications || item.spec_volume),
+            quantity: val(item.quantity || item.qty),
+            unit: val(item.unit),
+            unitPrice: val(item.unit_price || item.unitPrice),
           });
           entry[budgetType] += amount;
           entry.total += amount;

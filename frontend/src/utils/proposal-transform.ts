@@ -44,14 +44,24 @@ export function transformProposalForModal(raw: any) {
       .join(", ") || "N/A";
 
   // Budget transformation: group by source, sum by category, collect items
-  interface CategoryData { items: { item: string; amount: number }[]; total: number }
+  interface CategoryData { items: any[]; total: number }
   const budgetMap: Record<string, { ps: CategoryData; mooe: CategoryData; co: CategoryData }> = {};
 
-  (raw.estimated_budget || []).forEach((b: any) => {
+  const rawBudgets =
+    (raw.proposal_budget_versions?.length > 0 && raw.proposal_budget_versions[raw.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+    raw.estimated_budget ||
+    [];
+
+  rawBudgets.forEach((b: any) => {
     const src = b.funding_agency || b.source || "Unknown";
-    const amount = Number(b.amount) || 0;
+    const amount = Number(b.total_amount ?? b.amount) || 0;
     const desc = b.item_description || b.item_name || b.item || "Unspecified";
-    const rawType = (b.item_type || b.budget || "").toLowerCase();
+    const subcategory = b.budget_subcategories?.label || b.custom_subcategory_label || b.subcategory || b.sub_category;
+    const specifications = b.spec || b.specifications || b.spec_volume;
+    const quantity = b.quantity || b.qty;
+    const unit = b.unit;
+    const unitPrice = b.unit_price || b.unitPrice;
+    const rawType = (b.category || b.item_type || b.budget || "").toLowerCase();
 
     // Determine category
     let cat: "ps" | "mooe" | "co" | null = null;
@@ -69,7 +79,7 @@ export function transformProposalForModal(raw: any) {
 
     if (cat) {
       budgetMap[src][cat].total += amount;
-      budgetMap[src][cat].items.push({ item: desc, amount });
+      budgetMap[src][cat].items.push({ item: desc, amount, subcategory, specifications, quantity, unit, unitPrice });
     }
   });
 

@@ -2511,18 +2511,32 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             <div className="space-y-1">
                               {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
                                 budget.breakdown.ps.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
                                     {canEditBudget ? (
-                                      <>
+                                      <div className="flex gap-2 items-center w-full">
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
                                         <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </>
+                                      </div>
                                     ) : (
-                                      <>
-                                        <span>{item.item}</span>
-                                        <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
-                                      </>
+                                      <div className="flex flex-col w-full gap-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
+                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
+                                        </div>
+                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
+                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
+                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
+                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
+                                            {(item.quantity || item.unit) && (
+                                              <span>
+                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
+                                              </span>
+                                            )}
+                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
+                                          </div>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 ))
@@ -2548,18 +2562,32 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             <div className="space-y-1">
                               {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
                                 budget.breakdown.mooe.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
                                     {canEditBudget ? (
-                                      <>
+                                      <div className="flex gap-2 items-center w-full">
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
                                         <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </>
+                                      </div>
                                     ) : (
-                                      <>
-                                        <span>{item.item}</span>
-                                        <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
-                                      </>
+                                      <div className="flex flex-col w-full gap-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
+                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
+                                        </div>
+                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
+                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
+                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
+                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
+                                            {(item.quantity || item.unit) && (
+                                              <span>
+                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
+                                              </span>
+                                            )}
+                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
+                                          </div>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 ))
@@ -2585,18 +2613,32 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             <div className="space-y-1">
                               {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
                                 budget.breakdown.co.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-center text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
                                     {canEditBudget ? (
-                                      <>
+                                      <div className="flex gap-2 items-center w-full">
                                         <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
                                         <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
                                         <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </>
+                                      </div>
                                     ) : (
-                                      <>
-                                        <span>{item.item}</span>
-                                        <span className="font-medium text-slate-700">₱{Number(item.amount).toLocaleString()}</span>
-                                      </>
+                                      <div className="flex flex-col w-full gap-1">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
+                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
+                                        </div>
+                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
+                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
+                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
+                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
+                                            {(item.quantity || item.unit) && (
+                                              <span>
+                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
+                                              </span>
+                                            )}
+                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
+                                          </div>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 ))

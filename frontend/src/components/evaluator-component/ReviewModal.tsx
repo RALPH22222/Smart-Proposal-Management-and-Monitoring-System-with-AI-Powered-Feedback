@@ -224,21 +224,35 @@ export default function ReviewModal({
       .join(' ');
   };
 
-  const renderBreakdown = (items?: { item: string; amount: number }[]) => {
+  const renderBreakdown = (items?: any[]) => {
     if (!items || items.length === 0) {
-      return <p className="italic text-slate-400">No itemized breakdown available</p>;
+      return <p className="italic text-slate-400 text-xs mt-1">No items</p>;
     }
     return (
-      <ul className="space-y-1">
+      <div className="space-y-1">
         {items.map((b, i) => (
-          <li key={i} className="flex justify-between items-start gap-2">
-            <span className="text-slate-600 line-clamp-2">{b.item}</span>
-            <span className="text-slate-900 font-medium whitespace-nowrap">
-              {new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(b.amount)}
+          <div key={i} className="flex gap-2 justify-between items-start text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+            <div className="flex flex-col">
+              <span className="text-slate-800 font-medium leading-tight">{b.item}</span>
+              {((b.subcategory || b.sub_category) || (b.specifications || b.spec_volume) || (b.quantity || b.qty)) && (
+                <div className="text-[10px] text-slate-400 mt-0.5 space-y-0.5">
+                  {(b.subcategory || b.sub_category) && <div className="uppercase font-semibold tracking-wider text-slate-500">Subcategory: {b.subcategory || b.sub_category}</div>}
+                  {(b.specifications || b.spec_volume) && <div className="italic">Spec/Volume: {b.specifications || b.spec_volume}</div>}
+                  {(b.quantity || b.qty) && (
+                    <div className="font-mono">
+                      Qty: {b.quantity || b.qty} {b.unit ? `Unit: ${b.unit} ` : ''} 
+                      {(b.unitPrice || b.unit_price) ? `@ Unit Price: ₱${new Intl.NumberFormat("en-PH").format(b.unitPrice || b.unit_price)}` : ''}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <span className="font-medium text-slate-700 whitespace-nowrap">
+              ₱{new Intl.NumberFormat("en-PH").format(b.amount || parseInt(b.amount) || 0)}
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     );
   };
 

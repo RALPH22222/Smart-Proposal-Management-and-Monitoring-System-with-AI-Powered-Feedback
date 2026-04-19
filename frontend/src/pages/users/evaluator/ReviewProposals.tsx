@@ -41,7 +41,7 @@ export default function EndorsedProposals() {
         // Map budget
         const budgetSourcesMap: Record<string, {
           ps: number; mooe: number; co: number;
-          breakdown: { ps: { item: string; amount: number }[], mooe: { item: string; amount: number }[], co: { item: string; amount: number }[] }
+          breakdown: { ps: any[], mooe: any[], co: any[] }
         }> = {};
 
         (p.estimated_budget || []).forEach((b: any) => {
@@ -52,6 +52,11 @@ export default function EndorsedProposals() {
 
           const amount = Number(b.amount) || 0;
           const itemLabel = b.object || b.item || 'Unspecified Item';
+          const subcategory = b.subcategory || b.sub_category;
+          const specifications = b.specifications || b.spec_volume;
+          const quantity = b.quantity || b.qty;
+          const unit = b.unit;
+          const unitPrice = b.unit_price || b.unitPrice;
           const rawType = (b.budget || '').toLowerCase();
 
           let cat: 'ps' | 'mooe' | 'co' = 'mooe';
@@ -60,7 +65,7 @@ export default function EndorsedProposals() {
           else if (rawType.includes('mooe')) cat = 'mooe';
 
           budgetSourcesMap[src][cat] += amount;
-          budgetSourcesMap[src].breakdown[cat].push({ item: itemLabel, amount });
+          budgetSourcesMap[src].breakdown[cat].push({ item: itemLabel, amount, subcategory, specifications, quantity, unit, unitPrice });
         });
 
         const budgetSources = Object.entries(budgetSourcesMap).map(([source, amounts]) => ({

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader2, RotateCcw } from 'lucide-react';
 import { BsAndroid2 } from 'react-icons/bs';
-import MobileImage from '../assets/IMAGES/Mobile-App.jpg';
 import WmsuFallbackLogo from '../assets/IMAGES/WMSU.png';
 import RdecFallbackLogo from '../assets/IMAGES/RDEC.jpg';
 import { HomeApi } from '../services/HomeApi';
@@ -124,7 +123,7 @@ const ApkDownloadPage: React.FC = () => {
           <BsAndroid2 className="absolute top-[20%] left-[80%] text-green-400/20 w-8 h-8 rotate-12 animate-float animation-delay-700" />
         </div>
 
-        <div className={`max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center relative transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className={`w-full max-w-6xl mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-12 lg:gap-20 items-center relative transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
 
           {/* Left */}
           <div className="order-2 lg:order-1 relative z-10">
@@ -185,7 +184,7 @@ const ApkDownloadPage: React.FC = () => {
 
           {/* Right Column - Flip Card (HIDDEN ON MOBILE/TABLET) */}
           <div className={`order-1 lg:order-2 hidden lg:block relative z-[60] mt-8 lg:mt-0 transition-all duration-1000 delay-200 transform ${isLoaded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-            <div className="relative mx-auto lg:ml-0 w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[380px] xl:max-w-[420px] flip-card">
+            <div className="relative mx-auto w-[260px] flip-card">
               <div className={`flip-inner w-full`} style={{ height: 'min(70vh, 520px)', transform: isFlipped ? 'rotateY(180deg)' : 'none' }}>
 
                 {/* FRONT — phone mockup */}
@@ -193,14 +192,44 @@ const ApkDownloadPage: React.FC = () => {
                   className="flip-front absolute inset-0 cursor-pointer"
                   onClick={() => apkUrl && setIsFlipped(true)}
                 >
-                  <div className="relative animate-float w-full h-full hover:scale-[1.02] transition-transform duration-300">
-                    <img
-                      src={phoneImageUrl || MobileImage}
-                      alt="RDEC Mobile App"
-                      className="w-full h-full object-contain rounded-[2rem] brightness-110 contrast-105 mix-blend-multiply"
-                    />
-                    {apkUrl && (
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm whitespace-nowrap select-none pointer-events-none">
+                  <div className="relative animate-float w-full h-full hover:scale-[1.02] transition-transform duration-300 mx-auto" style={{ maxWidth: '280px' }}>
+                    {/* Outer bezel */}
+                    <div className="absolute inset-0 rounded-[2.5rem] border-[8px] border-gray-900 bg-gray-900 shadow-2xl overflow-hidden">
+                      {/* Screen */}
+                      <div className="absolute inset-0 rounded-[2rem] overflow-hidden bg-white flex items-center justify-center">
+                        {isLoadingApk ? (
+                          /* Skeleton Loader */
+                          <div className="w-full h-full bg-gray-100 flex flex-col gap-4 p-6 animate-pulse">
+                            <div className="h-8 w-1/2 bg-gray-200 rounded-full" />
+                            <div className="h-32 w-full bg-gray-200 rounded-2xl" />
+                            <div className="flex-1 w-full bg-gray-200 rounded-2xl" />
+                            <div className="h-10 w-full bg-red-100 rounded-xl" />
+                          </div>
+                        ) : phoneImageUrl ? (
+                          <img
+                            src={phoneImageUrl}
+                            alt="RDEC Mobile App"
+                            className="w-full h-full object-cover brightness-105 contrast-105"
+                          />
+                        ) : (
+                          /* Empty State / Skeleton */
+                          <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                              <BsAndroid2 className="w-8 h-8 text-red-200" />
+                            </div>
+                            <div className="h-2 w-24 bg-gray-200 rounded-full mb-2" />
+                            <div className="h-2 w-16 bg-gray-100 rounded-full" />
+                          </div>
+                        )}
+                      </div>
+                      {/* Notch */}
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-900 rounded-full z-10" />
+                      {/* Home indicator */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-600 rounded-full z-10" />
+                    </div>
+
+                    {apkUrl && !isLoadingApk && (
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[10px] font-bold px-4 py-2 rounded-full backdrop-blur-md whitespace-nowrap select-none pointer-events-none z-20 border border-white/10 shadow-lg">
                         📷 Tap to show QR Code
                       </div>
                     )}

@@ -438,6 +438,38 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
 
   const theme = getStatusTheme(p.status);
 
+  const renderBreakdown = (items?: any[]) => {
+    if (!items || items.length === 0) {
+      return <p className="italic text-slate-400 text-xs mt-1">No items</p>;
+    }
+    return (
+      <div className="space-y-1">
+        {items.map((b, i) => (
+          <div key={i} className="flex gap-2 justify-between items-start text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
+            <div className="flex flex-col">
+              <span className="text-slate-800 font-medium leading-tight">{b.item}</span>
+              {((b.subcategory || b.sub_category) || (b.specifications || b.spec_volume) || (b.quantity || b.qty)) && (
+                <div className="text-[10px] text-slate-400 mt-0.5 space-y-0.5">
+                  {(b.subcategory || b.sub_category) && <div className="uppercase font-semibold tracking-wider text-slate-500">Subcategory: {b.subcategory || b.sub_category}</div>}
+                  {(b.specifications || b.spec_volume) && <div className="italic">Spec/Volume: {b.specifications || b.spec_volume}</div>}
+                  {(b.quantity || b.qty) && (
+                    <div className="font-mono">
+                      Qty: {b.quantity || b.qty} {b.unit ? `Unit: ${b.unit} ` : ''} 
+                      {(b.unitPrice || b.unit_price) ? `@ Unit Price: ₱${new Intl.NumberFormat("en-PH").format(b.unitPrice || b.unit_price)}` : ''}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <span className="font-medium text-slate-700 whitespace-nowrap">
+              ₱{new Intl.NumberFormat("en-PH").format(b.amount || parseInt(b.amount) || 0)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
       <ScrollKeyframes />
@@ -1008,21 +1040,12 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     {/* Card Body */}
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
                       {/* PS */}
-                      <div className="space-y-2 pt-2 md:pt-0">
+                      <div className="space-y-2 pt-2 md:pt-0 pl-0">
                         <div className="flex justify-between items-center mb-2">
                           <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
                           <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
                         </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                            budget.breakdown.ps.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
+                        {renderBreakdown(budget.breakdown?.ps)}
                       </div>
 
                       {/* MOOE */}
@@ -1031,16 +1054,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                           <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
                           <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
                         </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                            budget.breakdown.mooe.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
+                        {renderBreakdown(budget.breakdown?.mooe)}
                       </div>
 
                       {/* CO */}
@@ -1049,16 +1063,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                           <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
                           <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
                         </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                            budget.breakdown.co.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
+                        {renderBreakdown(budget.breakdown?.co)}
                       </div>
                     </div>
                   </div>
