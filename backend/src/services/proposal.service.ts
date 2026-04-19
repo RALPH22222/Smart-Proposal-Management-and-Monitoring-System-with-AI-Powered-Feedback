@@ -411,14 +411,28 @@ export class ProposalService {
       };
     }
 
-    if (!proposal.current_version_id) {
-      return {
-        error: new Error("Proposal has no current version — cannot forward to evaluators."),
-        assignments: null,
-      };
-    }
+    let currentVersionId = proposal.current_version_id as number;
 
-    const currentVersionId = proposal.current_version_id as number;
+    if (!currentVersionId) {
+      const { data: latestVersion, error: versionFetchError } = await this.db
+        .from("proposal_version")
+        .select("id")
+        .eq("proposal_id", proposal_id)
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (versionFetchError || !latestVersion) {
+        return {
+          error: new Error("Proposal has no current version or files uploaded — cannot forward to evaluators."),
+          assignments: null,
+        };
+      }
+
+      // Repair: Update the proposals table with the found version pointer
+      currentVersionId = latestVersion.id;
+      await this.db.from("proposals").update({ current_version_id: currentVersionId }).eq("id", proposal_id);
+    }
 
     const { data: existingAssignments } = await this.db
       .from("proposal_evaluators")
