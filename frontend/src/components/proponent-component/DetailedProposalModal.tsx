@@ -2462,13 +2462,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     {currentData.budgetSources.map((budget, index) => (
                       <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                         {/* Card Header: Source Name & Total */}
-                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                            <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
                               <HandCoins className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
                               {canEditBudget ? (
                                 <input
                                   value={budget.source}
@@ -2476,14 +2476,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                   className={`font-bold text-slate-800 text-sm ${getInputClass(true)}`}
                                 />
                               ) : (
-                                <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                                <h4 className="font-bold text-slate-800 text-sm leading-tight">{budget.source}</h4>
                               )}
                             </div>
                           </div>
                           <div className="text-right flex items-center gap-4">
                             <div>
-                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                              <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
+                              <p className="text-base font-bold text-[#C8102E]">{budget.total}</p>
                             </div>
                             {canEditBudget && (
                               <button onClick={() => handleRemoveBudgetItem(index)} className="text-red-500 hover:text-red-700 p-1 bg-white rounded border border-red-200 shadow-sm transition-colors">
@@ -2493,173 +2493,206 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Card Body: Breakdown Columns */}
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                          {/* PS Column */}
-                          <div className="space-y-2 pt-2 md:pt-0">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-xs text-slate-600 uppercase">Personal Services (PS)</h5>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                                {canEditBudget && (
+                        {/* Card Body: Breakdown */}
+                        {canEditBudget ? (
+                          /* ---- EDIT MODE: side-by-side columns ---- */
+                          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                            {/* PS Column */}
+                            <div className="space-y-2 pt-2 md:pt-0">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-bold text-xs text-slate-600 uppercase">Personal Services (PS)</h5>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
                                   <button onClick={() => handleAddBudgetBreakdownItem(index, "ps")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
                                     <Plus className="w-3 h-3" />
                                   </button>
-                                )}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
+                                  budget.breakdown.ps.map((item, i) => (
+                                    <div key={i} className="flex gap-2 items-center w-full">
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
+                                    </div>
+                                  ))
+                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                                budget.breakdown.ps.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
-                                    {canEditBudget ? (
-                                      <div className="flex gap-2 items-center w-full">
-                                        <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                        <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col w-full gap-1">
-                                        <div className="flex items-start justify-between gap-2">
-                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
-                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
-                                        </div>
-                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
-                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
-                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
-                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
-                                            {(item.quantity || item.unit) && (
-                                              <span>
-                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
-                                              </span>
-                                            )}
-                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs italic text-slate-400">No items</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* MOOE Column */}
-                          <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-xs text-slate-600 uppercase">MOOE</h5>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
-                                {canEditBudget && (
+                            {/* MOOE Column */}
+                            <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-bold text-xs text-slate-600 uppercase">MOOE</h5>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
                                   <button onClick={() => handleAddBudgetBreakdownItem(index, "mooe")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
                                     <Plus className="w-3 h-3" />
                                   </button>
-                                )}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
+                                  budget.breakdown.mooe.map((item, i) => (
+                                    <div key={i} className="flex gap-2 items-center w-full">
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
+                                    </div>
+                                  ))
+                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                                budget.breakdown.mooe.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
-                                    {canEditBudget ? (
-                                      <div className="flex gap-2 items-center w-full">
-                                        <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                        <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col w-full gap-1">
-                                        <div className="flex items-start justify-between gap-2">
-                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
-                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
-                                        </div>
-                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
-                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
-                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
-                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
-                                            {(item.quantity || item.unit) && (
-                                              <span>
-                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
-                                              </span>
-                                            )}
-                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-xs italic text-slate-400">No items</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* CO Column */}
-                          <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-bold text-xs text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
-                                {canEditBudget && (
+                            {/* CO Column */}
+                            <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="font-bold text-xs text-slate-600 uppercase">Capital Outlay (CO)</h5>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
                                   <button onClick={() => handleAddBudgetBreakdownItem(index, "co")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
                                     <Plus className="w-3 h-3" />
                                   </button>
-                                )}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
+                                  budget.breakdown.co.map((item, i) => (
+                                    <div key={i} className="flex gap-2 items-center w-full">
+                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
+                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
+                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
+                                    </div>
+                                  ))
+                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                                budget.breakdown.co.map((item, i) => (
-                                  <div key={i} className="flex gap-2 items-start text-xs text-slate-500 hover:bg-slate-50 p-1.5 rounded border border-transparent hover:border-slate-100 flex-col sm:flex-row sm:items-center w-full">
-                                    {canEditBudget ? (
-                                      <div className="flex gap-2 items-center w-full">
-                                        <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                        <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                        <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col w-full gap-1">
-                                        <div className="flex items-start justify-between gap-2">
-                                          <span className="font-medium text-slate-700 leading-tight">{item.item}</span>
-                                          <span className="font-bold text-slate-800 whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</span>
-                                        </div>
-                                        {(item.subcategory || item.specifications || item.quantity || item.unit || item.unitPrice) && (
-                                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-0.5">
-                                            {item.subcategory && <span><b className="text-slate-600">Sub:</b> {item.subcategory}</span>}
-                                            {item.specifications && <span><b className="text-slate-600">Spec:</b> {item.specifications}</span>}
-                                            {(item.quantity || item.unit) && (
-                                              <span>
-                                                <b className="text-slate-600">Qty:</b> {item.quantity || '-'} {item.unit || ''}
-                                              </span>
-                                            )}
-                                            {item.unitPrice && <span><b className="text-slate-600">Unit Price:</b> ₱{Number(item.unitPrice).toLocaleString()}</span>}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                          </div>
+                        ) : (
+                          /* ---- READ-ONLY MODE: table layout per category ---- */
+                          <>
+                            {/* Category Summary Row */}
+                            <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                                <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
+                              </div>
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                                <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
+                              </div>
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                                <span className="text-xs font-bold text-slate-700">{budget.co}</span>
+                              </div>
+                            </div>
+                            {/* Breakdown tables per category */}
+                            <div className="divide-y divide-slate-100">
+                              {budget.breakdown?.ps && budget.breakdown.ps.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-violet-600 mb-2 flex items-center gap-1.5">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
+                                    Personal Services (PS)
+                                  </h5>
+                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
+                                    <table className="min-w-full text-xs">
+                                      <thead><tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
+                                        <th className="text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+                                        <th className="text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                                      </tr></thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.ps.map((item, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-3 py-2 text-slate-800 font-medium max-w-[160px]">{item.item || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500 italic">{item.specifications || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-600 text-center font-mono">
+                                              {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
                                   </div>
-                                ))
-                              ) : (
-                                <p className="text-xs italic text-slate-400">No items</p>
+                                </div>
+                              )}
+                              {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 mb-2 flex items-center gap-1.5">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                                    Maintenance, Operating & Other Expenses (MOOE)
+                                  </h5>
+                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
+                                    <table className="min-w-full text-xs">
+                                      <thead><tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
+                                        <th className="text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+                                        <th className="text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                                      </tr></thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.mooe.map((item, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-3 py-2 text-slate-800 font-medium max-w-[160px]">{item.item || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500 italic">{item.specifications || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-600 text-center font-mono">
+                                              {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+                              {budget.breakdown?.co && budget.breakdown.co.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-1.5">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    Capital Outlay (CO)
+                                  </h5>
+                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
+                                    <table className="min-w-full text-xs">
+                                      <thead><tr className="bg-slate-50 border-b border-slate-100">
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
+                                        <th className="text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+                                        <th className="text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                                      </tr></thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.co.map((item, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-3 py-2 text-slate-800 font-medium max-w-[160px]">{item.item || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-500 italic">{item.specifications || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-600 text-center font-mono">
+                                              {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">₱{Number(item.amount).toLocaleString()}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                        </div>
+                          </>
+                        )}
                       </div>
                     ))}
 
                     {/* Grand Total Footer */}
-                    <div className="bg-slate-100 rounded-xl p-4 flex justify-between items-center border border-slate-200">
-                      <div>
-                        <h4 className="font-bold text-slate-700 text-sm uppercase">Total Project Cost</h4>
-                        <p className="text-xs text-slate-500">Grand total of all sources</p>
-                      </div>
-                      <div className="text-xl font-black text-[#C8102E] font-mono">
-                        {currentData.budgetTotal}
-                      </div>
+                    <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2">
+                      <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
+                      <span className="text-xl font-black text-white">{currentData.budgetTotal}</span>
                     </div>
                   </div>
                 </div>

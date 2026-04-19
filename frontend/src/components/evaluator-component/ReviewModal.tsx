@@ -226,32 +226,40 @@ export default function ReviewModal({
 
   const renderBreakdown = (items?: any[]) => {
     if (!items || items.length === 0) {
-      return <p className="italic text-slate-400 text-xs mt-1">No items</p>;
+      return (
+        <p className="italic text-slate-400 text-xs py-2 text-center">No items recorded</p>
+      );
     }
     return (
-      <div className="space-y-1">
-        {items.map((b, i) => (
-          <div key={i} className="flex gap-2 justify-between items-start text-xs text-slate-500 hover:bg-slate-50 p-1 rounded">
-            <div className="flex flex-col">
-              <span className="text-slate-800 font-medium leading-tight">{b.item}</span>
-              {((b.subcategory || b.sub_category) || (b.specifications || b.spec_volume) || (b.quantity || b.qty)) && (
-                <div className="text-[10px] text-slate-400 mt-0.5 space-y-0.5">
-                  {(b.subcategory || b.sub_category) && <div className="uppercase font-semibold tracking-wider text-slate-500">Subcategory: {b.subcategory || b.sub_category}</div>}
-                  {(b.specifications || b.spec_volume) && <div className="italic">Spec/Volume: {b.specifications || b.spec_volume}</div>}
-                  {(b.quantity || b.qty) && (
-                    <div className="font-mono">
-                      Qty: {b.quantity || b.qty} {b.unit ? `Unit: ${b.unit} ` : ''} 
-                      {(b.unitPrice || b.unit_price) ? `@ Unit Price: ₱${new Intl.NumberFormat("en-PH").format(b.unitPrice || b.unit_price)}` : ''}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <span className="font-medium text-slate-700 whitespace-nowrap">
-              ₱{new Intl.NumberFormat("en-PH").format(b.amount || parseInt(b.amount) || 0)}
-            </span>
-          </div>
-        ))}
+      <div className="overflow-x-auto rounded-lg border border-slate-100">
+        <table className="min-w-full text-xs">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-100">
+              <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+              <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+              <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
+              <th className="text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+              <th className="text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {items.map((b, i) => (
+              <tr key={i} className="hover:bg-slate-50 transition-colors">
+                <td className="px-3 py-2 text-slate-800 font-medium max-w-[160px]">{b.item || '—'}</td>
+                <td className="px-3 py-2 text-slate-500">{b.subcategory || b.sub_category || '—'}</td>
+                <td className="px-3 py-2 text-slate-500 italic">{b.specifications || b.spec_volume || '—'}</td>
+                <td className="px-3 py-2 text-slate-600 text-center font-mono">
+                  {(b.quantity || b.qty)
+                    ? `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ₱${new Intl.NumberFormat('en-PH').format(b.unitPrice || b.unit_price || 0)}`
+                    : '—'}
+                </td>
+                <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">
+                  ₱{new Intl.NumberFormat('en-PH').format(b.amount || 0)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -491,62 +499,79 @@ export default function ReviewModal({
                   <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
                 </h3>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {proposal.budgetSources.map((budget, index) => (
-                    <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                    <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                       {/* Card Header */}
-                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                          <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
                             <DollarSign className="w-4 h-4" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                            <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
+                            <h4 className="font-bold text-slate-800 text-sm leading-tight">{budget.source}</h4>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                          <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
+                          <p className="text-base font-bold text-[#C8102E]">{budget.total}</p>
                         </div>
                       </div>
 
-                      {/* Card Body */}
-                      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
-                        {/* PS */}
-                        <div className="space-y-2 pt-2 md:pt-0 pl-0">
-                          <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
-                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                          </div>
-                          {renderBreakdown(budget.breakdown?.ps)}
+                      {/* Category Summary Row */}
+                      <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
+                        <div className="px-4 py-2 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                          <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
                         </div>
+                        <div className="px-4 py-2 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                          <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
+                        </div>
+                        <div className="px-4 py-2 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                          <span className="text-xs font-bold text-slate-700">{budget.co}</span>
+                        </div>
+                      </div>
 
-                        {/* MOOE */}
-                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
-                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
+                      {/* Breakdown per category */}
+                      <div className="divide-y divide-slate-100">
+                        {budget.breakdown?.ps && budget.breakdown.ps.length > 0 && (
+                          <div className="p-4">
+                            <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-violet-600 mb-2 flex items-center gap-1.5">
+                              <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
+                              Personal Services (PS)
+                            </h5>
+                            {renderBreakdown(budget.breakdown.ps)}
                           </div>
-                          {renderBreakdown(budget.breakdown?.mooe)}
-                        </div>
-
-                        {/* CO */}
-                        <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                            <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
+                        )}
+                        {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 && (
+                          <div className="p-4">
+                            <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 mb-2 flex items-center gap-1.5">
+                              <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                              Maintenance, Operating & Other Expenses (MOOE)
+                            </h5>
+                            {renderBreakdown(budget.breakdown.mooe)}
                           </div>
-                          {renderBreakdown(budget.breakdown?.co)}
-                        </div>
+                        )}
+                        {budget.breakdown?.co && budget.breakdown.co.length > 0 && (
+                          <div className="p-4">
+                            <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-1.5">
+                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                              Capital Outlay (CO)
+                            </h5>
+                            {renderBreakdown(budget.breakdown.co)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
 
                   {/* Grand Total Footer */}
-                  <div className="flex justify-end items-center gap-4 pt-2">
-                    <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
-                    <span className="text-xl font-bold text-[#C8102E]">{proposal.budgetTotal}</span>
+                  <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2">
+                    <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
+                    <span className="text-xl font-black text-white">{proposal.budgetTotal}</span>
                   </div>
 
                 </div>
