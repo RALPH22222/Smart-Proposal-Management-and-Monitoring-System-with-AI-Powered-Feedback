@@ -223,7 +223,7 @@ const ApkDownloadPage: React.FC = () => {
                         )}
                       </div>
                       {/* Notch */}
-                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-900 rounded-full z-10" />
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-4 h-4 bg-gray-900 rounded-full z-10" />
                       {/* Home indicator */}
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-600 rounded-full z-10" />
                     </div>

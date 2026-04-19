@@ -522,7 +522,7 @@ const PhoneMockupUpload: React.FC<{
               )}
             </div>
             {/* Notch */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-3 bg-gray-800 rounded-full z-10" />
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-800 rounded-full z-10" />
             {/* Home indicator */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-600 rounded-full z-10" />
           </div>
