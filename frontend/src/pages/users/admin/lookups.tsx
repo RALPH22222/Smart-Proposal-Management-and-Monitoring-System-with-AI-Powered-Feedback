@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, X, Check, AlertTriangle, ChevronDown, ChevronRight, MapPin } from "lucide-react";
 import Swal from "sweetalert2";
-import { fetchDepartments, fetchDisciplines, fetchSectors, type LookupItem } from "../../../services/proposal.api";
+import { toast, Toaster } from "react-hot-toast";
+import { type LookupItem } from "../../../services/proposal.api";
 import { LookupApi, type LookupTable, type AgencyAddress } from "../../../services/admin/LookupApi";
 import { api } from "../../../utils/axios";
 import PageLoader from "../../../components/shared/PageLoader";
@@ -195,23 +196,18 @@ const Lookups: React.FC = () => {
   const fetchItems = useCallback(async (table: LookupTable) => {
     setIsLoading(true);
     try {
-      let data: LookupItem[];
-      switch (table) {
-        case "departments":
-          data = await fetchDepartments();
-          break;
-        case "disciplines":
-          data = await fetchDisciplines();
-          break;
-        case "sectors":
-          data = await fetchSectors();
-          break;
-        default: {
-          const res = await api.get<LookupItem[]>(`/proposal/lookup/${table === "priorities" ? "priority" : table === "agencies" ? "agency" : "tag"}`, { withCredentials: true });
-          data = res.data;
-        }
-      }
-      setItems(data.sort((a, b) => a.name.localeCompare(b.name)));
+      // Always use direct API calls (bypass the 5-min proposal-form cache)
+      // so the list refreshes correctly right after a create/update/delete.
+      const endpointMap: Record<LookupTable, string> = {
+        departments: "department",
+        disciplines: "discipline",
+        sectors: "sector",
+        priorities: "priority",
+        agencies: "agency",
+        tags: "tag",
+      };
+      const res = await api.get<LookupItem[]>(`/proposal/lookup/${endpointMap[table]}`, { withCredentials: true });
+      setItems(res.data.sort((a, b) => a.name.localeCompare(b.name)));
     } catch {
       setItems([]);
     } finally {
@@ -236,7 +232,7 @@ const Lookups: React.FC = () => {
       setNewName("");
       setIsAdding(false);
       fetchItems(activeTab);
-      Swal.fire({ icon: "success", title: "Created", text: `"${trimmed}" added to ${activeTab}`, timer: 1500, showConfirmButton: false });
+      toast.success(`"${trimmed}" added to ${activeTab}`);
     } catch (err: any) {
       Swal.fire("Error", err.response?.data?.message || "Failed to create entry", "error");
     } finally {
@@ -252,7 +248,7 @@ const Lookups: React.FC = () => {
       await LookupApi.update(activeTab, id, trimmed);
       setEditingId(null);
       fetchItems(activeTab);
-      Swal.fire({ icon: "success", title: "Updated", timer: 1500, showConfirmButton: false });
+      toast.success("Entry updated");
     } catch (err: any) {
       Swal.fire("Error", err.response?.data?.message || "Failed to update entry", "error");
     } finally {
@@ -274,7 +270,7 @@ const Lookups: React.FC = () => {
     try {
       await LookupApi.delete(activeTab, item.id);
       fetchItems(activeTab);
-      Swal.fire({ icon: "success", title: "Deleted", timer: 1500, showConfirmButton: false });
+      toast.success(`"${item.name}" deleted`);
     } catch (err: any) {
       Swal.fire("Error", err.response?.data?.message || "Failed to delete entry", "error");
     }
@@ -300,6 +296,7 @@ const Lookups: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4 lg:gap-6 min-h-full h-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
+      <Toaster position="top-right" />
       <header className="flex-shrink-0 pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-red-700">Lookup Management</h1>
         <p className="text-gray-600 mt-1">Manage dropdown options used in proposal submission forms</p>

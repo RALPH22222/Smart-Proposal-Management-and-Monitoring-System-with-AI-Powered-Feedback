@@ -538,6 +538,7 @@ const MobileAppSection: React.FC = () => {
           label="Android Application Package (.apk)"
           accept=".apk"
           maxSizeMB={500}
+          hideUrlMode
           helperText="Upload the official WMSU Project Portal .apk file (up to 500MB) for Android users to download."
           currentUrl={homeData?.app_config?.apk_url || ""}
           onUploadSuccess={(url) => setHomeData({

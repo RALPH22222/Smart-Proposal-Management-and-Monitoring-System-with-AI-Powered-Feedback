@@ -126,7 +126,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     statusCode: 200,
     body: JSON.stringify(data),
     headers: {
-      "Cache-Control": "public, max-age=300", // 5 minutes — lookup data rarely changes
+      "Cache-Control": "no-store",
     },
   };
 });

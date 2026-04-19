@@ -13,6 +13,7 @@ interface FileUploadProps {
   className?: string;
   helperText?: string;
   maxSizeMB?: number;
+  hideUrlMode?: boolean;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -24,6 +25,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   className = "",
   helperText = "Upload document templates (.docx, .pdf, .pptx, or .xlsx) up to 10MB.",
   maxSizeMB = 10,
+  hideUrlMode = false,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isUrlMode, setIsUrlMode] = useState(false);
@@ -91,6 +93,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center justify-between">
         <label className="block text-sm font-semibold text-gray-800">{label}</label>
+      {!hideUrlMode && (
         <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
             type="button"
@@ -107,6 +110,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             URL
           </button>
         </div>
+      )}
       </div>
       
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-red-200 transition-colors">
