@@ -122,6 +122,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isChangeRdModalOpen, setIsChangeRdModalOpen] = useState(false);
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false);
 
   // Evaluator List Modal State
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
@@ -379,6 +380,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
   // Handler for the Main Action Modal
   const handleSubmitDecision = async (decision: Decision) => {
+    setIsModalSubmitting(true);
     try {
       await proposalApi.submitDecision(decision);
 
@@ -423,6 +425,8 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
 
     } catch (error) {
       console.error('Error submitting decision:', error);
+    } finally {
+      setIsModalSubmitting(false);
     }
   };
 
@@ -907,6 +911,7 @@ const AdminProposalPage: React.FC<AdminProposalPageProps> = ({ onStatsUpdate }) 
           onClose={handleCloseModal}
           onSubmitDecision={handleSubmitDecision}
           currentUser={currentUser}
+          isLoading={isModalSubmitting}
         />
 
         <DetailedProposalModal

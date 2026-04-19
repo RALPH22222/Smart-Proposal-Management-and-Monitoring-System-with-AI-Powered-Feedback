@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
 import { openProposalFile, getFileName } from "../../utils/signed-url";
+import RubricsModal from "./RubricsModal";
 
 const RATING_CRITERIA = {
   title: {
@@ -138,6 +139,7 @@ export default function ReviewModal({
     timeline: 0,
   });
 
+  const [isRubricsModalOpen, setIsRubricsModalOpen] = useState(false);
   const [overallComment, setOverallComment] = useState("");
 
   useEffect(() => {
@@ -267,6 +269,7 @@ export default function ReviewModal({
   if (!isOpen || !proposal) return null;
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
@@ -582,10 +585,20 @@ export default function ReviewModal({
 
             {/* --- EVALUATOR COMMENTS & RATINGS SECTION --- */}
             <div className="border-t-2 border-slate-300 pt-6 mt-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-[#C8102E]" />
-                Evaluator Comments & Ratings
-              </h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-[#C8102E]" />
+                  Evaluator Comments & Ratings
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsRubricsModalOpen(true)}
+                  className="px-3 py-1.5 text-xs font-bold text-[#C8102E] bg-red-50 hover:bg-red-100 rounded-lg flex items-center gap-1.5 transition-colors border border-red-100"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  View Rubrics
+                </button>
+              </div>
               <p className="text-sm text-slate-500 mb-4">
                 Use the matrix below to rate each criterion from <span className="font-semibold text-slate-700">1 (Poor)</span> to{" "}
                 <span className="font-semibold text-slate-700">5 (Excellent)</span>. Select one rating per criterion row.
@@ -796,5 +809,10 @@ export default function ReviewModal({
         </div>
       </div>
     </div>
+    <RubricsModal 
+      isOpen={isRubricsModalOpen} 
+      onClose={() => setIsRubricsModalOpen(false)} 
+    />
+    </>
   );
 }

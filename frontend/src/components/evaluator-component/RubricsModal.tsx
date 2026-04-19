@@ -1,4 +1,7 @@
-import { X, CheckCircle, BookOpen } from "lucide-react";
+import { X, CheckCircle, BookOpen, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { HomeApi } from "../../services/HomeApi";
+import { DEFAULT_HOME_INFO, type RubricCategory, type RubricCriterion } from "../../schemas/home-schema";
 
 interface RubricsModalProps {
   isOpen: boolean;
@@ -6,127 +9,33 @@ interface RubricsModalProps {
 }
 
 export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
-  if (!isOpen) return null;
+  const [rubrics, setRubrics] = useState<RubricCategory[]>(DEFAULT_HOME_INFO.evaluator_rubrics || []);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const rubrics = [
-    {
-      category: "Title Assessment",
-      description:
-        "Evaluate the clarity, relevance, and appropriateness of the project title",
-      criteria: [
-        {
-          score: 5,
-          description:
-            "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
-        },
-        {
-          score: 4,
-          description:
-            "Title is clear, relevant, and provides a good indication of the project's focus and goals",
-        },
-        {
-          score: 3,
-          description:
-            "Title is acceptable but could be more specific or better aligned with the project scope",
-        },
-        {
-          score: 2,
-          description:
-            "Title is vague, overly broad, or does not clearly convey the project's purpose",
-        },
-        {
-          score: 1,
-          description:
-            "Title is unclear, misleading, or irrelevant to the proposed research",
-        },
-      ],
-      evaluatorGuide: [
-        "Does the title clearly convey the main topic or focus of the research?",
-        "Is the title concise yet descriptive enough?",
-        "Does the title accurately reflect the scope and objectives of the proposal?",
-        "Is the title appropriate for the target audience and research field?",
-        "Does the title avoid unnecessary jargon or ambiguity?",
-      ],
-    },
-    {
-      category: "Budget Assessment",
-      description:
-        "Evaluate the appropriateness, justification, and realistic allocation of budget",
-      criteria: [
-        {
-          score: 5,
-          description:
-            "Budget is well-justified, realistic, efficiently allocated, with clear cost breakdown and sound financial management plan",
-        },
-        {
-          score: 4,
-          description:
-            "Budget is appropriate with minor justification gaps or minor allocation concerns",
-        },
-        {
-          score: 3,
-          description:
-            "Budget is acceptable but lacks detailed justification for some line items",
-        },
-        {
-          score: 2,
-          description:
-            "Budget appears inflated or inadequately justified with unclear allocation logic",
-        },
-        {
-          score: 1,
-          description:
-            "Budget is unrealistic, poorly justified, or raises concerns about cost efficiency",
-        },
-      ],
-      evaluatorGuide: [
-        "Are all line items necessary and directly related to project objectives?",
-        "Is the unit cost reasonable and comparable to market rates?",
-        "Are personnel costs justified based on roles and time allocation?",
-        "Is there clear justification for equipment purchases vs. rentals?",
-        "Does the budget reflect efficient use of resources?",
-      ],
-    },
-    {
-      category: "Timeline Assessment",
-      description:
-        "Evaluate the feasibility and realism of the project schedule",
-      criteria: [
-        {
-          score: 5,
-          description:
-            "Timeline is realistic, well-structured with clear milestones, deliverables, and contingency buffers",
-        },
-        {
-          score: 4,
-          description:
-            "Timeline is reasonable with appropriate milestones and reasonable contingency planning",
-        },
-        {
-          score: 3,
-          description:
-            "Timeline is acceptable but somewhat ambitious or lacks detailed milestone descriptions",
-        },
-        {
-          score: 2,
-          description:
-            "Timeline appears unrealistic, poorly structured, or lacks clear milestones",
-        },
-        {
-          score: 1,
-          description:
-            "Timeline is not feasible, unclear, or unrealistic given the project scope",
-        },
-      ],
-      evaluatorGuide: [
-        "Are the project phases clearly defined with specific durations?",
-        "Are key milestones achievable within the stated timeframe?",
-        "Has sufficient time been allocated for critical activities?",
-        "Are there clear deliverables for each phase?",
-        "Is there buffer time for unexpected delays or issues?",
-      ],
-    },
-  ];
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchRubrics = async () => {
+      try {
+        setIsLoading(true);
+        const data = await HomeApi.getHomeInfo();
+        if (data && Array.isArray(data.evaluator_rubrics) && data.evaluator_rubrics.length > 0) {
+          setRubrics(data.evaluator_rubrics);
+        } else {
+          setRubrics(DEFAULT_HOME_INFO.evaluator_rubrics || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch evaluator rubrics", err);
+        setRubrics(DEFAULT_HOME_INFO.evaluator_rubrics || []);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRubrics();
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[100] p-2 sm:p-4">
@@ -154,7 +63,13 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 z-10 backdrop-blur-sm">
+              <Loader2 className="w-8 h-8 animate-spin text-[#C8102E] mb-2" />
+              <p className="text-sm text-slate-500 font-medium">Loading rubrics...</p>
+            </div>
+          )}
           <div className="space-y-6">
             {rubrics.map((rubric, idx) => (
               <div
@@ -176,7 +91,7 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
                     Key Questions to Consider:
                   </p>
                   <ul className="space-y-1">
-                    {rubric.evaluatorGuide.map((guide, gidx) => (
+                    {rubric.evaluatorGuide.map((guide: string, gidx: number) => (
                       <li
                         key={gidx}
                         className="text-xs text-slate-700 flex gap-2"
@@ -191,7 +106,7 @@ export default function RubricsModal({ isOpen, onClose }: RubricsModalProps) {
                 </div>
 
                 <div className="space-y-2">
-                  {rubric.criteria.map((criterion, cidx) => (
+                  {rubric.criteria.map((criterion: RubricCriterion, cidx: number) => (
                     <div
                       key={cidx}
                       className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100"

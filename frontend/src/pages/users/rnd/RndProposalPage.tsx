@@ -326,6 +326,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false);
 
   // Evaluator List Modal State
   const [isEvaluatorModalOpen, setIsEvaluatorModalOpen] = useState(false);
@@ -594,6 +595,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   // --- SUBMIT DECISION (Calls Real API) ---
   const handleSubmitDecision = async (decision: Decision) => {
+    setIsModalSubmitting(true);
     try {
       const proposalIdNumber = Number(decision.proposalId); // API usually expects number
 
@@ -649,6 +651,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         icon: 'error',
         confirmButtonColor: '#C8102E'
       });
+    } finally {
+      setIsModalSubmitting(false);
     }
   };
 
@@ -1034,6 +1038,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         onSubmitDecision={handleSubmitDecision}
         userRole='R&D Staff'
         currentUser={currentUser}
+        isLoading={isModalSubmitting}
       />
 
       <DetailedProposalModal

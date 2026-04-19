@@ -96,6 +96,7 @@ interface RnDProposalModalProps {
   userRole: 'R&D Staff' | 'Evaluator';
   collaborationSession?: CollaborationSession;
   currentUser: Reviewer;
+  isLoading?: boolean;
 }
 
 const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
@@ -105,7 +106,8 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
   onSubmitDecision,
   userRole,
   collaborationSession,
-  currentUser
+  currentUser,
+  isLoading = false
 }) => {
   // --- STATE ---
   const [evaluators, setEvaluators] = useState<Partial<Evaluator>[]>([]);
@@ -1102,22 +1104,23 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
               <button
                 type="button"
                 onClick={handleForwardToEvaluators}
-                disabled={assignedEvaluators.length < 2}
+                disabled={assignedEvaluators.length < 2 || isLoading}
                 className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
               >
-                <Send className="w-4 h-4" />
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 Forward to Evaluators
               </button>
             ) : (
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e as any)}
-                className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-lg transition-all transform hover:scale-[1.02] flex items-center gap-2 ${decision === 'Revision Required'
+                disabled={isLoading}
+                className={`px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-lg transition-all transform hover:scale-[1.02] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none ${decision === 'Revision Required'
                   ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'
                   : 'bg-red-600 hover:bg-red-700 shadow-red-200'
                   }`}
               >
-                {decision === 'Revision Required' ? <RefreshCw className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : (decision === 'Revision Required' ? <RefreshCw className="w-4 h-4" /> : <XCircle className="w-4 h-4" />)}
                 {decision === 'Revision Required' ? 'Request Revision' : 'Reject Proposal'}
               </button>
             )}
@@ -1128,7 +1131,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
       {/* Anonymity Selection Modal */}
       {showAnonymitySelection && (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-in fade-in'>
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-[300] p-4 animate-in fade-in'>
           <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col'>
             <div className='p-6 overflow-y-auto flex-1'>
               <div className='flex items-center gap-3 mb-4'>
@@ -1242,8 +1245,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
               )}
 
               <div className='flex gap-3'>
-                <button onClick={() => setShowAnonymitySelection(false)} className='flex-1 px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors'>Cancel</button>
-                <button onClick={submitWithAnonymity} disabled={isRedacting} className='flex-1 px-4 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed'>Confirm & Send</button>
+                <button onClick={() => setShowAnonymitySelection(false)} disabled={isLoading} className='flex-1 px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50'>Cancel</button>
+                <button onClick={submitWithAnonymity} disabled={isRedacting || isLoading} className='flex-1 px-4 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg shadow-purple-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed'>
+                  {isLoading ? 'Sending...' : 'Confirm & Send'}
+                </button>
               </div>
             </div>
           </div>

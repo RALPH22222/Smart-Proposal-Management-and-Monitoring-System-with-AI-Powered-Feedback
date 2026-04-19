@@ -4,7 +4,7 @@ import { AboutSection } from "./components/AboutSection";
 import { FaqSection } from "./components/FaqSection";
 import { HomeSection } from "./components/HomeSection";
 import { LogosSection } from "./components/LogosSection";
-import { FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered, Smartphone } from 'lucide-react';
+import { FileText, Home, Info, Phone, HelpCircle, Palette, Save, Loader2, ListOrdered, Smartphone, ClipboardList, Trash2, Plus } from 'lucide-react';
 import { HomeApi } from "../../../services/HomeApi";
 import { DEFAULT_HOME_INFO, type HomeInfo, type HomeProcessStep } from "../../../schemas/home-schema";
 import { FileUpload } from "./components/shared/FileUpload";
@@ -25,6 +25,7 @@ const ContentManagement: React.FC = () => {
     { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
     { id: 'templates', label: 'Proposal Templates', icon: FileText },
     { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
+    { id: 'rubrics', label: 'Evaluator Rubrics', icon: ClipboardList },
   ];
 
   return (
@@ -73,6 +74,7 @@ const ContentManagement: React.FC = () => {
         {activeTab === 'contacts' && <ContactsSection />}
         {activeTab === 'faq' && <FaqSection />}
         {activeTab === 'branding' && <MediaLibrarySection />}
+        {activeTab === 'rubrics' && <EvaluatorRubricsSection />}
       </div>
     </div>
   );
@@ -567,6 +569,250 @@ const MobileAppSection: React.FC = () => {
           })}
         />
       </div>
+    </div>
+  );
+};
+
+// Evaluator Rubrics Section
+const EvaluatorRubricsSection: React.FC = () => {
+  const [homeData, setHomeData] = useState<HomeInfo>(DEFAULT_HOME_INFO);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await HomeApi.getHomeInfo();
+        setHomeData({
+          ...DEFAULT_HOME_INFO,
+          ...(data || {}),
+          evaluator_rubrics: (Array.isArray(data?.evaluator_rubrics) && data.evaluator_rubrics.length > 0)
+            ? data.evaluator_rubrics
+            : DEFAULT_HOME_INFO.evaluator_rubrics,
+        });
+      } catch (error) {
+        toast.error("Failed to load evaluator rubrics.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      await HomeApi.updateHomeInfo(homeData);
+      toast.success("Evaluator rubrics updated successfully!");
+    } catch (error) {
+      toast.error("Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateCategory = (idx: number, field: string, val: string) => {
+    setHomeData((prev) => {
+      const updated = [...(prev.evaluator_rubrics || [])];
+      updated[idx] = { ...updated[idx], [field]: val };
+      return { ...prev, evaluator_rubrics: updated };
+    });
+  };
+
+  const updateCriterion = (catIdx: number, critIdx: number, val: string) => {
+    setHomeData((prev) => {
+      const updated = [...(prev.evaluator_rubrics || [])];
+      const criteria = [...updated[catIdx].criteria];
+      criteria[critIdx] = { ...criteria[critIdx], description: val };
+      updated[catIdx] = { ...updated[catIdx], criteria };
+      return { ...prev, evaluator_rubrics: updated };
+    });
+  };
+
+  const updateGuide = (catIdx: number, guideIdx: number, val: string) => {
+    setHomeData((prev) => {
+      const updated = [...(prev.evaluator_rubrics || [])];
+      const evaluatorGuide = [...updated[catIdx].evaluatorGuide];
+      evaluatorGuide[guideIdx] = val;
+      updated[catIdx] = { ...updated[catIdx], evaluatorGuide };
+      return { ...prev, evaluator_rubrics: updated };
+    });
+  };
+
+  const addGuide = (catIdx: number) => {
+    setHomeData((prev) => {
+      const updated = [...(prev.evaluator_rubrics || [])];
+      const evaluatorGuide = [...updated[catIdx].evaluatorGuide, "New guide question"];
+      updated[catIdx] = { ...updated[catIdx], evaluatorGuide };
+      return { ...prev, evaluator_rubrics: updated };
+    });
+  };
+
+  const removeGuide = (catIdx: number, guideIdx: number) => {
+    setHomeData((prev) => {
+      const updated = [...(prev.evaluator_rubrics || [])];
+      const evaluatorGuide = updated[catIdx].evaluatorGuide.filter((_, i) => i !== guideIdx);
+      updated[catIdx] = { ...updated[catIdx], evaluatorGuide };
+      return { ...prev, evaluator_rubrics: updated };
+    });
+  };
+
+  const addCategory = () => {
+    setHomeData(prev => ({
+      ...prev,
+      evaluator_rubrics: [...(prev.evaluator_rubrics || []), {
+        category: "New Assessment",
+        description: "Description of the assessment.",
+        criteria: [
+          { score: 5, description: "" },
+          { score: 4, description: "" },
+          { score: 3, description: "" },
+          { score: 2, description: "" },
+          { score: 1, description: "" },
+        ],
+        evaluatorGuide: ["Guide question?"]
+      }]
+    }));
+  };
+
+  const removeCategory = (idx: number) => {
+    if ((homeData.evaluator_rubrics || []).length <= 1) {
+      toast.error('At least one rubric category is required.');
+      return;
+    }
+    if (!window.confirm("Are you sure you want to remove this rubric category?")) return;
+    setHomeData(prev => ({
+      ...prev,
+      evaluator_rubrics: (prev.evaluator_rubrics || []).filter((_, i) => i !== idx)
+    }));
+  };
+
+  if (isLoading) {
+    return <PageLoader mode="contents-card" className="min-h-[400px]" />;
+  }
+
+  return (
+    <div className='p-4 sm:p-6'>
+      <Toaster position="top-right" />
+      
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8'>
+        <div>
+          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
+            Evaluator Rubrics
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Manage the rubric criteria and descriptions used by evaluators.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className='bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 transition-all font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-md disabled:opacity-50 flex-shrink-0'
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isSaving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+
+      <div className='space-y-8'>
+        {(homeData.evaluator_rubrics || []).map((rubric, catIdx) => (
+          <div key={catIdx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-start gap-4">
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Category Name</label>
+                  <input
+                    type="text"
+                    value={rubric.category}
+                    onChange={(e) => updateCategory(catIdx, 'category', e.target.value)}
+                    className="w-full font-bold text-slate-800 bg-white border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description</label>
+                  <textarea
+                    value={rubric.description}
+                    onChange={(e) => updateCategory(catIdx, 'description', e.target.value)}
+                    rows={2}
+                    className="w-full text-slate-600 bg-white border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => removeCategory(catIdx)}
+                className="text-red-500 hover:text-red-700 p-2 bg-white rounded border border-red-200 shadow-sm transition-colors flex-shrink-0"
+                title="Remove Category"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Scoring Criteria */}
+              <div>
+                <h4 className="font-bold text-sm text-slate-800 mb-3 border-b pb-2">Scoring Criteria (1 - 5)</h4>
+                <div className="space-y-3">
+                  {rubric.criteria.map((crit, critIdx) => (
+                    <div key={critIdx} className="flex items-start gap-3">
+                      <div className="w-8 h-8 flex-shrink-0 rounded bg-red-100 text-red-700 font-bold flex items-center justify-center text-sm">
+                        {crit.score}
+                      </div>
+                      <textarea
+                        value={crit.description}
+                        onChange={(e) => updateCriterion(catIdx, critIdx, e.target.value)}
+                        rows={2}
+                        placeholder="Criteria description..."
+                        className="flex-1 bg-white border border-slate-200 rounded px-3 py-2 text-xs focus:outline-none focus:border-red-400 resize-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Evaluator Guide */}
+              <div>
+                <div className="flex items-center justify-between border-b pb-2 mb-3">
+                  <h4 className="font-bold text-sm text-slate-800">Evaluator Guide Questions</h4>
+                  <button
+                    onClick={() => addGuide(catIdx)}
+                    className="text-xs font-bold text-red-600 hover:text-red-800 flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {rubric.evaluatorGuide.map((guide, guideIdx) => (
+                    <div key={guideIdx} className="flex items-start gap-2">
+                      <span className="text-blue-500 font-bold mt-2">•</span>
+                      <textarea
+                        value={guide}
+                        onChange={(e) => updateGuide(catIdx, guideIdx, e.target.value)}
+                        rows={2}
+                        className="flex-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-xs focus:outline-none focus:border-blue-400 resize-none"
+                      />
+                      <button
+                        onClick={() => removeGuide(catIdx, guideIdx)}
+                        className="text-red-400 hover:text-red-600 p-1.5 mt-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {rubric.evaluatorGuide.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No guide questions defined.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={addCategory}
+        className="mt-6 w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-red-400 hover:text-red-600 transition-colors text-sm font-bold flex items-center justify-center gap-2 bg-slate-50 hover:bg-red-50"
+      >
+        <Plus className="w-4 h-4" /> Add Rubric Category
+      </button>
     </div>
   );
 };

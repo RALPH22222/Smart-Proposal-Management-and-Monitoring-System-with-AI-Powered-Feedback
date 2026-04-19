@@ -21,6 +21,18 @@ export const HomeProcessStepSchema = z.object({
   description: z.string(),
 });
 
+export const RubricCriterionSchema = z.object({
+  score: z.number(),
+  description: z.string(),
+});
+
+export const RubricCategorySchema = z.object({
+  category: z.string(),
+  description: z.string(),
+  criteria: z.array(RubricCriterionSchema),
+  evaluatorGuide: z.array(z.string()),
+});
+
 export const HomeInfoSchema = z.object({
   hero: z.object({
     badge: z.string(),
@@ -63,12 +75,15 @@ export const HomeInfoSchema = z.object({
     phone_image_url: z.string().optional(),
   }),
   process_steps: z.array(HomeProcessStepSchema),
+  evaluator_rubrics: z.array(RubricCategorySchema).optional(),
 });
 
 export type HomeStat = z.infer<typeof HomeStatSchema>;
 export type HomeGuideline = z.infer<typeof HomeGuidelineSchema>;
 export type HomeCriteria = z.infer<typeof HomeCriteriaSchema>;
 export type HomeProcessStep = z.infer<typeof HomeProcessStepSchema>;
+export type RubricCriterion = z.infer<typeof RubricCriterionSchema>;
+export type RubricCategory = z.infer<typeof RubricCategorySchema>;
 export type HomeInfo = z.infer<typeof HomeInfoSchema>;
 
 export const DEFAULT_HOME_INFO: HomeInfo = {
@@ -136,5 +151,61 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
     { title: "Consolidated Review & Endorsement", description: "After receiving all evaluators' scores and feedback, the R&D division reviews and consolidates the results. Based on this evaluation, the R&D may request revisions, reject the submission, or endorse it for funding." },
     { title: "RDEC Funding Deliberation", description: "This step will be reviewed by the Research and Development (R&D) Committee. The committee will meet and discuss the proposal, and based on their evaluation, they will decide whether to approve the project for funding or not." },
     { title: "Implementation & Progress Monitoring", description: "After your project has been funded, you may request the budget for the start of the quarter and for the following quarters. You are required to report your progress percentage, submit reports, and provide the necessary documents until the project is successfully completed." },
+  ],
+  evaluator_rubrics: [
+    {
+      category: "Title Assessment",
+      description: "Evaluate the clarity, relevance, and appropriateness of the project title",
+      criteria: [
+        { score: 5, description: "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives" },
+        { score: 4, description: "Title is clear, relevant, and provides a good indication of the project's focus and goals" },
+        { score: 3, description: "Title is acceptable but could be more specific or better aligned with the project scope" },
+        { score: 2, description: "Title is vague, overly broad, or does not clearly convey the project's purpose" },
+        { score: 1, description: "Title is unclear, misleading, or irrelevant to the proposed research" },
+      ],
+      evaluatorGuide: [
+        "Does the title clearly convey the main topic or focus of the research?",
+        "Is the title concise yet descriptive enough?",
+        "Does the title accurately reflect the scope and objectives of the proposal?",
+        "Is the title appropriate for the target audience and research field?",
+        "Does the title avoid unnecessary jargon or ambiguity?",
+      ],
+    },
+    {
+      category: "Budget Assessment",
+      description: "Evaluate the appropriateness, justification, and realistic allocation of budget",
+      criteria: [
+        { score: 5, description: "Budget is well-justified, realistic, efficiently allocated, with clear cost breakdown and sound financial management plan" },
+        { score: 4, description: "Budget is appropriate with minor justification gaps or minor allocation concerns" },
+        { score: 3, description: "Budget is acceptable but lacks detailed justification for some line items" },
+        { score: 2, description: "Budget appears inflated or inadequately justified with unclear allocation logic" },
+        { score: 1, description: "Budget is unrealistic, poorly justified, or raises concerns about cost efficiency" },
+      ],
+      evaluatorGuide: [
+        "Are all line items necessary and directly related to project objectives?",
+        "Is the unit cost reasonable and comparable to market rates?",
+        "Are personnel costs justified based on roles and time allocation?",
+        "Is there clear justification for equipment purchases vs. rentals?",
+        "Does the budget reflect efficient use of resources?",
+      ],
+    },
+    {
+      category: "Timeline Assessment",
+      description: "Evaluate the feasibility and realism of the project schedule",
+      criteria: [
+        { score: 5, description: "Timeline is realistic, well-structured with clear milestones, deliverables, and contingency buffers" },
+        { score: 4, description: "Timeline is reasonable with appropriate milestones and reasonable contingency planning" },
+        { score: 3, description: "Timeline is acceptable but somewhat ambitious or lacks detailed milestone descriptions" },
+        { score: 2, description: "Timeline appears unrealistic, poorly structured, or lacks clear milestones" },
+        { score: 1, description: "Timeline is not feasible, unclear, or unrealistic given the project scope" },
+      ],
+      evaluatorGuide: [
+        "Are the project phases clearly defined with specific durations?",
+        "Are key milestones achievable within the stated timeframe?",
+        "Has sufficient time been allocated for critical activities?",
+        "Are there clear deliverables for each phase?",
+        "Is there buffer time for unexpected delays or issues?",
+      ],
+    },
   ],
 };
