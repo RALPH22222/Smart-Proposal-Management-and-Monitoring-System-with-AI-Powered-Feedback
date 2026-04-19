@@ -385,6 +385,63 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
   const theme = getStatusTheme(p.status);
 
+  const renderBreakdown = (items?: any[], category?: 'ps' | 'mooe' | 'co') => {
+    if (!items || items.length === 0) {
+      return (
+        <div className="p-4 pt-2">
+          <p className="italic text-slate-400 text-xs">No items recorded for this category.</p>
+        </div>
+      );
+    }
+
+    const categoryConfig = {
+      ps: { label: 'Personal Services (PS)', color: 'text-violet-600', dot: 'bg-violet-500' },
+      mooe: { label: 'Maintenance, Operating & Other Expenses (MOOE)', color: 'text-amber-600', dot: 'bg-amber-500' },
+      co: { label: 'Capital Outlay (CO)', color: 'text-emerald-600', dot: 'bg-emerald-500' }
+    };
+
+    const config = category && categoryConfig[category] ? categoryConfig[category] : { label: 'Breakdown', color: 'text-slate-600', dot: 'bg-slate-400' };
+
+    return (
+      <div className="p-4">
+        <h5 className={`text-[10px] font-extrabold uppercase tracking-widest ${config.color} mb-2 flex items-center gap-1.5`}>
+          <span className={`inline-block w-2 h-2 rounded-full ${config.dot}`}></span>
+          {config.label}
+        </h5>
+        <div className="overflow-x-auto rounded-lg border border-slate-100">
+          <table className="min-w-[800px] w-full text-xs table-fixed">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
+                <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
+                <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {items.map((b, i) => (
+                <tr key={i} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{b.item || '—'}</td>
+                  <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{(b.subcategory || b.sub_category) || '—'}</td>
+                  <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{(b.specifications || b.spec_volume) || '—'}</td>
+                  <td className="px-3 py-2 text-slate-600 text-center font-mono">
+                    {(b.quantity || b.qty) ? (
+                      `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ₱${new Intl.NumberFormat("en-PH").format(b.unitPrice || b.unit_price || 0)}`
+                    ) : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">
+                    ₱{new Intl.NumberFormat("en-PH").format(b.amount || parseInt(b.amount) || 0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
@@ -749,96 +806,61 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
           </div>
 
           {/* Budget */}
-          {/* Budget */}
           {p.budgetSources && (
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
               </h3>
 
               <div className="space-y-6">
                 {p.budgetSources.map((budget: any, index: number) => (
-                  <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                     {/* Card Header */}
-                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="bg-blue-100 p-1.5 rounded text-blue-700">
+                        <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
                           <DollarSign className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                          <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
+                          <h4 className="font-bold text-slate-800 text-sm leading-tight">{budget.source}</h4>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                        <p className="text-sm font-bold text-[#C8102E]">{budget.total}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
+                        <p className="text-base font-bold text-[#C8102E]">{budget.total}</p>
                       </div>
                     </div>
 
-                    {/* Card Body */}
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
-                      {/* PS */}
-                      <div className="space-y-2 pt-2 md:pt-0">
-                        <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
-                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                            budget.breakdown.ps.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
+                    {/* Category Summary Row */}
+                    <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
+                      <div className="px-4 py-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                        <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
                       </div>
+                      <div className="px-4 py-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                        <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
+                      </div>
+                      <div className="px-4 py-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                        <span className="text-xs font-bold text-slate-700">{budget.co}</span>
+                      </div>
+                    </div>
 
-                      {/* MOOE */}
-                      <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
-                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                            budget.breakdown.mooe.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
-                      </div>
-
-                      {/* CO */}
-                      <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                          <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
-                        </div>
-                        <div className="space-y-1">
-                          {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                            budget.breakdown.co.map((item: any, i: number) => (
-                              <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                <span>{item.item}</span>
-                                <span className="font-medium text-slate-700">₱{(item.amount || 0).toLocaleString()}</span>
-                              </div>
-                            ))
-                          ) : <p className="italic text-slate-400">No items</p>}
-                        </div>
-                      </div>
+                    {/* Card Body: Breakdown Tables */}
+                    <div className="divide-y divide-slate-100">
+                      {renderBreakdown(budget.breakdown?.ps, 'ps')}
+                      {renderBreakdown(budget.breakdown?.mooe, 'mooe')}
+                      {renderBreakdown(budget.breakdown?.co, 'co')}
                     </div>
                   </div>
                 ))}
 
-                {/* Grant Total Footer */}
-                <div className="flex justify-end items-center gap-4 pt-2">
-                  <span className="text-sm font-bold text-slate-600 uppercase">Grand Total Requirements</span>
-                  <span className="text-xl font-bold text-[#C8102E]">{p.budgetTotal}</span>
+                {/* Grand Total Footer */}
+                <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2 shadow-lg">
+                  <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
+                  <span className="text-xl font-black text-white">{p.budgetTotal}</span>
                 </div>
 
               </div>
