@@ -34,7 +34,7 @@ const AI_API_URL = process.env.AI_API_URL || "http://localhost:5001";
  * Run AI analysis by sending a FILE to the standalone VPS API.
  * The VPS will handle text extraction (mammoth/pdf-parse) and neural analysis.
  */
-export async function analyzeProposalFile(buffer: Buffer, contentType: string, filename: string): Promise<any> {
+export async function analyzeProposalFile(buffer: Buffer, contentType: string, filename: string): Promise<AnalysisResult> {
   const ANALYZE_ENDPOINT = `${AI_API_URL}/analyze`;
   console.log(`[AI-Client] Forwarding file to AI API: ${filename} (${contentType})`);
 
@@ -57,7 +57,7 @@ export async function analyzeProposalFile(buffer: Buffer, contentType: string, f
       throw new Error(`AI VPS Error: ${response.status}`);
     }
 
-    return await response.json();
+    return (await response.json()) as AnalysisResult;
   } catch (err: any) {
     console.error("[AI-Client] Connection to AI VPS failed:", err.message);
     throw err;

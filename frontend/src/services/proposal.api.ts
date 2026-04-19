@@ -422,12 +422,14 @@ export const generateTags = async (projectTitle: string, availableTags: string[]
 export type FormExtractedFields = {
   program_title?: string;
   project_title?: string;
+  year?: string;
   agency_name?: string;
   agency_city?: string;
   agency_barangay?: string;
   agency_street?: string;
   telephone?: string;
   email?: string;
+  priority_areas?: string;
   cooperating_agency_names?: string[];
   research_station?: string;
   classification_type?: string;
@@ -439,7 +441,13 @@ export type FormExtractedFields = {
   planned_start_year?: string;
   planned_end_month?: string;
   planned_end_year?: string;
-  budget_sources?: { source: string; ps: number; mooe: number; co: number; total: number }[];
+  budget_sources?: {
+    source: string;
+    ps: number;
+    mooe: number;
+    co: number;
+    total: number;
+  }[];
 };
 
 export type AIAnalysisResponse = {

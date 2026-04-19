@@ -9,6 +9,7 @@ import {
   FaGlobeAmericas,
   FaCheckCircle
 } from 'react-icons/fa';
+import type { FormExtractedFields } from '../../services/proposal.api';
 
 // 1. Strict Type Definition
 export interface AIAnalysisResult {
@@ -20,6 +21,7 @@ export interface AIAnalysisResult {
   similarPapers?: Array<{ title: string; year: string }>;
   issues?: string[];
   suggestions?: string[];
+  formFields?: FormExtractedFields;
 }
 
 interface AIModalProps {
