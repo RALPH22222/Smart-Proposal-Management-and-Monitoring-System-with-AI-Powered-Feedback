@@ -26,21 +26,32 @@ const ApkDownloadPage: React.FC = () => {
     }
   })();
 
-  // QR points directly at the APK — scanning triggers an immediate download on mobile
+  // QR points to the clean /download URL — mobile detection handles the auto-download
+  const pageUrl = typeof window !== 'undefined' ? `${window.location.origin}/download` : '/download';
   const qrCodeUrl = apkUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(apkUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(pageUrl)}`
     : '';
 
   useEffect(() => {
     setIsLoaded(true);
     HomeApi.getHomeInfo()
       .then((data) => {
-        setApkUrl(data?.app_config?.apk_url || '');
+        const url = data?.app_config?.apk_url || '';
+        setApkUrl(url);
         setPhoneImageUrl(data?.app_config?.phone_image_url || '');
+        // Auto-download on mobile devices (QR scans open the page on a phone)
+        const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+        if (isMobile && url) {
+          const filename = (() => {
+            try {
+              const raw = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'app.apk');
+              return raw.replace(/^\d+-/, '');
+            } catch { return 'app.apk'; }
+          })();
+          downloadFile(url, filename);
+        }
       })
-      .catch(() => {
-        // leave apkUrl empty — button will be disabled
-      })
+      .catch(() => {})
       .finally(() => setIsLoadingApk(false));
   }, []);
 
@@ -136,14 +147,6 @@ const ApkDownloadPage: React.FC = () => {
               Submit proposals, gain approvals, secure funding, and monitor project implementation—all from your fingertips.
             </p>
 
-            {!isFlipped && apkUrl && (
-              <p className="text-sm text-gray-400 mb-4 flex items-center gap-1.5">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
-                </svg>
-                Tap the phone image to reveal QR code
-              </p>
-            )}
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               {isLoadingApk ? (
