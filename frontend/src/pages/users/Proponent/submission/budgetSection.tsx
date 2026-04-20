@@ -1081,11 +1081,36 @@ export const LibImportModal: React.FC<{
         co: coSubs,
       };
 
-      const findSubId = (cat: 'ps' | 'mooe' | 'co', label: string | null): number | null => {
-        if (!label) return null;
+      // Mapping rules for the Subcategory column at import time:
+      //
+      //   1. Template cell matches a catalog entry exactly   → subcategoryId = that entry's id,
+      //                                                        customSubcategoryLabel = null
+      //   2. Template cell has a value not in the catalog    → subcategoryId = the "Other"
+      //                                                        subcategory's id, customSubcategoryLabel =
+      //                                                        the original parsed text (so the user
+      //                                                        sees their imported value, not a blank).
+      //                                                        Without this, the custom-label input is
+      //                                                        hidden and the dropdown reads as blank.
+      //   3. Template cell is blank                          → subcategoryId = null (user picks in form),
+      //                                                        customSubcategoryLabel = null
+      const findOtherId = (cat: 'ps' | 'mooe' | 'co'): number | null =>
+        subsByCategory[cat].find((s) => s.code === OTHER_SUBCATEGORY_CODE)?.id ?? null;
+
+      const resolveSubcategory = (
+        cat: 'ps' | 'mooe' | 'co',
+        label: string | null,
+      ): { subcategoryId: number | null; customSubcategoryLabel: string | null } => {
+        if (!label || !label.trim()) {
+          return { subcategoryId: null, customSubcategoryLabel: null };
+        }
         const target = label.toLowerCase().trim();
         const match = subsByCategory[cat].find((s) => s.label.toLowerCase() === target);
-        return match?.id ?? null;
+        if (match) {
+          return { subcategoryId: match.id, customSubcategoryLabel: null };
+        }
+        // Unknown label — park it under "Other" and preserve the original text as the custom
+        // label so the user sees what was imported without having to touch the dropdown.
+        return { subcategoryId: findOtherId(cat), customSubcategoryLabel: label.trim() };
       };
 
       const grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] } = {
@@ -1095,11 +1120,11 @@ export const LibImportModal: React.FC<{
       };
 
       for (const it of itemsToImport) {
-        const matchedSubId = findSubId(it.category, it.subcategoryLabel);
+        const { subcategoryId, customSubcategoryLabel } = resolveSubcategory(it.category, it.subcategoryLabel);
         grouped[it.category].push({
           uid: `lib_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          subcategoryId: matchedSubId,
-          customSubcategoryLabel: matchedSubId == null ? it.subcategoryLabel : null,
+          subcategoryId,
+          customSubcategoryLabel,
           itemName: it.itemName,
           spec: it.spec,
           quantity: it.quantity || 1,
