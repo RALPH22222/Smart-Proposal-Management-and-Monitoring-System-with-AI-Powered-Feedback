@@ -90,4 +90,5 @@ export interface Proposal {
   fundedProjectId?: number;
   fundedProjectLeadId?: string;
   versionNumber?: number;
+  workPlanFileUrl?: string;
 }

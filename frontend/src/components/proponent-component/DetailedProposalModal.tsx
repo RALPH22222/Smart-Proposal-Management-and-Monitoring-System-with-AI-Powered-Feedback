@@ -2693,8 +2693,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                     <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
                                     Personal Services (PS)
                                   </h5>
-                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
-                                    <table className="min-w-[800px] w-full text-xs table-fixed">
+                                  <div className="rounded-lg border border-slate-100">
+                                    <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
                                         <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
@@ -2725,8 +2725,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                     <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
                                     Maintenance, Operating & Other Expenses (MOOE)
                                   </h5>
-                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
-                                    <table className="min-w-[800px] w-full text-xs table-fixed">
+                                  <div className="rounded-lg border border-slate-100">
+                                    <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
                                         <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
@@ -2757,8 +2757,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
                                     Capital Outlay (CO)
                                   </h5>
-                                  <div className="overflow-x-auto rounded-lg border border-slate-100">
-                                    <table className="min-w-[800px] w-full text-xs table-fixed">
+                                  <div className="rounded-lg border border-slate-100">
+                                    <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
                                         <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
