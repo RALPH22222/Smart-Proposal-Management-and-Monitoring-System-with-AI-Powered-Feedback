@@ -15,21 +15,7 @@ import SecureImage from '../../../components/shared/SecureImage';
 import PageLoader from '../../../components/shared/PageLoader';
 import { useAuthContext } from '../../../context/AuthContext';
 
-// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const DEPARTMENTS = [
-  "College of Computing Studies",
-  "College of Engineering",
-  "College of Architecture",
-  "College of Arts and Sciences",
-  "College of Business Administration",
-  "College of Education",
-  "College of Nursing",
-  "College of Law",
-  "College of Agriculture",
-  "College of Fisheries and Ocean Technology",
-];
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface ExtendedUserProfile {
   id?: string;
   email?: string;
@@ -43,7 +29,7 @@ interface ExtendedUserProfile {
   avatarUrl?: string | null;
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Helpers 
 const getPasswordStrength = (password: string): { label: string; color: string; width: string } => {
   if (!password) return { label: '', color: '', width: '0%' };
   let score = 0;
@@ -58,7 +44,7 @@ const getPasswordStrength = (password: string): { label: string; color: string; 
   return { label: 'Strong', color: 'bg-green-500', width: '100%' };
 };
 
-// â”€â”€ Shared UI Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Shared UI Components
 const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
   <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
     <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-[#C8102E] flex-shrink-0">
@@ -122,7 +108,7 @@ const SpinnerIcon = () => (
   </svg>
 );
 
-// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Main Component
 type TabId = 'profile' | 'email' | 'security';
 
 const TABS: { id: TabId; label: string }[] = [
@@ -299,13 +285,13 @@ const Settings: React.FC = () => {
     <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-fade-in">
       <div className="flex flex-col min-w-0">
 
-        {/* â”€â”€ Page Header â”€â”€ */}
+        {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your personal information, academic details, and security.</p>
         </div>
 
-        {/* â”€â”€ Profile Header Card â”€â”€ */}
+        {/* Profile Header Card  */}
         <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0C20] rounded-2xl p-6 mb-6 text-white shadow-lg">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
             {/* Avatar */}
@@ -347,7 +333,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* â”€â”€ Tabs â”€â”€ */}
+        {/* Tabs */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 overflow-x-auto">
           <nav className="flex gap-1 px-4 pt-2">
             {TABS.map((t) => (
@@ -366,7 +352,7 @@ const Settings: React.FC = () => {
           </nav>
         </div>
 
-        {/* â”€â”€ Tab Content â”€â”€ */}
+        {/* Tab Content */}
 
         {/* Profile Tab */}
         {activeTab === 'profile' && (
@@ -418,14 +404,10 @@ const Settings: React.FC = () => {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Department / College</label>
-                <select name="department" value={formData.department} onChange={handleInputChange}
-                  className="block w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm bg-white text-gray-900 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15 hover:border-gray-400 outline-none transition-all"
-                >
-                  <option value="" disabled>Select your department</option>
-                  {DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                <div className="block w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed">
+                  {formData.department || 'Not assigned'}
+                </div>
+                <p className="mt-1 text-xs text-gray-400">Department is managed by your administrator and cannot be changed here.</p>
               </div>
 
               <div className="flex justify-end">
