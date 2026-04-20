@@ -135,7 +135,11 @@ export const proposalSchema = z.object({
     .string()
     .regex(/^\d+$/, "Year must contain digits only")
     .transform((value) => Number(value)),
-  program_title: z.string().max(256, "program title is too long"), // Changed from program_title
+  // Optional: DOST Form 1B treats program as conditional ("if the project is part of
+  // a program..."). Standalone projects can leave this blank or use "N/A". A successful
+  // proposal may later become a program umbrella for other proposals, which is the
+  // forward-looking reason we keep this field captured.
+  program_title: z.string().max(256, "program title is too long").optional().nullable(),
   project_title: z.string().min(1, "Project title is required").max(256, "project title is too long"), // Changed from project_title
 
   email: z.string().or(z.literal("")),

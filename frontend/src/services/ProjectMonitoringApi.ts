@@ -645,6 +645,7 @@ export interface ApiBudgetSummary {
 export interface ApiFundRequestItem {
   id: number;
   fund_request_id: number;
+  budget_item_id: number | null; // Phase 4 LIB — links each fund-request line to a budget item.
   item_name: string;
   amount: number;
   description: string | null;

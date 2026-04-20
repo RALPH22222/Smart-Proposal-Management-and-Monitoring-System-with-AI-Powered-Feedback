@@ -8,7 +8,7 @@ import {
   Search, Target, Clock, CheckCircle2, Play,
   FileText, Calendar, AlertTriangle,
   X, Banknote, ArrowLeft, CalendarClock, History, PieChart,
-  Plus, Trash2, Award, Download,
+  Trash2, Award, Download,
   Users, CalendarCheck, ChevronLeft, ChevronRight, UserCheck,
   ChevronUp, ChevronDown, DollarSign, Lock, Loader2, Mail, Check
 } from 'lucide-react';
@@ -67,17 +67,6 @@ import BudgetUtilizationChart from "../../../components/shared/BudgetUtilization
 // form again so they can resubmit (flips back to 'submitted' on resubmit).
 type ReportStatus = 'fund_request' | 'due' | 'submitted' | 'approved' | 'overdue' | 'locked' | 'rejected';
 
-interface FundRequestItem {
-  id: string;
-  // Phase 4 of LIB feature: links the fund-request line to a specific budget line. Set
-  // by the dropdown picker. Category + description are derived from the linked item
-  // (and the server re-derives them on save so the client copy is informational only).
-  budget_item_id: number | null;
-  description: string;
-  amount: number;
-  category: 'ps' | 'mooe' | 'co';
-}
-
 // Unified quarter data combining display report + fund request info
 interface QuarterData {
   quarter: string; // Raw quarter key ("q1_report", "q2_report", ...). NOT year-aware — use year_number for scoping.
@@ -131,8 +120,14 @@ const MonitoringPage: React.FC = () => {
   const [certificateInfo, setCertificateInfo] = useState<{ issuedAt: string | null; issuedByName: string | null }>({ issuedAt: null, issuedByName: null });
   const [rawProjectDetail, setRawProjectDetail] = useState<any>(null);
 
-  // Fund request form
-  const [breakdownItems, setBreakdownItems] = useState<FundRequestItem[]>([]);
+  // Fund request form — checkbox-based selection from the active LIB.
+  // Keyed by budget_item_id → { checked, amount-as-string-for-input }.
+  // Amount lives as string so the <input type="number"> stays controlled and
+  // empty inputs don't flash "0".
+  const [selectedByItem, setSelectedByItem] = useState<Record<number, { checked: boolean; amount: string }>>({});
+  // All fund requests for the active project (across all statuses + quarters).
+  // Drives the drawn-per-item computation for the checkbox list.
+  const [allFundRequests, setAllFundRequests] = useState<ApiFundRequest[]>([]);
   const [submittingFundRequest, setSubmittingFundRequest] = useState(false);
 
   // Report form
@@ -343,6 +338,8 @@ const MonitoringPage: React.FC = () => {
 
       // Phase 2A: fund requests are keyed by (year_number, quarterly_report) — two projects
       // Y1Q1 and Y2Q1 must NOT collide, so build the map with composite keys.
+      setAllFundRequests(frResponse.fund_requests);
+
       const frByPeriod = new Map<string, ApiFundRequest>();
       for (const fr of frResponse.fund_requests) {
         const year = fr.year_number ?? 1;
@@ -619,20 +616,32 @@ const MonitoringPage: React.FC = () => {
   };
 
   // --- Fund Request Submission ---
+  // Builds the payload from LIB items the proponent checked. Each selected row
+  // carries budget_item_id + amount; backend re-derives item_name and category
+  // server-side, so we only send the minimum.
   const handleSubmitFundRequest = async () => {
     if (!activeBackend || !currentReport || !user) return;
-    if (breakdownItems.length === 0) return;
 
-    const hasEmpty = breakdownItems.some(item => !item.description.trim() || !item.amount);
+    const selected = budgetItemsForProject.filter(
+      (bi) => bi.id != null && selectedByItem[bi.id]?.checked,
+    );
+    if (selected.length === 0) return;
+
+    const parsed = selected.map((bi) => ({
+      bi,
+      amount: parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0,
+    }));
+
+    const hasEmpty = parsed.some((p) => !p.amount || p.amount <= 0);
     if (hasEmpty) {
-      Swal.fire('Incomplete', 'Please fill in all item descriptions and amounts.', 'warning');
+      Swal.fire('Incomplete', 'Enter an amount > 0 for every checked budget item.', 'warning');
       return;
     }
 
-    const totalAmount = breakdownItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalAmount = parsed.reduce((sum, p) => sum + p.amount, 0);
     const confirmation = await Swal.fire({
       title: 'Submit Fund Request?',
-      html: `You are requesting <strong>₱${totalAmount.toLocaleString()}</strong> across <strong>${breakdownItems.length}</strong> item(s) for <strong>${currentReport.quarter.replace('_', ' ').toUpperCase()}</strong>.<br/><br/>This will be sent to R&D for review.`,
+      html: `You are requesting <strong>₱${totalAmount.toLocaleString()}</strong> across <strong>${parsed.length}</strong> item(s) for <strong>${currentReport.quarterLabel}</strong>.<br/><br/>This will be sent to R&D for review.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Submit',
@@ -642,15 +651,15 @@ const MonitoringPage: React.FC = () => {
 
     try {
       setSubmittingFundRequest(true);
-      const items = breakdownItems.map((item) => ({
-        budget_item_id: item.budget_item_id,
-        item_name: item.description,
-        amount: item.amount,
-        category: item.category,
+      const items = parsed.map((p) => ({
+        budget_item_id: p.bi.id,
+        item_name: p.bi.item_name + (p.bi.spec ? ` (${p.bi.spec})` : ''),
+        amount: p.amount,
+        category: p.bi.category,
       }));
 
       await createFundRequest(activeBackend.id, currentReport.quarter, items, currentReport.year_number);
-      setBreakdownItems([]);
+      setSelectedByItem({});
       Swal.fire('Submitted', 'Fund request submitted for R&D review!', 'success');
       await loadProjectDetail(); // Refresh
     } catch (error: any) {
@@ -803,42 +812,34 @@ const MonitoringPage: React.FC = () => {
     }
   };
 
-  // --- Breakdown item handlers ---
-  const addBreakdownItem = () => {
-    setBreakdownItems((prev) => [
-      ...prev,
-      { id: Date.now().toString(), budget_item_id: null, description: '', amount: 0, category: 'mooe' },
-    ]);
+  // --- Fund-request selection handlers (checkbox-based) ---
+  const toggleItemChecked = (budgetItemId: number) => {
+    setSelectedByItem((prev) => {
+      const current = prev[budgetItemId] ?? { checked: false, amount: '' };
+      return { ...prev, [budgetItemId]: { ...current, checked: !current.checked } };
+    });
   };
-  const updateBreakdownItem = (itemId: string, field: keyof FundRequestItem, value: any) => {
-    setBreakdownItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
-    );
+  const setItemAmount = (budgetItemId: number, amount: string) => {
+    setSelectedByItem((prev) => {
+      const current = prev[budgetItemId] ?? { checked: true, amount: '' };
+      return { ...prev, [budgetItemId]: { ...current, amount } };
+    });
   };
-  // Phase 4 of LIB feature: linking a fund-request row to a budget item pulls its
-  // category + display label from the selected item, so the proponent doesn't have to
-  // type anything except the amount.
-  const linkBreakdownItemToBudgetLine = (rowId: string, budgetItemId: number | null) => {
-    const budgetItem = budgetItemId != null ? budgetItemsForProject.find((it) => it.id === budgetItemId) : null;
-    setBreakdownItems((prev) =>
-      prev.map((row) => {
-        if (row.id !== rowId) return row;
-        if (!budgetItem) {
-          return { ...row, budget_item_id: null };
-        }
-        const label = budgetItem.item_name + (budgetItem.spec ? ` (${budgetItem.spec})` : '');
-        return {
-          ...row,
-          budget_item_id: budgetItem.id ?? null,
-          description: label,
-          category: budgetItem.category,
-        };
-      }),
-    );
-  };
-  const removeBreakdownItem = (itemId: string) => {
-    setBreakdownItems((prev) => prev.filter((item) => item.id !== itemId));
-  };
+
+  // Drawn-per-item across all approved fund requests for this project. Used to
+  // show "₱X already drawn / ₱Y remaining" next to each LIB row. Fully-drawn
+  // items are disabled and can't be checked.
+  const drawnByBudgetItemId = React.useMemo(() => {
+    const result: Record<number, number> = {};
+    for (const fr of allFundRequests) {
+      if (fr.status !== 'approved') continue;
+      for (const fri of fr.fund_request_items ?? []) {
+        if (!fri.budget_item_id) continue;
+        result[fri.budget_item_id] = (result[fri.budget_item_id] ?? 0) + (Number(fri.amount) || 0);
+      }
+    }
+    return result;
+  }, [allFundRequests]);
 
   const handleDownloadCertificate = async () => {
     if (!activeProject) return;
@@ -1579,89 +1580,143 @@ const MonitoringPage: React.FC = () => {
 
                         <div className="space-y-3">
                           <div className="border border-gray-200 rounded-xl overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-200">
-                              <span className="text-xs font-bold text-gray-600 uppercase">Utilization Breakdown</span>
-                              <button onClick={addBreakdownItem} className="text-xs flex items-center gap-1 text-blue-600 font-bold hover:underline">
-                                <Plus className="w-3 h-3" /> Add Item
-                              </button>
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                              <span className="text-xs font-bold text-gray-600 uppercase">Select Line Items from LIB</span>
+                              <p className="text-[11px] text-gray-500 mt-1">Check the budget items you need for this period, then enter the amount you're requesting for each.</p>
                             </div>
-                            <div className="p-4 space-y-3 bg-white">
-                              {breakdownItems.length === 0 && (
-                                <p className="text-sm text-gray-400 text-center py-4 italic">No items added yet. Add planned expenditures.</p>
-                              )}
-                              {/* Phase 4 of LIB feature: pick from existing budget lines instead
-                                  of free-typing. Category is derived from the picked item. */}
+                            <div className="bg-white divide-y divide-gray-100 max-h-[420px] overflow-y-auto">
                               {budgetItemsForProject.length === 0 && (
-                                <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded p-2">
-                                  Budget items for this project haven't loaded yet — the dropdown may be empty. Refresh if this persists.
+                                <div className="p-4 text-[11px] text-amber-700 bg-amber-50 border-l-4 border-amber-400">
+                                  Budget items haven't loaded yet. Refresh if this persists.
                                 </div>
                               )}
-                              {breakdownItems.map((item) => (
-                                <div key={item.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                                  <select
-                                    value={item.budget_item_id ?? ''}
-                                    onChange={(e) => {
-                                      const val = e.target.value ? Number(e.target.value) : null;
-                                      linkBreakdownItemToBudgetLine(item.id, val);
-                                    }}
-                                    className="w-full sm:flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white"
-                                  >
-                                    <option value="">— Pick a budget line —</option>
-                                    {(['ps', 'mooe', 'co'] as const).map((cat) => {
-                                      const catItems = budgetItemsForProject.filter((bi) => bi.category === cat);
-                                      if (catItems.length === 0) return null;
+                              {(['ps', 'mooe', 'co'] as const).map((cat) => {
+                                const catItems = budgetItemsForProject.filter((bi) => bi.category === cat);
+                                if (catItems.length === 0) return null;
+                                const catLabel: Record<string, string> = {
+                                  ps: 'Personal Services (PS)',
+                                  mooe: 'Maintenance & Other Operating Expenses (MOOE)',
+                                  co: 'Capital Outlay (CO)',
+                                };
+                                return (
+                                  <div key={cat}>
+                                    <div className="px-4 py-2 bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-700 sticky top-0">
+                                      {catLabel[cat]}
+                                    </div>
+                                    {catItems.map((bi) => {
+                                      if (bi.id == null) return null;
+                                      const allocated = Number(bi.total_amount) || 0;
+                                      const drawn = drawnByBudgetItemId[bi.id] ?? 0;
+                                      const remainingForItem = Math.max(0, allocated - drawn);
+                                      const fullyDrawn = remainingForItem <= 0;
+                                      const sel = selectedByItem[bi.id] ?? { checked: false, amount: '' };
+                                      const amountNum = parseFloat(sel.amount) || 0;
+                                      const overAllocated = sel.checked && amountNum > remainingForItem;
                                       return (
-                                        <optgroup key={cat} label={cat.toUpperCase()}>
-                                          {catItems.map((bi) => {
-                                            const label = bi.item_name + (bi.spec ? ` (${bi.spec})` : '');
-                                            return (
-                                              <option key={bi.id} value={bi.id ?? undefined}>
-                                                {label} — {formatCurrency(Number(bi.total_amount) || 0)} allocated
-                                              </option>
-                                            );
-                                          })}
-                                        </optgroup>
+                                        <label
+                                          key={bi.id}
+                                          className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                                            fullyDrawn
+                                              ? 'opacity-50 cursor-not-allowed'
+                                              : sel.checked
+                                                ? 'bg-blue-50'
+                                                : 'hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={sel.checked}
+                                            disabled={fullyDrawn}
+                                            onChange={() => toggleItemChecked(bi.id!)}
+                                            className="mt-1 w-4 h-4 accent-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                                          />
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-semibold text-slate-800 truncate">
+                                              {bi.item_name}
+                                              {bi.spec && <span className="text-slate-500 font-normal"> · {bi.spec}</span>}
+                                            </div>
+                                            <div className="text-[11px] text-slate-500 mt-0.5">
+                                              ₱{formatCurrency(allocated).replace(/^₱/, '')} allocated
+                                              {drawn > 0 && (
+                                                <>
+                                                  {' · '}
+                                                  <span className="text-amber-700">₱{formatCurrency(drawn).replace(/^₱/, '')} drawn</span>
+                                                </>
+                                              )}
+                                              {' · '}
+                                              <span className={fullyDrawn ? 'text-red-600 font-bold' : 'text-green-700 font-semibold'}>
+                                                ₱{formatCurrency(remainingForItem).replace(/^₱/, '')} remaining
+                                              </span>
+                                              {fullyDrawn && <span className="ml-2 text-[10px] uppercase font-bold text-red-600">fully drawn</span>}
+                                            </div>
+                                            {sel.checked && !fullyDrawn && (
+                                              <div className="mt-2 flex items-center gap-2">
+                                                <span className="text-[11px] font-semibold text-slate-600">Amount:</span>
+                                                <input
+                                                  type="number"
+                                                  inputMode="decimal"
+                                                  value={sel.amount}
+                                                  onChange={(e) => setItemAmount(bi.id!, e.target.value)}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  placeholder="0.00"
+                                                  className="w-32 p-1.5 border border-gray-300 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
+                                                {overAllocated && (
+                                                  <span className="text-[10px] font-bold text-red-600">
+                                                    exceeds remaining
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </label>
                                       );
                                     })}
-                                  </select>
-                                  <div className="flex w-full sm:w-auto gap-2 items-center">
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase px-2 py-1 bg-gray-100 rounded">
-                                      {item.category}
-                                    </span>
-                                    <input
-                                      type="number"
-                                      inputMode="decimal"
-                                      value={item.amount || ''}
-                                      onChange={(e) => updateBreakdownItem(item.id, 'amount', parseFloat(e.target.value) || 0)}
-                                      className="flex-1 sm:w-28 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                      placeholder="Amount"
-                                    />
-                                    <button onClick={() => removeBreakdownItem(item.id)} className="text-gray-400 hover:text-red-500 p-2">
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
 
-                          {breakdownItems.length > 0 && (
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-blue-700">Total Requested:</span>
-                                <span className="text-lg font-bold text-blue-800">
-                                  {formatCurrency(breakdownItems.reduce((sum, item) => sum + (item.amount || 0), 0))}
-                                </span>
+                          {(() => {
+                            const selected = budgetItemsForProject.filter(
+                              (bi) => bi.id != null && selectedByItem[bi.id]?.checked,
+                            );
+                            const total = selected.reduce(
+                              (sum, bi) => sum + (parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0),
+                              0,
+                            );
+                            if (selected.length === 0) return null;
+                            return (
+                              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-bold text-blue-700">
+                                    Total Requested ({selected.length} item{selected.length === 1 ? '' : 's'}):
+                                  </span>
+                                  <span className="text-lg font-bold text-blue-800">
+                                    {formatCurrency(total)}
+                                  </span>
+                                </div>
+                                {total > remaining && (
+                                  <p className="text-xs text-red-600 mt-1 font-bold">Exceeds remaining project budget!</p>
+                                )}
                               </div>
-                              {breakdownItems.reduce((sum, item) => sum + (item.amount || 0), 0) > remaining && (
-                                <p className="text-xs text-red-600 mt-1 font-bold">Exceeds remaining budget!</p>
-                              )}
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           <button
                             onClick={handleSubmitFundRequest}
-                            disabled={breakdownItems.length === 0 || breakdownItems.some(item => !item.description || !item.amount) || submittingFundRequest}
+                            disabled={(() => {
+                              const selected = budgetItemsForProject.filter(
+                                (bi) => bi.id != null && selectedByItem[bi.id]?.checked,
+                              );
+                              if (selected.length === 0) return true;
+                              const anyInvalid = selected.some((bi) => {
+                                const amt = parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0;
+                                return amt <= 0;
+                              });
+                              return anyInvalid || submittingFundRequest;
+                            })()}
                             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
                             {submittingFundRequest ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</> : 'Submit Fund Request for R&D Review'}

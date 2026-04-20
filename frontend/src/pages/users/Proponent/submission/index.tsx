@@ -209,7 +209,6 @@ const Submission: React.FC = () => {
 
   const validateBasicInfo = (): boolean => {
     const {
-      program_title,
       project_title,
       year,
       plannedStartDate,
@@ -223,7 +222,7 @@ const Submission: React.FC = () => {
     } = localFormData;
 
     const missingFields: string[] = [];
-    if (!program_title?.trim()) missingFields.push("Program Title");
+    // program_title is optional — proponents can leave it blank for standalone projects.
     if (!project_title?.trim()) missingFields.push("Project Title");
     if (!YEAR_REGEX.test(String(year ?? ""))) missingFields.push("Year (digits only)");
     if (!plannedStartDate) missingFields.push("Planned Start Date");
@@ -381,7 +380,6 @@ const Submission: React.FC = () => {
   const currentSectionIndex = sectionOrder.indexOf(activeSection as (typeof sectionOrder)[number]);
   const canGoNextFromBasicInfo = useMemo(() => {
     const {
-      program_title,
       project_title,
       year,
       plannedStartDate,
@@ -395,7 +393,6 @@ const Submission: React.FC = () => {
     } = localFormData;
 
     return !!(
-      program_title?.trim() &&
       project_title?.trim() &&
       YEAR_REGEX.test(String(year ?? "")) &&
       plannedStartDate &&

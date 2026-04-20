@@ -631,7 +631,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   const minEndDate = formData.plannedStartDate || minStartDate;
 
   const isBasicInfoComplete = Boolean(
-    formData.program_title?.trim() &&
     formData.project_title?.trim() &&
     YEAR_REGEX.test(String(formData.year ?? "")) &&
     formData.plannedStartDate &&
@@ -665,8 +664,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.program_title ? 'text-green-600' : 'text-gray-700'}`}>
             <FolderOpenDot className={`${formData.program_title ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
-            Program Title <span className="text-red-500">*</span>
-            <Tooltip content="The name of the program or strategic initiative that this project falls under" />
+            Program Title <span className="text-gray-400 text-xs font-normal">(optional)</span>
+            <Tooltip content="Only fill if this project is part of a larger program. Leave blank or type N/A for standalone projects." />
             <AutoFillBadge fieldName="program_title" autoFilledFields={autoFilledFields} />
           </label>
           <input
@@ -676,7 +675,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             onChange={onInputChange}
             maxLength={256}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-            placeholder="Enter program title"
+            placeholder="e.g., Science for Change Program (or leave blank)"
           />
         </div>
         <div className="space-y-2">
