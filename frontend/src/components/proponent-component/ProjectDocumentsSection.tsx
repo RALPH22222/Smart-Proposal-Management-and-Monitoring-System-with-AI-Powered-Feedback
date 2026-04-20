@@ -8,6 +8,7 @@ interface ProjectDocumentsSectionProps {
   fundedProjectId: number;
   moaFileUrl: string | null;
   agencyCertFileUrl: string | null;
+  workPlanFileUrl: string | null;
 }
 
 const DOCUMENTS = [
@@ -29,6 +30,7 @@ export default function ProjectDocumentsSection({
   fundedProjectId,
   moaFileUrl,
   agencyCertFileUrl,
+  workPlanFileUrl,
 }: ProjectDocumentsSectionProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [localUrls, setLocalUrls] = useState<Record<string, string | null>>({
@@ -127,6 +129,32 @@ export default function ProjectDocumentsSection({
             </div>
           );
         })}
+
+        {/* Read-only reference: Work & Financial Plan carried over from the proposal.
+            Replacement happens through revision, not here. */}
+        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-700">Work & Financial Plan</span>
+              <span className="text-[9px] font-medium text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded">DOST Form 3</span>
+              <span className="text-[9px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">Reference</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Latest submitted workplan from the proposal stage</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+            {workPlanFileUrl ? (
+              <button
+                onClick={() => openSignedUrl(workPlanFileUrl)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                View
+              </button>
+            ) : (
+              <span className="text-[10px] font-medium text-slate-400 italic">Not uploaded</span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

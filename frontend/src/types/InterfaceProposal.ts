@@ -44,6 +44,7 @@ export interface Proposal {
 	budgetSources: BudgetSource[];
 	budgetTotal: string;
 	projectFile?: string;
+	workPlanFileUrl?: string;
 	endorsementJustification?: string;
 	rdStaffReviewer?: string;
 	evaluationDeadline?: string;

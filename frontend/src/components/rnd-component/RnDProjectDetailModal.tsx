@@ -349,6 +349,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   const moaFileUrl: string | null = rawDetail?.moa_file_url ?? null;
   const agencyCertFileUrl: string | null = rawDetail?.agency_certification_file_url ?? null;
+  const workPlanFileUrl: string | null = rawDetail?.proposal?.work_plan_file_url ?? null;
 
   // --- RENDERERS ---
 
@@ -892,6 +893,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           {[
                             { label: 'Memorandum of Agreement', form: 'DOST Form 5', url: moaFileUrl },
                             { label: 'Agency Certification', form: 'DOST Form 4', url: agencyCertFileUrl },
+                            { label: 'Work & Financial Plan', form: 'DOST Form 3', url: workPlanFileUrl },
                           ].map(doc => (
                             <div key={doc.label} className={`border rounded-xl p-3 flex items-center gap-3 ${doc.url ? 'bg-white' : 'bg-slate-50 border-dashed'}`}>
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.url ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}><FileText className="w-5 h-5" /></div>

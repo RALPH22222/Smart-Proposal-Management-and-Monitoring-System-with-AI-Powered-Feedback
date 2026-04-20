@@ -1428,6 +1428,7 @@ const MonitoringPage: React.FC = () => {
                   fundedProjectId={activeBackend.id}
                   moaFileUrl={(activeBackend as any).moa_file_url || null}
                   agencyCertFileUrl={(activeBackend as any).agency_certification_file_url || null}
+                  workPlanFileUrl={(activeBackend as any).proposal?.work_plan_file_url || null}
                 />
               )}
 

@@ -265,6 +265,12 @@ export const submitProposal = async (formData: FormData, file: File, workPlanFil
 export type SubmitRevisedProposalPayload = {
   projectTitle?: string;
   file: File;
+  /**
+   * Optional DOST Form 3 (Work & Financial Plan) replacement. If supplied, overwrites
+   * the existing work_plan_file_url on the proposal and stamps audit columns on the
+   * backend. Absent = keep whatever Form 3 (if any) was uploaded during submission.
+   */
+  workPlanFile?: File | null;
   implementingSchedule?: {
     startDate?: string;
     endDate?: string;
@@ -298,11 +304,27 @@ export const submitRevisedProposal = async (
   // Step 2: Upload file directly to S3 (bypasses Lambda)
   await uploadFileToS3(uploadUrl, payload.file);
 
+  // Step 2b: Optionally upload a replacement Form 3 (Work & Financial Plan).
+  let workPlanFileUrl: string | undefined;
+  if (payload.workPlanFile) {
+    const { uploadUrl: wpUploadUrl, fileUrl: wpFileUrl } = await getProposalUploadUrl(
+      payload.workPlanFile.name,
+      payload.workPlanFile.type,
+      payload.workPlanFile.size,
+    );
+    await uploadFileToS3(wpUploadUrl, payload.workPlanFile);
+    workPlanFileUrl = wpFileUrl;
+  }
+
   // Step 3: Build JSON body and POST to backend
   const body: Record<string, unknown> = {
     proposal_id: proposalId,
     file_url: fileUrl,
   };
+
+  if (workPlanFileUrl) {
+    body.work_plan_file_url = workPlanFileUrl;
+  }
 
   if (payload.projectTitle) {
     body.project_title = payload.projectTitle;

@@ -2229,7 +2229,7 @@ export class ProposalService {
   }
 
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
-    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } =
+    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url } =
       input;
 
     // 1. Verify proposal exists and belongs to proponent
@@ -2338,6 +2338,14 @@ export class ProposalService {
     if (project_title) updatePayload.project_title = project_title;
     if (plan_start_date) updatePayload.plan_start_date = plan_start_date;
     if (plan_end_date) updatePayload.plan_end_date = plan_end_date;
+
+    // Optional Form 3 (Work & Financial Plan) replacement. Overwrites the column; we
+    // don't version the attachment itself, just stamp who/when for audit purposes.
+    if (work_plan_file_url) {
+      updatePayload.work_plan_file_url = work_plan_file_url;
+      updatePayload.work_plan_file_updated_at = new Date().toISOString();
+      updatePayload.work_plan_file_updated_by = proponent_id;
+    }
 
     const { error: updateError } = await this.db.from("proposals").update(updatePayload).eq("id", proposal_id);
 

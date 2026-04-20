@@ -53,6 +53,7 @@ export interface ModalProposalData {
   documentUrl?: string;
   status: string;
   projectFile: string;
+  workPlanFileUrl?: string;
   submittedBy?: string;
   submittedDate: string;
   lastModified?: string;
@@ -604,23 +605,43 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 <FileText className="w-4 h-4 text-[#C8102E]" /> Project Documents
               </h3>
             </div>
-            <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer" onClick={() => handleViewFile(p.projectFile)}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <FileCheck className="w-5 h-5 text-[#C8102E]" />
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer" onClick={() => handleViewFile(p.projectFile)}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <FileCheck className="w-5 h-5 text-[#C8102E]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(p.projectFile)}>
+                      {getFileName(p.projectFile)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      DOST Form 1B{p.submittedDate ? ` — Submitted ${formatDateShort(p.submittedDate)}` : ""}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(p.projectFile)}>
-                    {getFileName(p.projectFile)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {p.submittedDate ? `Submitted: ${formatDateShort(p.submittedDate)}` : "Current Version"}
-                  </p>
-                </div>
+                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                  <Download className="w-3 h-3" />
+                </button>
               </div>
-              <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
-                <Download className="w-3 h-3" />
-              </button>
+              {p.workPlanFileUrl && (
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer" onClick={() => handleViewFile(p.workPlanFileUrl!)}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <FileCheck className="w-5 h-5 text-[#C8102E]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(p.workPlanFileUrl)}>
+                        {getFileName(p.workPlanFileUrl)}
+                      </p>
+                      <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
+                    </div>
+                  </div>
+                  <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                    <Download className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

@@ -130,6 +130,7 @@ export interface ApiProjectDetail {
     plan_end_date: string;
     email: string | null;
     phone: string | null;
+    work_plan_file_url: string | null;
     implementation_site: string | null;
     department: { id: number; name: string } | null;
     sector: { id: number; name: string } | null;

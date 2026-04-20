@@ -54,6 +54,7 @@ export interface ModalProposalData {
   documentUrl?: string;
   status: string;
   projectFile: string;
+  workPlanFileUrl?: string;
   submittedBy?: string;
   submittedDate: string;
   lastModified?: string;
@@ -819,30 +820,50 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 };
 
                 return projectFiles.length > 0 ? (
-                  [...projectFiles].reverse().map((fileUrl, reversedIndex) => {
-                    const isLatest = reversedIndex === 0;
-                    const originalIndex = projectFiles.length - 1 - reversedIndex;
-                    return (
-                      <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${isLatest && projectFiles.length > 1 ? 'border-green-200 shadow-sm' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors cursor-pointer`} onClick={() => handleViewFile(fileUrl)}>
+                  <>
+                    {[...projectFiles].reverse().map((fileUrl, reversedIndex) => {
+                      const isLatest = reversedIndex === 0;
+                      const originalIndex = projectFiles.length - 1 - reversedIndex;
+                      return (
+                        <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border ${isLatest && projectFiles.length > 1 ? 'border-green-200 shadow-sm' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors cursor-pointer`} onClick={() => handleViewFile(fileUrl)}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 ${isLatest && projectFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
+                              <FileCheck className={`w-5 h-5 ${isLatest && projectFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
+                                {getFileName(fileUrl)}
+                              </p>
+                              <p className={`text-xs ${isLatest && projectFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                                {isLatest ? 'DOST Form 1B — Latest version' : `DOST Form 1B — Version ${originalIndex + 1}`}
+                              </p>
+                            </div>
+                          </div>
+                          <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                            <Download className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {p.workPlanFileUrl && (
+                      <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors cursor-pointer" onClick={() => handleViewFile(p.workPlanFileUrl!)}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${isLatest && projectFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
-                            <FileCheck className={`w-5 h-5 ${isLatest && projectFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
+                          <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <FileCheck className="w-5 h-5 text-[#C8102E]" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
-                              {getFileName(fileUrl)}
+                            <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(p.workPlanFileUrl)}>
+                              {getFileName(p.workPlanFileUrl)}
                             </p>
-                            <p className={`text-xs ${isLatest && projectFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                              {isLatest ? 'Latest version' : `Version ${originalIndex + 1}`}
-                            </p>
+                            <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
                           </div>
                         </div>
                         <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
                           <Download className="w-3 h-3" />
                         </button>
                       </div>
-                    );
-                  })
+                    )}
+                  </>
                 ) : (
                   <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-3">

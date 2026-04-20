@@ -35,7 +35,7 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const { file_url, proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget } = validation.data;
+  const { file_url, proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url } = validation.data;
 
   // Submit revision via service (file already uploaded to S3 by browser)
   const proposalService = new ProposalService(supabase);
@@ -48,6 +48,7 @@ export const handler = buildCorsHeaders(async (event) => {
       plan_start_date,
       plan_end_date,
       budget,
+      work_plan_file_url,
     },
     file_url
   );
@@ -80,8 +81,19 @@ export const handler = buildCorsHeaders(async (event) => {
     category: "proposal",
     target_id: String(proposal_id),
     target_type: "proposal",
-    details: { project_title },
+    details: { project_title, work_plan_replaced: !!work_plan_file_url },
   });
+
+  if (work_plan_file_url) {
+    await logActivity(supabase, {
+      user_id: auth.userId,
+      action: "work_plan_file_updated",
+      category: "proposal",
+      target_id: String(proposal_id),
+      target_type: "proposal",
+      details: { project_title, source: "revision" },
+    });
+  }
 
   // Notify assigned RND that a revised proposal has been resubmitted (fire-and-forget)
   try {

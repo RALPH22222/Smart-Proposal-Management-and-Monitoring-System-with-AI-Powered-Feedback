@@ -158,6 +158,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedProposal, setEditedProposal] = useState<Proposal | null>(null);
   const [newFile, setNewFile] = useState<File | null>(null);
+  // Optional Form 3 (Work & Financial Plan) replacement on revision. Absent = keep existing.
+  const [newWorkPlanFile, setNewWorkPlanFile] = useState<File | null>(null);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
@@ -396,6 +398,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     if (!isOpen) {
       setIsEditing(false);
       setNewFile(null);
+      setNewWorkPlanFile(null);
     }
   }, [isOpen]);
 
@@ -702,6 +705,24 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     }
   };
 
+  const handleWorkPlanFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!["pdf", "doc", "docx"].includes(ext || "")) {
+        Swal.fire({ icon: "error", title: "Invalid File Type", text: "Upload PDF, DOC, or DOCX only." });
+        event.target.value = "";
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        Swal.fire({ icon: "error", title: "File too large", text: "Maximum file size is 10 MB." });
+        event.target.value = "";
+        return;
+      }
+      setNewWorkPlanFile(file);
+    }
+  };
+
   const handleSave = async () => {
     // Check if in revision mode and submit revision
     if (isInRevisionMode && proposal && newFile) {
@@ -742,6 +763,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         const revisedPayload = {
           projectTitle: editedProposal?.title !== proposal.title ? editedProposal?.title : undefined,
           file: newFile,
+          workPlanFile: newWorkPlanFile,
           implementingSchedule: {
             startDate: editedProposal?.startDate && editedProposal.startDate !== proposal.startDate
               ? editedProposal.startDate
@@ -771,6 +793,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             confirmButtonColor: '#C8102E'
           });
           setNewFile(null);
+          setNewWorkPlanFile(null);
           setIsEditing(false);
           // onClose();  // Don't close, show summary
 
@@ -810,12 +833,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       onUpdateProposal(updatedProposal);
       setIsEditing(false);
       setNewFile(null);
+      setNewWorkPlanFile(null);
     }
   };
 
   const handleCancel = () => {
     setEditedProposal(proposal);
     setNewFile(null);
+    setNewWorkPlanFile(null);
     setIsEditing(false);
   };
 
@@ -1712,7 +1737,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       <label className="flex flex-col items-center justify-center gap-2 cursor-pointer">
                         <Upload className="w-5 h-5 text-slate-400" />
                         <span className="text-sm font-medium text-slate-600">
-                          Click to upload revised PDF
+                          Click to upload revised DOST Form 1B
                         </span>
                         <input
                           type="file"
@@ -1727,7 +1752,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           <CheckCircle2 className="w-5 h-5 text-green-600" />
                           <div>
                             <p className="text-sm font-medium text-green-800">
-                              Ready to submit
+                              Ready to submit (Form 1B)
                             </p>
                             <p className="text-xs text-green-600 max-w-[200px] truncate">
                               {newFile.name}
@@ -1742,6 +1767,54 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         </button>
                       </div>
                     )}
+                  </div>
+                )}
+                {canEditFile && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-slate-700">Work & Financial Plan (DOST Form 3)</p>
+                      <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Optional</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mb-2">
+                      Only re-upload if your revised timeline or budget changes the original workplan.
+                    </p>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-3 transition-colors ${newWorkPlanFile
+                        ? "border-green-300 bg-green-50"
+                        : "border-slate-300 hover:border-[#C8102E] hover:bg-white"
+                        }`}
+                    >
+                      {!newWorkPlanFile ? (
+                        <label className="flex flex-col items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-medium text-slate-600">
+                            Click to upload revised Form 3
+                          </span>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleWorkPlanFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <div>
+                              <p className="text-xs font-medium text-green-800">Ready to submit (Form 3)</p>
+                              <p className="text-[11px] text-green-600 max-w-[200px] truncate">{newWorkPlanFile.name}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setNewWorkPlanFile(null)}
+                            className="text-[11px] text-red-600 hover:underline font-medium"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

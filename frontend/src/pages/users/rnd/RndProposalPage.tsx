@@ -549,6 +549,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           assignedEvaluators: evaluatorNames,
           evaluatorInstruction: raw.evaluator_instruction || p.evaluator_instruction || "",
           projectFile: currentFileUrl,
+          workPlanFileUrl: raw.work_plan_file_url || undefined,
           versions: versions.map((v: any) => v.file_url),
           tags: raw.proposal_tags?.map((t: any) => t.tags?.name) || [],
           raw: raw // Pass normalized data to modal

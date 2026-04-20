@@ -253,6 +253,9 @@ export const submitRevisedProposalSchema = z.object({
   plan_start_date: z.string().date().optional(),
   plan_end_date: z.string().date().optional(),
   budget: z.preprocess(parseJsonIfString, budgetsSchema).optional(),
+  // Optional Form 3 replacement. When present, overwrites proposals.work_plan_file_url
+  // and stamps audit columns. Absent = keep existing Form 3 (or keep absent).
+  work_plan_file_url: z.string().url("Invalid work plan file URL").optional(),
 });
 
 export const handleExtensionRequestSchema = z.object({

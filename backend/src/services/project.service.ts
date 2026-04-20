@@ -309,6 +309,7 @@ export class ProjectService {
           plan_end_date,
           email,
           phone,
+          work_plan_file_url,
           implementation_site(site_name,city),
           department:departments (id, name),
           sector:sectors (id, name),
