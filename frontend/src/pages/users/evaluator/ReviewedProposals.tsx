@@ -20,7 +20,7 @@ export default function ReviewedProposals() {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const [selectedProposal, setSelectedProposal] = useState<number | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<{ id: number; versionId: any } | null>(null);
   const [yearFilter, setYearFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("recent-old");
 
@@ -77,7 +77,9 @@ export default function ReviewedProposals() {
 
       const mapped = filtered.map((item: any) => {
         const p = item.proposal_id || {};
-        const evaluationScore = scoresMap.get(scoreKey(p.id, item.proposal_version_id));
+        const evaluationScore = scoresMap.get(scoreKey(p.id, item.proposal_version_id))
+          ?? scoresMap.get(scoreKey(p.id, null))
+          ?? scores.find((s: any) => String(s.proposal_id) === String(p.id));
         const versionNumber = versionRankByProposal.get(p.id)?.get(item.proposal_version_id) ?? 1;
         const proponent = p.proponent_id || {};
         const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
@@ -244,15 +246,19 @@ export default function ReviewedProposals() {
     return colors[index];
   };
 
-  const handleViewClick = (proposalId: number) => {
-    setSelectedProposal(proposalId);
+  const handleViewClick = (proposalId: number, versionId: any) => {
+    setSelectedProposal({ id: proposalId, versionId });
   };
 
   const closeModal = () => {
     setSelectedProposal(null);
   };
 
-  const proposal = reviewedProposals.find((p) => p.id === selectedProposal);
+  const proposal = selectedProposal
+    ? reviewedProposals.find(
+        (p) => p.id === selectedProposal.id && p.proposalVersionId === selectedProposal.versionId
+      ) ?? reviewedProposals.find((p) => p.id === selectedProposal.id)
+    : undefined;
 
   if (loading) return <PageLoader mode="table" />;
 
@@ -376,7 +382,7 @@ export default function ReviewedProposals() {
 
                       <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                         <button
-                          onClick={() => handleViewClick(proposal.id)}
+                          onClick={() => handleViewClick(proposal.id, proposal.proposalVersionId)}
                           className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 cursor-pointer text-xs font-medium"
                         >
                           <Eye className="w-3 h-3" />

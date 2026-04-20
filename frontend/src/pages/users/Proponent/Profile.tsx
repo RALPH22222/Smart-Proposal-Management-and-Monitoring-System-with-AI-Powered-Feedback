@@ -47,7 +47,7 @@ const Profile: React.FC = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const cardsPerPage = 12;
+  const cardsPerPage = 6;
 
   React.useEffect(() => {
     setCurrentPage(1);
