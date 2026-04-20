@@ -120,44 +120,109 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-        <div className="flex-1 text-sm text-blue-800 space-y-2">
-          <div>
-            <span className="font-bold block mb-1">Instructions:</span>
-            Add funding sources. For each category (PS, MOOE, CO), click the list icon to add line items with quantity, unit, and unit price.
-          </div>
-          <div className="text-xs text-blue-700">
-            Have a filled-out LIB? Click <strong>Import WMSU LIB Template</strong> — the importer only accepts this official format.
-            {' '}
-            <a
-              href="/templates/wmsu-lib-template-v1.docx"
-              download="wmsu-lib-template-v1.docx"
-              className="inline-flex items-center gap-1 font-semibold text-[#C8102E] hover:text-[#9d0d24] underline underline-offset-2"
-            >
-              <FaFileWord className="w-3 h-3" />
-              Download template
-            </a>
-            .
-          </div>
+      {/* Two-path guidance panel.
+          Option A — template path (recommended): Step 1 Download → Step 2 Import. The two
+            cards are visually linked with a "→" so first-time users understand the order.
+          Option B — manual entry: de-emphasised but equally one click away. No step numbering
+            on this path — it is not a continuation of Option A, it is an alternative. */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 overflow-hidden">
+        <div className="px-5 py-3 border-b border-blue-200 bg-white/60">
+          <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+            <FaMagic className="w-4 h-4 text-[#C8102E]" />
+            Build your budget
+          </h3>
+          <p className="text-xs text-blue-700 mt-0.5">
+            Choose one of two ways to add your line items.
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-64 lg:shrink-0">
-          <button
-            type="button"
-            onClick={onOpenLibImport}
-            className="flex-1 px-4 py-2.5 text-[#C8102E] bg-white border-2 border-[#C8102E] font-semibold rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200 text-sm"
-          >
-            <FaMagic className="w-4 h-4" />
-            Import WMSU LIB Template
-          </button>
-          <button
-            type="button"
-            onClick={onBudgetItemAdd}
-            className="flex-1 px-4 py-2.5 text-white font-semibold rounded-xl hover:bg-[#9d0d24] hover:shadow-lg transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200 text-sm"
-            style={{ backgroundColor: '#C8102E' }}
-          >
-            <FaPlus className="w-4 h-4" />
-            Add Funding Source
-          </button>
+
+        <div className="p-4 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-stretch">
+          {/* Option A — template path */}
+          <div className="lg:col-span-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#C8102E] text-white text-[10px] font-bold tracking-wide uppercase">
+                Option A
+              </span>
+              <span className="text-xs font-semibold text-[#C8102E]">Use the template (recommended for faster encoding)</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a
+                href="/templates/wmsu-lib-template-v1.docx"
+                download="wmsu-lib-template-v1.docx"
+                className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98]"
+              >
+                <div className="w-8 h-8 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
+                  Step<br />1
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
+                    <FaFileWord className="w-3.5 h-3.5" />
+                    Download Template
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                    Official WMSU LIB Template v1 (.docx) — fill in Word, then import here.
+                  </p>
+                </div>
+              </a>
+
+              <div className="hidden sm:flex items-center text-[#C8102E] font-black text-xl select-none">→</div>
+
+              <button
+                type="button"
+                onClick={onOpenLibImport}
+                className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98] text-left"
+              >
+                <div className="w-8 h-8 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
+                  Step<br />2
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Import Filled Template
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                    Upload the filled .docx — only the WMSU template is accepted.
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* OR divider */}
+          <div className="hidden lg:flex flex-col items-center justify-center px-1">
+            <div className="w-px flex-1 bg-blue-300"></div>
+            <span className="text-[10px] font-bold text-blue-500 tracking-widest py-1">OR</span>
+            <div className="w-px flex-1 bg-blue-300"></div>
+          </div>
+          <div className="flex lg:hidden items-center gap-2 pt-2">
+            <div className="flex-1 h-px bg-blue-300"></div>
+            <span className="text-[10px] font-bold text-blue-500 tracking-widest">OR</span>
+            <div className="flex-1 h-px bg-blue-300"></div>
+          </div>
+
+          {/* Option B — manual path */}
+          <div className="space-y-2 lg:w-52">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-500 text-white text-[10px] font-bold tracking-wide uppercase">
+                Option B
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onBudgetItemAdd}
+              className="group w-full flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-gray-300 hover:border-gray-500 hover:shadow-md transition-all active:scale-[0.98] text-left"
+            >
+              <div className="w-8 h-8 shrink-0 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
+                <FaPlus className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-gray-800 text-sm">Enter Manually</div>
+                <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                  Add a funding source and type items in the form below.
+                </p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -837,6 +902,37 @@ export const LibImportModal: React.FC<{
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Live subcategory reference — codex-recommended: show the valid labels in the import modal
+  // (not stamped into the .docx where they'd go stale) so proponents can cross-check before
+  // uploading. Lazy-loaded on expander toggle to avoid blocking modal open.
+  const [showSubcategoryRef, setShowSubcategoryRef] = useState(false);
+  const [subcategoryRef, setSubcategoryRef] = useState<{
+    ps: BudgetSubcategory[];
+    mooe: BudgetSubcategory[];
+    co: BudgetSubcategory[];
+  } | null>(null);
+  const [loadingSubcategoryRef, setLoadingSubcategoryRef] = useState(false);
+
+  const handleToggleSubcategoryRef = async () => {
+    const next = !showSubcategoryRef;
+    setShowSubcategoryRef(next);
+    if (next && !subcategoryRef && !loadingSubcategoryRef) {
+      setLoadingSubcategoryRef(true);
+      try {
+        const [ps, mooe, co] = await Promise.all([
+          fetchBudgetSubcategories('ps'),
+          fetchBudgetSubcategories('mooe'),
+          fetchBudgetSubcategories('co'),
+        ]);
+        setSubcategoryRef({ ps, mooe, co });
+      } catch {
+        /* leave null; user can retry by toggling */
+      } finally {
+        setLoadingSubcategoryRef(false);
+      }
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     // Always reset the input so the user can re-select the same file after a failed parse
@@ -998,6 +1094,52 @@ export const LibImportModal: React.FC<{
                 onChange={handleFileChange}
                 className="hidden"
               />
+            </div>
+          )}
+
+          {/* Valid-subcategory expander — only in the picker state (before upload). Live data
+              from the admin catalog, so proponents see the authoritative list without us having
+              to stamp it into the .docx where it would go stale. */}
+          {!result && !parsing && (
+            <div className="border border-gray-200 rounded-xl bg-white overflow-hidden">
+              <button
+                type="button"
+                onClick={handleToggleSubcategoryRef}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <FaListUl className="w-3.5 h-3.5 text-[#C8102E]" />
+                  View valid subcategories
+                  <span className="text-[10px] font-normal text-gray-400">(optional — the form dropdown also shows this list)</span>
+                </span>
+                <span className={`text-gray-400 transition-transform ${showSubcategoryRef ? 'rotate-90' : ''}`}>›</span>
+              </button>
+              {showSubcategoryRef && (
+                <div className="border-t border-gray-200 p-3 bg-gray-50">
+                  {loadingSubcategoryRef && (
+                    <div className="text-xs text-gray-500 py-2 text-center">Loading latest list…</div>
+                  )}
+                  {!loadingSubcategoryRef && subcategoryRef && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      {(['ps', 'mooe', 'co'] as const).map((cat) => (
+                        <div key={cat}>
+                          <div className="font-bold text-[#C8102E] uppercase text-[10px] tracking-wider mb-1">
+                            {cat === 'ps' ? 'Personnel Services' : cat === 'mooe' ? 'MOOE' : 'Capital Outlay'}
+                          </div>
+                          <ul className="space-y-0.5 text-gray-700">
+                            {subcategoryRef[cat].map((s) => (
+                              <li key={s.id}>• {s.label}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!loadingSubcategoryRef && !subcategoryRef && (
+                    <div className="text-xs text-red-600 py-2 text-center">Could not load subcategories. Try again shortly.</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
