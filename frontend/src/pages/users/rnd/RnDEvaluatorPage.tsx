@@ -106,18 +106,21 @@ export const RnDEvaluatorPage: React.FC = () => {
 
       // ── Step A: Pre-seed the map from proposals so that proposals with
       // under_evaluation status always appear even with 0 tracker records.
+      // NOTE: getRndProposals() returns rows from the `proposal_rnd` join table,
+      // so the actual proposal is nested inside `p.proposal_id`.
       proposals.forEach((p: any) => {
-        const pid = Number(p.id);
-        if (!pid || !p.status) return;
-        if (["under_evaluation", "review_rnd", "pending", "revised_proposal"].includes(p.status)) {
+        const raw = (p.proposal_id && typeof p.proposal_id === 'object') ? p.proposal_id : p;
+        const pid = Number(raw.id);
+        if (!pid || !raw.status) return;
+        if (["under_evaluation", "review_rnd", "pending", "revised_proposal"].includes(raw.status)) {
           groupedMap.set(pid, {
             proposalIdNumeric: pid,
-            proposalTitle: p.project_title || "Untitled Proposal",
-            proposalStatus: p.status,
-            projectType: p.sector?.name || "N/A",
+            proposalTitle: raw.project_title || "Untitled Proposal",
+            proposalStatus: raw.status,
+            projectType: raw.sector?.name || "N/A",
             deadline: new Date().toISOString(),
-            submittedDate: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString(),
-            tags: p.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => !!t) || [],
+            submittedDate: raw.created_at ? new Date(raw.created_at).toISOString() : new Date().toISOString(),
+            tags: raw.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => !!t) || [],
             evaluators: [],
           });
         }

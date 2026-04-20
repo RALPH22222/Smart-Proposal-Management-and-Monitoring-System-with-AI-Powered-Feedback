@@ -603,7 +603,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 </div>
 
                 <div className="bg-white border border-purple-100 rounded-lg p-4 shadow-sm">
-                  <p className="text-sm text-slate-700 mb-3">
+                  <div className="text-sm text-slate-700 mb-3">
                     {isLoadingEvaluators ? (
                       <div className="animate-pulse flex flex-wrap gap-2 mb-2">
                         {[1, 2, 3].map(i => <div key={i} className="h-7 w-28 bg-purple-100 rounded-full" />)}
@@ -613,7 +613,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     ) : (
                       <span className="italic text-slate-400">No evaluators are currently assigned to this proposal.</span>
                     )}
-                  </p>
+                  </div>
 
                   {evaluators && evaluators.length > 0 && !isLoadingEvaluators && (
                     <div className="flex flex-wrap gap-2">
