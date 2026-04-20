@@ -179,8 +179,11 @@ const Submission: React.FC = () => {
       });
       if (hasInvalidLine) return false;
 
-      if (ps.length === 0) return false;
-      if (mooe.length === 0) return false;
+      // PS / MOOE / CO are all optional individually — each funding source needs at least
+      // one item in ANY category. Backend schema (proposal-schema.ts line 69) already
+      // enforces `ps.length > 0 || mooe.length > 0 || co.length > 0`. This mirrors real-world
+      // DOST proposals like AMBIANCE which had no PS section.
+      if (ps.length === 0 && mooe.length === 0 && co.length === 0) return false;
 
       return true;
     });
@@ -349,22 +352,14 @@ const Submission: React.FC = () => {
         return false;
       }
 
-      // Check if PS and MOOE have at least one item
-      if (ps.length === 0) {
+      // PS / MOOE / CO are all optional individually, but each funding source must have
+      // at least one item in SOME category. Real DOST proposals (e.g. AMBIANCE) often skip
+      // entire categories — forcing all three hurts those workflows.
+      if (ps.length === 0 && mooe.length === 0 && co.length === 0) {
         Swal.fire({
           icon: "warning",
-          title: "Missing PS Items",
-          text: `Funding source "${item.source}" must have at least one Personnel Services (PS) item.`,
-          confirmButtonColor: "#C8102E",
-        });
-        return false;
-      }
-
-      if (mooe.length === 0) {
-        Swal.fire({
-          icon: "warning",
-          title: "Missing MOOE Items",
-          text: `Funding source "${item.source}" must have at least one Maintenance & Other Operating Expenses (MOOE) item.`,
+          title: "Empty Funding Source",
+          text: `Funding source "${item.source}" has no line items. Add at least one item to PS, MOOE, or CO.`,
           confirmButtonColor: "#C8102E",
         });
         return false;

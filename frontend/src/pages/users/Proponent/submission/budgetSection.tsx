@@ -301,6 +301,15 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       </div>
 
+      <div className="flex items-start gap-2 text-xs text-gray-600 px-1">
+        <FaCoins className="w-3.5 h-3.5 mt-0.5 text-gray-400 shrink-0" />
+        <span>
+          <strong className="text-gray-800">PS, MOOE, and CO are each optional</strong> — but every funding source
+          must have at least one line item in one of them. Proposals like AMBIANCE, which have no Personnel Services,
+          are fully supported.
+        </span>
+      </div>
+
       <div className="space-y-4">
         {formData.budgetItems.map((item, index) => {
           const rowPS = sumLineTotals(item.budget?.ps);
@@ -334,7 +343,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowPS > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    PS <span className="text-red-500">*</span>
+                    PS <span className="text-gray-400 font-normal">(optional)</span>
                     <Tooltip content="Personnel Services" position="right" />
                   </label>
                   <div
@@ -357,7 +366,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowMOOE > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    MOOE <span className="text-red-500">*</span>
+                    MOOE <span className="text-gray-400 font-normal">(optional)</span>
                     <Tooltip content="Maintenance and Other Operating Expenses" position="right" />
                   </label>
                   <div
@@ -380,7 +389,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
                 <div className="lg:col-span-2 space-y-2">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowCO > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    CO <span className="text-red-500">*</span>
+                    CO <span className="text-gray-400 font-normal">(optional)</span>
                     <Tooltip content="Capital Outlay" position="right" />
                   </label>
                   <div
