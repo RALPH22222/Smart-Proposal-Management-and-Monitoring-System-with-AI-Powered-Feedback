@@ -411,10 +411,11 @@ export class ProposalService {
       };
     }
 
-    let currentVersionId = proposal.current_version_id as number;
+
+    let currentVersionId: number | null = proposal.current_version_id as number | null;
 
     if (!currentVersionId) {
-      const { data: latestVersion, error: versionFetchError } = await this.db
+      const { data: latestVersion } = await this.db
         .from("proposal_version")
         .select("id")
         .eq("proposal_id", proposal_id)
@@ -422,23 +423,21 @@ export class ProposalService {
         .limit(1)
         .maybeSingle();
 
-      if (versionFetchError || !latestVersion) {
-        return {
-          error: new Error("Proposal has no current version or files uploaded — cannot forward to evaluators."),
-          assignments: null,
-        };
-      }
+      if (latestVersion?.id) {
 
-      // Repair: Update the proposals table with the found version pointer
-      currentVersionId = latestVersion.id;
-      await this.db.from("proposals").update({ current_version_id: currentVersionId }).eq("id", proposal_id);
+        currentVersionId = latestVersion.id;
+        await this.db.from("proposals").update({ current_version_id: currentVersionId }).eq("id", proposal_id);
+      }
     }
 
-    const { data: existingAssignments } = await this.db
+    let existingQuery = this.db
       .from("proposal_evaluators")
       .select("evaluator_id")
-      .eq("proposal_id", proposal_id)
-      .eq("proposal_version_id", currentVersionId);
+      .eq("proposal_id", proposal_id);
+    if (currentVersionId) {
+      existingQuery = existingQuery.eq("proposal_version_id", currentVersionId);
+    }
+    const { data: existingAssignments } = await existingQuery;
 
     const existingIds = new Set((existingAssignments || []).map((a) => a.evaluator_id));
     const newEvaluators = evaluators.filter((ev) => !existingIds.has(ev.id));
@@ -488,7 +487,6 @@ export class ProposalService {
 
     const assignmentsTrackerPayload = newEvaluators.map((ev) => ({
       proposal_id: proposal_id,
-      proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
       status: AssignmentTracker.PENDING,
     }));
