@@ -91,5 +91,6 @@ export interface Proposal {
   fundedProjectLeadId?: string;
   versionNumber?: number;
   workPlanFileUrl?: string;
+  endorsementJustification?: string;
 }
 // end of file

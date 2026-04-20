@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   X,
   Users,
+  MessageSquare,
   Calendar,
   HandCoins,
   Phone,
@@ -85,6 +86,7 @@ export interface ModalProposalData {
   assignedBy?: string;
   assignedRdStaff?: string;
   evaluators?: { name: string; department?: string; status: string }[];
+  endorsementJustification?: string;
 }
 
 interface AdminViewModalProps {
