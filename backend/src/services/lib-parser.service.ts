@@ -144,6 +144,20 @@ function detectCategoryHeader(cells: string[]): LibCategory | null {
   return CATEGORY_LOOKUP[label] ?? null;
 }
 
+// Template also contains subtotal + grand-total rows for visual reference. These must be
+// skipped by the parser — their label text (in the first non-empty cell) starts with one of:
+//   "subtotal", "total", "grand total"
+// Rows containing these labels are informational only, not line items.
+const TOTAL_LABEL_RX = /^(grand\s*total|sub\s*total|subtotal|total)\b/i;
+function isTotalRow(cells: string[]): boolean {
+  for (const c of cells) {
+    const trimmed = c.trim();
+    if (!trimmed) continue;
+    return TOTAL_LABEL_RX.test(trimmed);
+  }
+  return false;
+}
+
 function rejectionResult(message: string, tableCount: number): ParseLibResult {
   return {
     rejected: true,
@@ -199,6 +213,19 @@ export async function parseLibDocument(buffer: Buffer): Promise<ParseLibResult> 
     if (categoryFromHeader) {
       currentCategory = categoryFromHeader;
       detected.categories[categoryFromHeader] = true;
+      continue;
+    }
+
+    if (isTotalRow(cells)) {
+      // Capture the grand total for the detected summary so the frontend can display
+      // "Grand total in source: ₱X" if helpful. Use the rightmost numeric cell.
+      for (let c = cells.length - 1; c >= 0; c--) {
+        const n = parseNumber(cells[c]);
+        if (n != null && n > 0) {
+          if (detected.grandTotal == null || n > detected.grandTotal) detected.grandTotal = n;
+          break;
+        }
+      }
       continue;
     }
 

@@ -82,17 +82,33 @@ const EMPTY_ROW: Row = { subcategory: "", itemName: "", spec: "", qty: "", unit:
 
 type Align = (typeof AlignmentType)[keyof typeof AlignmentType];
 
-function txt(s: string, opts: { bold?: boolean; align?: Align } = {}): Paragraph {
+// WMSU brand crimson — matches the #C8102E token used across the web UI.
+const WMSU_CRIMSON = "C8102E";
+const WMSU_CRIMSON_TINT = "FDECEE"; // Very light crimson background for category header rows.
+
+function txt(
+  s: string,
+  opts: { bold?: boolean; align?: Align; color?: string; size?: number } = {},
+): Paragraph {
   return new Paragraph({
     alignment: opts.align ?? AlignmentType.LEFT,
-    children: [new TextRun({ text: s, bold: opts.bold ?? false, size: 20 })],
+    children: [
+      new TextRun({
+        text: s,
+        bold: opts.bold ?? false,
+        color: opts.color,
+        size: opts.size ?? 20,
+      }),
+    ],
   });
 }
 
 function headerCell(text: string): TableCell {
   return new TableCell({
-    shading: { fill: "D9D9D9" },
-    children: [txt(text, { bold: true, align: AlignmentType.CENTER })],
+    shading: { fill: WMSU_CRIMSON },
+    children: [
+      txt(text, { bold: true, align: AlignmentType.CENTER, color: "FFFFFF" }),
+    ],
   });
 }
 
@@ -105,8 +121,10 @@ function categoryHeaderRow(label: string): TableRow {
     children: [
       new TableCell({
         columnSpan: HEADER_COLUMNS.length,
-        shading: { fill: "FFF2CC" },
-        children: [txt(label, { bold: true, align: AlignmentType.LEFT })],
+        shading: { fill: WMSU_CRIMSON_TINT },
+        children: [
+          txt(label, { bold: true, align: AlignmentType.LEFT, color: WMSU_CRIMSON, size: 22 }),
+        ],
       }),
     ],
   });
@@ -127,6 +145,52 @@ function dataRow(r: Row): TableRow {
   });
 }
 
+// Subtotal row — spans first 6 columns as a label, puts the sum in the last (Amount) column.
+// The parser skips rows whose first cell starts with "subtotal" / "total" / "grand total",
+// so these are visual-only. Proponents fill them in by hand for sanity-check purposes.
+function subtotalRow(label: string, amount: number | ""): TableRow {
+  const asStr = (v: number | "") => (v === "" ? "" : String(v));
+  return new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: HEADER_COLUMNS.length - 1,
+        shading: { fill: "F7F7F7" },
+        children: [txt(label, { bold: true, align: AlignmentType.RIGHT, color: "4A5568" })],
+      }),
+      new TableCell({
+        shading: { fill: "F7F7F7" },
+        children: [txt(asStr(amount), { bold: true, align: AlignmentType.RIGHT })],
+      }),
+    ],
+  });
+}
+
+function grandTotalRow(amount: number | ""): TableRow {
+  const asStr = (v: number | "") => (v === "" ? "" : String(v));
+  return new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: HEADER_COLUMNS.length - 1,
+        shading: { fill: WMSU_CRIMSON },
+        children: [
+          txt("GRAND TOTAL", { bold: true, align: AlignmentType.RIGHT, color: "FFFFFF", size: 22 }),
+        ],
+      }),
+      new TableCell({
+        shading: { fill: WMSU_CRIMSON },
+        children: [
+          txt(asStr(amount), { bold: true, align: AlignmentType.RIGHT, color: "FFFFFF", size: 22 }),
+        ],
+      }),
+    ],
+  });
+}
+
+function sumRows(rows: Row[]): number | "" {
+  const total = rows.reduce((sum, r) => sum + (typeof r.amount === "number" ? r.amount : 0), 0);
+  return total === 0 ? "" : total;
+}
+
 function buildDocument(filled: boolean): Document {
   const headerRow = new TableRow({ children: HEADER_COLUMNS.map(headerCell), tableHeader: true });
 
@@ -134,14 +198,26 @@ function buildDocument(filled: boolean): Document {
   const mooeRows = filled ? SAMPLE_MOOE : [EMPTY_ROW];
   const coRows = filled ? SAMPLE_CO : [EMPTY_ROW];
 
+  const psTotal = filled ? sumRows(SAMPLE_PS) : "";
+  const mooeTotal = filled ? sumRows(SAMPLE_MOOE) : "";
+  const coTotal = filled ? sumRows(SAMPLE_CO) : "";
+  const grandTotal =
+    filled && typeof psTotal === "number" && typeof mooeTotal === "number" && typeof coTotal === "number"
+      ? psTotal + mooeTotal + coTotal
+      : "";
+
   const rows: TableRow[] = [
     headerRow,
     categoryHeaderRow(CATEGORY_HEADERS.ps),
     ...psRows.map(dataRow),
+    subtotalRow("Subtotal — Personnel Services", psTotal),
     categoryHeaderRow(CATEGORY_HEADERS.mooe),
     ...mooeRows.map(dataRow),
+    subtotalRow("Subtotal — MOOE", mooeTotal),
     categoryHeaderRow(CATEGORY_HEADERS.co),
     ...coRows.map(dataRow),
+    subtotalRow("Subtotal — Capital Outlay", coTotal),
+    grandTotalRow(grandTotal),
   ];
 
   const table = new Table({
@@ -161,20 +237,44 @@ function buildDocument(filled: boolean): Document {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       heading: HeadingLevel.HEADING_1,
-      children: [new TextRun({ text: "WMSU LINE-ITEM BUDGET (LIB) TEMPLATE v1", bold: true, size: 28 })],
+      children: [
+        new TextRun({
+          text: "WMSU LINE-ITEM BUDGET (LIB) TEMPLATE v1",
+          bold: true,
+          size: 28,
+          color: WMSU_CRIMSON,
+        }),
+      ],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: "Western Mindanao State University — Research Development & Evaluation Center", size: 20 })],
+      children: [
+        new TextRun({
+          text: "Western Mindanao State University — Research Development & Evaluation Center",
+          size: 20,
+          color: "4A5568",
+        }),
+      ],
     }),
     new Paragraph({ children: [new TextRun({ text: " " })] }),
     new Paragraph({
       children: [
         new TextRun({
           text:
-            "Fill in one item per row. Do not add or remove columns. Category header rows (PS / MOOE / CO) separate the three sections — keep them intact. Amount should equal Qty x Unit Price.",
+            "How to use this template: Fill in one item per row. Do not add or remove columns. Keep the category header rows (PS / MOOE / CO) intact. The Amount column should equal Qty x Unit Price.",
           italics: true,
           size: 18,
+        }),
+      ],
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text:
+            'Subcategory tip: If your item matches a standard subcategory (e.g. "Office Supplies", "Honoraria"), write that. If your item does not fit any standard subcategory, you have three options — all are acceptable: (1) write "Other" and refine it in the form after import, (2) write your own specific label (e.g. "IoT Sensors") and the system keeps it as-is, or (3) leave the cell blank and pick the subcategory in the form after import.',
+          italics: true,
+          size: 18,
+          color: "4A5568",
         }),
       ],
     }),
