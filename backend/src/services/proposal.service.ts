@@ -2789,7 +2789,9 @@ export class ProposalService {
     // must not appear alongside the freshly-forwarded v2 assignments.
     const versionFiltered = (trackerData || []).filter((row: any) => {
       const currentVersionId = row.proposals?.current_version_id;
-      return !currentVersionId || row.proposal_version_id === currentVersionId;
+      // Show if: proposal has no version tracking, or row is a legacy record
+      // (null version_id), or row matches the current version.
+      return !currentVersionId || !row.proposal_version_id || row.proposal_version_id === currentVersionId;
     });
 
     // Admin sees all tracker records; RND only sees evaluators they assigned
