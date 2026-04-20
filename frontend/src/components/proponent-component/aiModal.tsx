@@ -21,6 +21,7 @@ export interface AIAnalysisResult {
   similarPapers?: Array<{ title: string; year: string }>;
   issues?: string[];
   suggestions?: string[];
+  strengths?: string[];
   formFields?: FormExtractedFields;
 }
 
@@ -77,105 +78,105 @@ const AIModal: React.FC<AIModalProps> = ({
   else similarityStatus = "Very Similar";
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-[1.5rem] w-full max-w-xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in duration-300">
         
         {/* --- Header --- */}
-        <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="p-3 sm:p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-[#C8102E] to-blue-800 rounded-xl shadow-lg shadow-red-200">
-                <FaRobot className="text-white text-xl" />
+              <div className="p-2 bg-gradient-to-br from-[#C8102E] to-blue-800 rounded-xl shadow-lg shadow-red-100">
+                <FaRobot className="text-white text-base sm:text-xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-base sm:text-xl font-black text-gray-900 leading-tight">
                   {finalResult.title}
                 </h2>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>Proposal Analysis & Validation</span>
+                <div className="flex items-center gap-2 text-[9px] sm:text-[10px] mt-2 font-bold text-gray-400 uppercase tracking-widest">
+                  <span className="bg-red-50 text-[#C8102E] px-1.5 py-0.5 rounded">AI POWERED</span>
                 </div>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-1.5 hover:bg-gray-100 rounded-full transition-all hover:rotate-90 duration-300"
             >
-              <FaTimes className="text-gray-400 hover:text-gray-600" />
+              <FaTimes className="text-gray-400 hover:text-red-600" />
             </button>
           </div>
         </div>
 
         {/* --- Content Scroll Area --- */}
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6">
           {isChecking ? (
             /* LOADING STATE */
             <div className="flex flex-col items-center justify-center h-64 space-y-4">
               <div className="relative">
-                <div className="w-16 h-16 border-4 border-red-100 border-t-[#C8102E] rounded-full animate-spin"></div>
-                <FaRobot className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#C8102E] text-xl" />
+                <div className="w-16 h-16 border-[5px] border-red-50 border-t-[#C8102E] rounded-full animate-spin"></div>
+                <FaRobot className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#C8102E] text-xl animate-pulse" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-gray-800">Scanning Research Database...</h3>
-                <p className="text-gray-500 text-sm">Comparing budget & novelty against 2,000+ records</p>
+                <h3 className="text-lg font-bold text-gray-900">Analyzing Proposal...</h3>
+                <p className="text-gray-500 text-xs max-w-[250px] mx-auto">Cross-referencing research databases and checking institutional compliance</p>
               </div>
             </div>
           ) : (
             /* RESULT STATE */
-            <div className="space-y-6">
-
-              {/* 1. Score & Overview Card */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              
+              {/* 1. Score & Overview Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6">
                 {/* Compliance Score */}
-                <div className={`col-span-1 p-4 rounded-2xl border flex flex-col items-center justify-center text-center ${
-                  finalResult.isValid ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
+                <div className={`md:col-span-4 p-4 rounded-2xl border-2 flex flex-col items-center justify-center text-center transition-all hover:shadow-md ${
+                  finalResult.isValid ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100 shadow-red-50'
                 }`}>
-                  <div className={`text-3xl font-black mb-1 ${finalResult.isValid ? 'text-green-600' : 'text-[#C8102E]'}`}>
+                  <div className={`text-3xl sm:text-4xl font-black mb-0.5 ${finalResult.isValid ? 'text-emerald-600' : 'text-[#C8102E]'}`}>
                     {finalResult.score}%
                   </div>
-                  <div className={`text-sm font-medium ${finalResult.isValid ? 'text-green-800' : 'text-red-800'}`}>
-                    Compliance Score
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${finalResult.isValid ? 'text-emerald-800' : 'text-red-800'}`}>
+                    Compliance
                   </div>
                 </div>
 
                 {/* Novelty / Uniqueness Score */}
-                <div className="col-span-1 sm:col-span-2 p-4 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-3 opacity-10">
-                    <FaFingerprint className="text-6xl text-blue-900" />
+                <div className="md:col-span-8 p-4 rounded-2xl border-2 border-blue-50 bg-gradient-to-br from-blue-50/50 to-white relative overflow-hidden group hover:shadow-md transition-all">
+                  <div className="absolute top-0 right-0 p-3 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+                    <FaFingerprint className="text-7xl text-blue-900 -rotate-12" />
                   </div>
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                        <FaFingerprint /> Research Novelty
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 mb-3">
+                      <span className="text-[10px] font-bold text-blue-900 flex items-center gap-1.5 uppercase tracking-tighter">
+                        <FaFingerprint className="text-xs" /> Research Novelty
                       </span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {similarityStatus} ({similarityScore}%)
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg uppercase ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {similarityStatus}
                       </span>
                     </div>
                     {/* Progress Bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden flex">
+                    <div className="w-full bg-gray-100 rounded-full h-2.5 mb-2.5 overflow-hidden">
                       <div 
-                        className={`h-full rounded-full transition-all duration-1000 ${
+                        className={`h-full rounded-full transition-all duration-1000 ease-out-expo ${
                           (finalResult.noveltyScore || 0) > 75 ? 'bg-blue-600' : 
                           (finalResult.noveltyScore || 0) > 40 ? 'bg-amber-500' : 'bg-[#C8102E]'
                         }`} 
                         style={{ width: `${Math.min(100, Math.max(0, finalResult.noveltyScore || 0))}%` }}
                       ></div>
                     </div>
-                    <div className="font-bold mt-2 text-xs text-blue-800 flex items-start gap-2">
+                    <div className="font-bold text-[10px] text-blue-800 flex items-start gap-1.5 leading-tight">
                       {finalResult.title?.includes("Cannot Detect Proposal") ? (
                         <>
-                          <FaExclamationTriangle className="text-[#C8102E] text-sm mt-0.5 flex-shrink-0" aria-hidden />
-                          <span className="text-[#C8102E]">Error - the attached file cannot be read by the AI</span>
+                          <FaExclamationTriangle className="text-[#C8102E] text-xs flex-shrink-0" aria-hidden />
+                          <span className="text-[#C8102E]">ERROR: Document structure not recognized</span>
                         </>
                       ) : !isMatchDetected ? (
                         <>
-                          <FaCheckCircle className="text-emerald-600 text-sm mt-0.5 flex-shrink-0" aria-hidden />
-                          <span>Unique — No significantly similar projects found.</span>
+                          <FaCheckCircle className="text-emerald-600 text-xs flex-shrink-0" aria-hidden />
+                          <span>High Novelty — No duplicates identified.</span>
                         </>
                       ) : (
                         <>
-                          <FaExclamationTriangle className="text-amber-500 text-sm mt-0.5 flex-shrink-0" aria-hidden />
-                          <span>Match Detected — Consider rephrasing or clarifying novelty.</span>
+                          <FaExclamationTriangle className="text-amber-500 text-xs flex-shrink-0" aria-hidden />
+                          <span>Low Novelty — Consider rephrasing objectives.</span>
                         </>
                       )}
                     </div>
@@ -183,64 +184,63 @@ const AIModal: React.FC<AIModalProps> = ({
                 </div>
               </div>
 
-              {/* 2. Research Landscape Analysis */}
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <FaGlobeAmericas className="text-blue-600" /> Landscape Analysis
+              {/* 2. Landscape Analysis Section */}
+              <div className="bg-gray-50/50 rounded-[1.5rem] p-4 sm:p-5 border border-gray-100">
+                <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <FaGlobeAmericas className="text-blue-500" /> Research Landscape
                 </h3>
                 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6">
                    {/* Keywords / Profile Tags */}
                    <div>
-                    <p className="text-xs text-gray-500 mb-2">DETECTED CONCEPTS / PROFILE</p>
-                    <div className="flex flex-wrap gap-2">
+                    <p className="text-[9px] font-bold text-gray-400 uppercase mb-2.5 tracking-widest">Detected Concepts</p>
+                    <div className="flex flex-wrap gap-1.5">
                       {(finalResult.keywords || []).map((kw, i) => (
-                        <span key={i} className={`px-3 py-1 bg-white border rounded-full text-xs font-medium shadow-sm ${
+                        <span key={i} className={`px-3 py-1 bg-white border-2 rounded-lg text-[10px] font-bold shadow-sm transition-transform hover:scale-105 ${
                           kw.toLowerCase() === 'undetectable' || !finalResult.isValid
-                            ? 'border-red-200 text-[#C8102E]' 
-                            : 'border-blue-100 text-blue-700'
+                            ? 'border-red-100 text-[#C8102E]' 
+                            : 'border-blue-50 text-blue-700'
                         }`}>
-                          #{kw}
+                          {kw}
                         </span>
                       ))}
                     </div>
                   </div>
 
                   {/* Similar Papers Check */}
-                  <div className={`rounded-xl p-4 border ${
-                    !finalResult.isValid ? 'bg-red-50 border-red-200' : 
-                    !isMatchDetected ? 'bg-blue-50 border-blue-100' : 
-                    'bg-white border-red-100 shadow-sm'
+                  <div className={`rounded-xl p-4 border-2 transition-all ${
+                    !finalResult.isValid ? 'bg-red-50/50 border-red-100' : 
+                    !isMatchDetected ? 'bg-blue-50/30 border-blue-100/50' : 
+                    'bg-white border-amber-100 shadow-sm'
                   }`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-[#C8102E]' : 'bg-blue-100 text-blue-600'}`}>
-                        {(!finalResult.isValid || isMatchDetected) ? <FaExclamationTriangle /> : <FaLightbulb />}
+                    <div className="flex flex-col sm:flex-row items-start gap-3">
+                      <div className={`p-2 rounded-lg shrink-0 ${(!finalResult.isValid || isMatchDetected) ? 'bg-red-100 text-[#C8102E]' : 'bg-blue-100 text-blue-600'}`}>
+                        {(!finalResult.isValid || isMatchDetected) ? <FaExclamationTriangle className="text-lg" /> : <FaLightbulb className="text-lg" />}
                       </div>
-                      <div>
-                        <h4 className={`font-bold text-sm ${!finalResult.isValid ? 'text-[#C8102E]' : !isMatchDetected ? 'text-blue-900' : 'text-gray-900'}`}>
-                          {!finalResult.isValid ? 'Analysis Error' : !isMatchDetected ? 'Potential for Groundbreaking Research' : 'Titles similar to your uploaded file'}
+                      <div className="flex-1">
+                        <h4 className={`font-black text-[11px] uppercase tracking-tight mb-1.5 ${!finalResult.isValid ? 'text-[#C8102E]' : !isMatchDetected ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {!finalResult.isValid ? 'Analysis Interrupted' : !isMatchDetected ? 'Groundbreaking Potential' : 'Related Research Found'}
                         </h4>
                         
-                        {/* Safe Check for array length */}
                         {(finalResult.similarPapers || []).length > 0 ? (
-                          <ul className="mt-3 space-y-2">
+                          <div className="space-y-1.5 mt-3">
                             {(finalResult.similarPapers || []).map((paper, idx) => (
-                              <li key={idx} className="text-xs bg-gray-50 p-2 rounded border border-gray-200 text-gray-700 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-[#C8102E] rounded-full"></span>
-                                <span className="italic font-medium">"{paper.title}"</span>
-                                <span className="text-gray-400">({paper.year})</span>
-                              </li>
+                              <div key={idx} className="group bg-white p-2 rounded-lg border border-gray-100 flex items-center justify-between gap-3 hover:border-blue-200 transition-all cursor-default">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-1 h-1 bg-red-600 rounded-full shrink-0"></div>
+                                  <span className="text-[10px] font-bold text-gray-700 leading-tight">"{paper.title}"</span>
+                                </div>
+                                <span className="text-[9px] font-black text-gray-300 shrink-0">{paper.year}</span>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         ) : (
-                          <p className={`mt-2 text-xs italic ${
-                            !finalResult.isValid ? 'text-[#C8102E]' : !isMatchDetected ? 'text-blue-700' : 'text-gray-500'
-                          }`}>
+                          <p className="text-[10px] font-medium italic text-gray-500 leading-snug">
                             {!finalResult.isValid
-                              ? "Similarity analysis cannot be completed on an invalid document."
+                              ? "Verification interrupted."
                               : !isMatchDetected 
-                                ? "UNIQUE - No significantly similar projects found." 
-                                : "Similarity detected, but no specific reference titles were flagged."}
+                                ? "Verified Unique: No duplicate research detected." 
+                                : "Thematic similarities detected."}
                           </p>
                         )}
                       </div>
@@ -250,27 +250,46 @@ const AIModal: React.FC<AIModalProps> = ({
               </div>
 
               {/* 3. Actionable Insights */}
-              {((finalResult.issues || []).length > 0 || (finalResult.suggestions || []).length > 0) && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
-                    <FaMagic className="text-[#C8102E]" /> Optimization Guide
+              {((finalResult.issues || []).length > 0 || (finalResult.suggestions || []).length > 0 || (finalResult.strengths || []).length > 0) && (
+                <div className="space-y-4 pt-2">
+                  <h3 className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <FaMagic className="text-[#C8102E]" /> AI Optimization Guide
                   </h3>
                   
-                  {/* Critical Issues (Red) */}
-                  {(finalResult.issues || []).map((issue, index) => (
-                    <div key={`issue-${index}`} className="flex gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
-                      <FaExclamationTriangle className="text-[#C8102E] mt-1 flex-shrink-0" />
-                      <span className="text-sm text-red-800 font-medium">{issue}</span>
-                    </div>
-                  ))}
+                  <div className="grid grid-cols-1 gap-2">
+                    {/* Critical Issues (Red) */}
+                    {(finalResult.issues || []).map((issue, index) => (
+                      <div key={`issue-${index}`} className="flex gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+                        <FaExclamationTriangle className="text-[#C8102E] text-base mt-0.5 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-red-400 uppercase mb-0.5">Issue</span>
+                          <span className="text-xs text-red-900 font-bold leading-tight">{issue}</span>
+                        </div>
+                      </div>
+                    ))}
 
-                  {/* Suggestions (Blue) */}
-                  {(finalResult.suggestions || []).map((suggestion, index) => (
-                    <div key={`sugg-${index}`} className="flex gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                      <FaMagic className="text-blue-600 mt-1 flex-shrink-0" />
-                      <span className="text-sm text-blue-800 font-medium">{suggestion}</span>
-                    </div>
-                  ))}
+                    {/* Suggestions (Blue) */}
+                    {(finalResult.suggestions || []).map((suggestion, index) => (
+                      <div key={`sugg-${index}`} className="flex gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                        <FaMagic className="text-blue-600 text-base mt-0.5 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-blue-400 uppercase mb-0.5">Optimization</span>
+                          <span className="text-xs text-blue-800 font-bold leading-tight">{suggestion}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Strengths (Green) */}
+                    {(finalResult.strengths || []).map((strength, index) => (
+                      <div key={`strength-${index}`} className="flex gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                        <FaCheckCircle className="text-emerald-600 text-base mt-0.5 shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-emerald-400 uppercase mb-0.5">Strength</span>
+                          <span className="text-xs text-emerald-900 font-bold leading-tight">{strength}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -279,12 +298,12 @@ const AIModal: React.FC<AIModalProps> = ({
         </div>
 
         {/* --- Footer --- */}
-        <div className="p-5 border-t border-gray-100 bg-gray-50">
+        <div className="p-4 sm:p-5 border-t border-gray-100 bg-gray-50/80 backdrop-blur-sm flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-3 bg-[#C8102E] hover:bg-[#a00d24] text-white rounded-xl font-bold transition-all shadow-lg shadow-red-200"
+            className="w-full py-3 bg-[#C8102E] hover:bg-[#a00d24] text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] transition-all shadow-xl shadow-red-100 active:scale-95"
           >
-            {finalResult.isValid ? 'Proceed with Submission' : 'I\'ll Make Adjustments'}
+            {finalResult.isValid ? 'Confirm & Close' : 'Dismiss'}
           </button>
         </div>
 

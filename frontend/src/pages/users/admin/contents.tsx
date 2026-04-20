@@ -11,6 +11,7 @@ import { FileUpload } from "./components/shared/FileUpload";
 import { CmsApi } from "../../../services/CmsApi";
 import { toast, Toaster } from "react-hot-toast";
 import PageLoader from "../../../components/shared/PageLoader";
+import Swal from 'sweetalert2';
 
 // --- MAIN COMPONENT ---
 const ContentManagement: React.FC = () => {
@@ -18,13 +19,13 @@ const ContentManagement: React.FC = () => {
 
   const tabs = [
     { id: 'branding', label: 'System Logos', icon: Palette },
+    { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
     { id: 'home', label: 'Home Page', icon: Home },
     { id: 'about', label: 'About Page', icon: Info },
     { id: 'contacts', label: 'Contact Info', icon: Phone },
     { id: 'faq', label: 'FAQ Page', icon: HelpCircle },
     { id: 'howitworks', label: 'Proponent', icon: ListOrdered },
     { id: 'templates', label: 'Proposal Templates', icon: FileText },
-    { id: 'mobileapp', label: 'Mobile App', icon: Smartphone },
     { id: 'rubrics', label: 'Evaluator Rubrics', icon: ClipboardList },
   ];
 
@@ -110,6 +111,18 @@ const HowItWorksSection: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to update the proponent process steps?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setIsSaving(true);
       await HomeApi.updateHomeInfo(homeData);
@@ -264,6 +277,18 @@ const TemplatesSection: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to update the proposal templates?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setIsSaving(true);
       await HomeApi.updateHomeInfo(homeData);
@@ -489,6 +514,18 @@ const MobileAppSection: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to update the mobile app distribution details?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setIsSaving(true);
       await HomeApi.updateHomeInfo(homeData);
@@ -601,6 +638,18 @@ const EvaluatorRubricsSection: React.FC = () => {
   }, []);
 
   const handleSave = async () => {
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to update the evaluator rubrics?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setIsSaving(true);
       await HomeApi.updateHomeInfo(homeData);

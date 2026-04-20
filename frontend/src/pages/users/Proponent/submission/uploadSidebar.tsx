@@ -26,6 +26,7 @@ interface UploadSidebarProps {
   onFileSelect: (file: File | null) => void;
   onWorkPlanFileSelect?: (file: File | null) => void;
   onAITemplateCheck: () => void;
+  onShowAIModal?: () => void;
   onSubmit: () => void;
   onViewTemplate: () => void;
   isUploadDisabled: boolean;
@@ -41,6 +42,7 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
   onFileSelect,
   onWorkPlanFileSelect,
   onAITemplateCheck,
+  onShowAIModal,
   onSubmit,
   onViewTemplate,
   isUploadDisabled,
@@ -232,45 +234,44 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
                 {/* AI Insights Mini Dashboard */}
                 {aiCheckResult && !isCheckingTemplate && (
                   <div className="p-3 md:p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 shadow-sm animate-in fade-in slide-in-from-top duration-500">
-                    <div className="flex items-center gap-2 mb-2 md:mb-3">
-                      <Bot className="w-4 h-4 text-blue-600" />
-                      <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">AI Insights Dashboard</span>
+                    <div className="flex items-center justify-between mb-2 md:mb-3">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">AI Insights Dashboard</span>
+                      </div>
+                      <button 
+                        onClick={onShowAIModal}
+                        className="p-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                        title="View Full Report"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       {/* Compliance Score */}
-                      <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Compliance</span>
-                        <span className={`text-xl font-black ${aiCheckResult.score && aiCheckResult.score >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-blue-50 flex flex-col items-center justify-center shadow-sm">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Compliance</span>
+                        <span className={`text-xl font-black ${aiCheckResult.score && aiCheckResult.score >= 70 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {aiCheckResult.score}%
                         </span>
                       </div>
 
                       {/* Novelty Score */}
-                      <div className="bg-white p-3 rounded-xl border border-blue-50 flex flex-col items-center min-w-[100px]">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase">Novelty</span>
-                        <span className={`text-xl font-black ${(aiCheckResult.noveltyScore || 0) >= 75 ? 'text-blue-600' : 'text-purple-600'}`}>
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-blue-50 flex flex-col items-center justify-center shadow-sm">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter mb-1">Novelty</span>
+                        <span className={`text-xl font-black ${(aiCheckResult.noveltyScore || 0) >= 75 ? 'text-blue-600' : 'text-amber-600'}`}>
                           {aiCheckResult.noveltyScore}%
-                        </span>
-                        <span className="text-[9px] font-bold text-gray-400 mt-1">
-                          {(() => {
-                            const sim = 100 - (aiCheckResult.noveltyScore || 0);
-                            if (sim <= 20) return "Not Related";
-                            if (sim <= 40) return "Slightly Related";
-                            if (sim <= 60) return "Moderately Similar";
-                            if (sim <= 80) return "Highly Similar";
-                            return "Very Similar";
-                          })()}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-3 text-[11px] text-blue-800 leading-tight bg-blue-100/50 p-2 rounded-lg border border-blue-200/50 italic">
+                    <div className="mt-3 text-[10px] text-blue-900/70 leading-snug bg-white/40 p-2.5 rounded-xl border border-blue-100/50 font-medium italic">
                       {(aiCheckResult.noveltyScore || 0) < 40
-                        ? "Warning: High similarity detected. Consider clarifying your unique approach."
+                        ? "⚠️ High similarity detected. Review your novelty section."
                         : (aiCheckResult.noveltyScore || 0) < 70
-                          ? "Note: Some similar research found. Ensure your methodology is distinct."
-                          : "Tip: High novelty detected. This proposal shows a unique research direction."}
+                          ? "ℹ️ Some similar research found. Ensure distinctive methodology."
+                          : "✨ High novelty detected. Your research direction is unique."}
                     </div>
                   </div>
                 )}
@@ -278,10 +279,10 @@ const UploadSidebar: React.FC<UploadSidebarProps> = ({
                 <button
                   onClick={handleUploadClick}
                   disabled={isUploadDisabled}
-                  className="w-full py-2 text-sm text-gray-600 hover:text-[#C8102E] transition-colors flex items-center justify-center gap-2 font-medium cursor-pointer"
+                  className="w-full py-2.5 text-[11px] text-gray-400 hover:text-red-600 transition-all flex items-center justify-center gap-2 font-bold uppercase tracking-widest cursor-pointer group"
                 >
-                  <X className="w-3 h-3" />
-                  Choose different file
+                  <X className="w-3 h-3 group-hover:rotate-90 transition-transform" />
+                  Replace Document
                 </button>
               </div>
             )}

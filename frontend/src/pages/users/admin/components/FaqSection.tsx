@@ -4,6 +4,7 @@ import { type FaqInfo, type FaqCategory, type FaqItem } from "../../../../schema
 import { toast, Toaster } from "react-hot-toast";
 import { Plus, Trash2, GripVertical, Rocket, HelpCircle, Phone } from "lucide-react";
 import PageLoader from "../../../../components/shared/PageLoader";
+import Swal from 'sweetalert2';
 
 export const FaqSection: React.FC = () => {
   const [faqData, setFaqData] = useState<FaqInfo | null>(null);
@@ -28,6 +29,18 @@ export const FaqSection: React.FC = () => {
 
   const handleSave = async () => {
     if (!faqData) return;
+    
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to save the FAQ page information?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
     
     try {
       setIsSaving(true);
