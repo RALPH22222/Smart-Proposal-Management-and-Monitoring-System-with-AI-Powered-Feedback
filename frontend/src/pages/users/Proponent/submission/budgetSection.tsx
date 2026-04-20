@@ -41,6 +41,12 @@ interface BudgetSectionProps {
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const sumLineTotals = (items?: ExpenseItem[]) =>
   (items ?? []).reduce((sum, item) => sum + (Number(item.totalAmount) || 0), 0);
+const countFlagged = (items?: ExpenseItem[]) =>
+  (items ?? []).reduce(
+    (sum, item) =>
+      sum + (item.importConfidence === 'low' || item.importConfidence === 'medium' ? 1 : 0),
+    0,
+  );
 
 const BudgetSection: React.FC<BudgetSectionProps> = ({
   formData,
@@ -75,6 +81,15 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   const totalCO = calculateTotal('co');
   const grandTotal = calculateTotal('total');
 
+  const totalFlagged = formData.budgetItems.reduce(
+    (sum, it) =>
+      sum +
+      countFlagged(it.budget?.ps) +
+      countFlagged(it.budget?.mooe) +
+      countFlagged(it.budget?.co),
+    0,
+  );
+
   return (
     <div className="space-y-8 relative">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -90,6 +105,20 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           Required
         </div>
       </div>
+
+      {totalFlagged > 0 && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-300 rounded-xl">
+          <FaExclamationTriangle className="text-amber-600 w-5 h-5 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-900">
+            <span className="font-bold block">
+              {totalFlagged} imported {totalFlagged === 1 ? 'item needs' : 'items need'} review
+            </span>
+            <span className="text-xs text-amber-800">
+              Categories with flagged items are outlined in amber below. Open each to confirm the parsed values, then the warnings will clear once you edit the rows.
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-blue-50 rounded-xl border border-blue-200 gap-4">
         <div className="text-sm text-blue-800">
@@ -123,6 +152,9 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           const rowPS = sumLineTotals(item.budget?.ps);
           const rowMOOE = sumLineTotals(item.budget?.mooe);
           const rowCO = sumLineTotals(item.budget?.co);
+          const flaggedPS = countFlagged(item.budget?.ps);
+          const flaggedMOOE = countFlagged(item.budget?.mooe);
+          const flaggedCO = countFlagged(item.budget?.co);
 
           return (
             <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm relative group hover:border-gray-300 transition-colors">
@@ -152,13 +184,20 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Personnel Services" position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedPS > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
                     onClick={() => onOpenBudgetModal(item.id, 'ps')}
+                    title={flaggedPS > 0 ? `${flaggedPS} item${flaggedPS > 1 ? 's' : ''} need review` : undefined}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <FaListUl className={`shrink-0 mr-3 ${flaggedPS > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
                     <div className="flex-1 truncate">
                       <span>{formatCurrency(rowPS)}</span>
                     </div>
+                    {flaggedPS > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                        <FaExclamationTriangle className="w-2.5 h-2.5" />
+                        {flaggedPS}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -168,13 +207,20 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Maintenance and Other Operating Expenses" position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedMOOE > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
                     onClick={() => onOpenBudgetModal(item.id, 'mooe')}
+                    title={flaggedMOOE > 0 ? `${flaggedMOOE} item${flaggedMOOE > 1 ? 's' : ''} need review` : undefined}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <FaListUl className={`shrink-0 mr-3 ${flaggedMOOE > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
                     <div className="flex-1 truncate">
                       <span>{formatCurrency(rowMOOE)}</span>
                     </div>
+                    {flaggedMOOE > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                        <FaExclamationTriangle className="w-2.5 h-2.5" />
+                        {flaggedMOOE}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -184,13 +230,20 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <Tooltip content="Capital Outlay" position="right" />
                   </label>
                   <div
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input"
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedCO > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
                     onClick={() => onOpenBudgetModal(item.id, 'co')}
+                    title={flaggedCO > 0 ? `${flaggedCO} item${flaggedCO > 1 ? 's' : ''} need review` : undefined}
                   >
-                    <FaListUl className="text-gray-400 group-hover/input:text-[#C8102E] shrink-0 mr-3" />
+                    <FaListUl className={`shrink-0 mr-3 ${flaggedCO > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
                     <div className="flex-1 truncate">
                       <span>{formatCurrency(rowCO)}</span>
                     </div>
+                    {flaggedCO > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                        <FaExclamationTriangle className="w-2.5 h-2.5" />
+                        {flaggedCO}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -393,6 +446,48 @@ export const BudgetBreakdownModal: React.FC<{
   const currentBreakdown = getBreakdown(currentItem, activeModal.category);
   const breakdownTotal = sumLineTotals(currentBreakdown);
 
+  // --- Review + search state ---
+  // Search filter: matches against item name + spec + subcategory label (custom + picked)
+  const [searchQuery, setSearchQuery] = useState('');
+  // "Show only items that need review" quick filter — toggled from the review banner
+  const [onlyFlagged, setOnlyFlagged] = useState(false);
+
+  // How many imported rows need human review (medium + low confidence = flagged)
+  const flaggedCount = useMemo(
+    () =>
+      currentBreakdown.filter(
+        (r) => r.importConfidence === 'medium' || r.importConfidence === 'low',
+      ).length,
+    [currentBreakdown],
+  );
+
+  // Indexed breakdown preserves original positions even when filtered, so
+  // handleRowChange/remove use the real index from the unfiltered array.
+  const indexedBreakdown = useMemo(
+    () => currentBreakdown.map((row, idx) => ({ row, idx })),
+    [currentBreakdown],
+  );
+
+  const filteredBreakdown = useMemo(() => {
+    const needle = searchQuery.trim().toLowerCase();
+    return indexedBreakdown.filter(({ row }) => {
+      if (onlyFlagged) {
+        const flagged = row.importConfidence === 'medium' || row.importConfidence === 'low';
+        if (!flagged) return false;
+      }
+      if (!needle) return true;
+      const haystack = [
+        row.itemName ?? '',
+        row.spec ?? '',
+        row.customSubcategoryLabel ?? '',
+        subcategories.find((s) => s.id === row.subcategoryId)?.label ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [indexedBreakdown, searchQuery, onlyFlagged, subcategories]);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl min-h-[500px] max-h-[95vh] flex flex-col overflow-hidden relative">
@@ -429,21 +524,101 @@ export const BudgetBreakdownModal: React.FC<{
           </div>
         )}
 
+        {/* Review + search toolbar — visible whenever there are line items */}
+        {currentBreakdown.length > 0 && (
+          <div className="px-4 py-2.5 border-b border-gray-100 bg-white flex flex-col sm:flex-row sm:items-center gap-2">
+            {/* Search input */}
+            <div className="relative flex-1">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${activeModal.category.toUpperCase()} items by name, spec, or subcategory…`}
+                className="w-full pl-8 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] focus:border-transparent outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-700 rounded"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Flagged count pill + quick filter toggle */}
+            {flaggedCount > 0 && (
+              <button
+                onClick={() => setOnlyFlagged((v) => !v)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                  onlyFlagged
+                    ? 'bg-amber-500 text-white border border-amber-600 shadow-sm'
+                    : 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
+                }`}
+                title={onlyFlagged ? 'Showing only flagged items — click to show all' : 'Filter to show only items that need review'}
+              >
+                <FaExclamationTriangle className="w-3 h-3" />
+                {flaggedCount} need{flaggedCount === 1 ? 's' : ''} review
+                {onlyFlagged && <span className="ml-1">× filter on</span>}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 bg-slate-50 px-3 py-4 overflow-y-auto space-y-2">
           {currentBreakdown.length === 0 ? (
             <div className="text-center py-6 text-gray-400 text-sm">
               No line items added yet. Click "Add Item" to start.
             </div>
+          ) : filteredBreakdown.length === 0 ? (
+            <div className="text-center py-6 text-gray-400 text-sm">
+              No items match <span className="font-semibold">"{searchQuery}"</span>{onlyFlagged ? ' with the "needs review" filter' : ''}.
+              <button
+                onClick={() => { setSearchQuery(''); setOnlyFlagged(false); }}
+                className="ml-2 text-[#C8102E] font-semibold hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
           ) : (
-            currentBreakdown.map((row, idx) => {
+            filteredBreakdown.map(({ row, idx }) => {
               const isOther = otherSubcategoryId != null && row.subcategoryId === otherSubcategoryId;
+              const needsReview = row.importConfidence === 'medium' || row.importConfidence === 'low';
+              const reviewStyles = row.importConfidence === 'low'
+                ? 'border-red-300 bg-red-50/40 ring-1 ring-red-200'
+                : row.importConfidence === 'medium'
+                  ? 'border-amber-300 bg-amber-50/40 ring-1 ring-amber-200'
+                  : 'border-gray-200';
               return (
                 <div
                   key={row.uid ?? idx}
-                  className="bg-white border border-gray-200 rounded-xl p-2.5 shadow-sm group animate-in slide-in-from-bottom-2"
+                  className={`bg-white border rounded-xl p-2.5 shadow-sm group animate-in slide-in-from-bottom-2 ${reviewStyles}`}
                 >
+                  {needsReview && (
+                    <div className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-md text-[11px] font-medium ${
+                      row.importConfidence === 'low'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      <FaExclamationTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold uppercase tracking-wider mr-1">
+                          {row.importConfidence === 'low' ? 'Needs review' : 'Review'}:
+                        </span>
+                        {row.importWarning ?? 'Imported from LIB with low parser confidence — verify the values are correct.'}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 mt-1 rounded-full bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">{idx + 1}</div>
+                    <div className={`w-7 h-7 mt-1 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      needsReview
+                        ? (row.importConfidence === 'low' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')
+                        : 'bg-gray-50 text-gray-400'
+                    }`}>{idx + 1}</div>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-2">
                       {/* Subcategory dropdown */}
                       <div className="md:col-span-3">
@@ -734,6 +909,10 @@ export const LibImportModal: React.FC<{
           unit: it.unit,
           unitPrice: it.unitPrice || 0,
           totalAmount: it.totalAmount || 0,
+          // Carry the parser's confidence + warning into the form state so the
+          // breakdown modal can highlight rows that need human review after import.
+          importConfidence: it.confidence,
+          importWarning: it.warning,
         });
       }
 

@@ -14,6 +14,11 @@ export interface ExpenseItem {
   unit?: string | null;
   unitPrice: number;
   totalAmount: number;
+  // LIB import metadata — client-side only, never sent to backend. Populated when
+  // the row came from the LIB parser; used by the breakdown modal to highlight
+  // rows that need human review (medium/low confidence + parser warnings).
+  importConfidence?: 'high' | 'medium' | 'low' | null;
+  importWarning?: string | null;
 }
 
 export interface BudgetSubcategory {

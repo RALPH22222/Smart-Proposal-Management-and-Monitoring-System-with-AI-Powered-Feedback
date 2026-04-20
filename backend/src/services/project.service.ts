@@ -437,6 +437,11 @@ export class ProjectService {
       };
     }
 
+    // NOTE: Calendar-date gate (PERIOD_NOT_STARTED) intentionally NOT enforced —
+    // defense demo needs to walk through Q1→Q4 in a single session. Post-defense
+    // TODO: re-enable `today >= plan_start_date + (periodIndex - 1) * 3 months`
+    // check so proponents can't submit before their quarter has actually begun.
+
     // Gate: Fund request for this (year, quarter) must be approved
     const { data: fundRequest } = await this.db
       .from("fund_requests")
