@@ -1624,6 +1624,18 @@ export class ProjectService {
       }
     }
 
+    // Phase 2B.2 — snapshot the active budget version onto the fund request so
+    // later realignments don't make historical validation ambiguous. A direct
+    // select here is fine: the self-heal inside getActiveBudgetVersion only
+    // matters for read paths; writes come through here and always carry the
+    // freshly-snapshotted version forward.
+    const { data: projectRow } = await this.db
+      .from("funded_projects")
+      .select("current_budget_version_id")
+      .eq("id", input.funded_project_id)
+      .single();
+    const budgetVersionId = projectRow?.current_budget_version_id ?? null;
+
     // Create the fund request
     const { data: fundRequest, error: requestError } = await this.db
       .from("fund_requests")
@@ -1631,6 +1643,7 @@ export class ProjectService {
         funded_project_id: input.funded_project_id,
         year_number: yearNumber,
         quarterly_report: input.quarterly_report,
+        budget_version_id: budgetVersionId,
         requested_by: input.requested_by,
         status: FundRequestStatus.PENDING,
         created_at: new Date().toISOString(),

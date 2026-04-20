@@ -38,6 +38,11 @@ export interface ParseLibResult {
     categories: Record<LibCategory, boolean>;
     grandTotal: number | null;
     tableCount: number;
+    // Phase 2B: true when at least one table had "Year 1 / Year 2 / …" columns.
+    // The amounts are summed into flat items (Phase 2B design — see docs/PHASE_2A_MULTI_YEAR.md
+    // non-goals and the 2026-04-20 codex consult). The frontend should surface a note
+    // so the proponent understands their per-year template was flattened at import.
+    yearColumnsDetected: boolean;
   };
 }
 
@@ -139,6 +144,33 @@ function rightmostPositiveNumber(cells: string[]): number | null {
   return null;
 }
 
+/**
+ * Inspect a table's header row to identify Year N columns (Y1, Year 1, Year 2, …)
+ * and a Total column. Returns indexes so per-row extraction can sum the Year columns
+ * when no explicit Total column exists.
+ *
+ *   | Item | Qty | Unit | Year 1 | Year 2 | Total |   → totalIdx=5, yearIdx=[3,4]
+ *   | Item | Qty | Unit | Year 1 | Year 2 |           → totalIdx=null, yearIdx=[3,4]  (sum)
+ *   | Item | Qty | Unit | Amount |                    → totalIdx=3, yearIdx=[]       (today's path)
+ */
+function analyzeHeader(cells: string[]): {
+  yearColIndexes: number[];
+  totalColIndex: number | null;
+} {
+  const yearColIndexes: number[] = [];
+  let totalColIndex: number | null = null;
+  const yearRx = /^\s*(?:year\s*\d+|y\s*\d+|yr\s*\d+)\s*$/i;
+  const totalRx = /^\s*(?:total|grand\s*total|amount)\s*$/i;
+
+  cells.forEach((cell, idx) => {
+    const trimmed = cell.trim();
+    if (yearRx.test(trimmed)) yearColIndexes.push(idx);
+    else if (totalColIndex === null && totalRx.test(trimmed)) totalColIndex = idx;
+  });
+
+  return { yearColIndexes, totalColIndex };
+}
+
 function isHeaderRow(cells: string[]): boolean {
   if (cells.length === 0) return false;
   const trimmed = cells.map((c) => c.trim().toLowerCase());
@@ -201,12 +233,30 @@ export async function parseLibDocument(buffer: Buffer): Promise<ParseLibResult> 
     categories: { ps: false, mooe: false, co: false } as Record<LibCategory, boolean>,
     grandTotal: null as number | null,
     tableCount: tables.length,
+    yearColumnsDetected: false,
   };
 
   let currentCategory: LibCategory | null = null;
   let currentSubcategory: string | null = null;
 
   for (const table of tables) {
+    // Scan the first few rows of this table for header columns. Year / Total column
+    // positions may differ per table (AMBIENCE uses a single table; some LIBs split
+    // PS/MOOE/CO into separate tables with their own headers). Scoped per table.
+    let yearColIndexes: number[] = [];
+    let totalColIndex: number | null = null;
+    for (const cells of table.slice(0, 4)) {
+      if (isHeaderRow(cells)) {
+        const analyzed = analyzeHeader(cells);
+        if (analyzed.yearColIndexes.length > 0 || analyzed.totalColIndex !== null) {
+          yearColIndexes = analyzed.yearColIndexes;
+          totalColIndex = analyzed.totalColIndex;
+          if (analyzed.yearColIndexes.length > 0) detected.yearColumnsDetected = true;
+          break;
+        }
+      }
+    }
+
     for (const cells of table) {
       if (cells.length === 0) continue;
       const firstCell = cells[0].trim();
@@ -239,7 +289,31 @@ export async function parseLibDocument(buffer: Buffer): Promise<ParseLibResult> 
       if (!currentCategory) continue;
 
       const looksLikeItem = ITEM_TAIL_RX.test(firstCell);
-      const sourceTotal = rightmostPositiveNumber(cells);
+
+      // Per-item total extraction priority (Phase 2B):
+      //   1. Explicit "Total" / "Amount" column from the header analysis
+      //   2. Sum of "Year 1 / Year 2 / …" columns (multi-year LIB → flat)
+      //   3. Rightmost positive number (today's fallback for headerless tables)
+      let sourceTotal: number | null = null;
+      if (totalColIndex !== null && totalColIndex < cells.length) {
+        sourceTotal = parseNumber(cells[totalColIndex]);
+      }
+      if (sourceTotal === null && yearColIndexes.length > 0) {
+        let sum = 0;
+        let anyFound = false;
+        for (const idx of yearColIndexes) {
+          if (idx >= cells.length) continue;
+          const n = parseNumber(cells[idx]);
+          if (n !== null && n > 0) {
+            sum += n;
+            anyFound = true;
+          }
+        }
+        sourceTotal = anyFound ? sum : null;
+      }
+      if (sourceTotal === null) {
+        sourceTotal = rightmostPositiveNumber(cells);
+      }
 
       if (!looksLikeItem) {
         // Subcategory header — has a description but no qty/unit pattern
@@ -297,6 +371,12 @@ export async function parseLibDocument(buffer: Buffer): Promise<ParseLibResult> 
   if (items.length === 0) {
     warnings.push(
       "No line items were detected. The document may not be a recognized Line-Item Budget format, or its tables may use merged cells the parser cannot read.",
+    );
+  }
+
+  if (detected.yearColumnsDetected) {
+    warnings.push(
+      "Year 1 / Year 2 columns detected — amounts were summed into flat line items. Per-year budget segmentation is not tracked; quarterly monitoring handles the time dimension.",
     );
   }
 
