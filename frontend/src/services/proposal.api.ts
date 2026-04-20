@@ -912,6 +912,9 @@ export interface ParsedLibItemDto {
 }
 
 export interface ParseLibResultDto {
+  // True when the upload is not in WMSU LIB Template v1 format. Frontend shows a
+  // rejection card with a template-download CTA instead of rendering items.
+  rejected?: boolean;
   items: ParsedLibItemDto[];
   warnings: string[];
   detected: {

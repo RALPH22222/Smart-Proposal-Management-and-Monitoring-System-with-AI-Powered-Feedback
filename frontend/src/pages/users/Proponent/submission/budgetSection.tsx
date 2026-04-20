@@ -120,25 +120,39 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-blue-50 rounded-xl border border-blue-200 gap-4">
-        <div className="text-sm text-blue-800">
-          <span className="font-bold block mb-1">Instructions:</span>
-          Add funding sources. For each category (PS, MOOE, CO), click the list icon to add line items with quantity, unit, and unit price.
-          <span className="block mt-1 text-xs text-blue-700">Tip: already have a Line-Item Budget Word document? Click <strong>Generate from LIB</strong> to import it instead of typing.</span>
+      <div className="flex flex-col lg:flex-row lg:items-stretch gap-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+        <div className="flex-1 text-sm text-blue-800 space-y-2">
+          <div>
+            <span className="font-bold block mb-1">Instructions:</span>
+            Add funding sources. For each category (PS, MOOE, CO), click the list icon to add line items with quantity, unit, and unit price.
+          </div>
+          <div className="text-xs text-blue-700">
+            Have a filled-out LIB? Click <strong>Import WMSU LIB Template</strong> — the importer only accepts this official format.
+            {' '}
+            <a
+              href="/templates/wmsu-lib-template-v1.docx"
+              download="wmsu-lib-template-v1.docx"
+              className="inline-flex items-center gap-1 font-semibold text-[#C8102E] hover:text-[#9d0d24] underline underline-offset-2"
+            >
+              <FaFileWord className="w-3 h-3" />
+              Download template
+            </a>
+            .
+          </div>
         </div>
-        <div className="flex flex-col gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-64 lg:shrink-0">
           <button
             type="button"
             onClick={onOpenLibImport}
-            className="w-full sm:w-auto px-5 py-3 text-[#C8102E] bg-white border-2 border-[#C8102E] font-semibold rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
+            className="flex-1 px-4 py-2.5 text-[#C8102E] bg-white border-2 border-[#C8102E] font-semibold rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200 text-sm"
           >
             <FaMagic className="w-4 h-4" />
-            Generate from LIB
+            Import WMSU LIB Template
           </button>
           <button
             type="button"
             onClick={onBudgetItemAdd}
-            className="w-full sm:w-auto px-5 py-3 text-white font-semibold rounded-xl hover:bg-[#9d0d24] hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200"
+            className="flex-1 px-4 py-2.5 text-white font-semibold rounded-xl hover:bg-[#9d0d24] hover:shadow-lg transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200 text-sm"
             style={{ backgroundColor: '#C8102E' }}
           >
             <FaPlus className="w-4 h-4" />
@@ -943,10 +957,10 @@ export const LibImportModal: React.FC<{
             </div>
             <div>
               <h2 className="text-xl font-bold text-[#C8102E] tracking-tight">
-                Generate from LIB document
+                Import WMSU LIB Template
               </h2>
               <p className="text-slate-500 text-xs mt-0.5 font-normal">
-                Import budget items from your file
+                WMSU LIB Template v1 only. Other formats will be rejected — use the template or enter items manually in the budget form.
               </p>
             </div>
           </div>
@@ -957,8 +971,19 @@ export const LibImportModal: React.FC<{
           {!result && !parsing && (
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-3 text-center hover:border-[#C8102E] transition-colors">
               <FaFileWord className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
-              <p className="text-gray-600 font-medium mb-1">Upload your Line-Item Budget document</p>
-              <p className="text-xs text-gray-400 mb-2">Maximum size 5 MB.</p>
+              <p className="text-gray-600 font-medium mb-1">Upload your filled WMSU LIB Template</p>
+              <p className="text-xs text-gray-400 mb-2">
+                Haven't downloaded the template yet?
+                {' '}
+                <a
+                  href="/templates/wmsu-lib-template-v1.docx"
+                  download="wmsu-lib-template-v1.docx"
+                  className="text-blue-600 font-semibold underline hover:text-blue-800"
+                >
+                  Get it here
+                </a>
+                . Maximum size 5 MB.
+              </p>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -992,8 +1017,49 @@ export const LibImportModal: React.FC<{
             </div>
           )}
 
-          {/* Preview */}
-          {result && stats && (
+          {/* Rejection card — shown when the upload is not in WMSU LIB Template v1 format.
+              Gives proponents two clear paths forward: download the template, or close the modal
+              and use manual entry in the budget form. */}
+          {result?.rejected && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-red-100 p-2 rounded-full shrink-0">
+                  <FaExclamationTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-bold text-red-900 mb-1">
+                    Upload rejected — not the WMSU LIB Template
+                  </h3>
+                  <p className="text-sm text-red-800">
+                    {result.warnings[0] ?? 'This document does not match the WMSU LIB Template v1 format.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <a
+                  href="/templates/wmsu-lib-template-v1.docx"
+                  download="wmsu-lib-template-v1.docx"
+                  className="flex-1 px-4 py-2.5 bg-[#C8102E] text-white text-sm font-semibold rounded-lg hover:bg-[#a00c24] transition-colors flex items-center justify-center gap-2"
+                >
+                  <FaFileWord className="w-4 h-4" />
+                  Download WMSU LIB Template
+                </a>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  Enter items manually instead
+                </button>
+              </div>
+              <p className="text-xs text-red-700 pt-1 border-t border-red-200">
+                Tip: fill in the template, save as .docx, then upload again. Or close this dialog and type items directly into the budget form below.
+              </p>
+            </div>
+          )}
+
+          {/* Preview — shown only when the parser accepted the document */}
+          {result && !result.rejected && stats && (
             <>
               {/* Summary stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -1134,7 +1200,7 @@ export const LibImportModal: React.FC<{
           >
             Cancel
           </button>
-          {result && (
+          {result && !result.rejected && (
             <button
               onClick={handleImport}
               disabled={importing || itemsToImport.length === 0 || !sourceName.trim()}
