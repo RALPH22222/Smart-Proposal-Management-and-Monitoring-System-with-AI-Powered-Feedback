@@ -639,7 +639,7 @@ export class ProposalService {
       .update({ ...input, evaluator_id })
       .eq("evaluator_id", evaluator_id)
       .eq("proposal_id", input.proposal_id)
-      .eq("proposal_version_id", currentVersionId);
+      .or(`proposal_version_id.eq.${currentVersionId},proposal_version_id.is.null`);
 
     if (insertError) {
       return { error: insertError };
@@ -651,7 +651,7 @@ export class ProposalService {
         .update({ request_deadline_at: deadline_at })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id)
-        .eq("proposal_version_id", currentVersionId);
+        .or(`proposal_version_id.eq.${currentVersionId},proposal_version_id.is.null`);
 
       if (insertError) {
         return { error: insertError };
@@ -664,7 +664,7 @@ export class ProposalService {
         .update({ status: EvaluatorStatus.FOR_REVIEW })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id)
-        .eq("proposal_version_id", currentVersionId);
+        .or(`proposal_version_id.eq.${currentVersionId},proposal_version_id.is.null`);
 
       if (updateError) {
         return { error: updateError };
@@ -675,7 +675,7 @@ export class ProposalService {
         .update({ status: EvaluatorStatus.EXTEND })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id)
-        .eq("proposal_version_id", currentVersionId);
+        .or(`proposal_version_id.eq.${currentVersionId},proposal_version_id.is.null`);
 
       if (updateError) {
         return { error: updateError };
@@ -686,7 +686,7 @@ export class ProposalService {
         .update({ status: EvaluatorStatus.DECLINE })
         .eq("evaluator_id", evaluator_id)
         .eq("proposal_id", input.proposal_id)
-        .eq("proposal_version_id", currentVersionId);
+        .or(`proposal_version_id.eq.${currentVersionId},proposal_version_id.is.null`);
 
       if (updateError) {
         return { error: updateError };
