@@ -2468,7 +2468,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               <HandCoins className="w-4 h-4" />
                             </div>
                             <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Source of Funds</p>
                               {canEditBudget ? (
                                 <input
                                   value={budget.source}

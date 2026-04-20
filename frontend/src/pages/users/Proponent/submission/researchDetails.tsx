@@ -159,11 +159,25 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
     if (formData.priorities_id && Array.isArray(formData.priorities_id) && prioritiesList.length > 0) {
       const names = formData.priorities_id
         .map((id) => {
-          const priority = prioritiesList.find((p) => p.id === id);
-          return priority ? priority.name : null;
+          // IDs may be numeric (DB match) or string names (no DB match / custom)
+          if (typeof id === "number") {
+            const priority = prioritiesList.find((p) => p.id === id);
+            return priority ? priority.name : null;
+          }
+          // String fallback — the raw name was stored directly
+          return String(id);
         })
-        .filter((name): name is string => name !== null);
-      setSelectedPriorities(names);
+        .filter((name): name is string => !!name);
+
+      // Merge with any `priorities_names` set by autofill (for unmatched raw terms)
+      const extra: string[] = Array.isArray((formData as any).priorities_names)
+        ? (formData as any).priorities_names.filter((n: string) => !names.includes(n))
+        : [];
+
+      setSelectedPriorities([...names, ...extra]);
+    } else if (Array.isArray((formData as any).priorities_names) && (formData as any).priorities_names.length > 0) {
+      // No IDs yet (e.g. no DB match at all) but names were autofilled — show them
+      setSelectedPriorities((formData as any).priorities_names);
     }
 
     // B. Restore "Other" Research Type (if class_input is not basic/applied and classificiation_type is research)

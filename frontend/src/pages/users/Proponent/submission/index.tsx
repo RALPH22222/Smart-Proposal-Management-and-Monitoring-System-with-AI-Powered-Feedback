@@ -651,7 +651,8 @@ const Submission: React.FC = () => {
 
   // Auto-fill form fields from extracted DOST template data
   const applyAutoFill = useCallback((fields: FormExtractedFields) => {
-    const filled = new Set<string>();
+    // "year" is always auto-populated (from document or defaults to current year)
+    const filled = new Set<string>(["year"]);
 
     setLocalFormData((prev: any) => {
       const updated = { ...prev };
@@ -703,6 +704,38 @@ const Submission: React.FC = () => {
       // --- (4) Classification ---
       if (fields.classification_type) { updated.classification_type = fields.classification_type; filled.add("classification"); }
       if (fields.class_input) { updated.class_input = fields.class_input; filled.add("classification"); }
+
+      // --- (6) Priority Areas / STAND Classification ---
+      if (fields.priority_areas) {
+        console.log("[AutoFill] priority_areas from AI:", fields.priority_areas);
+        console.log("[AutoFill] lookups.priorities count:", lookups.priorities.length, lookups.priorities.slice(0, 5));
+        // The extracted value may be a comma-separated list like "Support Industries, STAND"
+        const extractedTerms = fields.priority_areas.split(",").map(t => t.trim()).filter(Boolean);
+        const matchedIds: number[] = [];
+        const matchedNames: string[] = [];
+
+        for (const term of extractedTerms) {
+          const lower = term.toLowerCase();
+          // Fuzzy match: the priority name includes the extracted term OR vice versa
+          const match = lookups.priorities.find(
+            p => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase())
+          );
+          console.log("[AutoFill] term:", term, "→ match:", match);
+          if (match) {
+            if (!matchedIds.includes(match.id)) matchedIds.push(match.id);
+            if (!matchedNames.includes(match.name)) matchedNames.push(match.name);
+          } else {
+            // No DB match — store the raw text so the user can see it was detected
+            if (!matchedNames.includes(term)) matchedNames.push(term);
+          }
+        }
+
+        console.log("[AutoFill] matchedIds:", matchedIds, "matchedNames:", matchedNames);
+        if (matchedIds.length > 0) updated.priorities_id = matchedIds;
+        // priorities_names is used by researchDetails.tsx to pre-select the pill UI
+        if (matchedNames.length > 0) updated.priorities_names = matchedNames;
+        filled.add("priorities");
+      }
 
       // --- (7) Sector ---
       if (fields.sector) {
@@ -998,6 +1031,7 @@ const Submission: React.FC = () => {
               onFileSelect={handleFileSelect}
               onWorkPlanFileSelect={setWorkPlanFile}
               onAITemplateCheck={() => handleAITemplateCheck()}
+              onShowAIModal={() => setShowAIModal(true)}
               onSubmit={handleSubmit}
               onViewTemplate={() => setIsTemplateModalOpen(true)}
             />
