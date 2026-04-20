@@ -154,25 +154,29 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
             cards are visually linked with a "→" so first-time users understand the order.
           Option B — manual entry: de-emphasised but equally one click away. No step numbering
             on this path — it is not a continuation of Option A, it is an alternative. */}
+      {/* Typography follows the page's dominant scale (text-sm body, text-xs helpers,
+          text-base panel titles). Keep text-[10px] reserved for uppercase micro-badges only
+          (Option A / Option B / OR / category tags) — everything else uses the standard scale
+          so this panel reads the same weight as the rest of the submission form. */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-blue-200 bg-white/60">
-          <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+        <div className="px-5 py-4 border-b border-blue-200 bg-white/60">
+          <h3 className="text-base font-bold text-blue-900 flex items-center gap-2">
             <FaMagic className="w-4 h-4 text-[#C8102E]" />
             Build your budget
           </h3>
-          <p className="text-xs text-blue-700 mt-0.5">
+          <p className="text-sm text-blue-700 mt-1">
             Choose one of two ways to add your line items.
           </p>
         </div>
 
-        <div className="p-4 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-stretch">
+        <div className="p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-stretch">
           {/* Option A — template path */}
-          <div className="lg:col-span-1 space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="lg:col-span-1 space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#C8102E] text-white text-[10px] font-bold tracking-wide uppercase">
                 Option A
               </span>
-              <span className="text-xs font-semibold text-[#C8102E]">Use the template (recommended for faster encoding)</span>
+              <span className="text-sm font-semibold text-[#C8102E]">Use the template (recommended for faster encoding)</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <a
@@ -180,15 +184,15 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 download="wmsu-lib-template-v1.docx"
                 className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98]"
               >
-                <div className="w-8 h-8 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
+                <div className="w-9 h-9 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
                   Step<br />1
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
-                    <FaFileWord className="w-3.5 h-3.5" />
+                    <FaFileWord className="w-4 h-4" />
                     Download Template
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                  <p className="text-xs text-gray-600 mt-1 leading-snug">
                     Official WMSU LIB Template v1 (.docx) — fill in Word, then import here.
                   </p>
                 </div>
@@ -201,15 +205,15 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 onClick={onOpenLibImport}
                 className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98] text-left"
               >
-                <div className="w-8 h-8 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
+                <div className="w-9 h-9 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
                   Step<br />2
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-4 h-4" />
                     Import Filled Template
                   </div>
-                  <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                  <p className="text-xs text-gray-600 mt-1 leading-snug">
                     Upload the filled .docx — only the WMSU template is accepted.
                   </p>
                 </div>
@@ -218,15 +222,14 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
             {/* Subcategory reference popover — placed under the two step cards so proponents
                 can peek at valid labels BEFORE opening the template in Word. Lazy-loaded live
-                from the admin catalog. Clicking outside (on the panel background) closes it via
-                the onClick handler on the wrapping div. */}
+                from the admin catalog. */}
             <div className="relative">
               <button
                 type="button"
                 onClick={handleToggleSubcategoryPopover}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#C8102E] hover:text-[#9d0d24] hover:underline underline-offset-2"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C8102E] hover:text-[#9d0d24] hover:underline underline-offset-2"
               >
-                <FaListUl className="w-3 h-3" />
+                <FaListUl className="w-3.5 h-3.5" />
                 {showSubcategoryPopover ? 'Hide' : 'View'} valid subcategories
                 <span className="text-gray-400 font-normal">(so you know what to type in the Subcategory column)</span>
               </button>
@@ -240,10 +243,10 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                       {(['ps', 'mooe', 'co'] as const).map((cat) => (
                         <div key={cat}>
-                          <div className="font-bold text-[#C8102E] uppercase text-[10px] tracking-wider mb-1">
+                          <div className="font-bold text-[#C8102E] uppercase text-[10px] tracking-wider mb-1.5">
                             {cat === 'ps' ? 'Personnel Services' : cat === 'mooe' ? 'MOOE' : 'Capital Outlay'}
                           </div>
-                          <ul className="space-y-0.5 text-gray-700">
+                          <ul className="space-y-1 text-gray-700">
                             {subcategoryList[cat].map((s) => (
                               <li key={s.id}>• {s.label}</li>
                             ))}
@@ -255,7 +258,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   {!loadingSubcategoryList && !subcategoryList && (
                     <div className="text-xs text-red-600 py-2 text-center">Could not load subcategories. Try again shortly.</div>
                   )}
-                  <p className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mt-3 pt-2 border-t border-gray-100">
                     These are the official WMSU subcategories. You can also leave the Subcategory column blank and pick from the dropdown after import.
                   </p>
                 </div>
@@ -276,7 +279,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           </div>
 
           {/* Option B — manual path */}
-          <div className="space-y-2 lg:w-52">
+          <div className="space-y-3 lg:w-56">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-500 text-white text-[10px] font-bold tracking-wide uppercase">
                 Option B
@@ -287,12 +290,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
               onClick={onBudgetItemAdd}
               className="group w-full flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-gray-300 hover:border-gray-500 hover:shadow-md transition-all active:scale-[0.98] text-left"
             >
-              <div className="w-8 h-8 shrink-0 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
                 <FaPlus className="w-4 h-4" />
               </div>
               <div className="flex-1">
                 <div className="font-bold text-gray-800 text-sm">Enter Manually</div>
-                <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">
+                <p className="text-xs text-gray-600 mt-1 leading-snug">
                   Add a funding source and type items in the form below.
                 </p>
               </div>
@@ -301,8 +304,8 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       </div>
 
-      <div className="flex items-start gap-2 text-xs text-gray-600 px-1">
-        <FaCoins className="w-3.5 h-3.5 mt-0.5 text-gray-400 shrink-0" />
+      <div className="flex items-start gap-2 text-sm text-gray-600 px-1">
+        <FaCoins className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
         <span>
           <strong className="text-gray-800">PS, MOOE, and CO are each optional</strong> — but every funding source
           must have at least one line item in one of them. Proposals like AMBIANCE, which have no Personnel Services,
