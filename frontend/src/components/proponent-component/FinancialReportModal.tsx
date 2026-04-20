@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, DollarSign } from 'lucide-react';
 import {
@@ -22,12 +22,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_SHORT: Record<string, string> = { ps: 'PS', mooe: 'MOOE', co: 'CO' };
+const QUARTER_KEYS = ['q1_report', 'q2_report', 'q3_report', 'q4_report'] as const;
+const QUARTER_LABELS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 function formatAmount(n: number): string {
   return n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function QuarterCell({ data }: { data: { requested: number; spent: number } | null }) {
+function QuarterCell({ data }: { data: { requested: number; spent: number } | null | undefined }) {
   if (!data) return <td className="px-2 py-1.5 text-center text-gray-300 text-xs">—</td>;
   return (
     <td className="px-2 py-1.5 text-right text-xs">
@@ -55,10 +57,32 @@ function SummaryRow({ label, data, bold }: { label: string; data: FinancialRepor
   );
 }
 
+/**
+ * Pull a specific year's quarter data out of a line item. Falls back to the
+ * legacy `quarterly_data` shape for year 1 on older backend responses that
+ * predate the yearly_data field (defensive — shouldn't happen post-Phase 2A).
+ */
+function quarterFor(
+  item: FinancialReportLineItem,
+  yearNumber: number,
+  quarterKey: string,
+): { requested: number; spent: number } | null {
+  const yd = item.yearly_data?.[yearNumber];
+  if (yd && yd[quarterKey] !== undefined) return yd[quarterKey];
+  // Legacy fallback for Y1
+  if (yearNumber === 1) {
+    const key = quarterKey.replace('_report', '') as 'q1' | 'q2' | 'q3' | 'q4';
+    return item.quarterly_data?.[key] ?? null;
+  }
+  return null;
+}
+
 export default function FinancialReportModal({ fundedProjectId, projectTitle, onClose }: Props) {
   const [report, setReport] = useState<ApiFinancialReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Y1 is always the default landing view. `null` = "All years" stacked.
+  const [activeYear, setActiveYear] = useState<number | null>(1);
 
   useEffect(() => {
     fetchFinancialReport(fundedProjectId)
@@ -66,6 +90,15 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
       .catch((err) => setError(err?.response?.data?.message || 'Failed to load financial report.'))
       .finally(() => setLoading(false));
   }, [fundedProjectId]);
+
+  // How many years does this project span? ceil(total_periods / 4). Falls back to 1
+  // if total_periods isn't present (very old backend). Capped at 10 defensively.
+  const yearCount = useMemo(() => {
+    if (!report) return 1;
+    const totalPeriods = report.total_periods ?? 4;
+    return Math.min(10, Math.max(1, Math.ceil(totalPeriods / 4)));
+  }, [report]);
+  const isMultiYear = yearCount > 1;
 
   // Group items by category
   const groupedItems: Record<string, FinancialReportLineItem[]> = { ps: [], mooe: [], co: [] };
@@ -76,6 +109,89 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
       }
     }
   }
+
+  // Which year(s) to render. "All" stacks every year vertically.
+  const yearsToRender: number[] = activeYear === null
+    ? Array.from({ length: yearCount }, (_, i) => i + 1)
+    : [activeYear];
+
+  const renderYearTable = (yearNumber: number) => {
+    if (!report) return null;
+    return (
+      <div key={`year-${yearNumber}`} className="overflow-x-auto mb-6">
+        {isMultiYear && (
+          <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+            <span className="bg-[#C8102E] text-white text-xs font-bold px-2 py-0.5 rounded">
+              YEAR {yearNumber}
+            </span>
+          </h4>
+        )}
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-gray-800 text-white">
+              <th className="px-3 py-2.5 text-left font-semibold">#</th>
+              <th className="px-3 py-2.5 text-left font-semibold">Line Item</th>
+              <th className="px-2 py-2.5 text-right font-semibold">Approved Budget</th>
+              {QUARTER_LABELS.map((q) => (
+                <th key={q} className="px-2 py-2.5 text-center font-semibold">{q}</th>
+              ))}
+              <th className="px-2 py-2.5 text-right font-semibold">Total Requested</th>
+              <th className="px-2 py-2.5 text-right font-semibold">Total Spent</th>
+              <th className="px-2 py-2.5 text-right font-semibold">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(['ps', 'mooe', 'co'] as const).map((cat) => {
+              const items = groupedItems[cat];
+              if (items.length === 0) return null;
+              return (
+                <React.Fragment key={`${cat}-y${yearNumber}`}>
+                  <tr className="bg-gray-200">
+                    <td colSpan={10} className="px-3 py-2 font-bold text-xs text-gray-700">
+                      {CATEGORY_LABELS[cat]}
+                    </td>
+                  </tr>
+                  {items.map((item, i) => (
+                    <tr key={item.budget_item_id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                      <td className="px-3 py-1.5 max-w-[200px] truncate" title={item.item_name}>{item.item_name}</td>
+                      <td className="px-2 py-1.5 text-right">{formatAmount(item.approved_budget)}</td>
+                      {QUARTER_KEYS.map((qKey) => (
+                        <QuarterCell key={qKey} data={quarterFor(item, yearNumber, qKey)} />
+                      ))}
+                      <td className="px-2 py-1.5 text-right">{formatAmount(item.total_requested)}</td>
+                      <td className="px-2 py-1.5 text-right">{formatAmount(item.total_spent)}</td>
+                      <td className={`px-2 py-1.5 text-right font-medium ${item.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatAmount(item.balance)}
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
+            {/* Category subtotals + grand total — shown only on the last rendered year
+                or when viewing a single year, so we don't repeat them per year block. */}
+            {(activeYear !== null || yearNumber === yearCount) && (
+              <>
+                {(['ps', 'mooe', 'co'] as const).map((cat) => {
+                  const items = groupedItems[cat];
+                  if (items.length === 0) return null;
+                  return (
+                    <SummaryRow
+                      key={`sum-${cat}`}
+                      label={`Subtotal — ${CATEGORY_SHORT[cat]}`}
+                      data={report.summary_by_category[cat]}
+                    />
+                  );
+                })}
+                <SummaryRow label="GRAND TOTAL" data={report.grand_total} bold />
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const modalContent = (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
@@ -157,60 +273,42 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
               <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
                 <span>Budget Version: v{report.budget_version.version_number}</span>
                 <span>Grand Total: {formatAmount(report.budget_version.grand_total)}</span>
+                {report.duration_months != null && (
+                  <span>Duration: {report.duration_months} months</span>
+                )}
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-gray-800 text-white">
-                      <th className="px-3 py-2.5 text-left font-semibold">#</th>
-                      <th className="px-3 py-2.5 text-left font-semibold">Line Item</th>
-                      <th className="px-2 py-2.5 text-right font-semibold">Approved Budget</th>
-                      <th className="px-2 py-2.5 text-center font-semibold">Q1</th>
-                      <th className="px-2 py-2.5 text-center font-semibold">Q2</th>
-                      <th className="px-2 py-2.5 text-center font-semibold">Q3</th>
-                      <th className="px-2 py-2.5 text-center font-semibold">Q4</th>
-                      <th className="px-2 py-2.5 text-right font-semibold">Total Requested</th>
-                      <th className="px-2 py-2.5 text-right font-semibold">Total Spent</th>
-                      <th className="px-2 py-2.5 text-right font-semibold">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(['ps', 'mooe', 'co'] as const).map((cat) => {
-                      const items = groupedItems[cat];
-                      if (items.length === 0) return null;
-                      const catSummary = report.summary_by_category[cat];
-                      return (
-                        <React.Fragment key={cat}>
-                          <tr className="bg-gray-200">
-                            <td colSpan={10} className="px-3 py-2 font-bold text-xs text-gray-700">
-                              {CATEGORY_LABELS[cat]}
-                            </td>
-                          </tr>
-                          {items.map((item, i) => (
-                            <tr key={item.budget_item_id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
-                              <td className="px-3 py-1.5 max-w-[200px] truncate" title={item.item_name}>{item.item_name}</td>
-                              <td className="px-2 py-1.5 text-right">{formatAmount(item.approved_budget)}</td>
-                              <QuarterCell data={item.quarterly_data.q1} />
-                              <QuarterCell data={item.quarterly_data.q2} />
-                              <QuarterCell data={item.quarterly_data.q3} />
-                              <QuarterCell data={item.quarterly_data.q4} />
-                              <td className="px-2 py-1.5 text-right">{formatAmount(item.total_requested)}</td>
-                              <td className="px-2 py-1.5 text-right">{formatAmount(item.total_spent)}</td>
-                              <td className={`px-2 py-1.5 text-right font-medium ${item.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {formatAmount(item.balance)}
-                              </td>
-                            </tr>
-                          ))}
-                          <SummaryRow label={`Subtotal — ${CATEGORY_SHORT[cat]}`} data={catSummary} />
-                        </React.Fragment>
-                      );
-                    })}
-                    <SummaryRow label="GRAND TOTAL" data={report.grand_total} bold />
-                  </tbody>
-                </table>
-              </div>
+              {/* Year selector — only shown when the project spans >1 year. */}
+              {isMultiYear && (
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <span className="text-xs font-semibold text-slate-600 mr-1">View:</span>
+                  {Array.from({ length: yearCount }, (_, i) => i + 1).map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => setActiveYear(y)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                        activeYear === y
+                          ? 'bg-[#C8102E] text-white shadow-sm'
+                          : 'bg-white border border-slate-300 text-slate-600 hover:border-[#C8102E]'
+                      }`}
+                    >
+                      Year {y}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setActiveYear(null)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      activeYear === null
+                        ? 'bg-slate-800 text-white shadow-sm'
+                        : 'bg-white border border-slate-300 text-slate-600 hover:border-slate-500'
+                    }`}
+                  >
+                    All Years
+                  </button>
+                </div>
+              )}
+
+              {yearsToRender.map((y) => renderYearTable(y))}
             </div>
           )}
         </div>

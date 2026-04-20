@@ -1816,9 +1816,10 @@ export class ProjectService {
    */
   async reviewFundRequest(input: ReviewFundRequestInput) {
     // COI guard — lookup the project this fund request belongs to first.
+    // Also pull budget_version_id for the Phase 2C drift check below.
     const { data: fundRequest } = await this.db
       .from("fund_requests")
-      .select("funded_project_id")
+      .select("funded_project_id, budget_version_id")
       .eq("id", input.fund_request_id)
       .single();
 
@@ -1837,6 +1838,48 @@ export class ProjectService {
         details: { funded_project_id: fundRequest.funded_project_id, attempted_status: input.status },
       });
       return { data: null, error: { message: coi.message } };
+    }
+
+    // Phase 2C.1 — defensive budget-version drift check. If a realignment was
+    // approved during this fund request's review window, items it points at may
+    // no longer belong to the active version. The Phase 4 guard blocks NEW fund
+    // requests while realignment is pending, but a request pending BEFORE the
+    // realignment arrives can still slip through without this check.
+    //
+    // Only runs on approval — rejections are always safe.
+    if (input.status === "approved" && fundRequest.budget_version_id) {
+      const { data: linkedItems } = await this.db
+        .from("fund_request_items")
+        .select("budget_item_id, proposal_budget_items(version_id)")
+        .eq("fund_request_id", input.fund_request_id);
+
+      const driftedItems: number[] = [];
+      for (const row of linkedItems ?? []) {
+        const r = row as {
+          budget_item_id: number | null;
+          proposal_budget_items?: { version_id: number } | { version_id: number }[] | null;
+        };
+        if (!r.budget_item_id) continue; // legacy free-text item, nothing to validate
+        // PostgREST may return the join as an object (single FK) or as an array; normalize.
+        const joined = Array.isArray(r.proposal_budget_items)
+          ? r.proposal_budget_items[0]
+          : r.proposal_budget_items;
+        const itemVersionId = joined?.version_id;
+        if (itemVersionId != null && itemVersionId !== fundRequest.budget_version_id) {
+          driftedItems.push(r.budget_item_id);
+        }
+      }
+
+      if (driftedItems.length > 0) {
+        return {
+          data: null,
+          error: {
+            message:
+              "This fund request was created against an earlier budget version. An approved realignment has since shifted the active budget, so some of its line items are no longer valid. Ask the proponent to re-submit the fund request against the current version.",
+            code: "BUDGET_VERSION_DRIFT",
+          },
+        };
+      }
     }
 
     const { data, error } = await this.db

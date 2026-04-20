@@ -975,17 +975,23 @@ export async function fetchTerminalReport(
 
 // ─── Financial Report Types & API ──────────────────────────────────
 
+type QuarterCellValue = { requested: number; spent: number } | null;
+
 export interface FinancialReportLineItem {
   budget_item_id: number;
   item_name: string;
   category: "ps" | "mooe" | "co";
   approved_budget: number;
+  // Legacy Y1-only shape — kept for backwards compat and single-year rendering.
   quarterly_data: {
-    q1: { requested: number; spent: number } | null;
-    q2: { requested: number; spent: number } | null;
-    q3: { requested: number; spent: number } | null;
-    q4: { requested: number; spent: number } | null;
+    q1: QuarterCellValue;
+    q2: QuarterCellValue;
+    q3: QuarterCellValue;
+    q4: QuarterCellValue;
   };
+  // Phase 2A: full multi-year picture — { [year_number]: { q1..q4 } }.
+  // Y2+ entries only present when the project has > 12 months duration.
+  yearly_data: Record<number, Record<string, QuarterCellValue>>;
   total_requested: number;
   total_spent: number;
   balance: number;
@@ -1008,6 +1014,9 @@ export interface ApiFinancialReport {
     co: FinancialReportSummary;
   };
   grand_total: FinancialReportSummary;
+  duration_months: number | null;
+  max_quarter: number;
+  total_periods: number; // Phase 2A — drives year-selector visibility in the UI.
 }
 
 export async function fetchFinancialReport(
