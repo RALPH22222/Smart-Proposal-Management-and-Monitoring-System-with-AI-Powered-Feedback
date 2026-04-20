@@ -20,7 +20,7 @@ import {
   SubmitTerminalReportInput,
   VerifyTerminalReportInput,
 } from "../schemas/project-schema";
-import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus } from "../types/project";
+import { ReportStatus, FundRequestStatus, ProjectMemberRole, ProjectMemberStatus, QuarterlyReport } from "../types/project";
 import { logActivity } from "../utils/activity-logger";
 import { EmailService } from "./email.service";
 import { deriveAccountType } from "./auth.service";
@@ -28,9 +28,39 @@ import {
   RequestRealignmentInput,
   ReviewRealignmentInput,
 } from "../schemas/realignment-schema";
+import {
+  computeMaxQuarterCount,
+  computeTotalPeriods,
+  getApplicableQuarters,
+  getApplicablePeriods,
+  isQuarterApplicable,
+  isPeriodApplicable,
+  quarterToIndex,
+  periodIndex,
+  periodFromIndex,
+  monthsBetween,
+  ALL_QUARTERS,
+  MAX_PROJECT_DURATION_MONTHS,
+} from "../utils/project-quarters";
 
 export class ProjectService {
   constructor(private db: SupabaseClient) { }
+
+  /**
+   * Fetch the proposal.duration (months) for a funded project. Used by the
+   * duration-aware quarter gate on fund-request / report / terminal / certificate
+   * flows. Returns null if the project or proposal is missing.
+   */
+  private async getProjectDurationMonths(fundedProjectId: number): Promise<number | null> {
+    const { data } = await this.db
+      .from("funded_projects")
+      .select("proposals(duration)")
+      .eq("id", fundedProjectId)
+      .single();
+    const duration = (data as { proposals?: { duration?: number | null } } | null)
+      ?.proposals?.duration;
+    return typeof duration === "number" ? duration : null;
+  }
 
   /**
    * Get funded projects with optional filtering
@@ -307,6 +337,7 @@ export class ProjectService {
           program_title,
           plan_start_date,
           plan_end_date,
+          duration,
           email,
           phone,
           work_plan_file_url,
@@ -326,6 +357,7 @@ export class ProjectService {
         project_reports (
           id,
           funded_project_id,
+          year_number,
           quarterly_report,
           status,
           progress,
@@ -362,15 +394,20 @@ export class ProjectService {
    * Submit a quarterly report for a funded project
    */
   async submitQuarterlyReport(input: SubmitReportInput) {
-    // Look up any existing report for this quarter. Three cases to handle:
+    // Year is Phase 2A. Input schema defaults to 1 for legacy single-year payloads.
+    const yearNumber = input.year_number ?? 1;
+    const currentPeriod = { year_number: yearNumber, quarter: input.quarterly_report };
+    const currentPeriodIdx = periodIndex(currentPeriod);
+
+    // Look up any existing report for THIS (year, quarter). Three cases to handle:
     //   - no row → first submission, normal INSERT path below
     //   - row with status='rejected' → resubmission after R&D returned it; UPDATE in place
-    //     (flip status back to 'submitted', clear review_note, replace expenses)
     //   - row with any other status → genuine duplicate, reject
     const { data: existingReport } = await this.db
       .from("project_reports")
       .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
+      .eq("year_number", yearNumber)
       .eq("quarterly_report", input.quarterly_report)
       .maybeSingle();
 
@@ -380,17 +417,32 @@ export class ProjectService {
       return {
         data: null,
         error: {
-          message: `A report for ${input.quarterly_report} already exists for this project.`,
+          message: `A report for Y${yearNumber} ${input.quarterly_report} already exists for this project.`,
           code: "DUPLICATE_REPORT",
         },
       };
     }
 
-    // Gate: Fund request for this quarter must be approved
+    // Gate: this (year, quarter) must fall inside the project's duration envelope.
+    const durationMonths = await this.getProjectDurationMonths(input.funded_project_id);
+    if (durationMonths !== null && !isPeriodApplicable(currentPeriod, durationMonths)) {
+      const total = computeTotalPeriods(durationMonths);
+      const lastPeriod = periodFromIndex(total);
+      return {
+        data: null,
+        error: {
+          message: `This project's duration is ${durationMonths} month${durationMonths === 1 ? "" : "s"}, so only periods up to Y${lastPeriod.year_number} ${lastPeriod.quarter} can be submitted.`,
+          code: "PERIOD_EXCEEDS_DURATION",
+        },
+      };
+    }
+
+    // Gate: Fund request for this (year, quarter) must be approved
     const { data: fundRequest } = await this.db
       .from("fund_requests")
       .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
+      .eq("year_number", yearNumber)
       .eq("quarterly_report", input.quarterly_report)
       .single();
 
@@ -398,30 +450,30 @@ export class ProjectService {
       return {
         data: null,
         error: {
-          message: "Fund request for this quarter must be approved before submitting a report.",
+          message: "Fund request for this period must be approved before submitting a report.",
           code: "FUND_REQUEST_NOT_APPROVED",
         },
       };
     }
 
-    // Gate: Previous quarter must be submitted/verified first (sequential enforcement)
-    const quarterOrder = ["q1_report", "q2_report", "q3_report", "q4_report"];
-    const currentIndex = quarterOrder.indexOf(input.quarterly_report);
-    if (currentIndex > 0) {
-      const prevQuarter = quarterOrder[currentIndex - 1];
+    // Gate: Previous period must have a report row (sequential enforcement).
+    // Uses global periodIndex so Y1Q4 unlocks Y2Q1 — no more reset-per-year.
+    if (currentPeriodIdx > 1) {
+      const prev = periodFromIndex(currentPeriodIdx - 1);
       const { data: prevReport } = await this.db
         .from("project_reports")
         .select("id")
         .eq("funded_project_id", input.funded_project_id)
-        .eq("quarterly_report", prevQuarter)
-        .single();
+        .eq("year_number", prev.year_number)
+        .eq("quarterly_report", prev.quarter)
+        .maybeSingle();
 
       if (!prevReport) {
         return {
           data: null,
           error: {
-            message: `You must submit the ${prevQuarter.replace('_', ' ')} before submitting this quarter's report.`,
-            code: "PREVIOUS_QUARTER_MISSING",
+            message: `You must submit the Y${prev.year_number} ${prev.quarter.replace('_', ' ')} before submitting this period's report.`,
+            code: "PREVIOUS_PERIOD_MISSING",
           },
         };
       }
@@ -462,6 +514,7 @@ export class ProjectService {
         .from("project_reports")
         .insert({
           funded_project_id: input.funded_project_id,
+          year_number: yearNumber,
           quarterly_report: input.quarterly_report,
           progress: input.progress,
           comment: input.comment || null,
@@ -1469,6 +1522,9 @@ export class ProjectService {
    * (total budget from estimated_budget minus already-approved fund requests).
    */
   async createFundRequest(input: CreateFundRequestInput) {
+    const yearNumber = input.year_number ?? 1;
+    const currentPeriod = { year_number: yearNumber, quarter: input.quarterly_report };
+
     // Phase 4 of LIB feature: block fund-request creation while a realignment is pending
     // R&D review. Otherwise the fund_request_items.budget_item_id would point to an item
     // in the old budget version — once the realignment is approved, that budget line is
@@ -1493,19 +1549,34 @@ export class ProjectService {
       };
     }
 
-    // Check for duplicate fund request for same project + quarter
+    // Gate: this (year, quarter) must fit inside the project's duration envelope.
+    const durationMonths = await this.getProjectDurationMonths(input.funded_project_id);
+    if (durationMonths !== null && !isPeriodApplicable(currentPeriod, durationMonths)) {
+      const total = computeTotalPeriods(durationMonths);
+      const lastPeriod = periodFromIndex(total);
+      return {
+        data: null,
+        error: {
+          message: `This project's duration is ${durationMonths} month${durationMonths === 1 ? "" : "s"}, so only periods up to Y${lastPeriod.year_number} ${lastPeriod.quarter} are valid for fund requests.`,
+          code: "PERIOD_EXCEEDS_DURATION",
+        },
+      };
+    }
+
+    // Check for duplicate fund request for this (project, year, quarter)
     const { data: existing } = await this.db
       .from("fund_requests")
       .select("id")
       .eq("funded_project_id", input.funded_project_id)
+      .eq("year_number", yearNumber)
       .eq("quarterly_report", input.quarterly_report)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return {
         data: null,
         error: {
-          message: `A fund request for ${input.quarterly_report} already exists for this project.`,
+          message: `A fund request for Y${yearNumber} ${input.quarterly_report} already exists for this project.`,
           code: "DUPLICATE_FUND_REQUEST",
         },
       };
@@ -1558,6 +1629,7 @@ export class ProjectService {
       .from("fund_requests")
       .insert({
         funded_project_id: input.funded_project_id,
+        year_number: yearNumber,
         quarterly_report: input.quarterly_report,
         requested_by: input.requested_by,
         status: FundRequestStatus.PENDING,
@@ -1831,7 +1903,9 @@ export class ProjectService {
   // ===================== CERTIFICATE =====================
 
   /**
-   * Generate a completion certificate after all 4 quarterly reports are verified
+   * Generate a completion certificate after all applicable quarterly reports are verified.
+   * "Applicable" is derived from the project's duration: a 6-month project requires Q1+Q2
+   * only, not Q1-Q4. See utils/project-quarters.
    */
   async generateCertificate(input: GenerateCertificateInput) {
     // COI guard — issuer must not be a member of the project being certified.
@@ -1848,28 +1922,36 @@ export class ProjectService {
       return { data: null, error: { message: coi.message } };
     }
 
-    // Verify all 4 quarterly reports exist and are verified
+    // Verify every applicable (year, quarter) report is verified
     const { data: reports, error: reportsError } = await this.db
       .from("project_reports")
-      .select("quarterly_report, status")
+      .select("year_number, quarterly_report, status")
       .eq("funded_project_id", input.funded_project_id);
 
     if (reportsError) {
       return { data: null, error: reportsError };
     }
 
-    const quarters = ["q1_report", "q2_report", "q3_report", "q4_report"];
-    const verifiedQuarters = (reports || [])
-      .filter((r) => r.status === "verified")
-      .map((r) => r.quarterly_report);
+    const durationMonths = await this.getProjectDurationMonths(input.funded_project_id);
+    const requiredPeriods = getApplicablePeriods(durationMonths);
+    const verifiedKeys = new Set(
+      (reports || [])
+        .filter((r) => r.status === "verified")
+        .map((r) => `${r.year_number}_${r.quarterly_report}`),
+    );
 
-    const missingQuarters = quarters.filter((q) => !verifiedQuarters.includes(q));
+    const missingPeriods = requiredPeriods.filter(
+      (p) => !verifiedKeys.has(`${p.year_number}_${p.quarter}`),
+    );
 
-    if (missingQuarters.length > 0) {
+    if (missingPeriods.length > 0) {
+      const missingLabel = missingPeriods
+        .map((p) => `Y${p.year_number} ${p.quarter}`)
+        .join(", ");
       return {
         data: null,
         error: {
-          message: `Cannot issue certificate. The following quarters are not yet verified: ${missingQuarters.join(", ")}.`,
+          message: `Cannot issue certificate. The following periods are not yet verified: ${missingLabel}.`,
           code: "INCOMPLETE_REPORTS",
         },
       };
@@ -2635,6 +2717,28 @@ export class ProjectService {
       };
     }
 
+    // Cap check — the resulting duration (plan_start_date → new_end_date) must fit
+    // the single-year product rule. Multi-year lifts this in Phase 2.
+    const { data: planDates } = await this.db
+      .from("funded_projects")
+      .select("proposals(plan_start_date)")
+      .eq("id", input.funded_project_id)
+      .single();
+    const planStart = (planDates as { proposals?: { plan_start_date?: string } } | null)
+      ?.proposals?.plan_start_date;
+    if (planStart) {
+      const projectedDuration = monthsBetween(planStart, input.new_end_date);
+      if (projectedDuration > MAX_PROJECT_DURATION_MONTHS) {
+        return {
+          data: null,
+          error: {
+            message: `Extension would push total project duration to ${projectedDuration} months. Projects are capped at ${MAX_PROJECT_DURATION_MONTHS} months while multi-year support is pending client confirmation.`,
+            code: "DURATION_EXCEEDS_CAP",
+          },
+        };
+      }
+    }
+
     const { data, error } = await this.db
       .from("project_extension_requests")
       .insert({
@@ -2702,7 +2806,7 @@ export class ProjectService {
     // Lookup the extension request to get the project ID for COI check
     const { data: extensionRequest } = await this.db
       .from("project_extension_requests")
-      .select("funded_project_id")
+      .select("funded_project_id, new_end_date")
       .eq("id", input.extension_request_id)
       .single();
 
@@ -2722,6 +2826,45 @@ export class ProjectService {
         details: { funded_project_id: extensionRequest.funded_project_id, attempted_status: input.status },
       });
       return { data: null, error: { message: coi.message } };
+    }
+
+    // If approving, validate that the new end-date still fits the single-year cap
+    // and propagate plan_end_date + duration onto the proposal so the quarter gates
+    // and monitoring UI pick up the new timeline.
+    let projectedDuration: number | null = null;
+    if (input.status === "approved") {
+      const { data: project } = await this.db
+        .from("funded_projects")
+        .select("proposal_id, proposals(plan_start_date)")
+        .eq("id", extensionRequest.funded_project_id)
+        .single();
+      const proposalId = (project as { proposal_id?: number } | null)?.proposal_id;
+      const planStart = (project as { proposals?: { plan_start_date?: string } } | null)
+        ?.proposals?.plan_start_date;
+
+      if (proposalId && planStart && extensionRequest.new_end_date) {
+        projectedDuration = monthsBetween(planStart, extensionRequest.new_end_date);
+        if (projectedDuration > MAX_PROJECT_DURATION_MONTHS) {
+          return {
+            data: null,
+            error: {
+              message: `Cannot approve: extension would push total project duration to ${projectedDuration} months. Projects are capped at ${MAX_PROJECT_DURATION_MONTHS} months while multi-year support is pending client confirmation.`,
+              code: "DURATION_EXCEEDS_CAP",
+            },
+          };
+        }
+
+        const { error: updateError } = await this.db
+          .from("proposals")
+          .update({
+            plan_end_date: extensionRequest.new_end_date,
+            duration: projectedDuration,
+          })
+          .eq("id", proposalId);
+        if (updateError) {
+          return { data: null, error: updateError };
+        }
+      }
     }
 
     const { data, error } = await this.db
@@ -2759,7 +2902,15 @@ export class ProjectService {
       category: "project",
       target_id: String(input.extension_request_id),
       target_type: "funded_project",
-      details: { review_note: input.review_note },
+      details: {
+        review_note: input.review_note,
+        ...(projectedDuration !== null
+          ? {
+              new_end_date: extensionRequest.new_end_date,
+              new_duration_months: projectedDuration,
+            }
+          : {}),
+      },
     });
 
     // Notify the proponent
@@ -2820,23 +2971,32 @@ export class ProjectService {
   // ===================== TERMINAL REPORT =====================
 
   async submitTerminalReport(input: SubmitTerminalReportInput) {
-    // Check all 4 quarterly reports are verified
+    // Check every applicable (year, quarter) report is verified. A 24-month project
+    // requires Y1Q1..Y2Q4 verified; a 6-month project only Y1Q1..Y1Q2.
     const { data: reports } = await this.db
       .from("project_reports")
-      .select("quarterly_report, status")
+      .select("year_number, quarterly_report, status")
       .eq("funded_project_id", input.funded_project_id);
 
-    const quarters = ["q1_report", "q2_report", "q3_report", "q4_report"];
-    const verifiedQuarters = (reports || [])
-      .filter((r) => r.status === "verified")
-      .map((r) => r.quarterly_report);
-    const missingQuarters = quarters.filter((q) => !verifiedQuarters.includes(q));
+    const durationMonths = await this.getProjectDurationMonths(input.funded_project_id);
+    const requiredPeriods = getApplicablePeriods(durationMonths);
+    const verifiedKeys = new Set(
+      (reports || [])
+        .filter((r) => r.status === "verified")
+        .map((r) => `${r.year_number}_${r.quarterly_report}`),
+    );
+    const missingPeriods = requiredPeriods.filter(
+      (p) => !verifiedKeys.has(`${p.year_number}_${p.quarter}`),
+    );
 
-    if (missingQuarters.length > 0) {
+    if (missingPeriods.length > 0) {
+      const missingLabel = missingPeriods
+        .map((p) => `Y${p.year_number} ${p.quarter}`)
+        .join(", ");
       return {
         data: null,
         error: {
-          message: `All quarterly reports must be verified before submitting a terminal report. Missing: ${missingQuarters.join(", ")}.`,
+          message: `All quarterly reports must be verified before submitting a terminal report. Missing: ${missingLabel}.`,
           code: "INCOMPLETE_REPORTS",
         },
       };
@@ -3196,7 +3356,7 @@ export class ProjectService {
     const { data: fundRequests } = await this.db
       .from("fund_requests")
       .select(`
-        id, quarterly_report, status,
+        id, year_number, quarterly_report, status,
         fund_request_items (id, item_name, amount, category, budget_item_id)
       `)
       .eq("funded_project_id", fundedProjectId)
@@ -3206,51 +3366,57 @@ export class ProjectService {
     const { data: allReports } = await this.db
       .from("project_reports")
       .select(`
-        id, quarterly_report,
+        id, year_number, quarterly_report,
         project_expenses (id, expenses, fund_request_item_id, approved_amount)
       `)
       .eq("funded_project_id", fundedProjectId);
 
-    // Build lookup: fund_request_item_id → quarter
-    const friToQuarter: Record<number, string> = {};
+    // Build lookup: fund_request_item_id → {year_number, quarter}
+    type PeriodKey = { year_number: number; quarter: string };
+    const friToPeriod: Record<number, PeriodKey> = {};
     for (const fr of fundRequests || []) {
+      const period: PeriodKey = {
+        year_number: (fr as any).year_number ?? 1,
+        quarter: fr.quarterly_report,
+      };
       for (const item of (fr as any).fund_request_items || []) {
-        friToQuarter[item.id] = fr.quarterly_report;
+        friToPeriod[item.id] = period;
       }
     }
 
-    // Build lookup: budget_item_id → { quarter → { requested, spent } }
+    // Build lookup: budget_item_id → { "year_quarter" → { requested, spent } }
+    // The composite key ("1_q1_report") keeps Y1Q1 distinct from Y2Q1 etc.
     type QuarterData = { requested: number; spent: number };
-    const quarterKeys = ["q1_report", "q2_report", "q3_report", "q4_report"];
-    const itemQuarterMap: Record<number, Record<string, QuarterData>> = {};
+    const periodKey = (yr: number, q: string) => `${yr}_${q}`;
+    const itemPeriodMap: Record<number, Record<string, QuarterData>> = {};
 
-    // Map fund request items to budget items by quarter
+    // Map fund request items to budget items by period
     for (const fr of fundRequests || []) {
+      const year = (fr as any).year_number ?? 1;
+      const q = fr.quarterly_report;
+      const key = periodKey(year, q);
       for (const fri of (fr as any).fund_request_items || []) {
         const budgetItemId = fri.budget_item_id;
         if (!budgetItemId) continue;
-        if (!itemQuarterMap[budgetItemId]) {
-          itemQuarterMap[budgetItemId] = {};
+        if (!itemPeriodMap[budgetItemId]) {
+          itemPeriodMap[budgetItemId] = {};
         }
-        const q = fr.quarterly_report;
-        if (!itemQuarterMap[budgetItemId][q]) {
-          itemQuarterMap[budgetItemId][q] = { requested: 0, spent: 0 };
+        if (!itemPeriodMap[budgetItemId][key]) {
+          itemPeriodMap[budgetItemId][key] = { requested: 0, spent: 0 };
         }
-        itemQuarterMap[budgetItemId][q].requested += Number(fri.amount) || 0;
+        itemPeriodMap[budgetItemId][key].requested += Number(fri.amount) || 0;
       }
     }
 
-    // Map expenses to budget items by quarter
+    // Map expenses to budget items by period
     for (const report of allReports || []) {
       for (const expense of (report as any).project_expenses || []) {
         const friId = expense.fund_request_item_id;
         if (!friId) continue;
 
-        // Find which budget item this expense maps to
-        const quarter = friToQuarter[friId];
-        if (!quarter) continue;
+        const period = friToPeriod[friId];
+        if (!period) continue;
 
-        // Find the budget_item_id from the fund_request_item
         let budgetItemId: number | null = null;
         for (const fr of fundRequests || []) {
           for (const fri of (fr as any).fund_request_items || []) {
@@ -3263,49 +3429,60 @@ export class ProjectService {
         }
 
         if (!budgetItemId) continue;
-        if (!itemQuarterMap[budgetItemId]) {
-          itemQuarterMap[budgetItemId] = {};
+        const key = periodKey(period.year_number, period.quarter);
+        if (!itemPeriodMap[budgetItemId]) {
+          itemPeriodMap[budgetItemId] = {};
         }
-        if (!itemQuarterMap[budgetItemId][quarter]) {
-          itemQuarterMap[budgetItemId][quarter] = { requested: 0, spent: 0 };
+        if (!itemPeriodMap[budgetItemId][key]) {
+          itemPeriodMap[budgetItemId][key] = { requested: 0, spent: 0 };
         }
-        itemQuarterMap[budgetItemId][quarter].spent += Number(expense.expenses) || 0;
+        itemPeriodMap[budgetItemId][key].spent += Number(expense.expenses) || 0;
       }
     }
 
-    // Build the line items response
+    // Build the line items response.
+    // Backwards compatible: `quarterly_data` still shows Y1 only (what the legacy
+    // frontend consumer expects). New `yearly_data` carries the full multi-year
+    // picture: { [year_number]: { q1, q2, q3, q4 } }. Phase 2C polishes the
+    // frontend table; for now consumers that already know about Phase 2A can
+    // read yearly_data and consumers that don't keep working on quarterly_data.
+    const quarterKeys = ["q1_report", "q2_report", "q3_report", "q4_report"];
     const lineItems = budgetItems.map((bi: any) => {
-      const qData = itemQuarterMap[bi.id] || {};
-      const quarterlyData: Record<string, QuarterData | null> = {};
+      const pData = itemPeriodMap[bi.id] || {};
+      const yearlyData: Record<number, Record<string, QuarterData | null>> = {};
       let totalRequested = 0;
       let totalSpent = 0;
 
-      for (const q of quarterKeys) {
-        if (qData[q]) {
-          quarterlyData[q] = qData[q];
-          totalRequested += qData[q].requested;
-          totalSpent += qData[q].spent;
-        } else {
-          quarterlyData[q] = null;
-        }
+      for (const key of Object.keys(pData)) {
+        const [yearStr, ...qParts] = key.split("_");
+        const year = parseInt(yearStr, 10);
+        const quarter = qParts.join("_");
+        if (!yearlyData[year]) yearlyData[year] = {};
+        yearlyData[year][quarter] = pData[key];
+        totalRequested += pData[key].requested;
+        totalSpent += pData[key].spent;
       }
 
+      const y1 = yearlyData[1] || {};
       return {
         budget_item_id: bi.id,
         item_name: bi.item_name,
         category: bi.category as "ps" | "mooe" | "co",
         approved_budget: Number(bi.total_amount) || 0,
         quarterly_data: {
-          q1: quarterlyData["q1_report"],
-          q2: quarterlyData["q2_report"],
-          q3: quarterlyData["q3_report"],
-          q4: quarterlyData["q4_report"],
+          q1: y1["q1_report"] || null,
+          q2: y1["q2_report"] || null,
+          q3: y1["q3_report"] || null,
+          q4: y1["q4_report"] || null,
         },
+        yearly_data: yearlyData,
         total_requested: totalRequested,
         total_spent: totalSpent,
         balance: (Number(bi.total_amount) || 0) - totalSpent,
       };
     });
+    // Silence the "quarterKeys unused" lint — kept for documentation of the key shape.
+    void quarterKeys;
 
     // Build category summaries
     const categories = ["ps", "mooe", "co"] as const;
@@ -3321,6 +3498,13 @@ export class ProjectService {
     const grandBudget = lineItems.reduce((s: number, li: any) => s + li.approved_budget, 0);
     const grandRequested = lineItems.reduce((s: number, li: any) => s + li.total_requested, 0);
     const grandSpent = lineItems.reduce((s: number, li: any) => s + li.total_spent, 0);
+
+    // Emit max_quarter + total_periods so the frontend can size columns per
+    // project duration. max_quarter stays clamped at 4 for the legacy
+    // single-year consumer; total_periods is the full multi-year count.
+    const durationMonths = await this.getProjectDurationMonths(fundedProjectId);
+    const maxQuarter = computeMaxQuarterCount(durationMonths);
+    const totalPeriods = computeTotalPeriods(durationMonths);
 
     return {
       data: {
@@ -3338,6 +3522,9 @@ export class ProjectService {
           spent: grandSpent,
           balance: grandBudget - grandSpent,
         },
+        duration_months: durationMonths,
+        max_quarter: maxQuarter,
+        total_periods: totalPeriods,
       },
       error: null,
     };

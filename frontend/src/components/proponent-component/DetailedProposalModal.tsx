@@ -481,19 +481,23 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal(updated);
   };
 
+  // Phase 2A — multi-year enabled. 1..120 months (0..10 years).
+  const MAX_DURATION_MONTHS = 120;
+
   const handleDurationYearsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const years = parseInt(e.target.value, 10);
     const currentMonths = parseInt(editedProposal?.duration || "6", 10);
     const remainingMonths = currentMonths % 12;
-    handleDurationChange(years * 12 + remainingMonths);
+    const total = Math.min(MAX_DURATION_MONTHS, Math.max(1, years * 12 + remainingMonths));
+    handleDurationChange(total);
   };
 
   const handleDurationMonthsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const months = parseInt(e.target.value, 10);
     const currentMonths = parseInt(editedProposal?.duration || "6", 10);
     const years = Math.floor(currentMonths / 12);
-    const total = years * 12 + months;
-    handleDurationChange(total > 0 ? total : 1);
+    const total = Math.min(MAX_DURATION_MONTHS, Math.max(1, years * 12 + months));
+    handleDurationChange(total);
   };
 
   const handleDateChangeWithCalc = (field: "startDate" | "endDate", value: string) => {
@@ -1724,6 +1728,29 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <p className="text-sm font-medium text-slate-400">No file uploaded</p>
                       </div>
                     </div>
+                  </div>
+                )}
+                {proposal.workPlanFileUrl && (
+                  <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <FileCheck className="w-5 h-5 text-[#C8102E]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(proposal.workPlanFileUrl)}>
+                          {getFileName(proposal.workPlanFileUrl)}
+                        </p>
+                        <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
+                      </div>
+                    </div>
+                    <a
+                      href="#"
+                      onClick={(e) => { e.preventDefault(); openProposalFile(proposal.workPlanFileUrl!); }}
+                      className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                      title="Open/Download"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
                   </div>
                 )}
                 {canEditFile && (

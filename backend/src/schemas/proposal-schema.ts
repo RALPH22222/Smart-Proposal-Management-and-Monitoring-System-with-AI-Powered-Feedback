@@ -150,7 +150,9 @@ export const proposalSchema = z.object({
   // --- CHANGED: Matches Frontend names ---
   plan_start_date: z.string().date(), // Changed from plan_start_date
   plan_end_date: z.string().date(), // Changed from plan_end_date
-  duration: z.coerce.number(),
+  // Multi-year enabled (Phase 2A, 2026-04-20). 1–120 months covers 1 month up to
+  // 10 years, matching the reporting lifecycle's 40-period (Y1Q1..Y10Q4) envelope.
+  duration: z.coerce.number().int().min(1, "Duration must be at least 1 month").max(120, "Duration cannot exceed 10 years (120 months)."),
 
   // Priority area IDs - array of numbers referencing the priorities table
   priorities_id: z.preprocess(parseJsonIfString, z.array(z.coerce.number())),

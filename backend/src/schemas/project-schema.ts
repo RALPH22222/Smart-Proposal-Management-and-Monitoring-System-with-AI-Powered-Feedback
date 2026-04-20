@@ -22,6 +22,9 @@ export type GetFundedProjectsInput = z.infer<typeof getFundedProjectsSchema>;
 // Note: submitted_by_proponent_id is injected by handler from JWT, not from request body
 export const submitReportSchema = z.object({
   funded_project_id: z.number().int().positive(),
+  // Phase 2A: scopes the report to its project year. Optional + default 1 so
+  // legacy clients and single-year projects don't need to change.
+  year_number: z.coerce.number().int().min(1).max(10).optional().default(1),
   quarterly_report: quarterlyReportSchema,
   progress: z.number().int().min(0).max(100),
   comment: z.string().optional(),
@@ -139,6 +142,10 @@ export const budgetCategorySchema = z.enum(["ps", "mooe", "co"]);
 // optional so older payloads still validate, but new UIs always send it.
 export const createFundRequestSchema = z.object({
   funded_project_id: z.number().int().positive(),
+  // Phase 2A: year_number scopes each fund request to its project year.
+  // Optional + default 1 so legacy clients that haven't been updated continue
+  // to work (they implicitly mean Y1). Range matches the DB CHECK constraint.
+  year_number: z.coerce.number().int().min(1).max(10).optional().default(1),
   quarterly_report: quarterlyReportSchema,
   items: z
     .array(

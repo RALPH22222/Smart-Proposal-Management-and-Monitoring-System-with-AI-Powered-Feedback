@@ -281,19 +281,23 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     }
   };
 
+  // Phase 2A — multi-year enabled. 1..120 months (0..10 years).
+  const MAX_DURATION_MONTHS = 120;
+
   const handleDurationYearsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const years = parseInt(e.target.value, 10);
     const currentMonths = parseInt(formData.duration || "6", 10);
     const remainingMonths = currentMonths % 12;
-    handleDurationChange(years * 12 + remainingMonths);
+    const total = Math.min(MAX_DURATION_MONTHS, Math.max(1, years * 12 + remainingMonths));
+    handleDurationChange(total);
   };
 
   const handleDurationMonthsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const months = parseInt(e.target.value, 10);
     const currentMonths = parseInt(formData.duration || "6", 10);
     const years = Math.floor(currentMonths / 12);
-    const total = years * 12 + months;
-    handleDurationChange(total > 0 ? total : 1);
+    const total = Math.min(MAX_DURATION_MONTHS, Math.max(1, years * 12 + months));
+    handleDurationChange(total);
   };
 
   const handleDateChangeWithCalc = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -751,7 +755,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
           <label className={`flex items-center gap-2 text-sm font-semibold ${formData.duration ? 'text-green-600' : 'text-gray-700'}`}>
             <Clock className={`${formData.duration ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Duration <span className="text-red-500">*</span>
-            <Tooltip content="The total length of the project implementation period in months or years" />
+            <Tooltip content="Project length. Quarterly reporting repeats every year — a 24-month project has 8 quarterly reports." />
             <AutoFillBadge fieldName="duration" autoFilledFields={autoFilledFields} />
           </label>
           <div className="flex items-center gap-3">

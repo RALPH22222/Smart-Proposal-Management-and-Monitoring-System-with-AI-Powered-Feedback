@@ -128,6 +128,7 @@ export interface ApiProjectDetail {
     program_title: string;
     plan_start_date: string;
     plan_end_date: string;
+    duration: number | null;
     email: string | null;
     phone: string | null;
     work_plan_file_url: string | null;
@@ -150,6 +151,7 @@ export interface ApiProjectDetail {
 export interface ApiProjectReport {
   id: number;
   funded_project_id: number;
+  year_number: number; // Phase 2A — multi-year scoping. Defaults to 1 for legacy single-year projects.
   quarterly_report: string;
   status: "submitted" | "verified" | "overdue" | "rejected";
   progress: number;
@@ -268,8 +270,46 @@ const QUARTER_LABELS: Record<string, string> = {
 
 const ALL_QUARTERS = ["q1_report", "q2_report", "q3_report", "q4_report"];
 
+/** A single reporting period — year + quarter. Mirrors backend Period type. */
+export type DisplayPeriod = { year_number: number; quarter: string };
+
+/** Total reporting periods this project has — ceil(duration/3), clamped 1..40. */
+export function computeTotalPeriods(durationMonths: number | null | undefined): number {
+  const months = Number(durationMonths);
+  if (!Number.isFinite(months) || months <= 0) return 4;
+  return Math.min(40, Math.max(1, Math.ceil(months / 3)));
+}
+
+/** All applicable {year, quarter} periods for a project of this duration. */
+export function getApplicablePeriods(durationMonths: number | null | undefined): DisplayPeriod[] {
+  const total = computeTotalPeriods(durationMonths);
+  return Array.from({ length: total }, (_, i) => {
+    const year = Math.floor(i / 4) + 1;
+    const quarter = ALL_QUARTERS[i % 4];
+    return { year_number: year, quarter };
+  });
+}
+
+/** Legacy Y1-only variant kept for any caller that hasn't migrated yet. */
+export function getApplicableQuarters(durationMonths: number | null | undefined): string[] {
+  return getApplicablePeriods(durationMonths)
+    .filter((p) => p.year_number === 1)
+    .map((p) => p.quarter);
+}
+
+/** Stable string key for a (year, quarter) pair — used for Map lookups and React keys. */
+export function periodKey(p: DisplayPeriod): string {
+  return `${p.year_number}_${p.quarter}`;
+}
+
 export function getQuarterLabel(quarterKey: string): string {
   return QUARTER_LABELS[quarterKey] || quarterKey;
+}
+
+/** Display label for a period. Single-year → "Q1 Report"; multi-year → "Y2 Q1". */
+export function getPeriodLabel(p: DisplayPeriod, isMultiYear: boolean): string {
+  const qShort = p.quarter.replace(/^q(\d)_report$/, "Q$1");
+  return isMultiYear ? `Y${p.year_number} ${qShort}` : getQuarterLabel(p.quarter);
 }
 
 // ─── Transform: Backend → Frontend Project ──────────────────────────
@@ -319,9 +359,11 @@ export function transformToProject(fp: ApiFundedProject): Project {
 // ─── Display Report Interface (for detail modal) ───────────────────
 
 export interface DisplayReport {
-  id: string;
+  id: string; // Format: "${year_number}_${quarterKey}" — unique across all years.
   backendReportId: number | null; // null for placeholder reports
-  quarter: string;
+  year_number: number; // Phase 2A — which year this report belongs to.
+  quarterKey: string; // Raw quarter enum value (e.g. "q1_report").
+  quarter: string; // Display label ("Q1 Report" for single-year, "Y2 Q1" for multi-year).
   dueDate: string;
   status: "Locked" | "Due" | "Submitted" | "Verified" | "Overdue" | "Rejected";
   progress: number;
@@ -351,35 +393,37 @@ export function buildDisplayReports(
   _currentUserId: string
 ): ProjectDetailData {
   const existingReports = detail.project_reports || [];
-  const reportByQuarter = new Map<string, ApiProjectReport>();
+  // Phase 2A: key by (year, quarter) instead of quarter alone so a 24-month
+  // project can have Y1Q1 and Y2Q1 as distinct reports.
+  const reportByPeriod = new Map<string, ApiProjectReport>();
   for (const r of existingReports) {
-    reportByQuarter.set(r.quarterly_report, r);
+    const year = r.year_number ?? 1; // Legacy rows default to Y1 via DB DEFAULT
+    reportByPeriod.set(`${year}_${r.quarterly_report}`, r);
   }
 
-  // Compute quarter due dates based on plan_start_date
   const startDate = detail.proposal?.plan_start_date
     ? new Date(detail.proposal.plan_start_date)
     : new Date(detail.funded_date || detail.created_at);
 
-  const quarterDueDates: Record<string, string> = {};
-  ALL_QUARTERS.forEach((q, i) => {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(dueDate.getMonth() + (i + 1) * 3);
-    quarterDueDates[q] = dueDate.toISOString().split("T")[0];
-  });
+  const applicablePeriods = getApplicablePeriods(detail.proposal?.duration);
+  const isMultiYear = applicablePeriods.some((p) => p.year_number > 1);
 
   const now = new Date();
   let lastSubmittedIndex = -1;
-  ALL_QUARTERS.forEach((q, i) => {
-    if (reportByQuarter.has(q)) lastSubmittedIndex = i;
+  applicablePeriods.forEach((p, i) => {
+    if (reportByPeriod.has(periodKey(p))) lastSubmittedIndex = i;
   });
 
-  const reports: DisplayReport[] = ALL_QUARTERS.map((q, i) => {
-    const apiReport = reportByQuarter.get(q);
-    const dueDate = quarterDueDates[q];
+  const reports: DisplayReport[] = applicablePeriods.map((p, i) => {
+    const key = periodKey(p);
+    const apiReport = reportByPeriod.get(key);
+    // Due dates climb monotonically with period_index (3 months each). Month 12 = Y1Q4 end, Month 15 = Y2Q1 end, etc.
+    const dueDateObj = new Date(startDate);
+    dueDateObj.setMonth(dueDateObj.getMonth() + (i + 1) * 3);
+    const dueDate = dueDateObj.toISOString().split("T")[0];
+    const label = getPeriodLabel(p, isMultiYear);
 
     if (apiReport) {
-      // Real report from backend
       const statusMap: Record<string, DisplayReport["status"]> = {
         submitted: "Submitted",
         verified: "Verified",
@@ -398,9 +442,11 @@ export function buildDisplayReports(
       const totalApproved = expenses.reduce((sum, e) => sum + (e.approvedAmount ?? e.amount), 0);
 
       return {
-        id: q,
+        id: key,
         backendReportId: apiReport.id,
-        quarter: getQuarterLabel(q),
+        year_number: p.year_number,
+        quarterKey: p.quarter,
+        quarter: label,
         dueDate,
         status: statusMap[apiReport.status] || "Submitted",
         progress: apiReport.progress || 0,
@@ -408,7 +454,7 @@ export function buildDisplayReports(
         totalExpense,
         totalApproved,
         proofs: apiReport.report_file_url || [],
-        submittedBy: undefined, // Could fetch from submitted_by_proponent_id if needed
+        submittedBy: undefined,
         dateSubmitted: apiReport.created_at
           ? formatDate(apiReport.created_at)
           : undefined,
@@ -416,18 +462,20 @@ export function buildDisplayReports(
       };
     }
 
-    // No report exists for this quarter - placeholder
-    const isDue = i === lastSubmittedIndex + 1 && new Date(dueDate) <= now;
-    const isOverdue = i <= lastSubmittedIndex + 1 && new Date(dueDate) < now;
+    // Placeholder (no report yet). Sequence gate: can only be "Due" if all prior periods
+    // have reports (including rejected ones — they're still submitted).
+    const isDue = i === lastSubmittedIndex + 1 && dueDateObj <= now;
+    const isOverdue = i <= lastSubmittedIndex + 1 && dueDateObj < now;
     const placeholderStatus: DisplayReport["status"] =
       isOverdue && i === lastSubmittedIndex + 1 ? "Due" : i > lastSubmittedIndex + 1 ? "Locked" : "Due";
 
-    // If the project is completed, all missing quarters should show as Locked
     if (detail.status === "completed") {
       return {
-        id: q,
+        id: key,
         backendReportId: null,
-        quarter: getQuarterLabel(q),
+        year_number: p.year_number,
+        quarterKey: p.quarter,
+        quarter: label,
         dueDate,
         status: "Locked",
         progress: 0,
@@ -439,9 +487,11 @@ export function buildDisplayReports(
     }
 
     return {
-      id: q,
+      id: key,
       backendReportId: null,
-      quarter: getQuarterLabel(q),
+      year_number: p.year_number,
+      quarterKey: p.quarter,
+      quarter: label,
       dueDate,
       status: isDue || placeholderStatus === "Due" ? "Due" : "Locked",
       progress: 0,
@@ -605,6 +655,7 @@ export interface ApiFundRequestItem {
 export interface ApiFundRequest {
   id: number;
   funded_project_id: number;
+  year_number: number; // Phase 2A — multi-year scoping. Defaults to 1 for legacy rows.
   quarterly_report: string;
   status: "pending" | "approved" | "rejected";
   requested_by: string;
@@ -651,19 +702,21 @@ export async function createFundRequest(
     amount: number;
     description?: string;
     category: "ps" | "mooe" | "co";
-  }[]
+  }[],
+  yearNumber: number = 1
 ): Promise<{ fund_request: ApiFundRequest; budget_summary: ApiBudgetSummary }> {
   const { data } = await api.post<{ data: { items: ApiFundRequestItem[]; budget_summary: ApiBudgetSummary } & ApiFundRequest }>(
     "/project/create-fund-request",
     {
       funded_project_id: fundedProjectId,
+      year_number: yearNumber,
       quarterly_report: quarterlyReport,
       items,
     },
     { withCredentials: true }
   );
   invalidateProjectCache();
-  return { fund_request: data.data, budget_summary: data.data.budget_summary };
+  return data.data as unknown as { fund_request: ApiFundRequest; budget_summary: ApiBudgetSummary };
 }
 
 export async function fetchFundRequests(
@@ -725,12 +778,14 @@ export async function submitQuarterlyReport(
   progress: number,
   comment?: string,
   reportFileUrl?: string[],
-  liquidations?: { fund_request_item_id: number; actual_amount: number }[]
+  liquidations?: { fund_request_item_id: number; actual_amount: number }[],
+  yearNumber: number = 1
 ): Promise<any> {
   const { data } = await api.post(
     "/project/submit-report",
     {
       funded_project_id: fundedProjectId,
+      year_number: yearNumber,
       quarterly_report: quarterlyReport,
       progress,
       comment,

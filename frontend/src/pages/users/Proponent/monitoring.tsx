@@ -80,8 +80,9 @@ interface FundRequestItem {
 
 // Unified quarter data combining display report + fund request info
 interface QuarterData {
-  quarter: string; // q1_report, q2_report, etc.
-  quarterLabel: string; // Q1, Q2, etc.
+  quarter: string; // Raw quarter key ("q1_report", "q2_report", ...). NOT year-aware — use year_number for scoping.
+  quarterLabel: string; // Display label: "Q1" for single-year, "Y2 Q1" for multi-year.
+  year_number: number; // Phase 2A — which year this period belongs to.
   dueDate: string;
   startDate: string;
   status: ReportStatus;
@@ -340,14 +341,18 @@ const MonitoringPage: React.FC = () => {
       setCertificateInfo({ issuedAt: displayData.certificateIssuedAt, issuedByName: displayData.certificateIssuedByName });
       setRawProjectDetail(detail);
 
-      const frByQuarter = new Map<string, ApiFundRequest>();
+      // Phase 2A: fund requests are keyed by (year_number, quarterly_report) — two projects
+      // Y1Q1 and Y2Q1 must NOT collide, so build the map with composite keys.
+      const frByPeriod = new Map<string, ApiFundRequest>();
       for (const fr of frResponse.fund_requests) {
-        frByQuarter.set(fr.quarterly_report, fr);
+        const year = fr.year_number ?? 1;
+        frByPeriod.set(`${year}_${fr.quarterly_report}`, fr);
       }
 
       const builtQuarters: QuarterData[] = displayData.reports.map((dr, i) => {
-        const qKey = ALL_QUARTERS[i];
-        const fr = frByQuarter.get(qKey) || null;
+        const qKey = dr.quarterKey; // Real quarter key (q1_report..q4_report) from buildDisplayReports.
+        const year = dr.year_number;
+        const fr = frByPeriod.get(`${year}_${qKey}`) || null;
 
         // Determine status considering fund request flow
         let status: ReportStatus;
@@ -375,7 +380,7 @@ const MonitoringPage: React.FC = () => {
           else status = 'fund_request';
         }
 
-        // Calculate start date
+        // Calculate start date — climbs with global period index (i), so Y2Q1 starts at month 12.
         const startDate = detail.proposal?.plan_start_date
           ? new Date(detail.proposal.plan_start_date)
           : new Date(detail.funded_date || detail.created_at);
@@ -384,7 +389,8 @@ const MonitoringPage: React.FC = () => {
 
         return {
           quarter: qKey,
-          quarterLabel: QUARTER_LABELS[qKey],
+          quarterLabel: dr.quarter, // Pre-computed label from buildDisplayReports ("Q1 Report" or "Y2 Q1").
+          year_number: year,
           dueDate: dr.dueDate,
           startDate: qStartDate.toISOString().split('T')[0],
           status,
@@ -643,7 +649,7 @@ const MonitoringPage: React.FC = () => {
         category: item.category,
       }));
 
-      await createFundRequest(activeBackend.id, currentReport.quarter, items);
+      await createFundRequest(activeBackend.id, currentReport.quarter, items, currentReport.year_number);
       setBreakdownItems([]);
       Swal.fire('Submitted', 'Fund request submitted for R&D review!', 'success');
       await loadProjectDetail(); // Refresh
@@ -775,7 +781,8 @@ const MonitoringPage: React.FC = () => {
         localProgress,
         undefined,
         fileUrls.length > 0 ? fileUrls : undefined,
-        liquidations
+        liquidations,
+        currentReport.year_number
       );
 
       // Reset file state
@@ -1458,7 +1465,7 @@ const MonitoringPage: React.FC = () => {
               {/* --- QUARTER STEPPER --- */}
               {quarters.length > 0 && (
                 <QuarterStepper
-                  quarters={quarters.map(q => ({ status: q.status, quarterLabel: q.quarterLabel }))}
+                  quarters={quarters.map(q => ({ status: q.status, quarterLabel: q.quarterLabel, year_number: q.year_number }))}
                   certificateIssued={!!certificateInfo.issuedAt}
                   currentIndex={currentReportIndex}
                   onStepClick={(idx) => setCurrentReportIndex(idx)}
