@@ -436,7 +436,7 @@ export const RnDEvaluatorPage: React.FC = () => {
     const matchesSearch =
       a.evaluatorNames.join(", ").toLowerCase().includes(search.toLowerCase()) ||
       a.proposalTitle.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "All" || a.status === statusFilter;
+    const matchesStatus = statusFilter === "All" || a.proposalStatus === statusFilter;
     const proposalYear = a.submittedDate ? new Date(a.submittedDate).getFullYear().toString() : "N/A";
     const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
     return matchesSearch && matchesStatus && matchesYear;
@@ -525,8 +525,8 @@ export const RnDEvaluatorPage: React.FC = () => {
 
   return (
     <>
-    <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
+    <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -585,14 +585,9 @@ export const RnDEvaluatorPage: React.FC = () => {
               className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
             >
               <option value="All">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Accepts">Accepts</option>
-              <option value="Extension Requested">Extension Requested</option>
-              <option value="Extension Approved">Extension Approved</option>
-              <option value="Extension Rejected">Extension Rejected</option>
-              <option value="Completed">Completed</option>
-              <option value="Overdue">Overdue</option>
-              <option value="Rejected">Rejected</option>
+              <option value="under_evaluation">Under Evaluators Assessment</option>
+              <option value="endorsed_for_funding">Endorsed for Funding</option>
+              <option value="funded">Funded</option>
             </select>
             <select
               value={yearFilter}
@@ -618,15 +613,15 @@ export const RnDEvaluatorPage: React.FC = () => {
         </section>
 
         {/* Assignments List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
 
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#C8102E]" />
               Evaluator Assignments
             </h3>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-w-0">
             <>
               {paginatedAssignments.map((assignment) => (
                 <article

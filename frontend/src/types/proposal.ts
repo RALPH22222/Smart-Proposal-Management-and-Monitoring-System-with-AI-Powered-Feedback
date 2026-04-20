@@ -72,6 +72,7 @@ export interface Proposal {
   // Contact
   email?: string;
   phone?: string;
+  workPlanFileUrl?: string;
 }
 
 export interface EstimatedBudget {

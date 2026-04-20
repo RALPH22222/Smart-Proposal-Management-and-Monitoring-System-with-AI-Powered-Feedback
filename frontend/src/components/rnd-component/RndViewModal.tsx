@@ -26,7 +26,8 @@ import {
   Search,
   Eye,
   Target,
-  Edit
+  Edit,
+  HandCoins
 } from "lucide-react";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
@@ -449,17 +450,16 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
     }
 
     const categoryConfig = {
-      ps: { label: 'Personal Services (PS)', color: 'text-violet-600', dot: 'bg-violet-500' },
-      mooe: { label: 'Maintenance, Operating & Other Expenses (MOOE)', color: 'text-amber-600', dot: 'bg-amber-500' },
-      co: { label: 'Capital Outlay (CO)', color: 'text-emerald-600', dot: 'bg-emerald-500' }
+      ps: { label: 'Personal Services (PS)', color: 'text-red-800', dot: 'bg-red-500' },
+      mooe: { label: 'Maintenance, Operating & Other Expenses (MOOE)', color: 'text-red-800', dot: 'bg-red-500' },
+      co: { label: 'Capital Outlay (CO)', color: 'text-red-800', dot: 'bg-red-500' }
     };
 
     const config = category && categoryConfig[category] ? categoryConfig[category] : { label: 'Breakdown', color: 'text-slate-600', dot: 'bg-slate-400' };
 
     return (
       <div className="p-4">
-        <h5 className={`text-[10px] font-extrabold uppercase tracking-widest ${config.color} mb-2 flex items-center gap-1.5`}>
-          <span className={`inline-block w-2 h-2 rounded-full ${config.dot}`}></span>
+        <h5 className={`text-[12px] font-bold uppercase tracking-wider ${config.color} mb-2 flex items-center gap-1.5`}>
           {config.label}
         </h5>
         <div className="overflow-x-auto rounded-lg border border-slate-100">
@@ -1056,11 +1056,10 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
             </div>
           </div>
 
-          {/* Budget */}
           {p.budgetSources && (
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
+                <HandCoins className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
               </h3>
 
               <div className="space-y-6">
@@ -1070,7 +1069,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
-                          <DollarSign className="w-4 h-4" />
+                          <HandCoins className="w-4 h-4" />
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
@@ -1086,15 +1085,15 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     {/* Category Summary Row */}
                     <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">PS</span>
                         <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">MOOE</span>
                         <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">CO</span>
                         <span className="text-xs font-bold text-slate-700">{budget.co}</span>
                       </div>
                     </div>
@@ -1122,7 +1121,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                 )}
 
                 {/* Grand Total Footer */}
-                <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2 shadow-lg">
+                <div className="flex justify-between items-center bg-[#C8102E] text-white rounded-xl px-5 py-3 mt-2 shadow-lg">
                   <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
                   <span className="text-xl font-black text-white">{p.budgetTotal}</span>
                 </div>

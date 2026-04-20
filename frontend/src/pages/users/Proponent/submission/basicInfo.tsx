@@ -664,9 +664,9 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
         <div className="space-y-2">
           <label className={`block text-sm font-semibold flex items-center gap-2 ${formData.program_title ? 'text-green-600' : 'text-gray-700'}`}>
             <FolderOpenDot className={`${formData.program_title ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
-            Program Title <span className="text-gray-400 text-xs font-normal">(optional)</span>
-            <Tooltip content="Only fill if this project is part of a larger program. Leave blank or type N/A for standalone projects." />
-            <AutoFillBadge fieldName="program_title" autoFilledFields={autoFilledFields} />
+            Program Title <span className="text-gray-400 text-[10px] font-normal uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded ml-1">Optional</span>
+            <Tooltip content="Only fill if this project is part of a larger program. If this is a standalone project, you may leave this field empty." />
+            <AutoFillBadge fieldName="program_title" autoFilledFields={autoFilledFields} showNeedsInput={false} />
           </label>
           <input
             type="text"
@@ -675,7 +675,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             onChange={onInputChange}
             maxLength={256}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
-            placeholder="e.g., Science for Change Program (or leave blank)"
+            placeholder="e.g., Science for Change Program"
           />
         </div>
         <div className="space-y-2">

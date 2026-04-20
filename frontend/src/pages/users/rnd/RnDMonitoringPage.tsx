@@ -5,7 +5,6 @@ import {
   User,
   Clock,
   AlertCircle,
-  FileText,
   Search,
   Eye,
   BarChart3,
@@ -188,7 +187,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
     {
       title: 'Total Projects',
       value: projects.length,
-      icon: FileText,
+      icon: Target,
       color: 'text-slate-800',
       borderColor: 'border-slate-300',
       bgColor: 'bg-slate-50',
@@ -264,8 +263,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
   return (
     <>
-      <div className="w-full min-h-screen overflow-x-hidden px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-        <div className="flex-1 flex flex-col gap-4 lg:gap-6">
+      <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+        <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
           {/* Header */}
           <header className="flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -362,8 +361,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           </section>
 
           {/* Projects List */}
-          <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-            <div className="p-4 border-b border-slate-200 bg-slate-50">
+          <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-[#C8102E]" />
@@ -376,7 +375,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-w-0">
               {filteredProjects.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

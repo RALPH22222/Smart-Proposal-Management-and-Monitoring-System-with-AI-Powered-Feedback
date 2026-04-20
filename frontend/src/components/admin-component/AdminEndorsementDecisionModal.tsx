@@ -429,6 +429,85 @@ export default function AdminEndorsementDecisionModal({
                     </div>
                   </div>
                 )}
+                {/* --- Evaluator Ratings Reference (reacts to active tab) --- */}
+                {(() => {
+                  const ratingKey =
+                    activeTab === "Title Assessment" ? "title" :
+                    activeTab === "Budget Assessment" ? "budget" :
+                    activeTab === "Timeline Assessment" ? "timeline" : null;
+
+                  const ratingDescriptions: Record<string, Record<number, string>> = {
+                    title: {
+                      5: "Title is concise, highly descriptive, accurately reflects the scope of the project, and is aligned with the research objectives",
+                      4: "Title is clear, relevant, and provides a good indication of the project's focus and goals",
+                      3: "Title is acceptable but could be more specific or better aligned with the project scope",
+                      2: "Title is vague, overly broad, or does not clearly convey the project's purpose",
+                      1: "Title is unclear, misleading, or irrelevant to the proposed research",
+                    },
+                    budget: {
+                      5: "Budget is well-justified, realistic, efficiently allocated, with clear cost breakdown and sound financial management plan",
+                      4: "Budget is appropriate with minor justification gaps or minor allocation concerns",
+                      3: "Budget is acceptable but lacks detailed justification for some line items",
+                      2: "Budget appears inflated or inadequately justified with unclear allocation logic",
+                      1: "Budget is unrealistic, poorly justified, or raises concerns about cost efficiency",
+                    },
+                    timeline: {
+                      5: "Timeline is realistic, well-structured with clear milestones, deliverables, and contingency buffers",
+                      4: "Timeline is reasonable with appropriate milestones and reasonable contingency planning",
+                      3: "Timeline is acceptable but somewhat ambitious or lacks detailed milestone descriptions",
+                      2: "Timeline appears unrealistic, poorly structured, or lacks clear milestones",
+                      1: "Timeline is not feasible, unclear, or unrealistic given the project scope",
+                    },
+                  };
+
+                  const getRatingLabel = (v: number) =>
+                    v === 5 ? "Excellent" : v === 4 ? "Very Good" : v === 3 ? "Good" : v === 2 ? "Fair" : "Poor";
+
+                  const scoredEvaluators = ratingKey
+                    ? evaluatorDecisions.filter(
+                        (ev) =>
+                          ev.ratings &&
+                          (ev.ratings as any)[ratingKey] > 0 &&
+                          !["pending", "in review", "declined", "extension requested"].includes(
+                            (ev.decision || "").toLowerCase()
+                          )
+                      )
+                    : [];
+
+                  if (!ratingKey || scoredEvaluators.length === 0) return null;
+
+                  return (
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden mb-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Evaluator Ratings</span>
+                        <span className="text-xs text-slate-400">— {activeTab}</span>
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {scoredEvaluators.map((ev) => {
+                          const score = (ev.ratings as any)[ratingKey] as number;
+                          const desc = ratingDescriptions[ratingKey][score];
+                          const dotColor =
+                            score >= 4 ? "bg-emerald-500" :
+                            score === 3 ? "bg-amber-400" : "bg-red-400";
+                          const scoreColor =
+                            score >= 4 ? "text-emerald-700" :
+                            score === 3 ? "text-amber-600" : "text-red-600";
+                          return (
+                            <div key={ev.evaluatorId} className="flex items-center gap-3 px-4 py-2.5">
+                              <span className={`text-xl font-black tabular-nums ${scoreColor}`}>{score}</span>
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                              <div className="min-w-0">
+                                <span className={`text-xs font-bold ${scoreColor}`}>{getRatingLabel(score)}</span>
+                                <span className="text-[10px] text-slate-400 ml-1">· {ev.evaluatorName}</span>
+                                <p className="text-[11px] text-slate-500 leading-snug mt-0.5 line-clamp-2">{desc}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

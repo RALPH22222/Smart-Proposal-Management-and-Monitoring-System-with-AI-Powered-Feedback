@@ -4,11 +4,62 @@ import SkeletonPulse from './SkeletonPulse';
 interface PageLoaderProps {
   text?: string;
   className?: string;
-  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | string;
+  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | 'change-assignment' | 'staff-list' | string;
 }
 
 
 const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple' }) => {
+  if (mode === 'change-assignment') {
+    return (
+      <div className={`space-y-6 animate-pulse ${className || ''}`}>
+        {/* Context box */}
+        <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+          <div className="space-y-2">
+            <SkeletonPulse className="h-2 w-12" />
+            <SkeletonPulse className="h-4 w-24" />
+          </div>
+          <div className="w-4 h-4 bg-slate-200 rounded-full opacity-20" />
+          <div className="space-y-2">
+            <SkeletonPulse className="h-2 w-12 ml-auto" />
+            <SkeletonPulse className="h-4 w-24 ml-auto" />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Search bar */}
+          <div className="space-y-2">
+            <SkeletonPulse className="h-3 w-24" />
+            <SkeletonPulse className="h-10 w-full rounded-lg" />
+          </div>
+          {/* Department filter */}
+          <div className="space-y-2">
+            <SkeletonPulse className="h-3 w-32" />
+            <SkeletonPulse className="h-10 w-full rounded-lg" />
+          </div>
+          {/* Staff selection list */}
+          <div className="space-y-2">
+            <SkeletonPulse className="h-3 w-28" />
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center gap-3 p-3 border-b border-slate-50 last:border-0">
+                  <SkeletonPulse className="w-10 h-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <SkeletonPulse className="h-4 w-1/2" />
+                    <SkeletonPulse className="h-3 w-3/4 opacity-60" />
+                    <div className="flex gap-1 pt-1">
+                      <SkeletonPulse className="h-3 w-12 rounded-full opacity-40" />
+                      <SkeletonPulse className="h-3 w-12 rounded-full opacity-40" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (mode === 'project-detail') {
     return (
       <div className={`flex flex-col lg:flex-row h-full w-full animate-pulse bg-slate-50 ${className || ''}`}>
@@ -139,6 +190,72 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
                ))}
             </div>
          </div>
+      </div>
+    );
+  }
+
+  if (mode === 'realignment-list') {
+    return (
+      <div className={`divide-y divide-slate-100 animate-pulse ${className || ''}`}>
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="p-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex-1 space-y-3">
+                <SkeletonPulse className="h-5 w-2/3" />
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <SkeletonPulse className="w-3 h-3 rounded-full opacity-40" />
+                    <SkeletonPulse className="h-3 w-24 opacity-60" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <SkeletonPulse className="w-3 h-3 rounded-full opacity-40" />
+                    <SkeletonPulse className="h-3 w-32 opacity-60" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                 <SkeletonPulse className="h-7 w-24 rounded-full" />
+                 <SkeletonPulse className="h-8 w-24 rounded-lg" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mode === 'endorsement-archive') {
+    return (
+      <div className={`p-6 space-y-6 animate-pulse ${className || ''}`}>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="space-y-6 pb-8 border-b border-slate-50 last:border-0 last:pb-0">
+            <div className="space-y-3">
+              <SkeletonPulse className="h-7 w-3/4" />
+              <div className="flex gap-3">
+                <SkeletonPulse className="h-4 w-32" />
+                <SkeletonPulse className="h-4 w-24 rounded-full" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+               {[1, 2, 3].map(j => (
+                 <div key={j} className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2">
+                      <SkeletonPulse className="w-5 h-5 rounded-full" />
+                      <SkeletonPulse className="h-4 w-24" />
+                    </div>
+                    <SkeletonPulse className="h-3 w-full opacity-60" />
+                 </div>
+               ))}
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl space-y-3 max-w-md">
+               <SkeletonPulse className="h-4 w-32" />
+               <div className="space-y-2">
+                 <SkeletonPulse className="h-2 w-full rounded-full" />
+                 <SkeletonPulse className="h-2 w-5/6 rounded-full opacity-60" />
+               </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -997,6 +1114,25 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
             </div>
           </div>
         </main>
+      </div>
+    );
+  }
+
+  if (mode === 'staff-list') {
+    return (
+      <div className={`space-y-2 animate-pulse ${className || ''}`}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="flex items-center gap-3 p-3 border border-transparent">
+            <SkeletonPulse className="w-10 h-10 rounded-full shrink-0" />
+            <div className="flex-1 space-y-2">
+              <SkeletonPulse className="h-4 w-1/3" />
+              <SkeletonPulse className="h-3 w-1/2 opacity-60" />
+              <div className="pt-1">
+                <SkeletonPulse className="h-3 w-16 rounded opacity-40" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

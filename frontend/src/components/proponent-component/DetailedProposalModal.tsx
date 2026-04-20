@@ -1730,22 +1730,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     </div>
                   </div>
                 )}
-                {proposal.workPlanFileUrl && (
+                {(proposal as any).workPlanFileUrl && (
                   <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 group hover:border-[#C8102E] transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                         <FileCheck className="w-5 h-5 text-[#C8102E]" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName(proposal.workPlanFileUrl)}>
-                          {getFileName(proposal.workPlanFileUrl)}
+                        <p className="text-sm font-medium text-slate-900 group-hover:text-[#C8102E] transition-colors truncate max-w-[200px] sm:max-w-xs" title={getFileName((proposal as any).workPlanFileUrl)}>
+                          {getFileName((proposal as any).workPlanFileUrl)}
                         </p>
                         <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
                       </div>
                     </div>
                     <a
                       href="#"
-                      onClick={(e) => { e.preventDefault(); openProposalFile(proposal.workPlanFileUrl!); }}
+                      onClick={(e) => { e.preventDefault(); openProposalFile((proposal as any).workPlanFileUrl!); }}
                       className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
                       title="Open/Download"
                     >
@@ -2673,15 +2673,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             {/* Category Summary Row */}
                             <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
                               <div className="px-4 py-2 flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                                <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">PS</span>
                                 <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
                               </div>
                               <div className="px-4 py-2 flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                                <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">MOOE</span>
                                 <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
                               </div>
                               <div className="px-4 py-2 flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                                <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">CO</span>
                                 <span className="text-xs font-bold text-slate-700">{budget.co}</span>
                               </div>
                             </div>
@@ -2689,8 +2689,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             <div className="divide-y divide-slate-100">
                               {budget.breakdown?.ps && budget.breakdown.ps.length > 0 && (
                                 <div className="p-4">
-                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-violet-600 mb-2 flex items-center gap-1.5">
-                                    <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                                     Personal Services (PS)
                                   </h5>
                                   <div className="rounded-lg border border-slate-100">
@@ -2721,8 +2720,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               )}
                               {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 && (
                                 <div className="p-4">
-                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 mb-2 flex items-center gap-1.5">
-                                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                                     Maintenance, Operating & Other Expenses (MOOE)
                                   </h5>
                                   <div className="rounded-lg border border-slate-100">
@@ -2753,8 +2751,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               )}
                               {budget.breakdown?.co && budget.breakdown.co.length > 0 && (
                                 <div className="p-4">
-                                  <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-1.5">
-                                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                                     Capital Outlay (CO)
                                   </h5>
                                   <div className="rounded-lg border border-slate-100">
@@ -2790,7 +2787,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     ))}
 
                     {/* Grand Total Footer */}
-                    <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2">
+                    <div className="flex justify-between items-center bg-[#C8102E] text-white rounded-xl px-5 py-3 mt-2">
                       <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
                       <span className="text-xl font-black text-white">{currentData.budgetTotal}</span>
                     </div>

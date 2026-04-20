@@ -372,7 +372,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* Header */}

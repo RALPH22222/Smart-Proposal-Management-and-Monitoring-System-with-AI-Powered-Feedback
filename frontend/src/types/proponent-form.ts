@@ -45,7 +45,7 @@ export interface AgencyAddress {
 }
 export type LookupItem = { id: number; name: string };
 export interface FormData {
-  program_title: string;
+  program_title?: string;
   project_title: string;
   department: number | string; // ID or name for lookup
   sector: number | string; // ID or name for lookup

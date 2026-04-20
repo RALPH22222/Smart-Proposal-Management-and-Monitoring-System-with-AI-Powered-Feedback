@@ -5,6 +5,7 @@ import { type Proposal } from '../../types/InterfaceProposal';
 // import { type Evaluator } from '../../types/evaluator';
 import Swal from 'sweetalert2';
 import SecureImage from '../shared/SecureImage';
+import PageLoader from '../shared/PageLoader';
 
 interface ChangeRdStaffModalProps {
   proposal: Proposal | null;
@@ -144,8 +145,28 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
     return (isNotCurrentAssignee && isNotCurrentAssigneeByName) && matchesDepartment && matchesSearch;
   });
 
+  // Helper to split current staff name and email if they are in the same string
+  const getStaffParts = (staffString: string | null) => {
+    if (!staffString) return { name: 'No Staff Assigned', email: '' };
+    const parts = staffString.split(' - ');
+    if (parts.length > 1) {
+      return { name: parts[0], email: parts[1] };
+    }
+    return { name: staffString, email: '' };
+  };
+
+  const currentStaff = getStaffParts(proposal?.assignedRdStaff || null);
+  const selectedStaffObj = rndStaffList.find(s => s.id === selectedStaffId);
+
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4 animate-in fade-in duration-200">
+      <style>{`
+        @keyframes scrollTitle {
+          0%, 15% { transform: translateX(0); }
+          75%, 85% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+          95%, 100% { transform: translateX(0); }
+        }
+      `}</style>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
 
         {/* Header */}
@@ -154,7 +175,7 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
             <div className="bg-blue-100 p-1.5 rounded-lg">
               <UserCog className="w-5 h-5 text-blue-600" />
             </div>
-            <h3 className="font-bold text-lg">Change Assignment</h3>
+            <h3 className="font-bold text-lg">Change R&D Assignment</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 p-1 rounded-full transition-colors">
             <X className="w-5 h-5" />
@@ -164,28 +185,72 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
+            <PageLoader mode="change-assignment" className="py-2" />
           ) : (
             <form id="change-rnd-form" onSubmit={handleSubmit} className="space-y-5">
 
-              {/* Context: From -> To */}
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 uppercase font-semibold">Current</span>
-                  <span className="font-medium text-slate-700 flex items-center gap-1">
-                    <User className="w-3 h-3" /> {proposal.assignedRdStaff || 'Unassigned'}
-                  </span>
+              {/* Context: From -> To (Improved UI) */}
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Currently Assigned</span>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                      <User className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                        <span className="text-sm font-bold text-slate-700 whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]" title={currentStaff.name}>
+                          {currentStaff.name}
+                        </span>
+                      </div>
+                      {currentStaff.email && (
+                        <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                          <span className="text-[11px] text-slate-500 whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]" title={currentStaff.email}>
+                            {currentStaff.email}
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Current Custodian</span>
+                    </div>
+                  </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-                <div className="flex flex-col text-right">
-                  <span className="text-xs text-slate-500 uppercase font-semibold">New</span>
-                  <span className="font-medium text-blue-600">
-                    {selectedStaffId
-                      ? rndStaffList.find(s => s.id === selectedStaffId)?.name
-                      : 'Select...'}
-                  </span>
+
+                <div className="flex justify-center -my-2 relative z-10">
+                  <div className="bg-white p-1 rounded-full border border-slate-200 shadow-sm flex items-center justify-center">
+                    <ArrowRight className="w-4 h-4 text-blue-500 rotate-90" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest px-1">New Assignment</span>
+                  <div className={`flex items-center gap-3 p-3 border-2 rounded-xl transition-all duration-300 ${selectedStaffId
+                    ? 'bg-blue-50 border-blue-500/30'
+                    : 'bg-white border-dashed border-slate-200'
+                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${selectedStaffId ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                      {selectedStaffId ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <UserCog className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                        <span className={`text-sm font-bold whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite] transition-colors duration-300 ${selectedStaffId ? 'text-blue-700' : 'text-slate-400 italic'}`}>
+                          {selectedStaffObj ? selectedStaffObj.name : 'Waiting for selection...'}
+                        </span>
+                      </div>
+                      {selectedStaffObj && (
+                        <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                          <span className="text-[11px] text-blue-600/70 whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
+                            {selectedStaffObj.email}
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-[9px] text-blue-600/60 uppercase font-bold tracking-wider mt-0.5">Target Assignment</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -273,12 +338,16 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold truncate ${selectedStaffId === staff.id ? 'text-blue-900' : 'text-slate-800'}`}>
-                              {staff.name}
-                            </p>
-                            <p className="text-xs text-slate-500 truncate">
-                              {staff.email}
-                            </p>
+                            <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                              <p className={`text-sm font-semibold whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite] ${selectedStaffId === staff.id ? 'text-blue-900' : 'text-slate-800'}`}>
+                                {staff.name}
+                              </p>
+                            </div>
+                            <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                              <p className="text-xs text-slate-500 whitespace-nowrap inline-block animate-[scrollTitle_8s_ease-in-out_infinite]">
+                                {staff.email}
+                              </p>
+                            </div>
                             {staff.departments.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {staff.departments.map((d: any) => (
@@ -303,7 +372,6 @@ const ChangeRndModal: React.FC<ChangeRdStaffModalProps> = ({
                   {error}
                 </div>
               )}
-
             </form>
           )}
         </div>

@@ -790,15 +790,15 @@ export default function ProposalModal({
                     {/* Category Summary Row */}
                     <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">PS</span>
                         <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">MOOE</span>
                         <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">CO</span>
                         <span className="text-xs font-bold text-slate-700">{budget.co}</span>
                       </div>
                     </div>
@@ -808,8 +808,7 @@ export default function ProposalModal({
                       {/* PS */}
                       {budget.breakdown?.ps && budget.breakdown.ps.length > 0 && (
                         <div className="p-4">
-                          <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-violet-600 mb-2 flex items-center gap-1.5">
-                            <span className="inline-block w-2 h-2 rounded-full bg-violet-500"></span>
+                          <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                             Personal Services (PS)
                           </h5>
                           {renderBreakdown(budget.breakdown.ps)}
@@ -818,8 +817,7 @@ export default function ProposalModal({
                       {/* MOOE */}
                       {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 && (
                         <div className="p-4">
-                          <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 mb-2 flex items-center gap-1.5">
-                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                          <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                             Maintenance, Operating & Other Expenses (MOOE)
                           </h5>
                           {renderBreakdown(budget.breakdown.mooe)}
@@ -828,8 +826,7 @@ export default function ProposalModal({
                       {/* CO */}
                       {budget.breakdown?.co && budget.breakdown.co.length > 0 && (
                         <div className="p-4">
-                          <h5 className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-1.5">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                          <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">
                             Capital Outlay (CO)
                           </h5>
                           {renderBreakdown(budget.breakdown.co)}
@@ -840,7 +837,7 @@ export default function ProposalModal({
                 ))}
 
                 {/* Grand Total Footer */}
-                <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2">
+                <div className="flex justify-between items-center bg-[#C8102E] text-white rounded-xl px-5 py-3 mt-2">
                   <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
                   <span className="text-xl font-black text-white">{p.budgetTotal}</span>
                 </div>

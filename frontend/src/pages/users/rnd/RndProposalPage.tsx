@@ -468,6 +468,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
     { id: 'Not Submitted', label: 'Extension Requests', icon: AlertCircle },
     { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
     { id: 'Endorsed', label: 'Endorsed', icon: Signature },
+    { id: 'Funded', label: 'Funded', icon: CheckCircle },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
   ];
 
@@ -771,8 +772,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
 
   return (
     <>
-    <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+    <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -807,8 +808,8 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         </header>
 
         {/* Stepper / Tabs */}
-        <section className="flex-shrink-0 overflow-x-auto pb-2">
-          <div className="flex gap-2">
+        <section className="flex-shrink-0">
+          <div className="flex flex-wrap gap-2">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id;
               const count = getStatusCount(tab.id);
@@ -816,7 +817,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${isActive
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${isActive
                     ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                     }`}
@@ -882,9 +883,9 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
         </section>
 
         {/* Proposals List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
 
-          <div className="p-4 border-b border-slate-200 bg-slate-50">
+            <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-[#C8102E]" />
@@ -897,7 +898,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="min-w-0">
               {filteredProposals.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

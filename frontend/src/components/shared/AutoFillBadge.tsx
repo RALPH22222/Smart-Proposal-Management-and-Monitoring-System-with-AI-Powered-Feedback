@@ -4,9 +4,14 @@ import { Sparkles, AlertCircle } from "lucide-react";
 interface AutoFillBadgeProps {
   fieldName: string;
   autoFilledFields: Set<string>;
+  showNeedsInput?: boolean;
 }
 
-const AutoFillBadge: React.FC<AutoFillBadgeProps> = ({ fieldName, autoFilledFields }) => {
+const AutoFillBadge: React.FC<AutoFillBadgeProps> = ({ 
+  fieldName, 
+  autoFilledFields, 
+  showNeedsInput = true 
+}) => {
   if (autoFilledFields.size === 0) return null;
 
   const isFilled = autoFilledFields.has(fieldName);
@@ -19,6 +24,8 @@ const AutoFillBadge: React.FC<AutoFillBadgeProps> = ({ fieldName, autoFilledFiel
       </span>
     );
   }
+
+  if (!showNeedsInput) return null;
 
   return (
     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 ml-2 select-none">

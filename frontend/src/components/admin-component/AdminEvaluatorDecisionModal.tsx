@@ -76,7 +76,6 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 	onClose,
 	decision,
 	proposalTitle,
-	proposalId
 }) => {
 	if (!isOpen) return null;
 
@@ -205,14 +204,8 @@ const AdminEvaluatorDecisionModal: React.FC<AdminEvaluatorDecisionModalProps> = 
 								</div>
 							</div>
 
-							{/* Proposal ID and Date/Time */}
-							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-								<div>
-									<label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-										Proposal ID
-									</label>
-									<p className="text-sm font-medium text-slate-800 mt-1">{proposalId}</p>
-								</div>
+							{/* Date/Time Info */}
+							<div className="grid grid-cols-1">
 								<div>
 									<label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
 										Evaluation Date &amp; Time

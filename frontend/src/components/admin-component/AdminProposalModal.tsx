@@ -14,7 +14,8 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  UserCog
+  UserCog,
+  Microscope
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
@@ -30,6 +31,7 @@ import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserIte
 import { redactFile } from '../../utils/file-redactor';
 import SecureImage from '../shared/SecureImage';
 import { formatDate } from '../../utils/date-formatter';
+import PageLoader from '../shared/PageLoader';
 
 interface AdminProposalModalProps {
   proposal: Proposal | null;
@@ -52,10 +54,12 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   const [evaluators, setEvaluators] = useState<Partial<Evaluator>[]>([]);
   const [rndStaffList, setRndStaffList] = useState<Partial<Evaluator>[]>([]);
   const [allDepartments, setAllDepartments] = useState<any[]>([]); // Store all departments
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const loadUsers = async () => {
+        setLoadingUsers(true);
         try {
           const [rndData, evalData, deptData] = await Promise.all([
             fetchUsersByRole('rnd'),
@@ -94,6 +98,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
 
         } catch (error) {
           console.error("Failed to load users", error);
+        } finally {
+          setLoadingUsers(false);
         }
       };
       loadUsers();
@@ -550,7 +556,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                       }`}
                   >
                     {decision === 'Assign to RnD' && <div className="absolute top-2 right-2"><CheckCircle className="w-4 h-4 text-blue-600" /></div>}
-                    <UserCog className={`w-6 h-6 ${decision === 'Assign to RnD' ? 'text-blue-600' : 'text-current'}`} />
+                    <Microscope className={`w-6 h-6 ${decision === 'Assign to RnD' ? 'text-blue-600' : 'text-current'}`} />
                     <span className="font-bold text-xs text-center leading-tight">Assign to R&D</span>
                   </button>
 
@@ -630,7 +636,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                 {decision === 'Assign to RnD' && (
                   <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100 custom-scrollbar">
                     <h4 className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-4">
-                      <UserCog className="w-4 h-4 text-blue-600" />
+                      <Microscope className="w-4 h-4 text-blue-600" />
                       Select R&D Staff Member
                     </h4>
 
@@ -663,38 +669,42 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
 
                     {/* R&D List */}
                     <div className="bg-white border border-blue-200 rounded-lg h-56 overflow-y-auto p-2 space-y-1 custom-scrollbar shadow-sm">
-                      {rndStaffList
-                        .filter(staff => {
-                          const matchName = !evaluatorSearch || (staff.name && staff.name.toLowerCase().includes(evaluatorSearch.toLowerCase()));
-                          const matchDept = departmentFilter === 'All' || staff.department === departmentFilter;
-                          return matchName && matchDept;
-                        })
-                        .map((staff) => (
-                          <label key={staff.id} className={`flex items-start p-3 rounded-lg cursor-pointer border transition-all duration-200 group ${selectedRnDStaff?.id === staff.id ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500 shadow-sm' : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'}`}>
-                            <input
-                              type="radio"
-                              name="rndStaff"
-                              checked={selectedRnDStaff?.id === staff.id}
-                              onChange={() => setSelectedRnDStaff(staff)}
-                              className="mt-2 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                            />
-                            <div className="ml-3 flex items-center gap-3 flex-1">
-                              <SecureImage
-                                src={staff.avatar}
-                                fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name || '?')}&background=C8102E&color=fff&size=128`}
-                                alt={staff.name}
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm"
+                      {loadingUsers ? (
+                        <PageLoader mode="staff-list" className="h-full" />
+                      ) : (
+                        rndStaffList
+                          .filter(staff => {
+                            const matchName = !evaluatorSearch || (staff.name && staff.name.toLowerCase().includes(evaluatorSearch.toLowerCase()));
+                            const matchDept = departmentFilter === 'All' || staff.department === departmentFilter;
+                            return matchName && matchDept;
+                          })
+                          .map((staff) => (
+                            <label key={staff.id} className={`flex items-start p-3 rounded-lg cursor-pointer border transition-all duration-200 group ${selectedRnDStaff?.id === staff.id ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500 shadow-sm' : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'}`}>
+                              <input
+                                type="radio"
+                                name="rndStaff"
+                                checked={selectedRnDStaff?.id === staff.id}
+                                onChange={() => setSelectedRnDStaff(staff)}
+                                className="mt-2 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                               />
-                              <div>
-                                <p className={`text-sm font-bold ${selectedRnDStaff?.id === staff.id ? 'text-blue-800' : 'text-slate-800'}`}>{staff.name}</p>
-                                <p className="text-xs text-slate-500">{staff.email}</p>
-                                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-100 text-slate-500 border border-slate-200">
-                                  {staff.department}
-                                </span>
+                              <div className="ml-3 flex items-center gap-3 flex-1">
+                                <SecureImage
+                                  src={staff.avatar}
+                                  fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(staff.name || '?')}&background=C8102E&color=fff&size=128`}
+                                  alt={staff.name}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm"
+                                />
+                                <div>
+                                  <p className={`text-sm font-bold ${selectedRnDStaff?.id === staff.id ? 'text-blue-800' : 'text-slate-800'}`}>{staff.name}</p>
+                                  <p className="text-xs text-slate-500">{staff.email}</p>
+                                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                    {staff.department}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </label>
-                        ))}
+                            </label>
+                          ))
+                      )}
                     </div>
                   </div>
                 )}

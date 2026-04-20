@@ -767,7 +767,7 @@ export const LibImportModal: React.FC<{
                 Generate from LIB document
               </h2>
               <p className="text-slate-500 text-xs mt-0.5 font-normal">
-                Import budget items from your Word (.docx) file
+                Import budget items from your file
               </p>
             </div>
           </div>
@@ -779,7 +779,7 @@ export const LibImportModal: React.FC<{
             <div className="border-2 border-dashed border-gray-300 rounded-2xl p-3 text-center hover:border-[#C8102E] transition-colors">
               <FaFileWord className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
               <p className="text-gray-600 font-medium mb-1">Upload your Line-Item Budget document</p>
-              <p className="text-xs text-gray-400 mb-2">Word .docx format. Maximum size 5 MB.</p>
+              <p className="text-xs text-gray-400 mb-2">Maximum size 5 MB.</p>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -819,23 +819,23 @@ export const LibImportModal: React.FC<{
               {/* Summary stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Items parsed</p>
+                  <p className="text-[12px] font-semibold text-slate-500">Items parsed</p>
                   <p className="text-lg font-black text-slate-800 mt-0.5">{result.items.length}</p>
                 </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-green-600 flex items-center gap-1">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-1.5">
+                  <p className="text-[12px] font-semibold text-emerald-600 flex items-center gap-1">
                     <FaCheckCircle className="w-3 h-3" /> Confident
                   </p>
-                  <p className="text-lg font-black text-green-700 mt-0.5">{stats.high + stats.medium}</p>
+                  <p className="text-lg font-black text-emerald-700 mt-0.5">{stats.high + stats.medium}</p>
                 </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 flex items-center gap-1">
+                  <p className="text-[12px] font-semibold text-amber-600 flex items-center gap-1">
                     <FaExclamationTriangle className="w-3 h-3" /> Needs review
                   </p>
                   <p className="text-lg font-black text-amber-700 mt-0.5">{stats.low}</p>
                 </div>
                 <div className="bg-[#C8102E]/5 border border-[#C8102E]/20 rounded-lg p-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#C8102E]">Total amount</p>
+                  <p className="text-[10px] font-semibold text-[#C8102E]">Total amount</p>
                   <p className="text-base font-black text-[#C8102E] mt-0.5 truncate" title={formatPHP(stats.totalAmount)}>
                     {formatPHP(stats.totalAmount)}
                   </p>

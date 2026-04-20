@@ -88,10 +88,6 @@ interface QuarterData {
 
 
 
-const ALL_QUARTERS = ['q1_report', 'q2_report', 'q3_report', 'q4_report'];
-const QUARTER_LABELS: Record<string, string> = {
-  q1_report: 'Q1', q2_report: 'Q2', q3_report: 'Q3', q4_report: 'Q4',
-};
 
 const MonitoringPage: React.FC = () => {
   const { user } = useAuthContext();

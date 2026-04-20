@@ -448,6 +448,11 @@ const EndorsePage: React.FC = () => {
   });
 
   const sortedFiltered = [...filteredProposals].sort((a, b) => {
+    // 1. Primary Sort: Ready for Endorsement first
+    if (a.readyForEndorsement && !b.readyForEndorsement) return -1;
+    if (!a.readyForEndorsement && b.readyForEndorsement) return 1;
+
+    // 2. Secondary Sort: User-selected order
     if (sortOrder === "a-z") return a.title.localeCompare(b.title);
     if (sortOrder === "z-a") return b.title.localeCompare(a.title);
 
@@ -487,8 +492,8 @@ const EndorsePage: React.FC = () => {
   };
 
 
+  if (loading && activeTab === 'active') return <PageLoader mode="table" />;
 
-  if (loading) return <PageLoader mode="table" />;
 
   return (
     <>
@@ -512,7 +517,7 @@ const EndorsePage: React.FC = () => {
         onSubmit={handleDecisionSubmit}
       />
     <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-      <div className="flex w-full min-w-0 flex-col gap-4 lg:gap-6">
+      <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -527,15 +532,18 @@ const EndorsePage: React.FC = () => {
           </div>
         </header>
 
-        {/* Stats Cards — only meaningful on the active queue */}
-        {activeTab === 'active' && (
+        {/* Stats Cards — always calculate from active queue */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(() => {
+            const activeProposalsForStats = proposalsCache['active'] || [];
+            return (
+              <>
           <div className="bg-blue-50 shadow-xl rounded-2xl border border-blue-400 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Ready for Endorsement</p>
                 <p className="text-xl font-bold text-blue-800 tabular-nums">
-                  {endorsementProposals.filter((p) => p.readyForEndorsement).length}
+                  {activeProposalsForStats.filter((p) => p.readyForEndorsement).length}
                 </p>
               </div>
               <Signature className="w-6 h-6 text-blue-800" />
@@ -547,7 +555,7 @@ const EndorsePage: React.FC = () => {
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Pending Evaluators</p>
                 <p className="text-xl font-bold text-amber-600 tabular-nums">
-                  {endorsementProposals.filter((p) => !p.readyForEndorsement).length}
+                  {activeProposalsForStats.filter((p) => !p.readyForEndorsement).length}
                 </p>
               </div>
               <Users className="w-6 h-6 text-amber-500" />
@@ -559,7 +567,7 @@ const EndorsePage: React.FC = () => {
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Approved</p>
                 <p className="text-xl font-bold text-emerald-600 tabular-nums">
-                  {endorsementProposals.filter((p) => p.overallRecommendation === 'Approve').length}
+                  {activeProposalsForStats.filter((p) => p.overallRecommendation === 'Approve').length}
                 </p>
               </div>
               <CheckCircle className="w-6 h-6 text-emerald-500" />
@@ -571,47 +579,121 @@ const EndorsePage: React.FC = () => {
               <div>
                 <p className="text-xs font-semibold text-slate-700 mb-2">Need Revision</p>
                 <p className="text-xl font-bold text-orange-600 tabular-nums">
-                  {endorsementProposals.filter((p) => p.overallRecommendation === 'Revise').length}
+                  {activeProposalsForStats.filter((p) => p.overallRecommendation === 'Revise').length}
                 </p>
               </div>
               <RotateCcw className="w-6 h-6 text-orange-500" />
             </div>
           </div>
+              </>
+            );
+          })()}
         </section>
-        )}
 
         {/* Stepper / Tabs */}
-        <section className="flex-shrink-0 overflow-x-auto pb-2">
-          <div className="flex gap-2">
-            {([
-              { key: 'active', label: 'Active', icon: Gavel },
-              { key: 'revised', label: 'Revised', icon: RotateCcw },
-              { key: 'rejected', label: 'Rejected', icon: XCircle },
-              { key: 'archive', label: 'Archive', icon: Archive },
-            ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
-              const count = proposalsCache[tab.key] ? proposalsCache[tab.key]!.length : (isActive ? endorsementProposals.length : 0);
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
-                    isActive
-                      ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{tab.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+        <section className="flex-shrink-0 overflow-x-auto">
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  activeTab === 'active'
+                    ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Gavel className={`w-4 h-4 ${activeTab === 'active' ? 'text-white' : 'text-slate-400'}`} />
+                <span>Active</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'active' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {proposalsCache['active'] ? proposalsCache['active']!.length : (activeTab === 'active' ? endorsementProposals.length : 0)}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (activeTab !== 'archive' && activeTab !== 'revised' && activeTab !== 'rejected') {
+                    setActiveTab('archive');
+                  }
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                  ['archive', 'revised', 'rejected'].includes(activeTab)
+                    ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Archive className={`w-4 h-4 ${['archive', 'revised', 'rejected'].includes(activeTab) ? 'text-white' : 'text-slate-400'}`} />
+                <span>Archive</span>
+              </button>
+            </div>
+
+            {/* Sub Tabs for Archive */}
+            {['archive', 'revised', 'rejected'].includes(activeTab) && (
+              <div className="flex gap-4">
+                {([
+                  { key: 'archive', label: 'Endorsed for Funding', icon: Signature, colorClass: 'blue' },
+                  { key: 'revised', label: 'Revised', icon: RotateCcw, colorClass: 'orange' },
+                  { key: 'rejected', label: 'Rejected', icon: XCircle, colorClass: 'red' },
+                ] as { key: EndorsementFilter; label: string; icon: any; colorClass: string }[]).map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.key;
+                  const count = proposalsCache[tab.key] ? proposalsCache[tab.key]!.length : (isActive ? endorsementProposals.length : 0);
+                  
+                  let activeBg = '';
+                  let activeText = '';
+                  let activeBorder = '';
+                  let activeBadgeBg = '';
+                  let activeBadgeText = '';
+
+                  if (tab.colorClass === 'blue') {
+                    activeBg = 'bg-blue-50';
+                    activeText = 'text-blue-800';
+                    activeBorder = 'border-blue-400';
+                    activeBadgeBg = 'bg-blue-100';
+                    activeBadgeText = 'text-blue-800';
+                  } else if (tab.colorClass === 'emerald') {
+                    activeBg = 'bg-emerald-50';
+                    activeText = 'text-emerald-700';
+                    activeBorder = 'border-emerald-300';
+                    activeBadgeBg = 'bg-emerald-100';
+                    activeBadgeText = 'text-emerald-700';
+                  } else if (tab.colorClass === 'orange') {
+                    activeBg = 'bg-orange-50';
+                    activeText = 'text-orange-700';
+                    activeBorder = 'border-orange-300';
+                    activeBadgeBg = 'bg-orange-100';
+                    activeBadgeText = 'text-orange-700';
+                  } else if (tab.colorClass === 'red') {
+                    activeBg = 'bg-rose-50';
+                    activeText = 'text-rose-700';
+                    activeBorder = 'border-rose-300';
+                    activeBadgeBg = 'bg-rose-100';
+                    activeBadgeText = 'text-rose-700';
+                  }
+
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
+                        isActive
+                          ? `${activeBg} ${activeText} ${activeBorder} shadow-sm`
+                          : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700'
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? activeText : 'text-slate-400'}`} />
+                      <span>{tab.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        isActive ? activeBadgeBg + ' ' + activeBadgeText : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
@@ -642,7 +724,14 @@ const EndorsePage: React.FC = () => {
         </section>
 
         {/* Proposals list — natural document flow so browser zoom does not trap/clip rows in a tiny scroll region */}
-        <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <main className="relative flex flex-1 w-full min-w-0 flex-col overflow-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+
+          {/* Skeleton loader — covers table only when on archive tabs */}
+          {loading && ['archive', 'revised', 'rejected'].includes(activeTab) && (
+            <div className="p-0">
+              <PageLoader mode="endorsement-archive" />
+            </div>
+          )}
 
           <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -654,7 +743,7 @@ const EndorsePage: React.FC = () => {
                   ? 'Revised Proposals'
                   : activeTab === 'rejected'
                   ? 'Rejected Proposals'
-                  : 'Archived Proposals'}
+                  : 'Endorsed for Funding'}
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
@@ -663,7 +752,7 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-full min-w-0">
+          {!loading && <div className="w-full min-w-0">
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -776,16 +865,85 @@ const EndorsePage: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Evaluator Decisions — full width; responsive columns via auto-fit */}
-                        <div className="space-y-3 w-full min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-800">
+                        {/* Feasibility Assessment Design */}
+                        {proposal.averageScores && (
+                          <div className="mt-6 p-4 sm:p-5 bg-gradient-to-br from-slate-50/50 via-slate-50/30 to-white border border-indigo-100 rounded-2xl shadow-sm">
+                            <div className="flex items-center justify-between mb-5">
+                              <div className="flex items-center gap-2.5">
+                                  <BarChart2 className="w-5 h-5 text-red-600" />
+                                <div>
+                                  <h4 className="text-sm font-bold text-slate-800">Feasibility Assessment</h4>
+                                  <p className="text-[10px] text-slate-500 font-medium">Consolidated evaluator ratings</p>
+                                </div>
+                              </div>
+                              <div className={`px-3 py-1 rounded-full text-xs font-black border shadow-sm ${
+                                proposal.averageScores.overall >= 4
+                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                  : proposal.averageScores.overall >= 3
+                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                  : 'bg-red-50 border-red-200 text-red-700'
+                              }`}>
+                                {proposal.averageScores.overall.toFixed(1)} <span className="opacity-50">/ 5.0</span>
+                              </div>
+                            </div>
+
+                            {/* Sliding Scale Score Bars */}
+                            <div className="space-y-4 mt-3">
+                              {[
+                                { label: 'Title', value: proposal.averageScores.title },
+                                { label: 'Budget', value: proposal.averageScores.budget },
+                                { label: 'Timeline', value: proposal.averageScores.timeline },
+                              ].map((item) => {
+                                const percentage = (item.value / 5) * 100;
+                                const colorClass = item.value >= 4 ? 'bg-emerald-500' : item.value >= 3 ? 'bg-amber-400' : 'bg-red-500';
+                                const textClass = item.value >= 4 ? 'text-emerald-600' : item.value >= 3 ? 'text-amber-600' : 'text-red-500';
+                                return (
+                                  <div key={item.label} className="relative">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
+                                      <span className={`text-sm font-bold ${textClass}`}>{item.value.toFixed(1)}</span>
+                                    </div>
+                                    <div className="relative h-2 bg-slate-200 rounded-full">
+                                      <div
+                                        className={`absolute top-0 left-0 h-full rounded-full ${colorClass} transition-all duration-500`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                      {/* Tick marks */}
+                                      <div className="absolute top-0 left-0 w-full h-full flex justify-between px-0.5">
+                                        {[0, 1, 2, 3, 4].map((tick) => (
+                                          <div key={tick} className="w-0.5 h-full bg-white/60" />
+                                        ))}
+                                      </div>
+                                      {/* Score marker */}
+                                      <div
+                                        className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-md ${colorClass}`}
+                                        style={{ left: `calc(${percentage}% - 6px)` }}
+                                      />
+                                    </div>
+                                    <div className="flex justify-between mt-0.5">
+                                      {[1, 2, 3, 4, 5].map((num) => (
+                                        <span key={num} className="text-[9px] text-slate-400 w-4 text-center">{num}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 text-right">
+                              Based on {proposal.averageScores.evaluatorCount} evaluator{proposal.averageScores.evaluatorCount > 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Evaluator Decisions */}
+                        <div className="space-y-4 mt-6">
+                          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <Users className="w-4 h-4 text-[#C8102E]" />
                             Evaluator Decisions
                           </h4>
-                          <div
+                          <div 
                             className="grid w-full min-w-0 gap-3"
-                            style={{
-                              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-                            }}
+                            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}
                           >
                             {proposal.evaluatorDecisions.map((decision, index) => (
                               <div
@@ -839,83 +997,17 @@ const EndorsePage: React.FC = () => {
                             )}
                           </div>
                         </div>
-
-                        {/* Feasibility Score */}
-                        {proposal.averageScores && (
-                          <div className="mt-4 p-3 bg-gradient-to-r from-slate-50 to-slate-50 border border-slate-300 rounded-xl">
-                            <div className="flex items-center gap-2 mb-2">
-                              <BarChart2 className="w-4 h-4 text-[#C8102E]" />
-                              <h4 className="text-sm font-semibold text-slate-800">
-                                Feasibility Score
-                              </h4>
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                                proposal.averageScores.overall >= 4
-                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                  : proposal.averageScores.overall >= 3
-                                  ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                  : 'bg-red-50 border-red-200 text-red-700'
-                              }`}>
-                                {proposal.averageScores.overall.toFixed(1)} / 5.0
-                              </span>
-                            </div>
-                            {/* Sliding Scale Score Bars */}
-                            <div className="space-y-4 mt-3">
-                              {[
-                                { label: 'Title', value: proposal.averageScores.title },
-                                { label: 'Budget', value: proposal.averageScores.budget },
-                                { label: 'Timeline', value: proposal.averageScores.timeline },
-                              ].map((item) => {
-                                const percentage = (item.value / 5) * 100;
-                                const colorClass = item.value >= 4 ? 'bg-emerald-500' : item.value >= 3 ? 'bg-amber-400' : 'bg-red-500';
-                                const textClass = item.value >= 4 ? 'text-emerald-600' : item.value >= 3 ? 'text-amber-600' : 'text-red-500';
-                                return (
-                                  <div key={item.label} className="relative">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                      <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
-                                      <span className={`text-sm font-bold ${textClass}`}>{item.value.toFixed(1)}</span>
-                                    </div>
-                                    <div className="relative h-2 bg-slate-200 rounded-full">
-                                      <div
-                                        className={`absolute top-0 left-0 h-full rounded-full ${colorClass} transition-all duration-500`}
-                                        style={{ width: `${percentage}%` }}
-                                      />
-                                      {/* Tick marks */}
-                                      <div className="absolute top-0 left-0 w-full h-full flex justify-between px-0.5">
-                                        {[0, 1, 2, 3, 4].map((tick) => (
-                                          <div key={tick} className="w-0.5 h-full bg-white/60" />
-                                        ))}
-                                      </div>
-                                      {/* Score marker */}
-                                      <div
-                                        className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-md ${colorClass}`}
-                                        style={{ left: `calc(${percentage}% - 6px)` }}
-                                      />
-                                    </div>
-                                    <div className="flex justify-between mt-0.5">
-                                      {[1, 2, 3, 4, 5].map((num) => (
-                                        <span key={num} className="text-[9px] text-slate-400 w-4 text-center">{num}</span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-2 text-right">
-                              Based on {proposal.averageScores.evaluatorCount} evaluator{proposal.averageScores.evaluatorCount > 1 ? 's' : ''}
-                            </p>
-                          </div>
-                        )}
                       </div>
 
                       {/* History tab — show when this R&D took the action */}
                       {activeTab !== 'active' && proposal.actionDate && (
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold border ${
                             activeTab === 'revised'
                               ? 'bg-amber-50 border-amber-200 text-amber-700'
                               : activeTab === 'rejected'
                               ? 'bg-red-50 border-red-200 text-red-700'
-                              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : 'bg-blue-50 border-blue-200 text-blue-700'
                           }`}>
                             {activeTab === 'revised' ? <RotateCcw className="w-3 h-3" /> :
                              activeTab === 'rejected' ? <XCircle className="w-3 h-3" /> :
@@ -934,7 +1026,7 @@ const EndorsePage: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Pagination */}
           {filteredProposals.length > 0 && (

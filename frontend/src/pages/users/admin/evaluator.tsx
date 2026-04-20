@@ -5,11 +5,11 @@ import {
   User,
   FileText,
   Search,
-  Filter,
   ChevronLeft,
   ChevronRight,
   Users,
-  Tag
+  Tag,
+  CalendarDays
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatDate } from '../../../utils/date-formatter';
@@ -39,14 +39,18 @@ interface Assignment {
   | "Extension Rejected";
   projectType: string;
   tags: string[];
+  proposalStatus: string;
+  submittedDate: string;
 }
 
 // Grouping structure to handle multiple evaluators per proposal
 interface GroupedAssignment {
   proposalIdNumeric: number;
   proposalTitle: string;
+  proposalStatus: string;
   projectType: string;
   deadline: string;
+  submittedDate: string;
   tags: string[];
   evaluators: {
     id: string; // evaluator ID
@@ -59,21 +63,25 @@ interface GroupedAssignment {
   }[];
 }
 
+
 export const EvaluatorPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('recent-old');
   
   // Edit Assignment Modal States
   const [showModal, setShowModal] = useState(false);
   const [currentEvaluators, setCurrentEvaluators] = useState<EvaluatorOption[]>([]);
   const [selectedProposalTitle, setSelectedProposalTitle] = useState('');
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
+  const [selectedProposalStatus, setSelectedProposalStatus] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editLoading, setEditLoading] = useState(false);
 
   // --- DATA FETCHING ---
@@ -99,8 +107,10 @@ export const EvaluatorPage: React.FC = () => {
           groupedMap.set(pid, {
             proposalIdNumeric: pid,
             proposalTitle: typedItem.proposal_id.project_title || "Untitled Proposal",
+            proposalStatus: typedItem.proposal_id.status || "unknown",
             projectType: typedItem.proposal_id.sector?.name || "N/A",
             deadline: typedItem.deadline ? new Date(typedItem.deadline).toISOString() : new Date().toISOString(),
+            submittedDate: typedItem.proposal_id?.created_at ? new Date(typedItem.proposal_id.created_at).toISOString() : (typedItem.date_forwarded ? new Date(typedItem.date_forwarded).toISOString() : new Date().toISOString()),
             tags: typedItem.proposal_id.proposal_tags?.map((t: unknown) => (t as any).tags?.name).filter((t: string) => t && t !== "N/A") || [],
             evaluators: [],
           });
@@ -145,6 +155,8 @@ export const EvaluatorPage: React.FC = () => {
           aggregateStatus = "Extension Approved";
         } else if (statusSet.has("extension_rejected")) {
           aggregateStatus = "Extension Rejected";
+        } else if (statusSet.has("decline") || statusSet.has("rejected")) {
+          aggregateStatus = "Rejected";
         } else if (statusSet.has("pending")) {
           aggregateStatus = "Pending";
         } else if (statusSet.has("completed") || statusSet.has("done")) {
@@ -173,6 +185,8 @@ export const EvaluatorPage: React.FC = () => {
           status: aggregateStatus,
           projectType: group.projectType,
           tags: group.tags,
+          proposalStatus: group.proposalStatus,
+          submittedDate: group.submittedDate,
         };
       });
 
@@ -246,6 +260,7 @@ export const EvaluatorPage: React.FC = () => {
       const cachedAssignment = assignments.find(a => a.id === id);
       if (cachedAssignment) {
         setSelectedProposalTitle(cachedAssignment.proposalTitle);
+        setSelectedProposalStatus(cachedAssignment.proposalStatus);
       }
       setSelectedProposalId(proposalIdNumeric);
 
@@ -403,13 +418,28 @@ export const EvaluatorPage: React.FC = () => {
     const matchesSearch =
       a.evaluatorNames.join(', ').toLowerCase().includes(search.toLowerCase()) ||
       a.proposalTitle.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesStatus = statusFilter === 'All' || a.proposalStatus === statusFilter;
+    const proposalYear = a.submittedDate ? new Date(a.submittedDate).getFullYear().toString() : "N/A";
+    const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
+    return matchesSearch && matchesStatus && matchesYear;
   });
 
-  const totalPages = Math.ceil(filteredAssignments.length / itemsPerPage) || 1;
+  const sortedFiltered = [...filteredAssignments].sort((a, b) => {
+    if (sortOrder === "a-z") return a.proposalTitle.localeCompare(b.proposalTitle);
+    if (sortOrder === "z-a") return b.proposalTitle.localeCompare(a.proposalTitle);
+
+    const dateA = new Date(a.submittedDate || 0).getTime();
+    const dateB = new Date(b.submittedDate || 0).getTime();
+
+    if (sortOrder === "recent-old") return dateB - dateA;
+    if (sortOrder === "old-recent") return dateA - dateB;
+
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedAssignments = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
 
   const getTagColor = (tag: string) => {
     let hash = 0;
@@ -426,8 +456,42 @@ export const EvaluatorPage: React.FC = () => {
       "bg-orange-50 text-orange-700 border-orange-200",
       "bg-cyan-50 text-cyan-700 border-cyan-200",
       "bg-teal-50 text-teal-700 border-teal-200",
+      "bg-purple-50 text-purple-700 border-purple-200",
     ];
     return colors[Math.abs(hash) % colors.length];
+  };
+
+  // Helper: check if proposal status allows evaluator modifications
+  const isEvaluatorEditable = (proposalStatus: string) => {
+    return proposalStatus === "under_evaluation" || proposalStatus === "review_rnd" || proposalStatus === "pending" || proposalStatus === "revised_proposal";
+  };
+
+  // Helper: get display label for proposal status
+  const getProposalStatusLabel = (status: string) => {
+    switch (status) {
+      case "under_evaluation": return "Under Evaluators Assessment";
+      case "endorsed_for_funding": return "Endorsed";
+      case "funded": return "Funded";
+      case "review_rnd": return "Pending Review";
+      case "revision_rnd": return "Revision Required";
+      case "rejected_rnd": return "Rejected";
+      case "revised_proposal": return "Revised";
+      case "rejected_funding": return "Rejected (Funding)";
+      case "revision_funding": return "Revision (Funding)";
+      default: return status;
+    }
+  };
+
+  // Helper: get style for proposal status badge
+  const getProposalStatusStyle = (status: string) => {
+    switch (status) {
+      case "under_evaluation": return "bg-purple-50 text-purple-800 border-purple-200";
+      case "endorsed_for_funding": return "bg-blue-50 text-blue-800 border-blue-200";
+      case "funded": return "bg-green-50 text-green-700 border-green-200";
+      case "rejected_rnd": case "rejected_funding": return "bg-red-50 text-red-700 border-red-200";
+      case "revision_rnd": case "revision_funding": return "bg-amber-50 text-amber-700 border-amber-200";
+      default: return "bg-slate-50 text-slate-700 border-slate-200";
+    }
   };
 
   if (loading && assignments.length === 0) {
@@ -436,8 +500,8 @@ export const EvaluatorPage: React.FC = () => {
 
   return (
     <>
-      <div className="min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row gap-0 lg:gap-6 animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
+    <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -452,153 +516,199 @@ export const EvaluatorPage: React.FC = () => {
           </div>
         </header>
 
-         {/* Summary Cards */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-           <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
-             <div>
-                <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Evaluators</h4>
-                <p className="text-2xl font-bold text-purple-700">
-                  {new Set(assignments.flatMap(a => a.evaluatorIds)).size}
-                </p>
-             </div>
-             <div className="p-2 rounded-xl">
-               <Users className="w-6 h-6 text-purple-600" />
-             </div>
-           </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Evaluators</h4>
+              <p className="text-2xl font-bold text-purple-700">
+                {new Set(assignments.flatMap((a) => a.evaluatorIds)).size}
+              </p>
+            </div>
+            <div className="p-2 rounded-xl">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
 
-           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
-             <div>
-                <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Proposals</h4>
-                <p className="text-2xl font-bold text-slate-800">
-                  {new Set(assignments.map(a => a.proposalId)).size}
-                </p>
-             </div>
-             <div className="p-2 rounded-xl">
-               <FileText className="w-6 h-6 text-slate-600" />
-             </div>
-           </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm flex justify-between items-center">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-1">Total Proposals</h4>
+              <p className="text-2xl font-bold text-slate-800">{new Set(assignments.map((a) => a.proposalId)).size}</p>
+            </div>
+            <div className="p-2 rounded-xl">
+              <FileText className="w-6 h-6 text-slate-600" />
+            </div>
+          </div>
         </div>
 
-        {/* Filters */}
-        <section className="flex-shrink-0">
-          <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search className="h-4 w-4 text-slate-400" />
-                   </div>
-                   <input
-                     type="text"
-                     placeholder="Search evaluators or proposal titles..."
-                     value={search}
-                     onChange={(e) => setSearch(e.target.value)}
-                     className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                   />
-                </div>
-                <div className="relative">
-                   <select
-                     value={statusFilter}
-                     onChange={(e) => setStatusFilter(e.target.value)}
-                     className="appearance-none bg-white pl-3 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                   >
-                     <option value="All">All Statuses</option>
-                     <option value="Pending">Pending</option>
-                     <option value="Accepts">Accepts</option>
-                     <option value="Extension Requested">Extension Requested</option>
-                     <option value="Completed">Completed</option>
-                     <option value="Overdue">Overdue</option>
-                     <option value="Rejected">Rejected</option>
-                   </select>
-                   <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                      <Filter className="h-4 w-4 text-slate-400" />
-                   </div>
-                </div>
-             </div>
+        {/* Search and Filters Section */}
+        <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search evaluators or proposal titles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Statuses</option>
+              <option value="under_evaluation">Under Evaluators Assessment</option>
+              <option value="endorsed_for_funding">Endorsed for Funding</option>
+              <option value="funded">Funded</option>
+            </select>
+            <select
+              value={yearFilter}
+              onChange={(e) => { setYearFilter(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="All">All Years</option>
+              {Array.from(new Set(assignments.map(a => a.submittedDate ? new Date(a.submittedDate).getFullYear() : null).filter(Boolean))).sort((a: any, b: any) => b - a).map(year => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
+            >
+              <option value="recent-old">Recent to Old</option>
+              <option value="old-recent">Old to Recent</option>
+              <option value="a-z">Title (A-Z)</option>
+              <option value="z-a">Title (Z-A)</option>
+            </select>
           </div>
         </section>
 
         {/* Assignments List */}
-        <main className="bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-           <div className="p-4 border-b border-slate-200 bg-slate-50">
-             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                 <FileText className="w-5 h-5 text-[#C8102E]" />
-                 Evaluator Assignments
-             </h3>
-           </div>
-           <div className="flex-1 overflow-y-auto">
-             {paginatedAssignments.length === 0 ? (
-                <div className="p-8 text-center text-slate-500">
-                  No assignments found matching your criteria.
-                </div>
-             ) : (
-               paginatedAssignments.map((assignment) => (
-                  <article key={assignment.id} className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100">
-                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex-1">
-                           <h2 className="text-base font-semibold text-slate-800 mb-2">{assignment.proposalTitle}</h2>
-                           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                              <div className="flex items-center gap-1.5">
-                                 <User className="w-3 h-3" />
-                                 <span>{assignment.evaluatorNames.join(', ') || 'No known names'}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 font-semibold">
-                                 <Clock className="w-3 h-3" />
-                                 <span>Deadline: {formatDate(assignment.deadline)}</span>
-                              </div>
-                              {/* Tags */}
-                              {assignment.tags && assignment.tags.length > 0 && (
-                                assignment.tags.map((tag, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagColor(tag)}`}
-                                  >
-                                    <Tag className="w-2.5 h-2.5" />
-                                    {tag}
-                                  </span>
-                                ))
-                              )}
-                           </div>
-                         </div>
-                        <div className="flex items-center gap-2">
-                           <button onClick={() => handleEdit(assignment.id)} className="px-3 py-2 bg-[#C8102E] text-white rounded-lg hover:bg-[#A00E26] transition-colors text-xs font-medium flex items-center gap-1">
-                              <Edit2 className="w-3 h-3" /> Action
-                           </button>
-                        </div>
-                     </div>
-                  </article>
-               ))
-             )}
-           </div>
+        <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
 
-           {/* Pagination Footer */}
-           <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
-             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
-                 <span>
-                   Showing {filteredAssignments.length > 0 ? startIndex + 1 : 0}-{Math.min(startIndex + itemsPerPage, filteredAssignments.length)} of {filteredAssignments.length} assignments
-                 </span>
-                 <div className="flex items-center gap-2">
-                    <button
-                       onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                       disabled={currentPage === 1}
-                       className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                       <ChevronLeft className="w-3 h-3" /> Previous
-                    </button>
-                    <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
-                       Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                       onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                       disabled={currentPage === totalPages}
-                       className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                       Next <ChevronRight className="w-3 h-3" />
-                    </button>
-                 </div>
-             </div>
-           </div>
+          <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#C8102E]" />
+              Evaluator Assignments
+            </h3>
+          </div>
+          <div className="min-w-0">
+            <>
+              {paginatedAssignments.map((assignment) => (
+                <article
+                  key={assignment.id}
+                  className="p-4 hover:bg-slate-50 transition-colors duration-200 border-b border-slate-100"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base font-semibold text-slate-800 mb-2">{assignment.proposalTitle}</h2>
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3 h-3" />
+                          <span>
+                            {assignment.evaluatorNames.length > 0 
+                              ? assignment.evaluatorNames.slice(0, 3).join(", ") 
+                              : "No Assigned Evaluators"}
+                          </span>
+                          {assignment.evaluatorNames.length > 3 && (
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                              +{assignment.evaluatorNames.length - 3}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 font-semibold">
+                          <Clock className="w-3 h-3" />
+                          <span>Deadline: {formatDate(assignment.deadline)}</span>
+                        </div>
+
+                        {/* Year Badge */}
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 text-[#C8102E] rounded-lg font-bold border border-slate-200">
+                          <CalendarDays className="w-3.5 h-3.5 text-[#C8102E]" />
+                          {new Date(assignment.submittedDate).getFullYear()}
+                        </span>
+
+                        {/* Proposal Status Badge */}
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getProposalStatusStyle(assignment.proposalStatus)}`}
+                        >
+                          {getProposalStatusLabel(assignment.proposalStatus)}
+                        </span>
+
+                        {/* Tags Display */}
+                        {assignment.tags && assignment.tags.length > 0 && (
+                          assignment.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagColor(tag)}`}
+                            >
+                              <Tag className="w-2.5 h-2.5" />
+                              {tag}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <button
+                        onClick={() => handleEdit(assignment.id)}
+                        className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00E26] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                      >
+                        <Edit2 className="w-3 h-3" /> {isEvaluatorEditable(assignment.proposalStatus) ? "Action" : "View"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+              {paginatedAssignments.length === 0 && (
+                <div className="text-center py-12 px-4 mt-4">
+                  <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                    No assignments found
+                  </h3>
+                  <p className="text-slate-500 max-w-sm mx-auto">
+                    Evaluator assignments will appear here once proposals are forwarded for evaluation.
+                  </p>
+                </div>
+              )}
+            </>
+          </div>
+
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-slate-600">
+              <span>
+                Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedFiltered.length)} of{" "}
+                {sortedFiltered.length} assignments
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronLeft className="w-3 h-3" /> Previous
+                </button>
+                <span className="px-3 py-1.5 text-xs font-medium text-slate-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#C8102E] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Next <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
+    </div>
 
       {/* --- MERGED MODAL --- */}
       <EvaluatorPageModal
@@ -608,9 +718,10 @@ export const EvaluatorPage: React.FC = () => {
         onReassign={handleReassignEvaluators}
         onExtensionAction={handleExtensionAction}
         proposalTitle={selectedProposalTitle}
+        proposalId={selectedProposalId}
+        proposalStatus={selectedProposalStatus}
         isLoading={editLoading}
       />
-      </div>
     </>
   );
 };

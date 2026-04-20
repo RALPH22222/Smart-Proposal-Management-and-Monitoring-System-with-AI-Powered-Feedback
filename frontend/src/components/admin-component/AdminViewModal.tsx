@@ -4,15 +4,15 @@ import {
   X,
   Users,
   Calendar,
-  DollarSign,
+  HandCoins,
   Phone,
   Mail,
   FileText,
+  Search,
   User,
   Microscope,
   Tags,
   Download,
-  AlertTriangle,
   XCircle,
   RefreshCw,
   Clock,
@@ -27,9 +27,9 @@ import {
   Target,
 
 } from "lucide-react";
-import { fetchAgencyAddresses, fetchDepartments, fetchRejectionSummary, type AddressItem, type LookupItem } from "../../services/proposal.api";
+import { fetchAgencyAddresses, fetchDepartments, fetchRejectionSummary, type AddressItem, type LookupItem, fetchRevisionSummary, type RevisionSummary, getAssignmentTracker } from "../../services/proposal.api";
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
-import { formatDateShort, formatDate } from "../../utils/date-formatter";
+import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
 import { openProposalFile, getFileName } from "../../utils/signed-url";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
@@ -120,6 +120,80 @@ const formatClassInput = (str: string) => {
     .join(' ');
 };
 
+// --- SCROLLING TEXT HELPERS ---
+const ScrollKeyframes = () => (
+  <style>{`
+    @keyframes banner-marquee-bounce {
+      0%, 15% { transform: translateX(0); }
+      85%, 100% { transform: translateX(var(--scroll-amount)); }
+    }
+    .animate-banner-marquee {
+      animation: banner-marquee-bounce 8s alternate infinite ease-in-out;
+    }
+  `}</style>
+);
+
+const ScrollingBannerText: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const textRef = React.useRef<HTMLDivElement>(null);
+  const [shouldAnimate, setShouldAnimate] = React.useState(false);
+  const [scrollAmount, setScrollAmount] = React.useState(0);
+
+  React.useEffect(() => {
+    const checkOverflow = () => {
+      if (containerRef.current && textRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const textWidth = textRef.current.scrollWidth;
+        if (textWidth > containerWidth) {
+          setShouldAnimate(true);
+          setScrollAmount(textWidth - containerWidth + 24); // 24px extra buffer padding
+        } else {
+          setShouldAnimate(false);
+          setScrollAmount(0);
+        }
+      }
+    };
+    checkOverflow();
+    setTimeout(checkOverflow, 100);
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [children]);
+
+  return (
+    <div ref={containerRef} className={`overflow-hidden flex-1 ${className}`}>
+      <div
+        ref={textRef}
+        className={`whitespace-nowrap inline-block ${shouldAnimate ? 'animate-banner-marquee' : ''}`}
+        style={shouldAnimate ? { ['--scroll-amount' as any]: `-${scrollAmount}px` } : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// Currency Formatter helper
+const formatCurrency = (value: string | number) => {
+  if (value === undefined || value === null) return "₱0.00";
+  
+  // If it's a string, try to remove currency symbols and commas before parsing
+  let numericValue: number;
+  if (typeof value === 'string') {
+    numericValue = parseFloat(value.replace(/[₱,]/g, ''));
+  } else {
+    numericValue = value;
+  }
+
+  if (isNaN(numericValue)) return "₱0.00";
+
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericValue);
+};
+
 // Format string (e.g. "research_class" -> "Research Class")
 const formatString = (str: string) => {
   if (!str) return "N/A";
@@ -147,6 +221,12 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   // Rejection summary state
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
   const [rejectionDate, setRejectionDate] = useState<string | null>(null);
+  // Revision data
+  const [revisionData, setRevisionData] = useState<RevisionSummary | null>(null);
+  const [isLoadingRevision, setIsLoadingRevision] = useState(false);
+  // Evaluators data
+  const [evaluators, setEvaluators] = useState<{ name: string; department?: string; status: string }[]>([]);
+  const [isLoadingEvaluators, setIsLoadingEvaluators] = useState(false);
 
   // Fetch Departments if not provided
   useEffect(() => {
@@ -242,6 +322,84 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     }
   }, [isOpen, p?.id, p?.status]);
 
+  useEffect(() => {
+    const fetchRevision = async () => {
+      const pStatus = (p.status || '').toLowerCase();
+      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes(pStatus)) {
+        setIsLoadingRevision(true);
+        try {
+          const data = await fetchRevisionSummary(Number(p.id));
+          setRevisionData(data);
+        } catch (error) {
+          console.error("Failed to fetch revision summary:", error);
+          setRevisionData(null);
+        } finally {
+          setIsLoadingRevision(false);
+        }
+      } else {
+        setRevisionData(null);
+        setIsLoadingRevision(false);
+      }
+    };
+
+    if (isOpen && p?.id) {
+      fetchRevision();
+    }
+  }, [isOpen, p?.id, p?.status]);
+
+  // Load assigned evaluators from the assignment tracker
+  useEffect(() => {
+    if (!isOpen || !p || !p.id) {
+      setEvaluators([]);
+      setIsLoadingEvaluators(false);
+      return;
+    }
+
+    const shouldShowEvaluators =
+      ['under_evaluation', 'evaluators assessment', 'under evaluators assessment'].includes(
+        (p.status || '').toLowerCase()
+      );
+
+    if (!shouldShowEvaluators) {
+      setEvaluators([]);
+      setIsLoadingEvaluators(false);
+      return;
+    }
+
+    const loadEvaluators = async () => {
+      setIsLoadingEvaluators(true);
+      try {
+        const data = await getAssignmentTracker(Number(p.id));
+        const seen = new Set<string>();
+        const mapped: { name: string; department?: string; status: string }[] = [];
+
+        (data || []).forEach((item: any) => {
+          if (!item || !item.evaluator_id) return;
+          const evalId = item.evaluator_id.id;
+          if (!evalId || seen.has(evalId)) return;
+          seen.add(evalId);
+
+          const firstName = item.evaluator_id.first_name || 'Unknown';
+          const lastName = item.evaluator_id.last_name || '';
+          const name = `${firstName} ${lastName}`.trim();
+          const department = item.evaluator_id.department_id?.name || 'N/A';
+          const status = String(item.status || 'pending');
+
+          mapped.push({ name, department, status });
+        });
+
+        setEvaluators(mapped);
+      } catch (error) {
+        console.error('Failed to load evaluators for proposal', p.id, error);
+        setEvaluators([]);
+      } finally {
+        setIsLoadingEvaluators(false);
+      }
+    };
+
+    loadEvaluators();
+  }, [isOpen, p?.id, p?.status]);
+
   // Derived Address (Matching RndViewModal logic)
   const displayAddress = React.useMemo(() => {
     if (!p) return "";
@@ -286,19 +444,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
   // NO_OP
 
-  // Mock Assessment Data
-  const mockAssessment = {
-    title:
-      "The project title is generally clear but could be more specific to reflect the scope of the study.",
-    budget:
-      "The travel expenses listed for Q3 seem excessive relative to the project scope.",
-    timeline:
-      "The data collection phase is too short (2 weeks). Recommended extending to at least 1 month.",
-    overall:
-      "The proposal is promising but requires adjustments in the title and budget allocation.",
-  };
-
-  const mockRevisionDeadline = "November 30, 2025 | 5:00 PM";
+  const isFunded = ['funded', 'accepted', 'approved'].includes((p?.status || '').toLowerCase());
 
   // --- THEME HELPER ---
   const getStatusTheme = (status: string) => {
@@ -360,8 +506,18 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
         bg: "bg-blue-100",
         border: "border-blue-200",
         text: "text-blue-800",
-        icon: <Microscope className="w-4 h-4 text-blue-600" />,
-        label: "Under R&D Evaluation",
+        icon: <Search className="w-4 h-4 text-blue-600" />,
+        label: "Under R&D Review",
+      };
+
+    // Orange (Pending Review)
+    if (["pending", "pending review"].includes(s))
+      return {
+        bg: "bg-orange-100",
+        border: "border-orange-200",
+        text: "text-orange-800",
+        icon: <Clock className="w-4 h-4 text-orange-600" />,
+        label: "Pending Review",
       };
 
     // Purple
@@ -396,17 +552,16 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     }
 
     const categoryConfig = {
-      ps: { label: 'Personal Services (PS)', color: 'text-violet-600', dot: 'bg-violet-500' },
-      mooe: { label: 'Maintenance, Operating & Other Expenses (MOOE)', color: 'text-amber-600', dot: 'bg-amber-500' },
-      co: { label: 'Capital Outlay (CO)', color: 'text-emerald-600', dot: 'bg-emerald-500' }
+      ps: { label: 'Personal Services (PS)', color: 'text-red-800', dot: 'bg-red-500' },
+      mooe: { label: 'Maintenance, Operating & Other Expenses (MOOE)', color: 'text-red-800', dot: 'bg-red-500' },
+      co: { label: 'Capital Outlay (CO)', color: 'text-red-800', dot: 'bg-red-500' }
     };
 
     const config = category && categoryConfig[category] ? categoryConfig[category] : { label: 'Breakdown', color: 'text-slate-600', dot: 'bg-slate-400' };
 
     return (
       <div className="p-4">
-        <h5 className={`text-[10px] font-extrabold uppercase tracking-widest ${config.color} mb-2 flex items-center gap-1.5`}>
-          <span className={`inline-block w-2 h-2 rounded-full ${config.dot}`}></span>
+        <h5 className={`text-[12px] font-bold uppercase tracking-wider ${config.color} mb-2 flex items-center gap-1.5`}>
           {config.label}
         </h5>
         <div className="overflow-x-auto rounded-lg border border-slate-100">
@@ -428,11 +583,11 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                   <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{(b.specifications || b.spec_volume) || '—'}</td>
                   <td className="px-3 py-2 text-slate-600 text-center font-mono">
                     {(b.quantity || b.qty) ? (
-                      `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ₱${new Intl.NumberFormat("en-PH").format(b.unitPrice || b.unit_price || 0)}`
+                      `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ${formatCurrency(b.unitPrice || b.unit_price || 0)}`
                     ) : '—'}
                   </td>
                   <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">
-                    ₱{new Intl.NumberFormat("en-PH").format(b.amount || parseInt(b.amount) || 0)}
+                    {formatCurrency(b.amount || parseInt(b.amount) || 0)}
                   </td>
                 </tr>
               ))}
@@ -445,6 +600,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-2 sm:p-4 animate-in fade-in duration-200">
+      <ScrollKeyframes />
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* --- HEADER --- */}
@@ -459,9 +615,11 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 DOST Form No. 1B
               </span>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 leading-tight truncate pr-4">
-              {p.title}
-            </h2>
+            <ScrollingBannerText className="pr-4">
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                {p.title}
+              </h2>
+            </ScrollingBannerText>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
             <ProposalInsightButtons
@@ -480,76 +638,239 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
 
-          {/* Assigned By (if available) - Matching RndViewModal */}
-          {p.assignedBy && (
-            <div className="bg-slate-50/50 px-4 py-2 rounded-lg border border-slate-100 flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <p className="text-xs text-slate-600">
-                Forwarded by: <span className="font-semibold text-slate-800">{p.assignedBy}</span>
-              </p>
+          {/* Project Funding Approved (isFunded) Block */}
+          {isFunded && (
+            <div className="bg-slate-50 border border-emerald-300 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-emerald-800 mb-1 flex items-center gap-2">
+                    Project Funding Approved
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This project has been funded.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-emerald-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Funded on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-200 opacity-50 z-0 pointer-events-none" />
             </div>
           )}
 
-          {/* Evaluators Section (Only for Under Evaluation) - Matching RndViewModal */}
-          {(p.status === "Under Evaluators Assessment" || p.status === "under_evaluation" || p.status === "under evaluators assessment") && (
-            <div className="bg-purple-50 rounded-lg p-5 border border-purple-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-purple-800 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Assigned Evaluators
-                </h3>
-              </div>
-              {p.evaluators && p.evaluators.length > 0 ? (
-                <ul className="space-y-2">
-                  {p.evaluators.map((ev, i) => (
-                    <li key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border border-purple-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-xs font-bold">
-                          {ev.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">{ev.name}</p>
-                          <p className="text-[10px] text-slate-500">{ev.department || 'N/A'}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        {ev.status || 'Pending'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-purple-600 italic bg-white/50 p-3 rounded border border-purple-100 text-center">
-                  No evaluators assigned yet.
+          {/* Pending Status Block */}
+          {['pending', 'pending review'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-yellow-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-yellow-600 mb-1 flex items-center gap-2">
+                    Proposal is awaiting your assignment
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal has been successfully submitted and is now in your queue. You can review the project details and assign it to a specific R&D staff for evaluation to proceed with the next steps.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-yellow-600 mt-3 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Status updated on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
+              <Clock className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Under R&D Review Status Block */}
+          {['review_rnd', 'under r&d evaluation', 'under r&d review'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-blue-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-blue-700 mb-1 flex items-center gap-2">
+                    Under R&D Review
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal is currently under R&D review. The R&D staff is assessing the project's viability, budget, and timeline to determine the next appropriate steps.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Status updated on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
+                </div>
+
+                {p.assignedRdStaff && (
+                  <div className="bg-white border border-blue-100 rounded-lg p-4 shadow-sm">
+                    <p className="text-sm text-slate-700 mb-3">
+                      This proposal is currently assigned to the following R&D staff for review:
+                    </p>
+                    <div className="flex items-center gap-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">
+                        {p.assignedRdStaff.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{p.assignedRdStaff.split('(')[0].trim()}</p>
+                        {/* Extract department/email from format: Name (Dept) - Email */}
+                        <p className="text-xs text-slate-500">{p.assignedRdStaff.substring(p.assignedRdStaff.indexOf('('))}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <Search className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Evaluators Section (Only for Under Evaluation) */}
+          {['under_evaluation', 'evaluators assessment', 'under evaluators assessment'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-purple-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col gap-3">
+                <div>
+                  <h3 className="text-lg font-bold text-purple-800 mb-1 flex items-center gap-2">
+                    Evaluators assigned to review this proposal
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal has been forwarded to the evaluator panel for detailed assessment. Below is a summary of how many and who the evaluators are that this proposal was assigned to.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-purple-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Status updated on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-white border border-purple-100 rounded-lg p-4 shadow-sm">
+                  <p className="text-sm text-slate-700 mb-3">
+                    {isLoadingEvaluators ? (
+                      <div className="animate-pulse flex flex-wrap gap-2 mb-2">
+                        {[1, 2, 3].map(i => <div key={i} className="h-7 w-28 bg-purple-100 rounded-full" />)}
+                      </div>
+                    ) : evaluators && evaluators.length > 0 ? (
+                      <>You have assigned this proposal to <span className="font-semibold text-purple-700">{evaluators.length}</span> evaluator{evaluators.length > 1 ? 's' : ''}.</>
+                    ) : (
+                      <span className="italic text-slate-400">No evaluators are currently assigned to this proposal.</span>
+                    )}
+                  </p>
+
+                  {evaluators && evaluators.length > 0 && !isLoadingEvaluators && (
+                    <div className="flex flex-wrap gap-2">
+                      {evaluators.map((ev, idx) => (
+                        <div
+                          key={idx}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-xs text-purple-900"
+                        >
+                          <User className="w-3.5 h-3.5 text-purple-500" />
+                          <span className="font-semibold truncate max-w-[160px]" title={ev.name}>
+                            {ev.name}
+                          </span>
+                          {ev.department && (
+                            <span className="text-[11px] text-slate-500 truncate max-w-[140px]" title={ev.department}>
+                              {ev.department}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <FileText className="absolute -right-6 -bottom-6 w-32 h-32 text-purple-200 opacity-40 z-0 pointer-events-none" />
+            </div>
+          )}
+
+          {/* Endorsed for Funding block */}
+          {['endorsed', 'endorsed_for_funding', 'endorsed for funding'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-slate-50 border border-blue-300 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="w-full">
+                  <h3 className="text-lg font-bold text-blue-800 mb-1 flex items-center gap-2">
+                    Awaiting Funding Decision
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                    This proposal has been endorsed for funding and is now waiting for the final decision to fund from the RDEC Committee.
+                  </p>
+                  {(p.lastModified || p.submittedDate) && (
+                    <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Endorsed on <span className="font-semibold">{formatDateShort(p.lastModified || p.submittedDate)}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <CheckCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0 pointer-events-none" />
             </div>
           )}
 
           {/* Status Feedback Blocks */}
-          {(p.status === "Revision Required" || p.status === "revision_rnd") && (
-            <div className="bg-orange-50 rounded-lg p-5 border border-orange-200 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-orange-800 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Revision Requirements
+          {['revise', 'revision', 'revision_rnd', 'revision required'].includes((p.status || '').toLowerCase()) && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 md:p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-orange-800 mb-2 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-orange-600" /> Revision Requirements
                 </h3>
+                <p className="text-xs text-gray-500 mt-0.5 mb-4">Feedback provided to the proponent. They must submit a revised proposal by the deadline.</p>
+
+                {isLoadingRevision ? (
+                  <div className="animate-pulse grid gap-3 mt-4">
+                    <div className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm space-y-3">
+                      <div className="h-3 w-32 bg-orange-200 rounded opacity-60" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-orange-100 rounded" />
+                        <div className="h-3 w-5/6 bg-orange-100 rounded opacity-70" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 mt-4">
+                    {[
+                      { section: "Title Assessment", comment: revisionData?.title_comment },
+                      { section: "Budget Assessment", comment: revisionData?.budget_comment },
+                      { section: "Timeline Assessment", comment: revisionData?.timeline_comment },
+                      { section: "Overall Comments", comment: revisionData?.overall_comment },
+                    ].filter(item => item.comment).map((c, i) => {
+                      const isOverall = c.section === "Overall Comments";
+                      const textStyle = isOverall ? "italic" : "";
+                      return (
+                        <div key={i} className="bg-white/100 p-5 rounded-lg border border-orange-100 shadow-sm">
+                          <h4 className="text-sm font-bold tracking-wider text-orange-700 mb-2 flex items-center gap-2">
+                            {c.section}:
+                          </h4>
+                          <div className={`text-sm leading-relaxed ${textStyle} text-gray-700 whitespace-pre-wrap`}>
+                            {c.comment}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {(!revisionData || ![
+                      revisionData?.title_comment,
+                      revisionData?.budget_comment,
+                      revisionData?.timeline_comment,
+                      revisionData?.overall_comment,
+                    ].some(Boolean)) && (
+                        <div className="text-center py-8 bg-white/80 rounded-xl border border-dashed border-orange-200">
+                          <p className="text-sm text-gray-500 italic">No specific feedback comments provided.</p>
+                        </div>
+                      )}
+
+                    {revisionData?.created_at != null && revisionData?.deadline != null && (
+                      <div className="bg-orange-100 p-4 rounded-lg border border-orange-200 shadow-sm flex items-center gap-3 mt-1">
+                        <Timer className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        <div className="text-xs text-orange-800">
+                          <span className="font-bold">Submission deadline for proponent:</span>{" "}
+                          {formatDateTime(new Date(new Date(revisionData.created_at).getTime() + revisionData.deadline * 86400000))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="mb-5 bg-white border-l-4 border-red-500 rounded shadow-sm p-4">
-                <p className="text-xs font-bold text-red-600 tracking-wider mb-1">
-                  Revision Submission Deadline
-                </p>
-                <div className="flex items-center gap-2 text-slate-900">
-                  <Timer className="w-5 h-5 text-red-500" />
-                  <span className="font-medium text-base">{mockRevisionDeadline}</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="bg-white p-3 rounded border border-orange-100">
-                  <p className="text-xs font-bold text-orange-700 mb-1">Title Assessment</p>
-                  <p className="text-sm text-slate-700">{mockAssessment.title}</p>
-                </div>
-              </div>
+              <RefreshCw className="absolute -right-6 -bottom-6 w-32 h-32 text-orange-200 opacity-40 z-0 pointer-events-none" />
             </div>
           )}
 
@@ -564,9 +885,16 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
               </div>
               <div className="bg-white p-4 rounded border border-red-100">
                 <p className="text-xs font-bold text-red-700 mb-2">Reason for Rejection</p>
-                <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                  {rejectionComment || "Loading rejection details..."}
-                </p>
+                {!rejectionComment ? (
+                  <div className="animate-pulse space-y-2 pt-1 mb-2">
+                    <div className="h-3 w-full bg-red-100 rounded" />
+                    <div className="h-3 w-5/6 bg-red-100 rounded opacity-70" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap mb-2">
+                    {rejectionComment}
+                  </p>
+                )}
                 {rejectionDate && (
                   <p className="text-xs text-slate-500 mt-2 text-right italic">
                     Rejected on: {formatDate(rejectionDate)}
@@ -576,27 +904,6 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
             </div>
           )}
 
-          {/* Assigned R&D Staff (Only for Under R&D Review) */}
-          {(p.status === "Under R&D Review" || p.status === "review_rnd" || p.status === "r&d evaluation") && p.assignedRdStaff && (
-            <div className="bg-blue-50 rounded-lg p-5 border border-blue-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                  <Microscope className="w-5 h-5" />
-                  Assigned R&D Staff
-                </h3>
-              </div>
-              <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-blue-100">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">
-                  {p.assignedRdStaff.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{p.assignedRdStaff.split('(')[0].trim()}</p>
-                  {/* Extract department/email from format: Name (Dept) - Email */}
-                  <p className="text-xs text-slate-500">{p.assignedRdStaff.substring(p.assignedRdStaff.indexOf('('))}</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Documents Section */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -830,7 +1137,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
           {p.budgetSources && (
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
               <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
+                <HandCoins className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
               </h3>
 
               <div className="space-y-6">
@@ -840,7 +1147,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                     <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
-                          <DollarSign className="w-4 h-4" />
+                          <HandCoins className="w-4 h-4" />
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Source of Funds</p>
@@ -849,23 +1156,23 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
-                        <p className="text-base font-bold text-[#C8102E]">{budget.total}</p>
+                        <p className="text-base font-bold text-[#C8102E]">{formatCurrency(budget.total)}</p>
                       </div>
                     </div>
 
                     {/* Category Summary Row */}
                     <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">PS</span>
-                        <span className="text-xs font-bold text-slate-700">{budget.ps}</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">PS</span>
+                        <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.ps)}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">MOOE</span>
-                        <span className="text-xs font-bold text-slate-700">{budget.mooe}</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">MOOE</span>
+                        <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.mooe)}</span>
                       </div>
                       <div className="px-4 py-2 flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">CO</span>
-                        <span className="text-xs font-bold text-slate-700">{budget.co}</span>
+                        <span className="text-[12px] font-bold text-red-800 uppercase tracking-wider">CO</span>
+                        <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.co)}</span>
                       </div>
                     </div>
 
@@ -879,9 +1186,9 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 ))}
 
                 {/* Grand Total Footer */}
-                <div className="flex justify-between items-center bg-slate-900 text-white rounded-xl px-5 py-3 mt-2 shadow-lg">
+                <div className="flex justify-between items-center bg-[#C8102E] text-white rounded-xl px-5 py-3 mt-2 shadow-lg">
                   <span className="text-sm font-bold uppercase tracking-wider">Total Project Cost</span>
-                  <span className="text-xl font-black text-white">{p.budgetTotal}</span>
+                  <span className="text-xl font-black text-white">{formatCurrency(p.budgetTotal)}</span>
                 </div>
 
               </div>

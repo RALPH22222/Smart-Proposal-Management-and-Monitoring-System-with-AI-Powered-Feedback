@@ -34,9 +34,11 @@ import {
   fetchRealignments,
   type RealignmentRecord,
 } from '../../../services/ProjectMonitoringApi';
+import { useAuthContext } from '../../../context/AuthContext';
 
 const FundingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   // Phase 3 of LIB feature: third tab for budget realignment requests
@@ -242,8 +244,8 @@ const FundingPage: React.FC = () => {
 
   return (
     <>
-    <div className="min-h-screen lg:h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col relative animate-fade-in">
-      <div className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden min-w-0">
+    <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
+      <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
         {/* Header */}
         <header className="flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -376,15 +378,15 @@ const FundingPage: React.FC = () => {
         </section>
 
         {/* Proposals List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
+        <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
 
-          <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-[#C8102E]" />
               {activeTab === 'pending'
                 ? 'Funding Proposals'
                 : activeTab === 'archived'
-                  ? 'Funding Archive'
+                  ? 'Funded Archive'
                   : 'Realignment Requests'}
             </h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -393,10 +395,10 @@ const FundingPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+            <div className="min-w-0">
             {activeTab === 'realignments' ? (
               realignmentsLoading ? (
-                <div className="text-center py-12 text-slate-500">Loading realignments...</div>
+                <PageLoader mode="realignment-list" />
               ) : displayedRealignments.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -626,7 +628,11 @@ const FundingPage: React.FC = () => {
         title="Funding Approval Document"
         proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
         onOpenDetails={(p) => {
-          navigate('/users/rnd/rndMainLayout?tab=proposals', { 
+          const isMultiRole = ((user as any)?.roles?.length || 0) > 1;
+          const targetPath = isMultiRole 
+            ? '/users/multi-role/MainLayout?role=rnd&tab=proposals' 
+            : '/users/rnd/rndMainLayout?tab=proposals';
+          navigate(targetPath, { 
             state: { openProposalId: p.id } 
           });
         }}
