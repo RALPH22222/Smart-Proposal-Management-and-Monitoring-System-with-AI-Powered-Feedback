@@ -333,14 +333,14 @@ const TemplatesSection: React.FC = () => {
           onUploadSuccess={(url) => setHomeData({
             ...homeData,
             templates: { 
-              ...(homeData?.templates || { research_url: "", project_url: "" }), 
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }), 
               research_url: url 
             }
           })}
           onDelete={() => setHomeData({
             ...homeData,
             templates: { 
-              ...(homeData?.templates || { research_url: "", project_url: "" }), 
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }), 
               research_url: "" 
             }
           })}
@@ -348,24 +348,68 @@ const TemplatesSection: React.FC = () => {
         />
 
         {/* Project Template */}
-        <FileUpload 
+        <FileUpload
           label="Project Proposal Template (.docx/PDF)"
           currentUrl={homeData?.templates?.project_url || ""}
           onUploadSuccess={(url) => setHomeData({
             ...homeData,
-            templates: { 
-              ...(homeData?.templates || { research_url: "", project_url: "" }), 
-              project_url: url 
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              project_url: url
             }
           })}
           onDelete={() => setHomeData({
             ...homeData,
-            templates: { 
-              ...(homeData?.templates || { research_url: "", project_url: "" }), 
-              project_url: "" 
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              project_url: ""
             }
           })}
           helperText="Generic template for Monitoring and Project implementation plans."
+        />
+
+        {/* WMSU LIB Template (blank) — used by proponents with the "Import WMSU LIB Template" button
+            in the budget section of the proposal submission form. Strict parser only accepts this format. */}
+        <FileUpload
+          label="WMSU LIB Template v1 — Blank (.docx)"
+          currentUrl={homeData?.templates?.lib_template_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              lib_template_url: url
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              lib_template_url: ""
+            }
+          })}
+          helperText="Fillable line-item budget template for proponents to download, fill, and import."
+        />
+
+        {/* WMSU LIB Template (sample filled) — a pre-filled reference so proponents can see
+            what a completed LIB looks like before starting their own. */}
+        <FileUpload
+          label="WMSU LIB Template v1 — Sample Filled (.docx)"
+          currentUrl={homeData?.templates?.lib_sample_url || ""}
+          onUploadSuccess={(url) => setHomeData({
+            ...homeData,
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              lib_sample_url: url
+            }
+          })}
+          onDelete={() => setHomeData({
+            ...homeData,
+            templates: {
+              ...(homeData?.templates || { research_url: "", project_url: "", lib_template_url: "", lib_sample_url: "" }),
+              lib_sample_url: ""
+            }
+          })}
+          helperText="Pre-filled example showing how to complete the LIB template correctly."
         />
       </div>
 

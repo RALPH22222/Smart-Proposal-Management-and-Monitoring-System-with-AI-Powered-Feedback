@@ -65,6 +65,8 @@ export const HomeInfoSchema = z.object({
   templates: z.object({
     research_url: z.string(),
     project_url: z.string(),
+    lib_template_url: z.string().default(""),
+    lib_sample_url: z.string().default(""),
   }),
   resources: z.object({
     guidelines_url: z.string(),
@@ -134,6 +136,8 @@ export const DEFAULT_HOME_INFO: HomeInfo = {
   templates: {
     research_url: "",
     project_url: "",
+    lib_template_url: "",
+    lib_sample_url: "",
   },
   resources: {
     guidelines_url: "",
