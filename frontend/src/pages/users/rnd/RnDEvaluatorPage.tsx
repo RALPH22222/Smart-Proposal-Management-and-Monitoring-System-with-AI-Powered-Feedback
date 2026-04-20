@@ -178,10 +178,8 @@ export const RnDEvaluatorPage: React.FC = () => {
         const evalName = `${evalFirstName} ${evalLastName}`.trim();
         const evalDept = item.evaluator_id?.department_id?.name || "N/A";
 
-        // Avoid adding duplicate evaluators to the same proposal group.
-        // If duplicate exists, prioritize the one with an active status (non-Pending).
-        const existingEvalIndex = group.evaluators.findIndex((e) => e.id === evalId);
-        if (existingEvalIndex === -1) {
+        // Avoid adding duplicate evaluators to the same proposal group
+        if (!group.evaluators.some((e) => e.id === evalId)) {
           group.evaluators.push({
             id: evalId,
             name: evalName,
@@ -191,23 +189,6 @@ export const RnDEvaluatorPage: React.FC = () => {
             request_deadline_at: item.request_deadline_at,
             remarks: item.remarks,
           });
-        } else {
-          // Priority: If existing is "Pending" and new one is active, replace it.
-          const existing = group.evaluators[existingEvalIndex];
-          const isExistingPending = existing.status === "Pending";
-          const isNewActive = statusDisplay !== "Pending";
-          
-          if (isExistingPending && isNewActive) {
-            group.evaluators[existingEvalIndex] = {
-              id: evalId,
-              name: evalName,
-              department: evalDept,
-              status: statusDisplay,
-              deadline: item.deadline ? item.deadline : Date.now(),
-              request_deadline_at: item.request_deadline_at,
-              remarks: item.remarks,
-            };
-          }
         }
       });
 
@@ -353,28 +334,18 @@ export const RnDEvaluatorPage: React.FC = () => {
         return;
       }
 
-      // Deduplicate relevantItems by evaluator_id.id, prioritizing active statuses
-      const itemsMap = new Map<string, any>(); // evalId -> best record found
-      
-      relevantItems.forEach((item: any) => {
+      // Deduplicate relevantItems by evaluator_id.id
+      const seenEvaluators = new Set<string>();
+      const uniqueItems = relevantItems.filter((item: any) => {
         const evalId = item.evaluator_id?.id;
-        if (!evalId) return;
-
-        const rawStatus = (item.status || "").toLowerCase();
-        const isExtensionRequest =
-          rawStatus === "extend" ||
-          rawStatus === "extension_requested" ||
-          (rawStatus === "pending" && item.request_deadline_at);
-        const isActive = isExtensionRequest || rawStatus === "accept" || rawStatus === "accepted" || rawStatus === "accepts";
-
-        const existing = itemsMap.get(evalId);
-        // Priority: Active status > Pending status
-        if (!existing || (!existing._isActive && isActive)) {
-          itemsMap.set(evalId, { ...item, _isActive: isActive });
+        if (!evalId || seenEvaluators.has(evalId)) {
+          return false;
         }
+        seenEvaluators.add(evalId);
+        return true;
       });
 
-      const modalEvaluators: EvaluatorOption[] = Array.from(itemsMap.values()).map((item) => {
+      const modalEvaluators: EvaluatorOption[] = uniqueItems.map((item) => {
         let status: EvaluatorOption["status"] = "Pending";
         let extensionDate = undefined;
         let extensionReason = undefined;
@@ -826,4 +797,3 @@ export const RnDEvaluatorPage: React.FC = () => {
 };
 
 export default RnDEvaluatorPage;
-

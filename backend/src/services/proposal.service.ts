@@ -2787,34 +2787,15 @@ export class ProposalService {
     // "evaluator assignment tracker" UI must only show live rows for each
     // proposal's CURRENT version — old v1 rows stay in the DB for audit but
     // must not appear alongside the freshly-forwarded v2 assignments.
-    // Step 2: Version-scope and Deduplicate.
-    // The tracker might have multiple rows per evaluator (e.g., legacy null version
-    // and a new row for version 18). We must show exactly one "live" status per
-    // evaluator, prioritizing the current version row if duplicates exist.
-    const dedupedMap = new Map<string, any>(); // evaluatorId -> best record found
-
-    (trackerData || []).forEach((row: any) => {
+    const versionFiltered = (trackerData || []).filter((row: any) => {
       const currentVersionId = row.proposals?.current_version_id;
-      const evalId = row.evaluator_id?.id;
-      if (!evalId) return;
-
-      // Filter: Keep row if:
-      // 1. Proposal has no version tracking (currentVersionId is null)
-      // 2. Row is legacy (null version_id)
-      // 3. Row matches the current version.
-      const isVersionMatch = !currentVersionId || row.proposal_version_id === currentVersionId;
-      const isLegacy = !row.proposal_version_id;
-
-      if (isVersionMatch || isLegacy) {
-        const existing = dedupedMap.get(evalId);
-        // Priority: Version-match > Legacy
-        if (!existing || (row.proposal_version_id && !existing.proposal_version_id)) {
-          dedupedMap.set(evalId, row);
-        }
-      }
+      // Show if: proposal has no version tracking, or row is a legacy record
+      // (null version_id), or row matches the current version.
+      return !currentVersionId || !row.proposal_version_id || row.proposal_version_id === currentVersionId;
     });
 
-    let filtered = Array.from(dedupedMap.values());
+    // Admin sees all tracker records; RND only sees evaluators they assigned
+    let filtered = versionFiltered;
 
     // Filter by RND assignments if not admin
     if (!isAdmin) {
