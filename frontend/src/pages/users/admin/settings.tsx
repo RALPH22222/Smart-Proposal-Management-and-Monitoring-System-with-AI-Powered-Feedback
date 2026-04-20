@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Camera, User, Lock,
   Eye, EyeOff, CheckCircle, Mail,
@@ -123,19 +123,6 @@ const AdminSettings: React.FC = () => {
   const [profile, setProfile] = useState<ExtendedUserProfile | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [departments, setDepartments] = useState<LookupItem[]>([]);
-  const [isDeptOpen, setIsDeptOpen] = useState(false);
-  const deptDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dept dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target as Node)) {
-        setIsDeptOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   // Profile form
   const [formData, setFormData] = useState({ firstName: '', middleInitial: '', lastName: '', birthdate: '', sex: '', department_id: '' });
@@ -434,42 +421,15 @@ const AdminSettings: React.FC = () => {
               </div>
             </div>
 
-            <div className="mb-6 relative" ref={deptDropdownRef}>
+            <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Department / Station</label>
-              <button
-                type="button"
-                onClick={() => setIsDeptOpen(prev => !prev)}
-                className={`block w-full text-left rounded-lg border px-3.5 py-2.5 text-sm bg-white transition-all outline-none ${
-                  formData.department_id
-                    ? 'text-gray-900 border-gray-300 hover:border-gray-400 focus:border-[#C8102E] focus:ring-2 focus:ring-[#C8102E]/15'
-                    : 'text-gray-400 border-gray-300 hover:border-gray-400'
-                }`}
-              >
+              <div className="block w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm bg-gray-50 text-gray-500 cursor-not-allowed">
                 {formData.department_id
-                  ? departments.find(d => String(d.id) === formData.department_id)?.name || 'Select your department'
-                  : 'Select your department'
+                  ? departments.find(d => String(d.id) === formData.department_id)?.name || 'Not assigned'
+                  : 'Not assigned'
                 }
-              </button>
-              {isDeptOpen && (
-                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto">
-                  {departments.map((dept) => (
-                    <div
-                      key={dept.id}
-                      className={`px-4 py-2.5 text-sm cursor-pointer transition-colors ${
-                        String(dept.id) === formData.department_id
-                          ? 'bg-[#C8102E]/10 text-[#C8102E] font-medium'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, department_id: String(dept.id) }));
-                        setIsDeptOpen(false);
-                      }}
-                    >
-                      {dept.name}
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
+              <p className="mt-1 text-xs text-gray-400">Department is managed by your administrator and cannot be changed here.</p>
             </div>
 
             <div className="flex justify-end">
