@@ -2047,7 +2047,7 @@ export class ProjectService {
     // Check terminal report is verified
     const { data: terminalReport } = await this.db
       .from("project_terminal_reports")
-      .select("id, status")
+      .select("id, status, surrendered_amount")
       .eq("funded_project_id", input.funded_project_id)
       .single();
 
@@ -2059,6 +2059,45 @@ export class ProjectService {
           code: "TERMINAL_REPORT_NOT_VERIFIED",
         },
       };
+    }
+
+    // Financial reconciliation gate (RDEC President's "utilize all or block" rule):
+    // certificate cannot be issued unless the books balance. Specifically:
+    //   sum(approved expenses) + surrendered_amount ≈ sum(allocated LIB)
+    // Tolerance is 0.01 PHP for rounding drift. Proponent declares surrender at
+    // terminal report submission; R&D's verification confirms the declaration.
+    {
+      const { data: fpRow } = await this.db
+        .from("funded_projects")
+        .select("proposal_budget_versions!funded_projects_current_budget_version_id_fkey(grand_total)")
+        .eq("id", input.funded_project_id)
+        .single();
+      const allocatedTotal = Number(
+        (fpRow as any)?.proposal_budget_versions?.grand_total ?? 0,
+      );
+
+      const { data: expenseRows } = await this.db
+        .from("project_expenses")
+        .select("approved_amount, expenses, project_reports!inner(funded_project_id)")
+        .eq("project_reports.funded_project_id", input.funded_project_id);
+      const spentTotal = (expenseRows ?? []).reduce(
+        (sum, e) => sum + (Number((e as any).approved_amount ?? (e as any).expenses) || 0),
+        0,
+      );
+
+      const surrenderedTotal = Number((terminalReport as any).surrendered_amount ?? 0);
+      const reconciled = spentTotal + surrenderedTotal;
+      const diff = allocatedTotal - reconciled;
+
+      if (diff > 0.01) {
+        return {
+          data: null,
+          error: {
+            message: `Cannot issue certificate. Budget not fully accounted for: ₱${allocatedTotal.toFixed(2)} allocated, ₱${spentTotal.toFixed(2)} spent, ₱${surrenderedTotal.toFixed(2)} surrendered — a gap of ₱${diff.toFixed(2)} remains. Proponent must either spend or surrender the difference before the certificate can be issued.`,
+            code: "UTILIZATION_GAP",
+          },
+        };
+      }
     }
 
     // Check if certificate was already issued
@@ -3832,6 +3871,42 @@ export class ProjectService {
       };
     }
 
+    // Financial reconciliation gate: the declared surrender must not exceed the
+    // actual unexpended balance (allocated − spent). Over-surrender would mean
+    // proponent is promising to return money they don't hold.
+    const surrenderedAmount = Number(input.surrendered_amount ?? 0) || 0;
+    if (surrenderedAmount > 0) {
+      const { data: activeVersion } = await this.db
+        .from("funded_projects")
+        .select("current_budget_version_id, proposal_budget_versions!funded_projects_current_budget_version_id_fkey(grand_total)")
+        .eq("id", input.funded_project_id)
+        .single();
+      const allocatedTotal = Number(
+        (activeVersion as any)?.proposal_budget_versions?.grand_total ?? 0,
+      );
+
+      const { data: expenses } = await this.db
+        .from("project_expenses")
+        .select("approved_amount, expenses, project_reports!inner(funded_project_id)")
+        .eq("project_reports.funded_project_id", input.funded_project_id);
+      const spentTotal = (expenses ?? []).reduce(
+        (sum, e) => sum + (Number((e as any).approved_amount ?? (e as any).expenses) || 0),
+        0,
+      );
+
+      const unexpendedBalance = allocatedTotal - spentTotal;
+      // Tolerate 0.01 PHP rounding drift
+      if (surrenderedAmount > unexpendedBalance + 0.01) {
+        return {
+          data: null,
+          error: {
+            message: `Declared surrender (₱${surrenderedAmount.toFixed(2)}) exceeds the unexpended balance (₱${unexpendedBalance.toFixed(2)}). You can only surrender what hasn't been spent.`,
+            code: "SURRENDER_EXCEEDS_BALANCE",
+          },
+        };
+      }
+    }
+
     const payload = {
       funded_project_id: input.funded_project_id,
       actual_start_date: input.actual_start_date || null,
@@ -3847,6 +3922,9 @@ export class ProjectService {
       suggested_solutions: input.suggested_solutions || null,
       publications_list: input.publications_list || null,
       report_file_url: input.report_file_url || null,
+      surrendered_amount: surrenderedAmount,
+      surrendered_at: surrenderedAmount > 0 ? new Date().toISOString() : null,
+      surrendered_by: surrenderedAmount > 0 ? input.submitted_by : null,
       status: "submitted" as const,
       submitted_by: input.submitted_by,
     };

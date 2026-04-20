@@ -281,26 +281,13 @@ export default function Login() {
             </a>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm disabled:opacity-60 hover:bg-[#A50D26] transition-colors duration-300"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail("");
-                setPassword("");
-              }}
-              className="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 transition-all duration-300"
-            >
-              Reset
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full inline-flex items-center justify-center px-4 py-2 bg-[#C8102E] text-white rounded-lg font-semibold shadow-sm disabled:opacity-60 hover:bg-[#A50D26] transition-colors duration-300"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
 
           <div className="text-sm text-center text-gray-600">
             Don't have an account?{" "}

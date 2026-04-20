@@ -279,6 +279,10 @@ export const submitTerminalReportSchema = z.object({
   suggested_solutions: z.string().max(5000).optional(),
   publications_list: z.string().max(5000).optional(),
   report_file_url: z.array(z.string().url()).optional(),
+  // Financial reconciliation: proponent declares how much unexpended balance will be
+  // returned to the agency. Certificate issuance is gated on spent + surrendered
+  // balancing against allocated (within 0.01 PHP tolerance for rounding drift).
+  surrendered_amount: z.coerce.number().nonnegative().optional().default(0),
 });
 
 export type SubmitTerminalReportInput = z.infer<typeof submitTerminalReportSchema> & {

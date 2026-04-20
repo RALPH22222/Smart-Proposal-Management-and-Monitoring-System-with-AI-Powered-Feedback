@@ -4,10 +4,12 @@ import Swal from 'sweetalert2';
 import {
   fetchTerminalReport,
   submitTerminalReport,
+  fetchBudgetSummary,
   uploadReportFile,
   validateReportFile,
   REPORT_ALLOWED_EXTENSIONS,
   type ApiTerminalReport,
+  type ApiBudgetSummary,
 } from '../../services/ProjectMonitoringApi';
 
 interface Props {
@@ -40,15 +42,33 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
   const [suggestedSolutions, setSuggestedSolutions] = useState('');
   const [publicationsList, setPublicationsList] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  // Financial reconciliation: proponent's declared surrender of unexpended balance.
+  // Certificate won't issue unless (spent + surrendered) ≈ allocated.
+  const [surrenderedAmount, setSurrenderedAmount] = useState<string>('');
+  const [budgetSummary, setBudgetSummary] = useState<ApiBudgetSummary | null>(null);
 
   useEffect(() => {
     if (!allQuartersVerified) {
       setLoading(false);
       return;
     }
-    fetchTerminalReport(fundedProjectId)
-      .then((data) => setTerminalReport(data))
-      .catch(() => {})
+    Promise.all([
+      fetchTerminalReport(fundedProjectId).catch(() => null),
+      fetchBudgetSummary(fundedProjectId).catch(() => null),
+    ])
+      .then(([tr, bs]) => {
+        if (tr) setTerminalReport(tr);
+        if (bs) {
+          setBudgetSummary(bs);
+          // Prefill the surrender with the computed unexpended balance so the common
+          // case (surrender all remaining) is one click. Proponent can override if
+          // they're planning to spend more before closeout.
+          const remaining = Math.max(0, bs.total_budget - bs.total_actual_spent);
+          if (remaining > 0) {
+            setSurrenderedAmount(remaining.toFixed(2));
+          }
+        }
+      })
       .finally(() => setLoading(false));
   }, [fundedProjectId, allQuartersVerified]);
 
@@ -82,6 +102,8 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         uploadedUrls.push(url);
       }
 
+      const parsedSurrender = parseFloat(surrenderedAmount) || 0;
+
       const result = await submitTerminalReport({
         fundedProjectId,
         actualStartDate: actualStartDate || undefined,
@@ -97,6 +119,7 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         suggestedSolutions: suggestedSolutions || undefined,
         publicationsList: publicationsList || undefined,
         reportFileUrl: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+        surrenderedAmount: parsedSurrender,
       });
 
       setTerminalReport(result);
@@ -324,6 +347,100 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
           <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Publications List</label>
           <textarea value={publicationsList} onChange={(e) => setPublicationsList(e.target.value)} placeholder="List all resulting publications with full citations..." className="w-full p-2.5 border border-gray-300 rounded-xl text-sm h-20 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
+
+        {/* Financial Reconciliation — certificate can't issue unless the books balance */}
+        {budgetSummary && (() => {
+          const allocated = budgetSummary.total_budget;
+          const spent = budgetSummary.total_actual_spent;
+          const surrender = parseFloat(surrenderedAmount) || 0;
+          const unexpended = Math.max(0, allocated - spent);
+          const reconciled = spent + surrender;
+          const gap = allocated - reconciled;
+          const balances = Math.abs(gap) <= 0.01;
+          const overSurrender = surrender > unexpended + 0.01;
+          return (
+            <div className={`border-2 rounded-xl p-4 ${balances ? 'border-emerald-200 bg-emerald-50/40' : 'border-amber-200 bg-amber-50'}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className={`w-5 h-5 ${balances ? 'text-emerald-600' : 'text-amber-600'}`} />
+                <h4 className={`font-bold text-sm ${balances ? 'text-emerald-800' : 'text-amber-800'}`}>
+                  Financial Reconciliation
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 mb-3 leading-relaxed">
+                The certificate can only be issued when spent + surrendered equals the allocated total.
+                Declare any unexpended balance you'll return to the agency below.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
+                <div className="bg-white rounded-lg p-2.5 border border-slate-200">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wide">Allocated</p>
+                  <p className="font-bold text-slate-800 mt-1">
+                    ₱{allocated.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-2.5 border border-slate-200">
+                  <p className="text-[10px] uppercase font-bold text-blue-600 tracking-wide">Spent</p>
+                  <p className="font-bold text-blue-700 mt-1">
+                    ₱{spent.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-2.5 border border-slate-200">
+                  <p className="text-[10px] uppercase font-bold text-purple-600 tracking-wide">Surrendering</p>
+                  <p className="font-bold text-purple-700 mt-1">
+                    ₱{surrender.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className={`rounded-lg p-2.5 border ${balances ? 'bg-emerald-100 border-emerald-300' : 'bg-amber-100 border-amber-300'}`}>
+                  <p className={`text-[10px] uppercase font-bold tracking-wide ${balances ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {balances ? 'Balanced' : 'Gap'}
+                  </p>
+                  <p className={`font-bold mt-1 ${balances ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    ₱{gap.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-600 mb-1">
+                  Surrender declaration <span className="text-gray-400 font-normal">(unexpended balance returned to agency)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-bold">₱</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={surrenderedAmount}
+                    onChange={(e) => setSurrenderedAmount(e.target.value)}
+                    max={unexpended}
+                    step="0.01"
+                    className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSurrenderedAmount(unexpended.toFixed(2))}
+                    className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 text-[11px] font-bold rounded-lg whitespace-nowrap"
+                    title={`Fill in the full unexpended balance (₱${unexpended.toFixed(2)})`}
+                  >
+                    Surrender all unexpended
+                  </button>
+                </div>
+                {overSurrender && (
+                  <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Can't surrender more than the unexpended balance (₱{unexpended.toFixed(2)}).
+                  </p>
+                )}
+                {!balances && !overSurrender && gap > 0 && (
+                  <p className="text-[11px] text-amber-700 mt-1">
+                    The books don't balance yet — ₱{gap.toFixed(2)} is unaccounted for. R&D will block certificate issuance until this is zero.
+                  </p>
+                )}
+                {balances && (
+                  <p className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Books balance. Certificate can be issued after R&D verifies this terminal report.
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* File Upload */}
         <div>

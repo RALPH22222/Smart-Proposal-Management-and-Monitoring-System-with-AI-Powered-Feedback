@@ -901,6 +901,11 @@ export interface ApiTerminalReport {
   publications_list: string | null;
   report_file_url: string[] | null;
   status: "submitted" | "verified" | "rejected";
+  // Financial reconciliation: unexpended balance the proponent declares will be
+  // returned to the agency. Certificate gate requires spent + surrendered ≈ allocated.
+  surrendered_amount: number;
+  surrendered_at: string | null;
+  surrendered_by: string | null;
   submitted_by: string;
   verified_by: string | null;
   verified_at: string | null;
@@ -929,6 +934,7 @@ export async function submitTerminalReport(args: {
   suggestedSolutions?: string;
   publicationsList?: string;
   reportFileUrl?: string[];
+  surrenderedAmount?: number;
 }): Promise<ApiTerminalReport> {
   const { data } = await api.post<{ data: ApiTerminalReport }>(
     "/project/submit-terminal-report",
@@ -947,6 +953,7 @@ export async function submitTerminalReport(args: {
       suggested_solutions: args.suggestedSolutions,
       publications_list: args.publicationsList,
       report_file_url: args.reportFileUrl,
+      surrendered_amount: args.surrenderedAmount,
     },
     { withCredentials: true }
   );
