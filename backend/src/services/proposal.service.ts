@@ -488,6 +488,7 @@ export class ProposalService {
 
     const assignmentsTrackerPayload = newEvaluators.map((ev) => ({
       proposal_id: proposal_id,
+      proposal_version_id: currentVersionId,
       evaluator_id: ev.id,
       status: AssignmentTracker.PENDING,
     }));

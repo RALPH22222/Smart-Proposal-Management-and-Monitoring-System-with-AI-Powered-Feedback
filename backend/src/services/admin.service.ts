@@ -271,7 +271,7 @@ export class AdminService {
       // Fetch old evaluator record to copy metadata
       const { data: oldRecord } = await this.db
         .from("proposal_evaluators")
-        .select("deadline_at, forwarded_by_rnd, comments_for_evaluators, proponent_info_visibility, anonymized_file_url")
+        .select("deadline_at, forwarded_by_rnd, comments_for_evaluators, proponent_info_visibility, anonymized_file_url, proposal_version_id")
         .eq("proposal_id", e.proposal_id)
         .eq("evaluator_id", input.user_id)
         .maybeSingle();
@@ -296,6 +296,7 @@ export class AdminService {
         .insert({
           proposal_id: e.proposal_id,
           evaluator_id: e.new_evaluator_id,
+          proposal_version_id: oldRecord?.proposal_version_id || null,
           status: "pending",
           deadline_at: oldRecord?.deadline_at || null,
           forwarded_by_rnd: oldRecord?.forwarded_by_rnd || null,
@@ -314,6 +315,7 @@ export class AdminService {
         .insert({
           proposal_id: e.proposal_id,
           evaluator_id: e.new_evaluator_id,
+          proposal_version_id: oldRecord?.proposal_version_id || null,
           status: "pending",
         });
 
