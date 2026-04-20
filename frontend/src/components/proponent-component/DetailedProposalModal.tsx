@@ -1087,6 +1087,11 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           section: "Reason for Rejection",
           comment: rejectionComment || "Loading details..."
         }]
+      : ["endorsed", "endorsed_for_funding", "endorsed for funding"].includes((proposal.status || "").toLowerCase())
+        ? [{
+          section: "Endorsement Justification (Admin)",
+          comment: proposal.endorsementJustification
+        }].filter(item => item.comment)
         : [];
 
   return (

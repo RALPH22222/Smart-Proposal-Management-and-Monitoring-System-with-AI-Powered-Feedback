@@ -72,16 +72,16 @@ const AdminEndorsementPage: React.FC = () => {
   const transformEstimatedBudget = (items: any[]): BudgetRow[] => {
     if (!Array.isArray(items) || items.length === 0) return [];
     const map: Record<string, {
-      ps: { items: { item: string; amount: number }[]; total: number };
-      mooe: { items: { item: string; amount: number }[]; total: number };
-      co: { items: { item: string; amount: number }[]; total: number };
+      ps: { items: any[]; total: number };
+      mooe: { items: any[]; total: number };
+      co: { items: any[]; total: number };
     }> = {};
 
     items.forEach((b: any) => {
       const src = b.source || 'Unknown';
-      const amount = Number(b.amount) || 0;
-      const itemLabel = b.item || 'Unspecified Item';
-      const rawType = (b.budget || '').toLowerCase();
+      const amount = Number(b.amount || b.total_amount) || 0;
+      const itemLabel = b.item || b.item_name || 'Unspecified Item';
+      const rawType = (b.budget || b.category || '').toLowerCase();
 
       let cat: 'ps' | 'mooe' | 'co' = 'mooe';
       if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
@@ -95,7 +95,15 @@ const AdminEndorsementPage: React.FC = () => {
       };
 
       map[src][cat].total += amount;
-      map[src][cat].items.push({ item: itemLabel, amount });
+      map[src][cat].items.push({ 
+        item: itemLabel, 
+        amount: Number(b.amount || b.total_amount || 0),
+        subcategory: b.subcategory || (Array.isArray(b.budget_subcategories) ? b.budget_subcategories[0]?.label : b.budget_subcategories?.label) || b.custom_subcategory_label,
+        specifications: b.specifications || b.spec,
+        quantity: b.quantity,
+        unit: b.unit,
+        unitPrice: Number(b.unitPrice || b.unit_price || 0)
+      });
     });
 
     return Object.entries(map).map(([source, data]) => ({
@@ -138,7 +146,11 @@ const AdminEndorsementPage: React.FC = () => {
           id: p.id,
           title: p.title,
           submittedBy: p.submittedBy,
-          budget: transformEstimatedBudget(p.estimated_budget || []),
+          budget: transformEstimatedBudget(
+            (p.proposal_budget_versions?.sort((a: any, b: any) => b.version_number - a.version_number)[0]?.proposal_budget_items) || 
+            p.estimated_budget || 
+            []
+          ),
           evaluatorDecisions: Object.values(
             p.evaluatorDecisions.reduce((acc: Record<string, any>, d: any) => {
               if (!acc[d.evaluatorId] || (acc[d.evaluatorId].decision === 'Pending' && d.decision !== 'Pending')) {
@@ -455,7 +467,7 @@ const AdminEndorsementPage: React.FC = () => {
     return colors[index];
   };
 
-  if (loading) {
+  if (loading && activeTab === 'active') {
     return <PageLoader mode="endorsement" />;
   }
 
@@ -708,6 +720,14 @@ const AdminEndorsementPage: React.FC = () => {
 
         {/* Proposals list — natural document flow so browser zoom does not trap/clip rows in a tiny scroll region */}
         <main className="relative flex flex-1 w-full min-w-0 flex-col overflow-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+          
+          {/* Skeleton loader — covers table only when on archive tabs */}
+          {loading && ['archive', 'revised', 'rejected'].includes(activeTab) && (
+            <div className="p-0">
+              <PageLoader mode="endorsement-archive" />
+            </div>
+          )}
+
           <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">

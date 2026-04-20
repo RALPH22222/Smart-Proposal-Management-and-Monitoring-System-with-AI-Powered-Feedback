@@ -13,6 +13,7 @@ import {
   Mail,
   MessageSquare,
   Users,
+  HandCoins,
 } from "lucide-react";
 
 import type { BudgetRow, EvaluatorDecision } from "../../types/evaluator";
@@ -551,12 +552,12 @@ export default function AdminEndorsementDecisionModal({
               /* --- ENDORSE / REJECT VIEW --- */
               <div className="space-y-6">
                 
-                {/* NEW BUDGET TABLE (Only for Endorsed) */}
+                {/* Budget Requirements Section — Matches DetailedProposalModal Read-Only Layout */}
                 {decision === "endorsed" && (
                   <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
+                    <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
                       <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                        <span className="text-[#C8102E] font-serif font-black text-lg">₱</span>
+                        <HandCoins className="w-4 h-4 text-[#C8102E]" />
                         Budget Requirements
                       </h4>
                     </div>
@@ -565,84 +566,139 @@ export default function AdminEndorsementDecisionModal({
                       <div className="p-4 space-y-4">
                         {budgetData.map((budget, index) => (
                           <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                            {/* Card Header */}
-                            <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                            {/* Card Header: Source Name & Total */}
+                            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <div className="bg-blue-100 p-1.5 rounded text-blue-700">
-                                  <span className="text-sm font-black">₱</span>
+                                <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
+                                  <HandCoins className="w-4 h-4" />
                                 </div>
                                 <div>
-                                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Source of Funds</p>
-                                  <h4 className="font-bold text-slate-800 text-sm">{budget.source}</h4>
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Source of Funds</p>
+                                  <h4 className="font-bold text-slate-800 text-sm leading-tight">{budget.source}</h4>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtotal</p>
-                                <p className="text-sm font-bold text-[#C8102E]">{formatCurrency(budget.total)}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
+                                <p className="text-base font-bold text-[#C8102E]">{formatCurrency(budget.total)}</p>
                               </div>
                             </div>
 
-                            {/* Card Body — PS / MOOE / CO columns */}
-                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 text-xs">
-                              {/* PS */}
-                              <div className="space-y-2 pt-2 md:pt-0">
-                                <div className="flex justify-between items-center mb-2">
-                                  <h5 className="font-bold text-slate-600 uppercase">Personal Services (PS)</h5>
-                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                                    {formatCurrency(budget.ps)}
-                                  </span>
-                                </div>
-                                <div className="space-y-1">
-                                  {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                                    budget.breakdown.ps.map((itm, i) => (
-                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                        <span>{itm.item}</span>
-                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
-                                      </div>
-                                    ))
-                                  ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
+                            {/* Category Summary Row */}
+                            <div className="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50/50">
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider">PS</span>
+                                <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.ps)}</span>
                               </div>
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider">MOOE</span>
+                                <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.mooe)}</span>
+                              </div>
+                              <div className="px-4 py-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider">CO</span>
+                                <span className="text-xs font-bold text-slate-700">{formatCurrency(budget.co)}</span>
+                              </div>
+                            </div>
+
+                            {/* Category Details: Stacked Tables per DetailedProposalModal */}
+                            <div className="divide-y divide-slate-100">
+                              {/* PS */}
+                              {budget.breakdown?.ps && budget.breakdown.ps.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">Personal Services (PS)</h5>
+                                  <div className="rounded-lg border border-slate-100 overflow-hidden">
+                                    <table className="w-full text-[10px] table-fixed">
+                                      <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-100">
+                                          <th className="w-[18%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Subcategory</th>
+                                          <th className="w-[25%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Item</th>
+                                          <th className="w-[17%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Spec / Volume</th>
+                                          <th className="w-[25%] text-center px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Qty × Unit Price</th>
+                                          <th className="w-[15%] text-right px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.ps.map((itm, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-2 py-2 text-slate-500 truncate" title={itm.subcategory}>{itm.subcategory || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-800 font-bold truncate" title={itm.item}>{itm.item || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-500 italic truncate" title={itm.specifications}>{itm.specifications || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-600 text-center font-mono tabular-nums">
+                                              {itm.quantity ? `${itm.quantity}${itm.unit ? ` ${itm.unit}` : ''} × ₱${Number(itm.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-2 py-2 text-slate-900 font-bold text-right whitespace-nowrap">{formatCurrency(itm.amount)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* MOOE */}
-                              <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                                <div className="flex justify-between items-center mb-2">
-                                  <h5 className="font-bold text-slate-600 uppercase">MOOE</h5>
-                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                                    {formatCurrency(budget.mooe)}
-                                  </span>
+                              {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">Maintenance, Operating & Other Expenses (MOOE)</h5>
+                                  <div className="rounded-lg border border-slate-100 overflow-hidden">
+                                    <table className="w-full text-[10px] table-fixed">
+                                      <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-100">
+                                          <th className="w-[18%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Subcategory</th>
+                                          <th className="w-[25%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Item</th>
+                                          <th className="w-[17%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Spec / Volume</th>
+                                          <th className="w-[25%] text-center px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Qty × Unit Price</th>
+                                          <th className="w-[15%] text-right px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.mooe.map((itm, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-2 py-2 text-slate-500 truncate" title={itm.subcategory}>{itm.subcategory || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-800 font-bold truncate" title={itm.item}>{itm.item || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-500 italic truncate" title={itm.specifications}>{itm.specifications || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-600 text-center font-mono tabular-nums">
+                                              {itm.quantity ? `${itm.quantity}${itm.unit ? ` ${itm.unit}` : ''} × ₱${Number(itm.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-2 py-2 text-slate-900 font-bold text-right whitespace-nowrap">{formatCurrency(itm.amount)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                                    budget.breakdown.mooe.map((itm, i) => (
-                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                        <span>{itm.item}</span>
-                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
-                                      </div>
-                                    ))
-                                  ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
-                              </div>
+                              )}
 
                               {/* CO */}
-                              <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                                <div className="flex justify-between items-center mb-2">
-                                  <h5 className="font-bold text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                                  <span className="font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                                    {formatCurrency(budget.co)}
-                                  </span>
+                              {budget.breakdown?.co && budget.breakdown.co.length > 0 && (
+                                <div className="p-4">
+                                  <h5 className="text-[12px] font-bold uppercase text-red-800 mb-2 flex items-center gap-1.5">Capital Outlay (CO)</h5>
+                                  <div className="rounded-lg border border-slate-100 overflow-hidden">
+                                    <table className="w-full text-[10px] table-fixed">
+                                      <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-100">
+                                          <th className="w-[18%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Subcategory</th>
+                                          <th className="w-[25%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Item</th>
+                                          <th className="w-[17%] text-left px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Spec / Volume</th>
+                                          <th className="w-[25%] text-center px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Qty × Unit Price</th>
+                                          <th className="w-[15%] text-right px-2 py-2 font-bold text-slate-400 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50">
+                                        {budget.breakdown.co.map((itm, i) => (
+                                          <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-2 py-2 text-slate-500 truncate" title={itm.subcategory}>{itm.subcategory || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-800 font-bold truncate" title={itm.item}>{itm.item || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-500 italic truncate" title={itm.specifications}>{itm.specifications || '—'}</td>
+                                            <td className="px-2 py-2 text-slate-600 text-center font-mono tabular-nums">
+                                              {itm.quantity ? `${itm.quantity}${itm.unit ? ` ${itm.unit}` : ''} × ₱${Number(itm.unitPrice || 0).toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-2 py-2 text-slate-900 font-bold text-right whitespace-nowrap">{formatCurrency(itm.amount)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
                                 </div>
-                                <div className="space-y-1">
-                                  {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                                    budget.breakdown.co.map((itm, i) => (
-                                      <div key={i} className="flex justify-between text-slate-500 hover:bg-slate-50 p-1 rounded">
-                                        <span>{itm.item}</span>
-                                        <span className="font-medium text-slate-700">₱{(itm.amount || 0).toLocaleString()}</span>
-                                      </div>
-                                    ))
-                                  ) : <p className="italic text-slate-400">No items</p>}
-                                </div>
-                              </div>
+                              )}
                             </div>
                           </div>
                         ))}

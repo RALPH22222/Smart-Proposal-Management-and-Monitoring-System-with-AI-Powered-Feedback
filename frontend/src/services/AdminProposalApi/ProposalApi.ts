@@ -259,7 +259,7 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     rdStaffReviewer: data.proposal_rnd?.[0]?.users
       ? `${Array.isArray(data.proposal_rnd[0].users) ? data.proposal_rnd[0].users[0]?.first_name : data.proposal_rnd[0].users?.first_name} ${Array.isArray(data.proposal_rnd[0].users) ? data.proposal_rnd[0].users[0]?.last_name : data.proposal_rnd[0].users?.last_name}`
       : undefined,
-    endorsementJustification: "",
+    endorsementJustification: data.endorsement_remarks || "",
     assignedRdStaff: (() => {
       // Debug R&D mapping
       if (data.status === 'review_rnd' || data.status === 'under_evaluation') {

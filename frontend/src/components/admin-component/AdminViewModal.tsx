@@ -794,6 +794,16 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                   <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
                     This proposal has been endorsed for funding and is now waiting for the final decision to fund from the RDEC Committee.
                   </p>
+                  {p.endorsementJustification && (
+                    <div className="mt-4 bg-white/60 p-4 rounded-lg border border-blue-200">
+                      <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5" /> Endorsement Justification (Admin)
+                      </p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                        {p.endorsementJustification}
+                      </p>
+                    </div>
+                  )}
                   {(p.lastModified || p.submittedDate) && (
                     <p className="text-xs text-blue-700/90 mt-2 flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5" />

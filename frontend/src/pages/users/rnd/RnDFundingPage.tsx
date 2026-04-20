@@ -529,15 +529,15 @@ const FundingPage: React.FC = () => {
 
                       {/* Actions */}
                       <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                        {getStatusBadge(proposal.status)}
-                        {activeTab === 'pending' ? (
-                          <button
-                            onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
-                            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                          >
-                            <Gavel className="w-3.5 h-3.5" />
-                            Action
-                          </button>
+                         {getStatusBadge(proposal.status)}
+                         {activeTab === 'pending' ? (
+                           <button
+                             onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
+                             className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#a00d25] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
+                           >
+                             <Gavel className="w-3.5 h-3.5" />
+                             Action
+                           </button>
                         ) : proposal.status === 'Funded' ? (
                           <div className="flex items-center gap-2">
                             {(proposal as any).fundedProjectId && (

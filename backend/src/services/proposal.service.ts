@@ -1744,7 +1744,24 @@ export class ProposalService {
           deadline_at,
           updated_at,
           proposal_version_id
-        )
+        ),
+        proposal_budget_versions(
+          id,
+          version_number,
+          proposal_budget_items(
+            category,
+            item_name,
+            spec,
+            custom_subcategory_label,
+            quantity,
+            unit,
+            unit_price,
+            total_amount,
+            source,
+            budget_subcategories(label)
+          )
+        ),
+        estimated_budget(id,budget,item,amount,source)
       `,
       )
       .in("status", statusFilter);

@@ -268,16 +268,16 @@ const AdminFundingPage: React.FC = () => {
                          </div>
                          
                          {/* Actions */}
-                         <div className="flex items-center gap-3">
-                            {getStatusBadge(proposal.status)}
-                            <button
-                                onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
-                            >
-                                <Gavel className="w-3.5 h-3.5" />
-                                Action
-                            </button>
-                         </div>
+                             <div className="flex items-center gap-3">
+                                {getStatusBadge(proposal.status)}
+                                <button
+                                    onClick={() => { setActiveProposal(proposal); setIsActionModalOpen(true); }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#C8102E] rounded-xl hover:bg-[#a00d25] transition-colors shadow-sm"
+                                >
+                                    <Gavel className="w-3.5 h-3.5" />
+                                    Action
+                                </button>
+                             </div>
                       </div>
                     </article>
                   ))}

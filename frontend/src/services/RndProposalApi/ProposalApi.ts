@@ -61,7 +61,7 @@ const transformProposal = (raw: any): Proposal => {
         budgetTotal: getBudgetTotal(),
         assignedEvaluators: p.proposal_evaluator ? p.proposal_evaluator.map((e: any) => `${e.evaluator_id.first_name} ${e.evaluator_id.last_name}`) : [],
         evaluatorInstruction: p.evaluator_instruction || "",
-        endorsementJustification: "",
+        endorsementJustification: p.endorsement_remarks || "",
         tags: p.proposal_tags?.map((t: any) => t.tags?.name) || [],
         fundingDocumentUrl: (Array.isArray(p.funded_projects) && p.funded_projects.length > 0) 
             ? p.funded_projects[0].funding_document_url 

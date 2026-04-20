@@ -51,9 +51,33 @@ export interface BudgetRow {
 	co: number;
 	total: number;
 	breakdown?: {
-		ps: { item: string; amount: number }[];
-		mooe: { item: string; amount: number }[];
-		co: { item: string; amount: number }[];
+		ps: { 
+			item: string; 
+			amount: number;
+			subcategory?: string;
+			specifications?: string;
+			quantity?: number;
+			unit?: string;
+			unitPrice?: number;
+		}[];
+		mooe: { 
+			item: string; 
+			amount: number;
+			subcategory?: string;
+			specifications?: string;
+			quantity?: number;
+			unit?: string;
+			unitPrice?: number;
+		}[];
+		co: { 
+			item: string; 
+			amount: number;
+			subcategory?: string;
+			specifications?: string;
+			quantity?: number;
+			unit?: string;
+			unitPrice?: number;
+		}[];
 	};
 }
 
