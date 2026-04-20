@@ -145,6 +145,13 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   const [baselineTotal, setBaselineTotal] = useState(0);
   const [versionNumber, setVersionNumber] = useState<number | null>(null);
   const [rows, setRows] = useState<EditableRow[]>([]);
+  // Baseline items snapshot used to detect reclassification heuristically — if any
+  // baseline item's proposed total is LESS than its baseline total, the realignment
+  // MAY trigger two-tier approval (server makes the final determination based on
+  // actual drawn amounts, which the client doesn't fetch).
+  const [baselineItemsSnapshot, setBaselineItemsSnapshot] = useState<
+    Array<{ category: string; item_name: string; spec: string | null; total_amount: number }>
+  >([]);
 
   const [reason, setReason] = useState(isReviseMode ? (existingRealignment?.reason ?? '') : '');
   const [file, setFile] = useState<File | null>(null);
@@ -167,6 +174,14 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         if (cancelled) return;
         setBaselineTotal(Number(res.version.grand_total) || 0);
         setVersionNumber(res.version.version_number);
+        setBaselineItemsSnapshot(
+          (res.version.items ?? []).map((bi: any) => ({
+            category: bi.category,
+            item_name: bi.item_name,
+            spec: bi.spec ?? null,
+            total_amount: Number(bi.total_amount) || 0,
+          })),
+        );
 
         if (isReviseMode && existingRealignment?.proposed_payload?.items?.length) {
           const proposed = existingRealignment.proposed_payload.items
@@ -210,6 +225,33 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   const delta = newTotal - baselineTotal;
   const overCeiling = round2(newTotal) > round2(baselineTotal);
   const remainingHeadroom = baselineTotal - newTotal;
+
+  // Heuristic reclassification warning: compare each baseline item's natural key
+  // (category + name + spec) to the sum of proposed rows matching that key. If
+  // any baseline item is proposed at LESS than its baseline total, it MAY have
+  // been drawn against — triggering two-tier approval. The server does the
+  // precise check using actual drawn amounts; this is just a heads-up so
+  // proponents aren't surprised when the submission routes through Admin.
+  const mayRequireReclassification = useMemo(() => {
+    if (baselineItemsSnapshot.length === 0) return false;
+    const keyOf = (cat: string, name: string, spec: string | null) =>
+      `${cat}|${(name ?? '').trim().toLowerCase()}|${(spec ?? '').trim().toLowerCase()}`;
+
+    const proposedByKey = new Map<string, number>();
+    for (const r of rows) {
+      const k = keyOf(r.category, r.itemName, r.spec ?? null);
+      proposedByKey.set(k, (proposedByKey.get(k) ?? 0) + (Number(r.totalAmount) || 0));
+    }
+
+    for (const bi of baselineItemsSnapshot) {
+      const k = keyOf(bi.category, bi.item_name, bi.spec);
+      const proposed = proposedByKey.get(k) ?? 0;
+      if (round2(proposed) < round2(bi.total_amount)) {
+        return true;
+      }
+    }
+    return false;
+  }, [rows, baselineItemsSnapshot]);
 
   const updateRow = (uid: string, patch: Partial<EditableRow>) => {
     setRows((prev) =>
@@ -643,6 +685,27 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                   </div>
                 );
               })}
+
+              {/* Pattern N heads-up banner — appears when at least one baseline item is
+                  being reduced, which MAY trigger two-tier approval if that item has been
+                  drawn against. The server makes the precise determination using actual
+                  drawn amounts; this is a forward-looking hint so the proponent isn't
+                  surprised when the submission routes through Admin instead of just R&D. */}
+              {mayRequireReclassification && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                  <div className="min-w-0 text-xs text-purple-900 leading-relaxed">
+                    <p className="font-bold mb-0.5">May require enhanced approval</p>
+                    <p className="opacity-90">
+                      At least one line item is being reduced below its current allocation.
+                      If any of those items already has approved fund requests drawn
+                      against it, this realignment will follow two-tier approval: R&D
+                      endorses → Admin confirms. You'll still submit the same way — just
+                      letting you know it may take an extra review step.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Reason */}
               <div>

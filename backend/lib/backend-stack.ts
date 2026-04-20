@@ -571,12 +571,28 @@ export class BackendStack extends Stack {
     realignmentResource
       .addResource("review")
       .addMethod(HttpMethod.POST, integrate(projectL.reviewRealignment), protectedRoute);
+    // Pattern N two-tier approval for realignments that reallocate drawn cash
+    realignmentResource
+      .addResource("endorse")
+      .addMethod(HttpMethod.POST, integrate(projectL.endorseRealignment), protectedRoute);
+    realignmentResource
+      .addResource("admin-approve")
+      .addMethod(HttpMethod.POST, integrate(projectL.adminApproveRealignment), protectedRoute);
+    realignmentResource
+      .addResource("admin-return")
+      .addMethod(HttpMethod.POST, integrate(projectL.adminReturnRealignment), protectedRoute);
     project
       .addResource("realignments")
       .addMethod(HttpMethod.GET, integrate(projectL.listRealignments), protectedRoute);
     project
       .addResource("upload-document")
       .addMethod(HttpMethod.POST, integrate(projectL.uploadProjectDocument), protectedRoute);
+    project
+      .addResource("verify-document")
+      .addMethod(HttpMethod.POST, integrate(projectL.verifyProjectDocument), protectedRoute);
+    project
+      .addResource("reject-document")
+      .addMethod(HttpMethod.POST, integrate(projectL.rejectProjectDocument), protectedRoute);
 
     // ========== ADMIN ROUTES ==========
     const admin = api.root.addResource("admin");

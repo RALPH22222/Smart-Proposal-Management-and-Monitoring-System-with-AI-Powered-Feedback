@@ -109,6 +109,12 @@ export interface ApiFundedProject {
   }[];
 }
 
+export type ComplianceDocStatus =
+  | "not_uploaded"
+  | "pending_verification"
+  | "verified"
+  | "rejected";
+
 export interface ApiProjectDetail {
   id: number;
   proposal_id: number;
@@ -122,6 +128,17 @@ export interface ApiProjectDetail {
   // DOST Form 4/5 uploads — populated post-funding by the proponent; null until uploaded.
   moa_file_url: string | null;
   agency_certification_file_url: string | null;
+  // Verification state (Phase: compliance-doc verification). The fund-request
+  // gate requires BOTH statuses to be 'verified'; proponent re-upload is only
+  // allowed from 'not_uploaded' or 'rejected'.
+  moa_status: ComplianceDocStatus;
+  moa_verified_by: string | null;
+  moa_verified_at: string | null;
+  moa_review_note: string | null;
+  agency_cert_status: ComplianceDocStatus;
+  agency_cert_verified_by: string | null;
+  agency_cert_verified_at: string | null;
+  agency_cert_review_note: string | null;
   proposal: {
     id: number;
     project_title: string;
@@ -1069,6 +1086,7 @@ export interface ActiveBudgetVersionResponse {
 
 export type RealignmentStatus =
   | "pending_review"
+  | "endorsed_pending_admin"
   | "approved"
   | "rejected"
   | "revision_requested";
@@ -1086,6 +1104,29 @@ export interface RealignmentRecord {
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_note: string | null;
+  // Pattern N two-tier approval fields
+  requires_reclassification: boolean;
+  endorsed_by: string | null;
+  endorsed_at: string | null;
+  endorser?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  // Computed by backend when requires_reclassification is true. Shows exactly which
+  // over-reduced source items' freed cash is flowing into which absorption-room target
+  // items. Uses natural-key identifiers (category + name + spec) since new-version
+  // item IDs don't exist pre-approval.
+  reclassification_preview?: Array<{
+    source_category: string;
+    source_item_name: string;
+    source_spec: string | null;
+    target_category: string;
+    target_item_name: string;
+    target_spec: string | null;
+    amount: number;
+  }>;
   created_at: string;
   updated_at: string;
   requester?: {
@@ -1174,6 +1215,51 @@ export async function reviewBudgetRealignment(args: {
   return data;
 }
 
+// Pattern N tier 1: RND endorses a realignment that requires reclassification.
+// The realignment transitions to endorsed_pending_admin; Admin then confirms.
+export async function endorseBudgetRealignment(
+  realignmentId: number,
+): Promise<{ message: string; data: RealignmentRecord }> {
+  const { data } = await api.post<{ message: string; data: RealignmentRecord }>(
+    "/project/realignment/endorse",
+    { realignment_id: realignmentId },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
+// Pattern N tier 2: Admin confirms an endorsed realignment. Maker-checker: the
+// Admin who confirms must be different from the RND who endorsed.
+export async function adminApproveBudgetRealignment(
+  realignmentId: number,
+): Promise<{ message: string; data: { realignment_id: number; new_version_id: number; status: string } }> {
+  const { data } = await api.post<{ message: string; data: { realignment_id: number; new_version_id: number; status: string } }>(
+    "/project/realignment/admin-approve",
+    { realignment_id: realignmentId },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
+// Pattern N: Admin returns an endorsed realignment to RND for rework.
+export async function adminReturnBudgetRealignment(args: {
+  realignmentId: number;
+  reviewNote: string;
+}): Promise<{ message: string; data: { realignment_id: number; status: string } }> {
+  const { data } = await api.post<{ message: string; data: { realignment_id: number; status: string } }>(
+    "/project/realignment/admin-return",
+    {
+      realignment_id: args.realignmentId,
+      review_note: args.reviewNote,
+    },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
 export async function fetchRealignment(realignmentId: number): Promise<RealignmentRecord> {
   const { data } = await api.get<RealignmentRecord>(`/project/realignment?id=${realignmentId}`, {
     withCredentials: true,
@@ -1199,15 +1285,46 @@ export async function uploadProjectDocument(
   fundedProjectId: number,
   documentType: "moa" | "agency_certification",
   file: File,
-): Promise<{ funded_project_id: number; document_type: string; file_url: string }> {
+): Promise<{ funded_project_id: number; document_type: string; file_url: string; status: ComplianceDocStatus }> {
   // Reuse the report upload URL mechanism (same S3 bucket + presigned URL pattern)
   const fileUrl = await uploadReportFile(file);
 
-  const { data } = await api.post<{ funded_project_id: number; document_type: string; file_url: string }>(
+  const { data } = await api.post<{ funded_project_id: number; document_type: string; file_url: string; status: ComplianceDocStatus }>(
     "/project/upload-document",
     { funded_project_id: fundedProjectId, document_type: documentType, file_url: fileUrl },
     { withCredentials: true },
   );
+  invalidateProjectCache();
+  return data;
+}
 
+export async function verifyProjectDocument(
+  fundedProjectId: number,
+  documentType: "moa" | "agency_certification",
+): Promise<{ funded_project_id: number; document_type: string; status: ComplianceDocStatus }> {
+  const { data } = await api.post<{ funded_project_id: number; document_type: string; status: ComplianceDocStatus }>(
+    "/project/verify-document",
+    { funded_project_id: fundedProjectId, document_type: documentType },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
+  return data;
+}
+
+export async function rejectProjectDocument(
+  fundedProjectId: number,
+  documentType: "moa" | "agency_certification",
+  reviewNote: string,
+): Promise<{ funded_project_id: number; document_type: string; status: ComplianceDocStatus }> {
+  const { data } = await api.post<{ funded_project_id: number; document_type: string; status: ComplianceDocStatus }>(
+    "/project/reject-document",
+    {
+      funded_project_id: fundedProjectId,
+      document_type: documentType,
+      review_note: reviewNote,
+    },
+    { withCredentials: true },
+  );
+  invalidateProjectCache();
   return data;
 }

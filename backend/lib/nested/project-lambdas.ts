@@ -57,6 +57,11 @@ export class ProjectLambdas extends NestedStack {
   public readonly getRealignment: NodejsFunction;
   public readonly listRealignments: NodejsFunction;
   public readonly uploadProjectDocument: NodejsFunction;
+  public readonly verifyProjectDocument: NodejsFunction;
+  public readonly rejectProjectDocument: NodejsFunction;
+  public readonly endorseRealignment: NodejsFunction;
+  public readonly adminApproveRealignment: NodejsFunction;
+  public readonly adminReturnRealignment: NodejsFunction;
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
@@ -117,6 +122,12 @@ export class ProjectLambdas extends NestedStack {
     this.getRealignment = simple("get-realignment", "pms-get-realignment", "get-realignment.ts");
     this.listRealignments = simple("list-realignments", "pms-list-realignments", "list-realignments.ts");
     this.uploadProjectDocument = simple("upload-project-document", "pms-upload-project-document", "upload-project-document.ts");
+    this.verifyProjectDocument = simple("verify-project-document", "pms-verify-project-document", "verify-project-document.ts");
+    this.rejectProjectDocument = simple("reject-project-document", "pms-reject-project-document", "reject-project-document.ts");
+    // Pattern N two-tier approval for realignments that reallocate drawn cash
+    this.endorseRealignment = simple("endorse-realignment", "pms-endorse-realignment", "endorse-realignment.ts");
+    this.adminApproveRealignment = simple("admin-approve-realignment", "pms-admin-approve-realignment", "admin-approve-realignment.ts");
+    this.adminReturnRealignment = simple("admin-return-realignment", "pms-admin-return-realignment", "admin-return-realignment.ts");
 
     // Special: needs SUPABASE_SERVICE_ROLE_KEY, own role
     this.inviteMember = new NodejsFunction(this, "invite-member", {

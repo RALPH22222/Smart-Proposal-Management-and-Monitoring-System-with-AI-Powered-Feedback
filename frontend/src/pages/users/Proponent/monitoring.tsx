@@ -39,6 +39,7 @@ import {
   type ApiBudgetSummary,
   type RealignmentRecord,
   type BudgetItemDto,
+  type ComplianceDocStatus,
   groupProofFiles,
 } from '../../../services/ProjectMonitoringApi';
 import { RealignmentFormModal } from '../../../components/proponent-component/RealignmentFormModal';
@@ -431,8 +432,12 @@ const MonitoringPage: React.FC = () => {
       const all = await fetchRealignments({ fundedProjectId: activeBackend.id });
       setRealignmentHistory(all);
       const pending =
-        all.find((r) => r.status === 'pending_review' || r.status === 'revision_requested') ??
-        null;
+        all.find(
+          (r) =>
+            r.status === 'pending_review' ||
+            r.status === 'endorsed_pending_admin' ||
+            r.status === 'revision_requested',
+        ) ?? null;
       setActiveRealignment(pending);
     } catch (err) {
       console.error('Failed to load realignment status', err);
@@ -554,15 +559,25 @@ const MonitoringPage: React.FC = () => {
   // Co-leads collaborate on reports but cannot move money or timelines — mirrors the
   // backend guards in create-fund-request, request-realignment, request-extension.
   const isProjectLead = !!activeBackend && activeBackend.project_lead_id === user?.id;
-  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be on file
-  // before any quarterly or terminal report can be submitted. The backend enforces the
-  // same rule — this UX just surfaces it early instead of letting the user upload files
-  // and fill the form only to get a 412 from the server.
-  const hasMoa = !!(activeBackend as any)?.moa_file_url;
-  const hasAgencyCert = !!(activeBackend as any)?.agency_certification_file_url;
+  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be
+  // VERIFIED by R&D (not just uploaded) before any quarterly or terminal report
+  // can be submitted. The backend enforces the same rule — this UX surfaces it
+  // early with specific status info so the proponent knows exactly what to do.
+  const moaStatus = (activeBackend as any)?.moa_status as ComplianceDocStatus | undefined;
+  const agencyCertStatus = (activeBackend as any)?.agency_cert_status as ComplianceDocStatus | undefined;
+  const statusLabel: Record<string, string> = {
+    not_uploaded: 'not uploaded yet',
+    pending_verification: 'awaiting R&D verification',
+    rejected: 'rejected by R&D',
+    verified: 'verified',
+  };
   const missingComplianceDocs: string[] = [];
-  if (!hasMoa) missingComplianceDocs.push('Memorandum of Agreement (Form 5)');
-  if (!hasAgencyCert) missingComplianceDocs.push('Agency Certification (Form 4)');
+  if (moaStatus !== 'verified') {
+    missingComplianceDocs.push(`Memorandum of Agreement (Form 5) — ${statusLabel[moaStatus ?? 'not_uploaded']}`);
+  }
+  if (agencyCertStatus !== 'verified') {
+    missingComplianceDocs.push(`Agency Certification (Form 4) — ${statusLabel[agencyCertStatus ?? 'not_uploaded']}`);
+  }
   const reportSubmissionBlocked = missingComplianceDocs.length > 0;
   const isLocked = currentReport?.status === 'locked';
   const isFundRequestNeeded = currentReport?.status === 'fund_request';
@@ -1161,7 +1176,7 @@ const MonitoringPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => setShowRealignmentModal(true)}
-                            disabled={activeRealignment?.status === 'pending_review'}
+                            disabled={activeRealignment?.status === 'pending_review' || activeRealignment?.status === 'endorsed_pending_admin'}
                             className={`inline-flex items-center justify-center gap-2 min-w-[150px] px-4 py-2.5 rounded-xl border text-xs font-bold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                               activeRealignment?.status === 'revision_requested'
                                 ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 focus-visible:ring-blue-400'
@@ -1170,9 +1185,11 @@ const MonitoringPage: React.FC = () => {
                             title={
                               activeRealignment?.status === 'pending_review'
                                 ? 'A realignment request is already pending R&D review'
-                                : activeRealignment?.status === 'revision_requested'
-                                  ? "R&D asked for changes — click to revise and resubmit"
-                                  : 'Request a budget realignment for this project'
+                                : activeRealignment?.status === 'endorsed_pending_admin'
+                                  ? 'Realignment is awaiting Admin confirmation'
+                                  : activeRealignment?.status === 'revision_requested'
+                                    ? "R&D asked for changes — click to revise and resubmit"
+                                    : 'Request a budget realignment for this project'
                             }
                           >
                             <Banknote className="w-4 h-4" />
@@ -1198,7 +1215,9 @@ const MonitoringPage: React.FC = () => {
                       className={`mb-4 border rounded-lg p-3 text-xs flex items-start gap-2 ${
                         activeRealignment.status === 'pending_review'
                           ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                          : 'bg-blue-50 border-blue-200 text-blue-800'
+                          : activeRealignment.status === 'endorsed_pending_admin'
+                            ? 'bg-purple-50 border-purple-200 text-purple-800'
+                            : 'bg-blue-50 border-blue-200 text-blue-800'
                       }`}
                     >
                       <Clock className="w-4 h-4 mt-0.5 shrink-0" />
@@ -1207,14 +1226,23 @@ const MonitoringPage: React.FC = () => {
                           Budget realignment{' '}
                           {activeRealignment.status === 'pending_review'
                             ? 'under R&D review'
-                            : 'needs your revision'}
+                            : activeRealignment.status === 'endorsed_pending_admin'
+                              ? 'endorsed by R&D, awaiting Admin confirmation'
+                              : 'needs your revision'}
                         </div>
                         <div className="opacity-80 mt-0.5">
                           Submitted {formatDate(activeRealignment.created_at)}.{' '}
                           {activeRealignment.status === 'pending_review'
                             ? 'R&D will review the proposed changes on the Project Funding page.'
-                            : 'Click "Revise Realignment" above to update your submission based on their feedback.'}
+                            : activeRealignment.status === 'endorsed_pending_admin'
+                              ? 'R&D endorsed the request. Admin is the second-tier approver because it reallocates already-drawn cash.'
+                              : 'Click "Revise Realignment" above to update your submission based on their feedback.'}
                         </div>
+                        {activeRealignment.requires_reclassification && activeRealignment.status !== 'revision_requested' && (
+                          <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider opacity-70">
+                            Cash reclassification · two-tier approval
+                          </div>
+                        )}
                         {activeRealignment.status === 'revision_requested' && activeRealignment.review_note && (
                           <div className="mt-2 pt-2 border-t border-blue-200/60">
                             <span className="font-bold">R&D note:</span> {activeRealignment.review_note}
@@ -1433,6 +1461,13 @@ const MonitoringPage: React.FC = () => {
                   moaFileUrl={(activeBackend as any).moa_file_url || null}
                   agencyCertFileUrl={(activeBackend as any).agency_certification_file_url || null}
                   workPlanFileUrl={(activeBackend as any).proposal?.work_plan_file_url || null}
+                  moaStatus={(activeBackend as any).moa_status ?? 'not_uploaded'}
+                  moaReviewNote={(activeBackend as any).moa_review_note ?? null}
+                  moaVerifiedAt={(activeBackend as any).moa_verified_at ?? null}
+                  agencyCertStatus={(activeBackend as any).agency_cert_status ?? 'not_uploaded'}
+                  agencyCertReviewNote={(activeBackend as any).agency_cert_review_note ?? null}
+                  agencyCertVerifiedAt={(activeBackend as any).agency_cert_verified_at ?? null}
+                  onDocumentChanged={loadProjectDetail}
                 />
               )}
 

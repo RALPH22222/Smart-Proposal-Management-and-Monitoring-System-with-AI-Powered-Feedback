@@ -5,6 +5,7 @@ import {
   FileText, Paperclip, Download,
   Users, CheckSquare, Lock, Loader2, Award,
   CalendarClock, Banknote, ArrowRight, FileCheck,
+  ShieldCheck, XCircle,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,8 @@ import {
   fetchProjectExtensionRequests,
   reviewProjectExtension,
   fetchRealignments,
+  verifyProjectDocument,
+  rejectProjectDocument,
   type DisplayReport,
   type ProjectDetailData,
   type ApiFundRequest,
@@ -34,6 +37,7 @@ import {
   type ApiTerminalReport,
   type ApiProjectExtensionRequest,
   type RealignmentRecord,
+  type ComplianceDocStatus,
   groupProofFiles,
 } from '../../services/ProjectMonitoringApi';
 import FinancialReportModal from '../proponent-component/FinancialReportModal';
@@ -889,18 +893,158 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                         <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2 text-lg">
                           <FileCheck className="w-5 h-5 text-blue-600" /> Compliance Documents
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-3">
                           {[
-                            { label: 'Memorandum of Agreement', form: 'DOST Form 5', url: moaFileUrl },
-                            { label: 'Agency Certification', form: 'DOST Form 4', url: agencyCertFileUrl },
-                            { label: 'Work & Financial Plan', form: 'DOST Form 3', url: workPlanFileUrl },
-                          ].map(doc => (
-                            <div key={doc.label} className={`border rounded-xl p-3 flex items-center gap-3 ${doc.url ? 'bg-white' : 'bg-slate-50 border-dashed'}`}>
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${doc.url ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}><FileText className="w-5 h-5" /></div>
-                              <div className="min-w-0 flex-1"><p className="text-[10px] font-bold text-slate-400 uppercase">{doc.form}</p><p className="text-sm font-bold truncate">{doc.label}</p></div>
-                              {doc.url && <button onClick={() => openSignedUrl(doc.url!)} className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100"><Download className="w-3 h-3" /></button>}
+                            {
+                              docKey: 'moa' as const,
+                              label: 'Memorandum of Agreement',
+                              form: 'DOST Form 5',
+                              url: moaFileUrl,
+                              status: (rawDetail?.moa_status ?? 'not_uploaded') as ComplianceDocStatus,
+                              reviewNote: rawDetail?.moa_review_note ?? null,
+                              verifiedAt: rawDetail?.moa_verified_at ?? null,
+                            },
+                            {
+                              docKey: 'agency_certification' as const,
+                              label: 'Agency Certification',
+                              form: 'DOST Form 4',
+                              url: agencyCertFileUrl,
+                              status: (rawDetail?.agency_cert_status ?? 'not_uploaded') as ComplianceDocStatus,
+                              reviewNote: rawDetail?.agency_cert_review_note ?? null,
+                              verifiedAt: rawDetail?.agency_cert_verified_at ?? null,
+                            },
+                          ].map(doc => {
+                            const statusConfig: Record<ComplianceDocStatus, { bg: string; text: string; label: string }> = {
+                              not_uploaded: { bg: 'bg-slate-100', text: 'text-slate-500', label: 'Not uploaded' },
+                              pending_verification: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending your verification' },
+                              verified: { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Verified' },
+                              rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
+                            };
+                            const cfg = statusConfig[doc.status];
+                            return (
+                              <div
+                                key={doc.label}
+                                className={`border rounded-xl p-3 ${
+                                  doc.status === 'pending_verification' ? 'bg-amber-50 border-amber-200' :
+                                  doc.status === 'verified' ? 'bg-emerald-50/50 border-emerald-200' :
+                                  doc.status === 'rejected' ? 'bg-red-50 border-red-200' :
+                                  doc.url ? 'bg-white' : 'bg-slate-50 border-dashed'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.url ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{doc.form}</p>
+                                    <p className="text-sm font-bold truncate">{doc.label}</p>
+                                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bg} ${cfg.text}`}>
+                                      {cfg.label}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {doc.url && (
+                                      <button
+                                        onClick={() => openSignedUrl(doc.url!)}
+                                        className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1"
+                                        title="Open document"
+                                      >
+                                        <Download className="w-3 h-3" /> View
+                                      </button>
+                                    )}
+                                    {doc.status === 'pending_verification' && (
+                                      <>
+                                        <button
+                                          onClick={async () => {
+                                            const confirm = await Swal.fire({
+                                              title: 'Verify this document?',
+                                              text: `Mark ${doc.label} as verified. The proponent will be able to submit fund requests against it.`,
+                                              icon: 'question',
+                                              showCancelButton: true,
+                                              confirmButtonText: 'Verify',
+                                              confirmButtonColor: '#059669',
+                                            });
+                                            if (!confirm.isConfirmed) return;
+                                            try {
+                                              await verifyProjectDocument(rawDetail!.id, doc.docKey);
+                                              await loadDetails();
+                                              Swal.fire({ icon: 'success', title: 'Verified', timer: 1500, showConfirmButton: false });
+                                            } catch (err: any) {
+                                              Swal.fire('Error', err?.response?.data?.message || 'Failed to verify document.', 'error');
+                                            }
+                                          }}
+                                          className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
+                                        >
+                                          <ShieldCheck className="w-3 h-3" /> Verify
+                                        </button>
+                                        <button
+                                          onClick={async () => {
+                                            const { value: note } = await Swal.fire({
+                                              title: 'Reject this document',
+                                              text: `Explain what's wrong so the proponent can fix and re-upload.`,
+                                              input: 'textarea',
+                                              inputLabel: 'Reason (min. 10 characters)',
+                                              inputPlaceholder: 'e.g., "Signature page missing" or "Uploaded file is blank"',
+                                              showCancelButton: true,
+                                              confirmButtonText: 'Reject',
+                                              confirmButtonColor: '#dc2626',
+                                              inputValidator: (value) => {
+                                                if (!value || value.trim().length < 10) return 'Please provide at least 10 characters.';
+                                                return null;
+                                              },
+                                            });
+                                            if (!note) return;
+                                            try {
+                                              await rejectProjectDocument(rawDetail!.id, doc.docKey, note.trim());
+                                              await loadDetails();
+                                              Swal.fire({ icon: 'success', title: 'Rejected', text: 'Proponent has been notified.', timer: 1800, showConfirmButton: false });
+                                            } catch (err: any) {
+                                              Swal.fire('Error', err?.response?.data?.message || 'Failed to reject document.', 'error');
+                                            }
+                                          }}
+                                          className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
+                                        >
+                                          <XCircle className="w-3 h-3" /> Reject
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                {doc.status === 'verified' && doc.verifiedAt && (
+                                  <p className="text-[11px] text-emerald-700 mt-2 font-medium">
+                                    Verified on {new Date(doc.verifiedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </p>
+                                )}
+                                {doc.status === 'rejected' && doc.reviewNote && (
+                                  <div className="mt-3 p-2.5 bg-white border border-red-200 rounded-md">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 mb-1">
+                                      Your rejection note
+                                    </p>
+                                    <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{doc.reviewNote}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Form 3 Work & Financial Plan — read-only reference, no verification flow. */}
+                          {workPlanFileUrl && (
+                            <div className="border rounded-xl p-3 flex items-center gap-3 bg-white">
+                              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600 flex-shrink-0">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">DOST Form 3</p>
+                                <p className="text-sm font-bold truncate">Work & Financial Plan</p>
+                                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                  Reference only
+                                </span>
+                              </div>
+                              <button onClick={() => openSignedUrl(workPlanFileUrl)} className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1">
+                                <Download className="w-3 h-3" /> View
+                              </button>
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
 

@@ -8,15 +8,19 @@
 // realignment record (with both versions inlined) on open.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Loader2, AlertTriangle, CheckCircle2, MessageSquareWarning, Download, FileText, Calendar } from 'lucide-react';
+import { X, Loader2, AlertTriangle, CheckCircle2, MessageSquareWarning, Download, FileText, Calendar, ShieldCheck, Undo2, Banknote } from 'lucide-react';
 import {
   fetchRealignment,
   reviewBudgetRealignment,
+  endorseBudgetRealignment,
+  adminApproveBudgetRealignment,
+  adminReturnBudgetRealignment,
   type RealignmentRecord,
 } from '../../services/ProjectMonitoringApi';
 import BudgetDiffView from './BudgetDiffView';
 import { openSignedUrl } from '../../utils/signed-url';
 import { formatDate } from '../../utils/date-formatter';
+import { useAuthContext } from '../../context/AuthContext';
 
 interface RealignmentReviewModalProps {
   realignmentId: number;
@@ -26,6 +30,7 @@ interface RealignmentReviewModalProps {
 
 const STATUS_BADGE: Record<string, string> = {
   pending_review: 'bg-amber-100 text-amber-700',
+  endorsed_pending_admin: 'bg-purple-100 text-purple-700',
   revision_requested: 'bg-blue-100 text-blue-700',
   approved: 'bg-emerald-100 text-emerald-700',
   rejected: 'bg-red-100 text-red-700',
@@ -36,11 +41,15 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
   onClose,
   onReviewed,
 }) => {
+  const { user } = useAuthContext();
+  const roles = (user as unknown as { roles?: string[] } | null)?.roles ?? [];
+  const isAdmin = roles.includes('admin');
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [record, setRecord] = useState<RealignmentRecord | null>(null);
   const [reviewNote, setReviewNote] = useState('');
-  const [submitting, setSubmitting] = useState<null | 'approve' | 'reject' | 'request_revision'>(null);
+  const [submitting, setSubmitting] = useState<null | 'approve' | 'reject' | 'request_revision' | 'endorse' | 'admin_approve' | 'admin_return'>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +74,19 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
   }, [realignmentId]);
 
   const isPending = record?.status === 'pending_review' || record?.status === 'revision_requested';
+  const isEndorsedPendingAdmin = record?.status === 'endorsed_pending_admin';
+  const requiresReclassification = !!record?.requires_reclassification;
+
+  // RND flow: for realignments that require reclassification, the Approve button is
+  // replaced by Endorse (routes to Admin for final confirmation). Reject + Request
+  // revision remain RND's prerogative regardless of reclassification.
+  const showRndApprove = isPending && !requiresReclassification;
+  const showRndEndorse = isPending && requiresReclassification;
+
+  // Admin tier: only shown on endorsed realignments and only for Admin users. The
+  // same-user guard is enforced server-side — if the Admin also happens to be the
+  // endorser, the API returns an error.
+  const showAdminActions = isEndorsedPendingAdmin && isAdmin;
 
   const requesterName = useMemo(() => {
     const r = record?.requester;
@@ -95,6 +117,55 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Failed to record decision.';
       setSubmitError(msg);
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const handleEndorse = async () => {
+    if (!record) return;
+    setSubmitError(null);
+    setSubmitting('endorse');
+    try {
+      await endorseBudgetRealignment(record.id);
+      onReviewed?.();
+      onClose();
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.message || err?.message || 'Failed to endorse realignment.');
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const handleAdminApprove = async () => {
+    if (!record) return;
+    setSubmitError(null);
+    setSubmitting('admin_approve');
+    try {
+      await adminApproveBudgetRealignment(record.id);
+      onReviewed?.();
+      onClose();
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.message || err?.message || 'Failed to confirm realignment.');
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const handleAdminReturn = async () => {
+    if (!record) return;
+    if (reviewNote.trim().length < 10) {
+      setSubmitError('A review note of at least 10 characters is required when returning a realignment to R&D.');
+      return;
+    }
+    setSubmitError(null);
+    setSubmitting('admin_return');
+    try {
+      await adminReturnBudgetRealignment({ realignmentId: record.id, reviewNote: reviewNote.trim() });
+      onReviewed?.();
+      onClose();
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.message || err?.message || 'Failed to return realignment.');
     } finally {
       setSubmitting(null);
     }
@@ -152,6 +223,89 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
                 </div>
               </div>
 
+              {/* Reclassification notice — Pattern N banner */}
+              {requiresReclassification && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-start gap-2">
+                  <Banknote className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-purple-900">
+                      Cash reclassification — Admin confirmation required
+                    </p>
+                    <p className="text-xs text-purple-700 mt-1 leading-relaxed">
+                      This realignment reduces items below their already-drawn amounts. The
+                      freed cash is reallocated to other items via a journal reclassification
+                      (no physical cash movement). Per maker-checker rules, R&D endorses and
+                      Admin confirms — the two actions must be done by different users.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Computed from→to mapping — what reviewers are actually approving */}
+              {requiresReclassification && (record.reclassification_preview ?? []).length > 0 && (
+                <div className="bg-white border-2 border-purple-200 rounded-lg overflow-hidden">
+                  <div className="bg-purple-100 px-4 py-2 border-b border-purple-200">
+                    <p className="text-xs font-bold uppercase tracking-wider text-purple-800">
+                      Planned reclassification transfers
+                    </p>
+                    <p className="text-[11px] text-purple-700 mt-0.5">
+                      These are the exact source→target cash movements that will be
+                      recorded on approval. Review them against the budget diff below.
+                    </p>
+                  </div>
+                  <div className="divide-y divide-purple-100">
+                    {(record.reclassification_preview ?? []).map((row, idx) => (
+                      <div
+                        key={idx}
+                        className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-3 p-3 text-xs hover:bg-purple-50/50"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-red-600">
+                            From · {row.source_category.toUpperCase()}
+                          </div>
+                          <div className="text-sm font-semibold text-slate-800 truncate" title={row.source_item_name}>
+                            {row.source_item_name}
+                          </div>
+                          {row.source_spec && (
+                            <div className="text-[10px] text-slate-500 truncate">{row.source_spec}</div>
+                          )}
+                        </div>
+                        <div className="text-purple-600 text-lg font-bold select-none">→</div>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                            To · {row.target_category.toUpperCase()}
+                          </div>
+                          <div className="text-sm font-semibold text-slate-800 truncate" title={row.target_item_name}>
+                            {row.target_item_name}
+                          </div>
+                          {row.target_spec && (
+                            <div className="text-[10px] text-slate-500 truncate">{row.target_spec}</div>
+                          )}
+                        </div>
+                        <div className="text-right whitespace-nowrap">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
+                            Amount
+                          </div>
+                          <div className="text-sm font-bold text-purple-900">
+                            ₱{row.amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-purple-50 px-4 py-2 border-t border-purple-200 flex justify-between items-center">
+                    <span className="text-[11px] text-purple-700 italic">
+                      Computed automatically from the proposed LIB via greedy allocation. Deterministic — same inputs always produce the same mapping.
+                    </span>
+                    <span className="text-xs font-bold text-purple-900">
+                      Total: ₱{(record.reclassification_preview ?? [])
+                        .reduce((sum, r) => sum + r.amount, 0)
+                        .toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Reason + file */}
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
                 <div>
@@ -189,18 +343,22 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
                 </div>
               )}
 
-              {/* Decision form (only for non-terminal) */}
-              {isPending && (
+              {/* Decision form — shown for RND review OR Admin review on endorsed realignments */}
+              {(isPending || showAdminActions) && (
                 <div className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white">
                   <label className="block text-xs font-bold uppercase tracking-wide text-gray-600">
-                    Review note <span className="text-gray-400">(required for reject / revise)</span>
+                    {showAdminActions ? (
+                      <>Review note <span className="text-gray-400">(required if returning to R&D)</span></>
+                    ) : (
+                      <>Review note <span className="text-gray-400">(required for reject / revise)</span></>
+                    )}
                   </label>
                   <textarea
                     value={reviewNote}
                     onChange={(e) => setReviewNote(e.target.value)}
                     rows={3}
                     maxLength={2000}
-                    placeholder="Notes for the proponent..."
+                    placeholder={showAdminActions ? "Notes for R&D (min 10 chars for return)..." : "Notes for the proponent..."}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none resize-none"
                   />
                   {submitError && (
@@ -210,11 +368,22 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
                   )}
                 </div>
               )}
+
+              {/* Info banner for non-admin viewing endorsed realignment */}
+              {isEndorsedPendingAdmin && !isAdmin && (
+                <div className="bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 text-xs flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">Awaiting Admin confirmation</p>
+                    <p className="mt-0.5">R&D has endorsed this realignment. An Admin user needs to confirm it — only Admin can approve or return this request.</p>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — RND tier (pending or revision_requested) */}
         {record && isPending && (
           <div className="border-t border-gray-100 bg-gray-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
             <button
@@ -236,17 +405,66 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
               )}{' '}
               Request revision
             </button>
+            {showRndApprove && (
+              <button
+                onClick={() => handleAction('approve')}
+                disabled={submitting !== null}
+                className="px-5 py-2 bg-[#C8102E] text-white hover:bg-[#a00d25] rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              >
+                {submitting === 'approve' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}{' '}
+                Approve
+              </button>
+            )}
+            {showRndEndorse && (
+              <button
+                onClick={handleEndorse}
+                disabled={submitting !== null}
+                className="px-5 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+                title="Endorses this realignment for Admin confirmation. Admin confirms the cash reclassification."
+              >
+                {submitting === 'endorse' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4" />
+                )}{' '}
+                Endorse for Admin
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Footer — Admin tier (endorsed_pending_admin state, Admin role) */}
+        {record && showAdminActions && (
+          <div className="border-t border-gray-100 bg-purple-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
             <button
-              onClick={() => handleAction('approve')}
+              onClick={handleAdminReturn}
               disabled={submitting !== null}
-              className="px-5 py-2 bg-[#C8102E] text-white hover:bg-[#a00d25] rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              className="px-4 py-2 bg-white border border-amber-300 text-amber-700 hover:bg-amber-50 rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              title="Return to R&D for revision with a note."
             >
-              {submitting === 'approve' ? (
+              {submitting === 'admin_return' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Undo2 className="w-4 h-4" />
+              )}{' '}
+              Return to R&D
+            </button>
+            <button
+              onClick={handleAdminApprove}
+              disabled={submitting !== null}
+              className="px-5 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-40 flex items-center gap-2"
+              title="Confirms the realignment. Creates reclassification records and activates the new budget version."
+            >
+              {submitting === 'admin_approve' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <CheckCircle2 className="w-4 h-4" />
               )}{' '}
-              Approve
+              Confirm Realignment
             </button>
           </div>
         )}

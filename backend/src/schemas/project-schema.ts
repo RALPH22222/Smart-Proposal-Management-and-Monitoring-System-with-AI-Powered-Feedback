@@ -230,6 +230,35 @@ export const getProjectExtensionRequestsSchema = z.object({
   funded_project_id: z.coerce.number().int().positive(),
 });
 
+// ===================== COMPLIANCE DOCUMENT VERIFICATION =====================
+
+export const projectDocumentTypeSchema = z.enum(["moa", "agency_certification"]);
+
+// Verify a compliance document (RND/Admin action)
+// Note: reviewed_by is injected by handler from JWT
+export const verifyProjectDocumentSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  document_type: projectDocumentTypeSchema,
+});
+
+export type VerifyProjectDocumentInput = z.infer<typeof verifyProjectDocumentSchema> & {
+  reviewed_by: string;
+};
+
+// Reject a compliance document with a reason (RND/Admin action)
+export const rejectProjectDocumentSchema = z.object({
+  funded_project_id: z.number().int().positive(),
+  document_type: projectDocumentTypeSchema,
+  review_note: z
+    .string()
+    .min(10, "A review note of at least 10 characters is required when rejecting a document.")
+    .max(2000),
+});
+
+export type RejectProjectDocumentInput = z.infer<typeof rejectProjectDocumentSchema> & {
+  reviewed_by: string;
+};
+
 // ===================== TERMINAL REPORT =====================
 
 // Submit Terminal Report Schema (DOST Form 9A/N)

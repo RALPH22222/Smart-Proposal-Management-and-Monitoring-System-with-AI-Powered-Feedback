@@ -1563,6 +1563,37 @@ export class ProjectService {
       };
     }
 
+    // Gate: compliance docs (MOA + Agency Cert) must be VERIFIED by R&D before
+    // fund requests can be created. Presence-only was a trust gap — a proponent
+    // could upload garbage and unlock the gate. See migration 20260420202938.
+    const { data: complianceRow } = await this.db
+      .from("funded_projects")
+      .select("moa_status, agency_cert_status")
+      .eq("id", input.funded_project_id)
+      .single();
+    if (complianceRow) {
+      const { moa_status, agency_cert_status } = complianceRow as {
+        moa_status: string;
+        agency_cert_status: string;
+      };
+      const missing: string[] = [];
+      if (moa_status !== "verified") {
+        missing.push(`Memorandum of Agreement (${moa_status.replace(/_/g, " ")})`);
+      }
+      if (agency_cert_status !== "verified") {
+        missing.push(`Agency Certification (${agency_cert_status.replace(/_/g, " ")})`);
+      }
+      if (missing.length > 0) {
+        return {
+          data: null,
+          error: {
+            message: `Compliance documents must be verified by R&D before submitting fund requests. Status: ${missing.join("; ")}.`,
+            code: "COMPLIANCE_DOCS_NOT_VERIFIED",
+          },
+        };
+      }
+    }
+
     // Check for duplicate fund request for this (project, year, quarter)
     const { data: existing } = await this.db
       .from("fund_requests")
@@ -2269,9 +2300,23 @@ export class ProjectService {
       };
     }
 
-    // Phase 4 of LIB feature: per-line floor validation. For each existing budget item
-    // that has approved fund_request_items linked to it, the new total must be ≥ the
-    // already-approved sum. Removing such an item is also blocked.
+    // Phase 4 + Pattern N: per-line floor validation, now relaxed for reclassification.
+    //
+    // Original Phase 4 rule: each existing budget item's proposed new total must be ≥
+    // already-drawn (approved fund_request_items). Reducing below drawn was a hard error
+    // because it would silently invalidate prior approvals.
+    //
+    // Pattern N relaxation: reducing BELOW drawn is allowed IF the freed drawn amount is
+    // absorbed by increases in other items (conservation of drawn cash). In that case we
+    // flag the realignment as requires_reclassification, route it through the two-tier
+    // approval chain (RND endorses → Admin approves), and create immutable reclassification
+    // records on approval. The original fund_request_items.amount stays untouched.
+    //
+    // What's still blocked:
+    //   - Removing an item entirely that has drawn cash on it (would need explicit
+    //     reclassification target — keep it simple, require the proponent to keep at
+    //     least the drawn line in proposed so the target item is explicit)
+    //   - Reducing below drawn without sufficient "absorption capacity" elsewhere
     const baselineItems = (fromVersion.items ?? []) as Array<{
       id: number;
       category: string;
@@ -2280,6 +2325,8 @@ export class ProjectService {
       total_amount: number;
     }>;
     const baselineItemIds = baselineItems.map((it) => it.id);
+
+    let requiresReclassification = false;
 
     if (baselineItemIds.length > 0) {
       const { data: linkedFundItems } = await this.db
@@ -2297,10 +2344,26 @@ export class ProjectService {
         approvedByItemId.set(itemId, (approvedByItemId.get(itemId) ?? 0) + (Number(r.amount) || 0));
       }
 
+      // Pattern N: add reclassified_in amounts to each baseline item's effective drawn.
+      // Prior reclassifications moved drawn cash INTO these items from earlier versions;
+      // the floor check must treat reclassified_in as part of drawn to prevent reducing
+      // the item below its full effective commitment.
+      const { data: reclassIn } = await this.db
+        .from("fund_request_reclassifications")
+        .select("target_budget_item_id, amount")
+        .in("target_budget_item_id", baselineItemIds);
+
+      for (const row of reclassIn ?? []) {
+        const r = row as { target_budget_item_id: number; amount: number };
+        approvedByItemId.set(
+          r.target_budget_item_id,
+          (approvedByItemId.get(r.target_budget_item_id) ?? 0) + (Number(r.amount) || 0),
+        );
+      }
+
       if (approvedByItemId.size > 0) {
-        // Build a quick lookup from match key → proposed item total so we can detect
-        // both "removed" and "reduced below floor" in one pass.
         const proposedByKey = new Map<string, number>();
+        const baselineTotalByKey = new Map<string, number>();
         const makeKey = (cat: string, name: string, spec: string | null) =>
           `${cat}|${(name ?? "").trim().toLowerCase()}|${(spec ?? "").trim().toLowerCase()}`;
 
@@ -2308,31 +2371,68 @@ export class ProjectService {
           const key = makeKey(item.category, item.itemName, item.spec ?? null);
           proposedByKey.set(key, (proposedByKey.get(key) ?? 0) + Number(item.totalAmount));
         }
+        for (const baseline of baselineItems) {
+          const key = makeKey(baseline.category, baseline.item_name, baseline.spec);
+          baselineTotalByKey.set(
+            key,
+            (baselineTotalByKey.get(key) ?? 0) + Number(baseline.total_amount),
+          );
+        }
+
+        // Compute per-item over-reduction (below drawn) and absorption capacity (above
+        // baseline). Reclassification is valid only when sum(over-reduction) ≤ sum(room).
+        let totalOverReductionCents = 0;
+        let totalAbsorptionRoomCents = 0;
+        const overReducedItems: string[] = [];
 
         for (const baseline of baselineItems) {
-          const approvedFloor = approvedByItemId.get(baseline.id);
-          if (!approvedFloor || approvedFloor <= 0) continue;
-
+          const approvedFloor = approvedByItemId.get(baseline.id) ?? 0;
           const key = makeKey(baseline.category, baseline.item_name, baseline.spec);
           const proposedTotal = proposedByKey.get(key);
+          const baselineTotal = baselineTotalByKey.get(key) ?? Number(baseline.total_amount);
 
-          if (proposedTotal == null) {
+          if (approvedFloor > 0) {
+            if (proposedTotal == null) {
+              return {
+                data: null,
+                error: new Error(
+                  `Cannot remove "${baseline.item_name}" entirely — ₱${approvedFloor.toFixed(2)} has already been drawn against this line. Keep it in the proposal (you may reduce the amount) and the freed cash will be reclassified to other items you increase.`,
+                ),
+              };
+            }
+            if (Math.round(proposedTotal * 100) < Math.round(approvedFloor * 100)) {
+              const overReduction = approvedFloor - proposedTotal;
+              totalOverReductionCents += Math.round(overReduction * 100);
+              overReducedItems.push(
+                `"${baseline.item_name}" (-₱${overReduction.toFixed(2)} below drawn)`,
+              );
+            }
+          }
+
+          // Absorption room = proposed − baseline (positive deltas only). The absorbed
+          // cash must be able to hold the reclassified amount from over-reduced items.
+          if (proposedTotal != null && proposedTotal > baselineTotal) {
+            totalAbsorptionRoomCents += Math.round((proposedTotal - baselineTotal) * 100);
+          }
+        }
+
+        // New items in proposed (not in baseline) also provide absorption room.
+        for (const [key, proposedTotal] of proposedByKey.entries()) {
+          if (!baselineTotalByKey.has(key)) {
+            totalAbsorptionRoomCents += Math.round(proposedTotal * 100);
+          }
+        }
+
+        if (totalOverReductionCents > 0) {
+          if (totalOverReductionCents > totalAbsorptionRoomCents) {
             return {
               data: null,
               error: new Error(
-                `Cannot remove "${baseline.item_name}" — ₱${approvedFloor.toFixed(2)} has already been approved against this line. Adjust the line's amount instead, or wait until those fund requests are completed.`,
+                `Proposal reduces drawn-cash items by a total of ₱${(totalOverReductionCents / 100).toFixed(2)} but only ₱${(totalAbsorptionRoomCents / 100).toFixed(2)} of absorption room is available in other items. Reclassification needs a matching increase elsewhere. Over-reduced: ${overReducedItems.join(", ")}.`,
               ),
             };
           }
-
-          if (Math.round(proposedTotal * 100) < Math.round(approvedFloor * 100)) {
-            return {
-              data: null,
-              error: new Error(
-                `Cannot reduce "${baseline.item_name}" below ₱${approvedFloor.toFixed(2)} — that amount has already been approved in fund requests.`,
-              ),
-            };
-          }
+          requiresReclassification = true;
         }
       }
     }
@@ -2381,9 +2481,12 @@ export class ProjectService {
           reason: input.reason,
           file_url: input.file_url ?? null,
           proposed_payload: { items: input.items, grand_total: newGrandTotal },
+          requires_reclassification: requiresReclassification,
           reviewed_by: null,
           reviewed_at: null,
           review_note: null,
+          endorsed_by: null,
+          endorsed_at: null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingPending.id)
@@ -2451,6 +2554,7 @@ export class ProjectService {
         reason: input.reason,
         file_url: input.file_url ?? null,
         proposed_payload: { items: input.items, grand_total: newGrandTotal },
+        requires_reclassification: requiresReclassification,
         requested_by,
       })
       .select()
@@ -2505,12 +2609,475 @@ export class ProjectService {
     return { data: inserted, error: null };
   }
 
+  /**
+   * Pattern N tier 1: RND endorses a realignment that requires reclassification.
+   * Transitions pending_review → endorsed_pending_admin. The record locks (Admin
+   * cannot be bypassed), endorser + timestamp are captured, and Admin users are
+   * notified that a realignment is awaiting their confirmation.
+   *
+   * For non-reclassification realignments, RND should use reviewRealignment with
+   * action="approve" — those don't need Admin confirmation.
+   */
+  async endorseRealignment(args: { realignment_id: number; endorsed_by: string }) {
+    const { realignment_id, endorsed_by } = args;
+
+    const { data: realignment, error: fetchError } = await this.db
+      .from("budget_realignments")
+      .select("id, funded_project_id, status, requires_reclassification, requested_by")
+      .eq("id", realignment_id)
+      .maybeSingle();
+
+    if (fetchError || !realignment) {
+      return { data: null, error: fetchError ?? new Error("Realignment not found") };
+    }
+
+    if (realignment.status !== "pending_review") {
+      return {
+        data: null,
+        error: new Error(
+          `Can only endorse realignments in pending_review state (current: ${realignment.status}).`,
+        ),
+      };
+    }
+
+    if (!realignment.requires_reclassification) {
+      return {
+        data: null,
+        error: new Error(
+          "This realignment doesn't require Admin confirmation. Use the standard approve action instead.",
+        ),
+      };
+    }
+
+    // COI guard — endorser cannot be a project member
+    const coi = await this.assertNoCoiOnProject(endorsed_by, realignment.funded_project_id);
+    if (coi) {
+      return { data: null, error: new Error(coi.message) };
+    }
+
+    const { data: updated, error: updateError } = await this.db
+      .from("budget_realignments")
+      .update({
+        status: "endorsed_pending_admin",
+        endorsed_by,
+        endorsed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", realignment_id)
+      .eq("status", "pending_review") // concurrency guard
+      .select()
+      .single();
+
+    if (updateError || !updated) {
+      return {
+        data: null,
+        error: updateError ?? new Error("Failed to endorse realignment (may have been updated elsewhere)."),
+      };
+    }
+
+    // Notify all Admins
+    try {
+      const { data: admins } = await this.db
+        .from("users")
+        .select("id")
+        .contains("roles", ["admin"]);
+
+      const { data: projectInfo } = await this.db
+        .from("funded_projects")
+        .select("proposals!inner(project_title)")
+        .eq("id", realignment.funded_project_id)
+        .single();
+      const projectTitle = (projectInfo as any)?.proposals?.project_title ?? "a funded project";
+
+      if (admins && admins.length > 0) {
+        const notifications = admins.map((u) => ({
+          user_id: u.id,
+          message: `R&D endorsed a budget realignment with cash reclassification for "${projectTitle}". Your confirmation is required.`,
+          is_read: false,
+          link: "funding",
+        }));
+        await this.db.from("notifications").insert(notifications);
+      }
+    } catch (notifErr) {
+      console.error("Realignment endorsement notification failed (non-blocking):", notifErr);
+    }
+
+    await logActivity(this.db, {
+      user_id: endorsed_by,
+      action: "budget_realignment_endorsed",
+      category: "project",
+      target_id: String(realignment_id),
+      target_type: "budget_realignment",
+      details: { funded_project_id: realignment.funded_project_id },
+    });
+
+    return { data: updated, error: null };
+  }
+
+  /**
+   * Pattern N tier 2: Admin confirms an endorsed realignment. Same-user guard prevents
+   * the same human who endorsed from also confirming (maker-checker integrity). Creates
+   * the new budget version + reclassification records atomically. The original
+   * fund_request_items stay untouched (COA cash-advance accountability preserved).
+   */
+  async adminApproveRealignment(args: { realignment_id: number; admin_id: string }) {
+    const { realignment_id, admin_id } = args;
+
+    const { data: realignment, error: fetchError } = await this.db
+      .from("budget_realignments")
+      .select(
+        "id, funded_project_id, from_version_id, status, endorsed_by, requested_by, proposed_payload, requires_reclassification",
+      )
+      .eq("id", realignment_id)
+      .maybeSingle();
+
+    if (fetchError || !realignment) {
+      return { data: null, error: fetchError ?? new Error("Realignment not found") };
+    }
+
+    if (realignment.status !== "endorsed_pending_admin") {
+      return {
+        data: null,
+        error: new Error(
+          `Can only admin-approve realignments in endorsed_pending_admin state (current: ${realignment.status}).`,
+        ),
+      };
+    }
+
+    // Same-user guard: the endorsing RND cannot also confirm as Admin. Preserves
+    // maker-checker segregation even when one user has both roles.
+    if (realignment.endorsed_by && realignment.endorsed_by === admin_id) {
+      return {
+        data: null,
+        error: new Error(
+          "You endorsed this realignment — a different Admin must confirm it (maker-checker rule).",
+        ),
+      };
+    }
+
+    // COI guard
+    const coi = await this.assertNoCoiOnProject(admin_id, realignment.funded_project_id);
+    if (coi) {
+      return { data: null, error: new Error(coi.message) };
+    }
+
+    // Load project for version insert
+    const { data: project } = await this.db
+      .from("funded_projects")
+      .select("proposal_id")
+      .eq("id", realignment.funded_project_id)
+      .single();
+    if (!project) {
+      return { data: null, error: new Error("Funded project not found") };
+    }
+
+    const { data: latestVersion } = await this.db
+      .from("proposal_budget_versions")
+      .select("version_number")
+      .eq("proposal_id", project.proposal_id)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextVersionNumber = (latestVersion?.version_number ?? 1) + 1;
+    const payload = realignment.proposed_payload as { items: any[]; grand_total: number };
+    const items = payload.items ?? [];
+    const grandTotal =
+      payload.grand_total ?? items.reduce((s, it) => s + (Number(it.totalAmount) || 0), 0);
+
+    // Create the new version
+    const { data: newVersion, error: vErr } = await this.db
+      .from("proposal_budget_versions")
+      .insert({
+        proposal_id: project.proposal_id,
+        version_number: nextVersionNumber,
+        grand_total: grandTotal,
+        created_by: admin_id,
+      })
+      .select()
+      .single();
+    if (vErr || !newVersion) {
+      return { data: null, error: vErr ?? new Error("Failed to create new budget version") };
+    }
+
+    // Insert items into new version
+    const itemRows = items.map((it: any, idx: number) => ({
+      version_id: newVersion.id,
+      source: it.source ?? "Unspecified",
+      category: it.category,
+      subcategory_id: it.subcategoryId ?? null,
+      custom_subcategory_label: it.customSubcategoryLabel ?? null,
+      item_name: it.itemName,
+      spec: it.spec ?? null,
+      quantity: it.quantity ?? 1,
+      unit: it.unit ?? "pcs",
+      unit_price: it.unitPrice ?? 0,
+      total_amount: it.totalAmount ?? 0,
+      display_order: it.displayOrder ?? idx,
+      notes: it.notes ?? null,
+    }));
+
+    const { error: itemsErr } = await this.db.from("proposal_budget_items").insert(itemRows);
+    if (itemsErr) {
+      return { data: null, error: itemsErr };
+    }
+
+    // Load the newly-inserted items to get their IDs (needed for reclassification)
+    const { data: newItems } = await this.db
+      .from("proposal_budget_items")
+      .select("id, category, item_name, spec, total_amount")
+      .eq("version_id", newVersion.id);
+
+    // Create reclassification records. For each baseline item that was over-reduced,
+    // move the over-reduced amount to a target item (increased item in the new version).
+    // Simple greedy allocation: over-reduction from item A goes into absorption room of
+    // increase items in natural-key order. Audit reads cleanly even for multi-target reallocations.
+    if (realignment.requires_reclassification) {
+      const { data: baselineItems } = await this.db
+        .from("proposal_budget_items")
+        .select("id, category, item_name, spec, total_amount")
+        .eq("version_id", realignment.from_version_id);
+
+      // Recompute drawn per baseline item (same logic as request-time check)
+      const baselineItemIds = (baselineItems ?? []).map((it) => it.id);
+      const { data: linkedFundItems } = baselineItemIds.length
+        ? await this.db
+            .from("fund_request_items")
+            .select("budget_item_id, amount, fund_requests!inner(status)")
+            .in("budget_item_id", baselineItemIds)
+        : { data: [] as any[] };
+
+      const drawnByBaselineId = new Map<number, number>();
+      for (const row of linkedFundItems ?? []) {
+        const r = row as any;
+        if (r.fund_requests?.status !== "approved") continue;
+        if (r.budget_item_id == null) continue;
+        drawnByBaselineId.set(
+          r.budget_item_id,
+          (drawnByBaselineId.get(r.budget_item_id) ?? 0) + (Number(r.amount) || 0),
+        );
+      }
+
+      const makeKey = (cat: string, name: string, spec: string | null) =>
+        `${cat}|${(name ?? "").trim().toLowerCase()}|${(spec ?? "").trim().toLowerCase()}`;
+
+      // Map new-version items by natural key for absorption
+      const newByKey = new Map<string, { id: number; total: number; remainingRoom: number }>();
+      for (const it of newItems ?? []) {
+        const key = makeKey(it.category, it.item_name, it.spec);
+        const newTotal = Number(it.total_amount) || 0;
+        newByKey.set(key, { id: it.id, total: newTotal, remainingRoom: 0 });
+      }
+
+      // Compute absorption room per new item relative to baseline
+      const baselineTotalByKey = new Map<string, number>();
+      for (const it of baselineItems ?? []) {
+        const key = makeKey(it.category, it.item_name, it.spec);
+        baselineTotalByKey.set(
+          key,
+          (baselineTotalByKey.get(key) ?? 0) + (Number(it.total_amount) || 0),
+        );
+      }
+      for (const [key, entry] of newByKey.entries()) {
+        const prevTotal = baselineTotalByKey.get(key) ?? 0;
+        entry.remainingRoom = Math.max(0, entry.total - prevTotal);
+      }
+
+      // Build reclassification rows: for each baseline item over-reduced, greedy-fill targets
+      const reclassificationRows: Array<{
+        realignment_id: number;
+        source_budget_item_id: number;
+        target_budget_item_id: number;
+        amount: number;
+        created_by: string;
+      }> = [];
+
+      for (const baseline of baselineItems ?? []) {
+        const drawn = drawnByBaselineId.get(baseline.id) ?? 0;
+        if (drawn <= 0) continue;
+
+        const key = makeKey(baseline.category, baseline.item_name, baseline.spec);
+        const newEntry = newByKey.get(key);
+        const newTotal = newEntry?.total ?? 0;
+        let overReducedRemaining = Math.max(0, drawn - newTotal);
+        if (overReducedRemaining <= 0) continue;
+
+        // Greedy allocate over-reduction across new items with absorption room
+        for (const [targetKey, target] of newByKey.entries()) {
+          if (targetKey === key) continue; // can't reclassify to self
+          if (target.remainingRoom <= 0) continue;
+          const move = Math.min(overReducedRemaining, target.remainingRoom);
+          if (move <= 0) continue;
+
+          // Only insert if source item persists in new version (common path — proponent
+          // kept the item but reduced it). Source budget_item_id points at the OLD
+          // version's row (immutable audit anchor).
+          reclassificationRows.push({
+            realignment_id: realignment.id,
+            source_budget_item_id: baseline.id,
+            target_budget_item_id: target.id,
+            amount: Number(move.toFixed(2)),
+            created_by: admin_id,
+          });
+          overReducedRemaining -= move;
+          target.remainingRoom -= move;
+          if (overReducedRemaining <= 0) break;
+        }
+      }
+
+      if (reclassificationRows.length > 0) {
+        const { error: reclassErr } = await this.db
+          .from("fund_request_reclassifications")
+          .insert(reclassificationRows);
+        if (reclassErr) {
+          // Don't half-approve. Return error so Admin can retry after investigation.
+          return { data: null, error: reclassErr };
+        }
+      }
+    }
+
+    // Flip the realignment to approved + record the new active version
+    const { error: finalizeErr } = await this.db
+      .from("budget_realignments")
+      .update({
+        status: "approved",
+        to_version_id: newVersion.id,
+        reviewed_by: admin_id,
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", realignment_id);
+    if (finalizeErr) {
+      return { data: null, error: finalizeErr };
+    }
+
+    // Set as active on funded_projects
+    await this.db
+      .from("funded_projects")
+      .update({ current_budget_version_id: newVersion.id })
+      .eq("id", realignment.funded_project_id);
+
+    // Notify proponent
+    await this.db.from("notifications").insert({
+      user_id: realignment.requested_by,
+      message: "Your budget realignment (with cash reclassification) has been approved by Admin.",
+      is_read: false,
+      link: "project-monitoring",
+    });
+
+    await logActivity(this.db, {
+      user_id: admin_id,
+      action: "budget_realignment_admin_approved",
+      category: "project",
+      target_id: String(realignment_id),
+      target_type: "budget_realignment",
+      details: {
+        funded_project_id: realignment.funded_project_id,
+        new_version_id: newVersion.id,
+      },
+    });
+
+    return { data: { realignment_id, new_version_id: newVersion.id, status: "approved" }, error: null };
+  }
+
+  /**
+   * Pattern N — Admin bounces an endorsed realignment back to RND for rework. Requires
+   * a review note so RND sees what Admin objected to. Status returns to pending_review
+   * and endorsement fields clear (RND must re-endorse after rework).
+   */
+  async adminReturnRealignment(args: {
+    realignment_id: number;
+    admin_id: string;
+    review_note: string;
+  }) {
+    const { realignment_id, admin_id, review_note } = args;
+
+    if (!review_note || review_note.trim().length < 10) {
+      return {
+        data: null,
+        error: new Error(
+          "A review note of at least 10 characters is required when returning a realignment to RND.",
+        ),
+      };
+    }
+
+    const { data: realignment } = await this.db
+      .from("budget_realignments")
+      .select("id, funded_project_id, status, endorsed_by")
+      .eq("id", realignment_id)
+      .maybeSingle();
+
+    if (!realignment) {
+      return { data: null, error: new Error("Realignment not found") };
+    }
+
+    if (realignment.status !== "endorsed_pending_admin") {
+      return {
+        data: null,
+        error: new Error(
+          `Can only return realignments in endorsed_pending_admin state (current: ${realignment.status}).`,
+        ),
+      };
+    }
+
+    const { error: updateError } = await this.db
+      .from("budget_realignments")
+      .update({
+        status: "pending_review",
+        review_note: review_note.trim(),
+        endorsed_by: null,
+        endorsed_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", realignment_id);
+
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    // Notify the original endorser (and other RND users) so they see the return
+    try {
+      const { data: rndUsers } = await this.db
+        .from("users")
+        .select("id")
+        .contains("roles", ["rnd"]);
+
+      if (rndUsers && rndUsers.length > 0) {
+        const notifications = rndUsers.map((u) => ({
+          user_id: u.id,
+          message: `Admin returned a realignment for revision. Note: "${review_note.trim().slice(0, 120)}"`,
+          is_read: false,
+          link: "funding",
+        }));
+        await this.db.from("notifications").insert(notifications);
+      }
+    } catch (notifErr) {
+      console.error("Return-for-revision notification failed (non-blocking):", notifErr);
+    }
+
+    await logActivity(this.db, {
+      user_id: admin_id,
+      action: "budget_realignment_admin_returned",
+      category: "project",
+      target_id: String(realignment_id),
+      target_type: "budget_realignment",
+      details: {
+        funded_project_id: realignment.funded_project_id,
+        review_note: review_note.trim(),
+      },
+    });
+
+    return { data: { realignment_id, status: "pending_review" }, error: null };
+  }
+
   async reviewRealignment(args: { input: ReviewRealignmentInput; reviewed_by: string }) {
     const { input, reviewed_by } = args;
 
     const { data: realignment, error: fetchError } = await this.db
       .from("budget_realignments")
-      .select("id, funded_project_id, from_version_id, status, requested_by, proposed_payload")
+      .select(
+        "id, funded_project_id, from_version_id, status, requested_by, proposed_payload, requires_reclassification",
+      )
       .eq("id", input.realignment_id)
       .maybeSingle();
 
@@ -2522,6 +3089,18 @@ export class ProjectService {
       return {
         data: null,
         error: new Error(`This realignment is already ${realignment.status} and cannot be reviewed again.`),
+      };
+    }
+
+    // Pattern N guard: realignments with reclassification must go through the two-tier
+    // flow (RND endorses → Admin approves). reviewRealignment only handles the single-tier
+    // RND-only path for non-reclassification realignments + reject/revision on either.
+    if (realignment.requires_reclassification && input.action === "approve") {
+      return {
+        data: null,
+        error: new Error(
+          "This realignment reallocates drawn cash and requires Admin confirmation. Use the Endorse action instead — an Admin will confirm it.",
+        ),
       };
     }
 
@@ -2676,6 +3255,9 @@ export class ProjectService {
   }
 
   // Returns one realignment with both versions inlined for the diff view.
+  // If requires_reclassification, also includes a preview of the computed from→to
+  // source/target mapping so reviewers (RND endorser + Admin confirmer) see exactly
+  // what they're approving, not just the resulting totals.
   async getRealignment(realignmentId: number) {
     const { data, error } = await this.db
       .from("budget_realignments")
@@ -2683,10 +3265,12 @@ export class ProjectService {
         `
         id, funded_project_id, from_version_id, to_version_id,
         status, reason, file_url, proposed_payload,
+        requires_reclassification, endorsed_by, endorsed_at,
         requested_by, reviewed_by, reviewed_at, review_note,
         created_at, updated_at,
         requester:users!budget_realignments_requested_by_fkey (id, first_name, last_name, email),
         reviewer:users!budget_realignments_reviewed_by_fkey (id, first_name, last_name, email),
+        endorser:users!budget_realignments_endorsed_by_fkey (id, first_name, last_name, email),
         funded_project:funded_projects!inner (
           id, proposal_id,
           proposals!inner (id, project_title)
@@ -2710,7 +3294,177 @@ export class ProjectService {
       .eq("id", realignmentId)
       .maybeSingle();
 
-    return { data, error };
+    if (error || !data) return { data, error };
+
+    // Compute reclassification preview if applicable. Natural-key identifiers
+    // (category + item_name + spec) are used because new-version item IDs don't
+    // exist yet pre-approval — the preview shows which LIB lines will net out
+    // where, expressed in terms the reviewer can verify against the diff.
+    let reclassification_preview: Array<{
+      source_category: string;
+      source_item_name: string;
+      source_spec: string | null;
+      target_category: string;
+      target_item_name: string;
+      target_spec: string | null;
+      amount: number;
+    }> = [];
+
+    const row = data as any;
+    if (row.requires_reclassification) {
+      try {
+        reclassification_preview = await this.computeReclassificationPreview(
+          row.from_version_id,
+          (row.proposed_payload?.items ?? []) as Array<any>,
+        );
+      } catch (previewErr) {
+        console.error("reclassification preview failed (non-blocking):", previewErr);
+      }
+    }
+
+    return { data: { ...row, reclassification_preview }, error: null };
+  }
+
+  /**
+   * Pattern N — computes the from→to reclassification mapping without committing.
+   * Uses the same greedy allocation as adminApproveRealignment so what reviewers see
+   * in the preview is exactly what gets persisted on approval.
+   *
+   * Identifiers are natural-key (category + item_name + spec) because target items
+   * don't have IDs until the new budget version is inserted at approval time.
+   */
+  private async computeReclassificationPreview(
+    fromVersionId: number,
+    proposedItems: Array<{
+      category: string;
+      itemName: string;
+      spec: string | null;
+      totalAmount: number;
+    }>,
+  ): Promise<
+    Array<{
+      source_category: string;
+      source_item_name: string;
+      source_spec: string | null;
+      target_category: string;
+      target_item_name: string;
+      target_spec: string | null;
+      amount: number;
+    }>
+  > {
+    const { data: baselineItems } = await this.db
+      .from("proposal_budget_items")
+      .select("id, category, item_name, spec, total_amount")
+      .eq("version_id", fromVersionId);
+
+    const baselineIds = (baselineItems ?? []).map((it) => it.id);
+    if (baselineIds.length === 0) return [];
+
+    const { data: linkedFundItems } = await this.db
+      .from("fund_request_items")
+      .select("budget_item_id, amount, fund_requests!inner(status)")
+      .in("budget_item_id", baselineIds);
+
+    const drawnById = new Map<number, number>();
+    for (const row of linkedFundItems ?? []) {
+      const r = row as any;
+      if (r.fund_requests?.status !== "approved") continue;
+      if (r.budget_item_id == null) continue;
+      drawnById.set(r.budget_item_id, (drawnById.get(r.budget_item_id) ?? 0) + (Number(r.amount) || 0));
+    }
+
+    // Also add prior reclassifications INTO these baseline items
+    const { data: reclassIn } = await this.db
+      .from("fund_request_reclassifications")
+      .select("target_budget_item_id, amount")
+      .in("target_budget_item_id", baselineIds);
+
+    for (const row of reclassIn ?? []) {
+      const r = row as { target_budget_item_id: number; amount: number };
+      drawnById.set(r.target_budget_item_id, (drawnById.get(r.target_budget_item_id) ?? 0) + (Number(r.amount) || 0));
+    }
+
+    const makeKey = (cat: string, name: string, spec: string | null) =>
+      `${cat}|${(name ?? "").trim().toLowerCase()}|${(spec ?? "").trim().toLowerCase()}`;
+
+    // Group proposed items by natural key (same as what will be inserted)
+    const proposedByKey = new Map<
+      string,
+      { category: string; itemName: string; spec: string | null; total: number; remainingRoom: number }
+    >();
+    for (const it of proposedItems) {
+      const key = makeKey(it.category, it.itemName, it.spec ?? null);
+      const existing = proposedByKey.get(key);
+      if (existing) {
+        existing.total += Number(it.totalAmount) || 0;
+      } else {
+        proposedByKey.set(key, {
+          category: it.category,
+          itemName: it.itemName,
+          spec: it.spec,
+          total: Number(it.totalAmount) || 0,
+          remainingRoom: 0,
+        });
+      }
+    }
+
+    // Baseline totals per natural key for absorption-room calculation
+    const baselineTotalByKey = new Map<string, number>();
+    for (const bi of baselineItems ?? []) {
+      const key = makeKey(bi.category, bi.item_name, bi.spec);
+      baselineTotalByKey.set(
+        key,
+        (baselineTotalByKey.get(key) ?? 0) + (Number(bi.total_amount) || 0),
+      );
+    }
+
+    for (const [key, entry] of proposedByKey.entries()) {
+      const prev = baselineTotalByKey.get(key) ?? 0;
+      entry.remainingRoom = Math.max(0, entry.total - prev);
+    }
+
+    const preview: Array<{
+      source_category: string;
+      source_item_name: string;
+      source_spec: string | null;
+      target_category: string;
+      target_item_name: string;
+      target_spec: string | null;
+      amount: number;
+    }> = [];
+
+    for (const baseline of baselineItems ?? []) {
+      const drawn = drawnById.get(baseline.id) ?? 0;
+      if (drawn <= 0) continue;
+
+      const key = makeKey(baseline.category, baseline.item_name, baseline.spec);
+      const proposedEntry = proposedByKey.get(key);
+      const proposedTotal = proposedEntry?.total ?? 0;
+      let overReducedRemaining = Math.max(0, drawn - proposedTotal);
+      if (overReducedRemaining <= 0) continue;
+
+      for (const [targetKey, target] of proposedByKey.entries()) {
+        if (targetKey === key) continue;
+        if (target.remainingRoom <= 0) continue;
+        const move = Math.min(overReducedRemaining, target.remainingRoom);
+        if (move <= 0) continue;
+
+        preview.push({
+          source_category: baseline.category,
+          source_item_name: baseline.item_name,
+          source_spec: baseline.spec,
+          target_category: target.category,
+          target_item_name: target.itemName,
+          target_spec: target.spec,
+          amount: Number(move.toFixed(2)),
+        });
+        overReducedRemaining -= move;
+        target.remainingRoom -= move;
+        if (overReducedRemaining <= 0) break;
+      }
+    }
+
+    return preview;
   }
 
   // Lists realignments with role-based filtering. R&D / admin see everything; proponents
@@ -3587,16 +4341,25 @@ export class ProjectService {
   }
 
   // ── Upload Project Document (DOST Forms 4/5) ─────────────────────────────
+  // Verification state machine: see migration 20260420202938. Upload transitions
+  // the doc to 'pending_verification'. Re-upload is blocked during pending
+  // (wait for RND review) and during verified (locked; admin reset required).
   async uploadProjectDocument(
     funded_project_id: number,
     document_type: "moa" | "agency_certification",
     file_url: string,
     user_id: string,
   ) {
+    const statusCol = document_type === "moa" ? "moa_status" : "agency_cert_status";
+    const reviewNoteCol = document_type === "moa" ? "moa_review_note" : "agency_cert_review_note";
+    const verifiedByCol = document_type === "moa" ? "moa_verified_by" : "agency_cert_verified_by";
+    const verifiedAtCol = document_type === "moa" ? "moa_verified_at" : "agency_cert_verified_at";
+    const fileCol = document_type === "moa" ? "moa_file_url" : "agency_certification_file_url";
+
     // Verify project exists and user has access
     const { data: project, error: fetchError } = await this.db
       .from("funded_projects")
-      .select("id, project_lead_id")
+      .select(`id, project_lead_id, ${statusCol}`)
       .eq("id", funded_project_id)
       .single();
 
@@ -3604,8 +4367,8 @@ export class ProjectService {
       return { data: null, error: fetchError || new Error("Project not found") };
     }
 
-    // Check if user is project lead or a member
-    const isLead = project.project_lead_id === user_id;
+    // Access check: project lead or active member
+    const isLead = (project as { project_lead_id: string }).project_lead_id === user_id;
     if (!isLead) {
       const { data: member } = await this.db
         .from("project_members")
@@ -3619,10 +4382,38 @@ export class ProjectService {
       }
     }
 
-    const column = document_type === "moa" ? "moa_file_url" : "agency_certification_file_url";
+    // State-machine gate: block re-upload during pending or verified.
+    const currentStatus = (project as Record<string, string>)[statusCol];
+    if (currentStatus === "pending_verification") {
+      return {
+        data: null,
+        error: {
+          message: "This document is awaiting R&D verification. Please wait for the current review before re-uploading.",
+          code: "DOC_PENDING_VERIFICATION",
+        },
+      };
+    }
+    if (currentStatus === "verified") {
+      return {
+        data: null,
+        error: {
+          message: "This document is already verified. Ask R&D/Admin to reset it if a re-upload is required.",
+          code: "DOC_ALREADY_VERIFIED",
+        },
+      };
+    }
+
+    // not_uploaded → pending_verification OR rejected → pending_verification.
+    // Clear prior verifier/note on re-upload so a fresh review starts clean.
     const { error: updateError } = await this.db
       .from("funded_projects")
-      .update({ [column]: file_url })
+      .update({
+        [fileCol]: file_url,
+        [statusCol]: "pending_verification",
+        [reviewNoteCol]: null,
+        [verifiedByCol]: null,
+        [verifiedAtCol]: null,
+      })
       .eq("id", funded_project_id);
 
     if (updateError) {
@@ -3636,9 +4427,176 @@ export class ProjectService {
       category: "project",
       target_id: String(funded_project_id),
       target_type: "funded_project",
+      details: { document_type, label: labelMap[document_type], status: "pending_verification" },
+    });
+
+    // Notify the assigned RND so the review queue is fresh.
+    const { data: projLink } = await this.db
+      .from("funded_projects")
+      .select("proposal_id")
+      .eq("id", funded_project_id)
+      .single();
+    if (projLink?.proposal_id) {
+      const { data: assignment } = await this.db
+        .from("proposal_rnd")
+        .select("rnd_id")
+        .eq("proposal_id", projLink.proposal_id)
+        .single();
+      if (assignment?.rnd_id) {
+        await this.db.from("notifications").insert({
+          user_id: assignment.rnd_id,
+          message: `${labelMap[document_type]} uploaded — awaiting your verification.`,
+          is_read: false,
+          link: "project-monitoring",
+        });
+      }
+    }
+
+    return { data: { funded_project_id, document_type, file_url, status: "pending_verification" }, error: null };
+  }
+
+  // ── Verify / Reject Compliance Document (RND/Admin action) ──────────────
+  async verifyProjectDocument(
+    funded_project_id: number,
+    document_type: "moa" | "agency_certification",
+    reviewed_by: string,
+  ) {
+    const statusCol = document_type === "moa" ? "moa_status" : "agency_cert_status";
+    const verifiedByCol = document_type === "moa" ? "moa_verified_by" : "agency_cert_verified_by";
+    const verifiedAtCol = document_type === "moa" ? "moa_verified_at" : "agency_cert_verified_at";
+    const reviewNoteCol = document_type === "moa" ? "moa_review_note" : "agency_cert_review_note";
+
+    // COI guard — reviewer can't be a project member
+    const coi = await this.assertNoCoiOnProject(reviewed_by, funded_project_id);
+    if (coi) {
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data: current } = await this.db
+      .from("funded_projects")
+      .select(`${statusCol}, project_lead_id`)
+      .eq("id", funded_project_id)
+      .single();
+    if (!current) {
+      return { data: null, error: { message: "Project not found" } };
+    }
+    const status = (current as Record<string, string>)[statusCol];
+    if (status !== "pending_verification") {
+      return {
+        data: null,
+        error: { message: `Can only verify documents in pending_verification state (current: ${status}).` },
+      };
+    }
+
+    const { error: updateError } = await this.db
+      .from("funded_projects")
+      .update({
+        [statusCol]: "verified",
+        [verifiedByCol]: reviewed_by,
+        [verifiedAtCol]: new Date().toISOString(),
+        [reviewNoteCol]: null,
+      })
+      .eq("id", funded_project_id);
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    const labelMap = { moa: "Memorandum of Agreement", agency_certification: "Agency Certification" };
+    await logActivity(this.db, {
+      user_id: reviewed_by,
+      action: "project_document_verified",
+      category: "project",
+      target_id: String(funded_project_id),
+      target_type: "funded_project",
       details: { document_type, label: labelMap[document_type] },
     });
 
-    return { data: { funded_project_id, document_type, file_url }, error: null };
+    // Notify the project lead
+    const projectLeadId = (current as { project_lead_id: string }).project_lead_id;
+    if (projectLeadId) {
+      await this.db.from("notifications").insert({
+        user_id: projectLeadId,
+        message: `${labelMap[document_type]} verified by R&D. Fund requests can proceed.`,
+        is_read: false,
+        link: "project-monitoring",
+      });
+    }
+
+    return { data: { funded_project_id, document_type, status: "verified" }, error: null };
+  }
+
+  async rejectProjectDocument(
+    funded_project_id: number,
+    document_type: "moa" | "agency_certification",
+    reviewed_by: string,
+    review_note: string,
+  ) {
+    if (!review_note || review_note.trim().length < 10) {
+      return {
+        data: null,
+        error: { message: "A review note of at least 10 characters is required when rejecting a document." },
+      };
+    }
+
+    const statusCol = document_type === "moa" ? "moa_status" : "agency_cert_status";
+    const verifiedByCol = document_type === "moa" ? "moa_verified_by" : "agency_cert_verified_by";
+    const verifiedAtCol = document_type === "moa" ? "moa_verified_at" : "agency_cert_verified_at";
+    const reviewNoteCol = document_type === "moa" ? "moa_review_note" : "agency_cert_review_note";
+
+    const coi = await this.assertNoCoiOnProject(reviewed_by, funded_project_id);
+    if (coi) {
+      return { data: null, error: { message: coi.message } };
+    }
+
+    const { data: current } = await this.db
+      .from("funded_projects")
+      .select(`${statusCol}, project_lead_id`)
+      .eq("id", funded_project_id)
+      .single();
+    if (!current) {
+      return { data: null, error: { message: "Project not found" } };
+    }
+    const status = (current as Record<string, string>)[statusCol];
+    if (status !== "pending_verification") {
+      return {
+        data: null,
+        error: { message: `Can only reject documents in pending_verification state (current: ${status}).` },
+      };
+    }
+
+    const { error: updateError } = await this.db
+      .from("funded_projects")
+      .update({
+        [statusCol]: "rejected",
+        [verifiedByCol]: reviewed_by,
+        [verifiedAtCol]: new Date().toISOString(),
+        [reviewNoteCol]: review_note.trim(),
+      })
+      .eq("id", funded_project_id);
+    if (updateError) {
+      return { data: null, error: updateError };
+    }
+
+    const labelMap = { moa: "Memorandum of Agreement", agency_certification: "Agency Certification" };
+    await logActivity(this.db, {
+      user_id: reviewed_by,
+      action: "project_document_rejected",
+      category: "project",
+      target_id: String(funded_project_id),
+      target_type: "funded_project",
+      details: { document_type, label: labelMap[document_type], review_note: review_note.trim() },
+    });
+
+    const projectLeadId = (current as { project_lead_id: string }).project_lead_id;
+    if (projectLeadId) {
+      await this.db.from("notifications").insert({
+        user_id: projectLeadId,
+        message: `${labelMap[document_type]} was rejected by R&D. Please review the note and re-upload.`,
+        is_read: false,
+        link: "project-monitoring",
+      });
+    }
+
+    return { data: { funded_project_id, document_type, status: "rejected" }, error: null };
   }
 }

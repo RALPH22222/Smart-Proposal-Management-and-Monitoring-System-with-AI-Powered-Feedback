@@ -67,6 +67,28 @@ export const reviewRealignmentSchema = z
     path: ["review_note"],
   });
 
+// Pattern N — RND endorses a reclassification realignment for Admin confirmation.
+export const endorseRealignmentSchema = z.object({
+  realignment_id: z.coerce.number().int().positive(),
+});
+
+// Pattern N — Admin confirms an endorsed realignment.
+export const adminApproveRealignmentSchema = z.object({
+  realignment_id: z.coerce.number().int().positive(),
+});
+
+// Pattern N — Admin bounces an endorsed realignment back to RND.
+export const adminReturnRealignmentSchema = z.object({
+  realignment_id: z.coerce.number().int().positive(),
+  review_note: z
+    .string()
+    .min(10, "A review note of at least 10 characters is required when returning a realignment.")
+    .max(2000, "Review note is too long"),
+});
+
 export type RequestRealignmentInput = z.infer<typeof requestRealignmentSchema>;
 export type ReviewRealignmentInput = z.infer<typeof reviewRealignmentSchema>;
+export type EndorseRealignmentInput = z.infer<typeof endorseRealignmentSchema>;
+export type AdminApproveRealignmentInput = z.infer<typeof adminApproveRealignmentSchema>;
+export type AdminReturnRealignmentInput = z.infer<typeof adminReturnRealignmentSchema>;
 export type RealignmentLineInput = z.infer<typeof realignmentLineSchema>;
