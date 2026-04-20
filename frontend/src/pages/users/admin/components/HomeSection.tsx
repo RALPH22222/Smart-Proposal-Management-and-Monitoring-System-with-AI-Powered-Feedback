@@ -5,6 +5,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { Rocket, BarChart2, Building2, ClipboardList, GraduationCap } from "lucide-react";
 import PageLoader from "../../../../components/shared/PageLoader";
 import { ImageUpload } from "./shared/ImageUpload";
+import Swal from 'sweetalert2';
 
 export const HomeSection: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeInfo | null>(null);
@@ -40,6 +41,18 @@ export const HomeSection: React.FC = () => {
 
   const handleSave = async () => {
     if (!homeData) return;
+    
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to save the home page information?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
     
     try {
       setIsSaving(true);

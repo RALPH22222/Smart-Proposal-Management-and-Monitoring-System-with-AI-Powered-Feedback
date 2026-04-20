@@ -4,6 +4,7 @@ import { DEFAULT_CONTACT_INFO } from '../../../../schemas/contact-schema';
 import { ContactApi } from '../../../../services/ContactApi';
 import { Building2, Phone, Mail, Clock, AlertTriangle, LayoutTemplate } from 'lucide-react';
 import PageLoader from "../../../../components/shared/PageLoader";
+import Swal from 'sweetalert2';
 
 export const ContactsSection: React.FC = () => {
   const [formData, setFormData] = useState<ContactInfo | null>(null);
@@ -48,6 +49,19 @@ export const ContactsSection: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData) return;
+    
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to save the contact information?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
+    
     setSaving(true);
     setMessage(null);
     try {

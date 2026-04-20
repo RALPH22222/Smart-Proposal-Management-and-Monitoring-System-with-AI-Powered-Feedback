@@ -4,7 +4,7 @@ import { AboutApi } from "../../../../services/AboutApi";
 import { toast, Toaster } from "react-hot-toast";
 import { Rocket, BookOpen, Target, BarChart2, Clock, Lightbulb } from "lucide-react";
 import PageLoader from "../../../../components/shared/PageLoader";
-
+import Swal from 'sweetalert2';
 import { ImageUpload } from "./shared/ImageUpload";
 
 export const AboutSection: React.FC = () => {
@@ -30,6 +30,18 @@ export const AboutSection: React.FC = () => {
 
   const handleSave = async () => {
     if (!aboutData) return;
+    
+    const result = await Swal.fire({
+      title: 'Save Changes?',
+      text: "Are you sure you want to save the about page information?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, save changes'
+    });
+
+    if (!result.isConfirmed) return;
     
     try {
       setIsSaving(true);
