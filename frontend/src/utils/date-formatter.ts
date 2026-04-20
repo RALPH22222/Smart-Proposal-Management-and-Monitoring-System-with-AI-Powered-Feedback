@@ -11,7 +11,7 @@ const PH_TIMEZONE = "Asia/Manila";
  * like an ISO date-time with no TZ offset, we append `Z` so it parses as UTC,
  * matching what the server originally meant to store.
  */
-function parseDate(input: string | Date | null | undefined): Date | null {
+function parseDate(input: string | number | Date | null | undefined): Date | null {
   if (input == null) return null;
   if (input instanceof Date) return input;
   if (typeof input !== "string") return new Date(input);
@@ -26,7 +26,7 @@ function parseDate(input: string | Date | null | undefined): Date | null {
  * e.g., "Mar 18, 2026"
  */
 export function formatDate(
-  dateStr: string | Date | null | undefined
+  dateStr: string | number | Date | null | undefined
 ): string {
   if (!dateStr) return "N/A";
   try {
@@ -48,7 +48,7 @@ export function formatDate(
  * e.g., "Mar 18, 2026, 6:30 PM"
  */
 export function formatDateTime(
-  dateStr: string | Date | null | undefined
+  dateStr: string | number | Date | null | undefined
 ): string {
   if (!dateStr) return "N/A";
   try {
@@ -72,7 +72,7 @@ export function formatDateTime(
  * Format a date string to MM/DD/YYYY in PH timezone.
  */
 export function formatDateShort(
-  dateStr: string | Date | null | undefined
+  dateStr: string | number | Date | null | undefined
 ): string {
   if (!dateStr) return "N/A";
   try {
@@ -94,7 +94,7 @@ export function formatDateShort(
  * e.g., "6:30 PM"
  */
 export function formatTime(
-  dateStr: string | Date | null | undefined
+  dateStr: string | number | Date | null | undefined
 ): string {
   if (!dateStr) return "N/A";
   try {

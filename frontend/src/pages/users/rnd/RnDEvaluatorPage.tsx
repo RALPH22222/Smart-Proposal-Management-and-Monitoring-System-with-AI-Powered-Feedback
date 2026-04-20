@@ -153,10 +153,22 @@ export const RnDEvaluatorPage: React.FC = () => {
 
         const group = groupedMap.get(pid)!;
 
-        // Normalize status: If 'pending' but has a request_deadline_at, it's an extension request
-        let effectiveStatus = item.status;
-        if (item.status === "pending" && item.request_deadline_at) {
-          effectiveStatus = "extension_requested";
+        // Normalize status to match EvaluatorOption["status"]
+        let statusDisplay: EvaluatorOption["status"] = "Pending";
+        const rawStatus = (item.status || "").toLowerCase();
+
+        if (rawStatus === "extend" || rawStatus === "extension_requested" || (rawStatus === "pending" && item.request_deadline_at)) {
+          statusDisplay = "Extension Requested";
+        } else if (rawStatus === "accept" || rawStatus === "accepted" || rawStatus === "accepts") {
+          statusDisplay = "Accepts";
+        } else if (rawStatus === "decline" || rawStatus === "declined" || rawStatus === "rejected" || rawStatus === "reject") {
+          statusDisplay = "Rejected";
+        } else if (rawStatus === "completed") {
+          statusDisplay = "Completed";
+        } else if (rawStatus === "extension_approved") {
+          statusDisplay = "Extension Approved";
+        } else if (rawStatus === "extension_rejected" || rawStatus === "extension_denied") {
+          statusDisplay = "Extension Rejected";
         }
 
         // Safe Evaluator Data Extraction
@@ -172,7 +184,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             id: evalId,
             name: evalName,
             department: evalDept,
-            status: effectiveStatus,
+            status: statusDisplay,
             deadline: item.deadline ? item.deadline : Date.now(),
             request_deadline_at: item.request_deadline_at,
             remarks: item.remarks,
@@ -338,25 +350,29 @@ export const RnDEvaluatorPage: React.FC = () => {
         let extensionDate = undefined;
         let extensionReason = undefined;
 
-        // Map backend status to UI status
-        // Backend: pending, accept, decline, extend (or extension_requested), completed
+        // Map backend status to UI status (EvaluatorOption["status"])
+        const rawStatus = (item.status || "").toLowerCase();
 
-        // Check for implicit extension request first
+        // Check for extension request first
         const isExtensionRequest =
-          item.status === "extend" ||
-          item.status === "extension_requested" ||
-          (item.status === "pending" && item.request_deadline_at);
+          rawStatus === "extend" ||
+          rawStatus === "extension_requested" ||
+          (rawStatus === "pending" && item.request_deadline_at);
 
         if (isExtensionRequest) {
           status = "Extension Requested";
-          extensionDate = item.request_deadline_at ? formatDate(new Date(item.request_deadline_at)) : "N/A";
+          extensionDate = item.request_deadline_at ? formatDate(item.request_deadline_at) : "N/A";
           extensionReason = item.remarks || "No reason provided";
-        } else if (item.status === "accept" || item.status === "accepted") {
+        } else if (rawStatus === "accept" || rawStatus === "accepted" || rawStatus === "accepts") {
           status = "Accepts";
-        } else if (item.status === "decline" || item.status === "rejected") {
+        } else if (rawStatus === "decline" || rawStatus === "declined" || rawStatus === "rejected" || rawStatus === "reject") {
           status = "Rejected";
-        } else if (item.status === "completed") {
+        } else if (rawStatus === "completed") {
           status = "Completed";
+        } else if (rawStatus === "extension_approved") {
+          status = "Extension Approved";
+        } else if (rawStatus === "extension_rejected" || rawStatus === "extension_denied") {
+          status = "Extension Rejected";
         }
 
         return {
