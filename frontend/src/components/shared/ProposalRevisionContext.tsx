@@ -17,7 +17,10 @@ import {
   type RevisionContextBudgetVersion,
 } from '../../services/proposal.api';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
+<<<<<<< Updated upstream
 import { openSignedUrl } from '../../utils/signed-url';
+=======
+>>>>>>> Stashed changes
 import SkeletonPulse from './SkeletonPulse';
 
 interface ProposalRevisionContextProps {

@@ -110,6 +110,7 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
     }
   }
 
+<<<<<<< Updated upstream
   // Which year(s) to render. "All" stacks every year vertically.
   const yearsToRender: number[] = activeYear === null
     ? Array.from({ length: yearCount }, (_, i) => i + 1)
@@ -195,6 +196,10 @@ export default function FinancialReportModal({ fundedProjectId, projectTitle, on
 
   const modalContent = (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 p-4">
+=======
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
+>>>>>>> Stashed changes
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-white">
