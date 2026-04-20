@@ -57,6 +57,35 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onOpenLibImport,
   autoFilledFields = new Set(),
 }) => {
+  // Subcategory reference popover — codex-recommended: show the valid labels right at the
+  // download step (before opening the file in Word), lazy-loaded from the live admin catalog.
+  const [showSubcategoryPopover, setShowSubcategoryPopover] = useState(false);
+  const [subcategoryList, setSubcategoryList] = useState<{
+    ps: BudgetSubcategory[];
+    mooe: BudgetSubcategory[];
+    co: BudgetSubcategory[];
+  } | null>(null);
+  const [loadingSubcategoryList, setLoadingSubcategoryList] = useState(false);
+
+  const handleToggleSubcategoryPopover = async () => {
+    const next = !showSubcategoryPopover;
+    setShowSubcategoryPopover(next);
+    if (next && !subcategoryList && !loadingSubcategoryList) {
+      setLoadingSubcategoryList(true);
+      try {
+        const [ps, mooe, co] = await Promise.all([
+          fetchBudgetSubcategories('ps'),
+          fetchBudgetSubcategories('mooe'),
+          fetchBudgetSubcategories('co'),
+        ]);
+        setSubcategoryList({ ps, mooe, co });
+      } catch {
+        /* leave null; retry on next toggle */
+      } finally {
+        setLoadingSubcategoryList(false);
+      }
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     const num = Number(amount) || 0;
@@ -185,6 +214,52 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   </p>
                 </div>
               </button>
+            </div>
+
+            {/* Subcategory reference popover — placed under the two step cards so proponents
+                can peek at valid labels BEFORE opening the template in Word. Lazy-loaded live
+                from the admin catalog. Clicking outside (on the panel background) closes it via
+                the onClick handler on the wrapping div. */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleToggleSubcategoryPopover}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#C8102E] hover:text-[#9d0d24] hover:underline underline-offset-2"
+              >
+                <FaListUl className="w-3 h-3" />
+                {showSubcategoryPopover ? 'Hide' : 'View'} valid subcategories
+                <span className="text-gray-400 font-normal">(so you know what to type in the Subcategory column)</span>
+              </button>
+
+              {showSubcategoryPopover && (
+                <div className="mt-2 p-3 bg-white rounded-lg border border-[#C8102E]/30 shadow-sm">
+                  {loadingSubcategoryList && (
+                    <div className="text-xs text-gray-500 py-2 text-center">Loading latest list…</div>
+                  )}
+                  {!loadingSubcategoryList && subcategoryList && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      {(['ps', 'mooe', 'co'] as const).map((cat) => (
+                        <div key={cat}>
+                          <div className="font-bold text-[#C8102E] uppercase text-[10px] tracking-wider mb-1">
+                            {cat === 'ps' ? 'Personnel Services' : cat === 'mooe' ? 'MOOE' : 'Capital Outlay'}
+                          </div>
+                          <ul className="space-y-0.5 text-gray-700">
+                            {subcategoryList[cat].map((s) => (
+                              <li key={s.id}>• {s.label}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!loadingSubcategoryList && !subcategoryList && (
+                    <div className="text-xs text-red-600 py-2 text-center">Could not load subcategories. Try again shortly.</div>
+                  )}
+                  <p className="text-[10px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                    These are the official WMSU subcategories. You can also leave the Subcategory column blank and pick from the dropdown after import.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
