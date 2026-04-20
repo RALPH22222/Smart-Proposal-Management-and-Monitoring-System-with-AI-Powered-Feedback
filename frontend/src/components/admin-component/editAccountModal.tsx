@@ -59,6 +59,14 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
 
   const handleRoleToggle = (roleValue: string) => {
     setFormData(prev => {
+      if (roleValue === "admin") {
+        return { ...prev, roles: prev.roles.includes("admin") ? [] : ["admin"] };
+      }
+      
+      if (prev.roles.includes("admin")) {
+        return { ...prev, roles: [roleValue] };
+      }
+
       const newRoles = prev.roles.includes(roleValue)
         ? prev.roles.filter(r => r !== roleValue)
         : [...prev.roles, roleValue];
@@ -213,7 +221,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ isOpen, onClose, us
                 })}
               </div>
               <p className="mt-2 text-xs text-slate-500 italic">
-                * Select one or more roles. This will add or update the user's access across the platform.
+                * Select one or more roles. Note: The Admin role cannot be combined with other roles.
               </p>
             </div>
           </div>

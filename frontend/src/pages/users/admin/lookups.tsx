@@ -180,6 +180,7 @@ const Lookups: React.FC = () => {
   const [activeTab, setActiveTab] = useState<LookupTable>("departments");
   const [items, setItems] = useState<LookupItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Inline editing
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -212,6 +213,7 @@ const Lookups: React.FC = () => {
       setItems([]);
     } finally {
       setIsLoading(false);
+      setIsInitialLoad(false);
     }
   }, []);
 
@@ -220,6 +222,7 @@ const Lookups: React.FC = () => {
     setIsAdding(false);
     setNewName("");
     setExpandedAgencyId(null);
+    setItems([]);
     fetchItems(activeTab);
   }, [activeTab, fetchItems]);
 
@@ -290,7 +293,7 @@ const Lookups: React.FC = () => {
   const isAgencies = activeTab === "agencies";
   const activeConfig = TABS.find(t => t.key === activeTab)!;
 
-  if (isLoading && items.length === 0) {
+  if (isInitialLoad) {
     return <PageLoader mode="lookup" />;
   }
 

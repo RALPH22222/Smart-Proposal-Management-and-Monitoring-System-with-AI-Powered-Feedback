@@ -196,8 +196,8 @@ export default function DashboardAdmin({ stats, loading, error, onRefresh }: Das
               label: "Evaluation Completion",
               value: `${stats.kpi.evaluation_completion_rate}%`,
               description: "Evaluators who completed review",
-              color: stats.kpi.evaluation_completion_rate >= 70 ? "text-purple-600" : stats.kpi.evaluation_completion_rate >= 40 ? "text-amber-600" : "text-red-500",
-              bgColor: stats.kpi.evaluation_completion_rate >= 70 ? "bg-purple-50 border-purple-200" : stats.kpi.evaluation_completion_rate >= 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200",
+              color: stats.kpi.evaluation_completion_rate >= 70 ? "text-purple-600" : stats.kpi.evaluation_completion_rate >= 40 ? "text-purple-600" : "text-purple-500",
+              bgColor: stats.kpi.evaluation_completion_rate >= 70 ? "bg-purple-50 border-purple-200" : stats.kpi.evaluation_completion_rate >= 40 ? "bg-purple-50 border-purple-200" : "bg-purple-50 border-purple-200",
               icon: Users,
             },
             {
