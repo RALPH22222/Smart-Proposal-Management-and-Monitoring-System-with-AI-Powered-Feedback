@@ -2696,8 +2696,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                   <div className="rounded-lg border border-slate-100">
                                     <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
                                         <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
                                         <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
@@ -2705,8 +2705,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <tbody className="divide-y divide-slate-50">
                                         {budget.breakdown.ps.map((item, i) => (
                                           <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{item.specifications || '—'}</td>
                                             <td className="px-3 py-2 text-slate-600 text-center font-mono">
                                               {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
@@ -2728,8 +2728,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                   <div className="rounded-lg border border-slate-100">
                                     <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
                                         <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
                                         <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
@@ -2737,8 +2737,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <tbody className="divide-y divide-slate-50">
                                         {budget.breakdown.mooe.map((item, i) => (
                                           <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{item.specifications || '—'}</td>
                                             <td className="px-3 py-2 text-slate-600 text-center font-mono">
                                               {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
@@ -2760,8 +2760,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                   <div className="rounded-lg border border-slate-100">
                                     <table className="w-full text-xs table-fixed">
                                       <thead><tr className="bg-slate-50 border-b border-slate-100">
-                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[20%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Subcategory</th>
+                                        <th className="w-[30%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Item</th>
                                         <th className="w-[15%] text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Spec / Volume</th>
                                         <th className="w-[20%] text-center px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Qty × Unit Price</th>
                                         <th className="w-[15%] text-right px-3 py-2 font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
@@ -2769,8 +2769,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                       <tbody className="divide-y divide-slate-50">
                                         {budget.breakdown.co.map((item, i) => (
                                           <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{item.subcategory || '—'}</td>
+                                            <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{item.item || '—'}</td>
                                             <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{item.specifications || '—'}</td>
                                             <td className="px-3 py-2 text-slate-600 text-center font-mono">
                                               {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} × ₱${Number(item.unitPrice || 0).toLocaleString()}` : '—'}
