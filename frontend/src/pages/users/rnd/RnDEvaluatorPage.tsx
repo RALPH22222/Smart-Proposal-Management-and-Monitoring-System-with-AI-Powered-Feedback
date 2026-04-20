@@ -15,7 +15,7 @@ import Swal from "sweetalert2";
 
 import RnDEvaluatorPageModal from "../../../components/rnd-component/RnDEvaluatorPageModal";
 import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvaluatorPageModal";
-import { getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator } from "../../../services/proposal.api";
+import { getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator, invalidateProposalCache } from "../../../services/proposal.api";
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
 
@@ -89,16 +89,42 @@ export const RnDEvaluatorPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Force fresh data — clear cached tracker + proposal data
+      invalidateProposalCache();
+
       // 1. Fetch all proposals visible to R&D
       const proposals = await getRndProposals();
       console.log("RND Proposals:", proposals);
+      console.log("RND Proposals statuses:", proposals.map((p: any) => ({ id: p.id, status: p.status, title: p.project_title?.slice(0, 30) })));
 
       // 2. Fetch ALL assignment tracker data in a single call (no N+1)
       const allAssignments: any[] = await getAllAssignmentTrackers();
+      console.log("allAssignments sample:", allAssignments.slice(0, 5).map((a: any) => ({ pid: a.proposal_id?.id, pidType: typeof a.proposal_id?.id, evalId: a.evaluator_id?.id, status: a.status, deadline: a.deadline })));
 
       // Group by Proposal
       const groupedMap = new Map<number, GroupedAssignment>();
 
+      // ── Step A: Pre-seed the map from proposals so that proposals with
+      // under_evaluation status always appear even with 0 tracker records.
+      proposals.forEach((p: any) => {
+        const pid = Number(p.id);
+        if (!pid || !p.status) return;
+        if (["under_evaluation", "review_rnd", "pending", "revised_proposal"].includes(p.status)) {
+          groupedMap.set(pid, {
+            proposalIdNumeric: pid,
+            proposalTitle: p.project_title || "Untitled Proposal",
+            proposalStatus: p.status,
+            projectType: p.sector?.name || "N/A",
+            deadline: new Date().toISOString(),
+            submittedDate: p.created_at ? new Date(p.created_at).toISOString() : new Date().toISOString(),
+            tags: p.proposal_tags?.map((t: any) => t.tags?.name).filter((t: string) => !!t) || [],
+            evaluators: [],
+          });
+        }
+      });
+      console.log("groupedMap after proposals pre-seed:", Array.from(groupedMap.keys()));
+
+      // ── Step B: Merge tracker records on top (adds evaluators & fixes deadlines)
       allAssignments.forEach((item: any) => {
         // Robust check for missing relations
         if (!item || !item.proposal_id || !item.evaluator_id) {
