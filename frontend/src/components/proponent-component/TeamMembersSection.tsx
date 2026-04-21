@@ -3,6 +3,7 @@ import { Users, UserPlus, Trash2, Crown, UserCheck, Clock, ShieldAlert } from "l
 import Swal from "sweetalert2";
 import { fetchProjectMembers, removeMember, type ProjectMemberData } from "../../services/ProjectMemberApi";
 import InviteMemberModal from "./InviteMemberModal";
+import SecureImage from "../shared/SecureImage";
 
 interface TeamMembersSectionProps {
   fundedProjectId: number;
@@ -12,6 +13,7 @@ interface TeamMembersSectionProps {
     first_name: string;
     last_name: string;
     email: string;
+    profile_photo_url?: string | null;
   };
 }
 
@@ -149,9 +151,18 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
           {projectLead && (
             <div className="flex items-center justify-between px-5 py-3 bg-[#FFF5F7] border-l-4 border-[#C8102E]">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-full bg-[#C8102E] flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm border border-[#A50D26]/20">
-                  {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
-                </div>
+                {projectLead.profile_photo_url ? (
+                  <SecureImage
+                    src={projectLead.profile_photo_url}
+                    fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(`${projectLead.first_name} ${projectLead.last_name}`)}&background=C8102E&color=fff&size=128`}
+                    alt={`${projectLead.first_name} ${projectLead.last_name}`}
+                    className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm border border-gray-200"
+                  />
+                ) : (
+                  <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(projectLead.email)}`}>
+                    {getInitials(projectLead.first_name, projectLead.last_name, projectLead.email)}
+                  </div>
+                )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-semibold text-gray-900 truncate">
@@ -183,9 +194,18 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(member.user.email)}`}>
-                      {getInitials(member.user.first_name, member.user.last_name, member.user.email)}
-                    </div>
+                    {member.user.profile_photo_url ? (
+                      <SecureImage
+                        src={member.user.profile_photo_url}
+                        fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(`${member.user.first_name} ${member.user.last_name}`)}&background=C8102E&color=fff&size=128`}
+                        alt={`${member.user.first_name} ${member.user.last_name}`}
+                        className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm border border-gray-200"
+                      />
+                    ) : (
+                      <div className={`w-9 h-9 rounded-full border flex items-center justify-center text-sm font-bold shrink-0 ${getAvatarColor(member.user.email)}`}>
+                        {getInitials(member.user.first_name, member.user.last_name, member.user.email)}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">
                         {member.user.first_name || member.user.last_name

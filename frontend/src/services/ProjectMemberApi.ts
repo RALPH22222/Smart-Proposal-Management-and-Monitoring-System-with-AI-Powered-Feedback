@@ -16,6 +16,7 @@ export interface ProjectMemberData {
     first_name: string;
     last_name: string;
     email: string;
+    profile_photo_url?: string | null;
   };
 }
 
