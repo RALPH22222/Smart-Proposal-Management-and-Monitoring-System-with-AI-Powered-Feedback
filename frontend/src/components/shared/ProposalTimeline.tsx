@@ -41,6 +41,21 @@ const getActionConfig = (action: string) => {
   return ACTION_CONFIG[action] || { label: action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: Clock, color: 'text-slate-500', bg: 'bg-slate-100' };
 };
 
+// Internal fields logged for audit purposes that should never be surfaced in the user-facing timeline
+// (raw UUIDs, internal counters, load balancing metrics, etc).
+const HIDDEN_DETAIL_KEYS = new Set([
+  'rnd_id',
+  'to_rnd_id',
+  'from_rnd_id',
+  'user_id',
+  'evaluator_id',
+  'proponent_id',
+  'rnd_count',
+  'rnd_load',
+  'disabled_user_id',
+  'new_rnd_id',
+]);
+
 interface ProposalTimelineProps {
   proposalId: number | string;
   onClose?: () => void;
@@ -134,7 +149,15 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
         {events.map((event, index) => {
           const config = getActionConfig(event.action);
           const Icon = config.icon;
-          const hasDetails = event.details && Object.keys(event.details).length > 0;
+          const visibleDetailEntries = event.details
+            ? Object.entries(event.details).filter(
+                ([key, value]) =>
+                  value !== null &&
+                  value !== undefined &&
+                  !HIDDEN_DETAIL_KEYS.has(key),
+              )
+            : [];
+          const hasDetails = visibleDetailEntries.length > 0;
           const isExpanded = expandedIds.has(event.id);
           const isFirst = index === 0;
           const isLast = index === events.length - 1;
@@ -190,8 +213,7 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
                 {/* Expanded details */}
                 {hasDetails && isExpanded && (
                   <div className="mt-2 p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-600 space-y-1">
-                    {Object.entries(event.details).map(([key, value]) => {
-                      if (value === null || value === undefined) return null;
+                    {visibleDetailEntries.map(([key, value]) => {
                       const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                       const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
                       return (
