@@ -16,6 +16,7 @@ interface ProjectLambdasProps {
   smtpUser: string;
   smtpPass: string;
   stageName: string;
+  rateLimitsTableName: string;
 }
 
 export class ProjectLambdas extends NestedStack {
@@ -65,14 +66,21 @@ export class ProjectLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProjectLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, supabaseServiceRoleKey, frontendUrl, smtpHost, smtpUser, smtpPass, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, supabaseServiceRoleKey, frontendUrl, smtpHost, smtpUser, smtpPass, stageName, rateLimitsTableName } = props;
 
     const defaults = {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass, TZ: "Asia/Manila" };
+    const sharedEnv = {
+      SUPABASE_KEY: supabaseKey,
+      SMTP_HOST: smtpHost,
+      SMTP_USER: smtpUser,
+      SMTP_PASS: smtpPass,
+      TZ: "Asia/Manila",
+      RATE_LIMITS_TABLE: rateLimitsTableName,
+    };
 
     const simple = (id: string, fnName: string, handler: string) =>
       new NodejsFunction(this, id, {

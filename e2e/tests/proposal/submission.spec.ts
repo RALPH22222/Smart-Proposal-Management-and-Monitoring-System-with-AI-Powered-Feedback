@@ -52,7 +52,13 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
     // (3) Basic Info — auto-fill covered everything except tags and
     // (post-taxonomy-rewrite) possibly the strict Funding Agency.
     await form.ensureFundingAgencyPicked();
-    await form.autoGenerateTags();
+    // Pick a real tag from the dropdown instead of using Auto-generate.
+    // The AI Auto-generate has a fallback path (basicInfo.tsx:572-588)
+    // that synthesizes a fake tag_id=Date.now() when the AI service
+    // fails AND no "Other" tag exists in the tags table — that fake id
+    // then FK-violates on submit (proposal_tags_tag_fk). Dropdown picks
+    // use real tag.id values from the preloaded lookup.
+    await form.pickFirstTagFromDropdown();
 
     // (4) Research Details — add 1 implementation site, and backstop
     // sector/discipline/priorities in case auto-fill's fuzzy match
@@ -180,7 +186,13 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
     const projectTitle = `${await form.getProjectTitle()} (with Form 3)`;
 
     await form.ensureFundingAgencyPicked();
-    await form.autoGenerateTags();
+    // Pick a real tag from the dropdown instead of using Auto-generate.
+    // The AI Auto-generate has a fallback path (basicInfo.tsx:572-588)
+    // that synthesizes a fake tag_id=Date.now() when the AI service
+    // fails AND no "Other" tag exists in the tags table — that fake id
+    // then FK-violates on submit (proposal_tags_tag_fk). Dropdown picks
+    // use real tag.id values from the preloaded lookup.
+    await form.pickFirstTagFromDropdown();
 
     await form.gotoResearchDetails();
     await form.ensureSectorPicked();
@@ -194,9 +206,12 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
     await form.gotoBudget();
     await form.importLibTemplate(fixtureFile("sample-lib-template.docx"), "E2E GAA-F3");
 
-    // Attach the optional DOST Form 3. We reuse the same DOCX fixture —
-    // the backend only checks MIME/extension/size, not template content.
-    await form.attachWorkPlan(fixtureFile("sample-proposal.docx"));
+    // Attach the optional DOST Form 3. Use a different DOCX than the
+    // main proposal (sample-lib-template.docx) so the S3 upload + any
+    // backend deduplication don't see two files with identical names/
+    // contents. The backend only checks MIME/extension/size, not
+    // template shape, so any valid DOCX is fine here.
+    await form.attachWorkPlan(fixtureFile("sample-lib-template.docx"));
 
     expect(await form.submitButtonEnabled()).toBe(true);
     await form.clickSubmitAndConfirm();
@@ -206,6 +221,10 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
       body: projectTitle,
       contentType: "text/plain",
     });
+    // Stash so downstream admin-view tests can find a proposal with a
+    // work plan attached. Separate env var from E2E_PROPOSAL_TITLE so
+    // each test knows exactly which proposal it's referencing.
+    process.env.E2E_PROPOSAL_WITH_WORKPLAN_TITLE = projectTitle;
   });
 
   test("PROP-SUBMIT-07: strict-taxonomy unmatched fields block Submit until resolved", async ({ loggedInAs }) => {
@@ -245,6 +264,11 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
     const { page } = await loggedInAs("proponent");
     const layout = new ProponentLayout(page);
     await layout.openProfile();
-    await expect(page.getByText(title, { exact: false })).toBeVisible({ timeout: 20_000 });
+    // Use .first() — the auto-filled title is shared by every proposal
+    // this test has ever created (title is extracted from the DOCX by
+    // the AI analyzer, so every run produces the same string). Multiple
+    // matches are the expected state, not a failure. We just need to
+    // verify at least one proposal with this title landed in profile.
+    await expect(page.getByText(title, { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   });
 });

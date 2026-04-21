@@ -580,12 +580,12 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
             <tbody className="divide-y divide-slate-50">
               {items.map((b, i) => (
                 <tr key={i} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{(b.subcategory || b.sub_category) || '—'}</td>
+                  <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{(b.subcategory || b.sub_category || b.budget_subcategory || b.budgetSubcategory || b.custom_subcategory_label) || '—'}</td>
                   <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{b.item || '—'}</td>
-                  <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{(b.specifications || b.spec_volume) || '—'}</td>
+                  <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{(b.specifications || b.spec || b.spec_volume || b.volume) || '—'}</td>
                   <td className="px-3 py-2 text-slate-600 text-center font-mono">
-                    {(b.quantity || b.qty) ? (
-                      `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ${formatCurrency(b.unitPrice || b.unit_price || 0)}`
+                    {(b.quantity || b.qty || b.volume) ? (
+                      `${b.quantity || b.qty || b.volume}${b.unit ? ` ${b.unit}` : ''} × ${formatCurrency(b.unitPrice || b.unit_price || 0)}`
                     ) : '—'}
                   </td>
                   <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">

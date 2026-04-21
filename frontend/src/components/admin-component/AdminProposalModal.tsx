@@ -29,6 +29,7 @@ import {
 import { type Evaluator } from '../../types/evaluator';
 import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserItem, type RejectionSummary, getProposalUploadUrl } from '../../services/proposal.api';
 import { redactFile } from '../../utils/file-redactor';
+import { getSignedFileUrl } from '../../utils/signed-url';
 import SecureImage from '../shared/SecureImage';
 import { formatDate } from '../../utils/date-formatter';
 import PageLoader from '../shared/PageLoader';
@@ -379,10 +380,18 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     setRedactionError(null);
 
     try {
-      // Fetch the original file
-      const response = await fetch(fileUrl);
+      // Fetch the original file. The S3 bucket blocks public access, so a raw
+      // fetch(fileUrl) returns 403 Forbidden → browser surfaces it as
+      // "Failed to fetch" (CORS-opaque) and CloudWatch stays silent because
+      // the request never reaches a Lambda. Route through /files/signed-url
+      // to get a time-limited presigned GET URL that S3 will honor.
+      const signedUrl = await getSignedFileUrl(fileUrl);
+      const response = await fetch(signedUrl);
+      if (!response.ok) {
+        throw new Error(`Could not load the proposal file (HTTP ${response.status}).`);
+      }
       const blob = await response.blob();
-      const fileName = fileUrl.split('/').pop() || 'proposal.pdf';
+      const fileName = fileUrl.split('/').pop()?.split('?')[0] || 'proposal.pdf';
       const originalFile = new File([blob], fileName, { type: blob.type });
 
       // Redact the file

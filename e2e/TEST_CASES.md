@@ -173,17 +173,45 @@ Complete test flow (PROP-SUBMIT-01 and -06):
 | PROP-SUBMIT-07   | edge  | proponent | —                                      | Upload proposal → dismiss AI modal → inspect form                                                                                                                      | Submit disabled; if any of (agency/sector/discipline) didn't match, an amber "couldn't match this to our X list — pick the closest option above" hint is visible |
 | PROP-SUBMIT-08   | happy | proponent | PROP-SUBMIT-01                         | Open Profile tab                                                                                                                                                       | Newly submitted proposal title is listed                                                   |
 
+### 2.1a LIB import variants (`tests/proposal/lib-import.spec.ts`)
+
+Independent of the main submission flow — these open the Budget Section
+tab directly and drive the LIB Import modal in isolation. Seven tests
+cover the three terminal states (success / rejected / parse error) plus
+empty-source-name gating, cancel-without-mutation, and re-import-append.
+
+| Test ID         | Scope | Role      | Preconditions      | Steps                                                                                              | Expected                                                                                |
+| --------------- | ----- | --------- | ------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| LIB-IMPORT-01   | happy | proponent | LIB fixture        | Open modal → attach `sample-lib-template.docx` → set source "LIB-IMPORT-01 GAA" → Import           | Modal closes; new budget source card with that exact name is rendered                   |
+| LIB-IMPORT-02   | error | proponent | proposal fixture   | Open modal → attach `sample-proposal.docx` (wrong template) → wait                                 | "Upload rejected — not the WMSU LIB Template" card + "Download WMSU LIB Template" link; no Import button; budget row count unchanged after Cancel |
+| LIB-IMPORT-03   | error | proponent | —                  | Open modal → attach in-memory 11 MB buffer as `oversized.docx`                                     | Outcome is NOT "ok"; Import button never rendered                                       |
+| LIB-IMPORT-04   | edge  | proponent | LIB fixture        | Open modal → attach valid LIB → clear source name input → re-fill                                  | Import disabled while empty, enabled after re-fill                                      |
+| LIB-IMPORT-05   | edge  | proponent | LIB fixture        | Open modal → attach valid LIB → Cancel                                                             | Modal closes; budget source count unchanged                                             |
+| LIB-IMPORT-06   | happy | proponent | LIB fixture        | Import "LIB-06 First" → cleanup scaffolding → open modal again → import "LIB-06 Second"            | Two budget source cards exist; both named sources present                               |
+| LIB-IMPORT-07   | error | proponent | —                  | Open modal → attach in-memory buffer of random bytes named `.docx`                                 | Outcome ∈ {error, rejected}; Import button never rendered                               |
+
 ### 2.2 RND quality check (`tests/proposal/rnd-quality-check.spec.ts`)
 
 Navigation: click sidebar button **"Proposals"** (→ `?tab=proposals`).
+Decision buttons in the RnDProposalModal: **"Forward to Evaluators"**,
+**"Request Revision"**, **"Reject Proposal"**. Internal state value for
+the first is `'Sent to Evaluators'` — UI text and state value differ.
 
-| Test ID     | Scope | Role | Preconditions                                                        | Steps                                                                            | Expected                                                     |
-| ----------- | ----- | ---- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| RND-QC-01   | happy | rnd  | PROP-SUBMIT-01                                                       | Open Proposals tab                                                               | Submitted proposal is listed                                 |
-| RND-QC-02   | happy | rnd  | PROP-SUBMIT-01                                                       | Open proposal detail; Forward → tick "E2E Evaluator"; deadline +14d; Confirm    | Success toast; status = "under evaluation"                   |
-| RND-QC-03   | edge  | rnd  | `E2E_INCLUDE_COI_TESTS=1`                                            | Attempt to self-assign                                                           | Blocked by COI guard (placeholder — needs env enable)        |
-| RND-QC-04   | happy | rnd  | `E2E_REVISION_PROPOSAL_TITLE` set                                    | Open proposal; Request Revision; fill 5 textareas; Submit                        | Success toast                                                |
-| RND-QC-05   | happy | proponent | RND-QC-04                                                            | Click "Profile"                                                                  | Revision tag + feedback visible                              |
+**Native dialog note:** Forward/Revision validation uses `alert()`, not
+SweetAlert. Tests capture these via `page.on('dialog')` and assert the
+message text, then `.dismiss()`.
+
+| Test ID     | Scope | Role      | Preconditions                      | Steps                                                                                            | Expected                                                                                |
+| ----------- | ----- | --------- | ---------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| RND-QC-01   | happy | rnd       | PROP-SUBMIT-01                     | Open Proposals tab                                                                               | Submitted proposal is listed                                                            |
+| RND-QC-02   | smoke | rnd       | PROP-SUBMIT-01                     | Open proposal detail modal                                                                       | Three decision buttons visible: Forward to Evaluators / Request Revision / Reject Proposal |
+| RND-QC-03   | error | rnd       | PROP-SUBMIT-01                     | Open modal → select Forward to Evaluators → Submit with 0 evaluators picked                     | Native `alert()` fires: "Please assign at least 2 evaluators."                          |
+| RND-QC-04   | error | rnd       | PROP-SUBMIT-01                     | Open modal → Request Revision → Submit with all 4 comment sections empty                        | Native `alert()` fires: "Please provide at least one comment for revision."             |
+| RND-QC-05   | smoke | rnd       | PROP-SUBMIT-01                     | Open modal → click Reject Proposal                                                               | Title Assessment auto-populates with "After careful review of this proposal…" template  |
+| RND-QC-06   | happy | rnd       | PROP-SUBMIT-01                     | Open modal → Forward → tick "E2E Evaluator" + evaluator 2 → deadline +14d → Confirm             | Success toast; status = "under evaluation" (COMMITS state — runs after -03/-04/-05)     |
+| RND-QC-07   | edge  | rnd       | `E2E_INCLUDE_COI_TESTS=1`          | Attempt to self-assign                                                                           | Blocked by COI guard                                                                    |
+| RND-QC-08   | happy | rnd       | `E2E_REVISION_PROPOSAL_TITLE` set  | Open different proposal; Request Revision; fill 5 textareas; Submit                              | Success toast                                                                           |
+| RND-QC-09   | happy | proponent | RND-QC-08                          | Click "Profile"                                                                                  | Revision tag + feedback visible                                                         |
 
 ### 2.3 Evaluator review (`tests/proposal/evaluator-review.spec.ts`)
 
@@ -271,6 +299,34 @@ to the other dashboard. `ProtectedRoute` redirects away.
 | RBAC-ANON-03  | error | —    | Visit `/users/evaluator/evaluatorMainLayout`  | Redirects to `/login` or `/`             |
 | RBAC-ANON-04  | error | —    | Visit `/users/Proponent/ProponentMainLayout`  | Redirects to `/login` or `/`             |
 | RBAC-ANON-05  | smoke | —    | Visit `/`                                     | Landing page renders                     |
+
+---
+
+## 4.5 Admin distribution (`tests/admin/distribution.spec.ts`)
+
+Covers the admin's proposal-distribution UI across three concerns:
+manual assignment via SendToRndModal, **auto-distribute** (load-balanced
+admin-triggered action — NOT automatic on submit), and the proposal-view
+modal's DOST Form 1B / Form 3 file cards.
+
+**Auto-distribute** (backend: `backend/src/handlers/proposal/auto-distribute.ts`)
+is a manual admin action that picks the least-loaded R&D staff in the
+matching department. It's exposed via the page-level "Auto Distribute
+({N})" button (N = count of Pending proposals) — hidden when nothing is
+Pending. Per-row "Distribute" action does the same for a single proposal.
+
+| Test ID        | Scope | Role  | Preconditions                                                  | Steps                                                                                                                       | Expected                                                                                          |
+| -------------- | ----- | ----- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| ADMIN-DIST-01  | smoke | admin | —                                                              | Click Proposals sidebar button                                                                                              | Table/grid (or empty-state text) renders at `?tab=proposals`                                      |
+| ADMIN-DIST-02  | smoke | admin | PROP-SUBMIT-01                                                 | Open Proposals; click the submitted proposal's row action                                                                   | Admin proposal detail modal opens                                                                 |
+| ADMIN-DIST-03  | smoke | admin | Unassigned proposal exists                                     | Click "Send to R&D" trigger; inspect modal structure; Cancel                                                                | 2-step modal; department select + disabled "Assign to R&D" button                                 |
+| ADMIN-DIST-04  | happy | admin | `E2E_INCLUDE_ADMIN_ASSIGN=1` + two R&D staff seeded            | Open SendToRndModal; pick dept + R&D staff; click Assign to R&D                                                             | Proposal row shows assigned R&D staff                                                             |
+| ADMIN-DIST-05  | smoke | admin | —                                                              | Visit Proposals; observe "Auto Distribute ({N})" button                                                                     | If visible, label contains a positive integer; if not visible, zero-state is also valid           |
+| ADMIN-DIST-06  | smoke | admin | ≥1 Pending proposal                                            | Click "Auto Distribute ({N})" → confirmation Swal appears                                                                   | Title "Auto Distribute All?"; Distribute All + Cancel buttons present; Cancel closes cleanly      |
+| ADMIN-DIST-07  | happy | admin | ≥1 Pending proposal                                            | Click "Auto Distribute ({N})"; confirm Distribute All; wait for result                                                      | Swal "Distributed! / N proposal(s) distributed" — COMMITS state (admins' pending count drops)     |
+| ADMIN-DIST-08  | smoke | admin | PROP-SUBMIT-01                                                 | Open the PROP-SUBMIT-01 proposal's view modal                                                                               | "DOST Form 1B" label is visible in the file-cards area                                            |
+| ADMIN-DIST-09  | smoke | admin | PROP-SUBMIT-06 (`E2E_PROPOSAL_WITH_WORKPLAN_TITLE` set)        | Open the PROP-SUBMIT-06 proposal's view modal                                                                               | Both "DOST Form 1B" AND "DOST Form 3" labels visible                                              |
+| ADMIN-DIST-10  | edge  | admin | PROP-SUBMIT-01                                                 | Open the PROP-SUBMIT-01 (no work plan) proposal's view modal                                                                | "DOST Form 1B" visible; "DOST Form 3" card has count 0 (not rendered when `workPlanFileUrl` null) |
 
 ---
 
@@ -384,6 +440,86 @@ or you'll repeat mistakes that have already been caught and fixed.
   onBlur validation wipes the value unless it matches a dropdown
   option exactly — so `.fill("Zamboanga City")` alone will fail.
   Tests must type a prefix, wait for the dropdown, and click a match.
+- **Auto-generate Tags has a phantom-ID fallback** (real product bug).
+  `basicInfo.tsx:572-588`: when the AI tag service fails AND the `tags`
+  table has no row named "Other", the fallback creates
+  `{ id: Date.now(), name: "Other" }` and pushes that phantom id into
+  `formData.tags`. Submission FK-violates:
+  ```
+  proposal_tags upsert failed: insert or update on table "proposal_tags"
+  violates foreign key constraint "proposal_tags_tag_fk"
+  ```
+  Tests MUST use `form.pickFirstTagFromDropdown()` (which picks a real
+  `tag.id` from the preloaded lookup) instead of
+  `form.autoGenerateTags()`. The autoGenerateTags helper remains in the
+  page object for future coverage of the Auto-generate UI itself, but
+  should not be the default way tests satisfy the tags requirement.
+
+- **Don't write vacuous "not ok" assertions.** Three of the four
+  possible LIB-parse outcomes (`rejected`, `error`, `timeout`) all
+  satisfy `outcome !== "ok"` — but only the first two prove the user
+  was shown something actionable. `timeout` means the modal silently
+  swallowed the failure, which is a bug rather than a valid state.
+  Tests asserting "this shouldn't succeed" MUST enumerate the
+  acceptable failure states (`expect(["error", "rejected"]).toContain(
+  outcome)`) AND assert a human-readable message is visible to the
+  user. See LIB-IMPORT-03 for the pattern.
+
+- **Some validation errors use native `alert()`, not SweetAlert.**
+  RnDProposalModal fires `alert("Please assign at least 2 evaluators.")`
+  and `alert("Please provide at least one comment for revision.")` on
+  submit validation failures. Playwright's SweetAlert selector
+  (`.swal2-popup`) will never match these. Capture via the dialog
+  event instead:
+  ```ts
+  const dialogPromise = page.waitForEvent("dialog", { timeout: 10_000 });
+  await submitButton.click();
+  const dialog = await dialogPromise;
+  expect(dialog.message()).toMatch(/at least 2 evaluators/i);
+  await dialog.dismiss();
+  ```
+  Known components using `alert()`: `RnDProposalModal.tsx:423, 436`.
+  Everywhere else the codebase uses `Swal.fire(...)`.
+
+- **Auto-filled proposal titles are duplicated across test runs.** The
+  AI analyzer extracts the same `project_title` from the same DOCX
+  fixture every time, so each PROP-SUBMIT-01 run creates another
+  proposal with an identical title. Over weeks of CI runs, the title
+  will match 5, 10, 50 rows. Any `page.getByText(title, {...})` without
+  `.first()` will hit Playwright's strict-mode violation the moment a
+  second run exists. Every title-based lookup in the suite — whether
+  `getByText(title)` or `locator("tr").filter({ hasText: title })` —
+  **must** end in `.first()` or a stricter selector (e.g., most-recent
+  row). The happy path doesn't need uniqueness; it just needs *at
+  least one* matching proposal to exist.
+
+- **Non-blocking SweetAlerts can block navigation clicks.** Several
+  code paths fire an informational Swal without `timer` and without
+  auto-dismiss — most notably the AI tag auto-generate flow, which
+  raises "API Limit Reached" / "AI Generation Failed" on any
+  non-2xx from the tag service. These Swals sit on top of the page
+  until the user clicks OK, and while visible they block every
+  interaction underneath (including section-tab clicks). Tests that
+  chain UI actions after such a path MUST call
+  `form.dismissAnyLingeringSwal()` before the next click — or rely
+  on `gotoResearchDetails()` / `gotoBudget()`, which already call
+  it defensively.
+
+- **SweetAlert reuses the same DOM element across sequential fires.**
+  The submit flow fires two Swals back-to-back using the same
+  `.swal2-popup` node — first the "Submitting Proposal..." loading
+  spinner (visible while the real Lambda + S3 upload runs, 15–30 s
+  on cold start), then the "Proposal Submitted!" success card.
+  Waiting for the popup to be *visible* is not enough — it's been
+  visible since the loading swal opened. Poll the popup's TEXT and
+  only resolve when the success-state copy lands:
+  ```ts
+  await expect(popup).toContainText(
+    /Proposal Submitted|submitted successfully/i,
+    { timeout: 90_000 },
+  );
+  ```
+
 - **Two inputs share the placeholder `"e.g., GAA, LGUs, Industry"`.**
   The Budget Section's "Source of Funds" input and the LIB import
   modal's "Funding source name" input both use variants of this

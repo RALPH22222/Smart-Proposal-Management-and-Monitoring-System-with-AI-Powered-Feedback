@@ -828,9 +828,13 @@ export const handleExtensionRequest = async (input: HandleExtensionPayload): Pro
 };
 
 export const removeEvaluator = async (proposalId: number, evaluatorId: string): Promise<any> => {
+  // Send identifiers as query params, not body. DELETE-with-body is fragile —
+  // Vercel rewrites and some API Gateway configurations drop or mangle the
+  // body on DELETE, which caused the backend to receive undefined fields and
+  // fail Zod validation with a 400. Query params are preserved by every
+  // proxy layer and match HTTP semantics for DELETE.
   const { data } = await api.delete("/proposal/evaluator", {
-    // @ts-ignore
-    data: { proposal_id: proposalId, evaluator_id: evaluatorId },
+    params: { proposal_id: proposalId, evaluator_id: evaluatorId },
     withCredentials: true,
   });
   invalidateProposalCache();

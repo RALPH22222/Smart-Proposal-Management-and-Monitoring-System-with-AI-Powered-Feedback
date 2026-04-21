@@ -16,6 +16,7 @@ interface AuthLambdasProps {
   smtpPass: string;
   frontendUrl: string;
   stageName: string;
+  rateLimitsTableName: string;
 }
 
 export class AuthLambdas extends NestedStack {
@@ -34,8 +35,12 @@ export class AuthLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: AuthLambdasProps) {
     super(scope, id);
-    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, smtpHost, smtpUser, smtpPass, frontendUrl, stageName } =
+    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, smtpHost, smtpUser, smtpPass, frontendUrl, stageName, rateLimitsTableName } =
       props;
+    // Destructured but only required for future inline-env extensions. For now
+    // we don't rate-limit any auth handler yet (planned: login/signup/otp); the
+    // parent stack still grants IAM + table name so the env is ready when we add it.
+    void rateLimitsTableName;
 
     const defaults = {
       memorySize: 128,

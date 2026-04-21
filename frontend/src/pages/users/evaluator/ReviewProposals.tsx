@@ -45,19 +45,30 @@ export default function EndorsedProposals() {
           breakdown: { ps: any[], mooe: any[], co: any[] }
         }> = {};
 
-        (p.estimated_budget || []).forEach((b: any) => {
-          const src = b.source || 'Unknown';
+        const parseAmount = (val: any) => {
+          if (typeof val === "string") return parseFloat(val.replace(/,/g, "")) || 0;
+          return Number(val) || 0;
+        };
+
+        const rawBudgets =
+          (p.proposal_budget_versions?.length > 0 &&
+            p.proposal_budget_versions[p.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+          p.estimated_budget ||
+          [];
+
+        rawBudgets.forEach((b: any) => {
+          const src = b.source || b.funding_agency || 'Unknown';
           if (!budgetSourcesMap[src]) {
             budgetSourcesMap[src] = { ps: 0, mooe: 0, co: 0, breakdown: { ps: [], mooe: [], co: [] } };
           }
 
-          const amount = Number(b.amount) || 0;
-          const itemLabel = b.object || b.item || 'Unspecified Item';
-          const subcategory = b.subcategory || b.sub_category;
-          const specifications = b.specifications || b.spec_volume;
-          const quantity = b.quantity || b.qty;
+          const amount = parseAmount(b.total_amount ?? b.totalAmount ?? b.amount);
+          const itemLabel = b.object || b.item || b.itemName || b.item_description || b.item_name || 'Unspecified Item';
+          const subcategory = b.subcategory || b.sub_category || (Array.isArray(b.budget_subcategories) ? b.budget_subcategories[0]?.label : b.budget_subcategories?.label) || b.custom_subcategory_label;
+          const specifications = b.specifications || b.spec || b.spec_volume || b.volume;
+          const quantity = b.quantity || b.qty || b.volume;
           const unit = b.unit;
-          const unitPrice = b.unit_price || b.unitPrice;
+          const unitPrice = parseAmount(b.unit_price ?? b.unitPrice);
           const rawType = (b.budget || '').toLowerCase();
 
           let cat: 'ps' | 'mooe' | 'co' = 'mooe';
@@ -78,10 +89,9 @@ export default function EndorsedProposals() {
           breakdown: amounts.breakdown,
         }));
 
-        const totalBudgetVal = (p.estimated_budget || []).reduce(
-          (acc: number, curr: any) => acc + (curr.amount || 0),
-          0,
-        );
+        const totalBudgetVal = rawBudgets.reduce((acc: number, curr: any) => {
+          return acc + parseAmount(curr.total_amount ?? curr.totalAmount ?? curr.amount);
+        }, 0);
 
         return {
           id: p.id,

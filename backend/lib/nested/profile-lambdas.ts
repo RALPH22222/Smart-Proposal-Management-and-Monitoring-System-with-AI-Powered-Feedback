@@ -12,6 +12,7 @@ interface ProfileLambdasProps {
   supabaseKey: string;
   supabaseSecretJwt: string;
   stageName: string;
+  rateLimitsTableName: string;
 }
 
 export class ProfileLambdas extends NestedStack {
@@ -22,7 +23,7 @@ export class ProfileLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProfileLambdasProps) {
     super(scope, id);
-    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, stageName } = props;
+    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, stageName, rateLimitsTableName } = props;
 
     const defaults = {
       memorySize: 128,
@@ -31,7 +32,7 @@ export class ProfileLambdas extends NestedStack {
       role: sharedRole,
     };
     const TZ = "Asia/Manila";
-    const envVars = { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt, TZ };
+    const envVars = { SUPABASE_KEY: supabaseKey, SUPABASE_SECRET_JWT: supabaseSecretJwt, TZ, RATE_LIMITS_TABLE: rateLimitsTableName };
 
     this.getProfile = new NodejsFunction(this, "get-profile", {
       ...defaults,

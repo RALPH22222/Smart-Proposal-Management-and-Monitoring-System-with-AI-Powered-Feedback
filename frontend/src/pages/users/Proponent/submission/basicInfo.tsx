@@ -569,19 +569,22 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
       }
 
       if (newSelectedTags.length === 0) {
-        let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
-        if (!otherTag) {
-          otherTag = { id: Date.now(), name: "Other" };
-          setTagsList(prev => {
-            if (!prev.find(p => p.name === "Other")) {
-              return [...prev, otherTag as { id: number; name: string }];
-            }
-            return prev;
-          });
-        }
-        if (otherTag && !newSelectedTags.includes(otherTag.name)) {
+        // Strict enum — admin owns the tag list. If an "Other" row exists we
+        // use it; if not, we surface a toast instead of fabricating a fake id
+        // (the old behavior silently poisoned formData.tags with a timestamp,
+        // which passed client-side validation but crashed the backend insert
+        // with proposal_tags_tag_fk).
+        const otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
+        if (otherTag) {
           newSelectedTags.push(otherTag.name);
           newTagIds.push(otherTag.id);
+        } else {
+          Swal.fire({
+            title: "No matching tags found",
+            text: "The AI couldn't match any existing tag to your project title. Please pick a tag from the list manually, or ask admin to add an \"Other\" tag to the system.",
+            icon: "info",
+            confirmButtonColor: "#C8102E",
+          });
         }
       }
 
@@ -608,17 +611,15 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
         });
       }
 
-      // Fallback to "Other"
-      let otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
-      if (!otherTag) {
-        otherTag = { id: Date.now(), name: "Other" };
-        setTagsList(prev => {
-          if (!prev.find(p => p.name === "Other")) return [...prev, otherTag as { id: number; name: string }];
-          return prev;
-        });
+      // Fallback to a real admin-seeded "Other" tag only. Never fabricate an id.
+      const otherTag = tagsList.find(t => t.name.toLowerCase() === "other");
+      if (otherTag) {
+        setSelectedTags([otherTag.name]);
+        onUpdate("tags", [otherTag.id]);
       }
-      setSelectedTags([otherTag.name]);
-      onUpdate("tags", [otherTag.id]);
+      // If admin hasn't seeded "Other", leave tags empty — the form will stay
+      // invalid and the proponent picks manually. The earlier Swal already
+      // informed them the AI service failed.
 
     } finally {
       setIsGeneratingTags(false);

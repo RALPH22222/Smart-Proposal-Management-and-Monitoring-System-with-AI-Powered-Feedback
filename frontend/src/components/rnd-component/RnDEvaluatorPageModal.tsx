@@ -169,18 +169,24 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   const initiateRemove = async (evaluator: EvaluatorOption) => {
     const result = await Swal.fire({
       title: 'Remove Evaluator?',
-      html: `Are you sure you want to remove <strong>${evaluator.name}</strong> from this assignment?`,
+      html: `Mark <strong>${evaluator.name}</strong> for removal? The change will be applied when you click <strong>Save Changes</strong>.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#DC2626',
       cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Yes, Remove',
+      confirmButtonText: 'Mark for Removal',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
     });
     if (result.isConfirmed) {
       setCurrentList(prev => prev.filter(ev => ev.id !== evaluator.id));
-      Swal.fire({ title: 'Removed!', text: `${evaluator.name} has been removed.`, icon: 'success', timer: 2000, showConfirmButton: false });
+      Swal.fire({
+        title: 'Marked for removal',
+        text: `${evaluator.name} will be removed when you click Save Changes.`,
+        icon: 'info',
+        timer: 2500,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -191,10 +197,10 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     if (newEvaluatorUser && originalEvaluator) {
       const result = await Swal.fire({
         title: 'Replace Evaluator?',
-        html: `Replace <strong>${originalEvaluator.name}</strong> with <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong>?`,
+        html: `Mark <strong>${originalEvaluator.name}</strong> for replacement with <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong>? The change will be applied when you click <strong>Save Changes</strong>.`,
         icon: 'question', showCancelButton: true,
         confirmButtonColor: '#C8102E', cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Yes, Replace', cancelButtonText: 'Cancel', reverseButtons: true,
+        confirmButtonText: 'Mark for Replacement', cancelButtonText: 'Cancel', reverseButtons: true,
       });
       if (result.isConfirmed) {
         setCurrentList(prev => prev.map(ev => ev.id === originalId ? {
@@ -204,7 +210,13 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           status: 'Pending',
           photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         } : ev));
-        Swal.fire({ title: 'Replaced!', text: 'Evaluator successfully replaced.', icon: 'success', timer: 2000, showConfirmButton: false });
+        Swal.fire({
+          title: 'Marked for replacement',
+          text: 'The change will be applied when you click Save Changes.',
+          icon: 'info',
+          timer: 2500,
+          showConfirmButton: false,
+        });
         setReplacementTargetId(null);
         setReplaceSearch('');
       }
@@ -217,12 +229,12 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
 
     const result = await Swal.fire({
       title: 'Add Evaluator?',
-      html: `Add <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong> to this assignment?`,
+      html: `Mark <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong> for addition to this assignment? The change will be applied when you click <strong>Save Changes</strong>.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#C8102E',
       cancelButtonColor: '#6B7280',
-      confirmButtonText: 'Yes, Add',
+      confirmButtonText: 'Mark for Addition',
       cancelButtonText: 'Cancel',
       reverseButtons: true,
     });
@@ -237,10 +249,38 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         },
       ]);
-      Swal.fire({ title: 'Added!', text: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name} has been added.`, icon: 'success', timer: 2000, showConfirmButton: false });
+      Swal.fire({
+        title: 'Marked for addition',
+        text: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name} will be added when you click Save Changes.`,
+        icon: 'info',
+        timer: 2500,
+        showConfirmButton: false,
+      });
       setShowAddPanel(false);
       setAddSearch('');
     }
+  };
+
+  // Close with a warning when the user has pending (unsaved) mark-for-
+  // add/remove/replace actions. Stops the "I clicked Remove but nothing
+  // happened" confusion where the user never clicked Save Changes.
+  const handleRequestClose = async () => {
+    if (!hasChanges || isSaving) {
+      onClose();
+      return;
+    }
+    const result = await Swal.fire({
+      title: 'Discard changes?',
+      text: 'You have unsaved evaluator changes. Close anyway?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#DC2626',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: 'Discard',
+      cancelButtonText: 'Keep editing',
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) onClose();
   };
 
   const handleSaveClick = async () => {
@@ -394,7 +434,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleRequestClose}
             className="p-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors flex-shrink-0"
           >
             <X className="w-5 h-5" />
@@ -878,7 +918,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 z-10">
           <button
-            onClick={onClose}
+            onClick={handleRequestClose}
             className="px-4 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium transition-colors text-sm"
           >
             {isEditable ? 'Cancel' : 'Close'}

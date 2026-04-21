@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 // Production: requests go to "/api/*" on the same Vercel origin (wmsu-rdec.com),
 // which Vercel rewrites to the AWS API Gateway. This makes auth cookies first-party
@@ -8,6 +9,24 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true
 });
+
+// 429 throttle toast: de-duplicated so a spam-click burst only shows one alert.
+let lastThrottleAt = 0;
+function showThrottleToast(retryAfterSeconds: number, message?: string) {
+  const now = Date.now();
+  if (now - lastThrottleAt < 2000) return; // squelch back-to-back
+  lastThrottleAt = now;
+  Swal.fire({
+    icon: 'warning',
+    title: 'Too many requests',
+    text:
+      message ??
+      `You're doing that too fast. Please wait ${retryAfterSeconds} second${retryAfterSeconds === 1 ? '' : 's'} and try again.`,
+    confirmButtonColor: '#C8102E',
+    timer: Math.min(retryAfterSeconds * 1000, 5000),
+    timerProgressBar: true,
+  });
+}
 
 // --- Silent token refresh on 401 ---
 
@@ -29,6 +48,16 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // 429 rate-limit: surface the Retry-After window to the user and bail.
+    // Must handle BEFORE the 401 refresh logic so a throttled request never
+    // triggers a token refresh (which itself is throttle-prone).
+    if (error.response?.status === 429) {
+      const retryAfter = Number(error.response.headers?.['retry-after']) || 30;
+      const serverMessage = error.response.data?.message;
+      showThrottleToast(retryAfter, serverMessage);
+      return Promise.reject(error);
+    }
 
     // Detect 401 OR CORS-blocked authorizer response (no response object = browser blocked it)
     const is401 = error.response?.status === 401;

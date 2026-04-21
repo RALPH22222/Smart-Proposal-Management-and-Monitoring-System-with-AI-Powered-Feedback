@@ -28,6 +28,7 @@ import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type Rev
 import Swal from 'sweetalert2';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
 import { redactFile } from '../../utils/file-redactor';
+import { getSignedFileUrl } from '../../utils/signed-url';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
 interface EvaluatorListModalProps {
@@ -506,10 +507,18 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
     setRedactionError(null);
 
     try {
-      // Fetch the original file
-      const response = await fetch(fileUrl);
+      // Fetch the original file. The S3 bucket blocks public access, so a raw
+      // fetch(fileUrl) returns 403 Forbidden → browser surfaces it as
+      // "Failed to fetch" (CORS-opaque) and CloudWatch stays silent because
+      // the request never reaches a Lambda. Route through /files/signed-url
+      // to get a time-limited presigned GET URL that S3 will honor.
+      const signedUrl = await getSignedFileUrl(fileUrl);
+      const response = await fetch(signedUrl);
+      if (!response.ok) {
+        throw new Error(`Could not load the proposal file (HTTP ${response.status}).`);
+      }
       const blob = await response.blob();
-      const fileName = fileUrl.split('/').pop() || 'proposal.pdf';
+      const fileName = fileUrl.split('/').pop()?.split('?')[0] || 'proposal.pdf';
       const originalFile = new File([blob], fileName, { type: blob.type });
 
       // Redact the file

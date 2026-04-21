@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
-import { openProposalFile, getFileName } from "../../utils/signed-url";
+import { openProposalFile, getFileName, downloadSignedUrl } from "../../utils/signed-url";
 import RubricsModal from "./RubricsModal";
 
 const RATING_CRITERIA = {
@@ -254,12 +254,12 @@ export default function ReviewModal({
           <tbody className="divide-y divide-slate-50">
             {items.map((b, i) => (
               <tr key={i} className="hover:bg-slate-50 transition-colors">
-                <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{b.subcategory || b.sub_category || '—'}</td>
+                <td className="px-3 py-2 text-slate-500 break-words whitespace-normal">{b.subcategory || b.sub_category || b.budget_subcategory || b.budgetSubcategory || b.custom_subcategory_label || '—'}</td>
                 <td className="px-3 py-2 text-slate-800 font-medium break-words whitespace-normal">{b.item || '—'}</td>
-                <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{b.specifications || b.spec_volume || '—'}</td>
+                <td className="px-3 py-2 text-slate-500 italic break-words whitespace-normal">{b.specifications || b.spec || b.spec_volume || b.volume || '—'}</td>
                 <td className="px-3 py-2 text-slate-600 text-center font-mono">
-                  {(b.quantity || b.qty)
-                    ? `${b.quantity || b.qty}${b.unit ? ` ${b.unit}` : ''} × ₱${new Intl.NumberFormat('en-PH').format(b.unitPrice || b.unit_price || 0)}`
+                  {(b.quantity || b.qty || b.volume)
+                    ? `${b.quantity || b.qty || b.volume}${b.unit ? ` ${b.unit}` : ''} × ₱${new Intl.NumberFormat('en-PH').format(b.unitPrice || b.unit_price || 0)}`
                     : '—'}
                 </td>
                 <td className="px-3 py-2 text-slate-800 font-semibold text-right whitespace-nowrap">
@@ -333,7 +333,11 @@ export default function ReviewModal({
                     </p>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                <button
+                  onClick={(e) => { e.stopPropagation(); downloadSignedUrl(proposal.projectFile); }}
+                  title="Download"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                >
                   <Download className="w-3 h-3" />
                 </button>
               </div>
