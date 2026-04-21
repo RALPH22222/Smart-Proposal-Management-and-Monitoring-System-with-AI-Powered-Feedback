@@ -31,6 +31,7 @@ import {
   fetchRealignments,
   verifyProjectDocument,
   rejectProjectDocument,
+  invalidateProjectCache,
   type DisplayReport,
   type ProjectDetailData,
   type ApiFundRequest,
@@ -112,6 +113,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const loadDetails = async () => {
     if (!project?.backendId) return;
     setDetailLoading(true);
+    // Reviewers need post-submission data the moment the proponent saves.
+    // The 30s module cache can serve a pre-liquidation snapshot and hide the expense rows.
+    invalidateProjectCache();
     try {
       const [data, frResponse, bs, extReqs, realigns] = await Promise.all([
         fetchProjectDetail(project.backendId),
@@ -555,6 +559,33 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 </div>
               </div>
             )}
+            {(() => {
+              const reportFR = fundRequests.find(
+                fr => fr.year_number === report.year_number
+                  && fr.quarterly_report === report.quarterKey
+                  && fr.status === 'approved',
+              );
+              if (!reportFR || !(reportFR.fund_request_items && reportFR.fund_request_items.length > 0)) return null;
+              const frTotal = reportFR.fund_request_items.reduce((s, i) => s + Number(i.amount || 0), 0);
+              return (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-emerald-800 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" /> Approved Fund Request
+                    </span>
+                    <span className="text-lg font-bold text-emerald-700">₱{frTotal.toLocaleString()}</span>
+                  </div>
+                  <div className="space-y-1">
+                    {reportFR.fund_request_items.map(item => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span className="text-emerald-700">{item.item_name}</span>
+                        <span className="font-mono">₱{Number(item.amount || 0).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
@@ -617,7 +648,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 )}
               </div>
             ) : (
-              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">No expenses recorded for this period.</div>
+              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500">
+                Proponent submitted this report without a liquidation breakdown. Review the proof files below for actual spend details.
+              </div>
             )}
 
             {report.proofs.length > 0 ? (
