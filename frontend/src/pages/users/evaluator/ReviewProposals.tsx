@@ -52,9 +52,30 @@ export default function EndorsedProposals() {
           return Number(val) || 0;
         };
 
+        // Calculate version rank for this specific assignment
+        const versions = (p.proposal_version || [])
+          .slice()
+          .sort((a: any, b: any) => {
+            const at = new Date(a.created_at || 0).getTime();
+            const bt = new Date(b.created_at || 0).getTime();
+            if (at !== bt) return at - bt;
+            return (a.id || 0) - (b.id || 0);
+          });
+        const versionNumber = versions.findIndex((v: any) => v.id === item.proposal_version_id) + 1 || versions.length || 1;
+
+        const sortedBudgetVersions = Array.isArray(p.proposal_budget_versions)
+          ? [...p.proposal_budget_versions].sort(
+              (a: any, b: any) => Number(a?.version_number || 0) - Number(b?.version_number || 0)
+            )
+          : [];
+
+        // Match budget version by rank (versionNumber)
+        const matchingBudgetVersion = sortedBudgetVersions.length >= versionNumber
+          ? sortedBudgetVersions[versionNumber - 1]
+          : (sortedBudgetVersions.length > 0 ? sortedBudgetVersions[sortedBudgetVersions.length - 1] : null);
+
         const rawBudgets =
-          (p.proposal_budget_versions?.length > 0 &&
-            p.proposal_budget_versions[p.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+          matchingBudgetVersion?.proposal_budget_items ||
           p.estimated_budget ||
           [];
 
