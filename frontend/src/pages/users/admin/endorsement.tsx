@@ -38,6 +38,7 @@ import { useAuthContext } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate, formatDateTime } from '../../../utils/date-formatter';
+import { getBudgetCategory } from '../../../utils/budget-category';
 
 const AdminEndorsementPage: React.FC = () => {
   const { user } = useAuthContext();
@@ -85,12 +86,7 @@ const AdminEndorsementPage: React.FC = () => {
       const src = b.source || b.funding_agency || 'Unknown';
       const amount = parseAmount(b.total_amount ?? b.totalAmount ?? b.amount);
       const itemLabel = b.item || b.itemName || b.item_description || b.item_name || 'Unspecified Item';
-      const rawType = (b.budget || b.category || '').toLowerCase();
-
-      let cat: 'ps' | 'mooe' | 'co' = 'mooe';
-      if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
-      else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
-      else if (rawType.includes('mooe')) cat = 'mooe';
+      const cat = getBudgetCategory(b) || 'mooe';
 
       if (!map[src]) map[src] = {
         ps: { items: [], total: 0 },

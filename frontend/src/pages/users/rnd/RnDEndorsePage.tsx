@@ -38,6 +38,7 @@ import { useAuthContext } from '../../../context/AuthContext';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate, formatDateTime } from '../../../utils/date-formatter';
 import { exportToCsv } from '../../../utils/csv-export';
+import { getBudgetCategory } from '../../../utils/budget-category';
 
 const EndorsePage: React.FC = () => {
   const { user } = useAuthContext();
@@ -79,12 +80,7 @@ const EndorsePage: React.FC = () => {
       const src = b.source || 'Unknown';
       const amount = Number(b.amount || b.total_amount) || 0;
       const itemLabel = b.item || b.item_name || 'Unspecified Item';
-      const rawType = (b.budget || b.category || '').toLowerCase();
-
-      let cat: 'ps' | 'mooe' | 'co' = 'mooe';
-      if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
-      else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
-      else if (rawType.includes('mooe')) cat = 'mooe';
+      const cat = getBudgetCategory(b) || 'mooe';
 
       if (!map[src]) map[src] = {
         ps: { items: [], total: 0 },

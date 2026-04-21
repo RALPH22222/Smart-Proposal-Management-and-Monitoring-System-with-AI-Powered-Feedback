@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
+import { getBudgetCategory } from "../../../utils/budget-category";
 import Swal from "sweetalert2";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
@@ -104,7 +105,6 @@ export default function Proposals() {
           const quantity = b.quantity || b.qty || b.volume;
           const unit = b.unit;
           const unitPrice = parseAmount(b.unit_price ?? b.unitPrice);
-          const type = (b.budget || b.item_type || "").toLowerCase();
 
           if (!budgetSourcesMap[src]) {
             budgetSourcesMap[src] = {
@@ -115,9 +115,8 @@ export default function Proposals() {
           }
 
           let cat: "ps" | "mooe" | "co" = "mooe"; // default
-          if (type.includes("ps") || type.includes("personal")) cat = "ps";
-          else if (type.includes("co") || type.includes("capital")) cat = "co";
-          else if (type.includes("mooe")) cat = "mooe";
+          const normalizedCategory = getBudgetCategory(b);
+          if (normalizedCategory) cat = normalizedCategory;
 
           budgetSourcesMap[src][cat].total += amt;
           budgetSourcesMap[src][cat].items.push({ item: itm, amount: amt, subcategory, specifications, quantity, unit, unitPrice });

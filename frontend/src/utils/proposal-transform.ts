@@ -2,6 +2,7 @@
  * Transforms a raw backend proposal object into the shape expected
  * by RndViewModal and AdminViewModal.
  */
+import { getBudgetCategory } from "./budget-category";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -47,8 +48,15 @@ export function transformProposalForModal(raw: any) {
   interface CategoryData { items: any[]; total: number }
   const budgetMap: Record<string, { ps: CategoryData; mooe: CategoryData; co: CategoryData }> = {};
 
+  const sortedBudgetVersions = Array.isArray(raw.proposal_budget_versions)
+    ? [...raw.proposal_budget_versions].sort((a: any, b: any) => Number(a?.version_number || 0) - Number(b?.version_number || 0))
+    : [];
+  const latestBudgetVersion = sortedBudgetVersions.length > 0
+    ? sortedBudgetVersions[sortedBudgetVersions.length - 1]
+    : null;
+
   const rawBudgets =
-    (raw.proposal_budget_versions?.length > 0 && raw.proposal_budget_versions[raw.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+    latestBudgetVersion?.proposal_budget_items ||
     raw.estimated_budget ||
     [];
 
@@ -61,13 +69,7 @@ export function transformProposalForModal(raw: any) {
     const quantity = b.quantity || b.qty;
     const unit = b.unit;
     const unitPrice = b.unit_price || b.unitPrice;
-    const rawType = (b.category || b.item_type || b.budget || "").toLowerCase();
-
-    // Determine category
-    let cat: "ps" | "mooe" | "co" | null = null;
-    if (rawType.includes("ps") || rawType.includes("personal")) cat = "ps";
-    else if (rawType.includes("mooe")) cat = "mooe";
-    else if (rawType.includes("co") || rawType.includes("capital")) cat = "co";
+    const cat = getBudgetCategory(b);
 
     if (!budgetMap[src]) {
       budgetMap[src] = {

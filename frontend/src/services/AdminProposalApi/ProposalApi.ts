@@ -14,6 +14,7 @@ import {
   rejectProposal
 } from '../../services/proposal.api';
 import { api } from '../../utils/axios';
+import { getBudgetCategory } from '../../utils/budget-category';
 
 // Used for manual lookups if the join doesn't return the name
 import { fetchDepartments, type LookupItem } from '../../services/proposal.api';
@@ -158,10 +159,15 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
   // Group budget items by source and category
   const budgetSources: BudgetSource[] = [];
 
+  const sortedBudgetVersions = Array.isArray(data.proposal_budget_versions)
+    ? [...data.proposal_budget_versions].sort((a, b) => Number(a?.version_number || 0) - Number(b?.version_number || 0))
+    : [];
+  const latestBudgetVersion = sortedBudgetVersions.length > 0
+    ? sortedBudgetVersions[sortedBudgetVersions.length - 1]
+    : null;
+
   const rawBudgets =
-    (Array.isArray(data.proposal_budget_versions) && data.proposal_budget_versions.length > 0
-      ? data.proposal_budget_versions[data.proposal_budget_versions.length - 1]?.proposal_budget_items
-      : null) ||
+    latestBudgetVersion?.proposal_budget_items ||
     data.estimated_budget ||
     [];
 
@@ -187,16 +193,12 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
         unitPrice: parseAmount(item.unit_price ?? item.unitPrice),
       };
 
-      // Group by budget category (ps, mooe, co).
-      // New LIB rows (proposal_budget_items) carry the category in `category`;
-      // legacy estimated_budget rows carry it in `budget`. Check both so neither
-      // shape falls through the if/else chain and lands in MOOE by default.
-      const category = (item.category || item.budget || '').toLowerCase();
-      if (category === 'ps' || category.includes('personal')) {
+      const category = getBudgetCategory(item);
+      if (category === 'ps') {
         group.ps.push(budgetItem);
-      } else if (category === 'mooe' || category.includes('maintenance')) {
+      } else if (category === 'mooe') {
         group.mooe.push(budgetItem);
-      } else if (category === 'co' || category.includes('capital')) {
+      } else if (category === 'co') {
         group.co.push(budgetItem);
       } else {
         group.mooe.push(budgetItem);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, getEvaluationScoresFromProposal } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
+import { getBudgetCategory } from "../../../utils/budget-category";
 import {
   FileText,
   Eye,
@@ -113,12 +114,10 @@ export default function ReviewedProposals() {
           const quantity = b.quantity || b.qty || b.volume;
           const unit = b.unit;
           const unitPrice = parseAmount(b.unit_price ?? b.unitPrice);
-          const rawType = (b.budget || '').toLowerCase();
 
           let cat: 'ps' | 'mooe' | 'co' = 'mooe';
-          if (rawType.includes('ps') || rawType.includes('personal')) cat = 'ps';
-          else if (rawType.includes('co') || rawType.includes('capital')) cat = 'co';
-          else if (rawType.includes('mooe')) cat = 'mooe';
+          const normalizedCategory = getBudgetCategory(b);
+          if (normalizedCategory) cat = normalizedCategory;
 
           budgetSourcesMap[src][cat] += amount;
           budgetSourcesMap[src].breakdown[cat].push({ item: itemLabel, amount, subcategory, specifications, quantity, unit, unitPrice });

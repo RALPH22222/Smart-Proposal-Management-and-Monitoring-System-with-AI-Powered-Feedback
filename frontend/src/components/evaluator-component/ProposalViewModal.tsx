@@ -25,6 +25,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
+import { getBudgetCategory } from "../../utils/budget-category";
 import { openProposalFile, downloadSignedUrl, getFileName } from "../../utils/signed-url";
 import { getFileActionMeta } from "../shared/FileActionButton";
 
@@ -145,15 +146,13 @@ export default function ProposalModal({
       const item = b.item || b.item_description || b.item_name || "Unspecified Item";
       const subcategory = b.subcategory || b.sub_category;
       const specifications = b.specifications || b.spec_volume;
-      const type = (b.budget || b.item_type || "").toLowerCase();
       const quantity = b.quantity || b.qty;
       const unit = b.unit;
       const unitPrice = b.unit_price || b.unitPrice;
 
       let cat: "ps" | "mooe" | "co" = "mooe"; // Default to MOOE if unknown
-      if (type.includes("ps") || type.includes("personal")) cat = "ps";
-      else if (type.includes("co") || type.includes("capital")) cat = "co";
-      else if (type.includes("mooe")) cat = "mooe";
+      const normalizedCategory = getBudgetCategory(b);
+      if (normalizedCategory) cat = normalizedCategory;
 
       if (!budgetMap[src]) {
         budgetMap[src] = {

@@ -16,6 +16,7 @@ import { getProposals } from "../../../services/proposal.api";
 import { useLookups } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
 import SkeletonPulse from "../../../components/shared/SkeletonPulse";
+import { getBudgetCategory } from "../../../utils/budget-category";
 
 
 
@@ -384,9 +385,9 @@ const Profile: React.FC = () => {
         }
         const entry = budgetMap.get(source)!;
         const amount = Number(item.total_amount ?? item.amount) || 0;
-        const budgetType = (item.category || item.budget || "").toLowerCase() as "ps" | "mooe" | "co";
+        const budgetType = getBudgetCategory(item);
 
-        if (entry.breakdown[budgetType]) {
+        if (budgetType && entry.breakdown[budgetType]) {
           entry.breakdown[budgetType].push({
             id: item.id,
             item: val(item.item_name || item.item || item.item_description),
