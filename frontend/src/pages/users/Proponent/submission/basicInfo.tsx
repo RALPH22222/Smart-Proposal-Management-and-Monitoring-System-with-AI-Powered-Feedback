@@ -248,12 +248,12 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
     }
   }, [isLoading, agenciesList, tagsList, formData.cooperating_agencies, formData.tags, formData.agency]);
 
-  // Default Email
+  // Default Email — always locked to the logged-in user's email
   useEffect(() => {
-    if (user?.email && !formData.email) {
+    if (user?.email) {
       onUpdate("email", user.email);
     }
-  }, [user]);
+  }, [user?.email]);
 
   // Default Duration
   useEffect(() => {
@@ -733,7 +733,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
             <Calendar1 className={`${YEAR_REGEX.test(String(formData.year ?? "")) ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
              Year <span className="text-red-500">*</span>
             <Tooltip content="Please enter the year (e.g., 2026)" />
-            <AutoFillBadge fieldName="year" autoFilledFields={autoFilledFields} />
+
           </label>
           <input
             type="number"
@@ -1089,7 +1089,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
             <Mail className={`${formData.email ? 'text-green-600' : 'text-gray-400'} w-4 h-4`} />
             Email <span className="text-red-500">*</span>
             <Tooltip content="Your registered email address (from your account)" />
-            <AutoFillBadge fieldName="email" autoFilledFields={autoFilledFields} />
+
           </label>
           <input
             type="email"
