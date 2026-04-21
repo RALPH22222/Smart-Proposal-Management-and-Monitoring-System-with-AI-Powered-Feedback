@@ -44,7 +44,8 @@ import Swal from "sweetalert2";
 import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
 import { getFileActionMeta } from "../shared/FileActionButton";
 import { api } from "../../utils/axios";
-import type { Proposal, BudgetSource } from "../../types/proponentTypes";
+import type { Proposal, BudgetSource, BudgetLineItem } from "../../types/proponentTypes";
+import type { ExpenseItem } from "../../types/proponent-form";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest, fetchBudgetSubcategories, type BudgetSubcategoryDto } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
@@ -54,6 +55,8 @@ import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
 import { fetchProjectMembers, type ProjectMemberData } from "../../services/ProjectMemberApi";
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import SecureImage from "../shared/SecureImage";
+import { LibImportModal } from "../../pages/users/Proponent/submission/budgetSection";
+import { promptBudgetUndo } from "../../utils/budgetUndoPrompt";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -160,6 +163,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [newFile, setNewFile] = useState<File | null>(null);
   // Optional Form 3 (Work & Financial Plan) replacement on revision. Absent = keep existing.
   const [newWorkPlanFile, setNewWorkPlanFile] = useState<File | null>(null);
+  const [isRevisionLibImportOpen, setIsRevisionLibImportOpen] = useState(false);
   const [submittedFiles, setSubmittedFiles] = useState<string[]>([]);
   const [agencyAddresses, setAgencyAddresses] = useState<AddressItem[]>([]);
   const [rejectionComment, setRejectionComment] = useState<string | null>(null);
@@ -429,6 +433,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       setIsEditing(false);
       setNewFile(null);
       setNewWorkPlanFile(null);
+      setIsRevisionLibImportOpen(false);
     }
   }, [isOpen]);
 
@@ -663,6 +668,93 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     });
   };
 
+  const formatBudgetCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 2,
+    }).format(amount);
+
+  const buildImportedBudgetSource = (
+    grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] },
+    sourceName: string,
+  ): BudgetSource => {
+    const toLineItem = (category: "ps" | "mooe" | "co", item: ExpenseItem): BudgetLineItem => ({
+      item: item.itemName,
+      amount: Number(item.totalAmount) || 0,
+      subcategory:
+        item.customSubcategoryLabel?.trim() ||
+        revSubcategories[category].find((option) => option.id === item.subcategoryId)?.label ||
+        "",
+      specifications: item.spec || "",
+      quantity: Number(item.quantity) || 0,
+      unit: item.unit || "",
+      unitPrice: Number(item.unitPrice) || 0,
+    });
+
+    const breakdown = {
+      ps: grouped.ps.map((item) => toLineItem("ps", item)),
+      mooe: grouped.mooe.map((item) => toLineItem("mooe", item)),
+      co: grouped.co.map((item) => toLineItem("co", item)),
+    };
+
+    const sumAmounts = (items: BudgetLineItem[]) =>
+      items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    const psTotal = sumAmounts(breakdown.ps);
+    const mooeTotal = sumAmounts(breakdown.mooe);
+    const coTotal = sumAmounts(breakdown.co);
+    const total = psTotal + mooeTotal + coTotal;
+
+    return {
+      source: sourceName,
+      ps: formatBudgetCurrency(psTotal),
+      mooe: formatBudgetCurrency(mooeTotal),
+      co: formatBudgetCurrency(coTotal),
+      total: formatBudgetCurrency(total),
+      breakdown,
+    };
+  };
+
+  const handleRevisionLibImport = (
+    grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] },
+    sourceName: string,
+  ) => {
+    const importedSource = buildImportedBudgetSource(grouped, sourceName);
+
+    setEditedProposal((prev) => {
+      if (!prev) return prev;
+
+      const currentBudgetSources = Array.isArray(prev.budgetSources) ? prev.budgetSources : [];
+      const first = currentBudgetSources[0];
+      const firstIsEmpty =
+        !!first &&
+        !first.source?.trim() &&
+        (first.breakdown?.ps?.length ?? 0) === 0 &&
+        (first.breakdown?.mooe?.length ?? 0) === 0 &&
+        (first.breakdown?.co?.length ?? 0) === 0;
+
+      const budgetSources = firstIsEmpty
+        ? [importedSource, ...currentBudgetSources.slice(1)]
+        : [...currentBudgetSources, importedSource];
+
+      return {
+        ...prev,
+        budgetSources,
+      };
+    });
+
+    setIsRevisionLibImportOpen(false);
+    Swal.fire({
+      icon: "success",
+      title: "LIB imported",
+      text: `Imported ${grouped.ps.length + grouped.mooe.length + grouped.co.length} line items into "${sourceName}". Review the rows below before submitting your revision.`,
+      confirmButtonColor: "#C8102E",
+      timer: 4000,
+      timerProgressBar: true,
+    });
+  };
+
   const handleBudgetSourceChange = (index: number, value: string) => {
     if (!editedProposal) return;
     const newSources = [...editedProposal.budgetSources];
@@ -670,10 +762,29 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
-  const handleRemoveBudgetItem = (index: number) => {
+  const handleRemoveBudgetItem = async (index: number) => {
     if (!editedProposal) return;
-    const newSources = editedProposal.budgetSources.filter((_, i) => i !== index);
-    setEditedProposal({ ...editedProposal, budgetSources: newSources });
+    const removedSource = editedProposal.budgetSources[index];
+    if (!removedSource) return;
+
+    setEditedProposal((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        budgetSources: prev.budgetSources.filter((_, i) => i !== index),
+      };
+    });
+
+    const shouldUndo = await promptBudgetUndo(removedSource.source);
+    if (!shouldUndo) return;
+
+    setEditedProposal((prev) => {
+      if (!prev) return prev;
+      const budgetSources = [...prev.budgetSources];
+      const restoreIndex = Math.min(index, budgetSources.length);
+      budgetSources.splice(restoreIndex, 0, removedSource);
+      return { ...prev, budgetSources };
+    });
   };
 
   const handleBudgetBreakdownChange = (
@@ -908,6 +1019,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal(proposal);
     setNewFile(null);
     setNewWorkPlanFile(null);
+    setIsRevisionLibImportOpen(false);
     setIsEditing(false);
   };
 
@@ -2991,17 +3103,33 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
               {/* Estimated Budget (Fixed Overflow) */}
               <div className="lg:col-span-3 bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col gap-3 mb-3 sm:flex-row sm:items-center sm:justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                     <HandCoins className="w-4 h-4 text-[#C8102E]" /> Budget Requirements
                   </h3>
                   {canEditBudget && (
-                    <button
-                      onClick={handleAddBudgetItem}
-                      className="flex items-center gap-1 text-xs bg-[#C8102E] text-white px-2 py-1 rounded hover:bg-[#a00c24] transition-colors"
-                    >
-                      <Plus className="w-3 h-3" /> Add Source of Funds
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href="/templates/wmsu-lib-template-v1.docx"
+                        download="wmsu-lib-template-v1.docx"
+                        className="inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                      >
+                        <Download className="w-3 h-3" /> Download LIB Template
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setIsRevisionLibImportOpen(true)}
+                        className="inline-flex items-center gap-1 rounded border border-[#C8102E]/20 bg-[#C8102E]/10 px-2.5 py-1.5 text-xs font-semibold text-[#C8102E] transition-colors hover:bg-[#C8102E]/15"
+                      >
+                        <Upload className="w-3 h-3" /> Import LIB
+                      </button>
+                      <button
+                        onClick={handleAddBudgetItem}
+                        className="inline-flex items-center gap-1 rounded bg-[#C8102E] px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#a00c24]"
+                      >
+                        <Plus className="w-3 h-3" /> Add Source of Funds
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="">
@@ -3435,6 +3563,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {isRevisionLibImportOpen && (
+        <LibImportModal
+          onClose={() => setIsRevisionLibImportOpen(false)}
+          onImport={handleRevisionLibImport}
+        />
       )}
 
       {resolvedFundedProjectId && (

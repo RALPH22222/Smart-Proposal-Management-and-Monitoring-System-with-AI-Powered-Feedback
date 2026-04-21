@@ -18,6 +18,7 @@ import { submitProposal, analyzeProposalWithAI, type FormExtractedFields } from 
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { isValidationError, parseValidationErrors } from "../../../../utils/validationErrors";
+import { promptBudgetUndo } from "../../../../utils/budgetUndoPrompt";
 
 // Lookup Context for matching extracted names to IDs
 import { useLookups } from "../../../../context/LookupContext";
@@ -494,11 +495,26 @@ const Submission: React.FC = () => {
   };
 
 
-  const removeBudgetItem = (id: number) => {
+  const removeBudgetItem = async (id: number) => {
+    const removedIndex = localFormData.budgetItems.findIndex((item: any) => item.id === id);
+    if (removedIndex < 0) return;
+
+    const removedItem = localFormData.budgetItems[removedIndex];
+
     setLocalFormData((prev: any) => ({
       ...prev,
       budgetItems: prev.budgetItems.filter((item: any) => item.id !== id),
     }));
+
+    const shouldUndo = await promptBudgetUndo(removedItem?.source);
+    if (!shouldUndo) return;
+
+    setLocalFormData((prev: any) => {
+      const budgetItems = [...prev.budgetItems];
+      const restoreIndex = Math.min(removedIndex, budgetItems.length);
+      budgetItems.splice(restoreIndex, 0, removedItem);
+      return { ...prev, budgetItems };
+    });
   };
 
   // Generic updater. Logic is now handled inside BudgetSection,
