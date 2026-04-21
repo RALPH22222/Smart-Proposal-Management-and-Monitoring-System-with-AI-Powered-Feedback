@@ -1282,12 +1282,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     )}
                   </div>
                   {extensionPolicyMessage && (
-                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1 w-full overflow-hidden">
+                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-4 py-1 w-full overflow-hidden">
                       <ScrollingBannerText>{extensionPolicyMessage}</ScrollingBannerText>
                     </div>
                   )}
                   {extensionRequest?.status === "rejected" && extensionRequest.review_note && (
-                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-2 py-1 w-full overflow-hidden">
+                    <div className="text-xs text-red-700 bg-red-100 border border-red-200 rounded px-4 py-1 w-full overflow-hidden">
                       <ScrollingBannerText>
                         <span className="font-semibold">Previous request rejected:</span> {extensionRequest.review_note}
                       </ScrollingBannerText>
@@ -1299,7 +1299,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
               {/* Extension approved → Show new deadline */}
               {!isLoadingRevision && hasApprovedExtension && extendedDeadlineDate && !isNotSubmittedMode && (
-                <div className="flex items-center gap-2 text-sm text-green-800 bg-green-50 px-3 py-2 border border-green-200 w-full overflow-hidden">
+                <div className="flex items-center gap-2 text-sm text-green-800 bg-green-50 px-3 py-4 border border-green-200 w-full overflow-hidden">
                   <CheckCircle className="w-4 h-4 shrink-0" />
                   <ScrollingBannerText>
                     <span>Extension Approved — New Deadline: <span className="font-bold">{formatDateTime(extendedDeadlineDate)}</span></span>
@@ -1309,7 +1309,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
               {/* Normal deadline banner (only while deadline is still active and no extension context) */}
               {!isLoadingRevision && !isNotSubmittedMode && !hasApprovedExtension && canSubmitRevision && (
-                <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-2 border border-orange-200 w-full overflow-hidden">
+                <div className="flex items-center gap-2 text-sm text-orange-800 bg-orange-100/50 px-3 py-4 border border-orange-200 w-full overflow-hidden">
                   <CalendarSync className="w-4 h-4 shrink-0" />
                   <ScrollingBannerText>
                     <span>Deadline for Revision: <span className="font-bold">
@@ -2070,6 +2070,13 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 setEditedProposal({ ...editedProposal, classificationDetails: input } as any);
               };
 
+              // Used for standard sub-options (basic, applied, pilot_testing, tech_promotion)
+              // Clears revCustomClassInput so "Other" sentinel is never polluted by a standard value
+              const handleRevSubClassChange = (val: string) => {
+                setRevCustomClassInput("");
+                setEditedProposal({ ...editedProposal, classificationDetails: val } as any);
+              };
+
               const handleRevSectorSelect = (s: LookupItem) => {
                 setRevSectorSearch(s.name);
                 setEditedProposal({ ...editedProposal, sector: s.name } as any);
@@ -2150,7 +2157,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               key={sub}
                               className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput === sub ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
                                 }`}
-                              onClick={() => handleRevClassInputChange(sub)}
+                              onClick={() => handleRevSubClassChange(sub)}
                             >
                               <input type="radio" readOnly checked={currentClassInput === sub} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
                               <span className="ml-2 text-xs font-medium text-gray-700 capitalize">{sub === "basic" ? "Basic Research" : "Applied Research"}</span>
@@ -2161,7 +2168,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                 ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
                               }`}
                             onClick={(e) => {
-                              if ((e.target as HTMLElement).tagName !== "INPUT") handleRevClassInputChange(revCustomClassInput || " ");
+                              if ((e.target as HTMLElement).tagName !== "INPUT") {
+                                handleRevClassInputChange(revCustomClassInput.trim() || "other");
+                              }
                             }}
                           >
                             <div className="flex items-center">
@@ -2171,8 +2180,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             {currentClassInput && currentClassInput !== "basic" && currentClassInput !== "applied" && (
                               <input
                                 type="text"
-                                value={revCustomClassInput === " " ? "" : revCustomClassInput}
-                                onChange={(e) => handleRevClassInputChange(e.target.value || " ")}
+                                value={currentClassInput === "other" ? (revCustomClassInput === "other" ? "" : revCustomClassInput) : revCustomClassInput}
+                                onChange={(e) => handleRevClassInputChange(e.target.value || "other")}
                                 className="mt-2 ml-6 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#C8102E]"
                                 placeholder="Enter research classification..."
                                 autoFocus
@@ -2193,7 +2202,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               key={val}
                               className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput === val ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
                                 }`}
-                              onClick={() => handleRevClassInputChange(val)}
+                              onClick={() => handleRevSubClassChange(val)}
                             >
                               <input type="radio" readOnly checked={currentClassInput === val} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
                               <span className="ml-2 text-xs font-medium text-gray-700">{label}</span>
@@ -2204,7 +2213,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                 ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
                               }`}
                             onClick={(e) => {
-                              if ((e.target as HTMLElement).tagName !== "INPUT") handleRevClassInputChange(revCustomClassInput || " ");
+                              if ((e.target as HTMLElement).tagName !== "INPUT") {
+                                handleRevClassInputChange(revCustomClassInput.trim() || "other");
+                              }
                             }}
                           >
                             <div className="flex items-center">
@@ -2214,8 +2225,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             {currentClassInput && currentClassInput !== "pilot_testing" && currentClassInput !== "tech_promotion" && (
                               <input
                                 type="text"
-                                value={revCustomClassInput === " " ? "" : revCustomClassInput}
-                                onChange={(e) => handleRevClassInputChange(e.target.value || " ")}
+                                value={currentClassInput === "other" ? (revCustomClassInput === "other" ? "" : revCustomClassInput) : revCustomClassInput}
+                                onChange={(e) => handleRevClassInputChange(e.target.value || "other")}
                                 className="mt-2 ml-6 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#C8102E]"
                                 placeholder="Enter development classification..."
                                 autoFocus
@@ -2454,6 +2465,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     )}
                   </div>
 
+
                   <div>
                     <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">
                       Address
@@ -2673,6 +2685,21 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     </p>
                   )}
                 </div>
+
+                {/* R&D Research Station */}
+                {(currentData as any).rdStation && (
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Microscope className="w-4 h-4 text-[#C8102E]" />
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        R&amp;D Research Station
+                      </h4>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900">
+                      {(currentData as any).rdStation}
+                    </p>
+                  </div>
+                )}
 
                 {/* Mode of Implementation */}
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
@@ -2973,9 +3000,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                                 co: "Capital Outlay",
                               };
                               const catColors: Record<string, string> = {
-                                ps: "bg-blue-50 border-blue-200 text-blue-800",
-                                mooe: "bg-amber-50 border-amber-200 text-amber-800",
-                                co: "bg-emerald-50 border-emerald-200 text-emerald-800",
+                                ps: "bg-slate-50 border-slate-200 text-slate-800",
+                                mooe: "bg-slate-50 border-slate-200 text-slate-800",
+                                co: "bg-slate-50 border-slate-200 text-slate-800",
                               };
                               const catBadge: Record<string, string> = {
                                 ps: "PS", mooe: "MOOE", co: "CO",

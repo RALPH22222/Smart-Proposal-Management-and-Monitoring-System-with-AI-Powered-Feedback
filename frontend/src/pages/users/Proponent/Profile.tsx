@@ -58,7 +58,7 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Lookup data from context (fetched once at layout level)
-  const { agencies, sectors, disciplines, priorities, stations, tags, departments } = useLookups();
+  const { agencies, sectors, disciplines, priorities, tags, departments } = useLookups();
 
   // Fetch proposals on mount
   React.useEffect(() => {
@@ -1141,7 +1141,6 @@ const Profile: React.FC = () => {
         sectors={sectors}
         disciplines={disciplines}
         priorities={priorities}
-        stations={stations}
         tags={tags}
         departments={departments}
       />
