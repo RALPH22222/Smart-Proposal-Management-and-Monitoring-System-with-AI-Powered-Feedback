@@ -2459,8 +2459,17 @@ export class ProposalService {
     if (plan_start_date) updatePayload.plan_start_date = plan_start_date;
     if (plan_end_date) updatePayload.plan_end_date = plan_end_date;
 
-    // Optional classification / priority / discipline / sector updates
-    if (classification) updatePayload.classification = classification;
+    // Optional classification / priority / discipline / sector updates.
+    // Column on `proposals` is `classification_type` (enum: research_class | development_class).
+    // Frontend may send either the short form ("research"/"development") from the radio UI
+    // or the enum value itself when prefilled from existing data — normalize both here.
+    if (classification) {
+      const classificationTypeMap: Record<string, string> = {
+        research: "research_class",
+        development: "development_class",
+      };
+      updatePayload.classification_type = classificationTypeMap[classification] ?? classification;
+    }
     if (resolvedClassInput) updatePayload.class_input = resolvedClassInput;
     if (priority_areas) {
       // Resolve priority name to ID and update the join table
