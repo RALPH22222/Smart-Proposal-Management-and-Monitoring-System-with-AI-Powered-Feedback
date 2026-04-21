@@ -251,7 +251,7 @@ const Accounts: React.FC = () => {
   const getRoleDisplay = (roles: string[]) => (
     <div className="flex flex-wrap gap-1">
       {(roles || []).map(role => {
-        let config = { 
+        const config = { 
           label: ROLE_DISPLAY[role] || role, 
           color: "bg-slate-100 text-slate-600 border-slate-200",
           icon: ShieldCheck
