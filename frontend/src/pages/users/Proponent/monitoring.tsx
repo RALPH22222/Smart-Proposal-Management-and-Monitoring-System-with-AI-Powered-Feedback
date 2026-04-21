@@ -641,7 +641,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
 
     const parsed = selected.map((bi) => ({
       bi,
-      amount: parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0,
+      amount: parseAmount(selectedByItem[bi.id!]?.amount ?? ''),
     }));
 
     const hasEmpty = parsed.some((p) => !p.amount || p.amount <= 0);
@@ -837,6 +837,18 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
       return { ...prev, [budgetItemId]: { ...current, amount } };
     });
   };
+
+  // Format a raw number string with thousand-separator commas for display.
+  // e.g. "1000000" → "1,000,000", "1500.50" → "1,500.50"
+  const formatAmount = (raw: string): string => {
+    if (!raw) return '';
+    const [intPart, decPart] = raw.split('.');
+    const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
+  };
+
+  // Strip commas before numeric parsing.
+  const parseAmount = (display: string): number => parseFloat(display.replace(/,/g, '')) || 0;
 
   // Drawn-per-item across all approved fund requests for this project. Used to
   // show "₱X already drawn / ₱Y remaining" next to each LIB row. Fully-drawn
@@ -1642,7 +1654,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                                       const remainingForItem = Math.max(0, allocated - drawn);
                                       const fullyDrawn = remainingForItem <= 0;
                                       const sel = selectedByItem[bi.id] ?? { checked: false, amount: '' };
-                                      const amountNum = parseFloat(sel.amount) || 0;
+                                      const amountNum = parseAmount(sel.amount);
                                       const overAllocated = sel.checked && amountNum > remainingForItem;
                                       return (
                                         <label
@@ -1685,18 +1697,43 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                                               <div className="mt-2 flex items-center gap-2">
                                                 <span className="text-[11px] font-semibold text-slate-600">Amount:</span>
                                                 <input
-                                                  type="number"
+                                                  type="text"
                                                   inputMode="decimal"
+                                                  min={0}
+                                                  max={remainingForItem}
                                                   value={sel.amount}
-                                                  onChange={(e) => setItemAmount(bi.id!, e.target.value)}
+                                                  onKeyDown={(e) => {
+                                                    // Block minus, scientific notation 'e', '+', and letters
+                                                    if (e.key === '-' || e.key === 'e' || e.key === '+') e.preventDefault();
+                                                  }}
+                                                  onChange={(e) => {
+                                                    // Strip commas and non-numeric chars (except single dot)
+                                                    const cleaned = e.target.value.replace(/,/g, '').replace(/[^0-9.]/g, '');
+                                                    if (cleaned === '') { setItemAmount(bi.id!, ''); return; }
+                                                    // Prevent multiple dots
+                                                    if ((cleaned.match(/\./g) || []).length > 1) return;
+                                                    // Strip leading zeros (allow 0.x)
+                                                    const stripped = cleaned.length > 1 && cleaned.startsWith('0') && !cleaned.startsWith('0.') ? cleaned.replace(/^0+/, '') : cleaned;
+                                                    const num = parseFloat(stripped);
+                                                    if (isNaN(num) || num < 0) return;
+                                                    if (num > remainingForItem) { setItemAmount(bi.id!, formatAmount(String(remainingForItem))); return; }
+                                                    // Preserve trailing dot so user can type decimals freely
+                                                    const [intPart, decPart] = stripped.split('.');
+                                                    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                    setItemAmount(bi.id!, decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt);
+                                                  }}
+                                                  onBlur={(e) => {
+                                                    const num = parseAmount(e.target.value);
+                                                    if (isNaN(num) || num <= 0) setItemAmount(bi.id!, '');
+                                                    else if (num > remainingForItem) setItemAmount(bi.id!, formatAmount(String(remainingForItem)));
+                                                    else setItemAmount(bi.id!, formatAmount(String(num)));
+                                                  }}
                                                   onClick={(e) => e.stopPropagation()}
                                                   placeholder="0.00"
-                                                  className="w-32 p-1.5 border border-gray-300 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                  className={`w-32 p-1.5 border rounded text-sm text-right focus:ring-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${overAllocated ? 'border-red-400 focus:ring-red-400 bg-red-50' : 'border-gray-300 focus:ring-blue-500'}`}
                                                 />
                                                 {overAllocated && (
-                                                  <span className="text-[10px] font-bold text-red-600">
-                                                    exceeds remaining
-                                                  </span>
+                                                  <span className="text-[10px] font-bold text-red-600">exceeds remaining</span>
                                                 )}
                                               </div>
                                             )}
@@ -1715,7 +1752,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                               (bi) => bi.id != null && selectedByItem[bi.id]?.checked,
                             );
                             const total = selected.reduce(
-                              (sum, bi) => sum + (parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0),
+                              (sum, bi) => sum + parseAmount(selectedByItem[bi.id!]?.amount ?? ''),
                               0,
                             );
                             if (selected.length === 0) return null;
@@ -1744,7 +1781,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                               );
                               if (selected.length === 0) return true;
                               const anyInvalid = selected.some((bi) => {
-                                const amt = parseFloat(selectedByItem[bi.id!]?.amount ?? '') || 0;
+                                const amt = parseAmount(selectedByItem[bi.id!]?.amount ?? '');
                                 return amt <= 0;
                               });
                               return anyInvalid || submittingFundRequest;
