@@ -160,13 +160,18 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   if (!isOpen) return null;
 
   // --- CALCULATE FINANCIALS ---
+  // totalUsed = actual spent (sum of project_expenses.expenses from verified reports).
+  // totalApproved = drawn via approved fund requests (money released to proponent).
+  // Previously both were collapsed into a single number, which is why "100% Utilized"
+  // showed the moment the FR was approved even with zero liquidations.
   const totalBudget = budgetSummary?.total_budget ?? details?.totalBudget ?? project?.budget ?? 0;
-  const isCompleted = project?.status === 'Completed';
-  const totalUsed = isCompleted
-    ? totalBudget
-    : budgetSummary?.total_approved ?? (details?.reports?.reduce((acc, r) => acc + r.totalExpense, 0) ?? 0);
+  const totalUsed =
+    budgetSummary?.total_actual_spent ??
+    (details?.reports?.reduce((acc, r) => acc + r.totalExpense, 0) ?? 0);
+  const totalApproved = budgetSummary?.total_approved ?? 0;
   const remainingBudget = budgetSummary?.remaining ?? (totalBudget - totalUsed);
   const totalPending = budgetSummary?.total_pending ?? 0;
+  const utilizationPct = totalBudget > 0 ? Math.min(100, Math.round((totalUsed / totalBudget) * 100)) : 0;
 
   const toggleReport = (id: string) => setExpandedReportId(expandedReportId === id ? null : id);
 
@@ -471,9 +476,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
               {totalBudget > 0 && (
                 <>
                   <div className="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                    <div className="h-full bg-emerald-500 w-full"></div>
+                    <div
+                      className="h-full bg-emerald-500 transition-all"
+                      style={{ width: `${utilizationPct}%` }}
+                    ></div>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1 text-right">100% Utilized</p>
+                  <p className="text-[10px] text-slate-400 mt-1 text-right">{utilizationPct}% Utilized · ₱{totalApproved.toLocaleString()} drawn</p>
                 </>
               )}
             </div>

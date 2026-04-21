@@ -100,7 +100,8 @@ export class ProjectService {
           quarterly_report,
           status,
           progress,
-          created_at
+          created_at,
+          project_expenses (id, expenses)
         ),
         fund_requests (
           id,
@@ -257,18 +258,27 @@ export class ProjectService {
         }
       }
 
-      // Approved / utilized from fund request items. Approved = items on approved FRs.
-      // Utilized = same (we don't track partial liquidation at this level yet — that's
-      // project_expenses, which is per-report and too granular for a list view).
+      // Approved = money released via approved fund requests (drawn ceiling).
+      // Utilized = actual spent, summed from project_expenses.expenses on VERIFIED reports.
+      // These are DIFFERENT metrics — previously utilized was aliased to approved which
+      // made "100% Utilized" show as soon as FRs were approved, even with zero liquidations.
       let approved_amount = 0;
       for (const fr of fundRequests) {
         if (fr.status !== "approved") continue;
         const items = (fr.fund_request_items || []) as { amount: number }[];
         for (const it of items) approved_amount += Number(it.amount) || 0;
       }
-      const utilized_amount = approved_amount;
+      let utilized_amount = 0;
+      for (const r of reports) {
+        if (r.status !== "verified") continue;
+        const expenses = (r.project_expenses || []) as { expenses: number }[];
+        for (const ex of expenses) utilized_amount += Number(ex.expenses) || 0;
+      }
+      // Remaining is against actual spend now (not approved) — matches how a proponent
+      // thinks about "money left". Approved-but-not-spent shows up as the gap between
+      // approved_amount and utilized_amount on the monitoring card.
       const remaining_amount =
-        total_budget != null ? total_budget - approved_amount : null;
+        total_budget != null ? total_budget - utilized_amount : null;
 
       // Last activity: max created_at across reports + fund requests. NULL-safe.
       const activityDates: number[] = [];
