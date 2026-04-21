@@ -19,6 +19,11 @@ import { getBudgetCategory } from '../../utils/budget-category';
 // Used for manual lookups if the join doesn't return the name
 import { fetchDepartments, type LookupItem } from '../../services/proposal.api';
 
+const formatUserDisplayName = (user: any): string => {
+  if (!user || typeof user !== "object") return "Unknown Proponent";
+  return [user.first_name, user.middle_ini, user.last_name].filter(Boolean).join(" ").trim() || "Unknown Proponent";
+};
+
 // Admin-specific API service
 export const adminProposalApi = {
   // Fetch all proposals for Admin review
@@ -233,9 +238,7 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     return acc + parseFloat(total || '0');
   }, 0);
 
-  const proponentName = data.proponent_id
-    ? `${data.proponent_id.first_name} ${data.proponent_id.last_name}`.trim()
-    : 'Unknown Proponent';
+  const proponentName = formatUserDisplayName(data.proponent_id);
 
   const mappedStatus = mapStatus(data.status);
 

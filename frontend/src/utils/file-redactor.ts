@@ -59,6 +59,21 @@ interface DocxTextSegment {
   text: string;
 }
 
+interface PdfTextSegment {
+  height: number;
+  item: TextItem;
+  start: number;
+  text: string;
+  width: number;
+  x: number;
+  y: number;
+}
+
+interface PdfTextLine {
+  fullText: string;
+  segments: PdfTextSegment[];
+}
+
 /**
  * Build a global, case-insensitive regex that matches any of the target strings.
  * Special regex characters in the targets are escaped.
@@ -139,6 +154,98 @@ function buildRedactionMask(text: string, targets: string[]): { count: number; m
   }
 
   return { count, mask };
+}
+
+function shouldStartNewPdfLine(previous: TextItem, current: TextItem): boolean {
+  const previousX = previous.transform[4] as number;
+  const currentX = current.transform[4] as number;
+  const previousY = previous.transform[5] as number;
+  const currentY = current.transform[5] as number;
+  const previousHeight = previous.height || 0;
+  const currentHeight = current.height || 0;
+  const yTolerance = Math.max(2, Math.min(previousHeight, currentHeight) * 0.35);
+
+  if (Math.abs(previousY - currentY) > yTolerance) {
+    return true;
+  }
+
+  if (currentX + 2 < previousX) {
+    return true;
+  }
+
+  return Boolean(previous.hasEOL);
+}
+
+function shouldInsertSpaceBetweenPdfItems(
+  previous: PdfTextSegment,
+  current: TextItem,
+): boolean {
+  if (!previous.text || !current.str) return false;
+  if (/\s$/.test(previous.text) || /^\s/.test(current.str)) return false;
+  if (/[(/-]$/.test(previous.text)) return false;
+  if (/^[),./:;-]/.test(current.str)) return false;
+
+  const previousEndX = previous.x + previous.width;
+  const currentX = current.transform[4] as number;
+  const averageCharWidth =
+    previous.text.length > 0 ? previous.width / previous.text.length : previous.width;
+
+  return currentX - previousEndX > Math.max(1, averageCharWidth * 0.35);
+}
+
+function collectPdfTextLines(textItems: TextItem[]): PdfTextLine[] {
+  const lines: PdfTextLine[] = [];
+  let currentLine: PdfTextLine | null = null;
+  let previousSegment: PdfTextSegment | null = null;
+
+  const pushCurrentLine = () => {
+    if (currentLine && currentLine.segments.length > 0) {
+      lines.push(currentLine);
+    }
+    currentLine = null;
+    previousSegment = null;
+  };
+
+  for (const item of textItems) {
+    const text = item.str ?? "";
+    if (!text) continue;
+
+    if (
+      currentLine &&
+      previousSegment &&
+      shouldStartNewPdfLine(previousSegment.item, item)
+    ) {
+      pushCurrentLine();
+    }
+
+    if (!currentLine) {
+      currentLine = { fullText: "", segments: [] };
+    }
+
+    if (
+      previousSegment &&
+      shouldInsertSpaceBetweenPdfItems(previousSegment, item)
+    ) {
+      currentLine.fullText += " ";
+    }
+
+    const segment: PdfTextSegment = {
+      item,
+      start: currentLine.fullText.length,
+      text,
+      x: item.transform[4] as number,
+      y: item.transform[5] as number,
+      width: item.width,
+      height: item.height,
+    };
+
+    currentLine.segments.push(segment);
+    currentLine.fullText += text;
+    previousSegment = segment;
+  }
+
+  pushCurrentLine();
+  return lines;
 }
 
 function redactDocxXml(xml: string, targets: string[]): { count: number; redactedXml: string } {
@@ -325,31 +432,33 @@ export async function redactPdf(
     });
     await renderTask.promise;
 
-    // Retrieve text content and draw black rectangles over matching items.
+    // Retrieve text content and draw black rectangles over matching text runs.
     const textContent = await page.getTextContent();
     const pageHeight = viewport.height / scale; // un-scaled page height
+    const textItems = textContent.items.filter(
+      (item): item is TextItem => "str" in item,
+    );
 
-    for (const item of textContent.items) {
-      // Skip marked-content items (they lack a `str` property)
-      if (!("str" in item)) continue;
-      const textItem = item as TextItem;
+    for (const line of collectPdfTextLines(textItems)) {
+      if (!containsTarget(line.fullText, targets)) continue;
 
-      if (!containsTarget(textItem.str, targets)) continue;
+      const { mask } = buildRedactionMask(line.fullText, targets);
+      for (const segment of line.segments) {
+        const hasMaskedText = mask
+          .slice(segment.start, segment.start + segment.text.length)
+          .some((value) => value === 1);
+        if (!hasMaskedText) continue;
 
-      // Extract position from the transform matrix.
-      // transform = [scaleX, skewX, skewY, scaleY, translateX, translateY]
-      const tx = textItem.transform[4] as number;
-      const ty = textItem.transform[5] as number;
+        const x = segment.x * scale;
+        const y = (pageHeight - segment.y) * scale;
+        const w = Math.max(segment.width * scale, 4);
+        const h = Math.max(segment.height * scale, 4);
 
-      const x = tx * scale;
-      const y = (pageHeight - ty) * scale;
-      const w = textItem.width * scale;
-      const h = textItem.height * scale;
-
-      // Small padding for reliable coverage
-      const pad = 2;
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(x - pad, y - h - pad, w + pad * 2, h + pad * 2);
+        // Small padding for reliable coverage
+        const pad = 2;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(x - pad, y - h - pad, w + pad * 2, h + pad * 2);
+      }
     }
 
     // Convert the canvas to a PNG and embed it into the output PDF.
@@ -400,13 +509,12 @@ async function countPdfRedactions(
   for (let pageNum = 1; pageNum <= numPages; pageNum++) {
     const page = await pdfDoc.getPage(pageNum);
     const textContent = await page.getTextContent();
+    const textItems = textContent.items.filter(
+      (item): item is TextItem => "str" in item,
+    );
 
-    for (const item of textContent.items) {
-      if (!("str" in item)) continue;
-      const textItem = item as TextItem;
-      if (containsTarget(textItem.str, targets)) {
-        count++;
-      }
+    for (const line of collectPdfTextLines(textItems)) {
+      count += buildRedactionMask(line.fullText, targets).count;
     }
   }
 

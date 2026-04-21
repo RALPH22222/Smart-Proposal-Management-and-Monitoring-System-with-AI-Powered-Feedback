@@ -493,7 +493,11 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
     const targets = buildRedactionTargets({
       proponent: proposal.proponent,
+      email: proposal.email,
+      telephone: proposal.telephone,
+      fax: proposal.fax,
       agency: proposal.agency,
+      address: proposal.address,
       visibility: showProponentInfo,
     });
 
@@ -1208,10 +1212,10 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <h4 className="text-sm font-bold text-amber-800 mb-2">File Anonymization</h4>
                   <p className="text-xs text-amber-700 mb-3">
-                    Auto-redact scans the current proposal file for the selected proponent name and/or agency, blacks out matching text, and uploads a new anonymized copy.
+                    Auto-redact scans the current proposal file for the selected proponent details and/or agency details, blacks out matching text, and uploads a new anonymized copy.
                   </p>
                   <p className="text-xs text-amber-700 mb-3">
-                    Supported auto-redact formats: PDF and DOCX. Use Upload Redacted File for legacy DOC files or when you want to review edits manually before sending.
+                    Hiding the name also redacts direct contact details such as email, telephone, and fax when those values are available. Supported auto-redact formats: PDF and DOCX. Use Upload Redacted File for legacy DOC files or when you want to review edits manually before sending.
                   </p>
 
                   {autoRedactionUnsupportedReason && (

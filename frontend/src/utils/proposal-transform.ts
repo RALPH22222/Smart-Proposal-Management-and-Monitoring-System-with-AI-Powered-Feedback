@@ -5,6 +5,8 @@
 import { getBudgetCategory } from "./budget-category";
 
 const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatUserDisplayName = (user: any): string =>
+  [user?.first_name, user?.middle_ini, user?.last_name].filter(Boolean).join(" ").trim() || "Unknown";
 
 export function transformProposalForModal(raw: any) {
   if (!raw) return null;
@@ -12,7 +14,7 @@ export function transformProposalForModal(raw: any) {
   // Proponent name
   const proponent =
     raw.proponent_id && typeof raw.proponent_id === "object"
-      ? `${raw.proponent_id.first_name || ""} ${raw.proponent_id.last_name || ""}`.trim() || "Unknown"
+      ? formatUserDisplayName(raw.proponent_id)
       : "Unknown";
 
   // Agency (string)

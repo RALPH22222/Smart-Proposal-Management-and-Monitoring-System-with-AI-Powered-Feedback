@@ -53,6 +53,59 @@ function addTarget(targets: Set<string>, value: string): void {
   }
 }
 
+function addNameTargets(targets: Set<string>, value: string): void {
+  const normalizedName = normalizeValue(value);
+  addTarget(targets, normalizedName);
+
+  const tokens = cleanTokens(normalizedName).filter(
+    (token) => token.length >= 2 && !NAME_STOP_WORDS.has(token.toLowerCase()),
+  );
+
+  for (const token of tokens) {
+    addTarget(targets, token);
+  }
+
+  if (tokens.length >= 2) {
+    addTarget(targets, `${tokens[0]} ${tokens[tokens.length - 1]}`);
+    addTarget(targets, `${tokens[tokens.length - 1]}, ${tokens[0]}`);
+    addTarget(targets, `${tokens[tokens.length - 1]} ${tokens[0]}`);
+  }
+
+  if (tokens.length >= 3) {
+    const first = tokens[0];
+    const last = tokens[tokens.length - 1];
+    for (const middle of tokens.slice(1, -1)) {
+      addTarget(targets, `${first} ${middle} ${last}`);
+      addTarget(targets, `${first} ${middle[0]}. ${last}`);
+    }
+  }
+}
+
+function addEmailTargets(targets: Set<string>, value: string): void {
+  const normalizedEmail = normalizeValue(value);
+  addTarget(targets, normalizedEmail);
+
+  const [localPart] = normalizedEmail.split("@");
+  if (!localPart) return;
+
+  addTarget(targets, localPart);
+  for (const token of cleanTokens(localPart)) {
+    if (token.length >= 2) {
+      addTarget(targets, token);
+    }
+  }
+}
+
+function addPhoneTargets(targets: Set<string>, value: string): void {
+  const normalizedPhone = normalizeValue(value);
+  addTarget(targets, normalizedPhone);
+
+  const digitsOnly = normalizedPhone.replace(/\D+/g, "");
+  if (digitsOnly.length >= 7) {
+    addTarget(targets, digitsOnly);
+  }
+}
+
 function buildAgencyAcronym(tokens: string[]): string {
   return tokens
     .filter((token) => /^[A-Za-z]+$/.test(token))
@@ -62,24 +115,33 @@ function buildAgencyAcronym(tokens: string[]): string {
 
 export function buildRedactionTargets(input: {
   proponent?: string | null;
+  email?: string | null;
+  telephone?: string | null;
+  fax?: string | null;
   agency?: string | null;
+  address?: string | null;
   visibility: Visibility;
 }): string[] {
-  const { proponent, agency, visibility } = input;
+  const { proponent, email, telephone, fax, agency, address, visibility } = input;
   const targets = new Set<string>();
 
   const shouldHideName = visibility === "agency" || visibility === "none";
   const shouldHideAgency = visibility === "name" || visibility === "none";
 
   if (shouldHideName && isUsableValue(proponent)) {
-    const normalizedName = normalizeValue(proponent);
-    addTarget(targets, normalizedName);
+    addNameTargets(targets, proponent);
+  }
 
-    for (const token of cleanTokens(normalizedName)) {
-      if (token.length >= 2 && !NAME_STOP_WORDS.has(token.toLowerCase())) {
-        addTarget(targets, token);
-      }
-    }
+  if (shouldHideName && isUsableValue(email)) {
+    addEmailTargets(targets, email);
+  }
+
+  if (shouldHideName && isUsableValue(telephone)) {
+    addPhoneTargets(targets, telephone);
+  }
+
+  if (shouldHideName && isUsableValue(fax)) {
+    addPhoneTargets(targets, fax);
   }
 
   if (shouldHideAgency && isUsableValue(agency)) {
@@ -101,6 +163,10 @@ export function buildRedactionTargets(input: {
     if (acronym.length >= 3) {
       addTarget(targets, acronym);
     }
+  }
+
+  if (shouldHideAgency && isUsableValue(address)) {
+    addTarget(targets, address);
   }
 
   return Array.from(targets).sort((a, b) => b.length - a.length);

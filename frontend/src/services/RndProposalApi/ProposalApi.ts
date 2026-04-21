@@ -8,6 +8,11 @@ import {
 import { getRndProposals, invalidateProposalCache } from '../../services/proposal.api';
 import { api } from '../../utils/axios';
 
+const formatUserDisplayName = (user: any): string => {
+    if (!user || typeof user !== "object") return "Unknown";
+    return [user.first_name, user.middle_ini, user.last_name].filter(Boolean).join(" ").trim() || "Unknown";
+};
+
 // Create Proposal object from raw API data
 const transformProposal = (raw: any): Proposal => {
     // Check if raw is a wrapper or the data itself
@@ -33,10 +38,10 @@ const transformProposal = (raw: any): Proposal => {
         title: p.project_title || p.title || "Untitled",
         documentUrl: p.file_url || "",
         status: mapBackendStatusToFrontend(p.status),
-        submittedBy: p.proponent_id ? `${p.proponent_id.first_name} ${p.proponent_id.last_name}` : "Unknown",
+        submittedBy: formatUserDisplayName(p.proponent_id),
         submittedDate: p.created_at,
         lastModified: p.updated_at || p.created_at,
-        proponent: p.proponent_id ? `${p.proponent_id.first_name} ${p.proponent_id.last_name}` : "Unknown",
+        proponent: formatUserDisplayName(p.proponent_id),
         gender: p.proponent_id?.sex || "N/A",
         telephone: p.phone || "N/A",
         fax: "N/A",
