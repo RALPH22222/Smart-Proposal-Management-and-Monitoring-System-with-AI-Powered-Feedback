@@ -17,6 +17,11 @@ type LoginResponse = {
     email: string;
     role?: string;
     roles?: string[];
+    first_name?: string | null;
+    last_name?: string | null;
+    profile_photo_url?: string | null;
+    department_id?: number | null;
+    department_name?: string | null;
     [key: string]: any;
   };
 };
@@ -143,8 +148,14 @@ export default function Login() {
         roles: userRoles,
         password_change_required: passwordChangeRequired,
         account_type: accountType,
+        first_name: res.data.user.first_name ?? undefined,
+        last_name: res.data.user.last_name ?? undefined,
+        profile_photo_url: res.data.user.profile_photo_url ?? undefined,
+        department_id: res.data.user.department_id ?? null,
+        department_name: res.data.user.department_name ?? null,
       };
 
+      sessionStorage.removeItem("auth_verified");
       setUser(hydratedUser);
       localStorage.setItem("user", JSON.stringify(hydratedUser));
       broadcastAuthChange();
