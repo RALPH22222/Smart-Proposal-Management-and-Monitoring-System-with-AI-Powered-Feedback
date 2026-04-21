@@ -2931,18 +2931,27 @@ export class ProposalService {
 
     const currentVersionId = proposalRow.current_version_id as number;
 
-    // Fetch the tracker record to get the requested deadline
-    const { data: tracker, error: fetchError } = await this.db
+    // Fetch tracker rows for this evaluator/proposal/version.
+    // We intentionally avoid `.single()` because historical data can contain
+    // multiple rows (e.g. reassignment/re-forward flows), which causes:
+    // "Cannot coerce the result to a single JSON object."
+    const { data: trackerRows, error: fetchError } = await this.db
       .from("proposal_assignment_tracker")
       .select("id, deadline_at, request_deadline_at, status")
       .eq("proposal_id", proposal_id)
       .eq("evaluator_id", evaluator_id)
-      .eq("proposal_version_id", currentVersionId)
-      .single();
+      .eq("proposal_version_id", currentVersionId);
 
-    if (fetchError || !tracker) {
+    if (fetchError || !trackerRows || trackerRows.length === 0) {
       return { error: fetchError || new Error("Extension request not found") };
     }
+
+    // Prefer the row that represents a pending extension request.
+    // Fallback to the first row so we can return a domain error gracefully.
+    const tracker =
+      trackerRows.find((row: any) => row.status === AssignmentTracker.EXTEND)
+      || trackerRows.find((row: any) => row.status === AssignmentTracker.PENDING && !!row.request_deadline_at)
+      || trackerRows[0];
 
     const hasPendingExtensionRequest =
       tracker.status === AssignmentTracker.EXTEND ||
@@ -2967,9 +2976,7 @@ export class ProposalService {
       const { error: trackerError } = await this.db
         .from("proposal_assignment_tracker")
         .update({ status: AssignmentTracker.ACCEPT, deadline_at: newDeadline })
-        .eq("proposal_id", proposal_id)
-        .eq("evaluator_id", evaluator_id)
-        .eq("proposal_version_id", currentVersionId);
+        .eq("id", tracker.id);
 
       if (trackerError) return { error: trackerError };
 
@@ -3009,9 +3016,7 @@ export class ProposalService {
       const { error: trackerError } = await this.db
         .from("proposal_assignment_tracker")
         .update({ status: AssignmentTracker.PENDING, request_deadline_at: null })
-        .eq("proposal_id", proposal_id)
-        .eq("evaluator_id", evaluator_id)
-        .eq("proposal_version_id", currentVersionId);
+        .eq("id", tracker.id);
 
       if (trackerError) return { error: trackerError };
 
