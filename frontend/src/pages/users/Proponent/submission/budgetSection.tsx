@@ -12,6 +12,8 @@ import { X, Sparkles, HandCoins } from 'lucide-react';
 import type { ExpenseItem, FormData, BudgetItem, BudgetSubcategory } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
 import AutoFillBadge from '../../../../components/shared/AutoFillBadge';
+import SkeletonPulse from '../../../../components/shared/SkeletonPulse';
+import { useClickOutside } from '../../../../hooks/useClickOutside.ts';
 import {
   fetchBudgetSubcategories,
   parseLibDocument,
@@ -64,6 +66,11 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
     co: BudgetSubcategory[];
   } | null>(null);
   const [loadingSubcategoryList, setLoadingSubcategoryList] = useState(false);
+  const subcategoryPopoverRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(subcategoryPopoverRef, () => {
+    if (showSubcategoryPopover) setShowSubcategoryPopover(false);
+  });
 
   const handleToggleSubcategoryPopover = async () => {
     const next = !showSubcategoryPopover;
@@ -155,76 +162,104 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       )}
 
       {/* Two-path guidance panel — redesigned as equal-width option cards */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">Build your budget</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Choose how you want to add your line items</p>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">Build your <span className="text-[#C8102E] font-bold">Budget</span></h3>
+          <p className="text-sm text-gray-500 mt-1">Choose how you want to add your line items</p>
         </div>
 
-        <div className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
+        <div className="p-5">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-stretch">
             {/* Upload Template Card */}
             <div className="flex flex-col h-full">
-              <div className="flex-1 bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-gray-300 transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded bg-[#C8102E]/10 text-[#C8102E] flex items-center justify-center shrink-0">
-                    <FaFileWord className="w-4 h-4" />
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#C8102E]/10 text-[#C8102E] flex items-center justify-center shrink-0">
+                    <FaFileWord className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Upload Template</h4>
-                    <span className="text-[10px] text-gray-400">Recommended</span>
+                    <h4 className="text-base font-semibold text-gray-900">Upload Template</h4>
+                    <span className="text-xs text-gray-400">Recommended</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-500 mb-3 leading-snug">
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">
                   Download the WMSU template, fill it in Word, then import.
                 </p>
-                <div className="flex flex-col gap-1.5 mt-auto">
+                <div className="flex flex-col gap-2 mt-auto">
                   <a
                     href="/templates/wmsu-lib-template-v1.docx"
                     download="wmsu-lib-template-v1.docx"
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
                   >
-                    <FaFileWord className="w-3 h-3 text-[#C8102E]" />
-                    Download
+                    <FaFileWord className="w-4 h-4 text-[#C8102E]" />
+                    Download Template
                   </a>
                   <button
                     type="button"
                     onClick={onOpenLibImport}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#C8102E] rounded-md text-[11px] font-medium text-white hover:bg-[#9d0d24] transition-colors"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C8102E] rounded-lg text-sm font-medium text-white hover:bg-[#9d0d24] transition-colors shadow-sm"
                   >
-                    <Sparkles className="w-3 h-3" />
-                    Import
+                    <Sparkles className="w-4 h-4" />
+                    Import Template
                   </button>
                 </div>
               </div>
               {/* Subcategory reference */}
-              <div className="mt-2">
+              <div className="mt-3 relative" ref={subcategoryPopoverRef}>
                 <button
                   type="button"
                   onClick={handleToggleSubcategoryPopover}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  className="inline-flex items-center gap-2 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
                 >
-                  <FaListUl className="w-3 h-3" />
+                  <FaListUl className="w-4 h-4" />
                   {showSubcategoryPopover ? 'Hide' : 'View'} valid subcategories
                 </button>
                 {showSubcategoryPopover && (
-                  <div className="mt-1.5 p-2 bg-gray-50 rounded-md border border-gray-200">
+                  <div className="absolute top-full left-0 mt-2 w-80 sm:w-96 p-4 bg-white rounded-xl border border-gray-200 shadow-lg z-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-gray-900">Valid Subcategories</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowSubcategoryPopover(false)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                     {loadingSubcategoryList && (
-                      <div className="text-[10px] text-gray-500 py-1.5 text-center">Loading…</div>
+                      <div className="space-y-3 py-2">
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-2">
+                            <SkeletonPulse className="h-4 w-8 rounded" />
+                            <SkeletonPulse className="h-3 w-full rounded" />
+                            <SkeletonPulse className="h-3 w-3/4 rounded" />
+                          </div>
+                          <div className="space-y-2">
+                            <SkeletonPulse className="h-4 w-10 rounded" />
+                            <SkeletonPulse className="h-3 w-full rounded" />
+                            <SkeletonPulse className="h-3 w-3/4 rounded" />
+                          </div>
+                          <div className="space-y-2">
+                            <SkeletonPulse className="h-4 w-6 rounded" />
+                            <SkeletonPulse className="h-3 w-full rounded" />
+                            <SkeletonPulse className="h-3 w-3/4 rounded" />
+                          </div>
+                        </div>
+                      </div>
                     )}
                     {!loadingSubcategoryList && subcategoryList && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px]">
+                      <div className="grid grid-cols-3 gap-3 text-xs">
                         {(['ps', 'mooe', 'co'] as const).map((cat) => (
                           <div key={cat}>
-                            <div className="font-medium text-gray-700 uppercase text-[9px] tracking-wide mb-0.5">
+                            <div className="font-semibold text-gray-700 uppercase text-[10px] tracking-wide mb-1">
                               {cat === 'ps' ? 'PS' : cat === 'mooe' ? 'MOOE' : 'CO'}
                             </div>
-                            <ul className="space-y-0 text-gray-600">
-                              {subcategoryList[cat].slice(0, 3).map((s) => (
+                            <ul className="space-y-0.5 text-gray-600">
+                              {subcategoryList[cat].slice(0, 4).map((s) => (
                                 <li key={s.id} className="truncate">• {s.label}</li>
                               ))}
-                              {subcategoryList[cat].length > 3 && (
-                                <li className="text-gray-400 italic">+ {subcategoryList[cat].length - 3} more</li>
+                              {subcategoryList[cat].length > 4 && (
+                                <li className="text-gray-400 italic">+ {subcategoryList[cat].length - 4} more</li>
                               )}
                             </ul>
                           </div>
@@ -237,38 +272,38 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
             </div>
 
             {/* OR Divider */}
-            <div className="hidden md:flex flex-col items-center justify-center px-1">
+            <div className="hidden md:flex flex-col items-center justify-center px-2">
               <div className="w-px flex-1 bg-gray-200"></div>
-              <span className="text-[10px] font-medium text-gray-400 tracking-widest py-1">OR</span>
+              <span className="text-xs font-medium text-gray-400 tracking-widest py-2">OR</span>
               <div className="w-px flex-1 bg-gray-200"></div>
             </div>
-            <div className="flex md:hidden items-center gap-2 py-1.5">
+            <div className="flex md:hidden items-center gap-3 py-2">
               <div className="flex-1 h-px bg-gray-200"></div>
-              <span className="text-[10px] font-medium text-gray-400 tracking-widest">OR</span>
+              <span className="text-xs font-medium text-gray-400 tracking-widest">OR</span>
               <div className="flex-1 h-px bg-gray-200"></div>
             </div>
 
             {/* Enter Manually Card */}
             <div className="flex flex-col h-full">
-              <div className="flex-1 bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-gray-300 transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
-                    <FaPlus className="w-4 h-4" />
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                    <FaPlus className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Enter Manually</h4>
-                    <span className="text-[10px] text-gray-400">Alternative</span>
+                    <h4 className="text-base font-semibold text-gray-900">Enter Manually</h4>
+                    <span className="text-xs text-gray-400">Alternative</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-500 mb-3 leading-snug">
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">
                   Add funding sources and enter budget items directly in the form.
                 </p>
                 <button
                   type="button"
                   onClick={onBudgetItemAdd}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
                 >
-                  <FaPlus className="w-3 h-3" />
+                  <FaPlus className="w-4 h-4" />
                   Add Funding Source
                 </button>
               </div>
@@ -276,8 +311,8 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
           </div>
 
           {/* Info note below cards */}
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-start gap-1.5 text-[11px] text-gray-500">
-            <FaCoins className="w-3 h-3 mt-0.5 text-gray-400 shrink-0" />
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-start gap-2 text-sm text-gray-500">
+            <FaCoins className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
             <span>
               <strong className="text-gray-700">PS, MOOE, and CO are each optional</strong> — but every funding source
               must have at least one line item in one of them. Proposals like AMBIANCE, which have no Personnel Services,
@@ -1173,7 +1208,7 @@ export const LibImportModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col overflow-hidden relative m-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden relative m-auto">
         {/* --- HEADER --- */}
         <div className="relative bg-white border-b border-gray-100 px-6 sm:px-8 py-5 shrink-0">
           <button
@@ -1251,7 +1286,7 @@ export const LibImportModal: React.FC<{
                 <span className={`text-gray-400 transition-transform ${showSubcategoryRef ? 'rotate-90' : ''}`}>›</span>
               </button>
               {showSubcategoryRef && (
-                <div className="border-t border-gray-200 p-3 bg-gray-50">
+                <div className="border-t border-gray-200 p-3 bg-gray-50 max-h-[50vh] sm:max-h-none overflow-y-auto">
                   {loadingSubcategoryRef && (
                     <div className="text-xs text-gray-500 py-2 text-center">Loading latest list…</div>
                   )}
