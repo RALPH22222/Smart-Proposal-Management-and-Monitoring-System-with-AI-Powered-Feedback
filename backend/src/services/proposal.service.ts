@@ -2872,6 +2872,7 @@ export class ProposalService {
           project_title,
           status,
           current_version_id,
+          created_at,
           proposal_tags(
             tags:tags(name)
           )

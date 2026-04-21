@@ -696,7 +696,7 @@ export const RnDEvaluatorPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold">
                           <Clock className="w-3 h-3" />
-                          <span>Deadline: {formatDate(assignment.deadline)}</span>
+                          <span>Submitted: {formatDate(assignment.submittedDate)}</span>
                         </div>
 
                         {/* Year Badge */}

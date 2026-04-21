@@ -742,6 +742,7 @@ export type AssignmentTrackerItem = {
     id: number;
     project_title: string;
     status?: string;
+    created_at?: string;
     proponent_id: {
       first_name: string;
       last_name: string;
