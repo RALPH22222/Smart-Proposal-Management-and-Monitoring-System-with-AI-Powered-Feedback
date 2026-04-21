@@ -13,7 +13,7 @@ interface TeamMembersSectionProps {
     first_name: string;
     last_name: string;
     email: string;
-    profile_photo_url?: string | null;
+    photo_profile_url?: string | null;
   };
 }
 
@@ -151,9 +151,9 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
           {projectLead && (
             <div className="flex items-center justify-between px-5 py-3 bg-[#FFF5F7] border-l-4 border-[#C8102E]">
               <div className="flex items-center gap-3 min-w-0">
-                {projectLead.profile_photo_url ? (
+                {projectLead.photo_profile_url ? (
                   <SecureImage
-                    src={projectLead.profile_photo_url}
+                    src={projectLead.photo_profile_url}
                     fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(`${projectLead.first_name} ${projectLead.last_name}`)}&background=C8102E&color=fff&size=128`}
                     alt={`${projectLead.first_name} ${projectLead.last_name}`}
                     className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm border border-gray-200"
@@ -194,9 +194,9 @@ const TeamMembersSection: React.FC<TeamMembersSectionProps> = ({
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    {member.user.profile_photo_url ? (
+                    {member.user.photo_profile_url ? (
                       <SecureImage
-                        src={member.user.profile_photo_url}
+                        src={member.user.photo_profile_url}
                         fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(`${member.user.first_name} ${member.user.last_name}`)}&background=C8102E&color=fff&size=128`}
                         alt={`${member.user.first_name} ${member.user.last_name}`}
                         className="w-9 h-9 rounded-full object-cover shrink-0 shadow-sm border border-gray-200"

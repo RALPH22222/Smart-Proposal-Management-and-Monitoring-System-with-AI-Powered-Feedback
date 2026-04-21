@@ -99,7 +99,7 @@ export interface ApiFundedProject {
     first_name: string;
     last_name: string;
     email: string;
-    profile_photo_url?: string | null;
+    photo_profile_url?: string | null;
   };
   project_reports: {
     id: number;

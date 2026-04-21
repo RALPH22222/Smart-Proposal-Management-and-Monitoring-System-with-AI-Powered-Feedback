@@ -93,7 +93,7 @@ export class ProjectService {
           first_name,
           last_name,
           email,
-          profile_photo_url
+          photo_profile_url
         ),
         project_reports (
           id,
@@ -113,7 +113,7 @@ export class ProjectService {
         project_members (
           role,
           status,
-          user:users!user_id (first_name, last_name, profile_photo_url)
+          user:users!user_id (first_name, last_name, photo_profile_url)
         ),
         active_budget_version:proposal_budget_versions!current_budget_version_id (grand_total)
       `
@@ -354,7 +354,7 @@ export class ProjectService {
           first_name,
           last_name,
           email,
-          profile_photo_url
+          photo_profile_url
         ),
         project_reports (
           id,
@@ -1226,7 +1226,7 @@ export class ProjectService {
       .select(
         `
         *,
-        user:users!user_id (id, first_name, last_name, email, profile_photo_url)
+        user:users!user_id (id, first_name, last_name, email, photo_profile_url)
       `
       )
       .eq("funded_project_id", input.funded_project_id)
@@ -2153,7 +2153,7 @@ export class ProjectService {
           first_name,
           last_name,
           email,
-          profile_photo_url
+          photo_profile_url
         )
       `
       )
