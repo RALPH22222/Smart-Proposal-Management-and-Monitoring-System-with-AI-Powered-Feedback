@@ -742,9 +742,12 @@ const Submission: React.FC = () => {
 
         for (const term of extractedTerms) {
           const lower = term.toLowerCase();
-          const match = lookups.priorities.find(
-            p => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase())
-          );
+          // Strict admin-managed list: only accept an exact (case-insensitive)
+          // name match. Substring matching used to write in a priority that
+          // wasn't really in the admin list (e.g. parsed "Health and Wellness"
+          // silently picked admin entry "Health"). Unmatched terms fall
+          // through to the inline hint below.
+          const match = lookups.priorities.find(p => p.name.toLowerCase() === lower);
           if (match) {
             if (!matchedIds.includes(match.id)) matchedIds.push(match.id);
             if (!matchedNames.includes(match.name)) matchedNames.push(match.name);
@@ -765,8 +768,9 @@ const Submission: React.FC = () => {
 
       // --- (7) Sector ---
       if (fields.sector) {
-        const lower = fields.sector.toLowerCase();
-        const match = lookups.sectors.find(s => s.name.toLowerCase().includes(lower) || lower.includes(s.name.toLowerCase()));
+        const lower = fields.sector.trim().toLowerCase();
+        // Strict admin-managed list — exact match only. See priorities block.
+        const match = lookups.sectors.find(s => s.name.toLowerCase() === lower);
         if (match) {
           updated.sector = match.id;
           updated.sectorCommodity = match.name;
@@ -778,8 +782,9 @@ const Submission: React.FC = () => {
 
       // --- (8) Discipline ---
       if (fields.discipline) {
-        const lower = fields.discipline.toLowerCase();
-        const match = lookups.disciplines.find(d => d.name.toLowerCase().includes(lower) || lower.includes(d.name.toLowerCase()));
+        const lower = fields.discipline.trim().toLowerCase();
+        // Strict admin-managed list — exact match only. See priorities block.
+        const match = lookups.disciplines.find(d => d.name.toLowerCase() === lower);
         if (match) {
           updated.discipline = match.id;
           updated.disciplineName = match.name;
