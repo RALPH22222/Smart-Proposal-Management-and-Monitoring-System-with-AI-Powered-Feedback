@@ -396,8 +396,15 @@ const Submission: React.FC = () => {
       tags,
     } = localFormData;
 
-    // Funding agency is an admin-managed strict lookup — require a real FK id,
-    // not the raw text autofill may have stashed here on a lookup miss.
+    // Funding agency + tags are admin-managed strict lookups — require real FK
+    // ids. Tags in particular used to accept fake ids (Date.now() fabricated
+    // by the AI "Other" fallback), which passed `tags?.length` but then crashed
+    // the backend with a proposal_tags_tag_fk violation at insert time.
+    const validTagIds = new Set(lookups.tags.map((t) => t.id));
+    const allTagsResolve =
+      Array.isArray(tags) &&
+      tags.length > 0 &&
+      tags.every((id: any) => typeof id === "number" && validTagIds.has(id));
     return !!(
       project_title?.trim() &&
       YEAR_REGEX.test(String(year ?? "")) &&
@@ -408,9 +415,9 @@ const Submission: React.FC = () => {
       agencyAddress?.city?.trim() &&
       telephone?.trim() &&
       email?.trim() &&
-      tags?.length
+      allTagsResolve
     );
-  }, [localFormData]);
+  }, [localFormData, lookups.tags]);
 
   const canGoNextFromResearchDetails = useMemo(() => {
     const {

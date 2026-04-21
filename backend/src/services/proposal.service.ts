@@ -215,13 +215,29 @@ export class ProposalService {
 
     // JOIN TABLES
     // TAGS JOIN
+    // Verify every submitted tag_id exists in `tags` before we insert into the
+    // join table. The frontend's AI "Other" fallback used to fabricate a
+    // Date.now() id on cache miss, which passed the client-side check but
+    // crashed here with a 500 (proposal_tags_tag_fk). Drop unknown ids
+    // silently instead of blowing up mid-transaction.
     if (Array.isArray(tags) && tags.length > 0) {
-      const tagIds = Array.from(new Set(tags));
-      const tagRows = tagIds.map((tagId) => ({ proposal_id, tag_id: tagId }));
-
-      const tagJoin = await this.db.from("proposal_tags").insert(tagRows);
-
-      if (tagJoin.error) throw new Error(`proposal_tags upsert failed: ${tagJoin.error.message}`);
+      const rawTagIds = Array.from(new Set(tags)).filter(
+        (id): id is number => typeof id === "number" && Number.isFinite(id),
+      );
+      let validTagIds: number[] = [];
+      if (rawTagIds.length > 0) {
+        const { data: existingTags } = await this.db
+          .from("tags")
+          .select("id")
+          .in("id", rawTagIds);
+        const found = new Set((existingTags ?? []).map((t: { id: number }) => t.id));
+        validTagIds = rawTagIds.filter((id) => found.has(id));
+      }
+      if (validTagIds.length > 0) {
+        const tagRows = validTagIds.map((tagId) => ({ proposal_id, tag_id: tagId }));
+        const tagJoin = await this.db.from("proposal_tags").insert(tagRows);
+        if (tagJoin.error) throw new Error(`proposal_tags upsert failed: ${tagJoin.error.message}`);
+      }
     }
 
     // Cooperating agencies split into two buckets per the new schema:
