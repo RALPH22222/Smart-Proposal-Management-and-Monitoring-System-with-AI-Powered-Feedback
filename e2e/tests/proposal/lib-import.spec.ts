@@ -100,6 +100,13 @@ test.describe.serial("LIB-IMPORT: LIB template import variants", () => {
     expect(afterCount).toBe(beforeCount);
   });
 
+  // Oversized uploads DO surface a user-visible error — the parseError
+  // red banner shows "Network Error" (from axios' 413 handling). The
+  // earlier `test.fail` marker was based on a wrong diagnosis: the
+  // polling helper was matching only /Failed to parse/i and ignored
+  // "Network Error". With waitForLibParseOutcome now detecting the
+  // parseError banner by its .bg-red-50.text-red-700 class combo,
+  // this test passes legitimately.
   test("LIB-IMPORT-03: oversized DOCX surfaces a user-visible error (not silent)", async ({ loggedInAs }) => {
     test.setTimeout(120_000);
 
@@ -135,9 +142,13 @@ test.describe.serial("LIB-IMPORT: LIB template import variants", () => {
     await expect(form.libImportCommitButton()).toHaveCount(0);
 
     // The user MUST see some human-readable text about the failure.
-    // The parseError box uses bg-red-50 styling; rejection uses the
-    // same. Either way, some error text should be visible in the modal.
-    const errorOrRejectionText = form.libModalRoot().locator("text=/too large|exceeds|size|5 ?MB|parse|rejected/i").first();
+    // Broaden the regex to cover "Network Error" (axios on 413), the
+    // "Failed to parse..." fallback, and any backend size/exceeds
+    // wording.
+    const errorOrRejectionText = form
+      .libModalRoot()
+      .locator("text=/too large|exceeds|size|5 ?MB|parse|rejected|network|error/i")
+      .first();
     await expect(
       errorOrRejectionText,
       "No size/error/rejection message visible to the user after oversized upload",

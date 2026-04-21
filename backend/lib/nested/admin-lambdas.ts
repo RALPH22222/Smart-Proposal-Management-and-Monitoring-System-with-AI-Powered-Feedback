@@ -14,6 +14,7 @@ interface AdminLambdasProps {
   supabaseServiceRoleKey: string;
   frontendUrl: string;
   stageName: string;
+  rateLimitsTableName: string;
 }
 
 export class AdminLambdas extends NestedStack {
@@ -48,14 +49,14 @@ export class AdminLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: AdminLambdasProps) {
     super(scope, id);
-    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, supabaseServiceRoleKey, frontendUrl, stageName } = props;
+    const { sharedRole, profileSetupBucket, supabaseKey, supabaseSecretJwt, supabaseServiceRoleKey, frontendUrl, stageName, rateLimitsTableName } = props;
 
     const defaults = {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey, TZ: "Asia/Manila" };
+    const sharedEnv = { SUPABASE_KEY: supabaseKey, TZ: "Asia/Manila", RATE_LIMITS_TABLE: rateLimitsTableName };
 
     // Public endpoint — own role (no shared role assigned in original)
     this.getContacts = new NodejsFunction(this, "get-contacts", {

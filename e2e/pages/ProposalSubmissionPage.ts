@@ -434,7 +434,15 @@ export class ProposalSubmissionPage {
     const modal = this.libModalRoot();
     const importBtn = modal.getByRole("button", { name: /^Import \d+ items?$/ }).first();
     const rejection = modal.getByText(/Upload rejected/i).first();
-    const parseError = modal.getByText(/Failed to parse/i).first();
+    // Match the parseError red banner by its unique CSS class combo,
+    // NOT by an exact text match. The parseError message is dynamic:
+    //   - "Failed to parse the document." (fallback)
+    //   - "Network Error" (axios on 413 / connection drop — THIS was
+    //     the real case that made LIB-IMPORT-03 hit "timeout" before)
+    //   - any backend-provided message (e.g. "exceeds 5 MB limit")
+    // The rejection card also uses bg-red-50 but without text-red-700
+    // on its wrapper, so this class combo cleanly discriminates.
+    const parseError = modal.locator(".bg-red-50.text-red-700").first();
 
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {

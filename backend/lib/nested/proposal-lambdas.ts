@@ -18,6 +18,7 @@ interface ProposalLambdasProps {
   smtpPass: string;
   orsApiKey: string;
   stageName: string;
+  rateLimitsTableName: string;
 }
 
 export class ProposalLambdas extends NestedStack {
@@ -71,14 +72,21 @@ export class ProposalLambdas extends NestedStack {
 
   constructor(scope: Construct, id: string, props: ProposalLambdasProps) {
     super(scope, id);
-    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, orsApiKey, smtpHost, smtpUser, smtpPass, stageName } = props;
+    const { sharedRole, proposalBucket, supabaseKey, geminiApiKey, orsApiKey, smtpHost, smtpUser, smtpPass, stageName, rateLimitsTableName } = props;
 
     const defaults = {
       memorySize: 128,
       runtime: Runtime.NODEJS_22_X,
       timeout: Duration.seconds(10),
     };
-    const sharedEnv = { SUPABASE_KEY: supabaseKey, SMTP_HOST: smtpHost, SMTP_USER: smtpUser, SMTP_PASS: smtpPass, TZ: "Asia/Manila" };
+    const sharedEnv = {
+      SUPABASE_KEY: supabaseKey,
+      SMTP_HOST: smtpHost,
+      SMTP_USER: smtpUser,
+      SMTP_PASS: smtpPass,
+      TZ: "Asia/Manila",
+      RATE_LIMITS_TABLE: rateLimitsTableName,
+    };
 
     // Helper for the common case: shared role + SUPABASE_KEY only
     const simple = (id: string, fnName: string, handler: string) =>

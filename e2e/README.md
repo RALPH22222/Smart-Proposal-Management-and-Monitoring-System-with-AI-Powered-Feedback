@@ -104,7 +104,7 @@ in isolation will skip most of its tests.
 | Proposal submission       | 8     | `tests/proposal/submission.spec.ts`                |
 | LIB import variants       | 7     | `tests/proposal/lib-import.spec.ts`                |
 | RND quality check         | 9     | `tests/proposal/rnd-quality-check.spec.ts`         |
-| Admin distribution        | 4     | `tests/admin/distribution.spec.ts`                 |
+| Admin distribution        | 10    | `tests/admin/distribution.spec.ts`                 |
 | Evaluator review          | 4     | `tests/proposal/evaluator-review.spec.ts`          |
 | RND endorsement           | 4     | `tests/proposal/rnd-endorsement.spec.ts`           |
 | Fund requests             | 4     | `tests/monitoring/fund-request.spec.ts`            |
@@ -113,7 +113,7 @@ in isolation will skip most of its tests.
 | RBAC cross-role           | 8     | `tests/rbac/route-guards.spec.ts`                  |
 | RBAC anonymous            | 5     | `tests/rbac/route-guards.spec.ts`                  |
 | Admin dashboard smoke     | 6     | `tests/admin/dashboard.spec.ts`                    |
-| **Total**                 | **86** |                                                    |
+| **Total**                 | **92** |                                                    |
 
 See [`TEST_CASES.md`](./TEST_CASES.md) for the full test-case matrix and
 the list of flows intentionally left out.

@@ -221,6 +221,10 @@ test.describe.serial("PROP-SUBMIT: proposal submission", () => {
       body: projectTitle,
       contentType: "text/plain",
     });
+    // Stash so downstream admin-view tests can find a proposal with a
+    // work plan attached. Separate env var from E2E_PROPOSAL_TITLE so
+    // each test knows exactly which proposal it's referencing.
+    process.env.E2E_PROPOSAL_WITH_WORKPLAN_TITLE = projectTitle;
   });
 
   test("PROP-SUBMIT-07: strict-taxonomy unmatched fields block Submit until resolved", async ({ loggedInAs }) => {

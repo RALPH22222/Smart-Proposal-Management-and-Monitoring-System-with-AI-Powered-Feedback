@@ -4,6 +4,7 @@ import { proposalSchema, proposalVersionSchema } from "../../schemas/proposal-sc
 import { buildCorsHeaders } from "../../utils/cors";
 import { getAuthContext } from "../../utils/auth-context";
 import { logActivity } from "../../utils/activity-logger";
+import { enforceRateLimit, RATE_LIMITS, tooManyRequestsResponse } from "../../utils/rate-limit";
 
 export const handler = buildCorsHeaders(async (event) => {
   // Extract proponent identity from JWT
@@ -13,6 +14,17 @@ export const handler = buildCorsHeaders(async (event) => {
       statusCode: 401,
       body: JSON.stringify({ message: "Unauthorized: User ID not found in token" }),
     };
+  }
+
+  // Rate limit: per-user, 5 create-proposal attempts per 15 minutes. Fails
+  // open on DynamoDB/table issues — see utils/rate-limit.ts. First endpoint
+  // being wrapped as the observation canary; expand after monitoring.
+  const rl = await enforceRateLimit({
+    key: `user:${auth.userId}:create-proposal`,
+    ...RATE_LIMITS.createProposal,
+  });
+  if (!rl.allowed) {
+    return tooManyRequestsResponse(rl);
   }
 
   // Parse JSON body. Return a clean 400 instead of crashing the handler when

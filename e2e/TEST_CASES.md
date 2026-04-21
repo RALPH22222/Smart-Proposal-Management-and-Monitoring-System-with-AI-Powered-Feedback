@@ -304,18 +304,29 @@ to the other dashboard. `ProtectedRoute` redirects away.
 
 ## 4.5 Admin distribution (`tests/admin/distribution.spec.ts`)
 
-Smoke-level coverage of the admin's proposal-distribution UI.
-Full end-to-end assignment (ADMIN-DIST-04) is gated behind
-`E2E_INCLUDE_ADMIN_ASSIGN=1` because it requires TWO seeded R&D
-staff in the same department to avoid the backend's single-R&D
-auto-assignment path.
+Covers the admin's proposal-distribution UI across three concerns:
+manual assignment via SendToRndModal, **auto-distribute** (load-balanced
+admin-triggered action — NOT automatic on submit), and the proposal-view
+modal's DOST Form 1B / Form 3 file cards.
 
-| Test ID        | Scope | Role  | Preconditions              | Steps                                                                                       | Expected                                                                        |
-| -------------- | ----- | ----- | -------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| ADMIN-DIST-01  | smoke | admin | —                          | Click Proposals sidebar button                                                              | Table/grid (or empty-state text) renders at `?tab=proposals`                    |
-| ADMIN-DIST-02  | smoke | admin | PROP-SUBMIT-01             | Open Proposals; click the submitted proposal's row action                                   | Admin proposal detail modal opens                                               |
-| ADMIN-DIST-03  | smoke | admin | Unassigned proposal exists | Click "Send to R&D" trigger on an unassigned row                                            | Modal heading "Send to R&D Staff" visible; department select + Step 2 label + disabled "Assign to R&D" button; Cancel returns to list |
-| ADMIN-DIST-04  | happy | admin | `E2E_INCLUDE_ADMIN_ASSIGN=1` + two R&D staff seeded | Open SendToRndModal; pick dept; pick R&D staff; click Assign to R&D | Proposal row shows assigned R&D staff                                           |
+**Auto-distribute** (backend: `backend/src/handlers/proposal/auto-distribute.ts`)
+is a manual admin action that picks the least-loaded R&D staff in the
+matching department. It's exposed via the page-level "Auto Distribute
+({N})" button (N = count of Pending proposals) — hidden when nothing is
+Pending. Per-row "Distribute" action does the same for a single proposal.
+
+| Test ID        | Scope | Role  | Preconditions                                                  | Steps                                                                                                                       | Expected                                                                                          |
+| -------------- | ----- | ----- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| ADMIN-DIST-01  | smoke | admin | —                                                              | Click Proposals sidebar button                                                                                              | Table/grid (or empty-state text) renders at `?tab=proposals`                                      |
+| ADMIN-DIST-02  | smoke | admin | PROP-SUBMIT-01                                                 | Open Proposals; click the submitted proposal's row action                                                                   | Admin proposal detail modal opens                                                                 |
+| ADMIN-DIST-03  | smoke | admin | Unassigned proposal exists                                     | Click "Send to R&D" trigger; inspect modal structure; Cancel                                                                | 2-step modal; department select + disabled "Assign to R&D" button                                 |
+| ADMIN-DIST-04  | happy | admin | `E2E_INCLUDE_ADMIN_ASSIGN=1` + two R&D staff seeded            | Open SendToRndModal; pick dept + R&D staff; click Assign to R&D                                                             | Proposal row shows assigned R&D staff                                                             |
+| ADMIN-DIST-05  | smoke | admin | —                                                              | Visit Proposals; observe "Auto Distribute ({N})" button                                                                     | If visible, label contains a positive integer; if not visible, zero-state is also valid           |
+| ADMIN-DIST-06  | smoke | admin | ≥1 Pending proposal                                            | Click "Auto Distribute ({N})" → confirmation Swal appears                                                                   | Title "Auto Distribute All?"; Distribute All + Cancel buttons present; Cancel closes cleanly      |
+| ADMIN-DIST-07  | happy | admin | ≥1 Pending proposal                                            | Click "Auto Distribute ({N})"; confirm Distribute All; wait for result                                                      | Swal "Distributed! / N proposal(s) distributed" — COMMITS state (admins' pending count drops)     |
+| ADMIN-DIST-08  | smoke | admin | PROP-SUBMIT-01                                                 | Open the PROP-SUBMIT-01 proposal's view modal                                                                               | "DOST Form 1B" label is visible in the file-cards area                                            |
+| ADMIN-DIST-09  | smoke | admin | PROP-SUBMIT-06 (`E2E_PROPOSAL_WITH_WORKPLAN_TITLE` set)        | Open the PROP-SUBMIT-06 proposal's view modal                                                                               | Both "DOST Form 1B" AND "DOST Form 3" labels visible                                              |
+| ADMIN-DIST-10  | edge  | admin | PROP-SUBMIT-01                                                 | Open the PROP-SUBMIT-01 (no work plan) proposal's view modal                                                                | "DOST Form 1B" visible; "DOST Form 3" card has count 0 (not rendered when `workPlanFileUrl` null) |
 
 ---
 

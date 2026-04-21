@@ -13,6 +13,7 @@ import {
 } from "aws-cdk-lib/aws-apigateway";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 import { Bucket, BlockPublicAccess, HttpMethods } from "aws-cdk-lib/aws-s3";
+import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import path from "path";
@@ -105,6 +106,20 @@ export class BackendStack extends Stack {
       ],
     });
 
+    // ========== RATE LIMIT TABLE ==========
+    // Per-user rate limiting. Fixed-window counters keyed by (rate_key, window_start).
+    // TTL on expires_at auto-deletes old windows so the table stays tiny and free-tier
+    // friendly. Never store user PII here — the key contains a userId or IP only.
+    // Note: scoped to auth layer only. Handler failures reading this table fail-open.
+    const rate_limits_table = new Table(this, `pms-rate-limits-${stageName}`, {
+      tableName: `pms-rate-limits-${stageName}`,
+      partitionKey: { name: "rate_key", type: AttributeType.STRING },
+      sortKey: { name: "window_start", type: AttributeType.NUMBER },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "expires_at",
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
     // ========== SHARED IAM ROLES ==========
     const authLambdaRole = new Role(this, "pms-auth-lambda-role", {
       assumedBy: new ServicePrincipal("lambda.amazonaws.com"),
@@ -126,6 +141,13 @@ export class BackendStack extends Stack {
       managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")],
     });
 
+    // Grant every shared role read/write on the rate-limits table. Handlers that
+    // don't use the utility simply never query it — no cost impact.
+    rate_limits_table.grantReadWriteData(authLambdaRole);
+    rate_limits_table.grantReadWriteData(proposalLambdaRole);
+    rate_limits_table.grantReadWriteData(projectLambdaRole);
+    rate_limits_table.grantReadWriteData(adminLambdaRole);
+
     // ========== NESTED STACKS (Lambda definitions) ==========
     const auth = new AuthLambdas(this, "AuthLambdas", {
       sharedRole: authLambdaRole,
@@ -137,6 +159,7 @@ export class BackendStack extends Stack {
       smtpPass: SMTP_PASS,
       frontendUrl: FRONTEND_URL,
       stageName,
+      rateLimitsTableName: rate_limits_table.tableName,
     });
 
     const proposalL = new ProposalLambdas(this, "ProposalLambdas", {
@@ -149,6 +172,7 @@ export class BackendStack extends Stack {
       smtpUser: SMTP_USER,
       smtpPass: SMTP_PASS,
       stageName,
+      rateLimitsTableName: rate_limits_table.tableName,
     });
 
     const projectL = new ProjectLambdas(this, "ProjectLambdas", {
@@ -161,6 +185,7 @@ export class BackendStack extends Stack {
       smtpUser: SMTP_USER,
       smtpPass: SMTP_PASS,
       stageName,
+      rateLimitsTableName: rate_limits_table.tableName,
     });
 
     const adminL = new AdminLambdas(this, "AdminLambdas", {
@@ -171,6 +196,7 @@ export class BackendStack extends Stack {
       supabaseServiceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
       frontendUrl: FRONTEND_URL,
       stageName,
+      rateLimitsTableName: rate_limits_table.tableName,
     });
 
     const profileL = new ProfileLambdas(this, "ProfileLambdas", {
@@ -179,6 +205,7 @@ export class BackendStack extends Stack {
       supabaseKey: SUPABASE_KEY,
       supabaseSecretJwt: SUPABASE_SECRET_JWT,
       stageName,
+      rateLimitsTableName: rate_limits_table.tableName,
     });
 
     // ========== SHARED LAMBDAS (not in nested stacks) ==========
