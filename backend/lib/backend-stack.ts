@@ -73,7 +73,10 @@ export class BackendStack extends Stack {
       cors: [
         {
           allowedHeaders: ["*"],
-          allowedMethods: [HttpMethods.PUT],
+          // Browser uploads use presigned PUT; auto-redact downloads the original
+          // proposal through a presigned GET and reads it as a Blob, which also
+          // requires S3 to emit CORS headers for GET/HEAD responses.
+          allowedMethods: [HttpMethods.PUT, HttpMethods.GET, HttpMethods.HEAD],
           allowedOrigins: ALLOWED_ORIGINS,
           maxAge: 3000,
         },

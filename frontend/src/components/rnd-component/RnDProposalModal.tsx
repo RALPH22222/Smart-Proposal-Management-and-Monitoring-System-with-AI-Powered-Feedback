@@ -508,10 +508,9 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
     try {
       // Fetch the original file. The S3 bucket blocks public access, so a raw
-      // fetch(fileUrl) returns 403 Forbidden → browser surfaces it as
-      // "Failed to fetch" (CORS-opaque) and CloudWatch stays silent because
-      // the request never reaches a Lambda. Route through /files/signed-url
-      // to get a time-limited presigned GET URL that S3 will honor.
+      // fetch(fileUrl) returns 403 Forbidden. Route through /files/signed-url
+      // to get a time-limited presigned GET URL, and make sure the bucket's
+      // CORS rule allows browser GET/HEAD from this frontend origin.
       const signedUrl = await getSignedFileUrl(fileUrl);
       const response = await fetch(signedUrl);
       if (!response.ok) {
