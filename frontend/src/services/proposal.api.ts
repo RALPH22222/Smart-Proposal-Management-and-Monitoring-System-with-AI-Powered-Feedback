@@ -809,6 +809,7 @@ export const endorseProposal = async (input: EndorseProposalPayload): Promise<an
 
 export type AssignmentTrackerItem = {
   id: number;
+  proposal_version_id?: number | null;
   proposal_id: {
     id: number;
     project_title: string;
@@ -832,11 +833,11 @@ export type AssignmentTrackerItem = {
       name: string;
     };
   };
-  deadline: number;
+  deadline?: string | null;
   status: string;
-  request_deadline_at?: number | null;
+  request_deadline_at?: string | null;
   remarks?: string | null;
-  date_forwarded: string;
+  date_forwarded?: string;
 };
 
 export const getAssignmentTracker = async (proposalId?: number): Promise<AssignmentTrackerItem[]> => {

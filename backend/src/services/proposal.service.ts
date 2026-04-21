@@ -2899,11 +2899,11 @@ export class ProposalService {
           )
         ),
         evaluator_id:users(id, first_name, last_name, middle_ini, email, photo_profile_url, department_id:departments(name)),
-        deadline_at,
+        deadline:deadline_at,
         request_deadline_at,
         remarks,
         status,
-        created_at
+        date_forwarded:created_at
       `,
     );
 
@@ -2957,11 +2957,58 @@ export class ProposalService {
       }
     }
 
-    const result = filtered.map((row: any) => {
+    // Canonicalize to one live tracker row per proposal/evaluator. Legacy
+    // null-version rows are kept as a fallback, but current-version rows always
+    // win so the UI does not surface stale extension states after reassignment
+    // or revision flows.
+    const preferredRows = new Map<string, any>();
+    const getRowTimestamp = (row: any) => {
+      const value = row?.date_forwarded;
+      const ms = value ? new Date(value).getTime() : 0;
+      return Number.isFinite(ms) ? ms : 0;
+    };
+    const getVersionPriority = (row: any) => {
+      const currentVersionId = row?.proposals?.current_version_id;
+      if (!currentVersionId) return row?.proposal_version_id ? 1 : 0;
+      return row?.proposal_version_id === currentVersionId ? 2 : 0;
+    };
+
+    for (const rawRow of filtered) {
+      const row = rawRow as any;
+      const proposalId = row?.proposals?.id;
+      const evaluatorId = row?.evaluator_id?.id;
+      if (!proposalId || !evaluatorId) continue;
+
+      const key = `${proposalId}-${evaluatorId}`;
+      const existing = preferredRows.get(key);
+      if (!existing) {
+        preferredRows.set(key, row);
+        continue;
+      }
+
+      const existingVersionPriority = getVersionPriority(existing);
+      const nextVersionPriority = getVersionPriority(row);
+      if (nextVersionPriority > existingVersionPriority) {
+        preferredRows.set(key, row);
+        continue;
+      }
+      if (nextVersionPriority < existingVersionPriority) {
+        continue;
+      }
+
+      const existingTimestamp = getRowTimestamp(existing);
+      const nextTimestamp = getRowTimestamp(row);
+      if (nextTimestamp > existingTimestamp || (nextTimestamp === existingTimestamp && row.id > existing.id)) {
+        preferredRows.set(key, row);
+      }
+    }
+
+    const result = Array.from(preferredRows.values()).map((row: any) => {
       const cleanProposal = {
         id: row.proposals?.id,
         project_title: row.proposals?.project_title,
         status: row.proposals?.status,
+        created_at: row.proposals?.created_at,
         proposal_tags: row.proposals?.proposal_tags,
       };
 

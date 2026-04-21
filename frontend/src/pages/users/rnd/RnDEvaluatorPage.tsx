@@ -18,6 +18,7 @@ import type { EvaluatorOption } from "../../../components/rnd-component/RnDEvalu
 import { getAssignmentTracker, getAllAssignmentTrackers, handleExtensionRequest, getRndProposals, forwardProposalToEvaluators, removeEvaluator, invalidateProposalCache } from "../../../services/proposal.api";
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
+import { didExtensionActionPersist, getAssignmentAggregateStatus, getAssignmentDeadlineMs, getEvaluatorTrackerStatus } from "../../../utils/evaluator-assignment-status";
 
 // --- INTERFACES ---
 
@@ -58,9 +59,9 @@ interface GroupedAssignment {
     id: string; // evaluator ID
     name: string;
     department: string;
-    status: string;
+    status: EvaluatorOption["status"];
     deadline: number;
-    request_deadline_at?: number | null; // For extension
+    request_deadline_at?: string | null; // For extension
     remarks?: string | null;
   }[];
 }
@@ -99,7 +100,7 @@ export const RnDEvaluatorPage: React.FC = () => {
       console.log("RND Proposals statuses:", proposals.map((p: any) => ({ id: p.id, status: p.status, title: p.project_title?.slice(0, 30) })));
 
       // 2. Fetch ALL assignment tracker data in a single call (no N+1)
-      const allAssignments: any[] = await getAllAssignmentTrackers();
+      const allAssignments = await getAllAssignmentTrackers();
       console.log("allAssignments sample:", allAssignments.slice(0, 5).map((a: any) => ({ pid: a.proposal_id?.id, pidType: typeof a.proposal_id?.id, evalId: a.evaluator_id?.id, status: a.status, deadline: a.deadline })));
 
       // Group by Proposal
@@ -154,23 +155,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
         const group = groupedMap.get(pid)!;
 
-        // Normalize status to match EvaluatorOption["status"]
-        let statusDisplay: EvaluatorOption["status"] = "Pending";
-        const rawStatus = (item.status || "").toLowerCase();
-
-        if (rawStatus === "extend" || rawStatus === "extension_requested" || (rawStatus === "pending" && item.request_deadline_at)) {
-          statusDisplay = "Extension Requested";
-        } else if (rawStatus === "accept" || rawStatus === "accepted" || rawStatus === "accepts") {
-          statusDisplay = "Accepts";
-        } else if (rawStatus === "decline" || rawStatus === "declined" || rawStatus === "rejected" || rawStatus === "reject") {
-          statusDisplay = "Rejected";
-        } else if (rawStatus === "completed") {
-          statusDisplay = "Completed";
-        } else if (rawStatus === "extension_approved") {
-          statusDisplay = "Extension Approved";
-        } else if (rawStatus === "extension_rejected" || rawStatus === "extension_denied") {
-          statusDisplay = "Extension Rejected";
-        }
+        const statusDisplay = getEvaluatorTrackerStatus(item);
 
         // Safe Evaluator Data Extraction
         const evalId = item.evaluator_id?.id || "unknown";
@@ -186,7 +171,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             name: evalName,
             department: evalDept,
             status: statusDisplay,
-            deadline: item.deadline ? item.deadline : Date.now(),
+            deadline: getAssignmentDeadlineMs(item.deadline),
             request_deadline_at: item.request_deadline_at,
             remarks: item.remarks,
           });
@@ -195,38 +180,7 @@ export const RnDEvaluatorPage: React.FC = () => {
 
       // Convert Grouped Data to Display 'Assignment' Interface
       const mappedAssignments: Assignment[] = Array.from(groupedMap.values()).map((group) => {
-        // Determine aggregate status
-        // If ANY evaluator requested extension, show 'Extension Requested' for visibility
-        // Else find dominant status
-
-        let aggregateStatus: Assignment["status"] = "Pending";
-        const statusSet = new Set(group.evaluators.map((e) => e.status));
-
-        if (statusSet.has("extend") || statusSet.has("extension_requested")) {
-          aggregateStatus = "Extension Requested";
-        } else if (statusSet.has("extension_approved")) {
-          aggregateStatus = "Extension Approved";
-        } else if (statusSet.has("extension_rejected") || statusSet.has("extension_denied")) {
-          aggregateStatus = "Pending";
-        } else if (statusSet.has("decline") || statusSet.has("rejected")) {
-          // If any evaluator declined, surface it so RND can take action
-          aggregateStatus = "Rejected";
-        } else if (statusSet.has("pending")) {
-          aggregateStatus = "Pending";
-        } else if (statusSet.has("completed") || statusSet.has("done")) {
-          if (group.evaluators.every((e) => e.status === "completed")) aggregateStatus = "Completed";
-          else aggregateStatus = "Pending"; // Mixed
-        } else if (statusSet.has("accept") || statusSet.has("accepted")) {
-          aggregateStatus = "Accepts";
-        }
-
-        // Check overdue (simple check against today)
-        const now = new Date().getTime();
-        if (aggregateStatus !== "Completed" && aggregateStatus !== "Extension Requested") {
-          // Check if any deadline passed
-          const anyOverdue = group.evaluators.some((e) => e.deadline < now);
-          if (anyOverdue) aggregateStatus = "Overdue";
-        }
+        const aggregateStatus = getAssignmentAggregateStatus(group.evaluators);
 
         return {
           id: String(group.proposalIdNumeric),
@@ -265,6 +219,22 @@ export const RnDEvaluatorPage: React.FC = () => {
   const handleExtensionAction = async (evaluatorId: string, action: "Accept" | "Reject") => {
     if (!selectedProposalId) return;
 
+    const finalizeExtensionAction = async () => {
+      await fetchData();
+      setCurrentEvaluators((prev) =>
+        prev.map((ev) => {
+          if (ev.id !== evaluatorId) return ev;
+          return {
+            ...ev,
+            status: action === "Accept" ? "Accepts" : "Pending",
+            extensionDate: undefined,
+            extensionReason: undefined,
+          };
+        }),
+      );
+      setShowModal(false);
+    };
+
     setExtensionActionLoading({ evaluatorId, action });
     try {
       await handleExtensionRequest({
@@ -273,35 +243,35 @@ export const RnDEvaluatorPage: React.FC = () => {
         action: action === "Accept" ? "approved" : "rejected",
       });
 
+      await finalizeExtensionAction();
+
       Swal.fire({
         icon: "success",
         title: "Success",
         text: `Extension request ${action === "Accept" ? "approved" : "rejected"} successfully.`,
       });
-
-      // Refresh Data
-      await fetchData();
-
-      // Update Modal State Locally to reflect change immediately without closing
-      setCurrentEvaluators((prev) =>
-        prev.map((ev) => {
-          if (ev.id === evaluatorId) {
-            return {
-              ...ev,
-              // Update status for UI feedback
-              status: action === "Accept" ? "Extension Approved" : "Pending",
-              extensionReason: undefined, // Clear request UI
-            };
-          }
-          return ev;
-        }),
-      );
-
-      // Close modal after short delay or keep open?
-      // Best to close to refresh full main view state consistency
-      setShowModal(false);
     } catch (error: any) {
       console.error("Extension Action Error:", error);
+
+      let mutationDidStick = false;
+      try {
+        invalidateProposalCache();
+        const refreshedTracker = await getAssignmentTracker(selectedProposalId);
+        mutationDidStick = didExtensionActionPersist(refreshedTracker, evaluatorId, action);
+      } catch (refreshError) {
+        console.error("Failed to verify extension action state after error:", refreshError);
+      }
+
+      if (mutationDidStick) {
+        await finalizeExtensionAction();
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: `Extension request ${action === "Accept" ? "approved" : "rejected"} successfully.`,
+        });
+        return;
+      }
+
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -350,34 +320,13 @@ export const RnDEvaluatorPage: React.FC = () => {
       });
 
       const modalEvaluators: EvaluatorOption[] = uniqueItems.map((item) => {
-        let status: EvaluatorOption["status"] = "Pending";
+        const status = getEvaluatorTrackerStatus(item);
         let extensionDate = undefined;
         let extensionReason = undefined;
 
-        // Map backend status to UI status (EvaluatorOption["status"])
-        const rawStatus = (item.status || "").toLowerCase();
-
-        // Check for extension request first
-        const isExtensionRequest =
-          rawStatus === "extend" ||
-          rawStatus === "extension_requested" ||
-          (rawStatus === "pending" && item.request_deadline_at);
-
-        if (isExtensionRequest) {
-          status = "Extension Requested";
+        if (status === "Extension Requested") {
           extensionDate = item.request_deadline_at ? formatDate(item.request_deadline_at) : "N/A";
           extensionReason = item.remarks || "No reason provided";
-        } else if (rawStatus === "accept" || rawStatus === "accepted" || rawStatus === "accepts") {
-          status = "Accepts";
-        } else if (rawStatus === "decline" || rawStatus === "declined" || rawStatus === "rejected" || rawStatus === "reject") {
-          status = "Rejected";
-        } else if (rawStatus === "completed") {
-          status = "Completed";
-        } else if (rawStatus === "extension_approved") {
-          status = "Extension Approved";
-        } else if (rawStatus === "extension_rejected" || rawStatus === "extension_denied") {
-          status = "Pending";
-          extensionReason = undefined;
         }
 
         return {
