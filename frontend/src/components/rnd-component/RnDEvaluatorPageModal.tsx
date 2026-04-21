@@ -389,6 +389,16 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     }
   };
 
+  // Keep evaluator remarks visible for normal review states and approved extensions,
+  // but hide extension-request remarks once the request is rejected.
+  const shouldShowComment = (ev: EvaluatorOption) => {
+    if (!ev.comment) return false;
+    if (ev.status === 'Extension Rejected') return false;
+    if (ev.status === 'Extension Requested') return false; // shown in dedicated extension request card
+    if (ev.status === 'Pending') return false; // hide stale extension remarks after resolution
+    return true;
+  };
+
   // Detect changes: different number of evaluators, or any ID changed
   const hasChanges = (() => {
     if (currentList.length !== originalList.length) return true;
@@ -675,7 +685,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getStatusStyle(ev.status)}`}>
                                   {ev.status}
                                 </span>
-                                {ev.comment && (
+                                {shouldShowComment(ev) && (
                                   <div className="text-slate-600 text-xs flex items-start gap-2 mt-1.5">
                                     <MessageSquare className="w-3 h-3 mt-0.5 text-slate-400 shrink-0" />
                                     <span className="italic">"{ev.comment}"</span>

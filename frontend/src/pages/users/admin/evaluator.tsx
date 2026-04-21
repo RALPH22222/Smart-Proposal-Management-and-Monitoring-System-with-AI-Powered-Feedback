@@ -154,8 +154,8 @@ export const EvaluatorPage: React.FC = () => {
           aggregateStatus = "Extension Requested";
         } else if (statusSet.has("extension_approved")) {
           aggregateStatus = "Extension Approved";
-        } else if (statusSet.has("extension_rejected")) {
-          aggregateStatus = "Extension Rejected";
+        } else if (statusSet.has("extension_rejected") || statusSet.has("extension_denied")) {
+          aggregateStatus = "Pending";
         } else if (statusSet.has("decline") || statusSet.has("rejected")) {
           aggregateStatus = "Rejected";
         } else if (statusSet.has("pending")) {
@@ -231,7 +231,7 @@ export const EvaluatorPage: React.FC = () => {
           if (ev.id === evaluatorId) {
             return {
               ...ev,
-              status: action === "Accept" ? "Extension Approved" : "Extension Rejected",
+              status: action === "Accept" ? "Extension Approved" : "Pending",
               extensionReason: undefined,
             };
           }

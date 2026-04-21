@@ -206,8 +206,8 @@ export const RnDEvaluatorPage: React.FC = () => {
           aggregateStatus = "Extension Requested";
         } else if (statusSet.has("extension_approved")) {
           aggregateStatus = "Extension Approved";
-        } else if (statusSet.has("extension_rejected")) {
-          aggregateStatus = "Extension Rejected";
+        } else if (statusSet.has("extension_rejected") || statusSet.has("extension_denied")) {
+          aggregateStatus = "Pending";
         } else if (statusSet.has("decline") || statusSet.has("rejected")) {
           // If any evaluator declined, surface it so RND can take action
           aggregateStatus = "Rejected";
@@ -289,7 +289,7 @@ export const RnDEvaluatorPage: React.FC = () => {
             return {
               ...ev,
               // Update status for UI feedback
-              status: action === "Accept" ? "Extension Approved" : "Extension Rejected", // Or map back to 'Pending' if approved means new deadline set
+              status: action === "Accept" ? "Extension Approved" : "Pending",
               extensionReason: undefined, // Clear request UI
             };
           }
@@ -376,7 +376,8 @@ export const RnDEvaluatorPage: React.FC = () => {
         } else if (rawStatus === "extension_approved") {
           status = "Extension Approved";
         } else if (rawStatus === "extension_rejected" || rawStatus === "extension_denied") {
-          status = "Extension Rejected";
+          status = "Pending";
+          extensionReason = undefined;
         }
 
         return {

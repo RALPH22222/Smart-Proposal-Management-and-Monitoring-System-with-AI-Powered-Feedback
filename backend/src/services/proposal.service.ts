@@ -3080,7 +3080,16 @@ export class ProposalService {
 
       if (trackerError) return { error: trackerError };
 
-      // 2. proposal_evaluators stays pending (no change needed)
+      // 2. Reset proposal_evaluators to pending as well.
+      // Without this, evaluator views can keep showing stale "extend/extension_requested".
+      const { error: evalError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: EvaluatorStatus.PENDING })
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id)
+        .eq("proposal_version_id", currentVersionId);
+
+      if (evalError) return { error: evalError };
 
       // 3. Insert notification
       await this.db.from("notifications").insert({
