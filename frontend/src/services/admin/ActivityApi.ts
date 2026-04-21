@@ -11,6 +11,8 @@ export interface ActivityLog {
   created_at: string;
   user_name: string;
   user_roles: string[];
+  /** UUID → display name lookup for UUIDs referenced by target_id/details on this row. */
+  resolved_names?: Record<string, string>;
 }
 
 export interface ActivityLogsResponse {

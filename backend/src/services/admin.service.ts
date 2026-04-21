@@ -830,7 +830,57 @@ export class AdminService {
       users: undefined,
     }));
 
-    return { data: logs, error: null, count: count || 0 };
+    // Resolve UUID-shaped strings in target_id + details to user names so the
+    // admin UI can show "Juan Dela Cruz" instead of raw UUIDs. Raw IDs stay on
+    // the row for audit/search/CSV — `resolved_names` is a lookup map, not a
+    // replacement. One batched users lookup for the whole page.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    const collectUuids = (value: any, sink: Set<string>): void => {
+      if (typeof value === "string") {
+        if (UUID_RE.test(value)) sink.add(value);
+      } else if (Array.isArray(value)) {
+        for (const v of value) collectUuids(v, sink);
+      } else if (value && typeof value === "object") {
+        for (const v of Object.values(value)) collectUuids(v, sink);
+      }
+    };
+
+    const perLogUuids = new Map<number, Set<string>>();
+    const allUuids = new Set<string>();
+    for (const log of logs) {
+      const set = new Set<string>();
+      if (typeof log.target_id === "string" && UUID_RE.test(log.target_id)) {
+        set.add(log.target_id);
+      }
+      if (log.details) collectUuids(log.details, set);
+      perLogUuids.set(log.id, set);
+      for (const u of set) allUuids.add(u);
+    }
+
+    const nameMap = new Map<string, string>();
+    if (allUuids.size > 0) {
+      const { data: usersLookup } = await this.db
+        .from("users")
+        .select("id, first_name, last_name")
+        .in("id", Array.from(allUuids));
+      for (const u of (usersLookup || []) as Array<{ id: string; first_name: string | null; last_name: string | null }>) {
+        const display = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+        nameMap.set(u.id, display || "Unknown");
+      }
+    }
+
+    const enriched = logs.map((log: any) => {
+      const uids = perLogUuids.get(log.id) || new Set<string>();
+      const resolved: Record<string, string> = {};
+      for (const uid of uids) {
+        const name = nameMap.get(uid);
+        if (name) resolved[uid] = name;
+      }
+      return { ...log, resolved_names: resolved };
+    });
+
+    return { data: enriched, error: null, count: count || 0 };
   }
 
   // ===================== EVALUATOR PERFORMANCE =====================

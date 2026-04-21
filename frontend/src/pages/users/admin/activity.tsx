@@ -132,6 +132,35 @@ function formatRoleBadge(role: string): string {
     .join(" ");
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Render any detail value; if it's a UUID the backend resolved to a name, show the name. */
+function renderDetailValue(value: unknown, resolved?: Record<string, string>): string {
+  if (typeof value === "string" && UUID_RE.test(value)) {
+    return resolved?.[value] || value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => renderDetailValue(v, resolved)).join(", ");
+  }
+  if (value && typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+/** Humanize a detail key: `rnd_id` → `R&D`, `to_rnd_id` → `To R&D`, fallbacks to Title Case. */
+function formatDetailKey(key: string): string {
+  const stripped = key.replace(/_id$/, "");
+  return stripped
+    .split("_")
+    .map((part) => (part.toLowerCase() === "rnd" ? "R&D" : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join(" ");
+}
+
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -421,10 +450,13 @@ export default function Activity() {
                           {ACTION_LABELS[log.action] || log.action.replace(/_/g, " ")}
                         </div>
                         {log.details && Object.keys(log.details).length > 0 && (
-                          <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">
+                          <div
+                            className="text-xs text-gray-400 mt-0.5 max-w-xs truncate"
+                            title={JSON.stringify(log.details, null, 2)}
+                          >
                             {Object.entries(log.details)
                               .filter(([, v]) => v !== null && v !== undefined)
-                              .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
+                              .map(([k, v]) => `${formatDetailKey(k)}: ${renderDetailValue(v, log.resolved_names)}`)
                               .join(" | ")}
                           </div>
                         )}
@@ -436,12 +468,32 @@ export default function Activity() {
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         {log.target_id ? (
-                          <div>
-                            <span className="text-sm text-gray-700">#{log.target_id}</span>
-                            {log.target_type && (
-                              <span className="text-xs text-gray-400 ml-1">({log.target_type})</span>
-                            )}
-                          </div>
+                          (() => {
+                            const isUuid = UUID_RE.test(log.target_id);
+                            const resolvedName = isUuid ? log.resolved_names?.[log.target_id] : undefined;
+                            const typeLabel = log.target_type
+                              ? log.target_type === "rnd"
+                                ? "R&D"
+                                : log.target_type.charAt(0).toUpperCase() + log.target_type.slice(1)
+                              : null;
+                            if (resolvedName) {
+                              return (
+                                <div title={log.target_id}>
+                                  <span className="text-sm text-gray-700">
+                                    {typeLabel ? `${typeLabel}: ` : ""}
+                                    {resolvedName}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div title={isUuid ? log.target_id : undefined}>
+                                <span className="text-sm text-gray-700">
+                                  {typeLabel ? `${typeLabel} ` : ""}#{isUuid ? `${log.target_id.slice(0, 8)}…` : log.target_id}
+                                </span>
+                              </div>
+                            );
+                          })()
                         ) : (
                           <span className="text-xs text-gray-300">--</span>
                         )}
