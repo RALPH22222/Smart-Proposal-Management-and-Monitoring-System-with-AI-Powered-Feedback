@@ -84,6 +84,9 @@ interface QuarterData {
   submittedBy?: string;
   dateSubmitted?: string;
   expenses: { id: string; description: string; amount: number; approvedAmount: number | null }[];
+  // Precomputed totals so the submitted/verified breakdown footer doesn't reduce on every render.
+  totalApproved: number;
+  totalExpense: number;
   // R&D's reason when the report was returned (status === 'rejected'). Null otherwise.
   reviewNote?: string | null;
 }
@@ -396,6 +399,8 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
           submittedBy: dr.submittedBy,
           dateSubmitted: dr.dateSubmitted,
           expenses: dr.expenses,
+          totalApproved: dr.totalApproved ?? 0,
+          totalExpense: dr.totalExpense ?? 0,
           reviewNote: dr.reviewNote ?? null,
         };
       });
