@@ -355,23 +355,92 @@ export const submitRevisedProposal = async (
   }
 
   if (payload.budgetSources && payload.budgetSources.length > 0) {
-    // Phase 1 of LIB feature: backend now expects line items with itemName/quantity/unitPrice/totalAmount.
-    // The revision form still uses the legacy {item, amount} shape, so we adapt: qty=1, unitPrice=amount,
-    // totalAmount=amount. The new submission form (BudgetBreakdownModal) writes the structured shape
-    // directly. The revision form will be migrated to the structured shape in a later phase.
-    const adaptLine = (item: { item: string; amount: number }) => ({
-      itemName: item.item,
-      quantity: 1,
-      unitPrice: Number(item.amount) || 0,
-      totalAmount: Number(item.amount) || 0,
-    });
+    // Revision mode still edits the legacy BudgetSource/BudgetLineItem view model, but the backend
+    // accepts the richer structured payload. Preserve subcategory + spec/volume + qty/unit pricing
+    // when resubmitting, and only fall back to amount-only defaults for older rows that truly lack them.
+    const [psSubs, mooeSubs, coSubs] = await Promise.all([
+      fetchBudgetSubcategories("ps"),
+      fetchBudgetSubcategories("mooe"),
+      fetchBudgetSubcategories("co"),
+    ]);
+
+    const subcategoriesByCategory: Record<"ps" | "mooe" | "co", BudgetSubcategoryDto[]> = {
+      ps: psSubs,
+      mooe: mooeSubs,
+      co: coSubs,
+    };
+
+    const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+    const normalizeText = (value: unknown): string | null => {
+      if (typeof value !== "string") return null;
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const resolveSubcategory = (
+      category: "ps" | "mooe" | "co",
+      rawLabel: unknown,
+    ): { subcategoryId: number | null; customSubcategoryLabel: string | null } => {
+      const label = normalizeText(rawLabel);
+      if (!label) {
+        return { subcategoryId: null, customSubcategoryLabel: null };
+      }
+
+      const match = subcategoriesByCategory[category].find(
+        (item) => item.label.trim().toLowerCase() === label.toLowerCase(),
+      );
+
+      if (match) {
+        return { subcategoryId: match.id, customSubcategoryLabel: null };
+      }
+
+      return { subcategoryId: null, customSubcategoryLabel: label };
+    };
+
+    const adaptLine = (
+      category: "ps" | "mooe" | "co",
+      item: {
+        item?: string;
+        amount?: number;
+        subcategory?: string;
+        specifications?: string;
+        quantity?: number;
+        unit?: string;
+        unitPrice?: number;
+      },
+    ) => {
+      const itemName = normalizeText(item.item) ?? "";
+      const rawAmount = Number(item.amount);
+      const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
+
+      const rawQuantity = Number(item.quantity);
+      const quantity = Number.isFinite(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1;
+
+      const rawUnitPrice = Number(item.unitPrice);
+      const unitPrice = Number.isFinite(rawUnitPrice) && rawUnitPrice >= 0
+        ? rawUnitPrice
+        : (quantity > 0 ? amount / quantity : amount);
+
+      const { subcategoryId, customSubcategoryLabel } = resolveSubcategory(category, item.subcategory);
+
+      return {
+        subcategoryId,
+        customSubcategoryLabel,
+        itemName,
+        spec: normalizeText(item.specifications),
+        quantity,
+        unit: normalizeText(item.unit),
+        unitPrice: round2(unitPrice),
+        totalAmount: round2(quantity * unitPrice),
+      };
+    };
 
     body.budget = payload.budgetSources.map((source) => ({
       source: source.source,
       budget: {
-        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map(adaptLine) || [],
-        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map(adaptLine) || [],
-        co: source.breakdown?.co?.filter(i => i.item?.trim()).map(adaptLine) || [],
+        ps: source.breakdown?.ps?.filter(i => i.item?.trim()).map((item) => adaptLine("ps", item)) || [],
+        mooe: source.breakdown?.mooe?.filter(i => i.item?.trim()).map((item) => adaptLine("mooe", item)) || [],
+        co: source.breakdown?.co?.filter(i => i.item?.trim()).map((item) => adaptLine("co", item)) || [],
       },
     }));
   }
