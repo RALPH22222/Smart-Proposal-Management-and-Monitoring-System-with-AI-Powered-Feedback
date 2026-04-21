@@ -150,30 +150,53 @@ const mapStatus = (status: string): ProposalStatus => {
 };
 
 const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
+  const parseAmount = (raw: any): number => {
+    if (typeof raw === 'string') return parseFloat(raw.replace(/,/g, '')) || 0;
+    return Number(raw) || 0;
+  };
+
   // Group budget items by source and category
   const budgetSources: BudgetSource[] = [];
 
-  if (Array.isArray(data.estimated_budget) && data.estimated_budget.length > 0) {
+  const rawBudgets =
+    (Array.isArray(data.proposal_budget_versions) && data.proposal_budget_versions.length > 0
+      ? data.proposal_budget_versions[data.proposal_budget_versions.length - 1]?.proposal_budget_items
+      : null) ||
+    data.estimated_budget ||
+    [];
+
+  if (Array.isArray(rawBudgets) && rawBudgets.length > 0) {
     // Group by source
     const sourceMap = new Map<string, { ps: any[], mooe: any[], co: any[] }>();
 
-    data.estimated_budget.forEach((item: any) => {
-      const source = item.source || 'Unknown';
+    rawBudgets.forEach((item: any) => {
+      const source = item.source || item.funding_agency || 'Unknown';
       if (!sourceMap.has(source)) {
         sourceMap.set(source, { ps: [], mooe: [], co: [] });
       }
 
       const group = sourceMap.get(source)!;
-      const budgetItem = { item: item.item || '', amount: parseFloat(item.amount || '0') };
+      const amount = parseAmount(item.total_amount ?? item.totalAmount ?? item.amount);
+      const budgetItem = {
+        item: item.item || item.itemName || item.item_description || item.item_name || '',
+        amount,
+        subcategory: item.subcategory || item.sub_category || (Array.isArray(item.budget_subcategories) ? item.budget_subcategories[0]?.label : item.budget_subcategories?.label) || item.custom_subcategory_label,
+        specifications: item.specifications || item.spec || item.spec_volume || item.volume,
+        quantity: item.quantity || item.qty || item.volume,
+        unit: item.unit,
+        unitPrice: parseAmount(item.unit_price ?? item.unitPrice),
+      };
 
       // Group by budget category (ps, mooe, co)
       const category = (item.budget || '').toLowerCase();
-      if (category === 'ps') {
+      if (category === 'ps' || category.includes('personal')) {
         group.ps.push(budgetItem);
-      } else if (category === 'mooe') {
+      } else if (category === 'mooe' || category.includes('maintenance')) {
         group.mooe.push(budgetItem);
-      } else if (category === 'co') {
+      } else if (category === 'co' || category.includes('capital')) {
         group.co.push(budgetItem);
+      } else {
+        group.mooe.push(budgetItem);
       }
     });
 

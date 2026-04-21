@@ -71,6 +71,10 @@ const AdminEndorsementPage: React.FC = () => {
   // Raw estimated_budget items → grouped BudgetRow[] (kept in sync with RnD page).
   const transformEstimatedBudget = (items: any[]): BudgetRow[] => {
     if (!Array.isArray(items) || items.length === 0) return [];
+    const parseAmount = (raw: any): number => {
+      if (typeof raw === 'string') return parseFloat(raw.replace(/,/g, '')) || 0;
+      return Number(raw) || 0;
+    };
     const map: Record<string, {
       ps: { items: any[]; total: number };
       mooe: { items: any[]; total: number };
@@ -78,9 +82,9 @@ const AdminEndorsementPage: React.FC = () => {
     }> = {};
 
     items.forEach((b: any) => {
-      const src = b.source || 'Unknown';
-      const amount = Number(b.amount || b.total_amount) || 0;
-      const itemLabel = b.item || b.item_name || 'Unspecified Item';
+      const src = b.source || b.funding_agency || 'Unknown';
+      const amount = parseAmount(b.total_amount ?? b.totalAmount ?? b.amount);
+      const itemLabel = b.item || b.itemName || b.item_description || b.item_name || 'Unspecified Item';
       const rawType = (b.budget || b.category || '').toLowerCase();
 
       let cat: 'ps' | 'mooe' | 'co' = 'mooe';
@@ -97,12 +101,12 @@ const AdminEndorsementPage: React.FC = () => {
       map[src][cat].total += amount;
       map[src][cat].items.push({ 
         item: itemLabel, 
-        amount: Number(b.amount || b.total_amount || 0),
-        subcategory: b.subcategory || (Array.isArray(b.budget_subcategories) ? b.budget_subcategories[0]?.label : b.budget_subcategories?.label) || b.custom_subcategory_label,
-        specifications: b.specifications || b.spec,
-        quantity: b.quantity,
+        amount,
+        subcategory: b.subcategory || b.sub_category || (Array.isArray(b.budget_subcategories) ? b.budget_subcategories[0]?.label : b.budget_subcategories?.label) || b.custom_subcategory_label,
+        specifications: b.specifications || b.spec || b.spec_volume || b.volume,
+        quantity: b.quantity || b.qty || b.volume,
         unit: b.unit,
-        unitPrice: Number(b.unitPrice || b.unit_price || 0)
+        unitPrice: parseAmount(b.unitPrice ?? b.unit_price)
       });
     });
 

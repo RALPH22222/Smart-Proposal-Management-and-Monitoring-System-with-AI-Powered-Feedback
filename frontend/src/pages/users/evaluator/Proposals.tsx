@@ -82,18 +82,28 @@ export default function Proposals() {
             currency: "PHP",
           }).format(num || 0);
         };
+        const parseAmount = (val: any) => {
+          if (typeof val === "string") return parseFloat(val.replace(/,/g, "")) || 0;
+          return Number(val) || 0;
+        };
+
+        const rawBudgets =
+          (proposalObj.proposal_budget_versions?.length > 0 &&
+            proposalObj.proposal_budget_versions[proposalObj.proposal_budget_versions.length - 1]?.proposal_budget_items) ||
+          proposalObj.estimated_budget ||
+          [];
 
         // Map budget — group by source and category, include breakdown items
         const budgetSourcesMap: Record<string, { ps: { items: any[], total: number }; mooe: { items: any[], total: number }; co: { items: any[], total: number } }> = {};
-        (proposalObj.estimated_budget || []).forEach((b: any) => {
-          const src = b.source || "Unknown Source";
-          const amt = typeof b.amount === 'string' ? parseFloat(b.amount.replace(/,/g, '')) || 0 : Number(b.amount) || 0;
-          const itm = b.item || b.item_description || b.item_name || "Unspecified Item";
-          const subcategory = b.subcategory || b.sub_category;
-          const specifications = b.specifications || b.spec_volume;
-          const quantity = b.quantity || b.qty;
+        rawBudgets.forEach((b: any) => {
+          const src = b.source || b.funding_agency || "Unknown Source";
+          const amt = parseAmount(b.total_amount ?? b.totalAmount ?? b.amount);
+          const itm = b.object || b.item || b.itemName || b.item_description || b.item_name || "Unspecified Item";
+          const subcategory = b.subcategory || b.sub_category || (Array.isArray(b.budget_subcategories) ? b.budget_subcategories[0]?.label : b.budget_subcategories?.label) || b.custom_subcategory_label;
+          const specifications = b.specifications || b.spec || b.spec_volume || b.volume;
+          const quantity = b.quantity || b.qty || b.volume;
           const unit = b.unit;
-          const unitPrice = b.unit_price || b.unitPrice;
+          const unitPrice = parseAmount(b.unit_price ?? b.unitPrice);
           const type = (b.budget || b.item_type || "").toLowerCase();
 
           if (!budgetSourcesMap[src]) {
@@ -126,10 +136,9 @@ export default function Proposals() {
           },
         }));
 
-        const totalBudgetVal = (proposalObj.estimated_budget || []).reduce(
-          (acc: number, curr: any) => acc + (curr.amount || 0),
-          0,
-        );
+        const totalBudgetVal = rawBudgets.reduce((acc: number, curr: any) => {
+          return acc + parseAmount(curr.total_amount ?? curr.totalAmount ?? curr.amount);
+        }, 0);
 
         // Address formatting
         const agencyAddress = proposalObj.agency_address
