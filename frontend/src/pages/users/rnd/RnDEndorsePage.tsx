@@ -45,10 +45,7 @@ const EndorsePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
   const [searchTerm, setSearchTerm] = useState('');
-<<<<<<< Updated upstream
   const [sortOrder, setSortOrder] = useState('recent-old');
-=======
->>>>>>> Stashed changes
 
   // State for Evaluator Modal
   const [selectedDecision, setSelectedDecision] = useState<EvaluatorDecision | null>(null);
@@ -455,7 +452,6 @@ const EndorsePage: React.FC = () => {
   
   const filteredProposals = endorsementProposals.filter((p) => {
     const term = searchTerm.toLowerCase();
-<<<<<<< Updated upstream
     const matchesSearch = p.title.toLowerCase().includes(term) ||
            p.submittedBy.toLowerCase().includes(term) ||
            String(p.id).toLowerCase().includes(term);
@@ -485,17 +481,6 @@ const EndorsePage: React.FC = () => {
   const totalPages = Math.ceil(sortedFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProposals = sortedFiltered.slice(startIndex, startIndex + itemsPerPage);
-=======
-    return p.title.toLowerCase().includes(term) ||
-           p.submittedBy.toLowerCase().includes(term) ||
-           String(p.id).toLowerCase().includes(term);
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredProposals.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProposals = filteredProposals.slice(startIndex, startIndex + itemsPerPage);
->>>>>>> Stashed changes
 
   // Helper for Random Department Colors
   const getDepartmentColor = (departmentName: string) => {
@@ -618,7 +603,6 @@ const EndorsePage: React.FC = () => {
         </section>
 
         {/* Stepper / Tabs */}
-<<<<<<< Updated upstream
         <section className="flex-shrink-0 overflow-x-auto">
           <div className="flex flex-col gap-3">
             <div className="flex gap-1">
@@ -728,52 +712,12 @@ const EndorsePage: React.FC = () => {
         {/* Search and Filters Section */}
         <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
-=======
-        <section className="flex-shrink-0 overflow-x-auto pb-2">
-          <div className="flex gap-2">
-            {([
-              { key: 'active', label: 'Active', icon: Gavel },
-              { key: 'revised', label: 'Revised', icon: RotateCcw },
-              { key: 'rejected', label: 'Rejected', icon: XCircle },
-              { key: 'archive', label: 'Archive', icon: Archive },
-            ] as { key: EndorsementFilter; label: string; icon: typeof Gavel }[]).map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
-              const count = proposalsCache[tab.key] ? proposalsCache[tab.key]!.length : (isActive ? endorsementProposals.length : 0);
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap border ${
-                    isActive
-                      ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{tab.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
->>>>>>> Stashed changes
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search proposals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-<<<<<<< Updated upstream
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
             />
           </div>
@@ -790,15 +734,6 @@ const EndorsePage: React.FC = () => {
             </select>
           </div>
         </section>
-=======
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
-            />
-          </div>
-        </section>
-
-        {/* Proposals List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
->>>>>>> Stashed changes
 
         {/* Proposals list — natural document flow so browser zoom does not trap/clip rows in a tiny scroll region */}
         <main className="relative flex flex-1 w-full min-w-0 flex-col overflow-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
@@ -820,11 +755,7 @@ const EndorsePage: React.FC = () => {
                   ? 'Revised Proposals'
                   : activeTab === 'rejected'
                   ? 'Rejected Proposals'
-<<<<<<< Updated upstream
                   : 'Endorsed for Funding'}
-=======
-                  : 'Archived Proposals'}
->>>>>>> Stashed changes
               </h3>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <User className="w-4 h-4" />
@@ -833,11 +764,7 @@ const EndorsePage: React.FC = () => {
             </div>
           </div>
 
-<<<<<<< Updated upstream
           {!loading && <div className="w-full min-w-0">
-=======
-          <div className="flex-1 overflow-y-auto">
->>>>>>> Stashed changes
             {filteredProposals.length === 0 ? (
               <div className="text-center py-12 px-4 mt-4">
                 <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

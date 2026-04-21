@@ -44,11 +44,8 @@ const FundingPage: React.FC = () => {
   // Phase 3 of LIB feature: third tab for budget realignment requests
   const [activeTab, setActiveTab] = useState<'pending' | 'archived' | 'realignments'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
-<<<<<<< Updated upstream
   const [yearFilter, setYearFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('recent-old');
-=======
->>>>>>> Stashed changes
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
  
@@ -206,29 +203,14 @@ const FundingPage: React.FC = () => {
 
     if (!matchesSearch) return false;
 
-<<<<<<< Updated upstream
     const proposalYear = p.submittedDate ? new Date(p.submittedDate).getFullYear().toString() : "N/A";
     const matchesYear = yearFilter === "All" || proposalYear === yearFilter;
     if (!matchesYear) return false;
 
-=======
->>>>>>> Stashed changes
     return activeTab === 'pending'
       ? pendingStatuses.includes(p.status)
       : archivedStatuses.includes(p.status)
   });
-<<<<<<< Updated upstream
-=======
-
-  const displayedRealignments = realignments.filter(r => {
-    const term = searchTerm.toLowerCase();
-    const projectTitle = r.funded_project?.proposals?.project_title ?? 'Untitled project';
-    const requesterName = [r.requester?.first_name, r.requester?.last_name]
-      .filter(Boolean)
-      .join(' ') || r.requester?.email || 'Unknown';
-    return projectTitle.toLowerCase().includes(term) || requesterName.toLowerCase().includes(term);
-  });
->>>>>>> Stashed changes
 
   const sortedFilteredProposals = [...displayedProposals].sort((a, b) => {
     if (sortOrder === "a-z") return a.title.localeCompare(b.title);
@@ -331,13 +313,8 @@ const FundingPage: React.FC = () => {
           <div className="flex gap-2">
             {[
               { id: 'pending', label: 'Pending', icon: Clock, count: fundingProposals.filter(p => pendingStatuses.includes(p.status)).length },
-<<<<<<< Updated upstream
               { id: 'realignments', label: 'Realignments', icon: Banknote, count: realignments.length },
               { id: 'archived', label: 'Archive', icon: Archive, count: fundingProposals.filter(p => archivedStatuses.includes(p.status)).length },
-=======
-              { id: 'archived', label: 'Archive', icon: Archive, count: fundingProposals.filter(p => archivedStatuses.includes(p.status)).length },
-              { id: 'realignments', label: 'Realignments', icon: Banknote, count: realignments.length },
->>>>>>> Stashed changes
             ].map(tab => {
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -363,26 +340,6 @@ const FundingPage: React.FC = () => {
             })}
           </div>
         </section>
-<<<<<<< Updated upstream
-=======
-
-        {/* Search Bar */}
-        <section className="flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder={activeTab === 'realignments' ? "Search realignments..." : "Search proposals..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
-            />
-          </div>
-        </section>
-
-        {/* Proposals List */}
-        <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
->>>>>>> Stashed changes
 
         {/* Search and Filters Section */}
         <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
@@ -441,11 +398,7 @@ const FundingPage: React.FC = () => {
             <div className="min-w-0">
             {activeTab === 'realignments' ? (
               realignmentsLoading ? (
-<<<<<<< Updated upstream
                 <PageLoader mode="realignment-list" />
-=======
-                <div className="text-center py-12 text-slate-500">Loading realignments...</div>
->>>>>>> Stashed changes
               ) : displayedRealignments.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

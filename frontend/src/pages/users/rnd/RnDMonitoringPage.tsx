@@ -263,13 +263,8 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
 
   return (
     <>
-<<<<<<< Updated upstream
       <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
         <div className="flex w-full min-w-0 flex-col gap-3 lg:gap-4">
-=======
-      <div className="w-full min-h-screen overflow-x-hidden px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
-        <div className="flex-1 flex flex-col gap-4 lg:gap-6">
->>>>>>> Stashed changes
           {/* Header */}
           <header className="flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -283,21 +278,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
               </div>
               <button
                 onClick={() =>
-<<<<<<< Updated upstream
                   exportToCsv('funded-projects', filteredProjects, FUNDED_PROJECT_CSV_COLUMNS)
-=======
-                  exportToCsv('funded-projects', filteredProjects, [
-                    { header: 'Title', accessor: (p) => p.title },
-                    { header: 'Principal Investigator', accessor: (p) => p.principalInvestigator },
-                    { header: 'Department', accessor: (p) => p.department },
-                    { header: 'Start Date', accessor: (p) => p.startDate },
-                    { header: 'End Date', accessor: (p) => p.endDate },
-                    { header: 'Status', accessor: (p) => p.status },
-                    { header: 'Completion %', accessor: (p) => p.completionPercentage },
-                    { header: 'Overdue Reports', accessor: (p) => p.overdueReportsCount ?? 0 },
-                    { header: 'Pending Fund Requests', accessor: (p) => p.pendingFundRequestsCount ?? 0 },
-                  ])
->>>>>>> Stashed changes
                 }
                 disabled={filteredProjects.length === 0}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm bg-white text-[#C8102E] border border-[#C8102E]/30 hover:bg-[#C8102E]/5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -310,7 +291,6 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
           </header>
 
           {/* Stats Grid */}
-<<<<<<< Updated upstream
           <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" aria-label="Project statistics">
             {statCards.map((stat, index) => {
               const IconComponent = stat.icon;
@@ -377,89 +357,12 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                 <option value="a-z">Title (A-Z)</option>
                 <option value="z-a">Title (Z-A)</option>
               </select>
-=======
-          <section className="flex-shrink-0" aria-label="Project statistics">
-            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {statCards.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <div
-                      key={index}
-                      className={`${stat.bgColor} border border-slate-200 rounded-xl p-3 transition-all duration-300 hover:shadow-lg`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <IconComponent className={`${stat.color} w-4 h-4`} />
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-slate-400" />
-                          <span className="text-xs font-medium text-slate-600">{stat.trend}</span>
-                        </div>
-                      </div>
-                      <h3 className="text-xs font-semibold text-slate-700 mb-1 leading-tight line-clamp-1">
-                        {stat.title}
-                      </h3>
-                      <p className="text-base font-bold text-slate-800 truncate">
-                        {stat.value}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-
-          {/* Filters and Search */}
-          <section className="flex-shrink-0" aria-label="Filter projects">
-            <div className="bg-white shadow-xl rounded-2xl border border-slate-200 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  />
-                </div>
-
-                {/* Status Filter */}
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Filter className="h-4 w-4 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as ProjectStatus | 'All')}
-                    className="appearance-none bg-white pl-10 pr-8 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-[#C8102E] transition-colors"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="Active">Active ({getStatusCount('Active')})</option>
-                    <option value="Completed">Completed ({getStatusCount('Completed')})</option>
-                    <option value="Delayed">Delayed ({getStatusCount('Delayed')})</option>
-                    <option value="On Hold">On Hold ({getStatusCount('On Hold')})</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4 text-xs text-slate-600">
-                Showing {filteredProjects.length} of {projects.length} projects
-              </div>
->>>>>>> Stashed changes
             </div>
           </section>
 
           {/* Projects List */}
-<<<<<<< Updated upstream
           <main className="relative flex w-full min-w-0 flex-col overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex-shrink-0 border-b border-slate-200 bg-slate-50 p-4">
-=======
-          <main className="relative bg-white shadow-xl rounded-2xl border border-slate-200 overflow-hidden flex-1 flex flex-col">
-            <div className="p-4 border-b border-slate-200 bg-slate-50">
->>>>>>> Stashed changes
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-[#C8102E]" />
@@ -472,11 +375,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
               </div>
             </div>
 
-<<<<<<< Updated upstream
             <div className="min-w-0">
-=======
-            <div className="flex-1 overflow-y-auto">
->>>>>>> Stashed changes
               {filteredProjects.length === 0 ? (
                 <div className="text-center py-12 px-4 mt-4">
                   <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
@@ -528,11 +427,7 @@ const MonitoringPage: React.FC<MonitoringPageProps> = () => {
                                 color={project.status === 'Completed' ? '#2563eb' : project.status === 'Delayed' ? '#eab308' : project.status === 'On Hold' ? '#8b5cf6' : '#16a34a'}
                               />
                               <span className="text-xs font-medium text-slate-700">
-<<<<<<< Updated upstream
                                 {project.status === 'Completed' ? 100 : project.completionPercentage}% Reported
-=======
-                                {project.status === 'Completed' ? 100 : project.completionPercentage}% Complete
->>>>>>> Stashed changes
                               </span>
                             </div>
 

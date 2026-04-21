@@ -148,17 +148,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   if (!isOpen) return null;
 
-<<<<<<< Updated upstream
   // --- CALCULATE FINANCIALS ---
   const totalBudget = budgetSummary?.total_budget ?? details?.totalBudget ?? project?.budget ?? 0;
   const isCompleted = project?.status === 'Completed';
-=======
-
-  // --- CALCULATE FINANCIALS ---
-  const totalBudget = budgetSummary?.total_budget ?? details?.totalBudget ?? project?.budget ?? 0;
-  const isCompleted = project?.status === 'Completed';
-  // Client requirement: completed projects must have 100% budget utilization
->>>>>>> Stashed changes
   const totalUsed = isCompleted
     ? totalBudget
     : budgetSummary?.total_approved ?? (details?.reports?.reduce((acc, r) => acc + r.totalExpense, 0) ?? 0);
@@ -365,18 +357,10 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   // --- RENDERERS ---
 
-<<<<<<< Updated upstream
-=======
-  // 1. COMPLETED VIEW
->>>>>>> Stashed changes
   const renderCompletedView = () => {
     if (!project || !details) return null;
     return (
       <div className="space-y-6">
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
         {/* Success Banner */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
           <div className="relative z-10 flex items-center gap-4">
@@ -418,10 +402,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             <Users className="w-4 h-4" /> Project Leadership Team
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-<<<<<<< Updated upstream
-=======
-            {/* Leader */}
->>>>>>> Stashed changes
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                 <User className="w-5 h-5" />
@@ -431,11 +411,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 <p className="text-xs text-slate-500">Project Leader</p>
               </div>
             </div>
-<<<<<<< Updated upstream
-=======
-
-            {/* Co-Proponent */}
->>>>>>> Stashed changes
             {project.coProponent ? (
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
@@ -486,11 +461,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
           </div>
         </div>
 
-<<<<<<< Updated upstream
         {/* Report Archive */}
-=======
-        {/* List of Reports in Completed View for Reference */}
->>>>>>> Stashed changes
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <h4 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
             <FileText className="w-4 h-4" /> Report Archive
@@ -533,10 +504,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
     return (
       <div key={report.id} className={`border rounded-xl transition-all duration-200 overflow-hidden ${isExpanded ? 'ring-1 ring-blue-300 shadow-md bg-white' : 'bg-white hover:border-blue-300'}`}>
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
         <div className={`p-4 flex items-center justify-between cursor-pointer ${report.status === 'Locked' ? 'opacity-70 bg-gray-50' : ''}`} onClick={() => toggleReport(report.id)}>
           <div className="flex items-center gap-4">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${statusColor}`}>
@@ -555,7 +522,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
         {isExpanded && report.status !== 'Locked' && report.status !== 'Due' && (
           <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-5 animate-in slide-in-from-top-2">
-<<<<<<< Updated upstream
             {report.submittedBy && (
               <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
                 <User className="w-4 h-4 text-blue-500" />
@@ -615,62 +581,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                       <span className="text-right">Actual</span>
                       <span className="text-right">Unspent</span>
                     </div>
-=======
-
-            {report.submittedBy && (
-              <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                <User className="w-4 h-4 text-blue-500" />
-                <span>Submitted by <span className="font-bold text-slate-700">{report.submittedBy}</span> on {report.dateSubmitted}</span>
-              </div>
-            )}
-
-            <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${report.progress}%` }}></div>
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">{report.progress}%</span>
-                </div>
-              </div>
-              {(() => {
-                const hasLiquidation = report.expenses.some(e => e.approvedAmount !== null);
-                return hasLiquidation ? (
-                  <>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                      <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
-                      <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
-                    </div>
-                  </>
-                ) : null;
-              })()}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <p className="text-xs text-slate-400 uppercase font-bold">Actual Spent</p>
-                <p className="text-xl font-bold text-blue-700 mt-1">₱{report.totalExpense.toLocaleString()}</p>
-              </div>
-              {report.expenses.some(e => e.approvedAmount !== null) && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
-                  <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                    ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {report.expenses.length > 0 ? (
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200">Expense Breakdown</div>
-                {report.expenses.some(e => e.approvedAmount !== null) ? (
-                  <>
-                    <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
-                      <span className="col-span-1">Item</span>
-                      <span className="text-right">Approved</span>
-                      <span className="text-right">Actual</span>
-                      <span className="text-right">Unspent</span>
-                    </div>
->>>>>>> Stashed changes
                     {report.expenses.map((exp, idx) => (
                       <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
                         <span className="text-slate-700 col-span-1 truncate">{idx + 1}. {exp.description}</span>
@@ -683,7 +593,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                     ))}
                   </>
                 ) : (
-<<<<<<< Updated upstream
                   report.expenses.map((exp, idx) => (
                     <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
                       <span className="text-slate-700">{idx + 1}. {exp.description}</span>
@@ -694,22 +603,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
               </div>
             ) : (
               <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">No expenses recorded for this period.</div>
-=======
-                  <>
-                    {report.expenses.map((exp, idx) => (
-                      <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                        <span className="text-slate-700">{idx + 1}. {exp.description}</span>
-                        <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">
-                No expenses recorded for this period.
-              </div>
->>>>>>> Stashed changes
             )}
 
             {report.proofs.length > 0 ? (
@@ -720,11 +613,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                     <p className="text-[11px] font-bold text-slate-500 mb-1.5">{group.category}</p>
                     <div className="space-y-1.5">
                       {group.files.map((file, i) => (
-<<<<<<< Updated upstream
                         <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
-=======
-                        <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm" title={file.filename}>
->>>>>>> Stashed changes
                           <Paperclip className="w-4 h-4 flex-shrink-0" />
                           <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
                           <Download className="w-4 h-4 ml-auto opacity-70 flex-shrink-0" />
@@ -735,7 +624,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 ))}
               </div>
             ) : (
-<<<<<<< Updated upstream
               <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">No proof files attached.</div>
             )}
 
@@ -790,39 +678,13 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                     </>
                   )}
                 </div>
-=======
-              <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-400">
-                No proof files attached.
-              </div>
-            )}
-
-            {report.status === 'Submitted' && (
-              <div className="flex gap-3 pt-4 border-t border-slate-200">
-                <button
-                  onClick={() => handleVerifyReport(report)}
-                  disabled={verifyingReportId === report.id}
-                  className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {verifyingReportId === report.id ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
-                  ) : (
-                    <><CheckCircle className="w-5 h-5" /> Verify & Approve Report</>
-                  )}
-                </button>
->>>>>>> Stashed changes
               </div>
             )}
           </div>
         )}
         {isExpanded && (report.status === 'Locked' || report.status === 'Due') && (
           <div className="p-5 text-center text-slate-500 text-sm italic bg-slate-50">
-<<<<<<< Updated upstream
             {report.status === 'Locked' ? 'This report is currently locked and not yet due.' : 'This report is due. Waiting for proponent submission.'}
-=======
-            {report.status === 'Locked'
-              ? 'This report is currently locked and not yet due.'
-              : 'This report is due. Waiting for proponent submission.'}
->>>>>>> Stashed changes
           </div>
         )}
       </div>
@@ -841,10 +703,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       `}</style>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-300">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all animate-in zoom-in-95 duration-300">
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
           {/* --- HEADER --- */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 bg-white gap-4 sticky top-0 z-10">
             <div className="flex-1 min-w-0">
@@ -863,14 +721,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 </h2>
               </div>
             </div>
-<<<<<<< Updated upstream
             <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600 self-start sm:self-center">
-=======
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600 self-start sm:self-center"
-            >
->>>>>>> Stashed changes
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -885,7 +736,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                   {project?.status === 'Completed' ? renderCompletedView() : (
                     <>
-<<<<<<< Updated upstream
                       {/* Realignment Awareness */}
                       {activeRealignment && (
                         <div className={`rounded-xl border p-4 flex items-start gap-3 ${activeRealignment.status === 'pending_review' ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
@@ -1334,239 +1184,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           <div>
                             <div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Pending</span><span className="font-bold text-amber-600">₱{totalPending.toLocaleString()}</span></div>
                             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-amber-400" style={{ width: `${(totalPending / totalBudget) * 100}%` }}></div></div>
-=======
-                      {/* Pending Fund Requests */}
-                      {pendingFundRequests.length > 0 && (
-                        <div className="mb-6">
-                          <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
-                            <DollarSign className="w-5 h-5 text-amber-600" /> Pending Fund Requests
-                            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pendingFundRequests.length}</span>
-                          </h3>
-                          <div className="space-y-4">
-                            {pendingFundRequests.map(fr => {
-                              const totalAmount = fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0;
-                              const quarterLabel = fr.quarterly_report.replace('_report', '').toUpperCase();
-                              const requestedBy = fr.requested_by_user
-                                ? `${fr.requested_by_user.first_name} ${fr.requested_by_user.last_name}`
-                                : 'Unknown';
-                              return (
-                                <div key={fr.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
-                                  <div className="bg-amber-50 px-5 py-3 flex justify-between items-center border-b border-amber-200">
-                                    <div>
-                                      <span className="font-bold text-amber-800">{quarterLabel} Fund Request</span>
-                                      <p className="text-xs text-amber-600 mt-0.5">By {requestedBy} &middot; {formatDate(fr.created_at)}</p>
-                                    </div>
-                                    <span className="text-lg font-bold text-amber-800">₱{totalAmount.toLocaleString()}</span>
-                                  </div>
-                                  <div className="p-4 space-y-2">
-                                    {fr.fund_request_items?.map(item => (
-                                      <div key={item.id} className="flex justify-between text-sm border-b border-slate-100 last:border-0 pb-1">
-                                        <span className="text-slate-700">{item.item_name} <span className="text-xs text-slate-400 uppercase">({item.category})</span></span>
-                                        <span className="font-mono font-medium text-slate-900">₱{item.amount.toLocaleString()}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  {showReviewNoteFor === fr.id && (
-                                    <div className="px-4 pb-2">
-                                      <textarea
-                                        value={reviewNote}
-                                        onChange={(e) => setReviewNote(e.target.value)}
-                                        placeholder="Add a note (optional)..."
-                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none resize-none h-16"
-                                      />
-                                    </div>
-                                  )}
-                                  <div className="px-4 pb-4 flex gap-3">
-                                    {showReviewNoteFor !== fr.id ? (
-                                      <>
-                                        <button
-                                          onClick={() => handleReviewFundRequest(fr.id, 'approved')}
-                                          disabled={reviewingFrId === fr.id}
-                                          className="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                        >
-                                          {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                          Approve
-                                        </button>
-                                        <button
-                                          onClick={() => setShowReviewNoteFor(fr.id)}
-                                          className="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-2"
-                                        >
-                                          <AlertTriangle className="w-4 h-4" />
-                                          Reject
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button
-                                          onClick={() => handleReviewFundRequest(fr.id, 'rejected')}
-                                          disabled={reviewingFrId === fr.id}
-                                          className="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                        >
-                                          {reviewingFrId === fr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
-                                        </button>
-                                        <button
-                                          onClick={() => { setShowReviewNoteFor(null); setReviewNote(''); }}
-                                          className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Quarterly Reports */}
-                      <div>
-                        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2 text-lg">
-                          <FileText className="w-5 h-5 text-blue-600" /> Quarterly Reports
-                        </h3>
-                        <div className="space-y-4">
-                          {details.reports.map(renderReportItem)}
-                        </div>
-                      </div>
-
-                      {/* Terminal Report Section */}
-                      {allQuartersVerified && terminalReport && (
-                        <div className={`mt-6 rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                              <FileText className="w-5 h-5 text-blue-600" /> Terminal Report
-                            </h3>
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${terminalReport.status === 'verified' ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>
-                              {terminalReport.status === 'verified' ? 'Verified' : 'Pending Verification'}
-                            </span>
-                          </div>
-                          <div className="space-y-2 text-sm text-gray-700">
-                            {terminalReport.actual_start_date && (
-                              <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>
-                            )}
-                            <div>
-                              <p className="font-medium mb-1">Accomplishments:</p>
-                              <p className="whitespace-pre-wrap text-xs bg-white/60 rounded-lg p-2 max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
-                            </div>
-                            {terminalReport.submitted_by_user && (
-                              <p className="text-xs text-gray-500">Submitted by {terminalReport.submitted_by_user.first_name} {terminalReport.submitted_by_user.last_name}</p>
-                            )}
-                          </div>
-                          {terminalReport.status === 'submitted' && (
-                            <button
-                              onClick={async () => {
-                                const confirm = await Swal.fire({ title: 'Verify Terminal Report?', text: 'This will mark the terminal report as verified.', icon: 'question', showCancelButton: true, confirmButtonText: 'Verify' });
-                                if (!confirm.isConfirmed) return;
-                                setVerifyingTerminal(true);
-                                try {
-                                  const updated = await verifyTerminalReport(terminalReport.id);
-                                  setTerminalReport(updated);
-                                  Swal.fire('Verified', 'Terminal report verified successfully.', 'success');
-                                } catch (err: any) {
-                                  Swal.fire('Error', err?.response?.data?.message || 'Failed to verify.', 'error');
-                                } finally {
-                                  setVerifyingTerminal(false);
-                                }
-                              }}
-                              disabled={verifyingTerminal}
-                              className="mt-4 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                              {verifyingTerminal ? <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</> : <><CheckCircle className="w-4 h-4" /> Verify Terminal Report</>}
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {allQuartersVerified && !terminalReport && (
-                        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5 text-center">
-                          <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500">All quarterly reports verified. Waiting for proponent to submit terminal report.</p>
-                        </div>
-                      )}
-
-                      {/* Financial Report Button */}
-                      {project && (
-                        <div className="mt-4">
-                          <button
-                            onClick={() => setShowFinancialReport(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-xs transition-colors"
-                          >
-                            <DollarSign className="w-4 h-4" /> View Financial Report
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Certificate Generation Button — requires terminal report verified */}
-                      {allQuartersVerified && terminalReport?.status === 'verified' && (
-                        <div className="mt-6 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center">
-                          <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                          <h3 className="text-lg font-bold text-emerald-800 mb-2">Ready for Certificate!</h3>
-                          <p className="text-sm text-emerald-600 mb-4">All quarterly reports and terminal report have been verified. You can now issue the certificate of completion.</p>
-                          <button
-                            onClick={handleGenerateCertificate}
-                            disabled={issuingCertificate}
-                            className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
-                          >
-                            {issuingCertificate ? <><Loader2 className="w-5 h-5 animate-spin" /> Issuing...</> : <><Award className="w-5 h-5" /> Issue Certificate of Completion</>}
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* RIGHT COLUMN */}
-                <div className="lg:w-80 bg-white border-l border-slate-200 p-6 overflow-y-auto space-y-6 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" /> Financial Overview
-                    </h4>
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <p className="text-xs text-slate-500 mb-1">Total Budget</p>
-                      <p className="text-2xl font-bold text-slate-900">
-                        {totalBudget > 0 ? `₱${totalBudget.toLocaleString()}` : 'N/A'}
-                      </p>
-                    </div>
-
-                    {totalBudget > 0 && (
-                      <div className="space-y-3 pt-2">
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-slate-500 font-medium">Utilized</span>
-                            <span className="font-bold text-blue-600">₱{totalUsed.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0}%` }}></div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-slate-500 font-medium">Remaining</span>
-                            <span className={`font-bold ${remainingBudget === 0 ? 'text-gray-400' : 'text-emerald-600'}`}>₱{remainingBudget.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${totalBudget > 0 ? (remainingBudget / totalBudget) * 100 : 0}%` }}></div>
-                          </div>
-                        </div>
-
-                        {totalPending > 0 && (
-                          <div>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-slate-500 font-medium">Pending</span>
-                              <span className="font-bold text-amber-600">₱{totalPending.toLocaleString()}</span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${totalBudget > 0 ? (totalPending / totalBudget) * 100 : 0}%` }}></div>
-                            </div>
->>>>>>> Stashed changes
                           </div>
                         )}
                       </div>
                     )}
                   </div>
-<<<<<<< Updated upstream
                   <div className="h-px bg-slate-100"></div>
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Users className="w-4 h-4" /> Leadership</h4>
@@ -1581,47 +1203,6 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
                       <div className="flex items-start gap-3"><div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500"></div><div><p className="text-xs text-slate-500">Start Date</p><p className="text-sm font-bold">{formatDate(project?.startDate)}</p></div></div>
                       <div className="flex items-start gap-3"><div className={`w-2 h-2 mt-1.5 rounded-full ${project?.status === 'Completed' ? 'bg-blue-500' : 'bg-red-500'}`}></div><div><p className="text-xs text-slate-500">Target End</p><p className="text-sm font-bold">{formatDate(project?.endDate)}</p></div></div>
-=======
-
-                  <div className="h-px bg-slate-100"></div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                      <Users className="w-4 h-4" /> Leadership
-                    </h4>
-                    <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
-                        <User className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">{project?.principalInvestigator}</p>
-                        <p className="text-xs text-slate-500 font-medium">Project Leader</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-px bg-slate-100"></div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                      <Calendar className="w-4 h-4" /> Timeline
-                    </h4>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-emerald-500"></div>
-                        <div>
-                          <p className="text-xs text-slate-500 font-medium">Start Date</p>
-                          <p className="text-sm font-bold text-slate-800">{formatDate(project?.startDate)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className={`w-2 h-2 mt-1.5 rounded-full ${project?.status === 'Completed' ? 'bg-blue-500' : 'bg-red-500'}`}></div>
-                        <div>
-                          <p className="text-xs text-slate-500 font-medium">Target End</p>
-                          <p className="text-sm font-bold text-slate-800">{formatDate(project?.endDate)}</p>
-                        </div>
-                      </div>
->>>>>>> Stashed changes
                     </div>
                   </div>
                 </div>
@@ -1631,16 +1212,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
           {/* --- FOOTER --- */}
           <div className="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex justify-end">
-<<<<<<< Updated upstream
             <button onClick={onClose} className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 shadow-sm transition-all">Close</button>
-=======
-            <button
-              onClick={onClose}
-              className="px-6 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors shadow-sm"
-            >
-              Close
-            </button>
->>>>>>> Stashed changes
           </div>
 
           {showFinancialReport && project && (
