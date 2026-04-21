@@ -7,9 +7,7 @@ import {
   FaListUl,
   FaFileWord,
   FaCheckCircle,
-  FaExclamationTriangle,
-  FaMagic
-} from 'react-icons/fa';
+  FaExclamationTriangle,} from 'react-icons/fa';
 import { X, Sparkles, HandCoins } from 'lucide-react';
 import type { ExpenseItem, FormData, BudgetItem, BudgetSubcategory } from '../../../../types/proponent-form';
 import Tooltip from '../../../../components/Tooltip';
@@ -121,6 +119,13 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
 
   return (
     <div className="space-y-8 relative">
+      <style>{`
+        @keyframes scrollLabel {
+          0%, 15% { transform: translateX(0); }
+          75%, 85% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+          95%, 100% { transform: translateX(0); }
+        }
+      `}</style>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl">
@@ -149,168 +154,137 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
       )}
 
-      {/* Two-path guidance panel.
-          Option A — template path (recommended): Step 1 Download → Step 2 Import. The two
-            cards are visually linked with a "→" so first-time users understand the order.
-          Option B — manual entry: de-emphasised but equally one click away. No step numbering
-            on this path — it is not a continuation of Option A, it is an alternative. */}
-      {/* Typography follows the page's dominant scale (text-sm body, text-xs helpers,
-          text-base panel titles). Keep text-[10px] reserved for uppercase micro-badges only
-          (Option A / Option B / OR / category tags) — everything else uses the standard scale
-          so this panel reads the same weight as the rest of the submission form. */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-blue-200 bg-white/60">
-          <h3 className="text-base font-bold text-blue-900 flex items-center gap-2">
-            <FaMagic className="w-4 h-4 text-[#C8102E]" />
-            Build your budget
-          </h3>
-          <p className="text-sm text-blue-700 mt-1">
-            Choose one of two ways to add your line items.
-          </p>
+      {/* Two-path guidance panel — redesigned as equal-width option cards */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">Build your budget</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Choose how you want to add your line items</p>
         </div>
 
-        <div className="p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-stretch">
-          {/* Option A — template path */}
-          <div className="lg:col-span-1 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#C8102E] text-white text-[10px] font-bold tracking-wide uppercase">
-                Option A
-              </span>
-              <span className="text-sm font-semibold text-[#C8102E]">Use the template (recommended for faster encoding)</span>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href="/templates/wmsu-lib-template-v1.docx"
-                download="wmsu-lib-template-v1.docx"
-                className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98]"
-              >
-                <div className="w-9 h-9 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
-                  Step<br />1
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
+        <div className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch">
+            {/* Upload Template Card */}
+            <div className="flex flex-col h-full">
+              <div className="flex-1 bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-gray-300 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded bg-[#C8102E]/10 text-[#C8102E] flex items-center justify-center shrink-0">
                     <FaFileWord className="w-4 h-4" />
-                    Download Template
                   </div>
-                  <p className="text-xs text-gray-600 mt-1 leading-snug">
-                    Official WMSU LIB Template v1 (.docx) — fill in Word, then import here.
-                  </p>
-                </div>
-              </a>
-
-              <div className="hidden sm:flex items-center text-[#C8102E] font-black text-xl select-none">→</div>
-
-              <button
-                type="button"
-                onClick={onOpenLibImport}
-                className="group flex-1 flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-[#C8102E]/30 hover:border-[#C8102E] hover:shadow-md transition-all active:scale-[0.98] text-left"
-              >
-                <div className="w-9 h-9 shrink-0 rounded-lg bg-[#C8102E]/10 text-[#C8102E] font-black text-[10px] flex items-center justify-center leading-tight tracking-wide uppercase">
-                  Step<br />2
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5 font-bold text-[#C8102E] text-sm">
-                    <Sparkles className="w-4 h-4" />
-                    Import Filled Template
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Upload Template</h4>
+                    <span className="text-[10px] text-gray-400">Recommended</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1 leading-snug">
-                    Upload the filled .docx — only the WMSU template is accepted.
-                  </p>
                 </div>
-              </button>
-            </div>
-
-            {/* Subcategory reference popover — placed under the two step cards so proponents
-                can peek at valid labels BEFORE opening the template in Word. Lazy-loaded live
-                from the admin catalog. */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleToggleSubcategoryPopover}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C8102E] hover:text-[#9d0d24] hover:underline underline-offset-2"
-              >
-                <FaListUl className="w-3.5 h-3.5" />
-                {showSubcategoryPopover ? 'Hide' : 'View'} valid subcategories
-                <span className="text-gray-400 font-normal">(so you know what to type in the Subcategory column)</span>
-              </button>
-
-              {showSubcategoryPopover && (
-                <div className="mt-2 p-3 bg-white rounded-lg border border-[#C8102E]/30 shadow-sm">
-                  {loadingSubcategoryList && (
-                    <div className="text-xs text-gray-500 py-2 text-center">Loading latest list…</div>
-                  )}
-                  {!loadingSubcategoryList && subcategoryList && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      {(['ps', 'mooe', 'co'] as const).map((cat) => (
-                        <div key={cat}>
-                          <div className="font-bold text-[#C8102E] uppercase text-[10px] tracking-wider mb-1.5">
-                            {cat === 'ps' ? 'Personnel Services' : cat === 'mooe' ? 'MOOE' : 'Capital Outlay'}
-                          </div>
-                          <ul className="space-y-1 text-gray-700">
-                            {subcategoryList[cat].map((s) => (
-                              <li key={s.id}>• {s.label}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {!loadingSubcategoryList && !subcategoryList && (
-                    <div className="text-xs text-red-600 py-2 text-center">Could not load subcategories. Try again shortly.</div>
-                  )}
-                  <p className="text-xs text-gray-500 mt-3 pt-2 border-t border-gray-100">
-                    These are the official WMSU subcategories. You can also leave the Subcategory column blank and pick from the dropdown after import.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* OR divider */}
-          <div className="hidden lg:flex flex-col items-center justify-center px-1">
-            <div className="w-px flex-1 bg-blue-300"></div>
-            <span className="text-[10px] font-bold text-blue-500 tracking-widest py-1">OR</span>
-            <div className="w-px flex-1 bg-blue-300"></div>
-          </div>
-          <div className="flex lg:hidden items-center gap-2 pt-2">
-            <div className="flex-1 h-px bg-blue-300"></div>
-            <span className="text-[10px] font-bold text-blue-500 tracking-widest">OR</span>
-            <div className="flex-1 h-px bg-blue-300"></div>
-          </div>
-
-          {/* Option B — manual path */}
-          <div className="space-y-3 lg:w-56">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-500 text-white text-[10px] font-bold tracking-wide uppercase">
-                Option B
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={onBudgetItemAdd}
-              className="group w-full flex items-start gap-3 p-3 bg-white rounded-xl border-2 border-gray-300 hover:border-gray-500 hover:shadow-md transition-all active:scale-[0.98] text-left"
-            >
-              <div className="w-9 h-9 shrink-0 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
-                <FaPlus className="w-4 h-4" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-gray-800 text-sm">Enter Manually</div>
-                <p className="text-xs text-gray-600 mt-1 leading-snug">
-                  Add a funding source and type items in the form below.
+                <p className="text-[11px] text-gray-500 mb-3 leading-snug">
+                  Download the WMSU template, fill it in Word, then import.
                 </p>
+                <div className="flex flex-col gap-1.5 mt-auto">
+                  <a
+                    href="/templates/wmsu-lib-template-v1.docx"
+                    download="wmsu-lib-template-v1.docx"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                  >
+                    <FaFileWord className="w-3 h-3 text-[#C8102E]" />
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={onOpenLibImport}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#C8102E] rounded-md text-[11px] font-medium text-white hover:bg-[#9d0d24] transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Import
+                  </button>
+                </div>
               </div>
-            </button>
+              {/* Subcategory reference */}
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={handleToggleSubcategoryPopover}
+                  className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <FaListUl className="w-3 h-3" />
+                  {showSubcategoryPopover ? 'Hide' : 'View'} valid subcategories
+                </button>
+                {showSubcategoryPopover && (
+                  <div className="mt-1.5 p-2 bg-gray-50 rounded-md border border-gray-200">
+                    {loadingSubcategoryList && (
+                      <div className="text-[10px] text-gray-500 py-1.5 text-center">Loading…</div>
+                    )}
+                    {!loadingSubcategoryList && subcategoryList && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px]">
+                        {(['ps', 'mooe', 'co'] as const).map((cat) => (
+                          <div key={cat}>
+                            <div className="font-medium text-gray-700 uppercase text-[9px] tracking-wide mb-0.5">
+                              {cat === 'ps' ? 'PS' : cat === 'mooe' ? 'MOOE' : 'CO'}
+                            </div>
+                            <ul className="space-y-0 text-gray-600">
+                              {subcategoryList[cat].slice(0, 3).map((s) => (
+                                <li key={s.id} className="truncate">• {s.label}</li>
+                              ))}
+                              {subcategoryList[cat].length > 3 && (
+                                <li className="text-gray-400 italic">+ {subcategoryList[cat].length - 3} more</li>
+                              )}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* OR Divider */}
+            <div className="hidden md:flex flex-col items-center justify-center px-1">
+              <div className="w-px flex-1 bg-gray-200"></div>
+              <span className="text-[10px] font-medium text-gray-400 tracking-widest py-1">OR</span>
+              <div className="w-px flex-1 bg-gray-200"></div>
+            </div>
+            <div className="flex md:hidden items-center gap-2 py-1.5">
+              <div className="flex-1 h-px bg-gray-200"></div>
+              <span className="text-[10px] font-medium text-gray-400 tracking-widest">OR</span>
+              <div className="flex-1 h-px bg-gray-200"></div>
+            </div>
+
+            {/* Enter Manually Card */}
+            <div className="flex flex-col h-full">
+              <div className="flex-1 bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:border-gray-300 transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                    <FaPlus className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Enter Manually</h4>
+                    <span className="text-[10px] text-gray-400">Alternative</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mb-3 leading-snug">
+                  Add funding sources and enter budget items directly in the form.
+                </p>
+                <button
+                  type="button"
+                  onClick={onBudgetItemAdd}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-[11px] font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                >
+                  <FaPlus className="w-3 h-3" />
+                  Add Funding Source
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Info note below cards */}
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-start gap-1.5 text-[11px] text-gray-500">
+            <FaCoins className="w-3 h-3 mt-0.5 text-gray-400 shrink-0" />
+            <span>
+              <strong className="text-gray-700">PS, MOOE, and CO are each optional</strong> — but every funding source
+              must have at least one line item in one of them. Proposals like AMBIANCE, which have no Personnel Services,
+              are fully supported.
+            </span>
           </div>
         </div>
-      </div>
-
-      <div className="flex items-start gap-2 text-sm text-gray-600 px-1">
-        <FaCoins className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
-        <span>
-          <strong className="text-gray-800">PS, MOOE, and CO are each optional</strong> — but every funding source
-          must have at least one line item in one of them. Proposals like AMBIANCE, which have no Personnel Services,
-          are fully supported.
-        </span>
       </div>
 
       <div className="space-y-4">
@@ -328,10 +302,12 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                 {index + 1}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                <div className="lg:col-span-4 space-y-2">
+              <div className="flex flex-col gap-4">
+                {/* Row 1: Source of Funds */}
+                <div className="space-y-1.5">
                   <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${item.source ? 'text-green-600' : 'text-gray-500'}`}>
-                    Source of Funds <span className="text-red-500">*</span>
+                    <span>Source of Funds</span>
+                    <span className="text-red-500">*</span>
                     <Tooltip content="The origin of the funding" />
                   </label>
                   <input
@@ -344,76 +320,86 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                   />
                 </div>
 
-                <div className="lg:col-span-2 space-y-2">
-                  <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowPS > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    PS <span className="text-gray-400 font-normal">(optional)</span>
-                    <Tooltip content="Personnel Services" position="right" />
-                  </label>
-                  <div
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedPS > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
-                    onClick={() => onOpenBudgetModal(item.id, 'ps')}
-                    title={flaggedPS > 0 ? `${flaggedPS} item${flaggedPS > 1 ? 's' : ''} need review` : undefined}
-                  >
-                    <FaListUl className={`shrink-0 mr-3 ${flaggedPS > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
-                    <div className="flex-1 truncate">
-                      <span>{formatCurrency(rowPS)}</span>
+                {/* Row 2: PS / MOOE / CO Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* PS Card */}
+                  <div className="space-y-1.5">
+                    <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowPS > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span>PS</span>
+                      <span className="text-gray-400 font-normal text-[10px]">(optional)</span>
+                      <Tooltip content="Personnel Services" position="right" />
+                    </label>
+                    <div
+                      className={`w-full px-3 py-3 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedPS > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
+                      onClick={() => onOpenBudgetModal(item.id, 'ps')}
+                      title={flaggedPS > 0 ? `${flaggedPS} item${flaggedPS > 1 ? 's' : ''} need review` : undefined}
+                    >
+                      <FaListUl className={`shrink-0 mr-3 ${flaggedPS > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
+                      <div className="flex-1 truncate">
+                        <span>{formatCurrency(rowPS)}</span>
+                      </div>
+                      {flaggedPS > 0 && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                          <FaExclamationTriangle className="w-2.5 h-2.5" />
+                          {flaggedPS}
+                        </span>
+                      )}
                     </div>
-                    {flaggedPS > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
-                        <FaExclamationTriangle className="w-2.5 h-2.5" />
-                        {flaggedPS}
-                      </span>
-                    )}
+                  </div>
+
+                  {/* MOOE Card */}
+                  <div className="space-y-1.5">
+                    <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowMOOE > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span>MOOE</span>
+                      <span className="text-gray-400 font-normal text-[10px]">(optional)</span>
+                      <Tooltip content="Maintenance and Other Operating Expenses" position="right" />
+                    </label>
+                    <div
+                      className={`w-full px-3 py-3 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedMOOE > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
+                      onClick={() => onOpenBudgetModal(item.id, 'mooe')}
+                      title={flaggedMOOE > 0 ? `${flaggedMOOE} item${flaggedMOOE > 1 ? 's' : ''} need review` : undefined}
+                    >
+                      <FaListUl className={`shrink-0 mr-3 ${flaggedMOOE > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
+                      <div className="flex-1 truncate">
+                        <span>{formatCurrency(rowMOOE)}</span>
+                      </div>
+                      {flaggedMOOE > 0 && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                          <FaExclamationTriangle className="w-2.5 h-2.5" />
+                          {flaggedMOOE}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CO Card */}
+                  <div className="space-y-1.5">
+                    <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowCO > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span>CO</span>
+                      <span className="text-gray-400 font-normal text-[10px]">(optional)</span>
+                      <Tooltip content="Capital Outlay" position="right" />
+                    </label>
+                    <div
+                      className={`w-full px-3 py-3 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedCO > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
+                      onClick={() => onOpenBudgetModal(item.id, 'co')}
+                      title={flaggedCO > 0 ? `${flaggedCO} item${flaggedCO > 1 ? 's' : ''} need review` : undefined}
+                    >
+                      <FaListUl className={`shrink-0 mr-3 ${flaggedCO > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
+                      <div className="flex-1 truncate">
+                        <span>{formatCurrency(rowCO)}</span>
+                      </div>
+                      {flaggedCO > 0 && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
+                          <FaExclamationTriangle className="w-2.5 h-2.5" />
+                          {flaggedCO}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="lg:col-span-2 space-y-2">
-                  <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowMOOE > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    MOOE <span className="text-gray-400 font-normal">(optional)</span>
-                    <Tooltip content="Maintenance and Other Operating Expenses" position="right" />
-                  </label>
-                  <div
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedMOOE > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
-                    onClick={() => onOpenBudgetModal(item.id, 'mooe')}
-                    title={flaggedMOOE > 0 ? `${flaggedMOOE} item${flaggedMOOE > 1 ? 's' : ''} need review` : undefined}
-                  >
-                    <FaListUl className={`shrink-0 mr-3 ${flaggedMOOE > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
-                    <div className="flex-1 truncate">
-                      <span>{formatCurrency(rowMOOE)}</span>
-                    </div>
-                    {flaggedMOOE > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
-                        <FaExclamationTriangle className="w-2.5 h-2.5" />
-                        {flaggedMOOE}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="lg:col-span-2 space-y-2">
-                  <label className={`flex items-center gap-2 text-xs font-bold tracking-wide ${rowCO > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    CO <span className="text-gray-400 font-normal">(optional)</span>
-                    <Tooltip content="Capital Outlay" position="right" />
-                  </label>
-                  <div
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm text-right font-mono cursor-pointer hover:bg-gray-100 flex items-center group/input ${flaggedCO > 0 ? 'border-amber-300 bg-amber-50/60 ring-1 ring-amber-200' : 'border-gray-300 bg-gray-50'}`}
-                    onClick={() => onOpenBudgetModal(item.id, 'co')}
-                    title={flaggedCO > 0 ? `${flaggedCO} item${flaggedCO > 1 ? 's' : ''} need review` : undefined}
-                  >
-                    <FaListUl className={`shrink-0 mr-3 ${flaggedCO > 0 ? 'text-amber-600' : 'text-gray-400 group-hover/input:text-[#C8102E]'}`} />
-                    <div className="flex-1 truncate">
-                      <span>{formatCurrency(rowCO)}</span>
-                    </div>
-                    {flaggedCO > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 shrink-0">
-                        <FaExclamationTriangle className="w-2.5 h-2.5" />
-                        {flaggedCO}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="lg:col-span-2 flex items-center justify-end lg:pt-6">
+                {/* Row 3: Remove Button */}
+                <div className="flex items-center justify-end pt-2">
                   <button
                     type="button"
                     onClick={() => onBudgetItemRemove(item.id)}
@@ -421,7 +407,7 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
                     disabled={formData.budgetItems.length <= 1}
                   >
                     <FaTrash className="w-3.5 h-3.5" />
-                    <span className="lg:hidden">Remove</span>
+                    <span>Remove</span>
                   </button>
                 </div>
               </div>
@@ -437,33 +423,43 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
         </div>
 
         <div className="p-6">
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Personnel Services</p>
-                  <p className="text-sm text-slate-600">Salaries, wages, honoraria</p>
+          <div className="flex flex-col gap-6">
+            {/* PS / MOOE / CO Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 items-stretch">
+              {/* PS Card */}
+              <div className="flex flex-col space-y-1.5 min-w-0">
+                <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                  <span className="text-[11px] lg:text-[12px] font-bold text-slate-500 whitespace-nowrap inline-block animate-[scrollLabel_8s_ease-in-out_infinite]">
+                    Personnel Services
+                  </span>
                 </div>
-                <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalPS)}</p>
-                </div>
-              </div>
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">MOOE</p>
-                  <p className="text-sm text-slate-600">Maintenance & Operations</p>
-                </div>
-                <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalMOOE)}</p>
+                <div className="flex-1 bg-white px-3 lg:px-4 py-3 rounded-lg border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all duration-200 flex items-center justify-between min-h-[48px] lg:min-h-[56px] min-w-0">
+                  <FaListUl className="w-4 h-4 text-slate-400/70 shrink-0" />
+                  <span className="text-sm lg:text-base font-semibold text-slate-700 font-mono truncate ml-3">{formatCurrency(totalPS)}</span>
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between h-28 overflow-hidden">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Capital Outlay</p>
-                  <p className="text-sm text-slate-600">Equipment & Infrastructure</p>
+              {/* MOOE Card */}
+              <div className="flex flex-col space-y-1.5 min-w-0">
+                <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                  <span className="text-[11px] lg:text-[12px] font-bold text-slate-500 whitespace-nowrap inline-block animate-[scrollLabel_8s_ease-in-out_infinite]">
+                    Maintenance and Other Operating Expenses
+                  </span>
                 </div>
-                <div className="w-full text-right">
-                  <p className="text-xl font-bold text-slate-800 font-mono truncate">{formatCurrency(totalCO)}</p>
+                <div className="flex-1 bg-white px-3 lg:px-4 py-3 rounded-lg border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all duration-200 flex items-center justify-between min-h-[48px] lg:min-h-[56px] min-w-0">
+                  <FaListUl className="w-4 h-4 text-slate-400/70 shrink-0" />
+                  <span className="text-sm lg:text-base font-semibold text-slate-700 font-mono truncate ml-3">{formatCurrency(totalMOOE)}</span>
+                </div>
+              </div>
+              {/* CO Card */}
+              <div className="flex flex-col space-y-1.5 min-w-0">
+                <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
+                  <span className="text-[11px] lg:text-[12px] font-bold text-slate-500 whitespace-nowrap inline-block animate-[scrollLabel_8s_ease-in-out_infinite]">
+                    Capital Outlay
+                  </span>
+                </div>
+                <div className="flex-1 bg-white px-3 lg:px-4 py-3 rounded-lg border border-slate-200 shadow-sm hover:border-slate-300 hover:shadow transition-all duration-200 flex items-center justify-between min-h-[48px] lg:min-h-[56px] min-w-0">
+                  <FaListUl className="w-4 h-4 text-slate-400/70 shrink-0" />
+                  <span className="text-sm lg:text-base font-semibold text-slate-700 font-mono truncate ml-3">{formatCurrency(totalCO)}</span>
                 </div>
               </div>
             </div>
@@ -571,7 +567,15 @@ export const BudgetBreakdownModal: React.FC<{
     const { itemId, category } = activeModal;
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
-    updateBudgetStructure(itemId, category, [...currentBreakdown, newRow()]);
+    const newRowItem = newRow();
+    updateBudgetStructure(itemId, category, [...currentBreakdown, newRowItem]);
+    // Auto-focus on the new row's item name field after render
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('[data-last-row="true"]');
+      if (inputs.length > 0) {
+        (inputs[inputs.length - 1] as HTMLInputElement).focus();
+      }
+    }, 50);
   };
 
   const handleRowChange = (index: number, patch: Partial<ExpenseItem>) => {
@@ -735,13 +739,13 @@ export const BudgetBreakdownModal: React.FC<{
           </div>
         )}
 
-        <div className="flex-1 bg-slate-50 px-3 py-4 overflow-y-auto space-y-2">
+        <div className="flex-1 bg-white overflow-hidden flex flex-col">
           {currentBreakdown.length === 0 ? (
-            <div className="text-center py-6 text-gray-400 text-sm">
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
               No line items added yet. Click "Add Item" to start.
             </div>
           ) : filteredBreakdown.length === 0 ? (
-            <div className="text-center py-6 text-gray-400 text-sm">
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
               No items match <span className="font-semibold">"{searchQuery}"</span>{onlyFlagged ? ' with the "needs review" filter' : ''}.
               <button
                 onClick={() => { setSearchQuery(''); setOnlyFlagged(false); }}
@@ -751,188 +755,208 @@ export const BudgetBreakdownModal: React.FC<{
               </button>
             </div>
           ) : (
-            filteredBreakdown.map(({ row, idx }) => {
-              const isOther = otherSubcategoryId != null && row.subcategoryId === otherSubcategoryId;
-              const needsReview = row.importConfidence === 'medium' || row.importConfidence === 'low';
-              const reviewStyles = row.importConfidence === 'low'
-                ? 'border-red-300 bg-red-50/40 ring-1 ring-red-200'
-                : row.importConfidence === 'medium'
-                  ? 'border-amber-300 bg-amber-50/40 ring-1 ring-amber-200'
-                  : 'border-gray-200';
-              return (
-                <div
-                  key={row.uid ?? idx}
-                  className={`bg-white border rounded-xl p-2.5 shadow-sm group animate-in slide-in-from-bottom-2 ${reviewStyles}`}
-                >
-                  {needsReview && (
-                    <div className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-md text-[11px] font-medium ${
-                      row.importConfidence === 'low'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      <FaExclamationTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold uppercase tracking-wider mr-1">
-                          {row.importConfidence === 'low' ? 'Needs review' : 'Review'}:
-                        </span>
-                        {row.importWarning ?? 'Imported from LIB with low parser confidence — verify the values are correct.'}
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-3">
-                    <div className={`w-7 h-7 mt-1 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      needsReview
-                        ? (row.importConfidence === 'low' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')
-                        : 'bg-gray-50 text-gray-400'
-                    }`}>{idx + 1}</div>
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-2">
-                      {/* Subcategory dropdown */}
-                      <div className="md:col-span-3">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Subcategory</label>
-                        <select
-                          value={row.subcategoryId ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? null : Number(e.target.value);
-                            handleRowChange(idx, {
-                              subcategoryId: val,
-                              // Clear the custom label if the user picks a non-Other subcategory.
-                              customSubcategoryLabel: val !== otherSubcategoryId ? null : row.customSubcategoryLabel,
-                            });
-                          }}
-                          disabled={loadingSubs}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none bg-white"
-                        >
-                          <option value="">— Select —</option>
-                          {subcategories.map((sub) => (
-                            <option key={sub.id} value={sub.id}>{sub.label}</option>
-                          ))}
-                        </select>
-                        {isOther && (
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-sm">
+                {/* Sticky Header */}
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-500 w-8">#</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-500 w-1/4">Subcategory</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-500 w-1/4">Item Name</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-500">Spec / Volume</th>
+                    <th className="px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-gray-500 w-16">Qty</th>
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-gray-500 w-20">Unit</th>
+                    <th className="px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-gray-500 w-24">Unit ₱</th>
+                    <th className="px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-gray-500 w-24">Total</th>
+                    <th className="px-2 py-2.5 text-center text-[10px] font-bold uppercase tracking-wide text-gray-500 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredBreakdown.map(({ row, idx }) => {
+                    const isOther = otherSubcategoryId != null && row.subcategoryId === otherSubcategoryId;
+                    const needsReview = row.importConfidence === 'medium' || row.importConfidence === 'low';
+                    return (
+                      <tr
+                        key={row.uid ?? idx}
+                        className={`group hover:bg-gray-50/50 transition-colors ${
+                          row.importConfidence === 'low'
+                            ? 'bg-red-50/30'
+                            : row.importConfidence === 'medium'
+                              ? 'bg-amber-50/30'
+                              : ''
+                        }`}
+                      >
+                        {/* Row Number */}
+                        <td className="px-3 py-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            needsReview
+                              ? (row.importConfidence === 'low' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700')
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>{idx + 1}</div>
+                        </td>
+
+                        {/* Subcategory */}
+                        <td className="px-2 py-2">
+                          <div className="space-y-1">
+                            <select
+                              value={row.subcategoryId ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? null : Number(e.target.value);
+                                handleRowChange(idx, {
+                                  subcategoryId: val,
+                                  customSubcategoryLabel: val !== otherSubcategoryId ? null : row.customSubcategoryLabel,
+                                });
+                              }}
+                              disabled={loadingSubs}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-[#C8102E] outline-none bg-white"
+                            >
+                              <option value="">Select</option>
+                              {subcategories.map((sub) => (
+                                <option key={sub.id} value={sub.id}>{sub.label}</option>
+                              ))}
+                            </select>
+                            {isOther && (
+                              <input
+                                type="text"
+                                placeholder="Custom label"
+                                value={row.customSubcategoryLabel ?? ''}
+                                onChange={(e) => handleRowChange(idx, { customSubcategoryLabel: e.target.value })}
+                                maxLength={120}
+                                className="w-full px-2 py-1 text-[11px] border border-gray-200 rounded focus:ring-2 focus:ring-[#C8102E] outline-none"
+                              />
+                            )}
+                            {needsReview && (
+                              <div className={`flex items-center gap-1 text-[10px] ${
+                                row.importConfidence === 'low' ? 'text-red-600' : 'text-amber-600'
+                              }`}>
+                                <FaExclamationTriangle className="w-3 h-3" />
+                                <span className="truncate">{row.importConfidence === 'low' ? 'Needs review' : 'Review'}</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Item Name */}
+                        <td className="px-2 py-2">
                           <input
                             type="text"
-                            placeholder="Custom subcategory label"
-                            value={row.customSubcategoryLabel ?? ''}
-                            onChange={(e) => handleRowChange(idx, { customSubcategoryLabel: e.target.value })}
-                            maxLength={120}
-                            className="mt-1 w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#C8102E] outline-none"
+                            placeholder="Item name"
+                            value={row.itemName ?? ''}
+                            onChange={(e) => handleRowChange(idx, { itemName: e.target.value })}
+                            maxLength={200}
+                            data-last-row={idx === currentBreakdown.length - 1}
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-[#C8102E] outline-none"
                           />
-                        )}
-                      </div>
+                        </td>
 
-                      {/* Item name */}
-                      <div className="md:col-span-3">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Item Name *</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Bond Paper"
-                          value={row.itemName ?? ''}
-                          onChange={(e) => handleRowChange(idx, { itemName: e.target.value })}
-                          maxLength={200}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#C8102E] outline-none"
-                        />
-                      </div>
+                        {/* Spec */}
+                        <td className="px-2 py-2">
+                          <input
+                            type="text"
+                            placeholder="Specifications"
+                            value={row.spec ?? ''}
+                            onChange={(e) => handleRowChange(idx, { spec: e.target.value })}
+                            maxLength={200}
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-[#C8102E] outline-none"
+                          />
+                        </td>
 
-                      {/* Spec / Volume */}
-                      <div className="md:col-span-2">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Spec / Volume</label>
-                        <input
-                          type="text"
-                          placeholder="80GSM, A4"
-                          value={row.spec ?? ''}
-                          onChange={(e) => handleRowChange(idx, { spec: e.target.value })}
-                          maxLength={200}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none"
-                        />
-                      </div>
+                        {/* Quantity */}
+                        <td className="px-2 py-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={row.quantity || ''}
+                            onKeyDown={(e) => {
+                              if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+                            }}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/[^0-9]/g, '');
+                              handleRowChange(idx, { quantity: raw === '' ? 0 : parseInt(raw, 10) });
+                            }}
+                            className="w-full px-1 py-1 text-xs border border-gray-200 rounded text-right font-mono focus:ring-2 focus:ring-[#C8102E] outline-none"
+                          />
+                        </td>
 
-                      {/* Quantity — integer only; block decimal/scientific input so "pcs" can't become 1.03 */}
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Qty *</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={row.quantity || ''}
-                          onKeyDown={(e) => {
-                            if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
-                          }}
-                          onChange={(e) => {
-                            const raw = e.target.value.replace(/[^0-9]/g, '');
-                            handleRowChange(idx, { quantity: raw === '' ? 0 : parseInt(raw, 10) });
-                          }}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right focus:ring-2 focus:ring-[#C8102E] outline-none"
-                        />
-                      </div>
+                        {/* Unit */}
+                        <td className="px-2 py-2">
+                          <input
+                            type="text"
+                            placeholder="Unit"
+                            value={row.unit ?? ''}
+                            onChange={(e) => handleRowChange(idx, { unit: e.target.value })}
+                            maxLength={40}
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:ring-2 focus:ring-[#C8102E] outline-none"
+                          />
+                        </td>
 
-                      {/* Unit */}
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Unit</label>
-                        <input
-                          type="text"
-                          placeholder="Reams"
-                          value={row.unit ?? ''}
-                          onChange={(e) => handleRowChange(idx, { unit: e.target.value })}
-                          maxLength={40}
-                          className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#C8102E] outline-none"
-                        />
-                      </div>
+                        {/* Unit Price */}
+                        <td className="px-2 py-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={row.unitPrice || ''}
+                            onChange={(e) => handleRowChange(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
+                            className={`w-full px-1 py-1 text-xs border border-gray-200 rounded text-right font-mono focus:ring-2 focus:ring-[#C8102E] outline-none ${NO_SPINNER_CLASS}`}
+                          />
+                        </td>
 
-                      {/* Unit price — spinner hidden; prices should be typed, not nudged */}
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Unit ₱ *</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          inputMode="decimal"
-                          value={row.unitPrice || ''}
-                          onChange={(e) => handleRowChange(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
-                          className={`w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right focus:ring-2 focus:ring-[#C8102E] outline-none ${NO_SPINNER_CLASS}`}
-                        />
-                      </div>
+                        {/* Total */}
+                        <td className="px-2 py-2">
+                          <div className="px-1 py-1 text-xs font-mono text-right text-gray-700">
+                            {formatCurrency(row.totalAmount || 0)}
+                          </div>
+                        </td>
 
-                      {/* Total (computed) */}
-                      <div className="md:col-span-1">
-                        <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1">Total</label>
-                        <div className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm font-mono text-right bg-gray-50 truncate">
-                          {formatCurrency(row.totalAmount || 0)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleRemoveBreakdownItem(idx)}
-                      disabled={currentBreakdown.length <= 1}
-                      className="p-2 mt-5 text-gray-300 hover:text-red-500 rounded-lg transition-all disabled:opacity-30"
-                      aria-label="Remove line item"
-                    >
-                      <FaTrash className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+                        {/* Delete */}
+                        <td className="px-2 py-2 text-center">
+                          <button
+                            onClick={() => handleRemoveBreakdownItem(idx)}
+                            disabled={currentBreakdown.length <= 1}
+                            className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-all disabled:opacity-30"
+                            aria-label="Remove line item"
+                          >
+                            <FaTrash className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-end flex-shrink-0 gap-3">
-          <div className="mr-auto text-sm font-semibold text-gray-700">
-            {activeModal.category.toUpperCase()} Total: <span className="text-[#C8102E] font-mono">{formatCurrency(breakdownTotal)}</span>
+        <div className="p-4 bg-white border-t border-gray-200 flex items-center justify-between flex-shrink-0 gap-4 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
+          {/* Total Summary - Now Prominent */}
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">{activeModal.category.toUpperCase()} Total</p>
+              <p className="text-2xl font-black text-[#C8102E] font-mono tracking-tight">{formatCurrency(breakdownTotal)}</p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={handleAddBreakdownItem}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
-          >
-            <FaPlus className="w-3 h-3" /> Add Item
-          </button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+            <button
+              onClick={handleAddBreakdownItem}
+              className="px-5 py-2.5 text-sm font-medium text-white bg-[#C8102E] rounded-lg hover:bg-[#a00c24] transition-colors flex items-center gap-2"
+            >
+              <FaPlus className="w-3 h-3" /> Add Item
+            </button>
+          </div>
         </div>
       </div>
     </div>
