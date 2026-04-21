@@ -489,7 +489,7 @@ export class ProposalService {
 
     let existingQuery = this.db
       .from("proposal_evaluators")
-      .select("evaluator_id")
+      .select("evaluator_id, proponent_info_visibility, anonymized_file_url")
       .eq("proposal_id", proposal_id);
     if (currentVersionId) {
       existingQuery = existingQuery.eq("proposal_version_id", currentVersionId);
@@ -498,6 +498,17 @@ export class ProposalService {
 
     const existingIds = new Set((existingAssignments || []).map((a) => a.evaluator_id));
     const newEvaluators = evaluators.filter((ev) => !existingIds.has(ev.id));
+
+    // When adding/replacing evaluators on a proposal that is already under
+    // evaluation, preserve the active blind-review settings instead of letting
+    // the caller silently reset visibility back to "both".
+    const inheritedAssignmentConfig = (existingAssignments || []).find((assignment) => {
+      const visibility = assignment.proponent_info_visibility;
+      return (visibility && visibility !== "both") || !!assignment.anonymized_file_url;
+    }) || existingAssignments?.[0];
+
+    const inheritedVisibility = inheritedAssignmentConfig?.proponent_info_visibility || undefined;
+    const inheritedAnonymizedFileUrl = inheritedAssignmentConfig?.anonymized_file_url || undefined;
 
     if (newEvaluators.length === 0) {
       return { 
@@ -517,8 +528,10 @@ export class ProposalService {
       deadline_at: deadline_number_weeks.toISOString(),
       comments_for_evaluators: commentsForEvaluators ?? null,
       status: EvaluatorStatus.PENDING,
-      proponent_info_visibility: ev.visibility || "both",
-      ...(anonymized_file_url ? { anonymized_file_url } : {}),
+      proponent_info_visibility: inheritedVisibility || ev.visibility || "both",
+      ...((anonymized_file_url || inheritedAnonymizedFileUrl)
+        ? { anonymized_file_url: anonymized_file_url || inheritedAnonymizedFileUrl }
+        : {}),
     }));
 
     const { error: insertError, data: assignments } = await this.db

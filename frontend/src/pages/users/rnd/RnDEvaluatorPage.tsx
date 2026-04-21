@@ -453,7 +453,7 @@ export const RnDEvaluatorPage: React.FC = () => {
         const deadlineInDays = 14; // 14 days from now
         const payload = {
           proposal_id: selectedProposalId,
-          evaluators: newEvaluatorIds.map(id => ({ id, visibility: "both" })),
+          evaluators: newEvaluatorIds.map(id => ({ id })),
           deadline_at: deadlineInDays,
           commentsForEvaluators: "Updated via R&D Tracker",
         };

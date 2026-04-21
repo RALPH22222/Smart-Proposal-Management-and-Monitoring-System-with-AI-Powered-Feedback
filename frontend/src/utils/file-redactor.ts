@@ -8,17 +8,23 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 
 /**
  * XML file paths within a DOCX archive that may contain visible text.
- * Includes the main document body plus up to three headers and three footers.
+ * Header/footer counts vary per document, so match them dynamically.
  */
-const DOCX_XML_PARTS = [
-  "word/document.xml",
-  "word/header1.xml",
-  "word/header2.xml",
-  "word/header3.xml",
-  "word/footer1.xml",
-  "word/footer2.xml",
-  "word/footer3.xml",
+const DOCX_XML_PATH_PATTERNS = [
+  /^word\/document\.xml$/i,
+  /^word\/(header|footer)\d+\.xml$/i,
+  /^word\/footnotes\.xml$/i,
+  /^word\/endnotes\.xml$/i,
+  /^word\/comments\d*\.xml$/i,
 ];
+
+const DOCX_TEXT_NODE_NAMES = new Set(["t", "delText", "instrText"]);
+
+interface DocxTextSegment {
+  node: Element;
+  start: number;
+  text: string;
+}
 
 /**
  * Build a global, case-insensitive regex that matches any of the target strings.
@@ -28,11 +34,114 @@ function buildTargetRegex(targets: string[]): RegExp {
   const escaped = targets
     .filter((t) => t.length > 0)
     .sort((a, b) => b.length - a.length)
-    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    .map((t) =>
+      t
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\s+/g, "\\s+"),
+    );
   if (escaped.length === 0) {
     return /(?!)/; // matches nothing
   }
   return new RegExp(escaped.join("|"), "gi");
+}
+
+function listDocxXmlParts(zip: JSZip): string[] {
+  return Object.keys(zip.files)
+    .filter((path) => !zip.files[path]?.dir)
+    .filter((path) => DOCX_XML_PATH_PATTERNS.some((pattern) => pattern.test(path)))
+    .sort();
+}
+
+function parseDocxXml(xml: string): XMLDocument {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length > 0) {
+    throw new Error("Failed to parse DOCX XML for redaction.");
+  }
+  return doc;
+}
+
+function collectDocxTextSegments(doc: XMLDocument): { segments: DocxTextSegment[]; fullText: string } {
+  const segments: DocxTextSegment[] = [];
+  let cursor = 0;
+
+  for (const element of Array.from(doc.getElementsByTagName("*"))) {
+    if (!DOCX_TEXT_NODE_NAMES.has(element.localName)) continue;
+
+    const text = element.textContent ?? "";
+    if (!text) continue;
+
+    segments.push({
+      node: element,
+      start: cursor,
+      text,
+    });
+    cursor += text.length;
+  }
+
+  return {
+    segments,
+    fullText: segments.map((segment) => segment.text).join(""),
+  };
+}
+
+function buildRedactionMask(text: string, targets: string[]): { count: number; mask: Uint8Array } {
+  const mask = new Uint8Array(text.length);
+  if (!text || targets.length === 0) {
+    return { count: 0, mask };
+  }
+
+  const regex = buildTargetRegex(targets);
+  let count = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    const matchText = match[0];
+    if (!matchText) {
+      regex.lastIndex += 1;
+      continue;
+    }
+
+    mask.fill(1, match.index, match.index + matchText.length);
+    count += 1;
+  }
+
+  return { count, mask };
+}
+
+function redactDocxXml(xml: string, targets: string[]): { count: number; redactedXml: string } {
+  const doc = parseDocxXml(xml);
+  const { segments, fullText } = collectDocxTextSegments(doc);
+  const { count, mask } = buildRedactionMask(fullText, targets);
+
+  if (count === 0 || segments.length === 0) {
+    return { count, redactedXml: xml };
+  }
+
+  // Word often splits names across multiple <w:t> nodes. Redact against the
+  // reconstructed visible text, then project the mask back onto each node.
+  let previousMasked = false;
+  for (const segment of segments) {
+    let nextText = "";
+
+    for (let i = 0; i < segment.text.length; i += 1) {
+      const masked = mask[segment.start + i] === 1;
+      if (masked) {
+        if (!previousMasked) {
+          nextText += "[REDACTED]";
+        }
+      } else {
+        nextText += segment.text[i];
+      }
+      previousMasked = masked;
+    }
+
+    segment.node.textContent = nextText;
+  }
+
+  return {
+    count,
+    redactedXml: new XMLSerializer().serializeToString(doc),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -60,14 +169,13 @@ export async function redactDocx(
 
   const arrayBuffer = await file.arrayBuffer();
   const zip = await JSZip.loadAsync(arrayBuffer);
-  const regex = buildTargetRegex(targets);
 
-  for (const partPath of DOCX_XML_PARTS) {
+  for (const partPath of listDocxXmlParts(zip)) {
     const entry = zip.file(partPath);
     if (!entry) continue;
 
     const xml = await entry.async("string");
-    const redactedXml = xml.replace(regex, "[REDACTED]");
+    const { redactedXml } = redactDocxXml(xml, targets);
     zip.file(partPath, redactedXml);
   }
 
@@ -90,18 +198,14 @@ async function countDocxRedactions(
 
   const arrayBuffer = await file.arrayBuffer();
   const zip = await JSZip.loadAsync(arrayBuffer);
-  const regex = buildTargetRegex(targets);
   let count = 0;
 
-  for (const partPath of DOCX_XML_PARTS) {
+  for (const partPath of listDocxXmlParts(zip)) {
     const entry = zip.file(partPath);
     if (!entry) continue;
 
     const xml = await entry.async("string");
-    const matches = xml.match(regex);
-    if (matches) {
-      count += matches.length;
-    }
+    count += redactDocxXml(xml, targets).count;
   }
 
   return count;

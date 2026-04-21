@@ -676,7 +676,7 @@ export const autoDistributeProposals = async (proposalIds?: number[]): Promise<a
 
 export type ForwardToEvaluatorsPayload = {
   proposal_id: number;
-  evaluators: { id: string; visibility: string }[];
+  evaluators: { id: string; visibility?: string }[];
   deadline_at: number;
   commentsForEvaluators?: string;
   anonymized_file_url?: string;

@@ -417,6 +417,17 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
     }
   };
 
+  const handleOpenRedactedFile = async () => {
+    if (!redactedFileUrl) return;
+
+    try {
+      const signedUrl = await getSignedFileUrl(redactedFileUrl);
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      setRedactionError(err.message || 'Failed to open the redacted file.');
+    }
+  };
+
   const submitWithAnonymity = async () => {
     if (!proposal) return;
 
@@ -1050,6 +1061,14 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                       <p className="text-xs text-green-600 mt-1">
                         Evaluators will receive the anonymized version.
                       </p>
+                      <button
+                        type="button"
+                        onClick={handleOpenRedactedFile}
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-green-700 hover:text-green-800 underline underline-offset-2"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Open redacted file
+                      </button>
                     </div>
                   )}
 
