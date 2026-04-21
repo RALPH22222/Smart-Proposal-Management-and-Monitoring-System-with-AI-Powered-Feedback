@@ -1614,16 +1614,21 @@ export class ProjectService {
       }
     }
 
-    // Check for duplicate fund request for this (project, year, quarter)
+    // Same three-way check as quarterly/terminal reports:
+    //   - no row → first submission
+    //   - rejected row → resubmission after R&D returned it; UPDATE in place
+    //   - any other status → genuine duplicate
     const { data: existing } = await this.db
       .from("fund_requests")
-      .select("id")
+      .select("id, status")
       .eq("funded_project_id", input.funded_project_id)
       .eq("year_number", yearNumber)
       .eq("quarterly_report", input.quarterly_report)
       .maybeSingle();
 
-    if (existing) {
+    const isResubmission = existing?.status === FundRequestStatus.REJECTED;
+
+    if (existing && !isResubmission) {
       return {
         data: null,
         error: {
@@ -1675,37 +1680,6 @@ export class ProjectService {
       }
     }
 
-    // Phase 2B.2 — snapshot the active budget version onto the fund request so
-    // later realignments don't make historical validation ambiguous. A direct
-    // select here is fine: the self-heal inside getActiveBudgetVersion only
-    // matters for read paths; writes come through here and always carry the
-    // freshly-snapshotted version forward.
-    const { data: projectRow } = await this.db
-      .from("funded_projects")
-      .select("current_budget_version_id")
-      .eq("id", input.funded_project_id)
-      .single();
-    const budgetVersionId = projectRow?.current_budget_version_id ?? null;
-
-    // Create the fund request
-    const { data: fundRequest, error: requestError } = await this.db
-      .from("fund_requests")
-      .insert({
-        funded_project_id: input.funded_project_id,
-        year_number: yearNumber,
-        quarterly_report: input.quarterly_report,
-        budget_version_id: budgetVersionId,
-        requested_by: input.requested_by,
-        status: FundRequestStatus.PENDING,
-        created_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (requestError) {
-      return { data: null, error: requestError };
-    }
-
     // Phase 4 of LIB feature: when budget_item_id is provided, re-derive item_name and
     // category from the linked budget item server-side (don't trust client). Also verify
     // the item belongs to this project's active budget version so a malicious client
@@ -1755,6 +1729,71 @@ export class ProjectService {
       });
     }
 
+    // Phase 2B.2 — snapshot the active budget version onto the fund request so
+    // later realignments don't make historical validation ambiguous. A direct
+    // select here is fine: the self-heal inside getActiveBudgetVersion only
+    // matters for read paths; writes come through here and always carry the
+    // freshly-snapshotted version forward.
+    const { data: projectRow } = await this.db
+      .from("funded_projects")
+      .select("current_budget_version_id")
+      .eq("id", input.funded_project_id)
+      .single();
+    const budgetVersionId = projectRow?.current_budget_version_id ?? null;
+
+    const nowIso = new Date().toISOString();
+
+    let fundRequest: any = null;
+    let requestError: any = null;
+
+    if (isResubmission && existing) {
+      const update = await this.db
+        .from("fund_requests")
+        .update({
+          budget_version_id: budgetVersionId,
+          requested_by: input.requested_by,
+          status: FundRequestStatus.PENDING,
+          updated_at: nowIso,
+        })
+        .eq("id", existing.id)
+        .select()
+        .single();
+
+      fundRequest = update.data;
+      requestError = update.error;
+
+      if (!requestError) {
+        const { error: deleteItemsError } = await this.db
+          .from("fund_request_items")
+          .delete()
+          .eq("fund_request_id", existing.id);
+        if (deleteItemsError) {
+          return { data: null, error: deleteItemsError };
+        }
+      }
+    } else {
+      const insert = await this.db
+        .from("fund_requests")
+        .insert({
+          funded_project_id: input.funded_project_id,
+          year_number: yearNumber,
+          quarterly_report: input.quarterly_report,
+          budget_version_id: budgetVersionId,
+          requested_by: input.requested_by,
+          status: FundRequestStatus.PENDING,
+          created_at: nowIso,
+        })
+        .select()
+        .single();
+
+      fundRequest = insert.data;
+      requestError = insert.error;
+    }
+
+    if (requestError || !fundRequest) {
+      return { data: null, error: requestError || { message: "Failed to create fund request." } };
+    }
+
     // Insert all items
     const items = resolvedItems.map((item) => ({
       fund_request_id: fundRequest.id,
@@ -1763,7 +1802,7 @@ export class ProjectService {
       amount: item.amount,
       description: item.description || null,
       category: item.category,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     }));
 
     const { data: insertedItems, error: itemsError } = await this.db
@@ -1777,11 +1816,12 @@ export class ProjectService {
 
     await logActivity(this.db, {
       user_id: input.requested_by,
-      action: "fund_request_created",
+      action: isResubmission ? "fund_request_resubmitted" : "fund_request_created",
       category: "project",
       target_id: String(input.funded_project_id),
       target_type: "funded_project",
       details: {
+        year_number: yearNumber,
         quarter: input.quarterly_report,
         fund_request_id: fundRequest.id,
         total_amount: requestedAmount,
@@ -1805,7 +1845,9 @@ export class ProjectService {
       if (rndAssignment) {
         await this.db.from("notifications").insert({
           user_id: rndAssignment.rnd_id,
-          message: `A new fund request (${requestedAmount.toLocaleString()}) has been submitted for ${input.quarterly_report.replace("_", " ").toUpperCase()}.`,
+          message: isResubmission
+            ? `A revised fund request (${requestedAmount.toLocaleString()}) has been resubmitted for Y${yearNumber} ${input.quarterly_report.replace("_report", "").toUpperCase()}.`
+            : `A new fund request (${requestedAmount.toLocaleString()}) has been submitted for Y${yearNumber} ${input.quarterly_report.replace("_report", "").toUpperCase()}.`,
           is_read: false,
           link: "funding",
         });

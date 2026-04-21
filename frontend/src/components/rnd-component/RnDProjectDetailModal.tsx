@@ -365,6 +365,17 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const moaFileUrl: string | null = rawDetail?.moa_file_url ?? null;
   const agencyCertFileUrl: string | null = rawDetail?.agency_certification_file_url ?? null;
   const workPlanFileUrl: string | null = rawDetail?.proposal?.work_plan_file_url ?? null;
+  const isMultiYearProject = details?.reports?.some((r) => r.year_number > 1) ?? false;
+
+  const getPeriodDisplayLabel = (yearNumber: number | null | undefined, quarterKey: string) => {
+    const qShort = quarterKey.replace('_report', '').toUpperCase();
+    return isMultiYearProject ? `Y${yearNumber ?? 1} ${qShort}` : qShort;
+  };
+
+  const getFundRequestForReport = (report: DisplayReport) =>
+    fundRequests.find(
+      (fr) => fr.year_number === report.year_number && fr.quarterly_report === report.quarterKey,
+    ) ?? null;
 
   // --- RENDERERS ---
 
@@ -504,6 +515,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
 
   const renderReportItem = (report: DisplayReport) => {
     const isExpanded = expandedReportId === report.id;
+    const reportFR = getFundRequestForReport(report);
+    const hasReportDetails = report.status !== 'Locked' && report.status !== 'Due';
+    const hasQuarterFundRequest = !!reportFR;
     let statusColor = "bg-slate-100 text-slate-500 border-slate-200";
     let statusIcon = <Clock className="w-5 h-5" />;
 
@@ -513,6 +527,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     } else if (report.status === 'Submitted') {
       statusColor = "bg-blue-100 text-blue-700 border-blue-200";
       statusIcon = <FileText className="w-5 h-5" />;
+    } else if (report.status === 'Rejected') {
+      statusColor = "bg-red-100 text-red-700 border-red-200";
+      statusIcon = <XCircle className="w-5 h-5" />;
     } else if (report.status === 'Overdue') {
       statusColor = "bg-red-100 text-red-700 border-red-200";
       statusIcon = <AlertTriangle className="w-5 h-5" />;
@@ -531,6 +548,21 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             <div>
               <h4 className={`font-bold ${report.status === 'Locked' ? 'text-gray-500' : 'text-slate-800'}`}>{report.quarter}</h4>
               <p className="text-xs text-slate-500">Due: {report.dueDate}</p>
+              {!hasReportDetails && reportFR && (
+                <p className={`text-xs mt-1 ${
+                  reportFR.status === 'approved'
+                    ? 'text-emerald-600'
+                    : reportFR.status === 'pending'
+                      ? 'text-amber-600'
+                      : 'text-red-600'
+                }`}>
+                  {reportFR.status === 'approved'
+                    ? `${getPeriodDisplayLabel(reportFR.year_number, reportFR.quarterly_report)} fund request approved`
+                    : reportFR.status === 'pending'
+                      ? `${getPeriodDisplayLabel(reportFR.year_number, reportFR.quarterly_report)} fund request pending R&D review`
+                      : `${getPeriodDisplayLabel(reportFR.year_number, reportFR.quarterly_report)} fund request was rejected`}
+                </p>
+              )}
             </div>
           </div>
           <div className="text-right">
@@ -539,7 +571,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
           </div>
         </div>
 
-        {isExpanded && report.status !== 'Locked' && report.status !== 'Due' && (
+        {isExpanded && hasReportDetails && (
           <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-5 animate-in slide-in-from-top-2">
             {report.submittedBy && (
               <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
@@ -560,12 +592,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
               </div>
             )}
             {(() => {
-              const reportFR = fundRequests.find(
-                fr => fr.year_number === report.year_number
-                  && fr.quarterly_report === report.quarterKey
-                  && fr.status === 'approved',
-              );
-              if (!reportFR || !(reportFR.fund_request_items && reportFR.fund_request_items.length > 0)) return null;
+              if (!reportFR || reportFR.status !== 'approved' || !(reportFR.fund_request_items && reportFR.fund_request_items.length > 0)) return null;
               const frTotal = reportFR.fund_request_items.reduce((s, i) => s + Number(i.amount || 0), 0);
               return (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
@@ -734,9 +761,82 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             )}
           </div>
         )}
-        {isExpanded && (report.status === 'Locked' || report.status === 'Due') && (
-          <div className="p-5 text-center text-slate-500 text-sm italic bg-slate-50">
-            {report.status === 'Locked' ? 'This report is currently locked and not yet due.' : 'This report is due. Waiting for proponent submission.'}
+        {isExpanded && !hasReportDetails && (
+          <div className="p-5 border-t border-slate-100 bg-slate-50 space-y-4 animate-in slide-in-from-top-2">
+            {hasQuarterFundRequest && reportFR ? (
+              <div className={`rounded-xl border p-4 ${
+                reportFR.status === 'approved'
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : reportFR.status === 'pending'
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex justify-between items-start gap-4 mb-3">
+                  <div>
+                    <p className={`font-bold ${
+                      reportFR.status === 'approved'
+                        ? 'text-emerald-800'
+                        : reportFR.status === 'pending'
+                          ? 'text-amber-800'
+                          : 'text-red-800'
+                    }`}>
+                      {getPeriodDisplayLabel(reportFR.year_number, reportFR.quarterly_report)} Fund Request
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      reportFR.status === 'approved'
+                        ? 'text-emerald-600'
+                        : reportFR.status === 'pending'
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+                    }`}>
+                      {reportFR.status === 'approved'
+                        ? 'Approved. Waiting for the proponent to submit the quarterly report.'
+                        : reportFR.status === 'pending'
+                          ? 'Pending R&D review before the quarterly report can be submitted.'
+                          : 'Rejected. The proponent must revise and resubmit the fund request before this quarter can proceed.'}
+                    </p>
+                    {reportFR.review_note && (
+                      <p className={`text-xs mt-2 italic ${
+                        reportFR.status === 'approved'
+                          ? 'text-emerald-700'
+                          : reportFR.status === 'pending'
+                            ? 'text-amber-700'
+                            : 'text-red-700'
+                      }`}>
+                        "{reportFR.review_note}"
+                      </p>
+                    )}
+                  </div>
+                  <span className={`text-lg font-bold shrink-0 ${
+                    reportFR.status === 'approved'
+                      ? 'text-emerald-700'
+                      : reportFR.status === 'pending'
+                        ? 'text-amber-700'
+                        : 'text-red-700'
+                  }`}>
+                    ₱{(reportFR.fund_request_items?.reduce((s, i) => s + Number(i.amount || 0), 0) || 0).toLocaleString()}
+                  </span>
+                </div>
+                {reportFR.fund_request_items && reportFR.fund_request_items.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {reportFR.fund_request_items.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm bg-white/80 rounded-lg px-3 py-2 border border-white/70">
+                        <span className="text-slate-700">{item.item_name} <span className="text-xs text-slate-400 uppercase">({item.category})</span></span>
+                        <span className="font-mono text-slate-900">₱{Number(item.amount || 0).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 italic">No line items were saved on this fund request.</p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center text-slate-500 text-sm italic">
+                {report.status === 'Locked'
+                  ? 'This report is currently locked and not yet due.'
+                  : 'This report is due. Waiting for the proponent to submit a fund request first.'}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -819,8 +919,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                               <div key={fr.id} className="bg-white rounded-xl border border-amber-200 overflow-hidden shadow-sm">
                                 <div className="bg-amber-50 px-5 py-3 flex justify-between items-center border-b border-amber-200">
                                   <div>
-                                    <span className="font-bold text-amber-800">{fr.quarterly_report.replace('_report', '').toUpperCase()} Fund Request</span>
-                                    <p className="text-xs text-amber-600 mt-0.5">Submitted {formatDate(fr.created_at)}</p>
+                                    <span className="font-bold text-amber-800">{getPeriodDisplayLabel(fr.year_number, fr.quarterly_report)} Fund Request</span>
+                                    <p className="text-xs text-amber-600 mt-0.5">Submitted {formatDate(fr.updated_at || fr.created_at)}</p>
+                                    {fr.review_note && (
+                                      <p className="text-[11px] text-amber-700 mt-1 italic">Previously returned: "{fr.review_note}"</p>
+                                    )}
                                   </div>
                                   <span className="text-lg font-bold text-amber-800">₱{(fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0).toLocaleString()}</span>
                                 </div>
@@ -930,7 +1033,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                 ))}
                                 {reviewedFundRequests.map(fr => (
                                   <div key={fr.id} className="p-3 text-xs flex justify-between">
-                                    <div><span className={`font-bold uppercase ${fr.status === 'approved' ? 'text-emerald-600' : 'text-red-600'}`}>{fr.status} Fund</span> &middot; {fr.quarterly_report.replace('_report', '').toUpperCase()}</div>
+                                    <div><span className={`font-bold uppercase ${fr.status === 'approved' ? 'text-emerald-600' : 'text-red-600'}`}>{fr.status} Fund</span> &middot; {getPeriodDisplayLabel(fr.year_number, fr.quarterly_report)}</div>
                                     <span className="font-mono">₱{(fr.fund_request_items?.reduce((s, i) => s + i.amount, 0) || 0).toLocaleString()}</span>
                                   </div>
                                 ))}

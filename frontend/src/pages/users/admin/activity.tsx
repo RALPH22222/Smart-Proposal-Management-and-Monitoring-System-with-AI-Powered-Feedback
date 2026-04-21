@@ -66,6 +66,7 @@ const ACTION_LABELS: Record<string, string> = {
   project_invitation_declined: "Declined project invitation",
   project_document_uploaded: "Uploaded project document",
   fund_request_created: "Created fund request",
+  fund_request_resubmitted: "Resubmitted fund request",
   certificate_issued: "Issued project certificate",
   budget_realignment_requested: "Requested budget realignment",
   budget_realignment_resubmitted: "Resubmitted budget realignment",
