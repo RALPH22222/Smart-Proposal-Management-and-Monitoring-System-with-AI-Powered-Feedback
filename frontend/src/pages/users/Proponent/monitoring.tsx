@@ -91,7 +91,7 @@ interface QuarterData {
 
 
 
-const MonitoringPage: React.FC = () => {
+const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent' }) => {
   const { user } = useAuthContext();
 
   const location = useLocation();
@@ -279,7 +279,7 @@ const MonitoringPage: React.FC = () => {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const data = await fetchFundedProjects('proponent');
+      const data = await fetchFundedProjects(viewRole);
       setBackendProjects(data);
       const mapped = data.map(transformToProject);
       setProjects(mapped);

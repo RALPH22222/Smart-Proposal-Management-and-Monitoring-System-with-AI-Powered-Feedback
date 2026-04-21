@@ -2,6 +2,7 @@ import React from "react";
 import { useSearchParams } from "react-router-dom";
 import AdminSidebar from "../../../components/admin-component/sidebar";
 import AdminFloatingNotification from "../../../components/admin-component/AdminFloatingNotification";
+import { LookupProvider } from "../../../context/LookupContext";
 
 import Dashboard from "./dashboard";
 import Accounts from "./accounts";
@@ -15,6 +16,10 @@ import Endorsements from "./endorsement";
 import Funding from "./funding";
 import Activity from "./activity";
 import Lookups from "./lookups";
+import ProponentSubmission from "../proponent/submission";
+import ProponentMonitoring from "../proponent/monitoring";
+import EvaluatorReview from "../evaluator/ReviewProposals";
+import EvaluatorReviewed from "../evaluator/ReviewedProposals";
 import { ActivityApi } from "../../../services/admin/ActivityApi";
 import { getProposals } from "../../../services/proposal.api";
 import type { DashboardStats } from "../../../services/admin/ActivityApi";
@@ -99,6 +104,14 @@ const AdminLayout: React.FC = () => {
         return <Accounts />;
       case "proposals":
         return <Proposals />;
+      case "proponent-submission":
+        return <ProponentSubmission />;
+      case "proponent-monitoring":
+        return <ProponentMonitoring viewRole="admin" />;
+      case "eval-review":
+        return <EvaluatorReview />;
+      case "eval-reviewed":
+        return <EvaluatorReviewed />;
       case "evaluators":
         return <Evaluators />;
       case "evaluator-performance":
@@ -123,21 +136,23 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-      {/* Sidebar - Controlled by props */}
-      <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+    <LookupProvider>
+      <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+        {/* Sidebar - Controlled by props */}
+        <AdminSidebar currentPage={currentTab} onPageChange={handlePageChange} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 h-full flex flex-col min-w-0 relative">
-        <main
-          className="flex-1 overflow-y-auto transition-all duration-300"
-          onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
-        >
-          {renderContent()}
-        </main>
-        <AdminFloatingNotification onPageChange={handlePageChange} />
+        {/* Main Content Area */}
+        <div className="flex-1 h-full flex flex-col min-w-0 relative">
+          <main
+            className="flex-1 overflow-y-auto transition-all duration-300"
+            onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+          >
+            {renderContent()}
+          </main>
+          <AdminFloatingNotification onPageChange={handlePageChange} />
+        </div>
       </div>
-    </div>
+    </LookupProvider>
   );
 };
 

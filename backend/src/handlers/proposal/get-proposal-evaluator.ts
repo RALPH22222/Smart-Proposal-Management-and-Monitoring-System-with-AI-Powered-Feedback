@@ -36,8 +36,10 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
   }
 
+  const isAdmin = auth.roles.includes("admin");
+
   const proposalService = new ProposalService(supabase);
-  const { data, error } = await proposalService.getEvaluatorProposals(auth.userId, search, status);
+  const { data, error } = await proposalService.getEvaluatorProposals(auth.userId, search, status, isAdmin);
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));

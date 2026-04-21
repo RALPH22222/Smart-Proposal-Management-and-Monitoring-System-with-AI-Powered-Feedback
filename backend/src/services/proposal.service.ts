@@ -1598,7 +1598,7 @@ export class ProposalService {
     }
   }
 
-  async getEvaluatorProposals(evaluator_id: string, search?: string, status?: Status) {
+  async getEvaluatorProposals(evaluator_id: string, search?: string, status?: Status, isAdmin = false) {
     let query = this.db
       .from("proposal_evaluators")
       .select(
@@ -1632,11 +1632,13 @@ export class ProposalService {
         )
       `,
       )
-      .eq("evaluator_id", evaluator_id)
-      // Keep the newest assignment/version first so evaluator views do not
-      // accidentally surface stale visibility settings or pre-redaction files.
+      // Admin sees all evaluator assignments; evaluators only see their own.
       .order("proposal_version_id", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      query = query.eq("evaluator_id", evaluator_id);
+    }
 
     if (search) {
       // filter on related table column

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLogos } from "../../context/LogoContext";
-import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck, Gauge } from "lucide-react";
+import { LayoutDashboard, CircleUser, Users, FileText, Settings, LogOut, Menu, X, File, BarChart3, Gavel, DollarSign, ScrollText, Database, ShieldCheck, Gauge, FilePlus, LayoutGrid, ClipboardList, ClipboardCheck } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 import SecureImage from "../shared/SecureImage";
 
@@ -46,7 +46,11 @@ const AdminSidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, isMob
     { id: "contents", label: "Contents", icon: File },
     { id: "lookups", label: "Lookups", icon: Database },
     { id: "proposals", label: "Proposals", icon: FileText },
+    { id: "proponent-submission", label: "Submit Proposal", icon: FilePlus },
+    { id: "proponent-monitoring", label: "Proponent Monitoring", icon: LayoutGrid },
     { id: "evaluators", label: "Evaluators", icon: Users },
+    { id: "eval-review", label: "Evaluation In-Review", icon: ClipboardList },
+    { id: "eval-reviewed", label: "Reviewed Proposals", icon: ClipboardCheck },
     { id: "endorsements", label: "Endorsements", icon: Gavel },
     { id: "project-funding", label: "Project Funding", icon: DollarSign },
     { id: "monitoring", label: "Monitoring", icon: BarChart3 },
