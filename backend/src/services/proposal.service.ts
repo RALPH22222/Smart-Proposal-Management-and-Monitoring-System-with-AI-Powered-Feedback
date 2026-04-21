@@ -3081,7 +3081,7 @@ export class ProposalService {
       if (trackerError) return { error: trackerError };
 
       // 2. Reset proposal_evaluators to pending as well.
-      // Without this, evaluator views can keep showing stale "extend/extension_requested".
+      // Primary: current-version evaluator row.
       const { error: evalError } = await this.db
         .from("proposal_evaluators")
         .update({ status: EvaluatorStatus.PENDING })
@@ -3090,6 +3090,19 @@ export class ProposalService {
         .eq("proposal_version_id", currentVersionId);
 
       if (evalError) return { error: evalError };
+
+      // Backward-compat cleanup:
+      // legacy rows may carry stale extend/extension_requested statuses on
+      // non-current or null proposal_version_id rows. If left unchanged,
+      // evaluator listing can still surface "Extension Requested".
+      const { error: staleEvalError } = await this.db
+        .from("proposal_evaluators")
+        .update({ status: EvaluatorStatus.PENDING })
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id)
+        .in("status", [EvaluatorStatus.EXTEND, "extension_requested"]);
+
+      if (staleEvalError) return { error: staleEvalError };
 
       // 3. Insert notification
       await this.db.from("notifications").insert({
