@@ -88,8 +88,13 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
   };
 
   const handleSubmit = async () => {
-    if (!accomplishments.trim()) {
-      Swal.fire('Required', 'Accomplishments field is required.', 'warning');
+    const trimmedAccomplishments = accomplishments.trim();
+    if (trimmedAccomplishments.length < 10) {
+      Swal.fire(
+        'Too short',
+        `Accomplishments must be at least 10 characters (currently ${trimmedAccomplishments.length}).`,
+        'warning',
+      );
       return;
     }
 
@@ -126,7 +131,9 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
       setShowForm(false);
       Swal.fire('Submitted', 'Terminal report submitted successfully.', 'success');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Failed to submit terminal report.';
+      const body = err?.response?.data;
+      const zodMsg = Array.isArray(body?.data) ? body.data[0]?.message : undefined;
+      const msg = zodMsg || body?.message || 'Failed to submit terminal report.';
       Swal.fire('Error', msg, 'error');
     } finally {
       setSubmitting(false);
@@ -297,6 +304,11 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         <div>
           <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Accomplishments Against Objectives <span className="text-red-500">*</span></label>
           <textarea value={accomplishments} onChange={(e) => setAccomplishments(e.target.value)} placeholder="Describe accomplishments relative to stated objectives..." className="w-full p-3 border border-gray-300 rounded-xl text-sm h-28 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
+          <p className={`text-[11px] mt-1 ${accomplishments.trim().length < 10 ? 'text-amber-600' : 'text-gray-500'}`}>
+            {accomplishments.trim().length < 10
+              ? `Minimum 10 characters required (${accomplishments.trim().length}/10).`
+              : `${accomplishments.trim().length} characters.`}
+          </p>
         </div>
 
         {/* 6Ps Outputs */}
@@ -462,7 +474,7 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         {/* Submit — also blocked when MOA / Agency Cert missing. */}
         <button
           onClick={handleSubmit}
-          disabled={submitting || !accomplishments.trim() || complianceBlocked}
+          disabled={submitting || accomplishments.trim().length < 10 || complianceBlocked}
           title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
         >
