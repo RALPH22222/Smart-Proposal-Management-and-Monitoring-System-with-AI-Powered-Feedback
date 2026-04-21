@@ -2931,19 +2931,38 @@ export class ProposalService {
 
     const currentVersionId = proposalRow.current_version_id as number;
 
-    // Fetch tracker rows for this evaluator/proposal/version.
+    // Fetch tracker rows scoped to current version first.
     // We intentionally avoid `.single()` because historical data can contain
     // multiple rows (e.g. reassignment/re-forward flows), which causes:
     // "Cannot coerce the result to a single JSON object."
-    const { data: trackerRows, error: fetchError } = await this.db
+    const { data: versionScopedRows, error: fetchError } = await this.db
       .from("proposal_assignment_tracker")
       .select("id, deadline_at, request_deadline_at, status")
       .eq("proposal_id", proposal_id)
       .eq("evaluator_id", evaluator_id)
       .eq("proposal_version_id", currentVersionId);
 
-    if (fetchError || !trackerRows || trackerRows.length === 0) {
+    if (fetchError) {
       return { error: fetchError || new Error("Extension request not found") };
+    }
+
+    let trackerRows = versionScopedRows || [];
+
+    // Backward-compat fallback:
+    // some legacy rows may not carry proposal_version_id consistently.
+    if (trackerRows.length === 0) {
+      const { data: fallbackRows, error: fallbackError } = await this.db
+        .from("proposal_assignment_tracker")
+        .select("id, deadline_at, request_deadline_at, status")
+        .eq("proposal_id", proposal_id)
+        .eq("evaluator_id", evaluator_id)
+        .order("id", { ascending: false });
+
+      if (fallbackError || !fallbackRows || fallbackRows.length === 0) {
+        return { error: fallbackError || new Error("Extension request not found") };
+      }
+
+      trackerRows = fallbackRows;
     }
 
     // Prefer the row that represents a pending extension request.
@@ -2951,11 +2970,13 @@ export class ProposalService {
     const tracker =
       trackerRows.find((row: any) => row.status === AssignmentTracker.EXTEND)
       || trackerRows.find((row: any) => row.status === AssignmentTracker.PENDING && !!row.request_deadline_at)
+      || trackerRows.find((row: any) => row.status === "extension_requested")
       || trackerRows[0];
 
     const hasPendingExtensionRequest =
       tracker.status === AssignmentTracker.EXTEND ||
-      (tracker.status === AssignmentTracker.PENDING && !!tracker.request_deadline_at);
+      (tracker.status === AssignmentTracker.PENDING && !!tracker.request_deadline_at) ||
+      tracker.status === "extension_requested";
 
     if (!hasPendingExtensionRequest) {
       return { error: new Error("No pending extension request for this evaluator and proposal") };
