@@ -18,7 +18,6 @@ import { submitProposal, analyzeProposalWithAI, type FormExtractedFields } from 
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { isValidationError, parseValidationErrors } from "../../../../utils/validationErrors";
-import { promptBudgetUndo } from "../../../../utils/budgetUndoPrompt";
 
 // Lookup Context for matching extracted names to IDs
 import { useLookups } from "../../../../context/LookupContext";
@@ -47,6 +46,11 @@ const createEmptyRow = (categoryId: string) => ({
   totalAmount: 0,
 });
 
+type RemovedBudgetSourceUndo = {
+  index: number;
+  item: FormData["budgetItems"][number];
+};
+
 const Submission: React.FC = () => {
   const YEAR_REGEX = /^\d+$/;
   // Auth Context
@@ -67,6 +71,7 @@ const Submission: React.FC = () => {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [activeBudgetModal, setActiveBudgetModal] = useState<{ itemId: number, category: 'ps' | 'mooe' | 'co' } | null>(null);
   const [isLibImportModalOpen, setIsLibImportModalOpen] = useState(false);
+  const [removedBudgetSourceUndo, setRemovedBudgetSourceUndo] = useState<RemovedBudgetSourceUndo | null>(null);
 
   // ... (Data State remains the same)
   // ... (Data State remains the same)
@@ -495,7 +500,7 @@ const Submission: React.FC = () => {
   };
 
 
-  const removeBudgetItem = async (id: number) => {
+  const removeBudgetItem = (id: number) => {
     const removedIndex = localFormData.budgetItems.findIndex((item: any) => item.id === id);
     if (removedIndex < 0) return;
 
@@ -505,16 +510,23 @@ const Submission: React.FC = () => {
       ...prev,
       budgetItems: prev.budgetItems.filter((item: any) => item.id !== id),
     }));
+    setRemovedBudgetSourceUndo({ index: removedIndex, item: removedItem });
+  };
 
-    const shouldUndo = await promptBudgetUndo(removedItem?.source);
-    if (!shouldUndo) return;
+  const handleUndoBudgetItemRemoval = () => {
+    if (!removedBudgetSourceUndo) return;
 
-    setLocalFormData((prev: any) => {
+    setLocalFormData((prev) => {
       const budgetItems = [...prev.budgetItems];
-      const restoreIndex = Math.min(removedIndex, budgetItems.length);
-      budgetItems.splice(restoreIndex, 0, removedItem);
+      const restoreIndex = Math.min(removedBudgetSourceUndo.index, budgetItems.length);
+      budgetItems.splice(restoreIndex, 0, removedBudgetSourceUndo.item);
       return { ...prev, budgetItems };
     });
+    setRemovedBudgetSourceUndo(null);
+  };
+
+  const handleDismissBudgetItemUndo = () => {
+    setRemovedBudgetSourceUndo(null);
   };
 
   // Generic updater. Logic is now handled inside BudgetSection,
@@ -1054,6 +1066,9 @@ const Submission: React.FC = () => {
                   onBudgetItemAdd={addBudgetItem}
                   onBudgetItemRemove={removeBudgetItem}
                   onBudgetItemUpdate={updateBudgetItem}
+                  removedBudgetSourceUndo={removedBudgetSourceUndo}
+                  onUndoBudgetItemRemoval={handleUndoBudgetItemRemoval}
+                  onDismissBudgetItemUndo={handleDismissBudgetItemUndo}
                   autoFilledFields={autoFilledFields}
                   onOpenBudgetModal={(itemId: number, category: 'ps' | 'mooe' | 'co') => setActiveBudgetModal({ itemId, category })}
                   onLibImport={handleLibImport}

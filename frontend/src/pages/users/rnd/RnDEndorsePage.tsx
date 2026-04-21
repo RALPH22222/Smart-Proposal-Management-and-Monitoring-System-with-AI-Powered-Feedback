@@ -125,9 +125,9 @@ const EndorsePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const loadEndorsementProposals = async () => {
+  const loadEndorsementProposals = async (forceLoading = false) => {
     try {
-      if (!proposalsCache[activeTab]) setLoading(true);
+      if (forceLoading || !proposalsCache[activeTab]) setLoading(true);
       const [data, depts] = await Promise.all([
         getProposalsForEndorsement(activeTab),
         fetchDepartments()
@@ -238,31 +238,31 @@ const EndorsePage: React.FC = () => {
     setIsDecisionModalOpen(false);
   };
 
-  const handleDecisionSubmit = (
+  const handleDecisionSubmit = async (
     status: "endorsed" | "revised" | "rejected",
     remarks: string,
     revisionDeadline?: string,
     includedEvaluatorIds?: string[],
-  ) => {
-    if (!selectedProposal) return; // Should not happen
+  ): Promise<boolean> => {
+    if (!selectedProposal) return false; // Should not happen
 
     // Route to logic based on status
     if (status === 'endorsed') {
-      handleEndorseProposal(selectedProposal.id, remarks);
+      return handleEndorseProposal(selectedProposal.id, remarks);
     } else if (status === 'revised') {
-      handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline, includedEvaluatorIds);
+      return handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline, includedEvaluatorIds);
     } else if (status === 'rejected') {
-      handleRejectForClarification(selectedProposal.id, remarks);
+      return handleRejectForClarification(selectedProposal.id, remarks);
     }
 
-    handleCloseDecisionModal();
+    return false;
   };
 
   // --- Action Logic ---
   const handleEndorseProposal = async (proposalId: string, remarks: string) => {
     if (!user?.id) {
       Swal.fire('Error', 'User session not found. Please log in again.', 'error');
-      return;
+      return false;
     }
 
     try {
@@ -282,6 +282,8 @@ const EndorsePage: React.FC = () => {
         remarks
       });
 
+      await loadEndorsementProposals(true);
+
       await Swal.fire({
         icon: 'success',
         title: 'Endorsed!',
@@ -290,12 +292,12 @@ const EndorsePage: React.FC = () => {
         showConfirmButton: false
       });
 
-      // Refresh list
-      loadEndorsementProposals();
+      return true;
 
     } catch (error: any) {
       console.error('Error endorsing proposal:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to endorse proposal.', 'error');
+      return false;
     }
   };
 
@@ -356,6 +358,8 @@ const EndorsePage: React.FC = () => {
         included_evaluator_ids: includedEvaluatorIds && includedEvaluatorIds.length > 0 ? includedEvaluatorIds : undefined,
       });
 
+      await loadEndorsementProposals(true);
+
       await Swal.fire({
         icon: 'success',
         title: 'Sent for Revision',
@@ -364,11 +368,12 @@ const EndorsePage: React.FC = () => {
         showConfirmButton: false
       });
 
-      loadEndorsementProposals();
+      return true;
 
     } catch (error: any) {
       console.error('Error returning proposal for revision:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to send for revision.', 'error');
+      return false;
     }
   };
 
@@ -388,6 +393,8 @@ const EndorsePage: React.FC = () => {
         comment: remarks
       });
 
+      await loadEndorsementProposals(true);
+
       await Swal.fire({
         icon: 'success',
         title: 'Rejected',
@@ -396,11 +403,12 @@ const EndorsePage: React.FC = () => {
         showConfirmButton: false
       });
 
-      loadEndorsementProposals();
+      return true;
 
     } catch (error: any) {
       console.error('Error rejecting proposal:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to reject proposal.', 'error');
+      return false;
     }
   };
 

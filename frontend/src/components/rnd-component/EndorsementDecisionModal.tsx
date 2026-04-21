@@ -6,6 +6,7 @@ import {
   XCircle,
   RotateCcw,
   AlertTriangle, // Added for confirmation warning
+  Loader2,
   Building2,
   Mail,
   MessageSquare,
@@ -31,7 +32,7 @@ interface DecisionModalProps {
     remarks: string,
     revisionDeadline?: string,
     includedEvaluatorIds?: string[],
-  ) => void;
+  ) => Promise<boolean>;
   proponentProfilePicture?: string | null;
 }
 
@@ -91,6 +92,7 @@ export default function EndorsementDecisionModal({
 
   // Confirmation Logic
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -118,6 +120,7 @@ export default function EndorsementDecisionModal({
       setSelectedEvaluatorIds([]);
       setError("");
       setShowConfirmation(false); // Reset confirmation
+      setSubmitting(false);
     }
   }, [isOpen]);
 
@@ -147,7 +150,9 @@ export default function EndorsementDecisionModal({
   };
 
   // Step 2: Actually submit
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
+    if (submitting) return;
+
     let finalRemarks = "";
 
     if (decision === "revised") {
@@ -159,13 +164,19 @@ export default function EndorsementDecisionModal({
       finalRemarks = remarks;
     }
 
-    onSubmit(
-      decision,
-      finalRemarks,
-      decision === "revised" ? revisionDeadline : undefined,
-      decision === "revised" ? selectedEvaluatorIds : undefined,
-    );
-    onClose();
+    let shouldClose = false;
+    setSubmitting(true);
+    try {
+      shouldClose = await onSubmit(
+        decision,
+        finalRemarks,
+        decision === "revised" ? revisionDeadline : undefined,
+        decision === "revised" ? selectedEvaluatorIds : undefined,
+      );
+      if (shouldClose) onClose();
+    } finally {
+      if (!shouldClose) setSubmitting(false);
+    }
   };
 
   const handleStructuredChange = (text: string) => {
@@ -198,18 +209,29 @@ export default function EndorsementDecisionModal({
             <div className="flex gap-3 w-full max-w-xs">
               <button
                 onClick={() => setShowConfirmation(false)}
-                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                disabled={submitting}
+                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Go Back
               </button>
               <button
                 onClick={handleFinalSubmit}
-                className={`flex-1 px-4 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-transform active:scale-95 ${decision === 'endorsed' ? 'bg-emerald-600 hover:bg-emerald-700' :
+                disabled={submitting}
+                className={`flex-1 px-4 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${decision === 'endorsed' ? 'bg-emerald-600 hover:bg-emerald-700' :
                   decision === 'revised' ? 'bg-yellow-600 hover:bg-yellow-700' :
                     'bg-red-600 hover:bg-red-700'
                   }`}
               >
-                Yes, {decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Revise' : 'Reject'}
+                <span className="flex items-center justify-center gap-2">
+                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {submitting
+                    ? decision === 'endorsed'
+                      ? 'Endorsing...'
+                      : decision === 'revised'
+                        ? 'Sending...'
+                        : 'Rejecting...'
+                    : `Yes, ${decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Revise' : 'Reject'}`}
+                </span>
               </button>
             </div>
           </div>

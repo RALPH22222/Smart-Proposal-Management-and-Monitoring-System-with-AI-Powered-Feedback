@@ -268,6 +268,7 @@ export const submitProposal = async (formData: FormData, file: File, workPlanFil
     withCredentials: true,
   });
 
+  invalidateProposalCache();
   return data;
 };
 
@@ -471,6 +472,7 @@ export const submitRevisedProposal = async (
     withCredentials: true,
   });
 
+  invalidateProposalCache();
   return data;
 };
 

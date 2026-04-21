@@ -12,7 +12,7 @@ export interface FundingActionSubmitData {
 interface FundingActionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: FundingActionSubmitData) => Promise<void>;
+  onSubmit: (data: FundingActionSubmitData) => Promise<boolean>;
   proposalTitle: string;
 }
 
@@ -103,6 +103,7 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!decision) {
       Swal.fire({ icon: 'warning', title: 'Action Required', text: 'Please select a decision.' });
       return;
@@ -113,14 +114,15 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
       return;
     }
 
+    let shouldClose = false;
     setIsSubmitting(true);
     try {
-      await onSubmit({ decision, file: file || undefined });
-      onClose();
+      shouldClose = await onSubmit({ decision, file: file || undefined });
+      if (shouldClose) onClose();
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Submission Failed', text: error?.response?.data?.message || 'Something went wrong.' });
     } finally {
-      setIsSubmitting(false);
+      if (!shouldClose) setIsSubmitting(false);
     }
   };
 

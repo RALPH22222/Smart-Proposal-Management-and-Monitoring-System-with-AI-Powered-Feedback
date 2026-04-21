@@ -432,7 +432,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
 
   const handleAddressChange = (field: "street" | "barangay" | "city", value: string) => {
     // If city is changed, reset barangay
-    let newAddress = { ...formData.agencyAddress, [field]: value };
+    const newAddress = { ...formData.agencyAddress, [field]: value };
     if (field === "city" && value !== (formData.agencyAddress?.city || "")) {
       newAddress.barangay = "";
     }

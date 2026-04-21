@@ -585,7 +585,17 @@ export class ProjectService {
             };
           });
 
-          await this.db.from("project_expenses").insert(expenseRows);
+          const { error: insertErr } = await this.db.from("project_expenses").insert(expenseRows);
+          if (insertErr) {
+            console.error("[submitQuarterlyReport] project_expenses insert failed:", JSON.stringify(insertErr, null, 2));
+            return {
+              data: null,
+              error: {
+                message: `Failed to save liquidation entries: ${insertErr.message || "unknown error"}`,
+                code: "EXPENSES_INSERT_FAILED",
+              },
+            };
+          }
         }
         // Empty liquidations array = proponent spent nothing this quarter (no rows inserted)
       } else {
@@ -598,7 +608,10 @@ export class ProjectService {
             created_at: new Date().toISOString(),
           }));
 
-          await this.db.from("project_expenses").insert(expenseRows);
+          const { error: insertErr } = await this.db.from("project_expenses").insert(expenseRows);
+          if (insertErr) {
+            console.error("[submitQuarterlyReport] project_expenses legacy insert failed:", JSON.stringify(insertErr, null, 2));
+          }
         }
       }
 

@@ -2414,7 +2414,7 @@ export class ProposalService {
       }
     }
 
-    // 4. Get current version count for numbering
+    // 4. Get current version count for numbering (pre-insert snapshot).
     const { count: versionCount, error: countError } = await this.db
       .from("proposal_version")
       .select("*", { count: "exact", head: true })
@@ -2426,7 +2426,11 @@ export class ProposalService {
 
     const newVersionNumber = (versionCount || 0) + 1;
 
-    // 5. Create new proposal_version record
+    // 5. Insert a speculative proposal_version row. It's only canonical if we win the
+    // atomic status claim below — if another concurrent request (e.g. an axios retry
+    // after a cold-start timeout the user never saw succeed, or a second click after
+    // the error toast) wins the claim instead, we delete this row to avoid the
+    // "one resubmit → N phantom versions" leak. DO NOT skip the cleanup paths below.
     const { data: versionData, error: versionError } = await this.db
       .from("proposal_version")
       .insert({
@@ -2440,10 +2444,8 @@ export class ProposalService {
       return { error: versionError };
     }
 
-    // 6. Update proposal status + advance current_version_id to the new row.
-    // Setting current_version_id is what makes v1's evaluator state fall out of
-    // active-side queries (endorsement page, evaluator active queue) without
-    // deleting any history. v1 rows stay in the DB for audit / Completed Reviews.
+    // 6. Build the proposal update payload. Reads (priority/discipline/sector lookups)
+    // are safe to do before the claim; destructive join-table writes happen AFTER.
     const isRndRevision = proposal.status === Status.REVISION_RND;
     const targetStatus = isRndRevision
       ? Status.REVIEW_RND                // Back to R&D queue; R&D re-reviews then forwards to evaluators
@@ -2459,21 +2461,29 @@ export class ProposalService {
     if (plan_start_date) updatePayload.plan_start_date = plan_start_date;
     if (plan_end_date) updatePayload.plan_end_date = plan_end_date;
 
-    // Optional classification / priority / discipline / sector updates
-    if (classification) updatePayload.classification = classification;
+    // Optional classification / priority / discipline / sector updates.
+    // Column on `proposals` is `classification_type` (enum: research_class | development_class).
+    // Frontend may send either the short form ("research"/"development") from the radio UI
+    // or the enum value itself when prefilled from existing data — normalize both here.
+    if (classification) {
+      const classificationTypeMap: Record<string, string> = {
+        research: "research_class",
+        development: "development_class",
+      };
+      updatePayload.classification_type = classificationTypeMap[classification] ?? classification;
+    }
     if (resolvedClassInput) updatePayload.class_input = resolvedClassInput;
+
+    // Priority lookup is read-only; stash the resolved id and apply the join-table
+    // delete/insert AFTER we successfully claim the status transition.
+    let resolvedPriorityId: number | null = null;
     if (priority_areas) {
-      // Resolve priority name to ID and update the join table
       const { data: priorityRow } = await this.db
         .from("priorities")
         .select("id")
         .eq("name", priority_areas)
         .maybeSingle();
-      if (priorityRow) {
-        // Replace existing priority join rows
-        await this.db.from("proposal_priorities").delete().eq("proposal_id", proposal_id);
-        await this.db.from("proposal_priorities").insert({ proposal_id, priority_id: priorityRow.id });
-      }
+      if (priorityRow) resolvedPriorityId = priorityRow.id;
     }
     if (discipline) {
       const { data: disciplineRow } = await this.db
@@ -2500,15 +2510,49 @@ export class ProposalService {
       updatePayload.work_plan_file_updated_by = proponent_id;
     }
 
-    const { error: updateError } = await this.db.from("proposals").update(updatePayload).eq("id", proposal_id);
+    // 6a. RACE FIX — atomic compare-and-swap on status. The `.eq("status", proposal.status)`
+    // guard means a second concurrent request (retry / re-click) that's still seeing the old
+    // REVISION_RND/REVISION_FUNDING status will find zero matching rows once the first
+    // request flips it to REVIEW_RND/ENDORSED_FOR_FUNDING. We use this win/lose signal to
+    // delete the speculative proposal_version row from step 5 — preventing the duplicate-
+    // versions bug where one click produced 3–4 phantom rows.
+    const { data: claimedRows, error: updateError } = await this.db
+      .from("proposals")
+      .update(updatePayload)
+      .eq("id", proposal_id)
+      .eq("status", proposal.status)
+      .select("id");
 
     if (updateError) {
+      // DB failure — roll back our speculative version row so a retry isn't blocked
+      // by an orphan that raised the version count without a real revision.
+      await this.db.from("proposal_version").delete().eq("id", versionData.id);
       return { error: updateError };
     }
 
-    // 6b. Replace budget if provided. Revision happens before funding approval, so there's only
+    if (!claimedRows || claimedRows.length === 0) {
+      // Lost the race — another in-flight request already advanced the proposal past
+      // REVISION_RND/REVISION_FUNDING. Delete our orphan version and return a clean
+      // user-facing error. This is the primary leak-plug for retry-induced duplicates.
+      await this.db.from("proposal_version").delete().eq("id", versionData.id);
+      return {
+        error: new Error(
+          "This revision has already been submitted. Please refresh the page to see the latest version.",
+        ),
+      };
+    }
+
+    // 6b. Join-table write: replace priority rows. Only the winning request reaches here,
+    // so the delete/insert pair is race-safe.
+    if (resolvedPriorityId !== null) {
+      await this.db.from("proposal_priorities").delete().eq("proposal_id", proposal_id);
+      await this.db.from("proposal_priorities").insert({ proposal_id, priority_id: resolvedPriorityId });
+    }
+
+    // 6c. Replace budget if provided. Revision happens before funding approval, so there's only
     // ever a v1 to replace — destructive replace is fine here. Realignment-style versioning
-    // (Phase 3) only kicks in after the project is funded.
+    // (Phase 3) only kicks in after the project is funded. Only the winning request reaches
+    // here, so the destructive wipe is race-safe.
     // Writes to both the new tables AND the legacy estimated_budget mirror — dropping the
     // mirror would make resubmitted proposals show ₱0 on every downstream read path.
     if (Array.isArray(budget) && budget.length > 0) {

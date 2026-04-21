@@ -35,7 +35,9 @@ export class AuthService {
     const userId = data.user.id;
 
     const { data: row, error: rolesError } = await this.db!.from("users")
-      .select("roles, email_verified, is_disabled, password_change_required, account_type")
+      .select(
+        "roles, email_verified, is_disabled, password_change_required, account_type, first_name, last_name, photo_profile_url, department_id, departments(id,name)",
+      )
       .eq("id", userId)
       .maybeSingle();
 
@@ -64,6 +66,7 @@ export class AuthService {
 
     const roles = row?.roles ?? [];
     const password_change_required = row?.password_change_required === true;
+    const dept = row?.departments as unknown as { id: number; name: string } | null;
 
     // Self-heal account_type on login too (same rule as verifyToken): if the user's
     // current email is a WMSU address but the DB still says external, upgrade them
@@ -80,7 +83,20 @@ export class AuthService {
       }
     }
 
-    return { data: { ...data, roles, password_change_required, account_type }, error: null };
+    return {
+      data: {
+        ...data,
+        roles,
+        password_change_required,
+        account_type,
+        first_name: (row?.first_name as string) ?? null,
+        last_name: (row?.last_name as string) ?? null,
+        profile_photo_url: (row?.photo_profile_url as string) ?? null,
+        department_id: dept?.id ?? ((row?.department_id as number | null | undefined) ?? null),
+        department_name: dept?.name ?? null,
+      },
+      error: null,
+    };
   }
 
   async signup({ email, password, roles, first_name, last_name, middle_ini, platform }: SignUpInput) {

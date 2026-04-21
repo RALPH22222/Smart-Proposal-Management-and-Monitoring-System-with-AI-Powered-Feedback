@@ -77,19 +77,24 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
 
     // Update user record with all profile data
+    const updatePayload: Record<string, unknown> = {
+      first_name,
+      last_name,
+      middle_ini: middle_ini || null,
+      birth_date,
+      sex,
+      department_id,
+      profile_completed: true,
+      email_verified: true,
+    };
+
+    if (photoUrl) {
+      updatePayload.photo_profile_url = photoUrl;
+    }
+
     const { data, error } = await supabase
       .from("users")
-      .update({
-        first_name,
-        last_name,
-        middle_ini: middle_ini || null,
-        birth_date,
-        sex,
-        department_id,
-        photo_profile_url: photoUrl,
-        profile_completed: true,
-        email_verified: true,
-      })
+      .update(updatePayload)
       .eq("id", userId)
       .select()
       .maybeSingle();

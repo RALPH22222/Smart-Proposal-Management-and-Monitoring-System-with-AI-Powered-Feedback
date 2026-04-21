@@ -59,9 +59,18 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Detect 401 OR CORS-blocked authorizer response (no response object = browser blocked it)
+    // Detect 401 OR CORS-blocked authorizer response (no response object = browser blocked it).
+    // The "Network Error" heuristic USED to fire for any no-response failure, including
+    // cold-start timeouts and connection hiccups where the Lambda had already processed
+    // the request. That caused a silent replay of non-idempotent POSTs (e.g. submit-revised),
+    // which flooded `proposal_version` with phantom rows on every resubmit. Restrict the
+    // heuristic to safe methods (GET/HEAD) — an explicit 401 still covers mutations because
+    // the authorizer rejects BEFORE the handler runs, so retrying is safe.
     const is401 = error.response?.status === 401;
-    const isCorsBlocked = !error.response && error.message?.includes('Network Error');
+    const method = (originalRequest.method || 'get').toLowerCase();
+    const isIdempotentMethod = method === 'get' || method === 'head';
+    const isCorsBlocked =
+      !error.response && error.message?.includes('Network Error') && isIdempotentMethod;
     const isAuthFailure = is401 || isCorsBlocked;
 
     // Only intercept auth failures, skip if already retried or if this IS the refresh/login call

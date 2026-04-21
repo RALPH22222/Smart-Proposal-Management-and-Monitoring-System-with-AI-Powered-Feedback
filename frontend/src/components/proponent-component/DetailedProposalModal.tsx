@@ -38,6 +38,7 @@ import {
   AlertTriangle,
   Signature,
   MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Swal from "sweetalert2";
@@ -56,7 +57,6 @@ import { fetchProjectMembers, type ProjectMemberData } from "../../services/Proj
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import SecureImage from "../shared/SecureImage";
 import { LibImportModal } from "../../pages/users/Proponent/submission/budgetSection";
-import { promptBudgetUndo } from "../../utils/budgetUndoPrompt";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -93,6 +93,20 @@ interface DetailedProposalModalProps {
   tags?: LookupItem[];
   departments?: LookupItem[];
 }
+
+type RevisionBudgetUndoState =
+  | {
+      kind: "source";
+      index: number;
+      source: BudgetSource;
+    }
+  | {
+      kind: "line";
+      sourceIndex: number;
+      category: "ps" | "mooe" | "co";
+      itemIndex: number;
+      item: BudgetLineItem;
+    };
 
 const ScrollKeyframes = () => (
   <style>{`
@@ -192,6 +206,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [extensionReason, setExtensionReason] = useState("");
   const [isSubmittingExtension, setIsSubmittingExtension] = useState(false);
   const [lateSubmissionPolicy, setLateSubmissionPolicy] = useState<LateSubmissionPolicy | null>(null);
+  const [budgetUndoState, setBudgetUndoState] = useState<RevisionBudgetUndoState | null>(null);
 
   const [revisionChanges, setRevisionChanges] = useState<{
     projectTitle?: { old: string; new: string };
@@ -217,6 +232,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted', 'not submitted'].includes(normalizedStatus);
   const isNotSubmittedMode = ['not_submitted', 'not submitted'].includes(normalizedStatus);
   const isRejectedMode = ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(normalizedStatus);
+
+  useEffect(() => {
+    setBudgetUndoState(null);
+  }, [isOpen, proposal?.id]);
 
   const getOrdinal = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
@@ -675,6 +694,23 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       minimumFractionDigits: 2,
     }).format(amount);
 
+  const recalculateBudgetSourceTotals = (source: BudgetSource): BudgetSource => {
+    const sumAmounts = (items: BudgetLineItem[]) =>
+      items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    const psTotal = sumAmounts(source.breakdown.ps);
+    const mooeTotal = sumAmounts(source.breakdown.mooe);
+    const coTotal = sumAmounts(source.breakdown.co);
+
+    return {
+      ...source,
+      ps: formatBudgetCurrency(psTotal),
+      mooe: formatBudgetCurrency(mooeTotal),
+      co: formatBudgetCurrency(coTotal),
+      total: formatBudgetCurrency(psTotal + mooeTotal + coTotal),
+    };
+  };
+
   const buildImportedBudgetSource = (
     grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] },
     sourceName: string,
@@ -762,7 +798,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
-  const handleRemoveBudgetItem = async (index: number) => {
+  const handleRemoveBudgetItem = (index: number) => {
     if (!editedProposal) return;
     const removedSource = editedProposal.budgetSources[index];
     if (!removedSource) return;
@@ -774,17 +810,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         budgetSources: prev.budgetSources.filter((_, i) => i !== index),
       };
     });
-
-    const shouldUndo = await promptBudgetUndo(removedSource.source);
-    if (!shouldUndo) return;
-
-    setEditedProposal((prev) => {
-      if (!prev) return prev;
-      const budgetSources = [...prev.budgetSources];
-      const restoreIndex = Math.min(index, budgetSources.length);
-      budgetSources.splice(restoreIndex, 0, removedSource);
-      return { ...prev, budgetSources };
-    });
+    setBudgetUndoState({ kind: "source", index, source: removedSource });
   };
 
   const handleBudgetBreakdownChange = (
@@ -815,16 +841,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
 
-    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source[category] = `₱${catTotal.toLocaleString()}`;
-
-    const total =
-      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source.total = `₱${total.toLocaleString()}`;
-
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
@@ -838,7 +855,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     categoryItems.push({ item: "", amount: 0, subcategory: "", specifications: "", quantity: 0, unit: "", unitPrice: 0 });
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
@@ -847,22 +864,50 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const newSources = [...editedProposal.budgetSources];
     const source = { ...newSources[sourceIndex] };
     const breakdown = { ...source.breakdown };
+    const removedItem = breakdown[category][itemIndex];
+    if (!removedItem) return;
     const categoryItems = breakdown[category].filter((_, i) => i !== itemIndex);
 
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
 
-    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source[category] = `₱${catTotal.toLocaleString()}`;
-
-    const total =
-      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source.total = `₱${total.toLocaleString()}`;
-
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
+    setBudgetUndoState({ kind: "line", sourceIndex, category, itemIndex, item: removedItem });
+  };
+
+  const handleUndoBudgetRemoval = () => {
+    if (!budgetUndoState) return;
+
+    setEditedProposal((prev) => {
+      if (!prev) return prev;
+
+      const budgetSources = [...prev.budgetSources];
+
+      if (budgetUndoState.kind === "source") {
+        const restoreIndex = Math.min(budgetUndoState.index, budgetSources.length);
+        budgetSources.splice(restoreIndex, 0, budgetUndoState.source);
+        return { ...prev, budgetSources };
+      }
+
+      const targetSource = budgetSources[budgetUndoState.sourceIndex];
+      if (!targetSource) return prev;
+
+      const breakdown = { ...targetSource.breakdown };
+      const categoryItems = [...breakdown[budgetUndoState.category]];
+      const restoreIndex = Math.min(budgetUndoState.itemIndex, categoryItems.length);
+      categoryItems.splice(restoreIndex, 0, budgetUndoState.item);
+      breakdown[budgetUndoState.category] = categoryItems;
+
+      budgetSources[budgetUndoState.sourceIndex] = recalculateBudgetSourceTotals({
+        ...targetSource,
+        breakdown,
+      });
+
+      return { ...prev, budgetSources };
+    });
+
+    setBudgetUndoState(null);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -972,6 +1017,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           });
           setNewFile(null);
           setNewWorkPlanFile(null);
+          setBudgetUndoState(null);
           setIsEditing(false);
           // onClose();  // Don't close, show summary
 
@@ -1020,6 +1066,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setNewFile(null);
     setNewWorkPlanFile(null);
     setIsRevisionLibImportOpen(false);
+    setBudgetUndoState(null);
     setIsEditing(false);
   };
 
@@ -1910,51 +1957,82 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
               <div className="flex flex-col gap-3">
 
-                {submittedFiles.length > 0 ? (
-                  <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
-                    {[...submittedFiles].reverse().map((fileUrl, reversedIndex) => {
-                      const isLatest = reversedIndex === 0;
-                      const originalIndex = submittedFiles.length - 1 - reversedIndex;
-                      return (
-                        <div key={originalIndex} className={`flex items-center justify-between bg-white p-3 rounded-lg border shrink-0 ${isLatest && submittedFiles.length > 1 ? 'border-green-200' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors`}>
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 ${isLatest && submittedFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
-                              <FileCheck className={`w-5 h-5 ${isLatest && submittedFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
-                                {getFileName(fileUrl)}
-                              </p>
-                              <p className={`text-xs ${isLatest && submittedFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
-                                {isLatest ? 'Latest version' : `Version ${originalIndex + 1}`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {getFileActionMeta(fileUrl).isViewable && (
-                              <a
-                                href="#"
-                                onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
-                                className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
-                                title="View"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </a>
-                            )}
-                            <a
-                              href="#"
-                              onClick={(e) => { e.preventDefault(); downloadSignedUrl(fileUrl); }}
-                              className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
-                              title="Download"
-                            >
-                              <Download className="w-4 h-4" />
-                            </a>
-                          </div>
+                {submittedFiles.length > 0 ? (() => {
+                  // Latest-first ordering. We render the latest version prominently and tuck
+                  // older versions behind a <details> disclosure so a proposal with many
+                  // revisions doesn't overwhelm the documents section.
+                  const renderVersionRow = (
+                    fileUrl: string,
+                    originalIndex: number,
+                    isLatest: boolean,
+                  ) => (
+                    <div
+                      key={originalIndex}
+                      className={`flex items-center justify-between bg-white p-3 rounded-lg border shrink-0 ${isLatest && submittedFiles.length > 1 ? 'border-green-200' : 'border-slate-200'} group hover:border-[#C8102E] transition-colors`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 ${isLatest && submittedFiles.length > 1 ? 'bg-green-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center`}>
+                          <FileCheck className={`w-5 h-5 ${isLatest && submittedFiles.length > 1 ? 'text-green-600' : 'text-[#C8102E]'}`} />
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate max-w-[200px] sm:max-w-xs" title={getFileName(fileUrl)}>
+                            {getFileName(fileUrl)}
+                          </p>
+                          <p className={`text-xs ${isLatest && submittedFiles.length > 1 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                            {isLatest ? 'Latest version' : `Version ${originalIndex + 1}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {getFileActionMeta(fileUrl).isViewable && (
+                          <a
+                            href="#"
+                            onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
+                            className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </a>
+                        )}
+                        <a
+                          href="#"
+                          onClick={(e) => { e.preventDefault(); downloadSignedUrl(fileUrl); }}
+                          className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+
+                  const latestIndex = submittedFiles.length - 1;
+                  const latestUrl = submittedFiles[latestIndex];
+                  const olderReversed = submittedFiles.slice(0, latestIndex).reverse();
+
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {renderVersionRow(latestUrl, latestIndex, true)}
+                      {olderReversed.length > 0 && (
+                        <details className="group bg-white rounded-lg border border-slate-200">
+                          <summary className="flex items-center justify-between cursor-pointer list-none px-3 py-2 text-xs font-medium text-slate-600 hover:text-[#C8102E] transition-colors select-none">
+                            <span className="inline-flex items-center gap-2">
+                              <Clock className="w-3.5 h-3.5" />
+                              View {olderReversed.length} previous version{olderReversed.length === 1 ? '' : 's'}
+                            </span>
+                            <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                          </summary>
+                          <div className="flex flex-col gap-2 px-3 pb-3 pt-1 max-h-[260px] overflow-y-auto">
+                            {olderReversed.map((fileUrl, i) => {
+                              const originalIndex = latestIndex - 1 - i;
+                              return renderVersionRow(fileUrl, originalIndex, false);
+                            })}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })() : (
                   <div className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
@@ -3168,6 +3246,38 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   {" "}
                   {/* Removed overflow-x-auto to prevent horizontal scrolling */}
                   <div className="space-y-6">
+                    {canEditBudget && budgetUndoState && (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                            <span>{budgetUndoState.kind === "source" ? "Funding source removed" : "Budget item removed"}</span>
+                          </div>
+                          <p className="mt-1 truncate text-xs text-amber-800">
+                            {budgetUndoState.kind === "source"
+                              ? `${budgetUndoState.source.source?.trim() || "Untitled source"} was removed from this revision budget.`
+                              : `${budgetUndoState.item.item?.trim() || budgetUndoState.item.specifications?.trim() || "Untitled line item"} was removed from this revision budget.`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleUndoBudgetRemoval}
+                            className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-950"
+                          >
+                            Undo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBudgetUndoState(null)}
+                            className="rounded-lg border border-amber-300 px-2 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {currentData.budgetSources.map((budget, index) => (
                       <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                         {/* Card Header: Source Name & Total */}
