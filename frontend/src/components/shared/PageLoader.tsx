@@ -4,16 +4,11 @@ import SkeletonPulse from './SkeletonPulse';
 interface PageLoaderProps {
   text?: string;
   className?: string;
-<<<<<<< Updated upstream
   mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | 'change-assignment' | 'staff-list' | string;
-=======
-  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | string;
->>>>>>> Stashed changes
 }
 
 
 const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple' }) => {
-<<<<<<< Updated upstream
   if (mode === 'change-assignment') {
     return (
       <div className={`space-y-6 animate-pulse ${className || ''}`}>
@@ -65,8 +60,6 @@ const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple
     );
   }
 
-=======
->>>>>>> Stashed changes
   if (mode === 'project-detail') {
     return (
       <div className={`flex flex-col lg:flex-row h-full w-full animate-pulse bg-slate-50 ${className || ''}`}>
