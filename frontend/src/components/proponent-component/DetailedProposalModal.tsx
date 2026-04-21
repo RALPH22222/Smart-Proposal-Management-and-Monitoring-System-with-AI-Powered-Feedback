@@ -44,7 +44,7 @@ import Swal from "sweetalert2";
 import { openProposalFile } from "../../utils/signed-url";
 import { api } from "../../utils/axios";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
-import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest } from "../../services/proposal.api";
+import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest, fetchBudgetSubcategories, type BudgetSubcategoryDto } from "../../services/proposal.api";
 import { SettingsApi, type LateSubmissionPolicy } from "../../services/admin/SettingsApi";
 import { formatDate, formatDateTime } from "../../utils/date-formatter";
 import InviteMemberModal from "./InviteMemberModal";
@@ -194,6 +194,19 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     budget?: { changed: boolean };
     file?: { old: string; new: string };
   } | null>(null);
+
+  // --- Revision Classification Editor State ---
+  const [revSectorSearch, setRevSectorSearch] = useState("");
+  const [revDisciplineSearch, setRevDisciplineSearch] = useState("");
+  const [revPriorityInput, setRevPriorityInput] = useState("");
+  // --- Revision Budget Subcategory State ---
+  const [revSubcategories, setRevSubcategories] = useState<{ ps: BudgetSubcategoryDto[]; mooe: BudgetSubcategoryDto[]; co: BudgetSubcategoryDto[] }>({ ps: [], mooe: [], co: [] });
+  const [revSubcatsLoading, setRevSubcatsLoading] = useState(false);
+  const [revSelectedPriorities, setRevSelectedPriorities] = useState<string[]>([]);
+  const [revIsSectorOpen, setRevIsSectorOpen] = useState(false);
+  const [revIsDisciplineOpen, setRevIsDisciplineOpen] = useState(false);
+  const [revIsPriorityOpen, setRevIsPriorityOpen] = useState(false);
+  const [revCustomClassInput, setRevCustomClassInput] = useState("");
   const normalizedStatus = (proposal?.status || '').toLowerCase().trim();
   const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted', 'not submitted'].includes(normalizedStatus);
   const isNotSubmittedMode = ['not_submitted', 'not submitted'].includes(normalizedStatus);
@@ -389,6 +402,23 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       } else {
         setSubmittedFiles([]);
       }
+      // Initialise revision classification editor state from proposal
+      setRevSectorSearch(proposal.sector || "");
+      setRevDisciplineSearch(proposal.discipline || "");
+      // Restore selected priorities from priorityAreas string (comma-separated)
+      if (proposal.priorityAreas) {
+        const parts = proposal.priorityAreas.split(",").map((s: string) => s.trim()).filter(Boolean);
+        setRevSelectedPriorities(parts);
+      } else {
+        setRevSelectedPriorities([]);
+      }
+      // Restore custom classification input.
+      // Prefer classificationDetails; fall back to class_input when it isn't a standard option.
+      const standardInputs = ["basic", "applied", "pilot_testing", "tech_promotion"];
+      const rawClassInput = ((proposal as any).class_input || "").trim();
+      const ci = (proposal as any).classificationDetails ||
+        (rawClassInput && !standardInputs.includes(rawClassInput) ? rawClassInput : "");
+      setRevCustomClassInput(ci);
     }
   }, [proposal]);
 
@@ -423,6 +453,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       fetchAddresses();
     }
   }, [isOpen, isEditing, editedProposal?.agency, proposal?.agency, agencies]);
+
+  // Load subcategories when edit mode opens — must be ABOVE the early return to satisfy Rules of Hooks
+  const _canEditBudgetForEffect = isInRevisionMode && isEditing;
+  useEffect(() => {
+    if (!_canEditBudgetForEffect) return;
+    if (revSubcategories.ps.length > 0 || revSubcatsLoading) return;
+    setRevSubcatsLoading(true);
+    Promise.all([
+      fetchBudgetSubcategories('ps'),
+      fetchBudgetSubcategories('mooe'),
+      fetchBudgetSubcategories('co'),
+    ]).then(([ps, mooe, co]) => {
+      setRevSubcategories({ ps, mooe, co });
+    }).catch(() => { /* silently continue; user can still type */ }).finally(() => setRevSubcatsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_canEditBudgetForEffect]);
 
   const handleAddressSelect = (addressId: string) => {
     if (!editedProposal) return;
@@ -1103,12 +1149,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           section: "Reason for Rejection",
           comment: rejectionComment || "Loading details..."
         }]
-      : ["endorsed", "endorsed_for_funding", "endorsed for funding"].includes((proposal.status || "").toLowerCase())
-        ? [{
-          section: "Endorsement Justification (Admin)",
-          comment: proposal.endorsementJustification
-        }].filter(item => item.comment)
-        : [];
+        : ["endorsed", "endorsed_for_funding", "endorsed for funding"].includes((proposal.status || "").toLowerCase())
+          ? [{
+            section: "Endorsement Justification (Admin)",
+            comment: proposal.endorsementJustification
+          }].filter(item => item.comment)
+          : [];
 
   return (
     <>
@@ -1993,6 +2039,333 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             )}
 
+            {/* 3.6. Research Classification Fields (Revision Edit Mode) */}
+            {canEditClassification && isEditing && (() => {
+              // --- Helpers scoped to this block ---
+              const filteredRevSectors = sectors.filter(s =>
+                s.name.toLowerCase().includes(revSectorSearch.toLowerCase())
+              );
+              const filteredRevDisciplines = disciplines.filter(d =>
+                d.name.toLowerCase().includes(revDisciplineSearch.toLowerCase())
+              );
+              const filteredRevPriorities = priorities.filter(p =>
+                p.name.toLowerCase().includes(revPriorityInput.toLowerCase())
+              );
+
+              // Normalize: strip "_class" suffix (e.g. "research_class" → "research") and lowercase
+              const currentClassType = ((editedProposal as any)?.classification ||
+                (editedProposal as any)?.classification_type || "")
+                .replace(/_class$/i, "").toLowerCase().trim();
+              // Normalize class input (e.g. "Basic" → "basic", keep underscored values as-is)
+              const currentClassInput = ((editedProposal as any)?.classificationDetails ||
+                (editedProposal as any)?.class_input || "").trim();
+
+              const handleRevClassTypeChange = (type: string) => {
+                setEditedProposal({ ...editedProposal, classification: type, classificationDetails: "" } as any);
+                setRevCustomClassInput("");
+              };
+
+              const handleRevClassInputChange = (input: string) => {
+                setRevCustomClassInput(input);
+                setEditedProposal({ ...editedProposal, classificationDetails: input } as any);
+              };
+
+              const handleRevSectorSelect = (s: LookupItem) => {
+                setRevSectorSearch(s.name);
+                setEditedProposal({ ...editedProposal, sector: s.name } as any);
+                setRevIsSectorOpen(false);
+              };
+
+              const handleRevDisciplineSelect = (d: LookupItem) => {
+                setRevDisciplineSearch(d.name);
+                setEditedProposal({ ...editedProposal, discipline: d.name } as any);
+                setRevIsDisciplineOpen(false);
+              };
+
+              const handleRevPrioritySelect = (name: string) => {
+                const next = revSelectedPriorities.includes(name)
+                  ? revSelectedPriorities.filter(p => p !== name)
+                  : [...revSelectedPriorities, name];
+                setRevSelectedPriorities(next);
+                setEditedProposal({ ...editedProposal, priorityAreas: next.join(", ") } as any);
+              };
+
+              const handleRevAddPriority = () => {
+                const trimmed = revPriorityInput.trim();
+                if (!trimmed || revSelectedPriorities.includes(trimmed)) return;
+                const next = [...revSelectedPriorities, trimmed];
+                setRevSelectedPriorities(next);
+                setEditedProposal({ ...editedProposal, priorityAreas: next.join(", ") } as any);
+                setRevPriorityInput("");
+              };
+
+              const handleRevDeletePriority = (name: string) => {
+                const next = revSelectedPriorities.filter(p => p !== name);
+                setRevSelectedPriorities(next);
+                setEditedProposal({ ...editedProposal, priorityAreas: next.join(", ") } as any);
+              };
+
+              return (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-6">
+                  {/* Section Header */}
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+                    <div className="rounded-lg">
+                      <Tags className="w-5 h-5 text-[#C8102E]" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800">Research Details</h3>
+                  </div>
+
+                  {/* Classification Type */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <Tags className="w-4 h-4 text-gray-400" />
+                      Classification Type <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {["research", "development"].map((type) => (
+                        <div
+                          key={type}
+                          className={`flex items-center p-3 border rounded-xl cursor-pointer transition-colors select-none ${currentClassType === type ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
+                            }`}
+                          onClick={() => handleRevClassTypeChange(type)}
+                        >
+                          <input
+                            type="radio"
+                            readOnly
+                            checked={currentClassType === type}
+                            className="h-4 w-4 text-[#C8102E] pointer-events-none"
+                          />
+                          <span className="ml-3 text-sm font-medium text-gray-700 capitalize">{type} Classification</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Research sub-classification */}
+                    {currentClassType === "research" && (
+                      <div className="space-y-2 pl-1">
+                        <label className="text-xs font-semibold text-gray-600">Research Classification *</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {["basic", "applied"].map((sub) => (
+                            <div
+                              key={sub}
+                              className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput === sub ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
+                                }`}
+                              onClick={() => handleRevClassInputChange(sub)}
+                            >
+                              <input type="radio" readOnly checked={currentClassInput === sub} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
+                              <span className="ml-2 text-xs font-medium text-gray-700 capitalize">{sub === "basic" ? "Basic Research" : "Applied Research"}</span>
+                            </div>
+                          ))}
+                          <div
+                            className={`col-span-2 flex flex-col p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput && currentClassInput !== "basic" && currentClassInput !== "applied"
+                                ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
+                              }`}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).tagName !== "INPUT") handleRevClassInputChange(revCustomClassInput || " ");
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <input type="radio" readOnly checked={!!(currentClassInput && currentClassInput !== "basic" && currentClassInput !== "applied")} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
+                              <span className="ml-2 text-xs font-medium text-gray-700">Other (Specify)</span>
+                            </div>
+                            {currentClassInput && currentClassInput !== "basic" && currentClassInput !== "applied" && (
+                              <input
+                                type="text"
+                                value={revCustomClassInput === " " ? "" : revCustomClassInput}
+                                onChange={(e) => handleRevClassInputChange(e.target.value || " ")}
+                                className="mt-2 ml-6 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#C8102E]"
+                                placeholder="Enter research classification..."
+                                autoFocus
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Development sub-classification */}
+                    {currentClassType === "development" && (
+                      <div className="space-y-2 pl-1">
+                        <label className="text-xs font-semibold text-gray-600">Development Classification *</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[{ val: "pilot_testing", label: "Pilot Testing" }, { val: "tech_promotion", label: "Technology Promotion/Commercialization" }].map(({ val, label }) => (
+                            <div
+                              key={val}
+                              className={`flex items-center p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput === val ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
+                                }`}
+                              onClick={() => handleRevClassInputChange(val)}
+                            >
+                              <input type="radio" readOnly checked={currentClassInput === val} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
+                              <span className="ml-2 text-xs font-medium text-gray-700">{label}</span>
+                            </div>
+                          ))}
+                          <div
+                            className={`col-span-2 flex flex-col p-2.5 border rounded-xl cursor-pointer transition-colors select-none ${currentClassInput && currentClassInput !== "pilot_testing" && currentClassInput !== "tech_promotion"
+                                ? "border-black bg-white" : "border-gray-200 hover:border-gray-300 bg-white"
+                              }`}
+                            onClick={(e) => {
+                              if ((e.target as HTMLElement).tagName !== "INPUT") handleRevClassInputChange(revCustomClassInput || " ");
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <input type="radio" readOnly checked={!!(currentClassInput && currentClassInput !== "pilot_testing" && currentClassInput !== "tech_promotion")} className="h-4 w-4 text-[#C8102E] pointer-events-none" />
+                              <span className="ml-2 text-xs font-medium text-gray-700">Other (Specify)</span>
+                            </div>
+                            {currentClassInput && currentClassInput !== "pilot_testing" && currentClassInput !== "tech_promotion" && (
+                              <input
+                                type="text"
+                                value={revCustomClassInput === " " ? "" : revCustomClassInput}
+                                onChange={(e) => handleRevClassInputChange(e.target.value || " ")}
+                                className="mt-2 ml-6 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#C8102E]"
+                                placeholder="Enter development classification..."
+                                autoFocus
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Priority Areas / STAND Classification */}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <Target className="w-4 h-4 text-gray-400" />
+                      Priority Areas/STAND Classification <span className="text-red-500">*</span>
+                    </label>
+
+                    {/* Selected chips */}
+                    {revSelectedPriorities.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {revSelectedPriorities.map((name) => (
+                          <div
+                            key={name}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={() => handleRevDeletePriority(name)}
+                              className="hover:text-red-500 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Search + dropdown */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={revPriorityInput}
+                        onChange={(e) => setRevPriorityInput(e.target.value)}
+                        onFocus={() => setRevIsPriorityOpen(true)}
+                        onBlur={() => setTimeout(() => setRevIsPriorityOpen(false), 200)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleRevAddPriority(); } }}
+                        placeholder="Select or type a priority area..."
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm bg-white"
+                      />
+                      {revIsPriorityOpen && filteredRevPriorities.length > 0 && (
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {filteredRevPriorities.map((item) => (
+                            <div
+                              key={item.id}
+                              className={`px-3 py-2.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none ${revSelectedPriorities.includes(item.name) ? "bg-[#C8102E]/10" : ""
+                                }`}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleRevPrioritySelect(item.name)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  readOnly
+                                  checked={revSelectedPriorities.includes(item.name)}
+                                  className="w-3.5 h-3.5 text-[#C8102E] rounded pointer-events-none"
+                                />
+                                <span className="text-sm text-gray-700">{item.name}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">Select from the list or type a custom priority and press Enter.</p>
+                  </div>
+
+                  {/* Sector / Commodity + Discipline side-by-side */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Sector */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <Tags className="w-4 h-4 text-gray-400" />
+                        Sector/Commodity <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={revSectorSearch}
+                          onChange={(e) => setRevSectorSearch(e.target.value)}
+                          onFocus={() => setRevIsSectorOpen(true)}
+                          onBlur={() => setTimeout(() => { setRevIsSectorOpen(false); setRevSectorSearch(editedProposal?.sector || ""); }, 200)}
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm bg-white"
+                          placeholder="Search sector..."
+                        />
+                        {revIsSectorOpen && filteredRevSectors.length > 0 && (
+                          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            {filteredRevSectors.map((s) => (
+                              <div
+                                key={s.id}
+                                className="px-3 py-2.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleRevSectorSelect(s)}
+                              >
+                                <span className="text-sm text-gray-700">{s.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Discipline */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <BookOpen className="w-4 h-4 text-gray-400" />
+                        Discipline <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={revDisciplineSearch}
+                          onChange={(e) => setRevDisciplineSearch(e.target.value)}
+                          onFocus={() => setRevIsDisciplineOpen(true)}
+                          onBlur={() => setTimeout(() => { setRevIsDisciplineOpen(false); setRevDisciplineSearch(editedProposal?.discipline || ""); }, 200)}
+                          className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-sm bg-white"
+                          placeholder="Search discipline..."
+                        />
+                        {revIsDisciplineOpen && filteredRevDisciplines.length > 0 && (
+                          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            {filteredRevDisciplines.map((d) => (
+                              <div
+                                key={d.id}
+                                className="px-3 py-2.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100 select-none"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleRevDisciplineSelect(d)}
+                              >
+                                <span className="text-sm text-gray-700">{d.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 4. LEADER & AGENCY (Updated Layout & Gray Background) */}
             {!isEditing && (<>
               <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
@@ -2591,55 +2964,159 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
                         {/* Card Body: Breakdown */}
                         {canEditBudget ? (
-                          /* ---- EDIT MODE: table layout with full line-item fields ---- */
-                          <div className="p-4 space-y-4">
+                          /* ---- EDIT MODE: two-line card layout per item, subcategory dropdown ---- */
+                          <div className="divide-y divide-slate-100">
                             {(["ps", "mooe", "co"] as const).map((category) => {
-                              const catLabel = category === "ps" ? "Personal Services (PS)" : category === "mooe" ? "MOOE" : "Capital Outlay (CO)";
+                              const catLabels: Record<string, string> = {
+                                ps: "Personal Services",
+                                mooe: "Maintenance & Operating Expenses",
+                                co: "Capital Outlay",
+                              };
+                              const catColors: Record<string, string> = {
+                                ps: "bg-blue-50 border-blue-200 text-blue-800",
+                                mooe: "bg-amber-50 border-amber-200 text-amber-800",
+                                co: "bg-emerald-50 border-emerald-200 text-emerald-800",
+                              };
+                              const catBadge: Record<string, string> = {
+                                ps: "PS", mooe: "MOOE", co: "CO",
+                              };
                               const catTotal = budget[category];
                               const items = budget.breakdown?.[category] || [];
+                              const subcatOptions = revSubcategories[category] || [];
                               return (
-                                <div key={category}>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <h5 className="font-bold text-xs text-slate-600 uppercase">{catLabel}</h5>
+                                <div key={category} className="p-4">
+                                  {/* Section Header */}
+                                  <div className={`flex items-center justify-between mb-3 px-3 py-2 rounded-lg border ${catColors[category]}`}>
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{catTotal}</span>
-                                      <button onClick={() => handleAddBudgetBreakdownItem(index, category)} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
-                                        <Plus className="w-3 h-3" />
+                                      <span className="text-[11px] font-black uppercase tracking-widest">{catBadge[category]}</span>
+                                      <span className="text-xs font-semibold">{catLabels[category]}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-xs font-bold font-mono">{catTotal}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddBudgetBreakdownItem(index, category)}
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#C8102E] hover:bg-[#a00c24] px-2.5 py-1 rounded-lg transition-colors"
+                                      >
+                                        <Plus className="w-3 h-3" /> Add Item
                                       </button>
                                     </div>
                                   </div>
+
+                                  {/* Line Items — card-per-row layout */}
                                   {items.length > 0 ? (
-                                    <div className="rounded-lg border border-slate-100 overflow-hidden">
-                                      <table className="w-full text-xs">
-                                        <thead>
-                                          <tr className="bg-slate-50 border-b border-slate-100">
-                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[18%]">Subcategory</th>
-                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[22%]">Item</th>
-                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[18%]">Spec / Volume</th>
-                                            <th className="text-center px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[8%]">Qty</th>
-                                            <th className="text-center px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[8%]">Unit</th>
-                                            <th className="text-right px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[14%]">Unit Price</th>
-                                            <th className="text-right px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[12%]">Amount</th>
-                                            <th className="w-[6%]"></th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                          {items.map((item, i) => (
-                                            <tr key={i} className="hover:bg-slate-50/50">
-                                              <td className="px-2 py-1"><input value={item.subcategory || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "subcategory", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Subcategory" /></td>
-                                              <td className="px-2 py-1"><input value={item.item} onChange={e => handleBudgetBreakdownChange(index, category, i, "item", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" /></td>
-                                              <td className="px-2 py-1"><input value={item.specifications || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "specifications", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Spec / Volume" /></td>
-                                              <td className="px-2 py-1"><input type="number" value={item.quantity || ''} onChange={e => handleBudgetBreakdownChange(index, category, i, "quantity", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-center ${getInputClass(true)}`} placeholder="Qty" /></td>
-                                              <td className="px-2 py-1"><input value={item.unit || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "unit", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-center ${getInputClass(true)}`} placeholder="Unit" /></td>
-                                              <td className="px-2 py-1"><input type="number" value={item.unitPrice || ''} onChange={e => handleBudgetBreakdownChange(index, category, i, "unitPrice", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Unit Price" /></td>
-                                              <td className="px-2 py-1 text-right font-semibold text-slate-800 whitespace-nowrap">₱{Number(item.amount || 0).toLocaleString()}</td>
-                                              <td className="px-1 py-1 text-center"><button onClick={() => handleRemoveBudgetBreakdownItem(index, category, i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button></td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
+                                    <div className="space-y-3">
+                                      {items.map((item, i) => (
+                                        <div key={i} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                                          {/* Row 1: Subcategory | Item Name | Spec/Volume */}
+                                          <div className="grid grid-cols-3 gap-2 mb-2">
+                                            <div>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Subcategory</p>
+                                              <select
+                                                value={item.subcategory || ""}
+                                                onChange={e => handleBudgetBreakdownChange(index, category, i, "subcategory", e.target.value)}
+                                                disabled={revSubcatsLoading}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] bg-white"
+                                              >
+                                                <option value="">— Select —</option>
+                                                {subcatOptions.map(s => (
+                                                  <option key={s.id} value={s.label}>{s.label}</option>
+                                                ))}
+                                                {item.subcategory && !subcatOptions.some(s => s.label === item.subcategory) && (
+                                                  <option value={item.subcategory}>{item.subcategory}</option>
+                                                )}
+                                              </select>
+                                            </div>
+                                            <div>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Item Name</p>
+                                              <input
+                                                type="text"
+                                                value={item.item || ""}
+                                                onChange={e => handleBudgetBreakdownChange(index, category, i, "item", e.target.value)}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                                                placeholder="e.g. Laptop"
+                                              />
+                                            </div>
+                                            <div>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Spec / Volume</p>
+                                              <input
+                                                type="text"
+                                                value={item.specifications || ""}
+                                                onChange={e => handleBudgetBreakdownChange(index, category, i, "specifications", e.target.value)}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                                                placeholder="e.g. 16GB RAM"
+                                              />
+                                            </div>
+                                          </div>
+                                          {/* Row 2: Qty | Unit | Unit Price | Amount | Delete */}
+                                          <div className="grid grid-cols-5 gap-2 items-end">
+                                            <div>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Qty</p>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                inputMode="numeric"
+                                                value={item.quantity || ""}
+                                                onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                                                onChange={e => {
+                                                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                  handleBudgetBreakdownChange(index, category, i, "quantity", raw === '' ? 0 : parseInt(raw, 10));
+                                                }}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-right font-mono"
+                                                placeholder="0"
+                                              />
+                                            </div>
+                                            <div>
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Unit</p>
+                                              <input
+                                                type="text"
+                                                value={item.unit || ""}
+                                                onChange={e => handleBudgetBreakdownChange(index, category, i, "unit", e.target.value)}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                                                placeholder="pcs"
+                                              />
+                                            </div>
+                                            <div className="col-span-2">
+                                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Unit Price (₱)</p>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                inputMode="decimal"
+                                                value={item.unitPrice || ""}
+                                                onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }}
+                                                onChange={e => {
+                                                  const val = parseFloat(e.target.value);
+                                                  handleBudgetBreakdownChange(index, category, i, "unitPrice", isNaN(val) || val < 0 ? 0 : val);
+                                                }}
+                                                className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] text-right font-mono"
+                                                placeholder="0.00"
+                                              />
+                                            </div>
+                                            <div className="flex items-end justify-between gap-1">
+                                              <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Amount</p>
+                                                <p className="text-xs font-bold text-slate-800 font-mono py-1.5">₱{Number(item.amount || 0).toLocaleString()}</p>
+                                              </div>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveBudgetBreakdownItem(index, category, i)}
+                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5"
+                                                title="Remove item"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
-                                  ) : (<p className="text-xs italic text-slate-400">No items</p>)}
+                                  ) : (
+                                    <div className="text-center py-4 text-xs text-slate-400 italic border border-dashed border-slate-200 rounded-lg">
+                                      No items yet — click &quot;+ Add Item&quot; to begin
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
