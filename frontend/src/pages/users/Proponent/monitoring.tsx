@@ -764,6 +764,27 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
       }
     }
 
+    // Explicit confirmation when the proponent has an approved FR but hasn't ticked
+    // any line (empty liquidations). This used to land as a zero-row submit that
+    // silently deleted all per-line traceability (e.g. project 12 Q1+Q2 — both
+    // verified with zero expense rows). We still ALLOW the submit if confirmed —
+    // proponents legitimately defer liquidation to later quarters — but we make
+    // the choice explicit instead of accepting it silently.
+    if (liquidationDraft.length > 0 && selectedItems.length === 0) {
+      const confirm = await Swal.fire({
+        icon: 'warning',
+        title: 'No actual spending reported',
+        html: `<p>You haven't selected any line items to liquidate for <strong>${currentReport.quarterLabel}</strong>.</p>
+               <p style="margin-top:8px;font-size:13px;color:#6b7280;">This will submit the report with <strong>₱0 actual spent</strong> across all ${liquidationDraft.length} approved line items, meaning you're deferring all liquidation to a later quarter. Is that what you want?</p>`,
+        showCancelButton: true,
+        confirmButtonText: 'Yes, submit without liquidation',
+        cancelButtonText: 'Go back and fill it in',
+        confirmButtonColor: '#C8102E',
+        reverseButtons: true,
+      });
+      if (!confirm.isConfirmed) return;
+    }
+
     try {
       setSubmittingReport(true);
 
