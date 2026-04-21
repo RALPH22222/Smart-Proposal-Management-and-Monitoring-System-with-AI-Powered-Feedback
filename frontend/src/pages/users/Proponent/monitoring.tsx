@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { openSignedUrl } from '../../../utils/signed-url';
+import { getFileActionMeta } from '../../../components/shared/FileActionButton';
 import TeamMembersSection from '../../../components/proponent-component/TeamMembersSection';
 import { useAuthContext, isExternalAccount } from '../../../context/AuthContext';
 import { supabase as supabaseClient } from '../../../config/supabaseClient';
@@ -2064,12 +2065,16 @@ const MonitoringPage: React.FC = () => {
                               <div key={group.category}>
                                 <p className="text-[11px] font-bold text-gray-500 mb-1.5">{group.category}</p>
                                 <div className="space-y-1.5">
-                                  {group.files.map((file, i) => (
-                                    <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-100" title={file.filename}>
-                                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-                                      <span className="truncate max-w-[180px]">{file.filename}</span>
-                                    </a>
-                                  ))}
+                                  {group.files.map((file, i) => {
+                                    const meta = getFileActionMeta(file.url);
+                                    const ActionIcon = meta.Icon;
+                                    return (
+                                      <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-100" title={`${meta.title} — ${file.filename}`}>
+                                        <ActionIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                        <span className="truncate max-w-[180px]">{file.filename}</span>
+                                      </a>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ))}

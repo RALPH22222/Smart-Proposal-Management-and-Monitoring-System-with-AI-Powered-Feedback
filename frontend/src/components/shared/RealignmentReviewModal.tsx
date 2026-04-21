@@ -8,7 +8,7 @@
 // realignment record (with both versions inlined) on open.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Loader2, AlertTriangle, CheckCircle2, MessageSquareWarning, Download, FileText, Calendar, ShieldCheck, Undo2, Banknote } from 'lucide-react';
+import { X, Loader2, AlertTriangle, CheckCircle2, MessageSquareWarning, FileText, Calendar, ShieldCheck, Undo2, Banknote } from 'lucide-react';
 import {
   fetchRealignment,
   reviewBudgetRealignment,
@@ -19,6 +19,7 @@ import {
 } from '../../services/ProjectMonitoringApi';
 import BudgetDiffView from './BudgetDiffView';
 import { openSignedUrl } from '../../utils/signed-url';
+import { getFileActionMeta } from './FileActionButton';
 import { formatDate } from '../../utils/date-formatter';
 import { useAuthContext } from '../../context/AuthContext';
 
@@ -312,14 +313,18 @@ export const RealignmentReviewModal: React.FC<RealignmentReviewModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1">Reason</p>
                   <p className="text-sm text-slate-700 whitespace-pre-wrap">{record.reason}</p>
                 </div>
-                {record.file_url && (
-                  <button
-                    onClick={() => openSignedUrl(record.file_url!)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C8102E] hover:underline"
-                  >
-                    <Download className="w-3 h-3" /> Download revised LIB document
-                  </button>
-                )}
+                {record.file_url && (() => {
+                  const meta = getFileActionMeta(record.file_url);
+                  const ActionIcon = meta.Icon;
+                  return (
+                    <button
+                      onClick={() => openSignedUrl(record.file_url!)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C8102E] hover:underline"
+                    >
+                      <ActionIcon className="w-3 h-3" /> {meta.label} revised LIB document
+                    </button>
+                  );
+                })()}
                 {!record.file_url && (
                   <p className="text-xs text-slate-400 italic flex items-center gap-1">
                     <FileText className="w-3 h-3" /> No supporting document attached

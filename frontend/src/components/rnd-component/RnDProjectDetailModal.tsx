@@ -10,6 +10,7 @@ import {
 import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
 import { openSignedUrl } from '../../utils/signed-url';
+import { getFileActionMeta } from '../shared/FileActionButton';
 import { formatDate } from '../../utils/date-formatter';
 import { type Project } from '../../types/InterfaceProject';
 import { useAuthContext } from '../../context/AuthContext';
@@ -612,13 +613,17 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   <div key={group.category}>
                     <p className="text-[11px] font-bold text-slate-500 mb-1.5">{group.category}</p>
                     <div className="space-y-1.5">
-                      {group.files.map((file, i) => (
-                        <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
-                          <Paperclip className="w-4 h-4 flex-shrink-0" />
-                          <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
-                          <Download className="w-4 h-4 ml-auto opacity-70 flex-shrink-0" />
-                        </a>
-                      ))}
+                      {group.files.map((file, i) => {
+                        const meta = getFileActionMeta(file.url);
+                        const ActionIcon = meta.Icon;
+                        return (
+                          <a key={i} href="#" onClick={(e) => { e.preventDefault(); openSignedUrl(file.url); }} title={meta.title} className="flex items-center gap-2 bg-white px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-blue-600 hover:text-blue-800 hover:border-blue-300 cursor-pointer transition-all shadow-sm">
+                            <Paperclip className="w-4 h-4 flex-shrink-0" />
+                            <span className="font-medium truncate max-w-[200px]">{file.filename}</span>
+                            <ActionIcon className="w-4 h-4 ml-auto opacity-70 flex-shrink-0" />
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -943,15 +948,19 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2 flex-shrink-0">
-                                    {doc.url && (
-                                      <button
-                                        onClick={() => openSignedUrl(doc.url!)}
-                                        className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1"
-                                        title="Open document"
-                                      >
-                                        <Download className="w-3 h-3" /> View
-                                      </button>
-                                    )}
+                                    {doc.url && (() => {
+                                      const meta = getFileActionMeta(doc.url);
+                                      const ActionIcon = meta.Icon;
+                                      return (
+                                        <button
+                                          onClick={() => openSignedUrl(doc.url!)}
+                                          className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1"
+                                          title={meta.title}
+                                        >
+                                          <ActionIcon className="w-3 h-3" /> {meta.label}
+                                        </button>
+                                      );
+                                    })()}
                                     {doc.status === 'pending_verification' && (
                                       <>
                                         <button
@@ -1040,9 +1049,15 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                   Reference only
                                 </span>
                               </div>
-                              <button onClick={() => openSignedUrl(workPlanFileUrl)} className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1">
-                                <Download className="w-3 h-3" /> View
-                              </button>
+                              {(() => {
+                                const meta = getFileActionMeta(workPlanFileUrl);
+                                const ActionIcon = meta.Icon;
+                                return (
+                                  <button onClick={() => openSignedUrl(workPlanFileUrl)} title={meta.title} className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1">
+                                    <ActionIcon className="w-3 h-3" /> {meta.label}
+                                  </button>
+                                );
+                              })()}
                             </div>
                           )}
                         </div>

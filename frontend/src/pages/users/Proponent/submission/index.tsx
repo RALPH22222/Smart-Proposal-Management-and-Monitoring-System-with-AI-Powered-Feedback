@@ -133,6 +133,8 @@ const Submission: React.FC = () => {
     storageKey: draftStorageKey,
     value: localFormData,
     enabled: !!user?.id && !isSubmitting,
+    files: { proposal: selectedFile, workPlan: workPlanFile },
+    schemaVersion: 1,
   });
 
   // Offer to resume the draft once on mount, after the hook finishes hydrating.
@@ -155,6 +157,8 @@ const Submission: React.FC = () => {
     }).then((res) => {
       if (res.isConfirmed) {
         setLocalFormData(draft.payload as FormData);
+        setSelectedFile(draft.files.proposal);
+        setWorkPlanFile(draft.files.workPlan);
         autosave.acceptDraft();
       } else {
         autosave.dismissDraft();

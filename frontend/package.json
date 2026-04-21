@@ -7,7 +7,8 @@
 		"dev": "vite",
 		"build": "tsc -b && vite build",
 		"lint": "eslint . --fix",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"smoke:idb-draft": "tsx scripts/smoke-idb-draft.mts"
 	},
 	"dependencies": {
 		"@huggingface/transformers": "^4.1.0",
@@ -47,7 +48,9 @@
 		"eslint": "^9.33.0",
 		"eslint-plugin-react-hooks": "^5.2.0",
 		"eslint-plugin-react-refresh": "^0.4.20",
+		"fake-indexeddb": "^6.2.5",
 		"globals": "^16.3.0",
+		"tsx": "^4.21.0",
 		"typescript": "~5.8.3",
 		"typescript-eslint": "^8.39.1",
 		"vite": "^7.1.2"

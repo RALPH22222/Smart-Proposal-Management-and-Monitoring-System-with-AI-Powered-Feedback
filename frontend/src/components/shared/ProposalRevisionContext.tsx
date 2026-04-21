@@ -9,7 +9,6 @@ import {
   Clock,
   User,
   ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 import {
   getProposalRevisionContext,
@@ -18,6 +17,7 @@ import {
 } from '../../services/proposal.api';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
 import { openSignedUrl } from '../../utils/signed-url';
+import { getFileActionMeta } from './FileActionButton';
 import SkeletonPulse from './SkeletonPulse';
 
 interface ProposalRevisionContextProps {
@@ -298,20 +298,23 @@ export default function ProposalRevisionContext({ proposalId }: ProposalRevision
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    {fileUrls.map((url, fi) => (
-                      // Must go through openSignedUrl — raw S3 links return AccessDenied
-                      // because the bucket is private. openSignedUrl swaps the URL for a
-                      // presigned one and also routes .doc/.docx through the Office viewer.
-                      <button
-                        key={fi}
-                        type="button"
-                        onClick={() => url && openSignedUrl(url)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        {fileUrls.length > 1 ? `File ${fi + 1}` : 'View'}
-                      </button>
-                    ))}
+                    {fileUrls.map((url, fi) => {
+                      const meta = getFileActionMeta(url);
+                      const ActionIcon = meta.Icon;
+                      const labelText = fileUrls.length > 1 ? `File ${fi + 1}` : meta.label;
+                      return (
+                        <button
+                          key={fi}
+                          type="button"
+                          onClick={() => url && openSignedUrl(url)}
+                          title={meta.title}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                        >
+                          <ActionIcon className="w-3 h-3" />
+                          {labelText}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );

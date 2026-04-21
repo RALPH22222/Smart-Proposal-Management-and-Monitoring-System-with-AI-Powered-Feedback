@@ -5,7 +5,6 @@ import {
   Calendar,
   DollarSign,
   Phone,
-  Download,
   Mail,
   MapPin,
   FileText,
@@ -26,7 +25,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
-import { openProposalFile, getFileName } from "../../utils/signed-url";
+import { openProposalFile, downloadSignedUrl, getFileName } from "../../utils/signed-url";
+import { getFileActionMeta } from "../shared/FileActionButton";
 
 // --- LOCAL INTERFACES ---
 interface Site {
@@ -589,9 +589,23 @@ export default function ProposalModal({
                     </p>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
-                  <Download className="w-3 h-3" />
-                </button>
+                {(() => {
+                  const meta = getFileActionMeta(p.projectFile);
+                  const ActionIcon = meta.Icon;
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (meta.isViewable) openProposalFile(p.projectFile);
+                        else downloadSignedUrl(p.projectFile);
+                      }}
+                      title={meta.title}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                    >
+                      <ActionIcon className="w-3 h-3" />
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           </div>

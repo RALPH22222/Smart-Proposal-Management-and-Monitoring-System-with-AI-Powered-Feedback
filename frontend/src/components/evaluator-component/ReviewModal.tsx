@@ -2,7 +2,6 @@ import { useState, useEffect, Fragment } from "react";
 import {
   X,
   FileText,
-  Download,
   Users,
   Target,
   Calendar,
@@ -28,6 +27,7 @@ import {
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
 import { openProposalFile, getFileName, downloadSignedUrl } from "../../utils/signed-url";
+import { getFileActionMeta } from "../shared/FileActionButton";
 import RubricsModal from "./RubricsModal";
 
 const RATING_CRITERIA = {
@@ -333,13 +333,23 @@ export default function ReviewModal({
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); downloadSignedUrl(proposal.projectFile); }}
-                  title="Download"
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
-                >
-                  <Download className="w-3 h-3" />
-                </button>
+                {(() => {
+                  const meta = getFileActionMeta(proposal.projectFile);
+                  const ActionIcon = meta.Icon;
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (meta.isViewable) openProposalFile(proposal.projectFile);
+                        else downloadSignedUrl(proposal.projectFile);
+                      }}
+                      title={meta.title}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                    >
+                      <ActionIcon className="w-3 h-3" />
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 

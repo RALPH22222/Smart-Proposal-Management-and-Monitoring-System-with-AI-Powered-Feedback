@@ -10,7 +10,6 @@ import {
   User,
   Microscope,
   Tags,
-  Download,
   AlertTriangle,
   XCircle,
   RefreshCw,
@@ -33,6 +32,7 @@ import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejection
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
 import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
+import { getFileActionMeta } from "../shared/FileActionButton";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -850,13 +850,23 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                               </p>
                             </div>
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); downloadSignedUrl(fileUrl); }}
-                            title="Download"
-                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
-                          >
-                            <Download className="w-3 h-3" />
-                          </button>
+                          {(() => {
+                            const meta = getFileActionMeta(fileUrl);
+                            const ActionIcon = meta.Icon;
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (meta.isViewable) openProposalFile(fileUrl);
+                                  else downloadSignedUrl(fileUrl);
+                                }}
+                                title={meta.title}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                              >
+                                <ActionIcon className="w-3 h-3" />
+                              </button>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -873,13 +883,23 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                             <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); downloadSignedUrl(p.workPlanFileUrl!); }}
-                          title="Download"
-                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
-                        >
-                          <Download className="w-3 h-3" />
-                        </button>
+                        {(() => {
+                          const meta = getFileActionMeta(p.workPlanFileUrl);
+                          const ActionIcon = meta.Icon;
+                          return (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (meta.isViewable) openProposalFile(p.workPlanFileUrl!);
+                                else downloadSignedUrl(p.workPlanFileUrl!);
+                              }}
+                              title={meta.title}
+                              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                            >
+                              <ActionIcon className="w-3 h-3" />
+                            </button>
+                          );
+                        })()}
                       </div>
                     )}
                   </>

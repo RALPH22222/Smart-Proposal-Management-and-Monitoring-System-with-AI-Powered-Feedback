@@ -187,8 +187,11 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
         unitPrice: parseAmount(item.unit_price ?? item.unitPrice),
       };
 
-      // Group by budget category (ps, mooe, co)
-      const category = (item.budget || '').toLowerCase();
+      // Group by budget category (ps, mooe, co).
+      // New LIB rows (proposal_budget_items) carry the category in `category`;
+      // legacy estimated_budget rows carry it in `budget`. Check both so neither
+      // shape falls through the if/else chain and lands in MOOE by default.
+      const category = (item.category || item.budget || '').toLowerCase();
       if (category === 'ps' || category.includes('personal')) {
         group.ps.push(budgetItem);
       } else if (category === 'mooe' || category.includes('maintenance')) {

@@ -42,6 +42,7 @@ import {
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Swal from "sweetalert2";
 import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
+import { getFileActionMeta } from "../shared/FileActionButton";
 import { api } from "../../utils/axios";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest, fetchBudgetSubcategories, type BudgetSubcategoryDto } from "../../services/proposal.api";
@@ -1774,14 +1775,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            <a
-                              href="#"
-                              onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
-                              className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </a>
+                            {getFileActionMeta(fileUrl).isViewable && (
+                              <a
+                                href="#"
+                                onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
+                                className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </a>
+                            )}
                             <a
                               href="#"
                               onClick={(e) => { e.preventDefault(); downloadSignedUrl(fileUrl); }}
@@ -1821,14 +1824,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <a
-                        href="#"
-                        onClick={(e) => { e.preventDefault(); openProposalFile((proposal as any).workPlanFileUrl!); }}
-                        className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
-                        title="View"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
+                      {getFileActionMeta((proposal as any).workPlanFileUrl).isViewable && (
+                        <a
+                          href="#"
+                          onClick={(e) => { e.preventDefault(); openProposalFile((proposal as any).workPlanFileUrl!); }}
+                          className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                          title="View"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </a>
+                      )}
                       <a
                         href="#"
                         onClick={(e) => { e.preventDefault(); downloadSignedUrl((proposal as any).workPlanFileUrl!); }}

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { FileText, Upload, CheckCircle2, ExternalLink, Loader2, Clock, XCircle, ShieldCheck } from 'lucide-react';
+import { FileText, Upload, CheckCircle2, Loader2, Clock, XCircle, ShieldCheck } from 'lucide-react';
 import Swal from 'sweetalert2';
 import {
   uploadProjectDocument,
@@ -7,6 +7,7 @@ import {
   type ComplianceDocStatus,
 } from '../../services/ProjectMonitoringApi';
 import { openSignedUrl } from '../../utils/signed-url';
+import { getFileActionMeta } from '../shared/FileActionButton';
 
 interface ProjectDocumentsSectionProps {
   fundedProjectId: number;
@@ -180,15 +181,20 @@ export default function ProjectDocumentsSection({
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {url && (
-                    <button
-                      onClick={() => openSignedUrl(url)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View
-                    </button>
-                  )}
+                  {url && (() => {
+                    const meta = getFileActionMeta(url);
+                    const ActionIcon = meta.Icon;
+                    return (
+                      <button
+                        onClick={() => openSignedUrl(url)}
+                        title={meta.title}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      >
+                        <ActionIcon className="w-3 h-3" />
+                        {meta.label}
+                      </button>
+                    );
+                  })()}
                   {canUpload && (
                     <button
                       onClick={() => fileInputRefs[doc.key].current?.click()}
@@ -246,15 +252,20 @@ export default function ProjectDocumentsSection({
             <p className="text-[10px] text-slate-400 mt-0.5">Latest submitted workplan from the proposal stage</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-            {workPlanFileUrl ? (
-              <button
-                onClick={() => openSignedUrl(workPlanFileUrl)}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                View
-              </button>
-            ) : (
+            {workPlanFileUrl ? (() => {
+              const meta = getFileActionMeta(workPlanFileUrl);
+              const ActionIcon = meta.Icon;
+              return (
+                <button
+                  onClick={() => openSignedUrl(workPlanFileUrl)}
+                  title={meta.title}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                >
+                  <ActionIcon className="w-3 h-3" />
+                  {meta.label}
+                </button>
+              );
+            })() : (
               <span className="text-[10px] font-medium text-slate-400 italic">Not uploaded</span>
             )}
           </div>

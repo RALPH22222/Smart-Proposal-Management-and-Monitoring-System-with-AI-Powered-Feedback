@@ -2,7 +2,6 @@ import { Fragment } from "react";
 import {
   X,
   FileText,
-  Download,
   MessageSquare,
   CheckCircle,
   RotateCcw,
@@ -23,7 +22,8 @@ import {
   Lock,
   EyeOff,
 } from "lucide-react";
-import { openProposalFile, getFileName } from "../../utils/signed-url";
+import { openProposalFile, downloadSignedUrl, getFileName } from "../../utils/signed-url";
+import { getFileActionMeta } from "../shared/FileActionButton";
 
 // --- Data Constants ---
 const RATING_CRITERIA = {
@@ -430,10 +430,24 @@ export default function ProposalDetailsModal({
                     </p>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
-                  <Download className="w-3 h-3" />
-                  Download
-                </button>
+                {(() => {
+                  const meta = getFileActionMeta(proposal.projectFile);
+                  const ActionIcon = meta.Icon;
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (meta.isViewable) openProposalFile(proposal.projectFile);
+                        else downloadSignedUrl(proposal.projectFile);
+                      }}
+                      title={meta.title}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                    >
+                      <ActionIcon className="w-3 h-3" />
+                      {meta.label}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 
