@@ -28,6 +28,17 @@ import { fetchDepartments, fetchUsersByRole, getAssignmentHistory, type UserItem
 import { formatDate } from '../../utils/date-formatter';
 import SecureImage from '../shared/SecureImage';
 
+// Modal container uses z-[9999]; the nested Replace/Add overlays use z-[70] inside
+// that stacking context. Default SweetAlert2 z-index (1060) renders behind both,
+// which hides the confirm/cancel buttons entirely. Force every dialog spawned from
+// this modal above the modal stack.
+const ModalSwal = Swal.mixin({
+  didOpen: () => {
+    const container = Swal.getContainer();
+    if (container) container.style.zIndex = '10050';
+  },
+});
+
 export interface EvaluatorOption {
   id: string;
   name: string;
@@ -167,7 +178,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   }, [currentEvaluators]);
 
   const initiateRemove = async (evaluator: EvaluatorOption) => {
-    const result = await Swal.fire({
+    const result = await ModalSwal.fire({
       title: 'Remove Evaluator?',
       html: `Mark <strong>${evaluator.name}</strong> for removal? The change will be applied when you click <strong>Save Changes</strong>.`,
       icon: 'warning',
@@ -180,7 +191,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     });
     if (result.isConfirmed) {
       setCurrentList(prev => prev.filter(ev => ev.id !== evaluator.id));
-      Swal.fire({
+      ModalSwal.fire({
         title: 'Marked for removal',
         text: `${evaluator.name} will be removed when you click Save Changes.`,
         icon: 'info',
@@ -195,7 +206,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     const newEvaluatorUser = allEvaluators.find(user => user.id === newEvaluatorId);
     const originalEvaluator = currentList.find(ev => ev.id === originalId);
     if (newEvaluatorUser && originalEvaluator) {
-      const result = await Swal.fire({
+      const result = await ModalSwal.fire({
         title: 'Replace Evaluator?',
         html: `Mark <strong>${originalEvaluator.name}</strong> for replacement with <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong>? The change will be applied when you click <strong>Save Changes</strong>.`,
         icon: 'question', showCancelButton: true,
@@ -210,7 +221,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           status: 'Pending',
           photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         } : ev));
-        Swal.fire({
+        ModalSwal.fire({
           title: 'Marked for replacement',
           text: 'The change will be applied when you click Save Changes.',
           icon: 'info',
@@ -227,7 +238,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
     const newEvaluatorUser = allEvaluators.find(user => user.id === newEvaluatorId);
     if (!newEvaluatorUser) return;
 
-    const result = await Swal.fire({
+    const result = await ModalSwal.fire({
       title: 'Add Evaluator?',
       html: `Mark <strong>${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name}</strong> for addition to this assignment? The change will be applied when you click <strong>Save Changes</strong>.`,
       icon: 'question',
@@ -249,7 +260,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           photo_profile_url: newEvaluatorUser.photo_profile_url ?? newEvaluatorUser.profile_picture ?? null,
         },
       ]);
-      Swal.fire({
+      ModalSwal.fire({
         title: 'Marked for addition',
         text: `${newEvaluatorUser.first_name} ${newEvaluatorUser.last_name} will be added when you click Save Changes.`,
         icon: 'info',
@@ -269,7 +280,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
       onClose();
       return;
     }
-    const result = await Swal.fire({
+    const result = await ModalSwal.fire({
       title: 'Discard changes?',
       text: 'You have unsaved evaluator changes. Close anyway?',
       icon: 'warning',
@@ -284,7 +295,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   };
 
   const handleSaveClick = async () => {
-    const result = await Swal.fire({
+    const result = await ModalSwal.fire({
       title: 'Confirm Assignment',
       html: `
         <p class="mb-3">Are you sure you want to assign the following evaluators to <strong>${proposalTitle}</strong>?</p>
