@@ -424,7 +424,12 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
     if (decision === 'Sent to Evaluators') {
       if (assignedEvaluators.length < 2) {
-        alert("Please assign at least 2 evaluators.");
+        Swal.fire({
+          icon: "warning",
+          title: "Minimum Evaluators Required",
+          text: "Please assign at least 2 evaluators.",
+          confirmButtonColor: "#C8102E"
+        });
         return;
       }
       handleForwardToEvaluators();
@@ -437,15 +442,20 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
         .some((section: any) => section.content && section.content.trim() !== '');
 
       if (!hasComment) {
-        alert("Please provide at least one comment for revision.");
+        Swal.fire({
+          icon: "warning",
+          title: "Comments Required",
+          text: "Please provide at least one comment for revision.",
+          confirmButtonColor: "#C8102E"
+        });
         return;
       }
     }
 
-    const revisionDays = decision === 'Revision Required' && evaluationDeadline === 'custom'
+    const revisionDays = evaluationDeadline === 'custom'
       ? customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue
-      : evaluationDeadline;
-    const effectiveDeadline = decision === 'Revision Required' ? String(revisionDays) : evaluationDeadline;
+      : parseInt(evaluationDeadline, 10);
+    const effectiveDeadline = String(revisionDays);
 
     const decisionData: Decision = {
       proposalId: proposal.id,
@@ -457,17 +467,31 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       evaluationDeadline: effectiveDeadline
     };
 
-    try {
-      await onSubmitDecision(decisionData);
-      onClose();
-      if (decision === 'Rejected Proposal') {
-        Swal.fire('Rejected!', 'Proposal has been rejected.', 'success');
-      } else if (decision === 'Revision Required') {
-        Swal.fire('Revision Requested!', 'Proposal has been sent back for revision.', 'success');
+    Swal.fire({
+      title: 'Confirm Decision',
+      text: `Are you sure you want to proceed with: ${decision}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#C8102E',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Submit',
+      cancelButtonText: 'Cancel'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await onSubmitDecision(decisionData);
+          onClose();
+          if (decision === 'Rejected Proposal') {
+            Swal.fire('Rejected!', 'Proposal has been rejected.', 'success');
+          } else if (decision === 'Revision Required') {
+            Swal.fire('Revision Requested!', 'Proposal has been sent back for revision.', 'success');
+          }
+        } catch (error) {
+          console.error("Submission failed:", error);
+          Swal.fire('Error', 'Failed to submit decision. Please try again.', 'error');
+        }
       }
-    } catch (error) {
-      console.error("Submission failed:", error);
-    }
+    });
   };
 
   const handleForwardToEvaluators = () => {
@@ -584,7 +608,7 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       attachments: [],
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
-      evaluationDeadline: evaluationDeadline,
+      evaluationDeadline: String(evaluationDeadline === 'custom' ? (customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue) : parseInt(evaluationDeadline, 10)),
       proponentInfoVisibility: showProponentInfo,
       assignedEvaluators: assignedEvaluators.map(ev => ev.id!),
       anonymizedFileUrl: redactedFileUrl || undefined,
@@ -862,54 +886,42 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
                       <label className="block text-xs font-medium text-slate-500 uppercase">
                         {decision === 'Sent to Evaluators' ? 'Deadline for evaluators:' : 'Deadline for proponent:'}
                       </label>
-                      {decision === 'Sent to Evaluators' ? (
+                      <div className="space-y-3 w-full sm:w-1/2">
                         <select
                           value={evaluationDeadline}
                           onChange={(e) => setEvaluationDeadline(e.target.value)}
-                          className="w-full sm:w-1/2 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all shadow-sm"
+                          className="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all shadow-sm"
                         >
+                          <option value="1">24 Hours</option>
                           <option value="7">1 Week</option>
                           <option value="14">2 Weeks</option>
                           <option value="21">3 Weeks</option>
+                          <option value="custom">Custom</option>
                         </select>
-                      ) : (
-                        <div className="space-y-3">
-                          <select
-                            value={evaluationDeadline}
-                            onChange={(e) => setEvaluationDeadline(e.target.value)}
-                            className="w-full sm:max-w-xs px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all shadow-sm"
-                          >
-                            <option value="1">24 Hours</option>
-                            <option value="7">1 Week</option>
-                            <option value="14">2 Weeks</option>
-                            <option value="21">3 Weeks</option>
-                            <option value="custom">Custom</option>
-                          </select>
-                          {evaluationDeadline === 'custom' && (
-                            <div className="flex flex-wrap items-center gap-2 pt-1 animate-in fade-in duration-200">
-                              <input
-                                type="number"
-                                min={1}
-                                max={365}
-                                value={customRevisionValue}
-                                onChange={(e) => setCustomRevisionValue(Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)))}
-                                className="w-20 px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
-                              />
-                              <select
-                                value={customRevisionUnit}
-                                onChange={(e) => setCustomRevisionUnit(e.target.value as 'days' | 'weeks')}
-                                className="px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
-                              >
-                                <option value="days">Days</option>
-                                <option value="weeks">Weeks</option>
-                              </select>
-                              <span className="text-xs text-slate-500">
-                                = {customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue} days
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        {evaluationDeadline === 'custom' && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1 animate-in fade-in duration-200">
+                            <input
+                              type="number"
+                              min={1}
+                              max={365}
+                              value={customRevisionValue}
+                              onChange={(e) => setCustomRevisionValue(Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)))}
+                              className="w-20 px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                            />
+                            <select
+                              value={customRevisionUnit}
+                              onChange={(e) => setCustomRevisionUnit(e.target.value as 'days' | 'weeks')}
+                              className="px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                            >
+                              <option value="days">Days</option>
+                              <option value="weeks">Weeks</option>
+                            </select>
+                            <span className="text-xs text-slate-500">
+                              = {customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue} days
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}

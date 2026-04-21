@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import {
   ClipboardEdit,
   AlertCircle,
   CheckCircle,
   XCircle,
   RotateCcw,
-  AlertTriangle, // Added for confirmation warning
-  Loader2,
   Building2,
   Mail,
   MessageSquare,
@@ -51,7 +50,8 @@ const DEADLINE_OPTIONS = [
   "3 Weeks",
   "1 Month",
   "6 Weeks",
-  "2 Months"
+  "2 Months",
+  "Custom"
 ];
 
 const REJECTION_TEMPLATE = `After careful review of this proposal, we have determined that it does not meet the required standards for approval. The following concerns have been identified:
@@ -85,15 +85,14 @@ export default function EndorsementDecisionModal({
   const [structuredRemarks, setStructuredRemarks] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState(DEFAULT_SECTIONS[0]);
   const [revisionDeadline, setRevisionDeadline] = useState("2 Weeks (Default)");
+  const [customRevisionValue, setCustomRevisionValue] = useState(7);
+  const [customRevisionUnit, setCustomRevisionUnit] = useState<'days' | 'weeks'>('days');
 
   // Evaluator comments R&D chose to forward to the proponent (anonymized downstream).
   // Only shown/relevant when decision === "revised".
   const [selectedEvaluatorIds, setSelectedEvaluatorIds] = useState<string[]>([]);
 
-  // Confirmation Logic
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const [error, setError] = useState("");
 
   // Calculate Grand Total for Budget
@@ -119,7 +118,6 @@ export default function EndorsementDecisionModal({
       setRevisionDeadline("2 Weeks (Default)");
       setSelectedEvaluatorIds([]);
       setError("");
-      setShowConfirmation(false); // Reset confirmation
       setSubmitting(false);
     }
   }, [isOpen]);
@@ -132,7 +130,7 @@ export default function EndorsementDecisionModal({
 
   if (!isOpen) return null;
 
-  const handleProceedToConfirm = () => {
+  const handleProceedToConfirm = async () => {
     if (decision === "revised") {
       const hasContent = Object.values(structuredRemarks).some(val => val.trim().length > 0);
       if (!hasContent) {
@@ -145,8 +143,30 @@ export default function EndorsementDecisionModal({
         return;
       }
     }
-    // If valid, show confirmation screen
-    setShowConfirmation(true);
+
+    const actionLabel = decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Send for Revision' : 'Reject';
+    const confirmColor = decision === 'endorsed' ? '#059669' : decision === 'revised' ? '#d97706' : '#C8102E';
+
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: `${actionLabel} this proposal?`,
+      html: `You are about to <strong>${decision}</strong> the proposal <em>"${proposalTitle}"</em>.${
+        decision === 'revised' ? '<br/>The proponent will be notified to revise their submission.' : ''
+      }${
+        decision === 'rejected' ? '<br/><span style="color:#C8102E">This action cannot be easily undone.</span>' : ''
+      }${
+        decision === 'endorsed' ? '<br/>This will move the proposal to the next stage.' : ''
+      }`,
+      showCancelButton: true,
+      confirmButtonText: `Yes, ${actionLabel}`,
+      cancelButtonText: 'Go Back',
+      confirmButtonColor: confirmColor,
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+    await handleFinalSubmit();
   };
 
   // Step 2: Actually submit
@@ -166,11 +186,16 @@ export default function EndorsementDecisionModal({
 
     let shouldClose = false;
     setSubmitting(true);
+    let finalRevisionDeadline = revisionDeadline;
+    if (revisionDeadline === "Custom") {
+      finalRevisionDeadline = `${customRevisionValue} ${customRevisionUnit === 'days' ? (customRevisionValue === 1 ? 'Day' : 'Days') : (customRevisionValue === 1 ? 'Week' : 'Weeks')}`;
+    }
+
     try {
       shouldClose = await onSubmit(
         decision,
         finalRemarks,
-        decision === "revised" ? revisionDeadline : undefined,
+        decision === "revised" ? finalRevisionDeadline : undefined,
         decision === "revised" ? selectedEvaluatorIds : undefined,
       );
       if (shouldClose) onClose();
@@ -188,54 +213,6 @@ export default function EndorsementDecisionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh] relative">
 
-        {/* --- CONFIRMATION OVERLAY --- */}
-        {showConfirmation && (
-          <div className="absolute inset-0 z-10 bg-white/95 flex flex-col items-center justify-center p-8 animate-in fade-in duration-200 text-center">
-            <div className={`p-4 rounded-full mb-4 ${decision === 'endorsed' ? 'bg-emerald-100 text-emerald-600' :
-              decision === 'revised' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-red-100 text-red-600'
-              }`}>
-              <AlertTriangle className="w-12 h-12" />
-            </div>
-
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">Are you sure?</h3>
-            <p className="text-slate-600 mb-8 max-w-md">
-              You are about to <span className="font-bold">{decision}</span> the proposal <span className="italic">"{proposalTitle}"</span>.
-              {decision === 'revised' && " The proponent will be notified to revise their submission."}
-              {decision === 'rejected' && " This action cannot be easily undone."}
-              {decision === 'endorsed' && " This will move the proposal to the next stage."}
-            </p>
-
-            <div className="flex gap-3 w-full max-w-xs">
-              <button
-                onClick={() => setShowConfirmation(false)}
-                disabled={submitting}
-                className="flex-1 px-4 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                Go Back
-              </button>
-              <button
-                onClick={handleFinalSubmit}
-                disabled={submitting}
-                className={`flex-1 px-4 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-transform active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${decision === 'endorsed' ? 'bg-emerald-600 hover:bg-emerald-700' :
-                  decision === 'revised' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                    'bg-red-600 hover:bg-red-700'
-                  }`}
-              >
-                <span className="flex items-center justify-center gap-2">
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {submitting
-                    ? decision === 'endorsed'
-                      ? 'Endorsing...'
-                      : decision === 'revised'
-                        ? 'Sending...'
-                        : 'Rejecting...'
-                    : `Yes, ${decision === 'endorsed' ? 'Endorse' : decision === 'revised' ? 'Revise' : 'Reject'}`}
-                </span>
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="p-6 border-b border-slate-100 flex-shrink-0 bg-slate-50/50">
           <div className="flex items-start gap-4">
@@ -369,6 +346,29 @@ export default function EndorsementDecisionModal({
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
+                  {revisionDeadline === 'Custom' && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 animate-in fade-in duration-200">
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={customRevisionValue}
+                        onChange={(e) => setCustomRevisionValue(Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)))}
+                        className="w-20 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                      />
+                      <select
+                        value={customRevisionUnit}
+                        onChange={(e) => setCustomRevisionUnit(e.target.value as 'days' | 'weeks')}
+                        className="px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                      >
+                        <option value="days">Days</option>
+                        <option value="weeks">Weeks</option>
+                      </select>
+                      <span className="text-xs text-slate-500 font-medium">
+                        = {customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue} days
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* --- Evaluator comment forwarding (anonymized to proponent) --- */}

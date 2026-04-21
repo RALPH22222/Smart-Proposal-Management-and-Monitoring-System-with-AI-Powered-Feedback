@@ -112,6 +112,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   // --- STATE ---
   const [decision, setDecision] = useState<DecisionType | 'Assign to RnD'>('Assign to RnD');
   const [evaluationDeadline, setEvaluationDeadline] = useState('14');
+  const [customRevisionValue, setCustomRevisionValue] = useState(7);
+  const [customRevisionUnit, setCustomRevisionUnit] = useState<'days' | 'weeks'>('days');
   const [structuredComments, setStructuredComments] = useState<StructuredComments>({
     title: { id: '1', title: 'Title', content: '', lastModified: '', author: currentUser.name },
     budget: { id: '2', title: 'Budget', content: '', lastModified: '', author: currentUser.name },
@@ -299,6 +301,10 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       return;
     }
 
+    const revisionDays = evaluationDeadline === 'custom'
+      ? customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue
+      : parseInt(evaluationDeadline, 10);
+
     const decisionData: Decision = {
       proposalId: proposal.id,
       decision: decision,
@@ -307,7 +313,7 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       reviewedBy: currentUser.name,
       reviewedDate: new Date().toISOString(),
       evaluationDeadline: (decision === 'Revision Required' || decision === 'Assign to RnD')
-        ? new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString()
+        ? new Date(Date.now() + revisionDays * 24 * 60 * 60 * 1000).toISOString()
         : undefined,
       assignedRdStaffId: decision === 'Assign to RnD' ? selectedRnDStaff?.id : undefined
     };
@@ -447,7 +453,11 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
       return;
     }
 
-    const deadlineIso = new Date(Date.now() + parseInt(evaluationDeadline, 10) * 24 * 60 * 60 * 1000).toISOString();
+    const revisionDays = evaluationDeadline === 'custom'
+      ? customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue
+      : parseInt(evaluationDeadline, 10);
+
+    const deadlineIso = new Date(Date.now() + revisionDays * 24 * 60 * 60 * 1000).toISOString();
 
     const decisionData: Decision & {
       proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';
@@ -660,15 +670,42 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                       <label className="block text-xs font-medium text-slate-500 uppercase">
                         {decision === 'Sent to Evaluators' ? 'Deadline for evaluators:' : 'Deadline for proponent:'}
                       </label>
-                      <select
-                        value={evaluationDeadline}
-                        onChange={(e) => setEvaluationDeadline(e.target.value)}
-                        className="w-full sm:w-1/2 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all shadow-sm"
-                      >
-                        <option value="7">1 Week</option>
-                        <option value="14">2 Weeks</option>
-                        <option value="21">3 Weeks</option>
-                      </select>
+                      <div className="space-y-3 w-full sm:w-1/2">
+                        <select
+                          value={evaluationDeadline}
+                          onChange={(e) => setEvaluationDeadline(e.target.value)}
+                          className="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent transition-all shadow-sm"
+                        >
+                          <option value="1">24 Hours</option>
+                          <option value="7">1 Week</option>
+                          <option value="14">2 Weeks</option>
+                          <option value="21">3 Weeks</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                        {evaluationDeadline === 'custom' && (
+                          <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-200">
+                            <input
+                              type="number"
+                              min={1}
+                              max={365}
+                              value={customRevisionValue}
+                              onChange={(e) => setCustomRevisionValue(Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 1)))}
+                              className="w-20 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                            />
+                            <select
+                              value={customRevisionUnit}
+                              onChange={(e) => setCustomRevisionUnit(e.target.value as 'days' | 'weeks')}
+                              className="px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"
+                            >
+                              <option value="days">Days</option>
+                              <option value="weeks">Weeks</option>
+                            </select>
+                            <span className="text-xs text-slate-500 font-medium">
+                              = {customRevisionUnit === 'weeks' ? customRevisionValue * 7 : customRevisionValue} days
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
