@@ -821,8 +821,24 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
       Swal.fire('Submitted', 'Report submitted for verification!', 'success');
       await loadProjectDetail();
     } catch (error: any) {
-      const msg = error?.message || error?.response?.data?.message || 'Failed to submit report.';
-      Swal.fire('Error', msg, 'error');
+      // DUPLICATE_REPORT (409) means the backend already has a row for this
+      // (year, quarter) with status != 'rejected'. This most commonly happens
+      // when a previous submit attempt actually landed in the DB but the Lambda
+      // died before returning 201 (e.g. slow SMTP), so the client saw an error
+      // and retried — the retry sees the row and gets 409. Resync the view to
+      // backend truth and explain what happened instead of surfacing the raw
+      // "Request failed with status code 409".
+      if (error?.response?.status === 409 && error?.response?.data?.code === 'DUPLICATE_REPORT') {
+        await loadProjectDetail();
+        Swal.fire(
+          'Already Submitted',
+          'This report is already recorded in the system and is awaiting R&D review. The view has been refreshed to show its current state.',
+          'info',
+        );
+      } else {
+        const msg = error?.message || error?.response?.data?.message || 'Failed to submit report.';
+        Swal.fire('Error', msg, 'error');
+      }
     } finally {
       setSubmittingReport(false);
       setUploadProgress(null);
@@ -2194,12 +2210,17 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                 </div>
               )}
 
-              {/* --- TERMINAL REPORT --- */}
+              {/* --- TERMINAL REPORT ---
+                  Gate is duration-aware. `quarters` length already equals the number of
+                  applicable periods (getApplicablePeriods(durationMonths)), so a 6-month
+                  project has length=2, a 12-month has length=4, a 24-month has length=8.
+                  Previously hardcoded to ===4, which silently hid the terminal step for
+                  any project that isn't exactly 12 months. */}
               {activeBackend && (
                 <div className="mt-6">
                   <TerminalReportSection
                     fundedProjectId={activeBackend.id}
-                    allQuartersVerified={quarters.length === 4 && quarters.every(q => q.status === 'approved')}
+                    allQuartersVerified={quarters.length > 0 && quarters.every(q => q.status === 'approved')}
                     missingComplianceDocs={missingComplianceDocs}
                   />
                 </div>

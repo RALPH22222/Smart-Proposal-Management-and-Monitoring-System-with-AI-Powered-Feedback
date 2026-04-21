@@ -171,18 +171,29 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           if (rndUser?.email) {
             const frontendUrl = process.env.FRONTEND_URL || "https://www.wmsu-rdec.com";
             const emailService = new EmailService();
-            await emailService.sendNotificationEmail(
-              rndUser.email,
-              rndUser.first_name || "R&D Staff",
-              isResubmission
-                ? `Quarterly Report Resubmitted – ${quarterLabel}`
-                : `Quarterly Report Submitted – ${quarterLabel}`,
-              isResubmission
-                ? `A ${quarterLabel} quarterly report you previously returned for "${projectTitle}" has been resubmitted with revisions. Sign in to SPMAMS to re-review.`
-                : `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
-              isResubmission ? "Re-review Report" : "Review Report",
-              `${frontendUrl}/login`,
-            );
+            // Truly fire-and-forget — do NOT await. A cold Gmail SMTP handshake
+            // can take longer than the Lambda's 10s timeout, which previously
+            // killed the handler *after* the project_reports row was inserted.
+            // The client then saw a 500/504, the user refreshed or retried, and
+            // the second POST got 409 DUPLICATE_REPORT against the row the first
+            // (successful) invocation had already written. The in-app notification
+            // above is the authoritative R&D channel; this email is best-effort.
+            emailService
+              .sendNotificationEmail(
+                rndUser.email,
+                rndUser.first_name || "R&D Staff",
+                isResubmission
+                  ? `Quarterly Report Resubmitted – ${quarterLabel}`
+                  : `Quarterly Report Submitted – ${quarterLabel}`,
+                isResubmission
+                  ? `A ${quarterLabel} quarterly report you previously returned for "${projectTitle}" has been resubmitted with revisions. Sign in to SPMAMS to re-review.`
+                  : `A ${quarterLabel} quarterly report has been submitted for "${projectTitle}". Sign in to SPMAMS to review and verify the report.`,
+                isResubmission ? "Re-review Report" : "Review Report",
+                `${frontendUrl}/login`,
+              )
+              .catch((emailErr) =>
+                console.error("Submit-report email notification failed (non-blocking):", emailErr),
+              );
           }
         }
       }
