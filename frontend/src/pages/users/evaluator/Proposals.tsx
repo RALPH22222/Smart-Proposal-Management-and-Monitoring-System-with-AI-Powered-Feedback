@@ -260,11 +260,12 @@ export default function Proposals() {
   const getStatusTheme = (status: string) => {
     const s = (status || "").toLowerCase();
 
-    if (["accepted", "accept", "approve", "approved", "funded"].includes(s))
+    // Approved / Funded / Accepted
+    if (["accepted", "accept", "approve", "approved", "funded", "endorsed_for_funding"].includes(s))
       return {
         bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-800",
         icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
-        label: "Proposal Approved",
+        label: s === "endorsed_for_funding" ? "Endorsed for Funding" : (s === "funded" ? "Funded" : "Proposal Approved"),
       };
 
     if (s === "extension_approved")
@@ -274,25 +275,20 @@ export default function Proposals() {
         label: "Extension Approved",
       };
 
-    if (["reject", "rejected", "disapproved"].includes(s))
+    // Rejected / Declined
+    if (["reject", "rejected", "disapproved", "decline", "rejected_rnd", "rejected_funding"].includes(s))
       return {
         bg: "bg-red-100", border: "border-red-200", text: "text-red-800",
         icon: <XCircle className="w-3.5 h-3.5 text-red-600" />,
-        label: "Proposal Reject",
+        label: s === "decline" ? "Declined" : "Proposal Rejected",
       };
 
-    if (s === "decline")
-      return {
-        bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700",
-        icon: <XCircle className="w-3.5 h-3.5 text-slate-500" />,
-        label: "Declined",
-      };
-
-    if (["revise", "revision"].includes(s))
+    // Revision
+    if (["revise", "revision", "revision_rnd", "revision_funding", "revised_proposal"].includes(s))
       return {
         bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-800",
         icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600" />,
-        label: "Proposal Revise",
+        label: s === "revised_proposal" ? "Revised Proposal" : "Proposal Revise",
       };
 
     if (s === "extension_rejected")
@@ -302,6 +298,7 @@ export default function Proposals() {
         label: "Extension Declined",
       };
 
+    // Extensions
     if (["extension_requested", "extend"].includes(s))
       return {
         bg: "bg-blue-100", border: "border-blue-200", text: "text-blue-800",
@@ -309,24 +306,28 @@ export default function Proposals() {
         label: "Extension Requested",
       };
 
-    if (s === "pending")
+    // Pending / Under Review
+    if (["pending"].includes(s))
       return {
         bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-800",
         icon: <Clock className="w-3.5 h-3.5 text-amber-600" />,
         label: "Pending Review",
       };
 
-    if (["for_review", "under_evaluation"].includes(s))
+    // Active Evaluation
+    if (["for_review", "under_evaluation", "review_rnd"].includes(s))
       return {
         bg: "bg-cyan-100", border: "border-cyan-200", text: "text-cyan-800",
         icon: <RefreshCw className="w-3.5 h-3.5 text-cyan-600" />,
         label: "Under Review",
       };
 
+    // Fallback for unknown statuses (uses a vibrant indigo instead of dull gray)
+    const formattedLabel = status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     return {
-      bg: "bg-slate-100", border: "border-slate-200", text: "text-slate-700",
-      icon: <AlertCircle className="w-3.5 h-3.5 text-slate-500" />,
-      label: status.charAt(0).toUpperCase() + status.slice(1),
+      bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-700",
+      icon: <AlertCircle className="w-3.5 h-3.5 text-indigo-500" />,
+      label: formattedLabel,
     };
   };
 

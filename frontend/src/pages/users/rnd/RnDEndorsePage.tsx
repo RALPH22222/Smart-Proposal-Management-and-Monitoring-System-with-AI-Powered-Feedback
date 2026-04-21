@@ -48,6 +48,8 @@ const EndorsePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
   const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('All');
+  const [departments, setDepartments] = useState<any[]>([]);
   const [sortOrder, setSortOrder] = useState('recent-old');
 
   // State for Evaluator Modal
@@ -64,6 +66,7 @@ const EndorsePage: React.FC = () => {
     budget?: BudgetRow[];
     department?: string;
     email?: string;
+    proponentProfilePicture?: string | null;
     evaluatorDecisions?: EvaluatorDecision[];
   } | null>(null);
 
@@ -129,6 +132,7 @@ const EndorsePage: React.FC = () => {
         getProposalsForEndorsement(activeTab),
         fetchDepartments()
       ]);
+      setDepartments(depts);
       console.log('Fetched endorsement proposals:', data);
 
       const mapped: EndorsementProposal[] = data.map((p: any) => {
@@ -162,6 +166,7 @@ const EndorsePage: React.FC = () => {
             evaluatorName: d.evaluatorName,
             evaluatorDepartment: d.evaluatorDepartment, // Assuming API provides this
             evaluatorEmail: d.evaluatorEmail, // Assuming API provides this
+            evaluatorProfilePicture: d.evaluatorProfilePicture || null,
             decision: d.decision,
             comments: d.comment || "No comment provided",
             submittedDate: d.submittedDate,
@@ -176,6 +181,7 @@ const EndorsePage: React.FC = () => {
           readyForEndorsement: p.readyForEndorsement,
           department: deptName || p.proponent_id?.department?.name || "N/A",
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
+          proponentProfilePicture: p.proponentProfilePicture || null,
           status: p.status,
           actionDate: p.actionDate || p.created_at,
           submittedDate: p.created_at || p.actionDate,
@@ -214,6 +220,7 @@ const EndorsePage: React.FC = () => {
     department?: string,
     email?: string,
     evaluatorDecisions?: EvaluatorDecision[],
+    proponentProfilePicture?: string | null,
   ) => {
     setSelectedProposal({
       title: proposalTitle,
@@ -222,6 +229,7 @@ const EndorsePage: React.FC = () => {
       department: department,
       email: email,
       evaluatorDecisions,
+      proponentProfilePicture,
     });
     setIsDecisionModalOpen(true);
   };
@@ -454,7 +462,9 @@ const EndorsePage: React.FC = () => {
            p.submittedBy.toLowerCase().includes(term) ||
            String(p.id).toLowerCase().includes(term);
     
-    return matchesSearch;
+    const matchesDept = departmentFilter === "All" || p.department === departmentFilter;
+    
+    return matchesSearch && matchesDept;
   });
 
   const sortedFiltered = [...filteredProposals].sort((a, b) => {
@@ -524,6 +534,7 @@ const EndorsePage: React.FC = () => {
         email={selectedProposal?.email}
         budgetData={selectedProposal?.budget}
         evaluatorDecisions={selectedProposal?.evaluatorDecisions}
+        proponentProfilePicture={selectedProposal?.proponentProfilePicture}
         onSubmit={handleDecisionSubmit}
       />
     <div className="min-h-screen w-full px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col lg:flex-row animate-fade-in">
@@ -735,23 +746,49 @@ const EndorsePage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search proposals..."
+              placeholder="Search by title, proponent, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
             />
           </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={sortOrder}
-              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer"
-            >
-              <option value="recent-old">Recent to Old</option>
-              <option value="old-recent">Old to Recent</option>
-              <option value="a-z">Title (A-Z)</option>
-              <option value="z-a">Title (Z-A)</option>
-            </select>
+            {/* Department Filter */}
+            <div className="relative w-full md:w-64">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={departmentFilter}
+                onChange={(e) => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm appearance-none cursor-pointer text-sm"
+              >
+                <option value="All">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 -rotate-90 pointer-events-none" />
+            </div>
+
+            {/* Sort Order */}
+            <div className="relative w-full md:w-48">
+              <BarChart2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={sortOrder}
+                onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm appearance-none cursor-pointer text-sm"
+              >
+                <option value="recent-old">Recent to Old</option>
+                <option value="old-recent">Old to Recent</option>
+                <option value="a-z">Title (A-Z)</option>
+                <option value="z-a">Title (Z-A)</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronLeft className="w-4 h-4 text-slate-400 -rotate-90" />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -834,7 +871,7 @@ const EndorsePage: React.FC = () => {
                             {/* Version badge — any version > 1 signals a revision */}
                             {proposal.versionNumber && proposal.versionNumber > 1 && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-indigo-200 text-indigo-700 bg-indigo-50 flex-shrink-0"
-                                title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions' scores remain in history.`}
+                                title={`Currently showing v${proposal.versionNumber}${proposal.totalVersions ? ` of ${proposal.totalVersions}` : ''}. Earlier versions scores remain in history.`}
                               >
                                 v{proposal.versionNumber}
                               </span>
@@ -843,7 +880,7 @@ const EndorsePage: React.FC = () => {
                           {/* Action Button — right beside title */}
                           {activeTab === 'active' && proposal.readyForEndorsement && (
                             <button
-                              onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail, proposal.evaluatorDecisions)}
+                              onClick={() => handleOpenDecisionModal(proposal.title, proposal.id, proposal.budget, proposal.department, proposal.proponentEmail, proposal.evaluatorDecisions, proposal.proponentProfilePicture)}
                               className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:ring-offset-1 transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm flex-shrink-0"
                             >
                               <Gavel className="w-3 h-3" />

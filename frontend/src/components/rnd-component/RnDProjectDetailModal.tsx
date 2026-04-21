@@ -44,6 +44,7 @@ import {
 import FinancialReportModal from '../proponent-component/FinancialReportModal';
 import { generateCertificatePDF } from '../../utils/certificate-generator';
 import PageLoader from '../shared/PageLoader';
+import SecureImage from '../shared/SecureImage';
 
 interface RnDProjectDetailModalProps {
   project: Project | null;
@@ -404,8 +405,16 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                <User className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden border-2 border-white shadow-sm">
+                {project.proponentProfilePicture ? (
+                  <SecureImage 
+                    src={project.proponentProfilePicture} 
+                    alt={project.principalInvestigator}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
               </div>
               <div>
                 <p className="text-sm font-bold text-slate-800">{project.principalInvestigator}</p>
@@ -1208,7 +1217,17 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Users className="w-4 h-4" /> Leadership</h4>
                     <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><User className="w-5 h-5" /></div>
+                      <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 overflow-hidden border border-blue-100">
+                        {project?.proponentProfilePicture ? (
+                          <SecureImage 
+                            src={project.proponentProfilePicture} 
+                            alt={project.principalInvestigator}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-5 h-5" />
+                        )}
+                      </div>
                       <div><p className="text-sm font-bold text-slate-800">{project?.principalInvestigator}</p><p className="text-xs text-slate-500">Project Leader</p></div>
                     </div>
                   </div>

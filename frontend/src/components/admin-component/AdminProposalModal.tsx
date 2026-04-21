@@ -7,6 +7,7 @@ import {
   Eye,
   UserPlus,
   UserMinus,
+  User,
   Users,
   Search,
   Filter,
@@ -498,16 +499,29 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
               </h3>
               <p className="text-sm text-slate-500 mt-1 font-medium">{proposal.title}</p>
 
-              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
-                {proposal.evaluationDeadline && (
-                  <div className='flex items-center gap-1'>
-                    <Clock className='w-3 h-3' />
-                    <span>Deadline: {formatDate(proposal.evaluationDeadline)}</span>
+              <div className="flex items-center gap-4 mt-2">
+                {proposal.proponentProfilePicture ? (
+                  <SecureImage
+                    src={proposal.proponentProfilePicture}
+                    alt={proposal.submittedBy}
+                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                    <User className="w-4 h-4" />
                   </div>
                 )}
-                <div className='flex items-center gap-1'>
-                  <Users className='w-3 h-3' />
-                  <span>Submitted by: {proposal.submittedBy}</span>
+                <div className="flex flex-col">
+                  <div className='flex items-center gap-1 text-xs text-slate-500 font-medium'>
+                    <Users className='w-3 h-3' />
+                    <span>Submitted by: {proposal.submittedBy}</span>
+                  </div>
+                  {proposal.evaluationDeadline && (
+                    <div className='flex items-center gap-1 text-xs text-slate-400'>
+                      <Clock className='w-3 h-3' />
+                      <span>Deadline: {formatDate(proposal.evaluationDeadline)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

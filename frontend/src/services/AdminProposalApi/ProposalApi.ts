@@ -257,6 +257,8 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
     submittedDate: data.created_at || new Date().toISOString(),
     lastModified: data.updated_at || new Date().toISOString(),
     proponent: proponentName,
+    proponentProfilePicture: data.proponent_id?.photo_profile_url || undefined,
+    proponentUsername: data.proponent_id?.username || undefined,
     gender: 'N/A', // Not in main query?
     agency: data.agency?.name || 'WMSU',
     // Fallback: use proponent's department ID if available 

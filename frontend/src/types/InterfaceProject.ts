@@ -90,4 +90,5 @@ export interface Project {
   utilizedAmount?: number;
   remainingAmount?: number | null;
   lastActivityAt?: string | null;
+  proponentProfilePicture?: string;
 }

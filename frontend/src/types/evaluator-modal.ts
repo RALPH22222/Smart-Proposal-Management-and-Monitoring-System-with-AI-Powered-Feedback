@@ -4,6 +4,7 @@ export interface EvaluatorDecision {
 	decision: string;
 	comments: string;
 	submittedDate: string;
+	evaluatorProfilePicture?: string | null;
 }
 
 export interface EvaluatorDecisionModalProps {

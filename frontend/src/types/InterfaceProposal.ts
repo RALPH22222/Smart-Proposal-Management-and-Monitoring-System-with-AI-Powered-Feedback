@@ -5,6 +5,11 @@ export interface BudgetSource {
 	mooe: string;
 	co: string;
 	total: string;
+	breakdown?: {
+		ps?: any[];
+		mooe?: any[];
+		co?: any[];
+	};
 }
 
 interface Site {
@@ -58,6 +63,8 @@ export interface Proposal {
 	fundingDocumentUrl?: string;
 	fundedProjectId?: number;
 	fundedProjectLeadId?: string;
+	proponentProfilePicture?: string;
+	proponentUsername?: string;
 }
 
 export type ProposalStatus =

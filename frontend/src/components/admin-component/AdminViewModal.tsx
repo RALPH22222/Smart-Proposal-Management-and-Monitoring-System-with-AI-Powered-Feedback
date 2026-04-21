@@ -32,6 +32,7 @@ import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
 import { openProposalFile, downloadSignedUrl, getFileName } from "../../utils/signed-url";
 import { getFileActionMeta } from "../shared/FileActionButton";
+import SecureImage from "../shared/SecureImage";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -45,6 +46,11 @@ interface BudgetSource {
   mooe: string;
   co: string;
   total: string;
+  breakdown?: {
+    ps?: any[];
+    mooe?: any[];
+    co?: any[];
+  };
 }
 
 // Defined locally to ensure it matches the new dummy data structure
@@ -274,6 +280,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
   // Fetch Rejection Summary (matching RndViewModal)
   useEffect(() => {
     const fetchRejection = async () => {
+      if (!p) return;
       const statusLower = (p.status || '').toLowerCase();
       const isRejected = ['rejected', 'rejected_rnd', 'disapproved', 'reject', 'rejected proposal'].includes(statusLower);
 
@@ -326,6 +333,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
   useEffect(() => {
     const fetchRevision = async () => {
+      if (!p) return;
       const pStatus = (p.status || '').toLowerCase();
       if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review'].includes(pStatus)) {
         setIsLoadingRevision(true);
@@ -348,6 +356,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
       fetchRevision();
     }
   }, [isOpen, p?.id, p?.status]);
+
 
   // Load assigned evaluators from the assignment tracker
   useEffect(() => {
@@ -392,7 +401,7 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
 
         setEvaluators(mapped);
       } catch (error) {
-        console.error('Failed to load evaluators for proposal', p.id, error);
+        console.error('Failed to load evaluators for proposal', p?.id, error);
         setEvaluators([]);
       } finally {
         setIsLoadingEvaluators(false);
@@ -600,6 +609,8 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
     );
   };
 
+  if (!isOpen || !p) return null;
+  
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-2 sm:p-4 animate-in fade-in duration-200">
       <ScrollKeyframes />
@@ -1001,9 +1012,10 @@ const AdminViewModal: React.FC<AdminViewModalProps> = ({
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Project Leader</h4>
               </div>
               <div className="flex items-center gap-3 mb-1">
-                {p.proponentProfilePicture ? (
-                  <img
+                {p?.proponentProfilePicture ? (
+                  <SecureImage
                     src={p.proponentProfilePicture}
+                    fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(p?.proponent || 'U')}&background=C8102E&color=fff&size=128`}
                     alt={p.proponent}
                     className="w-10 h-10 rounded-full object-cover border border-slate-200"
                   />

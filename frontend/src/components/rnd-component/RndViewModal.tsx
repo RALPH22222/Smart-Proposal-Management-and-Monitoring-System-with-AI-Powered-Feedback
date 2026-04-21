@@ -33,6 +33,7 @@ import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import { formatDateShort, formatDateTime, formatDate } from "../../utils/date-formatter";
 import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
 import { getFileActionMeta } from "../shared/FileActionButton";
+import SecureImage from "../shared/SecureImage";
 
 // --- LOCAL INTERFACES TO MATCH DATA STRUCTURE ---
 interface Site {
@@ -91,6 +92,7 @@ export interface ModalProposalData {
   /** When status is revised_proposal, date the proponent submitted the revision (latest proposal_version.created_at) */
   revisedSubmittedAt?: string;
   endorsementJustification?: string;
+  proponentProfilePicture?: string;
 }
 
 interface RndViewModalProps {
@@ -926,10 +928,25 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Leader Info */}
-              <div>
-                <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-1">Project Leader</label>
-                <p className="text-sm font-semibold text-slate-900 mb-2">{p.proponent}</p>
-                <div className="space-y-1">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  {p.proponentProfilePicture ? (
+                    <SecureImage
+                      src={p.proponentProfilePicture}
+                      alt={p.proponent}
+                      className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                      <User className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold tracking-wider uppercase block mb-0.5">Project Leader</label>
+                    <p className="text-sm font-semibold text-slate-900">{p.proponent}</p>
+                  </div>
+                </div>
+                <div className="space-y-1 ml-1">
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <Mail className="w-3.5 h-3.5 text-slate-400" /> {p.email}
                   </div>
@@ -937,7 +954,7 @@ const RndViewModal: React.FC<RndViewModalProps> = ({
                     <Phone className="w-3.5 h-3.5 text-slate-400" /> {p.telephone}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-700">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> {p.department || "N/A"}
+                    <Building2 className="w-3.5 h-3.5 text-slate-400" /> {p.department || p.proponentDepartment || "N/A"}
                   </div>
                 </div>
               </div>

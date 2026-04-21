@@ -4,11 +4,84 @@ import SkeletonPulse from './SkeletonPulse';
 interface PageLoaderProps {
   text?: string;
   className?: string;
-  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | 'change-assignment' | 'staff-list' | string;
+  mode?: 'dashboard' | 'table' | 'simple' | 'evaluator-dashboard' | 'admin-dashboard' | 'proponent-dashboard' | 'proponent-monitoring' | 'proponent-settings' | 'account-settings-tabs' | 'proponent-submission' | 'proponent-profile' | 'lookup' | 'activity' | 'contents-card' | 'rows' | 'monitoring' | 'endorsement' | 'project-detail' | 'change-assignment' | 'staff-list' | string;
 }
 
 
 const PageLoader: React.FC<PageLoaderProps> = ({ text, className, mode = 'simple' }) => {
+  if (mode === 'proponent-profile') {
+    return (
+      <div className={`min-h-screen px-5 sm:px-8 lg:px-10 xl:px-12 2xl:px-16 py-8 lg:py-10 bg-gradient-to-br from-slate-50 to-slate-100 animate-pulse ${className || ''}`}>
+        {/* Header Skeleton */}
+        <header className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="space-y-3">
+              <SkeletonPulse className="h-8 w-80 max-w-[90vw] rounded-lg" />
+              <SkeletonPulse className="h-4 w-64 max-w-[75vw]" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={`stat-${idx}`} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <SkeletonPulse className="h-3 w-20 opacity-50" />
+                    <SkeletonPulse className="h-6 w-12 rounded" />
+                  </div>
+                  <SkeletonPulse className="w-8 h-8 rounded-lg opacity-40" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </header>
+
+        {/* Search & Filter Skeleton */}
+        <div className="mb-6 px-4 lg:px-6 py-4 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <SkeletonPulse className="h-10 flex-1 max-w-md rounded-xl" />
+          <div className="flex flex-wrap items-center gap-3">
+            <SkeletonPulse className="h-10 w-32 rounded-xl" />
+            <SkeletonPulse className="h-10 w-40 rounded-xl" />
+            <SkeletonPulse className="h-10 w-44 rounded-xl" />
+            <SkeletonPulse className="h-10 w-24 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Portfolio Section Skeleton */}
+        <section className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <SkeletonPulse className="h-6 w-48" />
+            <SkeletonPulse className="h-9 w-36 rounded-lg" />
+          </div>
+          
+          <div className="p-4 lg:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div key={`card-${idx}`} className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 flex flex-col h-64">
+                  <div className="mb-4">
+                    <SkeletonPulse className="h-5 w-3/4 rounded-md" />
+                  </div>
+                  <div className="flex gap-2 mb-4">
+                    <SkeletonPulse className="h-5 w-16 rounded-full" />
+                    <SkeletonPulse className="h-5 w-20 rounded-full" />
+                  </div>
+                  <div className="space-y-3 mb-5 mt-auto">
+                    <div className="flex justify-between"><SkeletonPulse className="h-3 w-16" /><SkeletonPulse className="h-3 w-24" /></div>
+                    <div className="flex justify-between"><SkeletonPulse className="h-3 w-16" /><SkeletonPulse className="h-3 w-12" /></div>
+                  </div>
+                  <div className="mb-3 pt-2 border-t border-slate-100 flex justify-between items-center px-1">
+                    {[1, 2, 3, 4, 5].map(i => <SkeletonPulse key={i} className="w-3 h-3 rounded-full opacity-40" />)}
+                  </div>
+                  <SkeletonPulse className="h-7 w-32 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   if (mode === 'change-assignment') {
     return (
       <div className={`space-y-6 animate-pulse ${className || ''}`}>

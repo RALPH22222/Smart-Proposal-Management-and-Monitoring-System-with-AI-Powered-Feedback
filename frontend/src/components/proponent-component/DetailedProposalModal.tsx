@@ -53,6 +53,7 @@ import { useAuthContext } from "../../context/AuthContext";
 import { fetchFundedProjects } from "../../services/ProjectMonitoringApi";
 import { fetchProjectMembers, type ProjectMemberData } from "../../services/ProjectMemberApi";
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
+import SecureImage from "../shared/SecureImage";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -1380,8 +1381,21 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                           <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase mb-1.5">
                             <User className="w-3.5 h-3.5" /> Project Leader
                           </label>
-                          <div className="bg-white border border-green-100 px-3 py-2 rounded-md font-semibold text-slate-800 text-sm w-full">
-                            {proposal.proponent}
+                          <div className="bg-white border border-green-100 px-3 py-2 rounded-md flex items-center gap-3">
+                            {proposal.proponentProfilePicture ? (
+                              <SecureImage
+                                src={proposal.proponentProfilePicture}
+                                alt={proposal.proponent}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                                <User className="w-5 h-5" />
+                              </div>
+                            )}
+                            <span className="font-semibold text-slate-800 text-sm">
+                              {proposal.proponent}
+                            </span>
                           </div>
                         </div>
                         <div>
@@ -2430,9 +2444,22 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       />
                     ) : (
                       renderFundedField(
-                        <p className="text-sm font-bold text-slate-900">
-                          {currentData.proponent}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          {currentData.proponentProfilePicture ? (
+                            <SecureImage
+                              src={currentData.proponentProfilePicture}
+                              alt={currentData.proponent}
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                              <User className="w-5 h-5" />
+                            </div>
+                          )}
+                          <p className="text-sm font-bold text-slate-900">
+                            {currentData.proponent}
+                          </p>
+                        </div>
                       )
                     )}
                   </div>

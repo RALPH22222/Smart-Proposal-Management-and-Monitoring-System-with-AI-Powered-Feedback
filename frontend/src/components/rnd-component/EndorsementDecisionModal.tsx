@@ -11,7 +11,9 @@ import {
   MessageSquare,
   Users,
   HandCoins,
+  User,
 } from "lucide-react";
+import SecureImage from "../shared/SecureImage";
 import type { BudgetRow, EvaluatorDecision } from "../../types/evaluator";
 
 
@@ -30,6 +32,7 @@ interface DecisionModalProps {
     revisionDeadline?: string,
     includedEvaluatorIds?: string[],
   ) => void;
+  proponentProfilePicture?: string | null;
 }
 
 // Define the default structured sections
@@ -70,6 +73,7 @@ export default function EndorsementDecisionModal({
   email,
   budgetData = [], // Default to empty array if not provided
   evaluatorDecisions = [],
+  proponentProfilePicture,
   onSubmit,
 }: DecisionModalProps) {
   const [decision, setDecision] = useState<"endorsed" | "revised" | "rejected">("endorsed");
@@ -211,30 +215,44 @@ export default function EndorsementDecisionModal({
           </div>
         )}
 
-        {/* --- MAIN MODAL HEADER --- */}
         <div className="p-6 border-b border-slate-100 flex-shrink-0 bg-slate-50/50">
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <ClipboardEdit className="w-5 h-5 text-[#C8102E]" />
-            Manage Proposal
-          </h3>
-          <div className="flex flex-col mt-2 gap-2 text-sm text-slate-500">
-             <p className="line-clamp-2 text-slate-700 font-medium">
-               {proposalTitle}
-             </p>
-             <div className="flex flex-wrap items-center gap-4 mt-1">
-               {department && department !== "N/A" && (
-                 <div className="flex items-center gap-1.5">
-                   <Building2 className="w-4 h-4 text-slate-400" />
-                   <span>{department}</span>
-                 </div>
-               )}
-               {email && (
-                 <div className="flex items-center gap-1.5">
-                   <Mail className="w-4 h-4 text-slate-400" />
-                   <span>{email}</span>
-                 </div>
-               )}
-             </div>
+          <div className="flex items-start gap-4">
+            {proponentProfilePicture ? (
+              <SecureImage
+                src={proponentProfilePicture}
+                alt="Proponent"
+                className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                <User className="w-6 h-6" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <ClipboardEdit className="w-5 h-5 text-[#C8102E]" />
+                Manage Proposal
+              </h3>
+              <div className="flex flex-col mt-2 gap-2 text-sm text-slate-500">
+                <p className="line-clamp-2 text-slate-700 font-medium">
+                  {proposalTitle}
+                </p>
+                <div className="flex flex-wrap items-center gap-4 mt-1">
+                  {department && department !== "N/A" && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <span>{department}</span>
+                    </div>
+                  )}
+                  {email && (
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-4 h-4 text-slate-400" />
+                      <span>{email}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -367,9 +385,22 @@ export default function EndorsementDecisionModal({
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-slate-800 truncate">
-                                  {ev.evaluatorName}
-                                </span>
+                                <div className="flex items-center gap-2 truncate">
+                                  {ev.evaluatorProfilePicture ? (
+                                    <SecureImage
+                                      src={ev.evaluatorProfilePicture}
+                                      alt="Evaluator"
+                                      className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                      <User className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-semibold text-slate-800 truncate">
+                                    {ev.evaluatorName}
+                                  </span>
+                                </div>
                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0 ${
                                   /^approve$/i.test(ev.decision)
                                     ? "text-emerald-700 bg-emerald-100"

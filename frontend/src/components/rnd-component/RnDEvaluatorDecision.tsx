@@ -14,6 +14,7 @@ import {
 	RefreshCw
 } from 'lucide-react';
 import { formatDate, formatTime } from '../../utils/date-formatter';
+import SecureImage from '../shared/SecureImage';
 
 interface EvaluatorDecision {
 	evaluatorId: string;
@@ -23,6 +24,7 @@ interface EvaluatorDecision {
 	submittedDate: string;
 	evaluatorDepartment?: string;
 	evaluatorEmail?: string;
+	evaluatorProfilePicture?: string | null;
 	ratings?: {
 		title: number;
 		budget: number;
@@ -191,7 +193,17 @@ const EvaluatorDecisionModal: React.FC<EvaluatorDecisionModalProps> = ({
 										</label>
 										<div className="flex flex-col mt-1">
 											<div className="flex items-center gap-2">
-												<User className="w-4 h-4 text-slate-400" />
+												{decision.evaluatorProfilePicture ? (
+													<SecureImage
+														src={decision.evaluatorProfilePicture}
+														alt="Evaluator"
+														className="w-8 h-8 rounded-full object-cover border border-slate-200"
+													/>
+												) : (
+													<div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+														<User className="w-4 h-4" />
+													</div>
+												)}
 												<p className="text-sm font-medium text-slate-800">
 													{decision.evaluatorName}
 												</p>

@@ -105,6 +105,7 @@ export interface EndorsementProposal {
 	submittedDate?: string;
 	versionNumber?: number;
 	totalVersions?: number;
+	proponentProfilePicture?: string | null;
 }
 
 export interface EvaluatorDecision {
@@ -112,6 +113,7 @@ export interface EvaluatorDecision {
 	evaluatorName: string;
 	evaluatorDepartment?: string;
 	evaluatorEmail?: string;
+	evaluatorProfilePicture?: string | null;
 	decision: 'Approve' | 'Revise' | 'Reject' | 'Pending' | 'Declined' | 'In Review' | 'Extension Requested';
 	comments: string;
 	submittedDate: string;

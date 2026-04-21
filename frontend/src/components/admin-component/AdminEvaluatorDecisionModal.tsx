@@ -23,6 +23,7 @@ interface EvaluatorDecision {
 	decision: string;
 	comments: string;
 	submittedDate: string;
+	evaluatorProfilePicture?: string | null;
 	ratings?: {
 		title: number;
 		budget: number;

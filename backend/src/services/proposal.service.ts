@@ -1871,7 +1871,7 @@ export class ProposalService {
         allUserIds.length > 0
           ? this.db
             .from("users")
-            .select("id, first_name, last_name, email, department:department_id(name)")
+            .select("id, first_name, last_name, email, photo_profile_url, department:department_id(name)")
             .in("id", allUserIds)
           : { data: [], error: null },
         departmentIds.length > 0
@@ -1973,6 +1973,7 @@ export class ProposalService {
             ? (evaluator as any)?.department[0]?.name
             : (evaluator as any)?.department?.name || "N/A",
           evaluatorEmail: evaluator?.email || "N/A",
+          evaluatorProfilePicture: evaluator?.photo_profile_url || null,
           decision,
           status: ev.status,
           // Use status change timestamp (set when evaluator submits), then score creation date, then deadline as last resort
@@ -2057,6 +2058,8 @@ export class ProposalService {
           ? `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown"
           : "Unknown",
         department: department?.name || "Unknown",
+        proponentProfilePicture: proponent?.photo_profile_url || null,
+        proponentEmail: proponent?.email || "",
         status: proposal.status,
         actionDate: proposal.updated_at || proposal.created_at,
         versionNumber,

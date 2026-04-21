@@ -99,7 +99,7 @@ export interface ApiFundedProject {
     first_name: string;
     last_name: string;
     email: string;
-    photo_profile_url?: string | null;
+    photo_profile_url?: string;
   };
   project_reports: {
     id: number;
@@ -162,6 +162,7 @@ export interface ApiProjectDetail {
     first_name: string;
     last_name: string;
     email: string;
+    photo_profile_url?: string;
   };
   project_reports: ApiProjectReport[];
 }
@@ -371,6 +372,7 @@ export function transformToProject(fp: ApiFundedProject): Project {
     utilizedAmount: fp.utilized_amount ?? 0,
     remainingAmount: fp.remaining_amount ?? null,
     lastActivityAt: fp.last_activity_at ?? null,
+    proponentProfilePicture: fp.project_lead?.photo_profile_url,
   };
 }
 

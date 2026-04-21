@@ -399,6 +399,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
       const matchesSearch =
         proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proposal.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (proposal.proponentUsername && proposal.proponentUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
         String(proposal.id).toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
@@ -463,13 +464,13 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
   const tabs: { id: ExtendedProposalStatus | 'All'; label: string; icon: any }[] = [
     { id: 'All', label: 'All', icon: FileText },
     { id: 'Pending', label: 'Pending Review', icon: Clock },
+    { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
     { id: 'Revised Proposal', label: 'Revised', icon: Edit },
     { id: 'Revision Required', label: 'To Revise', icon: RefreshCw },
-    { id: 'Not Submitted', label: 'Extension Requests', icon: AlertCircle },
-    { id: 'Sent to Evaluators', label: 'Evaluators', icon: Users },
     { id: 'Endorsed', label: 'Endorsed', icon: Signature },
     { id: 'Funded', label: 'Funded', icon: CheckCircle },
     { id: 'Rejected Proposal', label: 'Rejected', icon: XCircle },
+    { id: 'Not Submitted', label: 'Extension Requests', icon: AlertCircle },
   ];
 
   const handleReviewExtension = async (proposal: Proposal) => {
@@ -526,6 +527,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
           submittedDate: raw.created_at,
           lastModified: raw.updated_at || raw.created_at,
           proponent: raw.proponent_id ? `${raw.proponent_id.first_name} ${raw.proponent_id.last_name}` : "Unknown",
+          proponentUsername: raw.proponent_id?.username || undefined,
           gender: raw.proponent_id?.sex || "N/A",
           agency: raw.agency?.name || raw.agency || "WMSU",
           address: "N/A",
@@ -842,7 +844,7 @@ const RndProposalPage: React.FC<RndProposalPageProps> = ({ filter, onStatsUpdate
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search proposals..."
+              placeholder="Search proposals or username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent"

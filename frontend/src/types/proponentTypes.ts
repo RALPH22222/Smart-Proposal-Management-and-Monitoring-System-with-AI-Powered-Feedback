@@ -92,5 +92,7 @@ export interface Proposal {
   versionNumber?: number;
   workPlanFileUrl?: string;
   endorsementJustification?: string;
+  proponentProfilePicture?: string;
+  proponentUsername?: string;
 }
 // end of file

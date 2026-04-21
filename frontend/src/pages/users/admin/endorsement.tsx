@@ -47,6 +47,8 @@ const AdminEndorsementPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<EndorsementFilter>('active');
   const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('All');
+  const [departments, setDepartments] = useState<any[]>([]);
   const [sortOrder, setSortOrder] = useState('recent-old');
 
   // State for Evaluator Modal
@@ -65,6 +67,7 @@ const AdminEndorsementPage: React.FC = () => {
     email?: string;
     submittedBy?: string;
     evaluatorDecisions?: EvaluatorDecision[];
+    proponentProfilePicture?: string | null;
   } | null>(null);
 
   const itemsPerPage = 5;
@@ -133,6 +136,7 @@ const AdminEndorsementPage: React.FC = () => {
         getProposalsForEndorsement(activeTab),
         fetchDepartments(),
       ]);
+      setDepartments(depts);
 
       const mapped: EndorsementProposal[] = data.map((p: any) => {
         let deptName = '';
@@ -163,6 +167,7 @@ const AdminEndorsementPage: React.FC = () => {
             evaluatorName: d.evaluatorName,
             evaluatorDepartment: d.evaluatorDepartment,
             evaluatorEmail: d.evaluatorEmail,
+            evaluatorProfilePicture: d.evaluatorProfilePicture || null,
             decision: d.decision,
             comments: d.comment || 'No comment provided',
             submittedDate: d.submittedDate,
@@ -179,6 +184,7 @@ const AdminEndorsementPage: React.FC = () => {
           readyForEndorsement: p.readyForEndorsement,
           department: deptName || p.proponent_id?.department?.name || 'N/A',
           proponentEmail: p.email || p.proponentEmail || p.proponent_id?.email || '',
+          proponentProfilePicture: p.proponentProfilePicture || null,
           status: p.status,
           actionDate: p.actionDate || p.created_at,
           submittedDate: p.created_at || p.actionDate,
@@ -231,6 +237,7 @@ const AdminEndorsementPage: React.FC = () => {
       department: department,
       email: email,
       evaluatorDecisions,
+      proponentProfilePicture: endorsementProposals.find(p => p.id === proposalId)?.proponentProfilePicture
     });
     setIsDecisionModalOpen(true);
   };
@@ -424,7 +431,10 @@ const AdminEndorsementPage: React.FC = () => {
       p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.submittedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.id.toLowerCase().includes(searchTerm.toLowerCase());
-    return searchMatch;
+      
+    const deptMatch = departmentFilter === 'All' || p.department === departmentFilter;
+    
+    return searchMatch && deptMatch;
   });
 
   const sortedProposals = [...filteredProposals].sort((a, b) => {
@@ -491,6 +501,7 @@ const AdminEndorsementPage: React.FC = () => {
         email={selectedProposal?.email}
         budgetData={selectedProposal?.budget}
         evaluatorDecisions={selectedProposal?.evaluatorDecisions}
+        proponentProfilePicture={selectedProposal?.proponentProfilePicture}
         onSubmit={handleDecisionSubmit}
       />
 
@@ -692,29 +703,54 @@ const AdminEndorsementPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Search and Filters Section */}
         <section className="flex-shrink-0 flex flex-col md:flex-row gap-3">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by title, proponent, or ID..."
+              placeholder="Search by title or proponent..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <select
-              value={sortOrder}
-              onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
-              className="w-full md:w-44 px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm cursor-pointer font-medium text-slate-700"
-            >
-              <option value="recent-old">Recently Added</option>
-              <option value="old-recent">Oldest First</option>
-              <option value="a-z">Title (A-Z)</option>
-              <option value="z-a">Title (Z-A)</option>
-            </select>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Department Filter */}
+            <div className="relative w-full md:w-64">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={departmentFilter}
+                onChange={(e) => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm appearance-none cursor-pointer text-sm"
+              >
+                <option value="All">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 -rotate-90 pointer-events-none" />
+            </div>
+
+            {/* Sort Order */}
+            <div className="relative w-full md:w-48">
+              <BarChart2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <select
+                value={sortOrder}
+                onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+                className="px-10 py-2.5 w-full rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E] focus:border-transparent bg-white shadow-sm appearance-none cursor-pointer"
+              >
+                <option value="recent-old">Recent to Old</option>
+                <option value="old-recent">Old to Recent</option>
+                <option value="a-z">Title (A-Z)</option>
+                <option value="z-a">Title (Z-A)</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronLeft className="w-4 h-4 text-slate-400 -rotate-90" />
+              </div>
+            </div>
           </div>
         </section>
 

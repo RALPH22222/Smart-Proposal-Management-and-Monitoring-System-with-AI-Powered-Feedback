@@ -681,4 +681,3 @@ const FundingPage: React.FC = () => {
 };
 
 export default FundingPage;
-

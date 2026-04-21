@@ -6,15 +6,15 @@ import {
   CheckCircle,
   XCircle,
   RotateCcw,
-  Plus,
-  Trash2,
   AlertTriangle, // Added for confirmation warning
   Building2,
   Mail,
   MessageSquare,
   Users,
   HandCoins,
+  User,
 } from "lucide-react";
+import SecureImage from "../shared/SecureImage";
 
 import type { BudgetRow, EvaluatorDecision } from "../../types/evaluator";
 
@@ -26,6 +26,7 @@ interface AdminDecisionModalProps {
   email?: string;
   budgetData?: BudgetRow[]; // Added optional budget data
   evaluatorDecisions?: EvaluatorDecision[];
+  proponentProfilePicture?: string | null;
   onSubmit: (
     _status: "endorsed" | "revised" | "rejected",
     _remarks: string,
@@ -73,6 +74,7 @@ export default function AdminEndorsementDecisionModal({
   email,
   budgetData = [], // Default to empty array if not provided
   evaluatorDecisions = [],
+  proponentProfilePicture,
   onSubmit,
 }: AdminDecisionModalProps) {
   const [decision, setDecision] = useState<"endorsed" | "revised" | "rejected">("endorsed");
@@ -128,28 +130,6 @@ export default function AdminEndorsementDecisionModal({
 
   if (!isOpen) return null;
 
-  const handleAddSection = () => {
-    let counter = 1;
-    while (sections.includes(`Additional Section ${counter}`)) {
-      counter++;
-    }
-    const newSectionName = `Additional Section ${counter}`;
-    setSections([...sections, newSectionName]);
-    setActiveTab(newSectionName);
-  };
-
-  const handleDeleteSection = (sectionToDelete: string) => {
-    if (DEFAULT_SECTIONS.includes(sectionToDelete)) return;
-    const newSections = sections.filter(s => s !== sectionToDelete);
-    setSections(newSections);
-    const newRemarks = { ...structuredRemarks };
-    delete newRemarks[sectionToDelete];
-    setStructuredRemarks(newRemarks);
-    if (activeTab === sectionToDelete) {
-      setActiveTab(newSections[0] || DEFAULT_SECTIONS[0]);
-    }
-  };
-
   // Step 1: Validate and show confirmation
   const handleProceedToConfirm = () => {
     if (decision === "revised") {
@@ -199,7 +179,6 @@ export default function AdminEndorsementDecisionModal({
     if (error) setError("");
   };
 
-  const isCustomSection = !DEFAULT_SECTIONS.includes(activeTab);
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
@@ -245,30 +224,44 @@ export default function AdminEndorsementDecisionModal({
            </div>
         )}
 
-        {/* --- MAIN MODAL HEADER --- */}
         <div className="p-6 border-b border-slate-100 flex-shrink-0 bg-slate-50/50">
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <ClipboardEdit className="w-5 h-5 text-[#C8102E]" />
-            Manage Proposal (Admin)
-          </h3>
-          <div className="flex flex-col mt-2 gap-2 text-sm text-slate-500">
-             <p className="line-clamp-2 text-slate-700 font-medium">
-               {proposalTitle}
-             </p>
-             <div className="flex flex-wrap items-center gap-4 mt-1">
-               {department && department !== "N/A" && (
-                 <div className="flex items-center gap-1.5">
-                   <Building2 className="w-4 h-4 text-slate-400" />
-                   <span>{department}</span>
-                 </div>
-               )}
-               {email && (
-                 <div className="flex items-center gap-1.5">
-                   <Mail className="w-4 h-4 text-slate-400" />
-                   <span>{email}</span>
-                 </div>
-               )}
-             </div>
+          <div className="flex items-start gap-4">
+            {proponentProfilePicture ? (
+              <SecureImage
+                src={proponentProfilePicture}
+                alt="Proponent"
+                className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                <User className="w-6 h-6" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <ClipboardEdit className="w-5 h-5 text-[#C8102E]" />
+                Manage Proposal (Admin)
+              </h3>
+              <div className="flex flex-col mt-2 gap-2 text-sm text-slate-500">
+                <p className="line-clamp-2 text-slate-700 font-medium">
+                  {proposalTitle}
+                </p>
+                <div className="flex flex-wrap items-center gap-4 mt-1">
+                  {department && department !== "N/A" && (
+                    <div className="flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <span>{department}</span>
+                    </div>
+                  )}
+                  {email && (
+                    <div className="flex items-center gap-1.5">
+                      <Mail className="w-4 h-4 text-slate-400" />
+                      <span>{email}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -404,9 +397,22 @@ export default function AdminEndorsementDecisionModal({
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-slate-800 truncate">
-                                  {ev.evaluatorName}
-                                </span>
+                                <div className="flex items-center gap-2 truncate">
+                                  {ev.evaluatorProfilePicture ? (
+                                    <SecureImage
+                                      src={ev.evaluatorProfilePicture}
+                                      alt="Evaluator"
+                                      className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                      <User className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-semibold text-slate-800 truncate">
+                                    {ev.evaluatorName}
+                                  </span>
+                                </div>
                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0 ${
                                   /^approve$/i.test(ev.decision)
                                     ? "text-emerald-700 bg-emerald-100"
@@ -513,9 +519,6 @@ export default function AdminEndorsementDecisionModal({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-base font-bold text-slate-800">Structured Comments</h4>
-                    <button onClick={handleAddSection} className="text-xs flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full font-medium transition-colors">
-                      <Plus className="w-3 h-3" /> Add Section
-                    </button>
                   </div>
                   <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-1">
                     {sections.map((section) => (
@@ -535,9 +538,6 @@ export default function AdminEndorsementDecisionModal({
                   <div className="bg-white relative">
                      <div className="flex justify-between items-center mb-2">
                         <label className="text-sm font-medium text-slate-700">{activeTab}</label>
-                        {isCustomSection && (
-                          <button onClick={() => handleDeleteSection(activeTab)} className="text-slate-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
-                        )}
                      </div>
                     <textarea
                       className="w-full h-40 p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#C8102E] outline-none resize-none text-sm"

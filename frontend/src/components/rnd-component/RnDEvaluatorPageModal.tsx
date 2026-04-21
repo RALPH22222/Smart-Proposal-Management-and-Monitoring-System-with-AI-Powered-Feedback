@@ -297,6 +297,17 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   };
 
   const handleSaveClick = async () => {
+    if (currentList.length === 1) {
+      await ModalSwal.fire({
+        title: 'Requirement Not Met',
+        text: 'A proposal must be assigned to at least two evaluators. Please add another evaluator before saving.',
+        icon: 'warning',
+        confirmButtonColor: '#C8102E',
+        confirmButtonText: 'Understood'
+      });
+      return;
+    }
+
     const result = await ModalSwal.fire({
       title: 'Confirm Assignment',
       html: `
@@ -472,158 +483,9 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
             </div>
           )}
 
-          {/* Mini Replace Modal Overlay */}
-          {replacementTargetId && (
-            <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.25)] ring-1 ring-purple-100 w-full max-w-xl overflow-hidden flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
-                  <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-600" />
-                    Select Replacement
-                  </h3>
-                  <button onClick={() => setReplacementTargetId(null)} className="p-1 hover:bg-purple-200 text-purple-400 hover:text-purple-600 rounded-lg transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                {/* Filters */}
-                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300" />
-                    <input
-                      type="text"
-                      placeholder="Search name, email, or dept..."
-                      value={replaceSearch}
-                      onChange={(e) => setReplaceSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
-                    />
-                  </div>
-                  <select
-                    value={replaceDeptFilter}
-                    onChange={(e) => setReplaceDeptFilter(e.target.value)}
-                    className="w-full sm:w-48 p-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 transition-all text-purple-900"
-                  >
-                    <option value="All">All Departments</option>
-                    {departments.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* List */}
-                <div className="flex-1 overflow-y-auto max-h-64 p-3 space-y-2 custom-scrollbar bg-slate-50">
-                  {replaceCandidates.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
-                  ) : (
-                    replaceCandidates.map((user) => (
-                      <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
-                            <SecureImage
-                              src={resolveUserPhoto(user)}
-                              fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
-                              alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                              <span className="truncate flex items-center gap-1"><NotebookPen className="w-3 h-3"/> {user.departments[0]?.name || 'Unknown'}</span>
-                              {user.email && (
-                                <span className="truncate flex items-center gap-1"><Mail className="w-3 h-3"/> {user.email}</span>
-                              )}
-                            </div>
-                          </div>
-                          <button 
-                            onClick={() => confirmReplace(replacementTargetId, user.id)}
-                            className="bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          >
-                            Replace
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Add Evaluator Overlay — purple theme (matches Replace mini modal) */}
-          {showAddPanel && (
-            <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.25)] ring-1 ring-purple-100 w-full max-w-xl overflow-hidden flex flex-col pointer-events-auto animate-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
-                  <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                    <UserPlus className="w-5 h-5 text-purple-600" />
-                    Add Evaluator
-                  </h3>
-                  <button onClick={() => { setShowAddPanel(false); setAddSearch(''); setAddDeptFilter('All'); }} className="p-1 hover:bg-purple-200 text-purple-400 hover:text-purple-600 rounded-lg transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                {/* Filters */}
-                <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300" />
-                    <input
-                      type="text"
-                      placeholder="Search name, email, or dept..."
-                      value={addSearch}
-                      onChange={(e) => setAddSearch(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
-                    />
-                  </div>
-                  <select
-                    value={addDeptFilter}
-                    onChange={(e) => setAddDeptFilter(e.target.value)}
-                    className="w-full sm:w-48 p-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 transition-all text-purple-900"
-                  >
-                    <option value="All">All Departments</option>
-                    {departments.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* List */}
-                <div className="flex-1 overflow-y-auto max-h-64 p-3 space-y-2 custom-scrollbar bg-slate-50">
-                  {addCandidates.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
-                  ) : (
-                    addCandidates.map((user) => (
-                      <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
-                        <div className="flex items-center gap-3 w-full">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
-                            <SecureImage
-                              src={resolveUserPhoto(user)}
-                              fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
-                              alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                              <span className="truncate flex items-center gap-1"><NotebookPen className="w-3 h-3"/> {user.departments[0]?.name || 'Unknown'}</span>
-                              {user.email && (
-                                <span className="truncate flex items-center gap-1"><Mail className="w-3 h-3"/> {user.email}</span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => confirmAdd(user.id)}
-                            className="bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+
+
 
           {/* Section 1: Current Evaluators */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
@@ -982,6 +844,146 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Replace Evaluator Overlay — rendered at root level so fixed inset-0 covers full viewport */}
+      {replacementTargetId && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.25)] ring-1 ring-purple-100 w-full max-w-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
+              <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-600" />
+                Select Replacement
+              </h3>
+              <button onClick={() => setReplacementTargetId(null)} className="p-1 hover:bg-purple-200 text-purple-400 hover:text-purple-600 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300" />
+                <input
+                  type="text"
+                  placeholder="Search name, email, or dept..."
+                  value={replaceSearch}
+                  onChange={(e) => setReplaceSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
+                />
+              </div>
+              <select
+                value={replaceDeptFilter}
+                onChange={(e) => setReplaceDeptFilter(e.target.value)}
+                className="w-full sm:w-48 p-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 transition-all text-purple-900"
+              >
+                <option value="All">All Departments</option>
+                {departments.map((d) => (<option key={d} value={d}>{d}</option>))}
+              </select>
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-64 p-3 space-y-2 custom-scrollbar bg-slate-50">
+              {replaceCandidates.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
+              ) : (
+                replaceCandidates.map((user) => (
+                  <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
+                        <SecureImage
+                          src={resolveUserPhoto(user)}
+                          fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
+                          alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                          <span className="truncate flex items-center gap-1"><NotebookPen className="w-3 h-3"/> {user.departments[0]?.name || 'Unknown'}</span>
+                          {user.email && (<span className="truncate flex items-center gap-1"><Mail className="w-3 h-3"/> {user.email}</span>)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => confirmReplace(replacementTargetId, user.id)}
+                        className="bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Replace
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Evaluator Overlay — rendered at root level so fixed inset-0 covers full viewport */}
+      {showAddPanel && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(107,33,168,0.25)] ring-1 ring-purple-100 w-full max-w-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
+              <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-purple-600" />
+                Add Evaluator
+              </h3>
+              <button onClick={() => { setShowAddPanel(false); setAddSearch(''); setAddDeptFilter('All'); }} className="p-1 hover:bg-purple-200 text-purple-400 hover:text-purple-600 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3 bg-white">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-300" />
+                <input
+                  type="text"
+                  placeholder="Search name, email, or dept..."
+                  value={addSearch}
+                  onChange={(e) => setAddSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
+                />
+              </div>
+              <select
+                value={addDeptFilter}
+                onChange={(e) => setAddDeptFilter(e.target.value)}
+                className="w-full sm:w-48 p-2 bg-purple-50/30 border border-purple-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-400 transition-all text-purple-900"
+              >
+                <option value="All">All Departments</option>
+                {departments.map((d) => (<option key={d} value={d}>{d}</option>))}
+              </select>
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-64 p-3 space-y-2 custom-scrollbar bg-slate-50">
+              {addCandidates.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No evaluators found matching your criteria.</div>
+              ) : (
+                addCandidates.map((user) => (
+                  <div key={user.id} className="group relative flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all">
+                    <div className="flex items-center gap-3 w-full">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-100 flex-shrink-0 ring-1 ring-purple-100 flex items-center justify-center">
+                        <SecureImage
+                          src={resolveUserPhoto(user)}
+                          fallbackSrc={evaluatorPhotoFallback(`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim())}
+                          alt={`${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || "Evaluator"}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-slate-800 text-sm truncate">{user.first_name} {user.last_name}</div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                          <span className="truncate flex items-center gap-1"><NotebookPen className="w-3 h-3"/> {user.departments[0]?.name || 'Unknown'}</span>
+                          {user.email && (<span className="truncate flex items-center gap-1"><Mail className="w-3 h-3"/> {user.email}</span>)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => confirmAdd(user.id)}
+                        className="bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -15,8 +15,8 @@ import {
 import { getProposals } from "../../../services/proposal.api";
 import { useLookups } from "../../../context/LookupContext";
 import { useAuthContext } from "../../../context/AuthContext";
-import SkeletonPulse from "../../../components/shared/SkeletonPulse";
 import { getBudgetCategory } from "../../../utils/budget-category";
+import PageLoader from "../../../components/shared/PageLoader";
 
 
 
@@ -528,38 +528,7 @@ const Profile: React.FC = () => {
 
   const renderGridView = () => (
     <div className="p-4 lg:p-6">
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={`grid-skeleton-${idx}`} className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 flex flex-col h-full">
-              <div className="flex items-start justify-between mb-4">
-                <SkeletonPulse className="h-5 w-3/4 rounded-md" />
-              </div>
-              <div className="flex gap-2 mb-4">
-                <SkeletonPulse className="h-5 w-16 rounded-full" />
-                <SkeletonPulse className="h-5 w-20 rounded-full" />
-              </div>
-              <div className="space-y-3 mb-5 mt-auto">
-                <div className="flex items-center justify-between">
-                  <SkeletonPulse className="h-3 w-12" />
-                  <SkeletonPulse className="h-3 w-20" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <SkeletonPulse className="h-3 w-14" />
-                  <SkeletonPulse className="h-3 w-16" />
-                </div>
-              </div>
-              {/* Stepper Placeholder */}
-              <div className="mb-4 pt-3 border-t border-slate-100 flex justify-between items-center px-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <SkeletonPulse key={i} className="w-3 h-3 rounded-full" />
-                ))}
-              </div>
-              <SkeletonPulse className="h-6 w-32 rounded-full" />
-            </div>
-          ))}
-        </div>
-      ) : filteredProjects.length === 0 ? (
+      {filteredProjects.length === 0 ? (
         <div className="text-center py-20 px-4">
           <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
             <FileText className="w-8 h-8 text-slate-300" />
@@ -574,7 +543,7 @@ const Profile: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 bg-white shrink">
           {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
-            const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
+            const statusLabel = getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
             const yearTag = getProjectYear(project.id);
 
@@ -582,7 +551,7 @@ const Profile: React.FC = () => {
               <div
                 key={project.id}
                 className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-4 lg:p-6 border-2 border-gray-200 hover:border-[#C8102E] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col"
-                onClick={() => !loading && handleCardClick(project as any)}
+                onClick={() => handleCardClick(project as any)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0 overflow-hidden" style={{ containerType: 'inline-size' }}>
@@ -638,9 +607,9 @@ const Profile: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${loading ? 'bg-gray-100 text-gray-400' : getLocalStatusColor(project)}`}
+                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getLocalStatusColor(project)}`}
                     >
-                      {!loading && getLocalStatusIcon(project)}
+                      {getLocalStatusIcon(project)}
                       {statusLabel}
                     </span>
                   </div>
@@ -670,42 +639,9 @@ const Profile: React.FC = () => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {loading && (
-            [1, 2, 3, 4, 5].map((idx) => (
-              <tr key={idx}>
-                <td className="px-4 lg:px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <SkeletonPulse className="w-9 h-9 rounded-lg shrink-0" />
-                    <div className="space-y-2 w-full max-w-[420px]">
-                      <SkeletonPulse className="h-4 w-3/4 rounded" />
-                      <div className="flex gap-2">
-                        <SkeletonPulse className="h-3 w-16 rounded-full" />
-                        <SkeletonPulse className="h-3 w-12 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 lg:px-6 py-4">
-                  <SkeletonPulse className="h-6 w-28 rounded-full" />
-                </td>
-                <td className="px-4 lg:px-6 py-4 hidden lg:table-cell">
-                  <SkeletonPulse className="h-4 w-20" />
-                </td>
-                <td className="px-4 lg:px-6 py-4 hidden md:table-cell">
-                  <SkeletonPulse className="h-4 w-16" />
-                </td>
-                <td className="px-4 lg:px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <SkeletonPulse className="w-20 h-2 rounded-full" />
-                    <SkeletonPulse className="h-3 w-8" />
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
 
           {/* If NOT loading and no data found */}
-          {!loading && filteredProjects.length === 0 && (
+          {filteredProjects.length === 0 && (
             <tr>
               <td colSpan={6} className="px-4 py-20 text-center">
                 <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
@@ -721,9 +657,9 @@ const Profile: React.FC = () => {
             </tr>
           )}
 
-          {!loading && filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
-            const progress = loading ? 0 : getLocalProgress(project);
-            const statusLabel = loading ? "Loading..." : getLocalStatusLabel(project);
+          {filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage).map((project: any) => {
+            const progress = getLocalProgress(project);
+            const statusLabel = getLocalStatusLabel(project);
             const tags = getProjectTags(project.id);
             const yearTag = getProjectYear(project.id);
 
@@ -731,12 +667,12 @@ const Profile: React.FC = () => {
               <tr
                 key={project.id}
                 className="transition-all duration-500 hover:bg-gray-50 cursor-pointer group"
-                onClick={() => !loading && handleCardClick(project as any)}
+                onClick={() => handleCardClick(project as any)}
               >
                 <td className="px-4 lg:px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg transition-colors ${loading ? 'bg-gray-100 text-gray-300' : 'bg-gray-100 group-hover:bg-[#C8102E] group-hover:text-white'}`}>
-                      {!loading ? getStageIcon(project.currentIndex) : <Clock className="w-5 h-5" />}
+                    <div className="p-2 rounded-lg transition-colors bg-gray-100 group-hover:bg-[#C8102E] group-hover:text-white">
+                      {getStageIcon(project.currentIndex)}
                     </div>
                     <div className="min-w-0 max-w-[200px] sm:max-w-[300px] md:max-w-[400px] lg:max-w-[500px]">
                       <div className="overflow-hidden" style={{ containerType: 'inline-size' }}>
@@ -774,9 +710,9 @@ const Profile: React.FC = () => {
                 </td>
                 <td className="px-4 lg:px-6 py-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${loading ? 'bg-gray-100 text-gray-400' : getLocalStatusColor(project)}`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${getLocalStatusColor(project)}`}
                   >
-                    {!loading && getLocalStatusIcon(project)}
+                    {getLocalStatusIcon(project)}
                     {statusLabel}
                   </span>
                 </td>
@@ -803,6 +739,10 @@ const Profile: React.FC = () => {
     </div>
   );
 
+  if (loading) {
+    return <PageLoader mode="proponent-profile" />;
+  }
+
   return (
     <>
       <style>{`
@@ -816,54 +756,28 @@ const Profile: React.FC = () => {
 
         {/* --- HEADER --- */}
         <header className="mb-8">
-          {loading ? (
-            <>
-              <div className="animate-pulse flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                <div className="space-y-3">
-                  <div className="h-8 w-80 max-w-[90vw] bg-gray-200 rounded-lg" />
-                  <div className="h-4 w-64 max-w-[75vw] bg-gray-100 rounded" />
-                </div>
-                <div className="h-10 w-32 bg-gray-100 border border-gray-200 rounded-lg" />
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg flex-shrink-0">
+                <FileUser className="text-white text-xl lg:text-2xl" />
               </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4 animate-pulse">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <div key={`metric-skeleton-${idx}`} className="bg-white rounded-2xl border border-gray-200 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="h-3 w-20 bg-gray-100 rounded" />
-                        <div className="h-6 w-12 bg-gray-200 rounded" />
-                      </div>
-                      <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
+                  {displayedText.prefix}
+                  <span className="text-[#C8102E]">{displayedText.name}</span>
+                  {displayedText.suffix}
+                </h1>
+                <p className="text-gray-600 text-sm lg:text-base">
+                  Monitor your research proposals through the entire lifecycle
+                </p>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-r from-[#C8102E] to-[#E03A52] rounded-xl shadow-lg flex-shrink-0">
-                    <FileUser className="text-white text-xl lg:text-2xl" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 min-h-[40px]">
-                      {displayedText.prefix}
-                      <span className="text-[#C8102E]">{displayedText.name}</span>
-                      {displayedText.suffix}
-                    </h1>
-                    <p className="text-gray-600 text-sm lg:text-base">
-                      Monitor your research proposals through the entire lifecycle
-                    </p>
-                  </div>
-                </div>
+            </div>
 
-                <div />
-              </div>
+            <div />
+          </div>
 
-              {/* Stats Overview */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
             {/* Total Projects Card */}
             <div className="bg-slate-50 shadow-xl rounded-2xl border border-slate-300 p-4 transition-all duration-300 hover:shadow-lg hover:scale-105 group cursor-pointer">
               <div className="flex items-center justify-between">
@@ -929,162 +843,136 @@ const Profile: React.FC = () => {
                 <CheckCircle className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
-              </div>
-            </>
-          )}
+          </div>
         </header>
 
         {/* SEARCH & FILTER CONTROLS */}
-        <div className={`mb-6 px-4 lg:px-6 py-4 bg-white rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 ${loading ? "animate-pulse" : ""}`}>
+        <div className="mb-6 px-4 lg:px-6 py-4 bg-white rounded-2xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Search Control on Left */}
-          {loading ? (
-            <div className="flex-1 h-10 bg-gray-100 rounded-xl border border-gray-200" />
-          ) : (
-            <div className="relative flex-1 group">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[#C8102E] transition-colors" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search projects by title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] focus:bg-white transition-all"
-              />
+          <div className="relative flex-1 group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400 group-focus-within:text-[#C8102E] transition-colors" />
             </div>
-          )}
+            <input
+              type="text"
+              placeholder="Search projects by title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] focus:bg-white transition-all"
+            />
+          </div>
 
           {/* Filter Controls on Right */}
           <div className="flex flex-wrap items-center gap-3">
-            {loading ? (
-              <>
-                <div className="h-10 w-40 bg-gray-100 rounded-xl border border-gray-200" />
-                <div className="h-10 w-32 bg-gray-100 rounded-xl border border-gray-200" />
-                <div className="h-10 w-44 bg-gray-100 rounded-xl border border-gray-200" />
-                <div className="h-10 w-24 bg-gray-100 rounded-xl border border-gray-200" />
-              </>
-            ) : (
-              <>
-                {/* Year Filter */}
-                <div className="relative">
-                  <select
-                    value={yearFilter}
-                    onChange={(e) => setYearFilter(e.target.value)}
-                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[120px] hover:border-slate-300 transition-colors"
-                  >
-                    <option value="All">All Years</option>
-                    {Array.from(new Set(rawProposals.map(p => p.year).filter(Boolean))).sort((a: any, b: any) => Number(b) - Number(a)).map(year => (
-                      <option key={String(year)} value={String(year)}>{year as React.ReactNode}</option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                  </div>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  </div>
-                </div>
+            {/* Year Filter */}
+            <div className="relative">
+              <select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[120px] hover:border-slate-300 transition-colors"
+              >
+                <option value="All">All Years</option>
+                {Array.from(new Set(rawProposals.map(p => p.year).filter(Boolean))).sort((a: any, b: any) => Number(b) - Number(a)).map(year => (
+                  <option key={String(year)} value={String(year)}>{year as React.ReactNode}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </div>
+            </div>
 
-                {/* Status Filter */}
-                <div className="relative">
-                  <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value)}
-                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[160px] hover:border-slate-300 transition-colors"
-                  >
-                    <option value="All">All Statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Under R&D Evaluation">Under R&D Evaluation</option>
-                    <option value="Under Evaluators Assessment">Under Evaluators Assessment</option>
-                    <option value="Endorsed for Funding">Endorsed for Funding</option>
-                    <option value="Funded">Funded</option>
-                    <option value="Revision Required">Revision Required</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Revised Proposal">Revised Proposal</option>
-                  </select>
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Filter className="h-3.5 w-3.5 text-slate-400" />
-                  </div>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  </div>
-                </div>
+            {/* Status Filter */}
+            <div className="relative">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[160px] hover:border-slate-300 transition-colors"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Under R&D Evaluation">Under R&D Evaluation</option>
+                <option value="Under Evaluators Assessment">Under Evaluators Assessment</option>
+                <option value="Endorsed for Funding">Endorsed for Funding</option>
+                <option value="Funded">Funded</option>
+                <option value="Revision Required">Revision Required</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Revised Proposal">Revised Proposal</option>
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </div>
+            </div>
 
-                {/* Sort Order Filter */}
-                <div className="relative">
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as any)}
-                    className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[180px] hover:border-slate-300 transition-colors"
-                  >
-                    <option value="newest">Newest to Oldest</option>
-                    <option value="oldest">Oldest to Newest</option>
-                    <option value="a-z">Title: A - Z</option>
-                    <option value="z-a">Title: Z - A</option>
-                  </select>
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  </div>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  </div>
-                </div>
+            {/* Sort Order Filter */}
+            <div className="relative">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+                className="appearance-none bg-white pl-9 pr-10 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] cursor-pointer min-w-[180px] hover:border-slate-300 transition-colors"
+              >
+                <option value="newest">Newest to Oldest</option>
+                <option value="oldest">Oldest to Newest</option>
+                <option value="a-z">Title: A - Z</option>
+                <option value="z-a">Title: Z - A</option>
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Clock className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-slate-400" />
+              </div>
+            </div>
 
-                {/* View Toggle (Segmented Control) */}
-                <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
-                  <button
-                    onClick={() => setViewMode("grid")}
-                    className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                      }`}
-                  >
-                    <FaTablet className="text-sm" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
-                      }`}
-                  >
-                    <FaListAlt className="text-sm" />
-                  </button>
-                </div>
-              </>
-            )}
+            {/* View Toggle (Segmented Control) */}
+            <div className="flex items-center gap-2 bg-white rounded-xl p-1 shadow-sm border border-gray-200">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "grid" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
+              >
+                <FaTablet className="text-sm" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 rounded-lg transition-all duration-200 ${viewMode === "list" ? "bg-[#C8102E] text-white shadow-md" : "text-gray-500 hover:text-gray-700"
+                  }`}
+              >
+                <FaListAlt className="text-sm" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* All Projects Section */}
         <section>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className={`bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200 ${loading ? "animate-pulse" : ""}`}>
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 lg:px-6 py-4 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                {loading ? (
-                  <>
-                    <div className="h-6 w-48 bg-gray-200 rounded" />
-                    <div className="h-9 w-36 bg-gray-100 border border-gray-200 rounded-lg" />
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <FileText className="text-[#C8102E]" />
-                        Project Portfolio
-                      </h3>
-                    </div>
+                <div>
+                  <h3 className="text-lg lg:text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <FileText className="text-[#C8102E]" />
+                    Project Portfolio
+                  </h3>
+                </div>
 
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setHowItWorksOpen(true)}
-                        className="relative flex items-center gap-2 px-4 py-2 bg-white text-red-600 hover:text-[#C8102E] hover:border-[#C8102E] rounded-lg transition-all duration-300 text-sm font-bold border border-red-300 shadow-sm hover:shadow group"
-                      >
-                        <span className="relative inline-flex items-center justify-center">
-                          <span className="absolute inline-flex h-7 w-7 rounded-full bg-[#C8102E]/20 animate-pulse"></span>
-                          <Info className="relative w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-                        </span>
-                        Process Guide
-                      </button>
-                    </div>
-                  </>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setHowItWorksOpen(true)}
+                    className="relative flex items-center gap-2 px-4 py-2 bg-white text-red-600 hover:text-[#C8102E] hover:border-[#C8102E] rounded-lg transition-all duration-300 text-sm font-bold border border-red-300 shadow-sm hover:shadow group"
+                  >
+                    <span className="relative inline-flex items-center justify-center">
+                      <span className="absolute inline-flex h-7 w-7 rounded-full bg-[#C8102E]/20 animate-pulse"></span>
+                      <Info className="relative w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                    </span>
+                    Process Guide
+                  </button>
+                </div>
               </div>
             </div>
 
