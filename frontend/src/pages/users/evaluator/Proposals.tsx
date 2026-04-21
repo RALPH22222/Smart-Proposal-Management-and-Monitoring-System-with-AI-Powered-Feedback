@@ -697,6 +697,7 @@ export default function Proposals() {
           proposalTitle={evaluationProposal.title}
           onSubmit={handleSubmitDecision}
           isLoading={isSubmitting}
+          deadline={evaluationProposal.deadline !== "N/A" ? evaluationProposal.deadline : undefined}
         />
       )}
     </>
