@@ -45,7 +45,12 @@ const transformProposal = (raw: any): Proposal => {
         agency: p.agency?.name || "WMSU",
         address: "N/A",
         department: typeof p.department === 'string' ? p.department : (p.department?.name || p.department_id || ""),
-        cooperatingAgencies: p.cooperating_agencies ? JSON.stringify(p.cooperating_agencies) : "",
+        cooperatingAgencies: Array.isArray(p.cooperating_agencies)
+          ? p.cooperating_agencies
+              .map((c: any) => c.agencies?.name ?? c.agency_name_text ?? "")
+              .filter((s: string) => s.length > 0)
+              .join(", ")
+          : "",
         rdStation: p.rnd_station?.name || "N/A",
         classification: p.classification_type || "Research",
         classificationDetails: p.class_input || "",

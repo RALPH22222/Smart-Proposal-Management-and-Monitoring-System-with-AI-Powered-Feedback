@@ -48,12 +48,17 @@ function cleanName(v: IdOrName): string | null {
 export class ProposalService {
   constructor(private db: SupabaseClient) { }
 
+  // `strict: true` means an unrecognized name returns null instead of creating
+  // a new lookup row. Use it for admin-managed taxonomies (sectors, disciplines,
+  // funding agencies) where silent auto-creation would pollute the list. The
+  // handler above this layer surfaces the null as a validation error.
   private async resolveLookupId(args: {
     table: Table;
     value: IdOrName;
     nameColumn?: string; // defaults to "name"
+    strict?: boolean;
   }): Promise<number | null> {
-    const { table, value } = args;
+    const { table, value, strict = false } = args;
     const nameColumn = args.nameColumn ?? "name";
 
     // already an id -> use directly
@@ -74,7 +79,10 @@ export class ProposalService {
 
     if (existing.data?.id) return existing.data.id;
 
-    // 2) insert new and return id
+    // 2) strict lookups never auto-create — return null so the caller can reject.
+    if (strict) return null;
+
+    // 3) non-strict: insert new and return id
     const inserted = await this.db
       .from(table)
       .insert({ [nameColumn]: name })
@@ -153,20 +161,35 @@ export class ProposalService {
       value: department,
     });
 
+    // Admin-managed taxonomies — reject unknown names instead of silently
+    // inserting them into the lookup. The proponent form must submit a real
+    // FK; this is a backstop against a stale payload or bypassed frontend.
     const sector_id = await this.resolveLookupId({
       table: Table.SECTORS,
       value: sector,
+      strict: true,
     });
+    if (sector_id == null) {
+      throw new Error(`Unknown sector: "${sector}". Please pick one from the list or contact admin to add it.`);
+    }
 
     const discipline_id = await this.resolveLookupId({
       table: Table.DISCIPLINES,
       value: discipline,
+      strict: true,
     });
+    if (discipline_id == null) {
+      throw new Error(`Unknown discipline: "${discipline}". Please pick one from the list or contact admin to add it.`);
+    }
 
     const agency_id = await this.resolveLookupId({
       table: Table.AGENCIES,
       value: agency,
+      strict: true,
     });
+    if (agency_id == null) {
+      throw new Error(`Unknown funding agency: "${agency}". Please pick one from the list or contact admin to add it.`);
+    }
 
     const agency_address_id = await this.ensureAgencyAddress(agency_id, agency_address);
 
@@ -201,29 +224,47 @@ export class ProposalService {
       if (tagJoin.error) throw new Error(`proposal_tags upsert failed: ${tagJoin.error.message}`);
     }
 
-    // 1) resolve all cooperating agencies (string|number) into ids
-    const coopResolved = await Promise.all(
-      (cooperating_agencies ?? []).map((v) => this.resolveLookupId({ table: Table.AGENCIES, value: v })),
-    );
+    // Cooperating agencies split into two buckets per the new schema:
+    //   - FK row (agency_id): proponent picked an admin-managed agency
+    //   - free-text row (agency_name_text): an external partner not in the
+    //     lookup (e.g. local barangay council, NGO, private firm). Strict: true
+    //     on resolveLookupId so we never pollute the `agencies` table.
+    const fkIds = new Set<number>();
+    const freeTexts = new Set<string>();
 
-    // 2) remove nulls, remove duplicates, exclude the main agency_id
-    const cooperating_agencies_id = Array.from(
-      new Set(
-        coopResolved
-          .filter((id): id is number => typeof id === "number" && Number.isFinite(id))
-          .filter((id) => (agency_id ? id !== agency_id : true)),
-      ),
-    );
+    for (const v of cooperating_agencies ?? []) {
+      if (isId(v)) {
+        if (!agency_id || v !== agency_id) fkIds.add(v);
+        continue;
+      }
+      const name = cleanName(v);
+      if (!name) continue;
+      // Numeric string → treat as id for back-compat
+      const parsed = Number(name);
+      if (Number.isFinite(parsed) && parsed > 0 && Number.isInteger(parsed)) {
+        if (!agency_id || parsed !== agency_id) fkIds.add(parsed);
+        continue;
+      }
+      // Name string → look up strictly; unresolved names go to free text
+      const match = await this.resolveLookupId({
+        table: Table.AGENCIES,
+        value: name,
+        strict: true,
+      });
+      if (match != null) {
+        if (!agency_id || match !== agency_id) fkIds.add(match);
+      } else {
+        freeTexts.add(name);
+      }
+    }
 
-    // 3) insert join rows
-    if (cooperating_agencies_id.length > 0) {
-      const coopRows = cooperating_agencies_id.map((agencyId) => ({
-        proposal_id,
-        agency_id: agencyId,
-      }));
+    const coopRows: Array<{ proposal_id: number; agency_id: number | null; agency_name_text: string | null }> = [
+      ...Array.from(fkIds).map((id) => ({ proposal_id, agency_id: id, agency_name_text: null })),
+      ...Array.from(freeTexts).map((name) => ({ proposal_id, agency_id: null, agency_name_text: name })),
+    ];
 
+    if (coopRows.length > 0) {
       const coopJoin = await this.db.from("cooperating_agencies").insert(coopRows);
-
       if (coopJoin.error) throw new Error(`cooperating_agencies upsert failed: ${coopJoin.error.message}`);
     }
 
@@ -1318,7 +1359,7 @@ export class ProposalService {
   async getAll(search?: string, status?: Status, proponent_id?: string, roles?: string[]) {
     let query = this.db.from("proposals").select(`
       *,
-      cooperating_agencies(agencies(name)),
+      cooperating_agencies(agency_name_text, agencies(name)),
       proposal_tags(tags(name)),
       proposal_priorities(priorities(id,name)),
       implementation_site(site_name,city),
@@ -1539,7 +1580,7 @@ export class ProposalService {
         forwarded_by_rnd(first_name,last_name),
         proposal_id(
           *,
-          cooperating_agencies(agencies(name)),
+          cooperating_agencies(agency_name_text, agencies(name)),
           proposal_tags(tags(name)),
           proposal_priorities(priorities(id,name)),
           implementation_site(site_name,city),
@@ -1636,7 +1677,7 @@ export class ProposalService {
         id,
         proposal_id(
           *,
-          cooperating_agencies(agencies(name)),
+          cooperating_agencies(agency_name_text, agencies(name)),
           proposal_tags(tags(name)),
           proposal_priorities(priorities(id,name)),
           implementation_site(site_name,city),

@@ -224,7 +224,16 @@ export const submitProposal = async (formData: FormData, file: File, workPlanFil
   }
 
   // Step 3: Submit proposal metadata as JSON with the S3 file URL(s)
-  const agencies = formData.cooperating_agencies.map((a: any) => (a.created_at ? a.id : a.name));
+  // Cooperating agencies: matched entries carry a real FK id (sent as number);
+  // free-text entries (external partners flagged `free_text: true`) are sent
+  // as the bare name string. Backend splits these into agency_id vs
+  // agency_name_text in the cooperating_agencies junction.
+  const agencies = formData.cooperating_agencies.map((a: any) => {
+    if (a?.free_text === true) return a.name;
+    if (typeof a?.id === "number" && a.id > 0) return a.id;
+    if (typeof a?.name === "string" && a.name.trim()) return a.name.trim();
+    return null;
+  }).filter((v: any) => v !== null);
   const implementationMode = (formData.cooperating_agencies?.length || 0) > 1 ? "multi_agency" : "single_agency";
 
   const { data } = await api.post<CreateProposalResponse>("/proposal/create", {

@@ -151,7 +151,10 @@ export default function Proposals() {
           modeOfImplementation: proposalObj.implementation_mode === "multi_agency" ? "Multi Agency" : "Single Agency",
           implementationSites: (proposalObj.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
           priorityAreas: (proposalObj.proposal_priorities || []).map((pp: any) => pp.priorities?.name).join(", "),
-          cooperatingAgencies: (proposalObj.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+          cooperatingAgencies: (proposalObj.cooperating_agencies || [])
+            .map((ca: any) => ca.agencies?.name ?? ca.agency_name_text ?? "")
+            .filter((s: string) => s.length > 0)
+            .join(", "),
           rdStation: proposalObj.rnd_station?.name || "N/A",
           classification: proposalObj.classification_type === "research_class" ? "Research" : "Development",
           classificationDetails: proposalObj.class_input || "N/A",

@@ -74,6 +74,12 @@ const Submission: React.FC = () => {
 
   // Track which fields were auto-filled from the uploaded document
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
+  // When autofill parsed a value for a strict admin-managed lookup (sector,
+  // discipline, agency, priorities) that doesn't exist in the dropdown, stash
+  // the raw text here so the field renders an inline "we couldn't match this —
+  // please pick from the list" hint. Keys: "sector" | "discipline" | "agency"
+  // | "priorities" (for priorities, value is a newline-joined list of misses).
+  const [autoFillUnmatched, setAutoFillUnmatched] = useState<Record<string, string>>({});
   const sectionOrder = ["basic-info", "research-details", "budget"] as const;
 
   // --- FIX 1: UPDATE INITIAL STATE STRUCTURE ---
@@ -256,8 +262,8 @@ const Submission: React.FC = () => {
   const validateResearchDetails = (): boolean => {
     const {
       researchStation,
-      sectorCommodity,
-      disciplineName,
+      sector,
+      discipline,
       priorities_id,
       classification_type,
       class_input
@@ -266,8 +272,11 @@ const Submission: React.FC = () => {
     const missingFields: string[] = [];
 
     if (!researchStation?.trim()) missingFields.push("Research Station");
-    if (!sectorCommodity?.trim()) missingFields.push("Sector/Commodity");
-    if (!disciplineName?.trim()) missingFields.push("Discipline");
+    // Require an actual FK id, not just the display name — the autofill used to
+    // let raw parsed text survive as sectorCommodity without an ID, which would
+    // FK-error on insert. Sector is admin-managed; proponent must pick one.
+    if (typeof sector !== "number" || sector <= 0) missingFields.push("Sector/Commodity (please pick from the list)");
+    if (typeof discipline !== "number" || discipline <= 0) missingFields.push("Discipline (please pick from the list)");
     if (!priorities_id || priorities_id.length === 0) missingFields.push("Priority Areas");
     if (!classification_type) missingFields.push("Classification Type");
     if (!class_input?.trim()) missingFields.push("Specific Classification (Research/Development Type)");
@@ -387,13 +396,15 @@ const Submission: React.FC = () => {
       tags,
     } = localFormData;
 
+    // Funding agency is an admin-managed strict lookup — require a real FK id,
+    // not the raw text autofill may have stashed here on a lookup miss.
     return !!(
       project_title?.trim() &&
       YEAR_REGEX.test(String(year ?? "")) &&
       plannedStartDate &&
       plannedEndDate &&
       duration &&
-      agency &&
+      typeof agency === "number" && agency > 0 &&
       agencyAddress?.city?.trim() &&
       telephone?.trim() &&
       email?.trim() &&
@@ -404,8 +415,8 @@ const Submission: React.FC = () => {
   const canGoNextFromResearchDetails = useMemo(() => {
     const {
       researchStation,
-      sectorCommodity,
-      disciplineName,
+      sector,
+      discipline,
       priorities_id,
       classification_type,
       class_input,
@@ -416,10 +427,13 @@ const Submission: React.FC = () => {
     const hasValidSite = sites.some((s: { site: string; city: string }) => s.site?.trim() && s.city?.trim());
     const hasInvalidSite = sites.some((s: { site: string; city: string }) => !s.site?.trim() || !s.city?.trim());
 
+    // Sector + discipline must resolve to a real FK id — display-name-only is
+    // a broken state left over from autofill misses. Block forward navigation
+    // until the proponent explicitly picks from the list.
     return !!(
       researchStation?.trim() &&
-      sectorCommodity?.trim() &&
-      disciplineName?.trim() &&
+      typeof sector === "number" && sector > 0 &&
+      typeof discipline === "number" && discipline > 0 &&
       priorities_id?.length &&
       classification_type &&
       class_input?.trim() &&
@@ -645,6 +659,9 @@ const Submission: React.FC = () => {
   const applyAutoFill = useCallback((fields: FormExtractedFields) => {
     // "year" is always auto-populated (from document or defaults to current year)
     const filled = new Set<string>(["year"]);
+    // Raw values the autofill parsed for strict lookups that aren't in the
+    // admin-managed list. Surfaced as inline hints next to each field.
+    const unmatched: Record<string, string> = {};
 
     setLocalFormData((prev: any) => {
       const updated = { ...prev };
@@ -655,16 +672,19 @@ const Submission: React.FC = () => {
       if (fields.telephone) { updated.telephone = fields.telephone; filled.add("telephone"); }
       if (fields.email) { updated.email = fields.email; filled.add("email"); }
 
-      // Agency: fuzzy-match name to existing lookup
+      // Agency: strict admin-managed lookup. If the parsed name doesn't exactly
+      // match an existing funding agency, don't pollute the field — leave it
+      // blank and surface the parsed text as an inline hint so the proponent
+      // picks one manually (or asks admin to add it).
       if (fields.agency_name) {
         const lower = fields.agency_name.toLowerCase();
         const match = lookups.agencies.find(a => a.name.toLowerCase() === lower);
         if (match) {
           updated.agency = match.id;
+          filled.add("agency");
         } else {
-          updated.agency = fields.agency_name;
+          unmatched.agency = fields.agency_name;
         }
-        filled.add("agency");
       }
 
       // Agency address
@@ -679,11 +699,16 @@ const Submission: React.FC = () => {
       }
 
       // --- (2) Cooperating Agencies ---
+      // Cooperating agencies are legitimately varied (barangay councils, NGOs,
+      // private partners). Matched entries carry an `id` (FK into agencies);
+      // unmatched entries carry `free_text: true` and only a `name`. The
+      // backend splits these into `agency_id` vs `agency_name_text` columns.
+      // Do NOT fabricate a fake id — it used to cause FK violations at insert.
       if (fields.cooperating_agency_names && fields.cooperating_agency_names.length > 0) {
         const matched = fields.cooperating_agency_names.map(name => {
           const lower = name.toLowerCase();
           const found = lookups.agencies.find(a => a.name.toLowerCase() === lower);
-          return found ? { id: found.id, name: found.name } : { id: Date.now() + Math.random(), name };
+          return found ? { id: found.id, name: found.name } : { name, free_text: true };
         });
         updated.cooperating_agencies = matched;
         filled.add("cooperating_agencies");
@@ -698,35 +723,37 @@ const Submission: React.FC = () => {
       if (fields.class_input) { updated.class_input = fields.class_input; filled.add("classification"); }
 
       // --- (6) Priority Areas / STAND Classification ---
+      // Strict multi-select lookup. Resolved terms go into priorities_id /
+      // priorities_names so the UI pre-selects the right pills. Unresolved
+      // terms are collected separately and rendered as a hint; they do NOT
+      // pre-select anything, so the proponent must pick a real priority.
       if (fields.priority_areas) {
-        console.log("[AutoFill] priority_areas from AI:", fields.priority_areas);
-        console.log("[AutoFill] lookups.priorities count:", lookups.priorities.length, lookups.priorities.slice(0, 5));
-        // The extracted value may be a comma-separated list like "Support Industries, STAND"
         const extractedTerms = fields.priority_areas.split(",").map(t => t.trim()).filter(Boolean);
         const matchedIds: number[] = [];
         const matchedNames: string[] = [];
+        const missedTerms: string[] = [];
 
         for (const term of extractedTerms) {
           const lower = term.toLowerCase();
-          // Fuzzy match: the priority name includes the extracted term OR vice versa
           const match = lookups.priorities.find(
             p => p.name.toLowerCase().includes(lower) || lower.includes(p.name.toLowerCase())
           );
-          console.log("[AutoFill] term:", term, "→ match:", match);
           if (match) {
             if (!matchedIds.includes(match.id)) matchedIds.push(match.id);
             if (!matchedNames.includes(match.name)) matchedNames.push(match.name);
-          } else {
-            // No DB match — store the raw text so the user can see it was detected
-            if (!matchedNames.includes(term)) matchedNames.push(term);
+          } else if (!missedTerms.includes(term)) {
+            missedTerms.push(term);
           }
         }
 
-        console.log("[AutoFill] matchedIds:", matchedIds, "matchedNames:", matchedNames);
-        if (matchedIds.length > 0) updated.priorities_id = matchedIds;
-        // priorities_names is used by researchDetails.tsx to pre-select the pill UI
-        if (matchedNames.length > 0) updated.priorities_names = matchedNames;
-        filled.add("priorities");
+        if (matchedIds.length > 0) {
+          updated.priorities_id = matchedIds;
+          updated.priorities_names = matchedNames;
+          filled.add("priorities");
+        }
+        if (missedTerms.length > 0) {
+          unmatched.priorities = missedTerms.join("\n");
+        }
       }
 
       // --- (7) Sector ---
@@ -736,10 +763,10 @@ const Submission: React.FC = () => {
         if (match) {
           updated.sector = match.id;
           updated.sectorCommodity = match.name;
+          filled.add("sector");
         } else {
-          updated.sectorCommodity = fields.sector;
+          unmatched.sector = fields.sector;
         }
-        filled.add("sector");
       }
 
       // --- (8) Discipline ---
@@ -749,10 +776,10 @@ const Submission: React.FC = () => {
         if (match) {
           updated.discipline = match.id;
           updated.disciplineName = match.name;
+          filled.add("discipline");
         } else {
-          updated.disciplineName = fields.discipline;
+          unmatched.discipline = fields.discipline;
         }
-        filled.add("discipline");
       }
 
       // --- (15) Duration & Dates ---
@@ -809,6 +836,7 @@ const Submission: React.FC = () => {
     });
 
     setAutoFilledFields(filled);
+    setAutoFillUnmatched(unmatched);
   }, [lookups]);
 
   // AI Template Check - Updated to use real AI
@@ -963,6 +991,14 @@ const Submission: React.FC = () => {
                   onInputChange={handleInputChange}
                   onUpdate={handleDirectUpdate}
                   autoFilledFields={autoFilledFields}
+                  autoFillUnmatched={autoFillUnmatched}
+                  onResolveUnmatched={(key: string) =>
+                    setAutoFillUnmatched((prev) => {
+                      if (!(key in prev)) return prev;
+                      const { [key]: _removed, ...rest } = prev;
+                      return rest;
+                    })
+                  }
                 />
               )}
               {activeSection === "research-details" && (
@@ -970,6 +1006,14 @@ const Submission: React.FC = () => {
                   formData={localFormData}
                   onUpdate={handleDirectUpdate}
                   autoFilledFields={autoFilledFields}
+                  autoFillUnmatched={autoFillUnmatched}
+                  onResolveUnmatched={(key: string) =>
+                    setAutoFillUnmatched((prev) => {
+                      if (!(key in prev)) return prev;
+                      const { [key]: _removed, ...rest } = prev;
+                      return rest;
+                    })
+                  }
                 />
               )}
               {activeSection === "budget" && (

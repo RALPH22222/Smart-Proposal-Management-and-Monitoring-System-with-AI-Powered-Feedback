@@ -29,10 +29,20 @@ interface ResearchDetailsProps {
   formData: FormData;
   onUpdate: (field: keyof FormData, value: any) => void;
   autoFilledFields?: Set<string>;
+  /** Raw text autofill detected for strict lookups that don't match. Keys: "sector" | "discipline" | "priorities". */
+  autoFillUnmatched?: Record<string, string>;
+  /** Clear one unmatched hint once the proponent picks a real value. */
+  onResolveUnmatched?: (key: string) => void;
 }
 
 // Fixed: Removed unused 'onInputChange' from destructuring
-const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, autoFilledFields = new Set() }) => {
+const ResearchDetails: React.FC<ResearchDetailsProps> = ({
+  formData,
+  onUpdate,
+  autoFilledFields = new Set(),
+  autoFillUnmatched = {},
+  onResolveUnmatched,
+}) => {
   const lookups = useLookups();
   const { user } = useAuthContext();
 
@@ -259,6 +269,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
     onUpdate("sectorCommodity", sector.name);
     onUpdate("sector", sector.id);
     setIsSectorOpen(false);
+    onResolveUnmatched?.("sector");
   };
 
   const handleSectorBlur = () => {
@@ -274,6 +285,7 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
     onUpdate("disciplineName", discipline.name);
     onUpdate("discipline", discipline.id);
     setIsDisciplineOpen(false);
+    onResolveUnmatched?.("discipline");
   };
 
   const handleDisciplineBlur = () => {
@@ -312,22 +324,19 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
       return;
     }
 
-    if (!selectedPriorities.includes(value)) {
-      const newSelected = [...selectedPriorities, value];
-      setSelectedPriorities(newSelected);
+    // Priorities is a strict admin-managed multi-select — silently drop any
+    // value that doesn't resolve to a known entry. The combobox should only
+    // ever surface real priorityList entries so in practice this guards
+    // against autofill residue / stale state.
+    const priorityEntry = prioritiesList.find((p) => p.name === value);
+    if (!priorityEntry) return;
 
-      const priorityEntry = prioritiesList.find((p) => p.name === value);
-      const currentIds = (formData.priorities_id || []).filter((id): id is number => typeof id === "number");
+    const newSelected = [...selectedPriorities, value];
+    setSelectedPriorities(newSelected);
 
-      if (priorityEntry) {
-        const newIds = [...currentIds, priorityEntry.id];
-        onUpdate("priorities_id", newIds);
-      } else {
-        // Store name string as fallback so validation passes
-        const currentAll = formData.priorities_id || [];
-        onUpdate("priorities_id", [...currentAll, value]);
-      }
-    }
+    const currentIds = (formData.priorities_id || []).filter((id): id is number => typeof id === "number");
+    onUpdate("priorities_id", [...currentIds, priorityEntry.id]);
+    onResolveUnmatched?.("priorities");
   };
 
   const handleAddPriority = () => {
@@ -335,24 +344,19 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
     const newItem = priorityInput.trim();
 
     if (!selectedPriorities.includes(newItem)) {
-      // Add name to display list
+      // Strict enum — only accept typed text that matches an existing priority.
+      // Typing a custom priority is no longer allowed; admin owns this taxonomy.
+      const priorityEntry = prioritiesList.find((p) => p.name === newItem);
+      if (!priorityEntry) {
+        setPriorityInput("");
+        return;
+      }
+
       const newSelected = [...selectedPriorities, newItem];
       setSelectedPriorities(newSelected);
-
-      // Find ID from prioritiesList - backend expects numeric IDs
-      const priorityEntry = prioritiesList.find((p) => p.name === newItem);
       const currentIds = (formData.priorities_id || []).filter((id): id is number => typeof id === "number");
-
-      if (priorityEntry) {
-        // Add the numeric ID to formData
-        const newIds = [...currentIds, priorityEntry.id];
-        onUpdate("priorities_id", newIds);
-      } else {
-        // Custom priority not in list — store the name string so validation passes.
-        // The API layer will filter strings out before sending to the backend.
-        const currentAll = formData.priorities_id || [];
-        onUpdate("priorities_id", [...currentAll, newItem]);
-      }
+      onUpdate("priorities_id", [...currentIds, priorityEntry.id]);
+      onResolveUnmatched?.("priorities");
     }
 
     setPriorityInput("");
@@ -467,6 +471,13 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
               </div>
             )}
           </div>
+          {autoFillUnmatched.sector && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+              <span className="font-semibold">Auto-detected from your file:</span>{' '}
+              &ldquo;{autoFillUnmatched.sector}&rdquo; — we couldn't match this to our sector list.
+              Please pick the closest option above, or ask admin to add it.
+            </p>
+          )}
         </div>
 
         {/* Discipline */}
@@ -505,6 +516,13 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
               </div>
             )}
           </div>
+          {autoFillUnmatched.discipline && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+              <span className="font-semibold">Auto-detected from your file:</span>{' '}
+              &ldquo;{autoFillUnmatched.discipline}&rdquo; — we couldn't match this to our discipline list.
+              Please pick the closest option above, or ask admin to add it.
+            </p>
+          )}
         </div>
       </div>
 
@@ -875,7 +893,18 @@ const ResearchDetails: React.FC<ResearchDetailsProps> = ({ formData, onUpdate, a
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-500">Select from the list or type your own custom priority area and press Enter.</p>
+        <p className="text-xs text-gray-500">Pick one or more priority areas from the list. This taxonomy is managed by admin.</p>
+        {autoFillUnmatched.priorities && (
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+            <p className="font-semibold mb-1">Auto-detected from your file — couldn't match these to our priority list:</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              {autoFillUnmatched.priorities.split('\n').map((term, i) => (
+                <li key={i}>&ldquo;{term}&rdquo;</li>
+              ))}
+            </ul>
+            <p className="mt-1">Please pick the closest matching priorities above, or ask admin to add them.</p>
+          </div>
+        )}
       </div>
 
     </div >

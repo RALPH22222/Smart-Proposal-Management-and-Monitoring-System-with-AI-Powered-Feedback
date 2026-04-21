@@ -138,7 +138,10 @@ export default function ReviewedProposals() {
           implementationSites: (p.implementation_site || []).map((s: any) => ({ site: s.site_name, city: s.city })),
           telephone: p.phone || "N/A",
           email: p.email || "N/A",
-          cooperatingAgencies: (p.cooperating_agencies || []).map((ca: any) => ca.agencies?.name).join(", "),
+          cooperatingAgencies: (p.cooperating_agencies || [])
+            .map((ca: any) => ca.agencies?.name ?? ca.agency_name_text ?? "")
+            .filter((s: string) => s.length > 0)
+            .join(", "),
           rdStation: p.rnd_station?.name || "N/A",
           classification: p.classification_type === 'research_class' ? 'Research' : 'Development',
           classificationDetails: p.class_input || p.research_class || p.development_class || "N/A",

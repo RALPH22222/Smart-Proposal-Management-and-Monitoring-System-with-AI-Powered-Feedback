@@ -438,8 +438,8 @@ const Profile: React.FC = () => {
       email: val(raw.email),
       cooperatingAgencies: Array.isArray(raw.cooperating_agencies)
         ? raw.cooperating_agencies
-          .map((c: any) => c.agencies?.name)
-          .filter(Boolean)
+          .map((c: any) => c.agencies?.name ?? c.agency_name_text ?? "")
+          .filter((s: string) => s.length > 0)
           .join(", ")
         : "",
       rdStation:

@@ -243,7 +243,10 @@ const mapToProposal = (data: any, departments: LookupItem[] = []): Proposal => {
       : [],
     priorityAreas: data.proposal_priorities?.map((p: any) => p.priorities?.name).join(', ') || '',
     projectType: data.proposal_tags?.map((t: any) => t.tags?.name).join(', ') || '', // Using tags as type?
-    cooperatingAgencies: data.cooperating_agencies?.map((c: any) => c.agencies?.name).join(', ') || '',
+    cooperatingAgencies: data.cooperating_agencies
+      ?.map((c: any) => c.agencies?.name ?? c.agency_name_text ?? '')
+      .filter((s: string) => s.length > 0)
+      .join(', ') || '',
     rdStation: rdStationName,
     classification: data.classification_type || '', // map "research_class" etc
     classificationDetails: data.class_input || '',

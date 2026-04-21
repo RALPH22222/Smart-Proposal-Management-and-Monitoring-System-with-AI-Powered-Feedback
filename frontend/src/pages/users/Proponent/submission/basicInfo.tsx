@@ -34,9 +34,20 @@ interface BasicInformationProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onUpdate: (field: string, value: any) => void;
   autoFilledFields?: Set<string>;
+  /** Raw text autofill detected for strict lookups that don't match. Keys: "agency" (funding agency). */
+  autoFillUnmatched?: Record<string, string>;
+  /** Clear one unmatched hint once the proponent picks a real value. */
+  onResolveUnmatched?: (key: string) => void;
 }
 
-const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputChange, onUpdate, autoFilledFields = new Set() }) => {
+const BasicInformation: React.FC<BasicInformationProps> = ({
+  formData,
+  onInputChange,
+  onUpdate,
+  autoFilledFields = new Set(),
+  autoFillUnmatched = {},
+  onResolveUnmatched,
+}) => {
   const YEAR_REGEX = /^\d+$/;
   const { user } = useAuthContext();
   const lookups = useLookups();
@@ -368,10 +379,14 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
   };
 
   // --- HANDLERS ---
+  // Typing in the agency field filters the dropdown. We clear the FK while the
+  // user is typing so the validator forces a fresh selection — previously we
+  // let raw text sit in formData.agency, which meant the form looked valid but
+  // the backend got a string where an id was expected.
   const handleAgencyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAgencySearchTerm(value);
-    onUpdate("agency", value);
+    onUpdate("agency", "");
     setAvailableAddresses([]);
   };
 
@@ -379,6 +394,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
     onUpdate("agency", agency.id);
     setAgencySearchTerm(agency.name);
     setIsAgencyDropdownOpen(false);
+    onResolveUnmatched?.("agency");
 
     // Helper to find best PSGC match
     const findCityMatch = (name: string) => {
@@ -458,19 +474,36 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
   const handleCreateAgency = () => {
     if (!cooperatingSearchTerm.trim()) return;
-    if (selectedAgencies.some((a) => a.name.toLowerCase() === cooperatingSearchTerm.trim().toLowerCase())) {
+    const name = cooperatingSearchTerm.trim();
+    if (selectedAgencies.some((a) => a.name.toLowerCase() === name.toLowerCase())) {
       setCooperatingSearchTerm("");
       return;
     }
-    const newAgency: AgencyItem = { id: Date.now(), name: cooperatingSearchTerm.trim(), agency_address: [] };
-    setAgenciesList((prev) => [...prev, newAgency]);
-    handleAgencySelect(newAgency);
+    // Free-text chip — NO fake id. The backend splits these into the
+    // agency_name_text column on cooperating_agencies so we don't pollute
+    // the admin-managed funding-agency lookup with one-off partners.
+    const newAgency: AgencyItem & { free_text?: boolean } = {
+      id: 0 as any, // sentinel; the backend ignores this when free_text is true
+      name,
+      agency_address: [],
+      free_text: true,
+    };
+    const newSelected = [...selectedAgencies, newAgency];
+    setSelectedAgencies(newSelected);
+    onUpdate("cooperating_agencies", newSelected);
     setCooperatingSearchTerm("");
     setIsCooperatingDropdownOpen(false);
   };
 
-  const handleAgencyRemove = (agencyId: number) => {
-    const newSelectedAgencies = selectedAgencies.filter((a) => a.id !== agencyId);
+  // Free-text cooperating agencies share the sentinel `id: 0`, so filtering
+  // only by id would remove every free-text chip at once. Key removal by
+  // name when the chip is free_text, by id otherwise.
+  const handleAgencyRemove = (target: AgencyItem & { free_text?: boolean }) => {
+    const newSelectedAgencies = selectedAgencies.filter((a) => {
+      const isSameFreeText = (a as any).free_text && (target as any).free_text && a.name === target.name;
+      const isSameFk = !(a as any).free_text && !(target as any).free_text && a.id === target.id;
+      return !(isSameFreeText || isSameFk);
+    });
     setSelectedAgencies(newSelectedAgencies);
     onUpdate("cooperating_agencies", newSelectedAgencies);
   };
@@ -848,6 +881,13 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
             </div>
           )}
         </div>
+        {autoFillUnmatched.agency && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1">
+            <span className="font-semibold">Auto-detected from your file:</span>{' '}
+            &ldquo;{autoFillUnmatched.agency}&rdquo; — we couldn't match this to our agency list.
+            Please pick the closest option above, or ask admin to add it.
+          </p>
+        )}
       </div>
 
       {/* ADDRESS */}
@@ -1079,18 +1119,31 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ formData, onInputCh
 
         {selectedAgencies.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
-            {selectedAgencies.map((agency) => (
-              <span key={agency.id} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                {agency.name}
-                <button
-                  type="button"
-                  onClick={() => handleAgencyRemove(agency.id)}
-                  className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors hover:text-red-500 focus:outline-none"
+            {selectedAgencies.map((agency) => {
+              const isFreeText = (agency as any).free_text === true;
+              const key = isFreeText ? `text-${agency.name}` : `fk-${agency.id}`;
+              return (
+                <span
+                  key={key}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    isFreeText
+                      ? 'bg-amber-50 text-amber-800 border border-dashed border-amber-300'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}
+                  title={isFreeText ? 'External partner — not in the admin-managed agency list' : undefined}
                 >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </span>
-            ))}
+                  {agency.name}
+                  {isFreeText && <span className="ml-1.5 text-[10px] uppercase tracking-wider opacity-70">external</span>}
+                  <button
+                    type="button"
+                    onClick={() => handleAgencyRemove(agency as AgencyItem & { free_text?: boolean })}
+                    className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full transition-colors hover:text-red-500 focus:outline-none"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              );
+            })}
           </div>
         )}
         <div className="relative">

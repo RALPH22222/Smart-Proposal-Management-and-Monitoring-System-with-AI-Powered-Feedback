@@ -106,13 +106,26 @@ const normalizeImplementationSite = (val: unknown) => {
 };
 
 // Helper to normalize cooperating agencies.
-// Frontend sends a mixed array: numeric ids for existing agencies, name strings for new ones.
-// e.g. [29, 33, "Test Subject #3"]
-// resolveLookupId handles both: numbers used as-is, strings looked up or created.
+// Frontend sends a mixed array: numeric ids for existing admin-managed agencies,
+// and name strings for external partners not in the lookup (barangay councils,
+// NGOs, etc.). Matched ids land in the agency_id FK column of cooperating_agencies;
+// unmatched strings land in the agency_name_text column. The frontend may send
+// either primitives (id | string) or {id,name} objects — flatten here so the
+// service only ever sees the primitive form.
 const normalizeCooperatingAgencies = (val: unknown) => {
   const parsed = parseJsonIfString(val);
   if (!Array.isArray(parsed)) return [];
-  return parsed;
+  return parsed
+    .map((item: unknown) => {
+      if (typeof item === "number" || typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        if (typeof obj.id === "number" && Number.isFinite(obj.id) && obj.id > 0) return obj.id;
+        if (typeof obj.name === "string" && obj.name.trim()) return obj.name.trim();
+      }
+      return null;
+    })
+    .filter((v): v is number | string => v !== null);
 };
 
 export const proposalSchema = z.object({
