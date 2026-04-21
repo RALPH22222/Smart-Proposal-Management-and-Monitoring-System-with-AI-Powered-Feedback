@@ -29,7 +29,7 @@ import {
 } from '../../types/InterfaceProposal';
 import { type Evaluator } from '../../types/evaluator';
 import { fetchUsersByRole, fetchDepartments, fetchRejectionSummary, type UserItem, type RejectionSummary, getProposalUploadUrl } from '../../services/proposal.api';
-import { redactFile } from '../../utils/file-redactor';
+import { getAutoRedactionUnsupportedReason, redactFile } from '../../utils/file-redactor';
 import { buildRedactionTargets } from '../../utils/redaction-targets';
 import { getSignedFileUrl } from '../../utils/signed-url';
 import SecureImage from '../shared/SecureImage';
@@ -141,6 +141,8 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   const [redactedFileUrl, setRedactedFileUrl] = useState<string | null>(null);
   const [redactionCount, setRedactionCount] = useState<number>(0);
   const [redactionError, setRedactionError] = useState<string | null>(null);
+  const proposalFileUrl = proposal?.documentUrl || proposal?.projectFile || null;
+  const autoRedactionUnsupportedReason = getAutoRedactionUnsupportedReason(proposalFileUrl);
 
   const [activeSection, setActiveSection] = useState<string>('title');
   const [typingSection, setTypingSection] = useState<string>('');
@@ -352,9 +354,14 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
   const handleAutoRedact = async () => {
     if (!proposal) return;
 
-    const fileUrl = proposal.documentUrl || proposal.projectFile;
+    const fileUrl = proposalFileUrl;
     if (!fileUrl) {
       setRedactionError("No proposal file found to redact.");
+      return;
+    }
+
+    if (autoRedactionUnsupportedReason) {
+      setRedactionError(autoRedactionUnsupportedReason);
       return;
     }
 
@@ -998,14 +1005,24 @@ const AdminProposalModal: React.FC<AdminProposalModalProps> = ({
                 <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                   <h4 className="text-sm font-bold text-amber-800 mb-2">File Anonymization</h4>
                   <p className="text-xs text-amber-700 mb-3">
-                    The proposal file may contain the proponent's name or agency. Auto-redact to black out matching text, or upload a manually redacted version.
+                    Auto-redact scans the current proposal file for the selected proponent name and/or agency, blacks out matching text, and uploads a new anonymized copy.
                   </p>
+                  <p className="text-xs text-amber-700 mb-3">
+                    Supported auto-redact formats: PDF and DOCX. Use Upload Redacted File for legacy DOC files or when you want to review edits manually before sending.
+                  </p>
+
+                  {autoRedactionUnsupportedReason && (
+                    <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {autoRedactionUnsupportedReason}
+                    </p>
+                  )}
 
                   <div className="flex gap-2 mb-2">
                     <button
                       type="button"
                       onClick={handleAutoRedact}
-                      disabled={isRedacting || isLoading}
+                      disabled={isRedacting || isLoading || Boolean(autoRedactionUnsupportedReason)}
+                      title={autoRedactionUnsupportedReason ?? undefined}
                       className="flex-1 px-3 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isRedacting ? 'Redacting...' : 'Auto-Redact File'}

@@ -7,6 +7,38 @@ import type { TextItem } from "pdfjs-dist/types/src/display/api";
 // Bundle the PDF.js worker with the app so redaction doesn't depend on a CDN.
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
+const AUTO_REDACTION_SUPPORTED_EXTENSIONS = new Set(["pdf", "docx"]);
+
+export function getFileExtension(fileNameOrUrl?: string | null): string | null {
+  if (!fileNameOrUrl) return null;
+
+  const normalized = fileNameOrUrl.split(/[?#]/)[0]?.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const match = normalized.match(/\.([a-z0-9]+)$/);
+  return match?.[1] ?? null;
+}
+
+export function getAutoRedactionUnsupportedReason(
+  fileNameOrUrl?: string | null,
+): string | null {
+  const extension = getFileExtension(fileNameOrUrl);
+
+  if (!extension) {
+    return null;
+  }
+
+  if (AUTO_REDACTION_SUPPORTED_EXTENSIONS.has(extension)) {
+    return null;
+  }
+
+  if (extension === "doc") {
+    return "Auto-redact supports PDF and DOCX files only. This proposal is a DOC file, so upload a manually redacted version instead.";
+  }
+
+  return `Auto-redact supports PDF and DOCX files only. This proposal is a .${extension} file, so upload a manually redacted version instead.`;
+}
+
 /**
  * XML file paths within a DOCX archive that may contain visible text.
  * Header/footer counts vary per document, so match them dynamically.
