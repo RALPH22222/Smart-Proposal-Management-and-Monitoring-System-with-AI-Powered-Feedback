@@ -6,7 +6,14 @@ import { removeEvaluatorSchema } from "../../schemas/proposal-schema";
 import { logActivity } from "../../utils/activity-logger";
 
 export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
-    const payload = JSON.parse(event.body || "{}");
+    // Read from query params rather than event.body. DELETE-with-body is
+    // unreliable across Vercel rewrites and some API Gateway configurations,
+    // so callers now send proposal_id and evaluator_id as query strings.
+    const qs = event.queryStringParameters || {};
+    const payload = {
+        proposal_id: qs.proposal_id != null ? Number(qs.proposal_id) : undefined,
+        evaluator_id: qs.evaluator_id,
+    };
 
     // Payload Validation
     const result = removeEvaluatorSchema.safeParse(payload);
