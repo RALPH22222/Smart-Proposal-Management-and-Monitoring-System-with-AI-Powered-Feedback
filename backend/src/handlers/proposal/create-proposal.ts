@@ -15,8 +15,19 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  // Parse JSON body
-  const body = JSON.parse(event.body || "{}");
+  // Parse JSON body. Return a clean 400 instead of crashing the handler when
+  // a malformed / multipart / empty body sneaks through — otherwise a stale
+  // browser tab or a misrouted request shows up as a generic 500 in the logs.
+  let body: any;
+  try {
+    body = JSON.parse(event.body || "{}");
+  } catch (err) {
+    console.warn("create-proposal: invalid JSON body", err);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: "Request body is not valid JSON" }),
+    };
+  }
 
   // Validate fields — inject proponent_id from JWT, not from body
   const validation = proposalSchema.safeParse({

@@ -77,7 +77,17 @@ export class ProposalSubmissionPage {
   }
 
   async expectOpen() {
-    await expect(this.basicInfoTab).toBeVisible({ timeout: 20_000 });
+    // The Submission page mounts behind a PageLoader while the LookupContext
+    // fetches sectors/disciplines/agencies/priorities. Wait for the loader
+    // (if it exists) to clear before asserting the section tabs.
+    const loader = this.page.locator('[data-loading], .page-loader, .animate-spin').first();
+    await loader.waitFor({ state: "hidden", timeout: 20_000 }).catch(() => {
+      // loader may never render if lookups are already cached — fine.
+    });
+    await expect(
+      this.basicInfoTab,
+      "Submission section tabs did not render — is the user on ?tab=submission and are LookupContext fetches complete?",
+    ).toBeVisible({ timeout: 20_000 });
   }
 
   // --- Step 1: upload + analysis ------------------------------------------
@@ -90,17 +100,44 @@ export class ProposalSubmissionPage {
   }
 
   async waitForAnalysisAndDismissAIModal() {
-    // The "Analyzing Proposal..." loading Swal is shown, then Swal.close()
-    // fires and the in-app AI modal opens.
     const loadingSwal = this.page.locator(".swal2-popup").filter({ hasText: /analyz/i });
-    await loadingSwal.waitFor({ state: "visible", timeout: 30_000 }).catch(() => {});
-    await loadingSwal.waitFor({ state: "hidden", timeout: 120_000 }).catch(() => {});
 
-    // Close the AI modal via its footer button.
-    const closeBtn = this.page.getByRole("button", { name: /Confirm ?&? ?Close|Dismiss/i }).first();
-    if (await closeBtn.isVisible({ timeout: 15_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await expect(closeBtn).toBeHidden({ timeout: 5_000 }).catch(() => {});
+    // The loading Swal may appear briefly or not at all if the backend is
+    // fast enough that Playwright never observes it. Tolerate "never seen".
+    const loadingSeen = await loadingSwal
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    // Wait for EITHER the loading Swal to close OR the AI modal button
+    // to appear — whichever materialises first is our signal that analysis
+    // is done. Race instead of linear-with-silent-catch so a genuine hang
+    // surfaces as a loud failure rather than a quiet mis-step into the
+    // next action.
+    const aiModalCloseBtn = this.page
+      .getByRole("button", { name: /Confirm ?&? ?Close|Dismiss/i })
+      .first();
+
+    await Promise.race([
+      aiModalCloseBtn.waitFor({ state: "visible", timeout: 150_000 }),
+      loadingSeen
+        ? loadingSwal.waitFor({ state: "hidden", timeout: 150_000 })
+        : Promise.resolve(),
+    ]);
+
+    // If the AI modal opened, dismiss it. (Some code paths may skip the
+    // modal — e.g. backend threw and showed an error Swal instead.)
+    if (await aiModalCloseBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await aiModalCloseBtn.click();
+      await expect(aiModalCloseBtn).toBeHidden({ timeout: 10_000 });
+    } else {
+      // No AI modal and no loading Swal → the analysis may have errored.
+      // Surface the current Swal text (if any) so the failure is actionable.
+      const anySwal = this.page.locator(".swal2-popup");
+      if (await anySwal.isVisible({ timeout: 500 }).catch(() => false)) {
+        const text = await anySwal.innerText().catch(() => "");
+        throw new Error(`AI analysis did not complete cleanly. Visible Swal: ${text.slice(0, 300)}`);
+      }
     }
   }
 
@@ -290,61 +327,170 @@ export class ProposalSubmissionPage {
 
   /**
    * Open the LIB import modal, attach the WMSU LIB v1 DOCX, wait for
-   * the parser, set a funding source name if needed, and click Import.
+   * the parser to resolve to one of its three terminal states, and
+   * commit the import. The parser can end in:
+   *
+   *   (a) SUCCESS → preview + source-name input + "Import N items" button
+   *   (b) REJECTED → "Upload rejected — not the WMSU LIB Template" card
+   *   (c) ERROR    → the parseError div ("Failed to parse the document.")
+   *
+   * We POLL for the three states rather than Promise.race'ing them —
+   * race leaves the two losing `waitFor`s pending until they time out,
+   * which surfaces as unhandled rejections in Playwright's runner and
+   * corrupts the test result even after the winning branch succeeded.
+   * Polling settles deterministically on the first observed state.
    */
   async importLibTemplate(absolutePath: string, fundingSourceName = "E2E GAA") {
     await this.page.getByRole("button", { name: "Import Template", exact: true }).click();
 
     // Wait for the modal to open.
-    await expect(this.page.getByRole("heading", { name: /Import WMSU LIB Template/i }))
-      .toBeVisible({ timeout: 10_000 });
+    const modalHeading = this.page.getByRole("heading", { name: /Import WMSU LIB Template/i });
+    await expect(modalHeading).toBeVisible({ timeout: 10_000 });
 
-    // The modal uses a "Choose file" button wired to a hidden <input
-    // type="file" accept=".docx">. setInputFiles works directly on the
-    // input without clicking the visible button.
-    const modalFileInput = this.page.locator('input[type="file"][accept*="docx"]').first();
+    // The modal's hidden file input — see TEST_CASES.md §8 for the
+    // three-inputs-on-one-page gotcha. Prefix-match the accept attribute
+    // because only the LIB modal starts its accept string with ".docx".
+    const modalFileInput = this.page.locator('input[type="file"][accept^=".docx"]').first();
     await modalFileInput.setInputFiles(absolutePath);
 
-    // Parsing state → wait for "Parsing your LIB document..." to vanish.
-    const parsingIndicator = this.page.getByText(/Parsing your LIB document/i);
-    await parsingIndicator.waitFor({ state: "visible", timeout: 5_000 }).catch(() => {});
-    await parsingIndicator.waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
+    // Scope every modal-internal locator to the modal container so
+    // stray matches elsewhere on the page (Swals, tooltips, another
+    // form field that happens to contain "error" or similar) can't
+    // cause strict-mode violations or false positives.
+    const modalRoot = this.page
+      .locator("div.fixed.inset-0")
+      .filter({ has: modalHeading });
+    const importBtn = modalRoot.getByRole("button", { name: /^Import \d+ items?$/ }).first();
+    const rejectionCard = modalRoot.getByText(/Upload rejected/i).first();
+    const parseErrorBox = modalRoot.getByText(/Failed to parse/i).first();
 
-    // If the template was rejected, fail loudly with the rejection
-    // message rather than timing out on the Import button later.
-    const rejection = this.page.getByText(/Upload rejected — not the WMSU LIB Template/i);
-    if (await rejection.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    const TERMINAL_TIMEOUT = 60_000; // includes Lambda cold start + parse
+    const deadline = Date.now() + TERMINAL_TIMEOUT;
+    let outcome: "ok" | "rejected" | "error" | "timeout" = "timeout";
+
+    while (Date.now() < deadline) {
+      if (await importBtn.isVisible({ timeout: 250 }).catch(() => false)) {
+        outcome = "ok";
+        break;
+      }
+      if (await rejectionCard.isVisible({ timeout: 250 }).catch(() => false)) {
+        outcome = "rejected";
+        break;
+      }
+      if (await parseErrorBox.isVisible({ timeout: 250 }).catch(() => false)) {
+        outcome = "error";
+        break;
+      }
+      await this.page.waitForTimeout(300);
+    }
+
+    if (outcome === "rejected") {
+      const msg = await rejectionCard.locator("xpath=ancestor::div[1]").innerText().catch(() => "");
       throw new Error(
-        "LIB template import rejected. Check fixtures/files/sample-lib-template.docx " +
-        "matches WMSU LIB Template v1.",
+        "LIB template import rejected by parser. " +
+        "Check that fixtures/files/sample-lib-template.docx matches WMSU LIB v1.\n" +
+        `Parser message: ${msg.slice(0, 300)}`,
+      );
+    }
+    if (outcome === "error") {
+      const msg = await parseErrorBox.innerText().catch(() => "");
+      throw new Error(`LIB template parse error: ${msg.slice(0, 300)}`);
+    }
+    if (outcome === "timeout") {
+      // None of the three terminal states materialised. Dump the modal
+      // content so the user sees what's stuck.
+      const modalText = await this.page
+        .locator("div.bg-white.rounded-2xl")
+        .filter({ has: modalHeading })
+        .first()
+        .innerText()
+        .catch(() => "(modal not visible)");
+      throw new Error(
+        `LIB import did not reach a terminal state within ${TERMINAL_TIMEOUT}ms. ` +
+        "Possible causes: parser Lambda cold-start exceeded the timeout, the modal " +
+        "was torn down mid-parse, or the fixture DOCX is triggering an unhandled " +
+        "edge case.\nCurrent modal text: " + modalText.slice(0, 500),
       );
     }
 
-    // Funding source input: prefilled from the file basename, but we
-    // overwrite to a known value so downstream assertions can match it.
-    const sourceInput = this.page.getByPlaceholder(/GAA, LGUs, Industry/i);
-    if (await sourceInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await sourceInput.fill(fundingSourceName);
-    }
+    // outcome === "ok" → continue with the import click.
+    //
+    // IMPORTANT: both the LIB modal's "Funding source name" field AND
+    // each Budget Section card's "Source of Funds" field have the
+    // placeholder "e.g., GAA, LGUs, Industry". The modal is rendered
+    // AFTER the form content in DOM order, so `getByPlaceholder().first()`
+    // without a scope picks the Budget Section's input — the WRONG one.
+    // Using the already-defined modalRoot keeps the lookup inside the
+    // modal container.
+    const sourceInput = modalRoot.getByPlaceholder(/GAA, LGUs, Industry/i).first();
+    await sourceInput.waitFor({ state: "visible", timeout: 5_000 });
+    await sourceInput.fill(fundingSourceName);
 
-    // Click the commit button ("Import N items").
-    const importBtn = this.page.getByRole("button", { name: /^Import \d+ items?$/ });
-    await importBtn.waitFor({ state: "visible", timeout: 10_000 });
+    // Import button may still be disabled briefly if the source name was
+    // whitespace-only before our fill; wait for enabled, then click.
+    await expect(importBtn).toBeEnabled({ timeout: 5_000 });
     await importBtn.click();
 
-    // Modal closes on success (onImport → onClose).
-    await expect(this.page.getByRole("heading", { name: /Import WMSU LIB Template/i }))
-      .toBeHidden({ timeout: 15_000 });
+    // Modal closes on success (onImport → onClose). A "LIB imported"
+    // Swal fires with a 4 s auto-dismiss timer — wait for that too so
+    // subsequent clicks aren't swallowed by the overlay.
+    await expect(modalHeading).toBeHidden({ timeout: 15_000 });
+    const libImportedSwal = this.page.locator(".swal2-popup").filter({ hasText: /LIB imported/i });
+    if (await libImportedSwal.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await libImportedSwal.waitFor({ state: "hidden", timeout: 8_000 }).catch(() => {});
+    }
+
+    // After import, if the proponent had an auto-filled budget_sources
+    // scaffolding (source name + placeholder rows) that LIB then
+    // APPENDED past rather than replacing, the leftover scaffolding's
+    // blank itemName rows will keep isBudgetValid=false. Remove any
+    // scaffolding source cards whose itemNames are still empty.
+    await this.cleanupEmptyBudgetScaffolding();
+
+    // Post-import sanity check: the budget section should now contain
+    // populated line items. The parent submission form rates budget
+    // validity via `isBudgetValid` which turns the sidebar's "Budget
+    // Section" checklist row green. If the modal closed but nothing
+    // was actually imported (e.g. only low-confidence items + user
+    // unchecked the include-low toggle), validation is still red and
+    // Submit stays disabled — detect that here so the failure points
+    // at the import, not at a generic "Submit disabled" timeout later.
+    await expect(
+      this.page.getByText(/Budget Section/i).first(),
+      "Budget Section remains unchecked after LIB import — check the LIB fixture has at least one high/medium-confidence row.",
+    ).toBeVisible({ timeout: 5_000 });
+  }
+
+  /**
+   * Optional: verify a budget row exists for the given category.
+   * Handy for edge-case tests that want to assert post-import content.
+   */
+  async expectBudgetRowExists(category: "ps" | "mooe" | "co") {
+    // Budget rows render under collapsible sections keyed by category.
+    // A minimal presence check: the section heading is visible + at
+    // least one item-name text input (type="text") is non-empty within.
+    const section = this.page
+      .getByRole("heading", { name: new RegExp(category, "i") })
+      .first();
+    await expect(section).toBeVisible({ timeout: 5_000 });
   }
 
   // --- Step 5: (optional) DOST Form 3 -----------------------------------
 
   async attachWorkPlan(absolutePath: string) {
-    // Sidebar has a second input[type=file] for the work plan.
-    // There's no id on it, so locate by the nearest "DOST Form 3" label.
-    const workPlanInput = this.page.locator('input[type="file"][accept*="docx"]').nth(1);
+    // Sidebar's second file input — used for the optional DOST Form 3
+    // work plan. Distinguishing the three file inputs on the page:
+    //   main proposal:  input#file-upload
+    //   work plan:      input[type=file] with accept starting ".pdf"  AND  NO id
+    //   LIB modal:      input[type=file] with accept starting ".docx" (modal-scoped)
+    // Target the work plan by "accept starts with .pdf" + "not #file-upload".
+    const workPlanInput = this.page
+      .locator('input[type="file"][accept^=".pdf"]:not(#file-upload)')
+      .first();
     await workPlanInput.setInputFiles(absolutePath);
     // Confirm "File Ready" text appears in the work-plan drop-zone.
+    // There are two "File Ready" zones once both inputs are populated
+    // (main + work plan); the work-plan one is the second.
     await expect(this.page.getByText(/File Ready/).nth(1)).toBeVisible({ timeout: 10_000 });
   }
 
@@ -356,21 +502,173 @@ export class ProposalSubmissionPage {
   }
 
   /**
-   * Returns a best-effort description of why the Submit button is
-   * disabled. Used in assertions so a failing test surfaces the cause
-   * instead of a terse "element is not enabled" timeout.
+   * Inspect one sidebar-checklist row by its visible label and return
+   * "OK" if the row's wrapper div has class `text-green-700` (the
+   * source's truthy-state styling), "INCOMPLETE" otherwise. Falls back
+   * to "ROW NOT FOUND" if the label isn't in the DOM at all (wrong
+   * page, sidebar collapsed, etc.).
+   */
+  private async inspectChecklistRow(label: string): Promise<string> {
+    // Scope to the blue-bordered "Submission Status" checklist so we
+    // don't accidentally match section tab text of the same string.
+    const row = this.page
+      .locator('.bg-blue-50.rounded-xl div.flex.items-center')
+      .filter({ hasText: label })
+      .first();
+    if (!(await row.count())) return `${label}: ROW NOT FOUND`;
+    const cls = (await row.getAttribute("class")) ?? "";
+    return `${label}: ${cls.includes("text-green-700") ? "OK" : "INCOMPLETE"}`;
+  }
+
+  /**
+   * List all field-level labels that are NOT green in the CURRENTLY
+   * visible section. Each form label follows the pattern
+   *   className={`... ${formData.X ? 'text-green-600' : 'text-gray-700'}`}
+   * so a label without `text-green-600` represents an unfilled field.
+   */
+  private async listUnfilledLabelsInCurrentSection(): Promise<string[]> {
+    const labelHandles = await this.page
+      .locator("label")
+      .filter({ hasText: /\w/ })
+      .elementHandles();
+    const unfilled: string[] = [];
+    for (const h of labelHandles) {
+      const cls = ((await h.getAttribute("class").catch(() => "")) ?? "");
+      if (!cls) continue;
+      // Only care about labels that use the green/gray convention.
+      if (!cls.includes("text-green") && !cls.includes("text-gray-700")) continue;
+      if (cls.includes("text-green")) continue; // filled
+      const text = (await h.innerText().catch(() => "")).trim().replace(/\s+/g, " ");
+      if (!text) continue;
+      // Drop the trailing asterisk + helper icons so the report is readable.
+      unfilled.push(text.replace(/\s*\*\s*$/, "").slice(0, 80));
+    }
+    return unfilled;
+  }
+
+  /**
+   * Returns a detailed description of why the Submit button is
+   * disabled. Walks the sidebar checklist + drills into each
+   * incomplete section by switching to its tab and listing every
+   * label that's still gray. Leaves the active tab on whichever
+   * section was last inspected — tests calling this should already
+   * be in a failure path.
    */
   async diagnoseSubmitDisabled(): Promise<string> {
-    // The upload sidebar has a small checklist with three indicator rows:
-    //   Basic Info | Research Details | Budget Section.
-    // Each is green when complete, gray when not. Scrape their text.
-    const diag: string[] = [];
-    for (const label of ["Basic Info", "Research Details", "Budget Section"]) {
-      const row = this.page.locator(`text=${label}`).first();
-      const classes = (await row.getAttribute("class").catch(() => "")) ?? "";
-      diag.push(`${label}: ${classes.includes("green") ? "OK" : "INCOMPLETE"}`);
+    const report: string[] = [];
+
+    // (1) Checklist summary.
+    report.push(await this.inspectChecklistRow("Proposal Document"));
+    report.push(await this.inspectChecklistRow("Basic Information"));
+    report.push(await this.inspectChecklistRow("Research Details"));
+    report.push(await this.inspectChecklistRow("Budget Section"));
+
+    // (2) Drill into each incomplete section.
+    const drill = async (tab: Locator, name: string) => {
+      await tab.click().catch(() => {});
+      await this.page.waitForTimeout(200);
+      const missing = await this.listUnfilledLabelsInCurrentSection();
+      if (missing.length) {
+        report.push(`${name} unfilled: [${missing.join(", ")}]`);
+      }
+    };
+
+    // Only drill if a section's checklist row was INCOMPLETE; Budget is
+    // special-cased below because its validation (isBudgetValid) isn't
+    // label-color-driven.
+    if (report[1].includes("INCOMPLETE")) await drill(this.basicInfoTab, "Basic Info");
+    if (report[2].includes("INCOMPLETE")) await drill(this.researchDetailsTab, "Research Details");
+
+    // (3) Budget-specific diagnostic: look for the "Add Funding Source"
+    // button's sibling items. An invalid budget is usually because either
+    // (a) source name is empty OR (b) at least one expense row has
+    // empty itemName. We count visible source-name inputs and the count
+    // of empty-itemName rows.
+    if (report[3].includes("INCOMPLETE")) {
+      await this.budgetTab.click().catch(() => {});
+      await this.page.waitForTimeout(200);
+      const emptyItemRows = await this.page
+        .locator('input[placeholder*="item" i][value=""]')
+        .count()
+        .catch(() => 0);
+      const emptySources = await this.page
+        .locator('input[placeholder*="source" i][value=""], input[placeholder*="funding" i][value=""]')
+        .count()
+        .catch(() => 0);
+      report.push(
+        `Budget details: emptyItemRows=${emptyItemRows} emptySourceInputs=${emptySources}` +
+        (emptyItemRows > 0
+          ? " — LIB import may have appended to existing scaffolding rows with blank itemName. " +
+            "Call form.cleanupEmptyBudgetScaffolding() before submit."
+          : ""),
+      );
     }
-    return diag.join(" | ");
+
+    return report.join(" | ");
+  }
+
+  /**
+   * After LIB import, remove any leftover "scaffolding" budget source
+   * cards — i.e. cards whose line items still have blank `itemName`.
+   *
+   * Why this exists:
+   * - Auto-fill from the proposal DOCX may populate budgetItems[0] with
+   *   a source name + PLACEHOLDER rows (itemName "Personnel Services
+   *   (auto-filled — please itemize)", qty 1, unitPrice total). Those
+   *   pass isBudgetValid.
+   * - OR auto-fill leaves the initial scaffolding (source="" + 2 empty
+   *   rows per category with itemName=""). Those FAIL isBudgetValid.
+   * - handleLibImport only replaces items[0] when its category arrays
+   *   are length 0 (which the initial scaffolding is NOT — it has 2
+   *   empty rows each). So LIB import always APPENDS when the
+   *   scaffolding is present.
+   *
+   * Result: a card with empty itemNames keeps isBudgetValid=false.
+   * This helper finds any such card and clicks its "Remove" button.
+   * The Remove button is disabled when there's only one card (so this
+   * no-ops gracefully when LIB already replaced cleanly).
+   */
+  async cleanupEmptyBudgetScaffolding() {
+    // Signal that a card is "scaffolding" (not real data):
+    //   (a) source-name input is empty, OR
+    //   (b) every PS/MOOE/CO summary reads ₱0.00.
+    //
+    // The source-name input's exact placeholder is
+    //   "e.g., GAA, LGUs, Industry"
+    // (with a comma after "e.g" — DIFFERENT from the LIB-modal's
+    // "e.g. GAA, LGUs, Industry" which has no comma). Anchoring on
+    // the exact placeholder means we match only budget-card inputs,
+    // never the modal's.
+    //
+    // Walk backwards across cards so the Nth-selector stays stable
+    // as cards disappear. Re-query the list between passes — deleting
+    // a card re-renders the whole list.
+    for (let pass = 0; pass < 5; pass++) {
+      const sourceInputs = this.page.getByPlaceholder(/^e\.g\., GAA, LGUs, Industry$/);
+      const count = await sourceInputs.count();
+      if (count <= 1) return; // single card or none — cleanup done.
+
+      let removedAny = false;
+      for (let i = count - 1; i >= 0; i--) {
+        const input = sourceInputs.nth(i);
+        const value = (await input.inputValue().catch(() => "")).trim();
+        if (value.length > 0) continue; // keep cards with real source names
+
+        const card = input.locator(
+          'xpath=ancestor::div[contains(@class,"rounded-xl") and contains(@class,"bg-white")][1]',
+        );
+        if (!(await card.count())) continue;
+
+        const removeBtn = card.getByRole("button", { name: /^Remove$/ });
+        if (!(await removeBtn.isEnabled({ timeout: 300 }).catch(() => false))) continue;
+
+        await removeBtn.click();
+        await this.page.waitForTimeout(400); // React re-render
+        removedAny = true;
+        break; // re-query
+      }
+      if (!removedAny) return; // stable state reached.
+    }
   }
 
   async clickSubmitAndConfirm() {

@@ -384,11 +384,49 @@ or you'll repeat mistakes that have already been caught and fixed.
   onBlur validation wipes the value unless it matches a dropdown
   option exactly — so `.fill("Zamboanga City")` alone will fail.
   Tests must type a prefix, wait for the dropdown, and click a match.
-- **The LIB import modal has its own hidden `<input type="file">`**
-  scoped to `accept=".docx"`. The outer submission form's file input
-  has id `file-upload`; the work-plan sidebar has a third file input.
-  Disambiguate by `input#file-upload` vs `input[type="file"][accept*="docx"]`
-  with `.nth(0|1)` as shown in `ProposalSubmissionPage.ts`.
+- **Two inputs share the placeholder `"e.g., GAA, LGUs, Industry"`.**
+  The Budget Section's "Source of Funds" input and the LIB import
+  modal's "Funding source name" input both use variants of this
+  placeholder. Because the modal portal renders AFTER the form in
+  DOM order, `getByPlaceholder(/GAA, LGUs, Industry/i).first()` picks
+  the Budget Section's input — the wrong one. Always scope modal
+  lookups to the modal container:
+  ```ts
+  const modalRoot = page.locator("div.fixed.inset-0")
+    .filter({ has: page.getByRole("heading", { name: /Import WMSU LIB Template/i }) });
+  const sourceInput = modalRoot.getByPlaceholder(/GAA, LGUs, Industry/i);
+  ```
+  Exact placeholders differ by one character:
+  - Budget card: `"e.g., GAA, LGUs, Industry"` (comma after "e.g")
+  - LIB modal:  `"e.g. GAA, LGUs, Industry"` (no comma)
+  The `cleanupEmptyBudgetScaffolding()` helper uses this distinction
+  to match only budget cards.
+
+- **LIB import APPENDS when scaffolding exists.** `handleLibImport`
+  only replaces `budgetItems[0]` when its category arrays have
+  `length === 0`. The initial state has two empty rows per category
+  (`createEmptyRow`), so scaffolding is never detected as empty and
+  LIB always appends. Downstream `isBudgetValid` iterates with
+  `.every()` and fails on the scaffolding's blank-itemName rows,
+  keeping Submit disabled. Tests must call
+  `form.cleanupEmptyBudgetScaffolding()` after LIB import to remove
+  any leftover empty source cards. `importLibTemplate()` already
+  calls it internally.
+
+- **Three file inputs live on the Submission page** — never use
+  `input[type="file"][accept*="docx"]` with `.first()` / `.nth()` to
+  pick between them. All three match `accept*="docx"`, and DOM order
+  is load-order-sensitive. The stable, unambiguous selectors are:
+
+  | Target                    | Selector                                                        | Accept attribute                                      |
+  | ------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+  | Main proposal upload      | `input#file-upload`                                             | `.pdf,.doc,.docx`                                     |
+  | LIB import modal          | `input[type="file"][accept^=".docx"]`                           | `.docx,application/vnd.openxmlformats-...`            |
+  | DOST Form 3 (work plan)   | `input[type="file"][accept^=".pdf"]:not(#file-upload)`          | `.pdf,.doc,.docx`                                     |
+
+  Historical mistake: `input[type="file"][accept*="docx"]:first` picked
+  the main proposal input instead of the LIB modal input, silently
+  re-triggering AI analysis and hanging the LIB import race.
 
 ---
 
