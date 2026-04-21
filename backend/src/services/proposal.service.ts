@@ -1239,6 +1239,11 @@ export class ProposalService {
     status: EvaluatorFinalDecision,
     evaluator_id: string,
   ) {
+    const normalizedComment =
+      typeof input.comment === "string" && input.comment.trim().length > 0
+        ? input.comment.trim()
+        : null;
+
     // Look up the evaluator's live assignment row so the score attaches to the
     // exact version they were asked to review. Without this, a late v1 submission
     // could silently land against v2 after a revision.
@@ -1267,7 +1272,7 @@ export class ProposalService {
     // Insert evaluation score tagged with the version the assignment was made for.
     const { data, error } = await this.db
       .from("evaluation_scores")
-      .insert({ ...input, evaluator_id, proposal_version_id });
+      .insert({ ...input, comment: normalizedComment, evaluator_id, proposal_version_id });
 
     if (error) {
       return { data: null, error };

@@ -154,6 +154,7 @@ export default function ProposalDetailsModal({
   const ratingKeys = ["title", "budget", "timeline"] as const;
   const totalScore = (proposal.ratings?.title || 0) + (proposal.ratings?.budget || 0) + (proposal.ratings?.timeline || 0);
   const maxScore = ratingKeys.length * 5;
+  const displayComment = proposal.comment?.trim() || "No comment provided";
 
   const getRatingLabel = (value: number) => {
     if (value === 1) return "Poor";
@@ -344,7 +345,7 @@ export default function ProposalDetailsModal({
                     Comments
                   </label>
                   <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed">
-                    {proposal.comment}
+                    {displayComment}
                   </div>
                 </div>
 

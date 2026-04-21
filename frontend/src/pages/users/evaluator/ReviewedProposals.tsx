@@ -82,6 +82,8 @@ export default function ReviewedProposals() {
         const evaluationScore = scoresMap.get(scoreKey(p.id, item.proposal_version_id))
           ?? scoresMap.get(scoreKey(p.id, null))
           ?? scores.find((s: any) => String(s.proposal_id) === String(p.id));
+        const evaluatorComment =
+          typeof evaluationScore?.comment === "string" ? evaluationScore.comment.trim() : "";
         const versionNumber = versionRankByProposal.get(p.id)?.get(item.proposal_version_id) ?? 1;
         const proponent = p.proponent_id || {};
         const agencyAddress = p.agency_address ? [p.agency_address.street, p.agency_address.barangay, p.agency_address.city].filter(Boolean).join(", ") : "N/A";
@@ -175,7 +177,7 @@ export default function ReviewedProposals() {
             timeline: evaluationScore.timeline
           } : {},
           decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-          comment: evaluationScore?.comment || item.comments_for_evaluators || "No comment",
+          comment: evaluatorComment || "No comment provided",
           evaluatorId: item.id,
           proponentInfoVisibility: item.proponent_info_visibility || p.proponent_info_visibility,
           raw: item,
