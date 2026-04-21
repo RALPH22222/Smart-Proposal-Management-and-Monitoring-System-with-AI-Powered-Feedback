@@ -35,10 +35,19 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
+    const message = error.message || "Internal server error.";
+    const lower = message.toLowerCase();
+    const statusCode =
+      lower.includes("not found")
+        ? 404
+        : lower.includes("pending extension request")
+          ? 400
+          : 500;
+
     return {
-      statusCode: 500,
+      statusCode,
       body: JSON.stringify({
-        message: error.message || "Internal server error.",
+        message,
       }),
     };
   }

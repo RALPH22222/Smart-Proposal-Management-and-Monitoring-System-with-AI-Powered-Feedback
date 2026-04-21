@@ -816,7 +816,7 @@ export const getAssignmentHistory = async (proposalId: number): Promise<Assignme
 export type HandleExtensionPayload = {
   proposal_id: number;
   evaluator_id: string;
-  action: "approved" | "denied";
+  action: "approved" | "rejected";
 };
 
 export const handleExtensionRequest = async (input: HandleExtensionPayload): Promise<any> => {

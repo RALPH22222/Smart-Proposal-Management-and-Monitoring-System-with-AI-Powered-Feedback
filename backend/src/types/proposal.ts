@@ -87,6 +87,7 @@ export enum ProjectsStatus {
 export enum ExtensionDecision {
   APPROVED = "approved",
   DENIED = "denied",
+  REJECTED = "rejected",
 }
 
 export enum ProponentExtensionStatus {

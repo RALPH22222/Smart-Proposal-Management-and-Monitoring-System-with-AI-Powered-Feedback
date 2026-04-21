@@ -268,7 +268,7 @@ export const RnDEvaluatorPage: React.FC = () => {
       await handleExtensionRequest({
         proposal_id: selectedProposalId,
         evaluator_id: evaluatorId,
-        action: action === "Accept" ? "approved" : "denied",
+        action: action === "Accept" ? "approved" : "rejected",
       });
 
       Swal.fire({

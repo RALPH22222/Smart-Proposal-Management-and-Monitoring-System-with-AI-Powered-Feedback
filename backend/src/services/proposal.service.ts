@@ -2944,7 +2944,11 @@ export class ProposalService {
       return { error: fetchError || new Error("Extension request not found") };
     }
 
-    if (tracker.status !== AssignmentTracker.EXTEND) {
+    const hasPendingExtensionRequest =
+      tracker.status === AssignmentTracker.EXTEND ||
+      (tracker.status === AssignmentTracker.PENDING && !!tracker.request_deadline_at);
+
+    if (!hasPendingExtensionRequest) {
       return { error: new Error("No pending extension request for this evaluator and proposal") };
     }
 
@@ -3000,7 +3004,7 @@ export class ProposalService {
       });
 
       return { data: { proposal_id, evaluator_id, action }, error: null };
-    } else if (action === ExtensionDecision.DENIED) {
+    } else if (action === ExtensionDecision.DENIED || action === ExtensionDecision.REJECTED) {
       // 1. Reset tracker status to pending, clear request_deadline_at
       const { error: trackerError } = await this.db
         .from("proposal_assignment_tracker")
