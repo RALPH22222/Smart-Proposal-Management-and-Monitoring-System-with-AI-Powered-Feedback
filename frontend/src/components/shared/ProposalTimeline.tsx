@@ -54,6 +54,10 @@ const HIDDEN_DETAIL_KEYS = new Set([
   'rnd_load',
   'disabled_user_id',
   'new_rnd_id',
+  'evaluator_name',
+  'rnd_name',
+  'actor_name',
+  'performed_by',
 ]);
 
 const EVALUATOR_ACTOR_ACTIONS = new Set([
@@ -62,6 +66,24 @@ const EVALUATOR_ACTOR_ACTIONS = new Set([
   'evaluator_declined',
   'evaluator_extension_requested',
   'evaluation_scores_submitted',
+]);
+
+const RND_ACTOR_ACTIONS = new Set([
+  'proposal_forwarded_to_rnd',
+  'proposal_auto_distributed',
+  'proposal_revision_requested',
+  'proposal_endorsed_for_funding',
+  'proposal_funded',
+  'proposal_rejected',
+  'proposal_status_changed',
+  'proposal_rejection_funding',
+  'proposal_revision_funding',
+  'evaluator_assigned',
+  'evaluator_removed',
+  'extension_request_handled',
+  'evaluator_extension_approved',
+  'evaluator_extension_denied',
+  'evaluator_extension_pending',
 ]);
 
 interface ProposalTimelineProps {
@@ -94,6 +116,13 @@ const getEvaluatorIdentifier = (event: TimelineEvent): string | null => {
   }
 
   return null;
+};
+
+const getActorRole = (event: TimelineEvent): 'evaluator' | 'rnd' | 'user' => {
+  const action = event.action || '';
+  if (EVALUATOR_ACTOR_ACTIONS.has(action) || action === 'decision_evaluator') return 'evaluator';
+  if (RND_ACTOR_ACTIONS.has(action) || action.includes('rnd') || action.includes('forwarded_to_evaluators')) return 'rnd';
+  return 'user';
 };
 
 export default function ProposalTimeline({ proposalId, anonymizeEvaluators = false }: ProposalTimelineProps) {
@@ -131,9 +160,30 @@ export default function ProposalTimeline({ proposalId, anonymizeEvaluators = fal
   };
 
   const evaluatorAliases = new Map<string, string>();
+  const actorAliases = new Map<string, string>();
   let evaluatorCount = 0;
+  let rndCount = 0;
+  let userCount = 0;
 
   if (anonymizeEvaluators) {
+    for (const event of events) {
+      const rawActor = typeof event.actor === 'string' ? event.actor.trim() : '';
+      if (!rawActor) continue;
+      const key = rawActor.toLowerCase();
+      if (actorAliases.has(key)) continue;
+      const role = getActorRole(event);
+      if (role === 'evaluator') {
+        evaluatorCount += 1;
+        actorAliases.set(key, `Evaluator ${evaluatorCount}`);
+      } else if (role === 'rnd') {
+        rndCount += 1;
+        actorAliases.set(key, `R&D ${rndCount}`);
+      } else {
+        userCount += 1;
+        actorAliases.set(key, `User ${userCount}`);
+      }
+    }
+
     for (const event of events) {
       const identifier = getEvaluatorIdentifier(event);
       if (!identifier || evaluatorAliases.has(identifier)) continue;
@@ -199,9 +249,11 @@ export default function ProposalTimeline({ proposalId, anonymizeEvaluators = fal
           const evaluatorAlias = anonymizeEvaluators
             ? evaluatorAliases.get(getEvaluatorIdentifier(event) || '')
             : null;
+          const actorKey = typeof event.actor === 'string' ? event.actor.trim().toLowerCase() : '';
+          const actorAlias = anonymizeEvaluators ? actorAliases.get(actorKey) : null;
           const displayActor = evaluatorAlias && EVALUATOR_ACTOR_ACTIONS.has(event.action)
             ? evaluatorAlias
-            : event.actor;
+            : (actorAlias || event.actor);
           const visibleDetailEntries = event.details
             ? Object.entries(event.details).filter(
                 ([key, value]) =>
@@ -270,11 +322,19 @@ export default function ProposalTimeline({ proposalId, anonymizeEvaluators = fal
                       const displayKey = key === 'evaluator_name'
                         ? 'Evaluator'
                         : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                      const displayValue = key === 'evaluator_name' && evaluatorAlias
+                      let displayValue = key === 'evaluator_name' && evaluatorAlias
                         ? evaluatorAlias
                         : typeof value === 'object'
                           ? JSON.stringify(value)
                           : String(value);
+
+                      if (anonymizeEvaluators && displayValue) {
+                        actorAliases.forEach((alias, original) => {
+                          if (!original) return;
+                          const escaped = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                          displayValue = displayValue.replace(new RegExp(escaped, 'gi'), alias);
+                        });
+                      }
                       return (
                         <div key={key} className="flex gap-2">
                           <span className="font-medium text-slate-500 whitespace-nowrap">{displayKey}:</span>
