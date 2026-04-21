@@ -186,10 +186,11 @@ export async function parseLibDocument(buffer: Buffer): Promise<ParseLibResult> 
     return rejectionResult(REJECTION_MESSAGE, 0);
   }
 
-  // The template has exactly one data table. Take the first table and require its first row
-  // to match the v1 header signature. Any deviation → reject.
-  const table = tables[0];
-  if (table.length === 0 || !isTemplateHeader(table[0])) {
+  // Template has exactly one data table. Locate the first table whose header row matches the
+  // WMSU v1 signature — any other tables (e.g. if someone added a summary table before/after)
+  // are ignored rather than treated as the budget.
+  const table = tables.find((t) => t.length > 0 && isTemplateHeader(t[0]));
+  if (!table) {
     return rejectionResult(REJECTION_MESSAGE, tables.length);
   }
 

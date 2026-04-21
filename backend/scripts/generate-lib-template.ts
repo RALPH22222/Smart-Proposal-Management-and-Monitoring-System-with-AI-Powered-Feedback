@@ -72,11 +72,12 @@ const SAMPLE_MOOE: Row[] = [
 ];
 
 const SAMPLE_CO: Row[] = [
-  { subcategory: "ICT Equipment", itemName: "Ink Tank Printer", spec: "All-in-one, Wi-Fi", qty: 1, unit: "Unit", unitPrice: 15000, amount: 15000 },
-  { subcategory: "ICT Equipment", itemName: "Laptop", spec: "Intel i5, 16GB RAM, 512GB SSD", qty: 1, unit: "Unit", unitPrice: 45000, amount: 45000 },
-  { subcategory: "Semi-expendable Equipment", itemName: "Office Table", spec: "120x60x76cm, 2-tone", qty: 1, unit: "Piece", unitPrice: 6000, amount: 6000 },
-  { subcategory: "Semi-expendable Equipment", itemName: "Office Chair", spec: "Swivel, mesh back", qty: 2, unit: "Piece", unitPrice: 3500, amount: 7000 },
+  { subcategory: "Equipment Outlay", itemName: "Ink Tank Printer", spec: "All-in-one, Wi-Fi", qty: 1, unit: "Unit", unitPrice: 15000, amount: 15000 },
+  { subcategory: "Equipment Outlay", itemName: "Laptop", spec: "Intel i5, 16GB RAM, 512GB SSD", qty: 1, unit: "Unit", unitPrice: 45000, amount: 45000 },
+  { subcategory: "Equipment Outlay", itemName: "Office Table", spec: "120x60x76cm, 2-tone", qty: 1, unit: "Piece", unitPrice: 6000, amount: 6000 },
+  { subcategory: "Equipment Outlay", itemName: "Office Chair", spec: "Swivel, mesh back", qty: 2, unit: "Piece", unitPrice: 3500, amount: 7000 },
 ];
+
 
 const EMPTY_ROW: Row = { subcategory: "", itemName: "", spec: "", qty: "", unit: "", unitPrice: "", amount: "" };
 
@@ -191,12 +192,16 @@ function sumRows(rows: Row[]): number | "" {
   return total === 0 ? "" : total;
 }
 
+
 function buildDocument(filled: boolean): Document {
   const headerRow = new TableRow({ children: HEADER_COLUMNS.map(headerCell), tableHeader: true });
 
-  const psRows = filled ? SAMPLE_PS : [EMPTY_ROW];
-  const mooeRows = filled ? SAMPLE_MOOE : [EMPTY_ROW];
-  const coRows = filled ? SAMPLE_CO : [EMPTY_ROW];
+  // Blank template ships with 3 empty rows per category — enough that most proponents can start
+  // filling immediately without adding rows in Word. If they need more, Word's table handles it.
+  const emptyRows = (n: number) => Array.from({ length: n }, () => EMPTY_ROW);
+  const psRows = filled ? SAMPLE_PS : emptyRows(3);
+  const mooeRows = filled ? SAMPLE_MOOE : emptyRows(3);
+  const coRows = filled ? SAMPLE_CO : emptyRows(3);
 
   const psTotal = filled ? sumRows(SAMPLE_PS) : "";
   const mooeTotal = filled ? sumRows(SAMPLE_MOOE) : "";
@@ -271,7 +276,7 @@ function buildDocument(filled: boolean): Document {
       children: [
         new TextRun({
           text:
-            'Subcategory tip: If your item matches a standard subcategory (e.g. "Office Supplies", "Honoraria"), write that. If your item does not fit any standard subcategory, you have three options — all are acceptable: (1) write "Other" and refine it in the form after import, (2) write your own specific label (e.g. "IoT Sensors") and the system keeps it as-is, or (3) leave the cell blank and pick the subcategory in the form after import.',
+            'Subcategory is optional. The simplest approach: leave it blank and choose the official WMSU subcategory after import — the form dropdown shows the full live list. You can also write your own specific label (e.g. "IoT Sensors") if you prefer, and the system will keep it as-is.',
           italics: true,
           size: 18,
           color: "4A5568",
