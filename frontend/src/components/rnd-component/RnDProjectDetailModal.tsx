@@ -613,7 +613,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 </div>
               );
             })()}
-            <div className={`grid gap-4 ${report.expenses.some(e => e.approvedAmount !== null) ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <p className="text-xs text-slate-400 uppercase font-bold">Completion</p>
                 <div className="flex items-center gap-2 mt-2">
@@ -623,56 +623,45 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                   <span className="text-sm font-bold text-slate-700">{report.progress}%</span>
                 </div>
               </div>
-              {report.expenses.some(e => e.approvedAmount !== null) && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
-                  <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
-                </div>
-              )}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-400 uppercase font-bold">Approved</p>
+                <p className="text-xl font-bold text-slate-800 mt-1">₱{report.totalApproved.toLocaleString()}</p>
+              </div>
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <p className="text-xs text-slate-400 uppercase font-bold">Actual Spent</p>
                 <p className="text-xl font-bold text-blue-700 mt-1">₱{report.totalExpense.toLocaleString()}</p>
               </div>
-              {report.expenses.some(e => e.approvedAmount !== null) && (
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
-                  <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                    ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
-                  </p>
-                </div>
-              )}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-400 uppercase font-bold">For Return</p>
+                <p className={`text-xl font-bold mt-1 ${(report.totalApproved - report.totalExpense) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                  ₱{(report.totalApproved - report.totalExpense).toLocaleString()}
+                </p>
+              </div>
             </div>
 
             {report.expenses.length > 0 ? (
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600 uppercase border-b border-slate-200">Expense Breakdown</div>
-                {report.expenses.some(e => e.approvedAmount !== null) ? (
-                  <>
-                    <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
-                      <span className="col-span-1">Item</span>
-                      <span className="text-right">Approved</span>
-                      <span className="text-right">Actual</span>
-                      <span className="text-right">Unspent</span>
+                <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200 bg-slate-50/50">
+                  <span className="col-span-1">Item</span>
+                  <span className="text-right">Approved</span>
+                  <span className="text-right">Actual</span>
+                  <span className="text-right">Unspent</span>
+                </div>
+                {report.expenses.map((exp, idx) => {
+                  const approved = exp.approvedAmount ?? exp.amount;
+                  const unspent = approved - exp.amount;
+                  return (
+                    <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
+                      <span className="text-slate-700 col-span-1 truncate">{idx + 1}. {exp.description}</span>
+                      <span className="font-mono text-right text-slate-500">₱{approved.toLocaleString()}</span>
+                      <span className="font-mono text-right font-medium text-blue-700">₱{exp.amount.toLocaleString()}</span>
+                      <span className={`font-mono text-right font-medium ${unspent > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                        ₱{unspent.toLocaleString()}
+                      </span>
                     </div>
-                    {report.expenses.map((exp, idx) => (
-                      <div key={exp.id} className="grid grid-cols-4 gap-2 px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                        <span className="text-slate-700 col-span-1 truncate">{idx + 1}. {exp.description}</span>
-                        <span className="font-mono text-right text-slate-500">₱{(exp.approvedAmount ?? exp.amount).toLocaleString()}</span>
-                        <span className="font-mono text-right font-medium text-blue-700">₱{exp.amount.toLocaleString()}</span>
-                        <span className={`font-mono text-right font-medium ${(exp.approvedAmount ?? exp.amount) - exp.amount > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                          ₱{((exp.approvedAmount ?? exp.amount) - exp.amount).toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  report.expenses.map((exp, idx) => (
-                    <div key={exp.id} className="flex justify-between px-4 py-3 text-sm border-b border-slate-100 last:border-0">
-                      <span className="text-slate-700">{idx + 1}. {exp.description}</span>
-                      <span className="font-mono font-medium text-slate-900">₱{exp.amount.toLocaleString()}</span>
-                    </div>
-                  ))
-                )}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center p-4 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500">

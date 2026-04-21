@@ -2060,6 +2060,39 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                             <span className="text-sm font-bold text-gray-700">{currentReport.progressPercentage}%</span>
                           </div>
                         </div>
+                        {/* Confirmation of what the proponent actually reported. Same 4-col
+                            breakdown as R&D sees so there's no ambiguity about what's pending. */}
+                        {currentReport.expenses.length > 0 && (
+                          <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase mb-2">What you reported</p>
+                            <div className="grid grid-cols-4 gap-2 px-3 py-2 text-[10px] font-bold text-gray-400 uppercase bg-gray-50 rounded-t-lg border border-gray-200">
+                              <span>Item</span>
+                              <span className="text-right">Approved</span>
+                              <span className="text-right">Actual</span>
+                              <span className="text-right">For Return</span>
+                            </div>
+                            <div className="bg-white border-x border-b border-gray-200 rounded-b-lg">
+                              {currentReport.expenses.map((exp) => {
+                                const approved = exp.approvedAmount ?? exp.amount;
+                                const forReturn = approved - exp.amount;
+                                return (
+                                  <div key={exp.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-xs border-b border-gray-100 last:border-0">
+                                    <span className="truncate" title={exp.description}>{exp.description}</span>
+                                    <span className="font-mono text-right text-gray-500">{formatCurrency(approved)}</span>
+                                    <span className="font-mono text-right font-semibold text-blue-700">{formatCurrency(exp.amount)}</span>
+                                    <span className={`font-mono text-right font-semibold ${forReturn > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{formatCurrency(forReturn)}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="grid grid-cols-4 gap-2 px-3 py-2 text-xs bg-gray-50 font-bold border-t border-gray-200">
+                                <span>Total</span>
+                                <span className="font-mono text-right text-gray-600">{formatCurrency(currentReport.totalApproved)}</span>
+                                <span className="font-mono text-right text-blue-700">{formatCurrency(currentReport.totalExpense)}</span>
+                                <span className={`font-mono text-right ${currentReport.totalApproved - currentReport.totalExpense > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{formatCurrency(currentReport.totalApproved - currentReport.totalExpense)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -2085,13 +2118,31 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                         {currentReport.expenses.length > 0 && (
                           <div>
                             <p className="text-xs font-bold text-gray-500 uppercase mb-2">Expense Breakdown</p>
-                            <div className="bg-gray-50 rounded-xl p-3 space-y-1">
-                              {currentReport.expenses.map(exp => (
-                                <div key={exp.id} className="flex justify-between text-xs text-gray-600 border-b border-gray-200 last:border-0 pb-1">
-                                  <span>{exp.description}</span>
-                                  <span className="font-mono">{formatCurrency(exp.amount)}</span>
-                                </div>
-                              ))}
+                            <div className="grid grid-cols-4 gap-2 px-3 py-2 text-[10px] font-bold text-gray-400 uppercase bg-gray-50 rounded-t-lg border border-gray-200">
+                              <span>Item</span>
+                              <span className="text-right">Approved</span>
+                              <span className="text-right">Actual</span>
+                              <span className="text-right">For Return</span>
+                            </div>
+                            <div className="bg-white border-x border-b border-gray-200 rounded-b-lg">
+                              {currentReport.expenses.map((exp) => {
+                                const approved = exp.approvedAmount ?? exp.amount;
+                                const forReturn = approved - exp.amount;
+                                return (
+                                  <div key={exp.id} className="grid grid-cols-4 gap-2 px-3 py-2 text-xs border-b border-gray-100 last:border-0">
+                                    <span className="truncate" title={exp.description}>{exp.description}</span>
+                                    <span className="font-mono text-right text-gray-500">{formatCurrency(approved)}</span>
+                                    <span className="font-mono text-right font-semibold text-blue-700">{formatCurrency(exp.amount)}</span>
+                                    <span className={`font-mono text-right font-semibold ${forReturn > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{formatCurrency(forReturn)}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="grid grid-cols-4 gap-2 px-3 py-2 text-xs bg-gray-50 font-bold border-t border-gray-200">
+                                <span>Total</span>
+                                <span className="font-mono text-right text-gray-600">{formatCurrency(currentReport.totalApproved)}</span>
+                                <span className="font-mono text-right text-blue-700">{formatCurrency(currentReport.totalExpense)}</span>
+                                <span className={`font-mono text-right ${currentReport.totalApproved - currentReport.totalExpense > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{formatCurrency(currentReport.totalApproved - currentReport.totalExpense)}</span>
+                              </div>
                             </div>
                           </div>
                         )}

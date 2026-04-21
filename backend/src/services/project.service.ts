@@ -642,7 +642,7 @@ export class ProjectService {
           first_name,
           last_name
         ),
-        project_expenses (id, expenses, desription, created_at)
+        project_expenses (id, expenses, desription, fund_request_item_id, approved_amount, created_at)
       `
       )
       .eq("funded_project_id", input.funded_project_id)
@@ -704,6 +704,11 @@ export class ProjectService {
         target_type: "report",
         details: { funded_project_id: data.funded_project_id },
       });
+
+      // Refresh the LIB drawn/spent overlay so the proponent sees the locked-in
+      // actuals when they next open the realignment form. Soft-fails — the
+      // cache is recomputable and the status flip above is the primary action.
+      await this.recomputeBudgetItemActuals(data.funded_project_id);
     }
 
     return { data, error };
@@ -2014,6 +2019,13 @@ export class ProjectService {
       details: { review_note: input.review_note },
     });
 
+    // On approval, refresh the LIB drawn/spent overlay so the proponent's
+    // realignment-form floor reflects the freshly-drawn amount. Soft-fail —
+    // the cache is recomputable; the status flip above is the primary action.
+    if (input.status === "approved") {
+      await this.recomputeBudgetItemActuals(fundRequest.funded_project_id);
+    }
+
     // Notify the proponent
     await this.db.from("notifications").insert({
       user_id: data.requested_by,
@@ -2265,6 +2277,130 @@ export class ProjectService {
   // Phase 3 of LIB feature: Budget realignment workflow
   // ============================================================
 
+  // Recomputes the cached drawn_total + actual_spent columns on the ACTIVE version's
+  // budget items for this project. Called after any fund-request approval or quarterly
+  // report verification so the realignment form and monitoring LIB viewer show the
+  // proponent accurate "Original ₱X / Drawn ₱Y / Spent ₱Z / Realignable ₱W" overlays.
+  //
+  // Formula (per the realignment reclassification migration, 20260421004625):
+  //   drawn_total  = Σ approved fund_request_items.amount linked via budget_item_id
+  //                  + Σ reclassifications where target_budget_item_id = this
+  //                  - Σ reclassifications where source_budget_item_id = this
+  //   actual_spent = Σ project_expenses.expenses from verified reports whose
+  //                  fund_request_item points at this budget_item
+  //
+  // The immutability rule from Pattern N (never rewrite fund_request_items.amount)
+  // means historical spending stays attributed to whichever version's item was drawn
+  // against at the time. v2 items pick up drawn from reclassifications, but their
+  // actual_spent starts at 0 until new reports are verified against v2 FRIs.
+  //
+  // Non-blocking: caller treats errors as soft failures. Missed recompute = display
+  // bug (wrong overlay), not a data bug; the migration-time backfill reconciles.
+  private async recomputeBudgetItemActuals(fundedProjectId: number): Promise<void> {
+    try {
+      const { data: project } = await this.db
+        .from("funded_projects")
+        .select("current_budget_version_id")
+        .eq("id", fundedProjectId)
+        .maybeSingle();
+
+      const activeVersionId = project?.current_budget_version_id as number | null | undefined;
+      if (!activeVersionId) return;
+
+      const { data: items } = await this.db
+        .from("proposal_budget_items")
+        .select("id")
+        .eq("version_id", activeVersionId);
+
+      if (!items || items.length === 0) return;
+      const itemIds = items.map((i) => i.id as number);
+
+      // Direct drawn — approved fund_request_items pointing at these budget_items.
+      const { data: fundReqItems } = await this.db
+        .from("fund_request_items")
+        .select("id, budget_item_id, amount, fund_requests!inner(status)")
+        .in("budget_item_id", itemIds)
+        .eq("fund_requests.status", "approved");
+
+      const directDrawn = new Map<number, number>();
+      const budgetIdByFriId = new Map<number, number>();
+      for (const fri of (fundReqItems ?? []) as Array<{
+        id: number;
+        budget_item_id: number;
+        amount: number | string;
+      }>) {
+        const amt = Number(fri.amount) || 0;
+        directDrawn.set(fri.budget_item_id, (directDrawn.get(fri.budget_item_id) ?? 0) + amt);
+        budgetIdByFriId.set(fri.id, fri.budget_item_id);
+      }
+
+      // Reclassification ledger — net drawn re-attribution for the active version's items.
+      // Filtered to rows that touch at least one of our items (either side).
+      const { data: reclassRows } = await this.db
+        .from("fund_request_reclassifications")
+        .select("source_budget_item_id, target_budget_item_id, amount")
+        .or(
+          `source_budget_item_id.in.(${itemIds.join(",")}),target_budget_item_id.in.(${itemIds.join(",")})`,
+        );
+
+      const reclassIn = new Map<number, number>();
+      const reclassOut = new Map<number, number>();
+      for (const row of (reclassRows ?? []) as Array<{
+        source_budget_item_id: number;
+        target_budget_item_id: number;
+        amount: number | string;
+      }>) {
+        const amt = Number(row.amount) || 0;
+        reclassOut.set(
+          row.source_budget_item_id,
+          (reclassOut.get(row.source_budget_item_id) ?? 0) + amt,
+        );
+        reclassIn.set(
+          row.target_budget_item_id,
+          (reclassIn.get(row.target_budget_item_id) ?? 0) + amt,
+        );
+      }
+
+      // Actual spent — verified project_expenses linked through fund_request_items.
+      const actualSpent = new Map<number, number>();
+      const friIds = Array.from(budgetIdByFriId.keys());
+      if (friIds.length > 0) {
+        const { data: expenses } = await this.db
+          .from("project_expenses")
+          .select("expenses, fund_request_item_id, project_reports!inner(status)")
+          .eq("project_reports.status", "verified")
+          .in("fund_request_item_id", friIds);
+
+        for (const ex of (expenses ?? []) as Array<{
+          expenses: number | string;
+          fund_request_item_id: number;
+        }>) {
+          const budgetId = budgetIdByFriId.get(ex.fund_request_item_id);
+          if (!budgetId) continue;
+          actualSpent.set(budgetId, (actualSpent.get(budgetId) ?? 0) + (Number(ex.expenses) || 0));
+        }
+      }
+
+      // Write back — one UPDATE per item. LIBs are typically 20–50 items; acceptable.
+      for (const itemId of itemIds) {
+        const drawn =
+          (directDrawn.get(itemId) ?? 0) +
+          (reclassIn.get(itemId) ?? 0) -
+          (reclassOut.get(itemId) ?? 0);
+        const spent = actualSpent.get(itemId) ?? 0;
+        await this.db
+          .from("proposal_budget_items")
+          .update({
+            drawn_total: Math.round(drawn * 100) / 100,
+            actual_spent: Math.round(spent * 100) / 100,
+          })
+          .eq("id", itemId);
+      }
+    } catch (err) {
+      console.error("recomputeBudgetItemActuals failed (non-blocking):", err);
+    }
+  }
+
   // Returns the active budget version for a funded project, including all line items.
   // Lazily backfills funded_projects.current_budget_version_id from the latest version
   // if it's NULL — covers funded_projects rows created BEFORE Phase 1 deploy or by code
@@ -2350,7 +2486,8 @@ export class ProjectService {
         id, proposal_id, version_number, grand_total, created_at,
         items:proposal_budget_items (
           id, source, category, subcategory_id, custom_subcategory_label,
-          item_name, spec, quantity, unit, unit_price, total_amount, display_order, notes
+          item_name, spec, quantity, unit, unit_price, total_amount, display_order, notes,
+          drawn_total, actual_spent
         )
       `,
       )

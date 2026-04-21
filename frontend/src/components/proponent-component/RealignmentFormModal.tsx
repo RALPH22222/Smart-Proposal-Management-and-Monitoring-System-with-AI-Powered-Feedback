@@ -51,6 +51,9 @@ const CATEGORY_LABEL: Record<'ps' | 'mooe' | 'co', string> = {
 
 interface EditableRow {
   uid: string;
+  // Original proposal_budget_items.id for baseline rows (undefined for rows the proponent
+  // added during this realignment). Used to anchor the drawn/spent overlay.
+  budgetItemId?: number;
   source: string;
   category: 'ps' | 'mooe' | 'co';
   subcategoryId: number | null;
@@ -61,6 +64,11 @@ interface EditableRow {
   unit: string;
   unitPrice: number;
   totalAmount: number;
+  // Cached actuals from proposal_budget_items (cumulative, current version).
+  // drawnTotal is the FLOOR the backend enforces — reducing a row below this
+  // triggers a Pattern N reclassification review (two-tier approval).
+  drawnTotal: number;
+  actualSpent: number;
   // Tracks if this row was added by the proponent during this realignment (vs being a
   // baseline item from the active version). Used purely for UI marker.
   isNew?: boolean;
@@ -69,6 +77,7 @@ interface EditableRow {
 function dtoToEditable(item: BudgetItemDto): EditableRow {
   return {
     uid: `row_${item.id ?? Math.random().toString(36).slice(2)}_${Date.now()}`,
+    budgetItemId: item.id,
     source: item.source ?? '',
     category: item.category,
     subcategoryId: item.subcategory_id ?? null,
@@ -79,11 +88,15 @@ function dtoToEditable(item: BudgetItemDto): EditableRow {
     unit: item.unit ?? '',
     unitPrice: Number(item.unit_price) || 0,
     totalAmount: Number(item.total_amount) || 0,
+    drawnTotal: Number(item.drawn_total) || 0,
+    actualSpent: Number(item.actual_spent) || 0,
   };
 }
 
 // Proposed-payload items (from a revision_requested realignment) come in camelCase from the
 // Zod schema. Normalize them back to the editable-row shape so we can seed the form state.
+// The proposed payload doesn't carry drawn/spent — those live on baseline items, so we
+// look them up by natural key (category + item name + spec) after seeding.
 function proposedToEditable(raw: any): EditableRow {
   return {
     uid: `revise_${Math.random().toString(36).slice(2)}_${Date.now()}`,
@@ -97,6 +110,8 @@ function proposedToEditable(raw: any): EditableRow {
     unit: raw.unit ?? '',
     unitPrice: Number(raw.unitPrice) || 0,
     totalAmount: Number(raw.totalAmount) || 0,
+    drawnTotal: 0,
+    actualSpent: 0,
   };
 }
 
@@ -118,6 +133,8 @@ function parsedLibToEditable(item: ParsedLibItemDto, inheritedSource: string): E
     unit: item.unit ?? '',
     unitPrice: Number(item.unitPrice) || 0,
     totalAmount: Number(item.totalAmount) || 0,
+    drawnTotal: 0,
+    actualSpent: 0,
     isNew: true,
   };
 }
@@ -150,7 +167,14 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   // MAY trigger two-tier approval (server makes the final determination based on
   // actual drawn amounts, which the client doesn't fetch).
   const [baselineItemsSnapshot, setBaselineItemsSnapshot] = useState<
-    Array<{ category: string; item_name: string; spec: string | null; total_amount: number }>
+    Array<{
+      category: string;
+      item_name: string;
+      spec: string | null;
+      total_amount: number;
+      drawn_total: number;
+      actual_spent: number;
+    }>
   >([]);
 
   const [reason, setReason] = useState(isReviseMode ? (existingRealignment?.reason ?? '') : '');
@@ -174,18 +198,36 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         if (cancelled) return;
         setBaselineTotal(Number(res.version.grand_total) || 0);
         setVersionNumber(res.version.version_number);
-        setBaselineItemsSnapshot(
-          (res.version.items ?? []).map((bi: any) => ({
-            category: bi.category,
-            item_name: bi.item_name,
-            spec: bi.spec ?? null,
-            total_amount: Number(bi.total_amount) || 0,
-          })),
-        );
+        const snapshot = (res.version.items ?? []).map((bi: any) => ({
+          category: bi.category,
+          item_name: bi.item_name,
+          spec: bi.spec ?? null,
+          total_amount: Number(bi.total_amount) || 0,
+          drawn_total: Number(bi.drawn_total) || 0,
+          actual_spent: Number(bi.actual_spent) || 0,
+        }));
+        setBaselineItemsSnapshot(snapshot);
 
         if (isReviseMode && existingRealignment?.proposed_payload?.items?.length) {
+          // Enrich proposed rows with drawn/spent by matching natural key — the proposed
+          // payload itself doesn't carry these, but they live on the baseline items that
+          // this realignment was built against.
+          const keyOf = (cat: string, name: string, spec: string | null) =>
+            `${cat}|${(name ?? '').trim().toLowerCase()}|${(spec ?? '').trim().toLowerCase()}`;
+          const snapshotByKey = new Map(
+            snapshot.map((bi) => [keyOf(bi.category, bi.item_name, bi.spec), bi]),
+          );
+
           const proposed = existingRealignment.proposed_payload.items
-            .map(proposedToEditable)
+            .map((raw: any) => {
+              const row = proposedToEditable(raw);
+              const match = snapshotByKey.get(keyOf(row.category, row.itemName, row.spec ?? null));
+              if (match) {
+                row.drawnTotal = match.drawn_total;
+                row.actualSpent = match.actual_spent;
+              }
+              return row;
+            })
             .sort((a, b) => {
               if (a.category !== b.category) {
                 return ['ps', 'mooe', 'co'].indexOf(a.category) - ['ps', 'mooe', 'co'].indexOf(b.category);
@@ -226,12 +268,11 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
   const overCeiling = round2(newTotal) > round2(baselineTotal);
   const remainingHeadroom = baselineTotal - newTotal;
 
-  // Heuristic reclassification warning: compare each baseline item's natural key
-  // (category + name + spec) to the sum of proposed rows matching that key. If
-  // any baseline item is proposed at LESS than its baseline total, it MAY have
-  // been drawn against — triggering two-tier approval. The server does the
-  // precise check using actual drawn amounts; this is just a heads-up so
-  // proponents aren't surprised when the submission routes through Admin.
+  // Reclassification warning: compare each baseline item's drawn_total against the
+  // sum of proposed rows sharing its natural key (category + name + spec). If any
+  // proposed sum is LESS than drawn_total, Pattern N two-tier approval fires
+  // server-side. drawn_total is now surfaced per item (migration 20260422000000),
+  // so this check is precise rather than a conservative heuristic.
   const mayRequireReclassification = useMemo(() => {
     if (baselineItemsSnapshot.length === 0) return false;
     const keyOf = (cat: string, name: string, spec: string | null) =>
@@ -244,9 +285,10 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
     }
 
     for (const bi of baselineItemsSnapshot) {
+      if (bi.drawn_total <= 0) continue;
       const k = keyOf(bi.category, bi.item_name, bi.spec);
       const proposed = proposedByKey.get(k) ?? 0;
-      if (round2(proposed) < round2(bi.total_amount)) {
+      if (round2(proposed) < round2(bi.drawn_total)) {
         return true;
       }
     }
@@ -285,6 +327,8 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
         unit: 'pcs',
         unitPrice: 0,
         totalAmount: 0,
+        drawnTotal: 0,
+        actualSpent: 0,
         isNew: true,
       },
     ]);
@@ -673,9 +717,41 @@ export const RealignmentFormModal: React.FC<RealignmentFormModalProps> = ({
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
-                            {row.isNew && (
-                              <div className="text-[10px] text-emerald-600 font-bold pl-1 mt-1">
-                                + Added during realignment
+                            {(row.drawnTotal > 0 || row.actualSpent > 0 || row.isNew) && (
+                              <div className="pl-1 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px]">
+                                {row.isNew && (
+                                  <span className="text-emerald-600 font-bold">+ Added during realignment</span>
+                                )}
+                                {row.drawnTotal > 0 && (
+                                  <>
+                                    <span className="text-slate-500">
+                                      Drawn <span className="font-mono font-semibold text-slate-700">{formatPHP(row.drawnTotal)}</span>
+                                    </span>
+                                    {row.actualSpent > 0 && (
+                                      <span className="text-slate-500">
+                                        Spent <span className="font-mono font-semibold text-slate-700">{formatPHP(row.actualSpent)}</span>
+                                      </span>
+                                    )}
+                                    <span
+                                      className={
+                                        round2(row.totalAmount) < round2(row.drawnTotal)
+                                          ? 'text-amber-700 font-semibold'
+                                          : 'text-slate-500'
+                                      }
+                                    >
+                                      Realignable{' '}
+                                      <span className="font-mono font-semibold">
+                                        {formatPHP(Math.max(0, row.totalAmount - row.drawnTotal))}
+                                      </span>
+                                    </span>
+                                    {round2(row.totalAmount) < round2(row.drawnTotal) && (
+                                      <span className="text-amber-700 font-bold flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        Below drawn floor — will route through Admin approval
+                                      </span>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>

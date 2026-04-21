@@ -1077,6 +1077,11 @@ export interface BudgetItemDto {
   total_amount: number;
   display_order: number;
   notes?: string | null;
+  // Cumulative actuals cached on the row (migration 20260422000000). Both default
+  // to 0 server-side, so treat `undefined` as 0 for backward compatibility with
+  // older responses that predate the migration.
+  drawn_total?: number;
+  actual_spent?: number;
 }
 
 export interface BudgetVersionDto {
