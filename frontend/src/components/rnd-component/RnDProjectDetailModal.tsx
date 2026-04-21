@@ -104,6 +104,11 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const [terminalRejectNote, setTerminalRejectNote] = useState('');
   const [submittingTerminalReject, setSubmittingTerminalReject] = useState(false);
 
+  // Compliance-doc (MOA / Agency Cert) Verify/Reject in-flight tracker. Keyed by
+  // `${docKey}:${action}` so only the clicked button spins while the paired button
+  // on the same doc (and buttons on the other doc) are disabled to prevent double-submit.
+  const [complianceDocAction, setComplianceDocAction] = useState<string | null>(null);
+
   const loadDetails = async () => {
     if (!project?.backendId) return;
     setDetailLoading(true);
@@ -970,62 +975,79 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                         </button>
                                       );
                                     })()}
-                                    {doc.status === 'pending_verification' && (
-                                      <>
-                                        <button
-                                          onClick={async () => {
-                                            const confirm = await Swal.fire({
-                                              title: 'Verify this document?',
-                                              text: `Mark ${doc.label} as verified. The proponent will be able to submit fund requests against it.`,
-                                              icon: 'question',
-                                              showCancelButton: true,
-                                              confirmButtonText: 'Verify',
-                                              confirmButtonColor: '#059669',
-                                            });
-                                            if (!confirm.isConfirmed) return;
-                                            try {
-                                              await verifyProjectDocument(rawDetail!.id, doc.docKey);
-                                              await loadDetails();
-                                              Swal.fire({ icon: 'success', title: 'Verified', timer: 1500, showConfirmButton: false });
-                                            } catch (err: any) {
-                                              Swal.fire('Error', err?.response?.data?.message || 'Failed to verify document.', 'error');
-                                            }
-                                          }}
-                                          className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
-                                        >
-                                          <ShieldCheck className="w-3 h-3" /> Verify
-                                        </button>
-                                        <button
-                                          onClick={async () => {
-                                            const { value: note } = await Swal.fire({
-                                              title: 'Reject this document',
-                                              text: `Explain what's wrong so the proponent can fix and re-upload.`,
-                                              input: 'textarea',
-                                              inputLabel: 'Reason (min. 10 characters)',
-                                              inputPlaceholder: 'e.g., "Signature page missing" or "Uploaded file is blank"',
-                                              showCancelButton: true,
-                                              confirmButtonText: 'Reject',
-                                              confirmButtonColor: '#dc2626',
-                                              inputValidator: (value) => {
-                                                if (!value || value.trim().length < 10) return 'Please provide at least 10 characters.';
-                                                return null;
-                                              },
-                                            });
-                                            if (!note) return;
-                                            try {
-                                              await rejectProjectDocument(rawDetail!.id, doc.docKey, note.trim());
-                                              await loadDetails();
-                                              Swal.fire({ icon: 'success', title: 'Rejected', text: 'Proponent has been notified.', timer: 1800, showConfirmButton: false });
-                                            } catch (err: any) {
-                                              Swal.fire('Error', err?.response?.data?.message || 'Failed to reject document.', 'error');
-                                            }
-                                          }}
-                                          className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
-                                        >
-                                          <XCircle className="w-3 h-3" /> Reject
-                                        </button>
-                                      </>
-                                    )}
+                                    {doc.status === 'pending_verification' && (() => {
+                                      const verifyKey = `${doc.docKey}:verify`;
+                                      const rejectKey = `${doc.docKey}:reject`;
+                                      const isVerifying = complianceDocAction === verifyKey;
+                                      const isRejecting = complianceDocAction === rejectKey;
+                                      const anyInFlight = complianceDocAction !== null;
+                                      return (
+                                        <>
+                                          <button
+                                            disabled={anyInFlight}
+                                            onClick={async () => {
+                                              const confirm = await Swal.fire({
+                                                title: 'Verify this document?',
+                                                text: `Mark ${doc.label} as verified. The proponent will be able to submit fund requests against it.`,
+                                                icon: 'question',
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Verify',
+                                                confirmButtonColor: '#059669',
+                                              });
+                                              if (!confirm.isConfirmed) return;
+                                              setComplianceDocAction(verifyKey);
+                                              try {
+                                                await verifyProjectDocument(rawDetail!.id, doc.docKey);
+                                                await loadDetails();
+                                                Swal.fire({ icon: 'success', title: 'Verified', timer: 1500, showConfirmButton: false });
+                                              } catch (err: any) {
+                                                Swal.fire('Error', err?.response?.data?.message || 'Failed to verify document.', 'error');
+                                              } finally {
+                                                setComplianceDocAction(null);
+                                              }
+                                            }}
+                                            className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                                          >
+                                            {isVerifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+                                            {isVerifying ? 'Verifying…' : 'Verify'}
+                                          </button>
+                                          <button
+                                            disabled={anyInFlight}
+                                            onClick={async () => {
+                                              const { value: note } = await Swal.fire({
+                                                title: 'Reject this document',
+                                                text: `Explain what's wrong so the proponent can fix and re-upload.`,
+                                                input: 'textarea',
+                                                inputLabel: 'Reason (min. 10 characters)',
+                                                inputPlaceholder: 'e.g., "Signature page missing" or "Uploaded file is blank"',
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Reject',
+                                                confirmButtonColor: '#dc2626',
+                                                inputValidator: (value) => {
+                                                  if (!value || value.trim().length < 10) return 'Please provide at least 10 characters.';
+                                                  return null;
+                                                },
+                                              });
+                                              if (!note) return;
+                                              setComplianceDocAction(rejectKey);
+                                              try {
+                                                await rejectProjectDocument(rawDetail!.id, doc.docKey, note.trim());
+                                                await loadDetails();
+                                                Swal.fire({ icon: 'success', title: 'Rejected', text: 'Proponent has been notified.', timer: 1800, showConfirmButton: false });
+                                              } catch (err: any) {
+                                                Swal.fire('Error', err?.response?.data?.message || 'Failed to reject document.', 'error');
+                                              } finally {
+                                                setComplianceDocAction(null);
+                                              }
+                                            }}
+                                            className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                                          >
+                                            {isRejecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                                            {isRejecting ? 'Rejecting…' : 'Reject'}
+                                          </button>
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                                 {doc.status === 'verified' && doc.verifiedAt && (

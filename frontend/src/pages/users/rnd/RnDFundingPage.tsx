@@ -121,8 +121,8 @@ const FundingPage: React.FC = () => {
     }
   };
 
-  const handleActionSubmit = async (data: FundingActionSubmitData) => {
-    if (!activeProposal) return;
+  const handleActionSubmit = async (data: FundingActionSubmitData): Promise<boolean> => {
+    if (!activeProposal) return false;
     try {
       let fileUrl: string | undefined;
 
@@ -146,9 +146,9 @@ const FundingPage: React.FC = () => {
         file_url: fileUrl,
       });
 
-      setIsActionModalOpen(false);
+      await loadFundingProposals();
       setActiveProposal(null);
-      loadFundingProposals();
+      return true;
     } catch (error) {
       console.error(`Error processing ${data.decision} action:`, error);
       throw error; // Re-throw to be caught by the modal
